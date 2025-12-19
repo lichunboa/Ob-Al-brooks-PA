@@ -33,7 +33,12 @@ module.exports = {
         // Border System | 边框系统
         border: "rgba(148, 163, 184, 0.1)",     // Normal | 常规
         borderLight: "rgba(148, 163, 184, 0.2)", // Light | 浅色
-        borderAccent: "rgba(96, 165, 250, 0.3)"  // Accent | 强调
+        borderAccent: "rgba(96, 165, 250, 0.3)", // Accent | 强调
+        
+        // Legacy Compatibility | 向后兼容 (旧视图文件使用)
+        cardBg: "background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05); color: #F3F4F6;",
+        tagBg: "rgba(51, 65, 85, 0.5)",
+        tagBorder: "1px solid rgba(148, 163, 184, 0.1)"
     },
 
     // 💅 2. Style Library | 样式库
