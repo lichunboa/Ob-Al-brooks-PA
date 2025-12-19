@@ -1,9 +1,9 @@
 /* 文件名: Scripts/pa-view-trend.js (V2.2 - Strict Restore)
    用途: 综合趋势与心态监控
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (window.paData) {
     const trades = window.paData.trades.slice(0, 30); // 最近30笔

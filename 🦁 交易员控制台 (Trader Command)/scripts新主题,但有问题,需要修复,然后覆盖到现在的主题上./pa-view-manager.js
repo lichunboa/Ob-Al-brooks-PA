@@ -23,7 +23,7 @@ const ALLOW_DUPLICATES = false;
 // 🎨 核心代码 (CORE)
 // ============================================================
 
-const basePath = app.vault.adapter.basePath;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 let c;
 
 // --- 1. 配色 (适配半透明背景) ---

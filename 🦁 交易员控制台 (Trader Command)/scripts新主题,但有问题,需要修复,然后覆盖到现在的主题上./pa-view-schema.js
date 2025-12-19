@@ -1,5 +1,5 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 const c = cfg.colors;
 
 const pages = dv.pages("#PA").where(p => !p.file.path.includes(cfg.paths.templates));

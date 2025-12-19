@@ -1,6 +1,6 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 // 数据获取
 const pages = dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
