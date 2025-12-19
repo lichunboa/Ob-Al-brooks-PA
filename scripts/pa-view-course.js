@@ -1,8 +1,8 @@
 /* 文件名: Scripts/pa-view-course.js
    用途: 课程地图 (Course Matrix)
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData || !window.paData.course) { dv.el("div", "⚠️ 课程数据未加载，请检查 Engine 或 PA_Syllabus_Data.md", { attr: { style: "opacity:0.6; padding:20px; text-align:center;" } }); return; }
@@ -67,8 +67,8 @@ root.innerHTML = `
    用途: 课程地图 (Course Matrix)
    状态: 100% 还原自控制台 2.0
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (window.paData && window.paData.course) {
     const course = window.paData.course;

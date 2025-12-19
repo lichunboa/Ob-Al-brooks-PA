@@ -1,6 +1,6 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -33,9 +33,9 @@ sortedCycles.map(cy => {
     <div style="font-size:0.8em; opacity:0.8;">${cy.name}</div>
     <div style="font-weight:800; color:${color}; font-size:1.1em;">${cy.pnl>0?"+":""}${cy.pnl}</div></div>`;
 }).join("") + `</div>`;
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 // 重新从 DataView 获取原始页面以读取 market_cycle 属性 (Engine V14.5 未深度清洗此字段)
 // 为了方便，这里还是做一次轻量查询，或者你也可以去修改 Engine 把 cycle 加进去

@@ -1,5 +1,5 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 // 加载防护
 if (typeof dv === 'undefined') return;
@@ -38,8 +38,8 @@ root.innerHTML = `
 <div style="font-weight:700; opacity:0.7; margin-bottom:12px;">📘 策略剧本 (Playbook)</div>
 ${html || `<div style='opacity:0.5; font-size:0.8em;'>暂无策略笔记。<br>请检查 "trend_context" 属性。</div>`}
 `;
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 const strategyFolder = "策略库Strategies"; // ⚠️ 请确认文件夹名称
 const strategies = dv.pages(`"${strategyFolder}"`);

@@ -1,8 +1,8 @@
 /* 文件名: Scripts/pa-view-memory.js (V2.0 Crystal)
    用途: 记忆库 UI 视图
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 // 加载保护
 if (typeof dv === 'undefined') return;
@@ -96,8 +96,8 @@ root.innerHTML = `
 /* 文件名: Scripts/pa-view-memory.js (V2.0 Crystal)
    用途: 记忆库 UI 视图
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 // 注入光效动画
 const style = document.createElement('style');

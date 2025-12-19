@@ -1,5 +1,5 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -10,8 +10,8 @@ root.innerHTML = `<div style="font-weight:700; opacity:0.7;">📉 策略实验�
    用途: 策略实验室 (资金曲线 + 策略排行 + 建议)
    修复: 1:1 还原 2.0 版本逻辑
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (window.paData) {
     // 必须使用正序排列的数据来画图

@@ -1,9 +1,9 @@
 /* 文件名: Scripts/pa-view-gallery.js
    用途: 综合画廊 (Simple & Clean)
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -68,9 +68,9 @@ root.innerHTML = `
    用途: 综合画廊 (Simple & Clean)
    修复: 恢复 renderCard 完整逻辑，解决图片不显示问题
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (window.paData) {
     const trades = window.paData.trades.slice(0, 20); // 取前20个备选
