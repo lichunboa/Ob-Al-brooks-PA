@@ -223,7 +223,7 @@ if (window.paData) {
     
     // 渲染迷你条形图函数
     const renderMiniChart = (title, data, colorFn) => {
-        let html = `<div class="sch-mini-card"><div style="font-size:0.8em; opacity:0.7; margin-bottom:8px; font-weight:bold;">${title}</div>`;
+        var html = (typeof html !== 'undefined') ? html : `<div class="sch-mini-card"><div style="font-size:0.8em; opacity:0.7; margin-bottom:8px; font-weight:bold;">${title}</div>`;
         let total = data.reduce((a,b)=>a+b[1],0) || 1;
         
         data.forEach(([k, v]) => {

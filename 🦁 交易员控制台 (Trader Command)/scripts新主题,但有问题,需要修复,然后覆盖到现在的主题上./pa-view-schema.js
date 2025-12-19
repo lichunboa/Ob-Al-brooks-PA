@@ -24,7 +24,7 @@ for (let p of pages) {
 }
 
 const root = dv.el("div", "", { attr: { style: "display:flex; flex-direction:column; gap:20px;" } });
-let html = "";
+var html = (typeof html !== 'undefined') ? html : "";
 
 // 1. Fix Station
 if (fixList.length > 0) {

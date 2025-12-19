@@ -4,7 +4,7 @@ var c = cfg.colors || {};
 
 // 数据获取
 var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
-let cycleStats = {};
+var cycleStats = (typeof cycleStats !== 'undefined') ? cycleStats : {};
 
 for (let p of pages) {
     let acct = (p["账户类型/account_type"] || "").toString();
@@ -20,7 +20,7 @@ for (let p of pages) {
     cycleStats[cycle] += pnl;
 }
 
-let sortedCycles = Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
+var sortedCycles = (typeof sortedCycles !== 'undefined') ? sortedCycles : Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
 
 const root = dv.el("div", "", { attr: { style: cfg.styles.glassCard } });
 root.innerHTML = `

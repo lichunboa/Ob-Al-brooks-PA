@@ -6,7 +6,7 @@ if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
 
 var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
-let cycleStats = {};
+var cycleStats = (typeof cycleStats !== 'undefined') ? cycleStats : {};
 
 for (let p of pages) {
     let acct = (p["账户类型/account_type"] || "").toString();
@@ -22,7 +22,7 @@ for (let p of pages) {
     cycleStats[cycle] += pnl;
 }
 
-let sortedCycles = Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
+var sortedCycles = (typeof sortedCycles !== 'undefined') ? sortedCycles : Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
 
 const root = dv.el("div", "", { attr: { style: cfg.styles.glassCard } });
 root.innerHTML = `<div style="font-weight:700; opacity:0.7; margin-bottom:12px;">🌪️ 不同市场环境表现 (Live PnL)</div><div style="display:flex; flex-wrap:wrap; gap:8px;">` + 
@@ -40,7 +40,7 @@ var c = cfg.colors || {};
 // 重新从 DataView 获取原始页面以读取 market_cycle 属性 (Engine V14.5 未深度清洗此字段)
 // 为了方便，这里还是做一次轻量查询，或者你也可以去修改 Engine 把 cycle 加进去
 var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
-let cycleStats = {};
+var cycleStats = (typeof cycleStats !== 'undefined') ? cycleStats : {};
 
 for (let p of pages) {
     let acct = (p["账户类型/account_type"] || "").toString();
@@ -56,7 +56,7 @@ for (let p of pages) {
     cycleStats[cycle] += pnl;
 }
 
-let sortedCycles = Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
+var sortedCycles = (typeof sortedCycles !== 'undefined') ? sortedCycles : Object.keys(cycleStats).map(k => ({ name: k, pnl: cycleStats[k] })).sort((a, b) => b.pnl - a.pnl);
 
 const root = dv.el("div", "", { attr: { style: cfg.colors.cardBg } });
 root.innerHTML = `<div style="font-weight:700; opacity:0.7; margin-bottom:12px;">🌪️ 不同市场环境表现 (Live PnL)</div><div style="display:flex; flex-wrap:wrap; gap:8px;">` + 
