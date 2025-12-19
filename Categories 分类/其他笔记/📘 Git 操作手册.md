@@ -123,7 +123,9 @@ Bash
 # 第一次推送这个新分支
 git push -u origin dev
 ```
-
+```
+git switch main
+```
 ### 3. 切回主分支
 
 Bash
