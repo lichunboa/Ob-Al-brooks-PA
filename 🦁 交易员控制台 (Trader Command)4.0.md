@@ -18,7 +18,6 @@ await dv.view("scripts/pa-core");
 // 加载记忆库 UI
 await dv.view("scripts/pa-view-memory");
 ```
-
 ## 🧠 知识与记忆
 ```dataviewjs
 // 🗺️ 课程地图 (Course Matrix)
