@@ -5,8 +5,8 @@
 
 // 引入依赖
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const utils = require(basePath + "/Scripts/pa-utils.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
+const utils = require(basePath + "/scripts/pa-utils.js");
 
 const startT = performance.now();
 const todayStr = moment().format("YYYY-MM-DD");
