@@ -8,14 +8,14 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
 
-const sr = window.paData.sr;
-const course = window.paData.course;
-const c = cfg.colors;
-const pTotal = Math.max(sr.total, 1);
+var sr = (typeof sr !== 'undefined') ? sr : (window.paData ? window.paData.sr : {});
+var course = (typeof course !== 'undefined') ? course : (window.paData ? window.paData.course : {});
+var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
+var pTotal = (typeof pTotal !== 'undefined') ? pTotal : Math.max((sr && sr.total) || 0, 1);
 
-const safeFileList = sr.fileList || []; 
-const safeFolders = sr.folders || {};
-const topFolderNames = Object.entries(safeFolders).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
+var safeFileList = (typeof safeFileList !== 'undefined') ? safeFileList : (sr.fileList || []);
+var safeFolders = (typeof safeFolders !== 'undefined') ? safeFolders : (sr.folders || {});
+var topFolderNames = (typeof topFolderNames !== 'undefined') ? topFolderNames : Object.entries(safeFolders).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
 
 const folderHtml = topFolderNames.map(fName => {
     const filesInFolder = safeFileList.filter(f => f.folder === fName).sort((a, b) => b.count - a.count).slice(0, 5)

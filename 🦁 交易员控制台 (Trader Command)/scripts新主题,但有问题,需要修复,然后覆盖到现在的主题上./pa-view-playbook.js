@@ -1,6 +1,6 @@
 var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
-const c = cfg.colors;
+var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
 
 if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies"; 
 var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);

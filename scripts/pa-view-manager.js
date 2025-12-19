@@ -195,7 +195,7 @@ if (!document.getElementById(styleId)) {
 }
 
 // --- 3. 数据扫描 ---
-const dvPages = dv.pages('""'); 
+var dvPages = (typeof dvPages !== 'undefined') ? dvPages : dv.pages('""'); 
 let keyMap = {}; let valMap = {};
 
 function normalizeVal(v) {

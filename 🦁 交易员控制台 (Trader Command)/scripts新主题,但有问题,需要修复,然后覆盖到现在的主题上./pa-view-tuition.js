@@ -1,6 +1,6 @@
 var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
-const c = cfg.colors;
+var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
 
 if (window.paData) {
     const stats = window.paData.stats;

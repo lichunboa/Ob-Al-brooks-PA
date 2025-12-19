@@ -12,7 +12,7 @@ document.head.appendChild(style);
 if (window.paData && window.paData.sr) {
     const sr = window.paData.sr;
     const course = window.paData.course;
-    const c = cfg.colors;
+    var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
     const pTotal = Math.max(sr.total, 1);
 
     // --- 来源数据 (逻辑保持不变) ---

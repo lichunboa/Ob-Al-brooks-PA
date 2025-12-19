@@ -7,7 +7,7 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (window.paData) {
     const trades = window.paData.tradesAsc; // 正序数据
-    const c = cfg.colors;
+    var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
 
     // --- 1. 数据清洗 ---
     let curves = { live: [0], demo: [0], back: [0] };

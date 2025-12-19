@@ -7,8 +7,8 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
 
-const trades = window.paData.trades;
-const c = cfg.colors;
+var trades = (typeof trades !== 'undefined') ? trades : (window.paData ? window.paData.trades : []);
+var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
 
 function getStats(type) {
     let subset = trades.filter(t => t.type === type);
@@ -19,13 +19,13 @@ function getStats(type) {
     return { pnl: pnl.toFixed(2), wr, count: total };
 }
 
-const live = getStats("Live");
-const demo = getStats("Demo");
-const back = getStats("Backtest");
+var live = getStats("Live");
+var demo = getStats("Demo");
+var back = getStats("Backtest");
 
-const today = new Date();
-const currentMonth = moment().format("YYYY-MM");
-const daysInMonth = moment().daysInMonth();
+var today = new Date();
+var currentMonth = moment().format("YYYY-MM");
+var daysInMonth = moment().daysInMonth();
 let dailyMap = {};
 trades.filter(t => t.type === "Live" && t.date.startsWith(currentMonth)).forEach(t => {
     let day = parseInt(t.date.split("-")[2]);
