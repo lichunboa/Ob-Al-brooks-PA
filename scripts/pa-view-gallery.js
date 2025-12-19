@@ -37,7 +37,9 @@ if (window.paData) {
             }
         }
         
-        if (!src) return ""; // 如果解析不出图片路径，跳过        let acct = n.type;
+        if (!src) return ""; // 如果解析不出图片路径，跳过
+        
+        let acct = n.type;
         let badgeColor = acct === "Live" ? c.live : (acct === "Backtest" ? c.back : c.demo);
         let badgeText = acct === "Live" ? "实盘" : (acct === "Backtest" ? "回测" : "模拟");
         let pnlColor = n.pnl >= 0 ? c.live : c.loss;
