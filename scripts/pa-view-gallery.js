@@ -15,27 +15,29 @@ if (window.paData) {
         if (!rawCover || rawCover === "Unknown") return "";
         
         let src = "";
-        // 1. 处理 Obsidian 内部链接 ![[image.png]]
-        if (rawCover.includes("]]")) {
-            let path = rawCover.replace("![[", "").replace("]]", "").replace("[[", "").split("|")[0].trim();
-            // 尝试获取文件对象
-            let file = app.metadataCache.getFirstLinkpathDest(path, "");
-            if (file) {
-                src = app.vault.adapter.getResourcePath(file.path);
-            } else {
-                // 尝试直接在 Attachments 文件夹查找
-                let attachFile = app.vault.getAbstractFileByPath("Attachments/cover/" + path);
-                if (attachFile) src = app.vault.adapter.getResourcePath(attachFile.path);
+        
+        // 1. 如果是对象(Link类型),直接获取path
+        if (rawCover.path) {
+            src = app.vault.adapter.getResourcePath(rawCover.path);
+        }
+        // 2. 如果是字符串
+        else if (typeof rawCover === 'string') {
+            // 处理 ![[image.png]] 或 [[image.png]] 格式
+            if (rawCover.includes("[[")) {
+                let path = rawCover.replace("![[", "").replace("]]", "").replace("[[", "").split("|")[0].trim();
+                // 使用原始文件路径作为第二个参数来帮助解析相对路径
+                let file = app.metadataCache.getFirstLinkpathDest(path, n.id || "");
+                if (file) {
+                    src = app.vault.adapter.getResourcePath(file.path);
+                }
+            }
+            // 处理 http 链接
+            else if (rawCover.startsWith("http")) {
+                src = rawCover;
             }
         }
-        // 2. 处理 http 链接
-        else {
-            src = rawCover; 
-        }
         
-        if (!src) return ""; // 如果解析不出图片路径，跳过
-
-        let acct = n.type;
+        if (!src) return ""; // 如果解析不出图片路径，跳过        let acct = n.type;
         let badgeColor = acct === "Live" ? c.live : (acct === "Backtest" ? c.back : c.demo);
         let badgeText = acct === "Live" ? "实盘" : (acct === "Backtest" ? "回测" : "模拟");
         let pnlColor = n.pnl >= 0 ? c.live : c.loss;
