@@ -52,8 +52,7 @@
     "//PA",
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
-    "//Daily/Daily/Trades",
-    "//copilot"
+    "//Daily/Daily/Trades"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
