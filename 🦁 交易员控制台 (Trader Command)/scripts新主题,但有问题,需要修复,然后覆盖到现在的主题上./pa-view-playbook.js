@@ -4,7 +4,7 @@ var c = (typeof c !== 'undefined') ? c : (cfg.colors || {});
 
 if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies"; 
 var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
-let html = "";
+var html = (typeof html !== 'undefined') ? html : "";
 let contextKeywords = {
     "多头趋势 (Bull)": ["Bull Trend", "多头", "Bull"],
     "空头趋势 (Bear)": ["Bear Trend", "空头", "Bear"],

@@ -8,7 +8,7 @@ if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "o
 if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies";
 var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
 
-let html = "";
+var html = (typeof html !== 'undefined') ? html : "";
 let contextKeywords = {
     "多头趋势": ["Bull Trend", "多头", "Bull"],
     "空头趋势": ["Bear Trend", "空头", "Bear"],
@@ -44,7 +44,7 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies"; // ⚠️ 请确认文件夹名称
 var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
 
-let html = "";
+var html = (typeof html !== 'undefined') ? html : "";
 let contextKeywords = {
     "多头趋势": ["Bull Trend", "多头", "Bull"],
     "空头趋势": ["Bear Trend", "空头", "Bear"],

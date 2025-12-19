@@ -11,7 +11,7 @@ if (typeof startT === 'undefined') var startT = performance.now();
 if (typeof todayStr === 'undefined') var todayStr = moment().format('YYYY-MM-DD');
 
 // --- 1. 缓存控制 (Smart Cache) ---
-const forceReload = window.paForceReload === true;
+var forceReload = (typeof forceReload !== 'undefined') ? forceReload : (window.paForceReload === true);
 window.paForceReload = false;
 
 let useCache = false;
@@ -266,7 +266,7 @@ if (typeof startT === 'undefined') var startT = performance.now();
 if (typeof todayStr === 'undefined') var todayStr = moment().format('YYYY-MM-DD');
 
 // --- 1. 缓存控制 (Smart Cache) ---
-const forceReload = window.paForceReload === true;
+var forceReload = (typeof forceReload !== 'undefined') ? forceReload : (window.paForceReload === true);
 window.paForceReload = false;
 
 let useCache = false;
