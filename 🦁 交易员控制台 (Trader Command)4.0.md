@@ -1,4 +1,4 @@
-# ⌨️ 控制台
+# ⌨️ 总控制台
 ```dataviewjs
 // 导出数据按钮 (Manual Export)
 const btnExport = dv.el("button", "📥 导出 JSON (App)", { attr: { style: "margin-bottom: 20px; cursor: pointer;"} });
