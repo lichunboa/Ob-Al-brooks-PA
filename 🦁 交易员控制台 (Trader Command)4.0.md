@@ -40,7 +40,6 @@ await dv.view("scripts/pa-view-memory");
 > > ```
 
 > [!COLUMN|2]
->
 > > [!abstract] 📉 策略实验室
 > >
 > > ```dataviewjs
@@ -72,11 +71,11 @@ await dv.view("scripts/pa-view-memory");
 > await dv.view("scripts/pa-view-inspector");
 > ```
 > ---
-> > **2. 属性后台管理 (God Mode)**
+> **2. 属性后台管理 (God Mode)**
 > ```dataviewjs
 > await dv.view("scripts/pa-view-manager");
 > ```
-> > **3. 数据监控**
+> **3. 数据监控**
 > ```dataviewjs
 > await dv.view("scripts/pa-view-schema");
 > ```
