@@ -5,8 +5,8 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
 
-const strategyFolder = "策略库Strategies";
-const strategies = dv.pages(`"${strategyFolder}"`);
+if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies";
+var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
 
 let html = "";
 let contextKeywords = {
@@ -41,8 +41,8 @@ ${html || `<div style='opacity:0.5; font-size:0.8em;'>暂无策略笔记。<br>�
 var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
-const strategyFolder = "策略库Strategies"; // ⚠️ 请确认文件夹名称
-const strategies = dv.pages(`"${strategyFolder}"`);
+if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies"; // ⚠️ 请确认文件夹名称
+var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
 
 let html = "";
 let contextKeywords = {

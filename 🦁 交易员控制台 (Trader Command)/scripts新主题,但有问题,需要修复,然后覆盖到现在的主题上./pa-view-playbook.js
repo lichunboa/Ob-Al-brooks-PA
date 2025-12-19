@@ -2,8 +2,8 @@ var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePat
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 const c = cfg.colors;
 
-const strategyFolder = "策略库Strategies"; 
-const strategies = dv.pages(`"${strategyFolder}"`);
+if (typeof strategyFolder === 'undefined') var strategyFolder = "策略库Strategies"; 
+var strategies = (typeof strategies !== 'undefined') ? strategies : dv.pages(`"${strategyFolder}"`);
 let html = "";
 let contextKeywords = {
     "多头趋势 (Bull)": ["Bull Trend", "多头", "Bull"],

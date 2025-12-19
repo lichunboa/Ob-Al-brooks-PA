@@ -53,7 +53,7 @@ if (!document.getElementById(styleId)) {
 }
 
 // --- 2. 深度扫描 (Native Cache for Fixes) ---
-const dvPages = dv.pages("#PA").where(p => !p.file.path.includes("Templates"));
+var dvPages = (typeof dvPages !== 'undefined') ? dvPages : dv.pages("#PA").where(p => !p.file.path.includes("Templates"));
 
 let scanStats = { files: 0, tags: 0, issues: 0 };
 let tagMap = {};

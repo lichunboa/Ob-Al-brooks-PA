@@ -3,7 +3,7 @@ var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 var c = cfg.colors || {};
 
 // 数据获取
-const pages = dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
+var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
 let cycleStats = {};
 
 for (let p of pages) {

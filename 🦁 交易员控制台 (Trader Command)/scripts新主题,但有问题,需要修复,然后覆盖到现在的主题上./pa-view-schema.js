@@ -2,7 +2,7 @@ var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePat
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 const c = cfg.colors;
 
-const pages = dv.pages("#PA").where(p => !p.file.path.includes(cfg.paths.templates));
+var pages = (typeof pages !== 'undefined') ? pages : dv.pages("#PA").where(p => !p.file.path.includes(cfg.paths.templates));
 let schema = {}, tagsMap = {}, fixList = [];
 const ignore = ["file", "date", "position", "categories", "aliases", "cssclasses", "cover", "封面"];
 

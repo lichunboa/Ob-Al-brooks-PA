@@ -5,7 +5,7 @@ var c = cfg.colors || {};
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
 
-const pages = dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
+var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
 let cycleStats = {};
 
 for (let p of pages) {
@@ -39,7 +39,7 @@ var c = cfg.colors || {};
 
 // 重新从 DataView 获取原始页面以读取 market_cycle 属性 (Engine V14.5 未深度清洗此字段)
 // 为了方便，这里还是做一次轻量查询，或者你也可以去修改 Engine 把 cycle 加进去
-const pages = dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
+var pages = (typeof pages !== 'undefined') ? pages : dv.pages(cfg.tags.trade).where(p => !p.file.path.includes(cfg.paths.templates));
 let cycleStats = {};
 
 for (let p of pages) {
