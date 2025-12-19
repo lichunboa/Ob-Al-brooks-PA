@@ -11,7 +11,7 @@ const style = document.createElement('style');
 style.innerHTML = `
     .insp-container { display: flex; flex-direction: column; gap: 15px; }
     .insp-row-flex { display: flex; gap: 15px; flex-wrap: wrap; }
-    .insp-card { flex: 1; min-width: 280px; background: rgba(30,30,30,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; }
+    .insp-card { flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
     .insp-title { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
     .insp-item { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 6px; align-items: center; }
     .insp-bar-bg { background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 4px; }

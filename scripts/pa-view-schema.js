@@ -18,7 +18,7 @@ if (!document.getElementById(styleId)) {
     s.id = styleId;
     s.innerHTML = `
         .sch-box { display: flex; flex-direction: column; gap: 15px; }
-        .sch-panel { background: rgba(30,30,30,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; }
+        .sch-panel { background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
         .sch-header { font-size: 1.1em; font-weight: bold; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; }
         .sch-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85em; }
         .sch-link { color: ${c.text}; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.2); cursor: pointer; transition:0.2s; }
@@ -34,7 +34,7 @@ if (!document.getElementById(styleId)) {
         
         /* 顶部仪表盘 */
         .sch-dash { display: flex; gap: 15px; margin-bottom: 5px; }
-        .sch-dash-item { flex: 1; background: rgba(30,30,30,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; text-align: center; }
+        .sch-dash-item { flex: 1; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
         .sch-big-num { font-size: 1.8em; font-weight: 800; line-height: 1.2; }
         .sch-sub-label { font-size: 0.75em; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
     `;
