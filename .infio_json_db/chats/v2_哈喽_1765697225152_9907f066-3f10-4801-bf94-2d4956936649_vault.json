@@ -1,0 +1,61 @@
+{
+  "id": "9907f066-3f10-4801-bf94-2d4956936649",
+  "title": "哈喽",
+  "messages": [
+    {
+      "role": "user",
+      "applyStatus": 0,
+      "content": {
+        "root": {
+          "children": [
+            {
+              "children": [
+                {
+                  "detail": 0,
+                  "format": 0,
+                  "mode": "normal",
+                  "style": "",
+                  "text": "哈喽",
+                  "type": "text",
+                  "version": 1
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "paragraph",
+              "version": 1,
+              "textFormat": 0,
+              "textStyle": ""
+            }
+          ],
+          "direction": "ltr",
+          "format": "",
+          "indent": 0,
+          "type": "root",
+          "version": 1
+        }
+      },
+      "promptContent": [
+        {
+          "type": "text",
+          "text": "<task>\n哈喽\n</task>\n\n<environment_details>\n# Current File\nNotes 笔记/买卖压力.md\n\n# Current Workspace\nAl-brooks-PA (entire vault)\n\n# Assistant & User State\n## Current Time\n2025/12/14 下午3:27:04 (Asia/Shanghai, UTC+8:00)\n\n## Current Mode\n<slug>ask</slug>\n<name>Ask</name>\n</environment_details>"
+        }
+      ],
+      "id": "50bad7d5-93a8-4531-9967-a68c612950f2",
+      "mentionables": []
+    },
+    {
+      "role": "assistant",
+      "applyStatus": 0,
+      "content": "",
+      "reasoningContent": "",
+      "id": "b2b804ca-cec8-4e82-ab37-bd2ae81370b3",
+      "metadata": {}
+    }
+  ],
+  "createdAt": 1765697225152,
+  "updatedAt": 1765697225152,
+  "schemaVersion": 2,
+  "workspace": "vault"
+}

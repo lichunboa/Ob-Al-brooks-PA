@@ -1,0 +1,103 @@
+{
+  "id": "c2043ef4-de18-44f5-9464-b4b182a9ff6c",
+  "title": "halou ",
+  "messages": [
+    {
+      "role": "user",
+      "content": {
+        "root": {
+          "children": [
+            {
+              "children": [
+                {
+                  "detail": 0,
+                  "format": 0,
+                  "mode": "normal",
+                  "style": "",
+                  "text": "halou ",
+                  "type": "text",
+                  "version": 1
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "paragraph",
+              "version": 1,
+              "textFormat": 0,
+              "textStyle": ""
+            }
+          ],
+          "direction": "ltr",
+          "format": "",
+          "indent": 0,
+          "type": "root",
+          "version": 1
+        }
+      },
+      "promptContent": [
+        {
+          "type": "text",
+          "text": "\n\nhalou \n\n"
+        }
+      ],
+      "id": "9c1920cb-f56d-4d1d-afa1-b941d0565837",
+      "mentionables": [
+        {
+          "type": "current-file",
+          "file": "笔记/买卖压力.md"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": {
+        "root": {
+          "children": [
+            {
+              "children": [
+                {
+                  "detail": 0,
+                  "format": 0,
+                  "mode": "normal",
+                  "style": "",
+                  "text": "sdfs ",
+                  "type": "text",
+                  "version": 1
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "paragraph",
+              "version": 1,
+              "textFormat": 0,
+              "textStyle": ""
+            }
+          ],
+          "direction": "ltr",
+          "format": "",
+          "indent": 0,
+          "type": "root",
+          "version": 1
+        }
+      },
+      "promptContent": [
+        {
+          "type": "text",
+          "text": "\n\nsdfs \n\n"
+        }
+      ],
+      "id": "0bc5c3b7-1cd4-4af6-a790-61cc3e21ef4f",
+      "mentionables": [
+        {
+          "type": "current-file",
+          "file": "笔记/买卖压力.md"
+        }
+      ]
+    }
+  ],
+  "createdAt": 1765114135867,
+  "updatedAt": 1765114185126,
+  "schemaVersion": 1
+}

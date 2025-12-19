@@ -1,0 +1,779 @@
+{
+	"nodes": [
+		{
+			"id": "9a71f4f0d8524f9a",
+			"type": "text",
+			"text": "M6 · 高级模型：通道与区间\n主题：通道演化、区间策略\nAl Brooks：37A-47D\n资源：L16A-L18\n练习：完成通道→区间案例拆解",
+			"x": -420,
+			"y": -700,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "b019f4656463402a",
+			"type": "text",
+			"text": "M2 · 图表语言与信号识别\n主题：K线、信号条、缺口\nAl Brooks：08A-11D\n资源：L04A-L05B\n练习：制作信号条图库＋Checklist",
+			"x": -220,
+			"y": -960,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "4935245af3734cfe",
+			"type": "text",
+			"text": "实践节奏\n12周路线：M0-M9＋复盘2周\n每周：计划→中周检查→周末复盘\n组合练习：结构→信号→下单；趋势→通道→区间",
+			"x": -220,
+			"y": -420,
+			"width": 520,
+			"height": 200,
+			"color": "2"
+		},
+		{
+			"id": "a7a74fc19f8e4a41",
+			"type": "text",
+			"text": "M7 · 日内节奏与执行\n主题：开盘、中段、收盘\nAl Brooks：48A-48K\n资源：L19-L20\n练习：记录5天日内节奏＋复盘",
+			"x": -60,
+			"y": -700,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "debf550f5c734091",
+			"type": "text",
+			"text": "M8 · 策略案例与剥头皮\n主题：波段＋剥头皮组合\nAl Brooks：49A-50E、奖励 01-10\n资源：案例视频、交易日志\n练习：复刻3个策略案例＋自评问卷",
+			"x": 300,
+			"y": -700,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "22a3a799950f4fb3",
+			"type": "text",
+			"text": "M3 · 市场周期与趋势框架\n主题：趋势、区间切换\nAl Brooks：12A-18F\n资源：L06A-L09B\n练习：完成“趋势 vs 区间”标注挑战",
+			"x": 340,
+			"y": -960,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "0b5dd2bd5bf744bb",
+			"type": "text",
+			"text": "M9 · 风险控制与心理调适\n主题：风险系统、心理复盘\nAl Brooks：51A-52B、心理 08\n资源：App 风控面板、心理问卷\n练习：制定最大回撤＋心理修正计划",
+			"x": 660,
+			"y": -700,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "c90555d8e9134f69",
+			"type": "text",
+			"text": "M4 · 支撑阻力与形态库\n主题：形态字典、陷阱\nAl Brooks：19A-29E\n资源：L10A-L13B\n练习：制作形态信号卡片＋触发条件",
+			"x": 880,
+			"y": -960,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "df5c7d3a1dd6472e",
+			"type": "text",
+			"text": "M0 · 课程导航\n主题：课程导入、工具熟悉\nAl Brooks：01-02\n资源：L01A-L01C，入门任务\n练习：建立学习计划＋导入示例行情",
+			"x": -1180,
+			"y": -960,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "f0b5fec1e2614a89",
+			"type": "text",
+			"text": "M5 · 交易公式与概率优势\n主题：交易方程式、仓位\nAl Brooks：30A-36B\n资源：L14A-L15B\n练习：完成胜率估算＋仓位 Sizing 表",
+			"x": -780,
+			"y": -700,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "6c59d5250bae4f16",
+			"type": "text",
+			"text": "M1 · 交易观念与市场结构\n主题：市场运作框架\nAl Brooks：02A-07B\n资源：L02A-L03B\n练习：拆解3段行情结构＋总结",
+			"x": -740,
+			"y": -960,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "11d3f65c054cdfad",
+			"type": "text",
+			"text": "价格行为 App 课程地图（Al Brooks 集成）\n使用顺序：按模块推进，完成练习模板并回链笔记",
+			"x": -2080,
+			"y": 2259,
+			"width": 520,
+			"height": 120,
+			"color": "6"
+		},
+		{
+			"id": "53334a320549d346",
+			"type": "text",
+			"text": "原理",
+			"x": -1305,
+			"y": 1690,
+			"width": 250,
+			"height": 60,
+			"color": "4"
+		},
+		{
+			"id": "938ec3bb61108b89",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L03B - 突破后的延续.md",
+			"x": -260,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "56b7d9d113a94fc8",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L04A - 突破的原理.md",
+			"x": 160,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "815167e384ae34fc",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L04B - 突破后的顺势推动.md",
+			"x": 580,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "e5dcebeacd90bc56",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L05A - 回调的内涵.md",
+			"x": 1000,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "0223da4ad541a8c1",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L05B - 趋势中的回调.md",
+			"x": 1420,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "54fb277c7fdc83a1",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L06A - 区间.md",
+			"x": 1840,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "66ab63d4bb341758",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L07A - 反转.md",
+			"x": 2260,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "02de41aeae819f15",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L07B - 趋势反转.md",
+			"x": 2680,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "0e368b0079b74e1c",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L08A - 市场循环.md",
+			"x": 3100,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "cc2e1c07a4acbbe7",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L01B - 市场参与者与机构交易.md",
+			"x": -260,
+			"y": 960,
+			"width": 400,
+			"height": 400,
+			"color": "2"
+		},
+		{
+			"id": "89ea228940f20dea",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L01C - 交易方程和概率.md",
+			"x": 160,
+			"y": 960,
+			"width": 400,
+			"height": 400,
+			"color": "2"
+		},
+		{
+			"id": "85eec5a7d30d00f8",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L02A - 读图基础.md",
+			"x": 580,
+			"y": 960,
+			"width": 400,
+			"height": 400,
+			"color": "2"
+		},
+		{
+			"id": "28ecd61272da620c",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L02B - 读图.md",
+			"x": 1000,
+			"y": 960,
+			"width": 400,
+			"height": 400,
+			"color": "2"
+		},
+		{
+			"id": "dc76483edb49f216",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L01A - 市场的本质.md",
+			"x": -680,
+			"y": 960,
+			"width": 400,
+			"height": 400,
+			"color": "2"
+		},
+		{
+			"id": "5d1ff497b7e41f4f",
+			"type": "text",
+			"text": "认知",
+			"x": -1305,
+			"y": 1130,
+			"width": 250,
+			"height": 60,
+			"color": "2"
+		},
+		{
+			"id": "d0433bc86a523610",
+			"type": "text",
+			"text": "技术",
+			"x": -1305,
+			"y": 2289,
+			"width": 250,
+			"height": 60,
+			"color": "3"
+		},
+		{
+			"id": "7a73603b22b7db3d",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L09A - 磁体.md",
+			"x": -680,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "159b28bdcea4631d",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L09B - 磁体类型.md",
+			"x": -260,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "d9ec8abdf7575f94",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L10A - 等距运动原理.md",
+			"x": 160,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "313ec8a0cec54b9b",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L10B - 等距运动.md",
+			"x": 580,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "44a210d556a17481",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L11A - 数K线.md",
+			"x": 1000,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "c3c667a7ff128e98",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L11B - 数k线的原理与应用.md",
+			"x": 1420,
+			"y": 2119,
+			"width": 400,
+			"height": 400,
+			"color": "3"
+		},
+		{
+			"id": "ab5f3811d7e90049",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L13A - 急速交易 - ✨收线.md",
+			"x": -680,
+			"y": 3100,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "20b0fdd36177c2de",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L13B - 急速交易 - ✨逆1顺1.md",
+			"x": -260,
+			"y": 3100,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "75fe3ad9371cfddd",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L14A - 旗形回调.md",
+			"x": -680,
+			"y": 3550,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "96a6e58026d0c3d5",
+			"type": "text",
+			"text": "建仓",
+			"x": -1305,
+			"y": 3950,
+			"width": 250,
+			"height": 60,
+			"color": "5"
+		},
+		{
+			"id": "cca26b1164406f97",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L15A - 区间交易-✨看衰突破.md",
+			"x": -680,
+			"y": 4000,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "4c69eb66c2f7241b",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L15B - ✨急赴磁体-✨区间突破回调.md",
+			"x": -260,
+			"y": 4000,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "bbd7519233b46426",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L14B - ✨双重顶底-✨楔形.md",
+			"x": -260,
+			"y": 3550,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "05eee656f3984021",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L12 - 交易风格.md",
+			"x": -680,
+			"y": 2640,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "62bbd1b0f76990a8",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L16A - 反转交易.md",
+			"x": -680,
+			"y": 4480,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "d927f8e8125d2dde",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L16B - ✨极速与通道-✨末端旗形.md",
+			"x": -260,
+			"y": 4480,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "b72a884b16997710",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L17A - 首次回調序列与均線交易.md",
+			"x": -680,
+			"y": 4960,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "d7d511c425774e10",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L17B - ✨20均线缺口-✨第一均线缺口.md",
+			"x": -260,
+			"y": 4960,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "8cdd8cd3563a7fb4",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L18 - 交易日示例之一.md",
+			"x": -680,
+			"y": 5440,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "fccca935a773e853",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L19 - 交易日示例之二.md",
+			"x": -260,
+			"y": 5440,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "0cac40868e9be03f",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L20 - 回顾学习.md",
+			"x": -680,
+			"y": 5920,
+			"width": 400,
+			"height": 400,
+			"color": "5"
+		},
+		{
+			"id": "f35a626f2b2d1447",
+			"type": "file",
+			"file": "Al-brooks-PA/太妃价格行为/L03A - 突破.md",
+			"x": -680,
+			"y": 1520,
+			"width": 400,
+			"height": 400,
+			"color": "4"
+		}
+	],
+	"edges": [
+		{
+			"id": "1484b889a77b1d57",
+			"fromNode": "5d1ff497b7e41f4f",
+			"fromSide": "right",
+			"toNode": "dc76483edb49f216",
+			"toSide": "left"
+		},
+		{
+			"id": "c3efb4ef5380ca28",
+			"fromNode": "11d3f65c054cdfad",
+			"fromSide": "right",
+			"toNode": "5d1ff497b7e41f4f",
+			"toSide": "left"
+		},
+		{
+			"id": "adcc029f06eff4c8",
+			"fromNode": "dc76483edb49f216",
+			"fromSide": "right",
+			"toNode": "cc2e1c07a4acbbe7",
+			"toSide": "left"
+		},
+		{
+			"id": "fd8fe647de4b99c1",
+			"fromNode": "cc2e1c07a4acbbe7",
+			"fromSide": "right",
+			"toNode": "89ea228940f20dea",
+			"toSide": "left"
+		},
+		{
+			"id": "1d2c355e82aa1a7b",
+			"fromNode": "85eec5a7d30d00f8",
+			"fromSide": "right",
+			"toNode": "28ecd61272da620c",
+			"toSide": "left"
+		},
+		{
+			"id": "ab348bb7abb900be",
+			"fromNode": "11d3f65c054cdfad",
+			"fromSide": "right",
+			"toNode": "53334a320549d346",
+			"toSide": "left"
+		},
+		{
+			"id": "9b24b70a70160528",
+			"fromNode": "53334a320549d346",
+			"fromSide": "right",
+			"toNode": "f35a626f2b2d1447",
+			"toSide": "left"
+		},
+		{
+			"id": "ad9e4530e63145ed",
+			"fromNode": "f35a626f2b2d1447",
+			"fromSide": "right",
+			"toNode": "938ec3bb61108b89",
+			"toSide": "left"
+		},
+		{
+			"id": "fad149f0208c0c20",
+			"fromNode": "56b7d9d113a94fc8",
+			"fromSide": "right",
+			"toNode": "815167e384ae34fc",
+			"toSide": "left"
+		},
+		{
+			"id": "9e4b485830036e02",
+			"fromNode": "11d3f65c054cdfad",
+			"fromSide": "right",
+			"toNode": "d0433bc86a523610",
+			"toSide": "left"
+		},
+		{
+			"id": "1d65126a3ce9b143",
+			"fromNode": "11d3f65c054cdfad",
+			"fromSide": "right",
+			"toNode": "96a6e58026d0c3d5",
+			"toSide": "left"
+		},
+		{
+			"id": "bb4c48506a73ce82",
+			"fromNode": "89ea228940f20dea",
+			"fromSide": "right",
+			"toNode": "85eec5a7d30d00f8",
+			"toSide": "left"
+		},
+		{
+			"id": "1cb6a7dd57f153a8",
+			"fromNode": "938ec3bb61108b89",
+			"fromSide": "right",
+			"toNode": "56b7d9d113a94fc8",
+			"toSide": "left"
+		},
+		{
+			"id": "86a48235afc017a1",
+			"fromNode": "815167e384ae34fc",
+			"fromSide": "right",
+			"toNode": "e5dcebeacd90bc56",
+			"toSide": "left"
+		},
+		{
+			"id": "c8f91658e3d27744",
+			"fromNode": "d0433bc86a523610",
+			"fromSide": "right",
+			"toNode": "7a73603b22b7db3d",
+			"toSide": "left"
+		},
+		{
+			"id": "2c83d134291232be",
+			"fromNode": "e5dcebeacd90bc56",
+			"fromSide": "right",
+			"toNode": "0223da4ad541a8c1",
+			"toSide": "left"
+		},
+		{
+			"id": "c6043a3803b81a0b",
+			"fromNode": "0223da4ad541a8c1",
+			"fromSide": "right",
+			"toNode": "54fb277c7fdc83a1",
+			"toSide": "left"
+		},
+		{
+			"id": "696730126d2e8f27",
+			"fromNode": "54fb277c7fdc83a1",
+			"fromSide": "right",
+			"toNode": "66ab63d4bb341758",
+			"toSide": "left"
+		},
+		{
+			"id": "2ee5fa988fc099db",
+			"fromNode": "66ab63d4bb341758",
+			"fromSide": "right",
+			"toNode": "02de41aeae819f15",
+			"toSide": "left"
+		},
+		{
+			"id": "5dadc717d62317ce",
+			"fromNode": "02de41aeae819f15",
+			"fromSide": "right",
+			"toNode": "0e368b0079b74e1c",
+			"toSide": "left"
+		},
+		{
+			"id": "b7e9a79371e44311",
+			"fromNode": "7a73603b22b7db3d",
+			"fromSide": "right",
+			"toNode": "159b28bdcea4631d",
+			"toSide": "left"
+		},
+		{
+			"id": "0551425bf58f3735",
+			"fromNode": "159b28bdcea4631d",
+			"fromSide": "right",
+			"toNode": "d9ec8abdf7575f94",
+			"toSide": "left"
+		},
+		{
+			"id": "0b9b2e80dc342ffb",
+			"fromNode": "d9ec8abdf7575f94",
+			"fromSide": "right",
+			"toNode": "313ec8a0cec54b9b",
+			"toSide": "left"
+		},
+		{
+			"id": "8221b539fd161451",
+			"fromNode": "313ec8a0cec54b9b",
+			"fromSide": "right",
+			"toNode": "44a210d556a17481",
+			"toSide": "left"
+		},
+		{
+			"id": "4524dfb272891114",
+			"fromNode": "44a210d556a17481",
+			"fromSide": "right",
+			"toNode": "c3c667a7ff128e98",
+			"toSide": "left"
+		},
+		{
+			"id": "432d5cb57a7a369d",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "05eee656f3984021",
+			"toSide": "left"
+		},
+		{
+			"id": "be8577db69983e46",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "ab5f3811d7e90049",
+			"toSide": "left"
+		},
+		{
+			"id": "b34831a80bd6f60f",
+			"fromNode": "ab5f3811d7e90049",
+			"fromSide": "right",
+			"toNode": "20b0fdd36177c2de",
+			"toSide": "left"
+		},
+		{
+			"id": "eecba31c6d18d2bd",
+			"fromNode": "75fe3ad9371cfddd",
+			"fromSide": "right",
+			"toNode": "bbd7519233b46426",
+			"toSide": "left"
+		},
+		{
+			"id": "46a1abce2be4299f",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "75fe3ad9371cfddd",
+			"toSide": "left"
+		},
+		{
+			"id": "02cc931846f3d09a",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "cca26b1164406f97",
+			"toSide": "left"
+		},
+		{
+			"id": "785ed895f7c1f632",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "62bbd1b0f76990a8",
+			"toSide": "left"
+		},
+		{
+			"id": "6694482c50228418",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "b72a884b16997710",
+			"toSide": "left"
+		},
+		{
+			"id": "2f2b9f6dcc79d499",
+			"fromNode": "cca26b1164406f97",
+			"fromSide": "right",
+			"toNode": "4c69eb66c2f7241b",
+			"toSide": "left"
+		},
+		{
+			"id": "1be9c914607185c0",
+			"fromNode": "62bbd1b0f76990a8",
+			"fromSide": "right",
+			"toNode": "d927f8e8125d2dde",
+			"toSide": "left"
+		},
+		{
+			"id": "4e1d2c71086cb4e4",
+			"fromNode": "b72a884b16997710",
+			"fromSide": "right",
+			"toNode": "d7d511c425774e10",
+			"toSide": "left"
+		},
+		{
+			"id": "cbfed70be9bf1790",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "8cdd8cd3563a7fb4",
+			"toSide": "left"
+		},
+		{
+			"id": "d925e72147402671",
+			"fromNode": "8cdd8cd3563a7fb4",
+			"fromSide": "right",
+			"toNode": "fccca935a773e853",
+			"toSide": "left"
+		},
+		{
+			"id": "6c7d574d0d293f17",
+			"fromNode": "96a6e58026d0c3d5",
+			"fromSide": "right",
+			"toNode": "0cac40868e9be03f",
+			"toSide": "left"
+		}
+	]
+}

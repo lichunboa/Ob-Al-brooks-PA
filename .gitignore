@@ -1,0 +1,51 @@
+# --- 操作系统文件 ---
+.DS_Store
+Thumbs.db
+
+# --- Obsidian 缓存与状态 (避免多设备冲突) ---
+# 注意：前面的点号 . 不能少
+.obsidian/cache
+.obsidian/workspace.json
+.obsidian/workspaces.json
+.obsidian/workspace-mobile.json
+.obsidian/workspace-leaf.json
+
+# --- 不建议同步的配置 ---
+.obsidian/daily-notes.json
+.obsidian/facets.json
+.obsidian/starred.json
+
+# --- 插件缓存 (可选) ---
+.obsidian/plugins/recent-files-obsidian/data.json
+
+# --- 垃圾箱 ---
+.trash/
+
+# --- 忽略所有视频 ---
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# --- 忽略所有音频 ---
+*.mp3
+*.wav
+*.m4a
+
+# --- 忽略所有图片 ---
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.svg
+
+# --- 忽略所有 PDF ---
+*.pdf
+
+# --- 忽略附件专用文件夹 (双重保险) ---
+Assets/
+Media/
+Attachments/

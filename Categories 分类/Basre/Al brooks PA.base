@@ -1,0 +1,46 @@
+formulas:
+  未命名: ""
+views:
+  - type: cards
+    name: Al brooks PA
+    filters:
+      and:
+        - categories.contains("Al brooks PA")
+        - '!file.folder.contains("Templates")'
+    order:
+      - categories
+      - file.basename
+      - status
+      - file.tags
+      - file.mtime
+    sort:
+      - property: categories
+        direction: ASC
+      - property: key_principles
+        direction: ASC
+      - property: file.mtime
+        direction: DESC
+      - property: cover
+        direction: DESC
+    image: note.封面/cover
+    columnSize:
+      file.tags: 216
+    columnConfigs:
+      note.categories:
+        propertyId: note.categories
+        visualizationType: heatmap
+        displayName: categories
+        configuredAt: 1765723576572
+      note.status:
+        propertyId: note.status
+        visualizationType: line-chart
+        displayName: status
+        configuredAt: 1765723609543
+    gridColumns: 2
+    cardMinHeight: 200
+    dateAnchorProperty: note.profit points/盈利点数
+    chartShowLegend: false
+    granularity: weekly
+    hideNotesWhen: required
+    heatmapCellSize: 14
+    imageFit: contain

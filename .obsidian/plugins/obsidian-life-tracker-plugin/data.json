@@ -1,0 +1,78 @@
+{
+  "visualizationPresets": [
+    {
+      "id": "1f09d53a-dd12-4bb9-8219-cd32940b0647",
+      "propertyNamePattern": "😄",
+      "visualizationType": "area-chart"
+    }
+  ],
+  "animationDuration": 4000,
+  "propertyDefinitions": [
+    {
+      "id": "553ff6b2-d443-4543-b01a-50acbd54a9be",
+      "name": "confidence/信心",
+      "displayName": "",
+      "type": "number",
+      "allowedValues": [],
+      "numberRange": {
+        "min": 1,
+        "max": 10
+      },
+      "defaultValue": null,
+      "required": true,
+      "description": "",
+      "order": 0,
+      "mappings": []
+    },
+    {
+      "id": "0640bb36-fe3b-4eef-993b-c513968363a8",
+      "name": "probability/概率",
+      "displayName": "",
+      "type": "list",
+      "allowedValues": [
+        "Low (40%) / 低胜率",
+        "50% / 五五开",
+        "High (60%+) / 高胜率"
+      ],
+      "numberRange": null,
+      "defaultValue": null,
+      "required": true,
+      "description": "",
+      "order": 1,
+      "mappings": []
+    },
+    {
+      "id": "87659ca8-a041-4562-b4d6-ff552a4ac441",
+      "name": "date",
+      "displayName": "",
+      "type": "datetime",
+      "allowedValues": [],
+      "numberRange": null,
+      "defaultValue": null,
+      "required": true,
+      "description": "",
+      "order": 2,
+      "mappings": []
+    },
+    {
+      "id": "52d8d47d-6dcb-4b23-86f9-df52fec88996",
+      "name": "follow/跟随",
+      "displayName": "",
+      "type": "checkbox",
+      "allowedValues": [],
+      "numberRange": null,
+      "defaultValue": true,
+      "required": true,
+      "description": "",
+      "order": 3,
+      "mappings": [
+        {
+          "type": "folder",
+          "value": "Daily",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "showConfettiOnCapture": true
+}

@@ -1,0 +1,80 @@
+{
+  "settings": {
+    "flashcardTags": [
+      "#flashcards"
+    ],
+    "convertFoldersToDecks": true,
+    "burySiblingCards": true,
+    "randomizeCardOrder": null,
+    "flashcardCardOrder": "DueFirstRandom",
+    "flashcardDeckOrder": "PrevDeckComplete_Sequential",
+    "convertHighlightsToClozes": true,
+    "convertBoldTextToClozes": false,
+    "convertCurlyBracketsToClozes": false,
+    "clozePatterns": [
+      "==[123;;]answer[;;hint]=="
+    ],
+    "singleLineCardSeparator": "::",
+    "singleLineReversedCardSeparator": ":::",
+    "multilineCardSeparator": "?",
+    "multilineReversedCardSeparator": "??",
+    "multilineCardEndMarker": "",
+    "editLaterTag": "#edit-later",
+    "enableNoteReviewPaneOnStartup": true,
+    "tagsToReview": [
+      "#review"
+    ],
+    "noteFoldersToIgnore": [
+      "**/*.excalidraw.md",
+      "Templates",
+      "**/*PA标签体系 (Tag System).md",
+      "**/*PA知识图谱.md",
+      "**/*理论模版 (Concept Template).md",
+      "**/*实战交易模版 (Trade Log Template).md",
+      "**/*🦁 交易员控制台 (Trader Command).md",
+      "**/*🦁 交易员控制台 (Trader Command) 1.md"
+    ],
+    "openRandomNote": true,
+    "autoNextNote": true,
+    "disableFileMenuReviewOptions": false,
+    "maxNDaysNotesReviewQueue": 365,
+    "showRibbonIcon": true,
+    "showStatusBar": true,
+    "initiallyExpandAllSubdecksInTree": true,
+    "showContextInCards": true,
+    "showIntervalInReviewButtons": true,
+    "flashcardHeightPercentage": 80,
+    "flashcardWidthPercentage": 40,
+    "flashcardEasyText": "简单",
+    "flashcardGoodText": "记得",
+    "flashcardHardText": "较难",
+    "reviewButtonDelay": 0,
+    "openViewInNewTab": false,
+    "algorithm": "SM-2-OSR",
+    "baseEase": 250,
+    "lapsesIntervalChange": 0.5,
+    "easyBonus": 1.3,
+    "loadBalance": true,
+    "maximumInterval": 36525,
+    "maxLinkFactor": 1,
+    "dataStore": "NOTES",
+    "cardCommentOnSameLine": false,
+    "showSchedulingDebugMessages": false,
+    "showParserDebugMessages": false
+  },
+  "buryDate": "",
+  "buryList": [
+    "e3c2adc28ec9b",
+    "858aae8e96c4c",
+    "1020f77b598afa",
+    "629e16bf7010a",
+    "1a1efece2a1350",
+    "f0795f5f30349",
+    "16c104dc0dc7f8",
+    "9ab5de44ff54a",
+    "1e8331f7096d4c",
+    "197d018f9e0639",
+    "1860c132f099e0"
+  ],
+  "historyDeck": null
+}
