@@ -19,66 +19,66 @@ await dv.view("scripts/pa-core");
 await dv.view("scripts/pa-view-memory");
 ```
 
-> [!COLUMN|2]
-> > [!success] 🧠 知识与记忆
-> > ```dataviewjs
-> > // 🗺️ 课程地图 (Course Matrix)
-> > await dv.view("scripts/pa-view-course");
-> > ```
-> > ```dataviewjs
-> > // 📘 策略剧本 (Playbook)
-> > await dv.view("scripts/pa-view-playbook");
-> > ```
-> 
-> > [!info] 📊 账户全景
-> > ```dataviewjs
-> > await dv.view("scripts/pa-view-account");
-> > ```
-> > ```dataviewjs
-> > // 📈 综合趋势 (R-Multiples)
-> > await dv.view("scripts/pa-view-trend");
-> > ```
+## 🧠 知识与记忆
+```dataviewjs
+// 🗺️ 课程地图 (Course Matrix)
+await dv.view("scripts/pa-view-course");
+```
 
-> [!COLUMN|2]
-> > [!abstract] 📉 策略实验室
-> >
-> > ```dataviewjs
-> > // 资金增长曲线 (Capital Growth)
-> > await dv.view("scripts/pa-view-strategy");
-> > ```
-> > ```dataviewjs
-> > // 不同市场环境表现 (Live PnL)
-> > await dv.view("scripts/pa-view-cycle");
-> > ```
-> > ```dataviewjs
-> > // 💸 错误的代价 (学费统计)
-> > await dv.view("scripts/pa-view-tuition");
-> > ```
->
-> > [!example] 🖼️ 综合画廊
-> > ```dataviewjs
-> > // 🖼️ 最新复盘 (Charts)
-> > await dv.view("scripts/pa-view-gallery");
-> > ```
-> > ```dataviewjs
-> > // 🚀 快速行动 (Quick Actions)
-> > await dv.view("scripts/pa-view-actions");
-> > ```
+```dataviewjs
+// 📘 策略剧本 (Playbook)
+await dv.view("scripts/pa-view-playbook");
+```
 
-> [!example]- 🧹 数据治理与巡检 (Data Governance)
-> **1. 健康度诊断 (Health Check)**
-> ```dataviewjs
-> await dv.view("scripts/pa-view-inspector");
-> ```
-> ---
-> **2. 属性后台管理 (God Mode)**
-> ```dataviewjs
-> await dv.view("scripts/pa-view-manager");
-> ```
-> **3. 数据监控**
-> ```dataviewjs
-> await dv.view("scripts/pa-view-schema");
-> ```
+## 📊 账户全景
+```dataviewjs
+await dv.view("scripts/pa-view-account");
+```
+
+```dataviewjs
+// 📈 综合趋势 (R-Multiples)
+await dv.view("scripts/pa-view-trend");
+```
+
+## 📉 策略实验室
+```dataviewjs
+// 资金增长曲线 (Capital Growth)
+await dv.view("scripts/pa-view-strategy");
+```
+
+```dataviewjs
+// 不同市场环境表现 (Live PnL)
+await dv.view("scripts/pa-view-cycle");
+```
+
+```dataviewjs
+// 💸 错误的代价 (学费统计)
+await dv.view("scripts/pa-view-tuition");
+```
+
+## 🖼️ 综合画廊
+```dataviewjs
+// 🖼️ 最新复盘 (Charts)
+await dv.view("scripts/pa-view-gallery");
+```
+
+```dataviewjs
+// 🚀 快速行动 (Quick Actions)
+await dv.view("scripts/pa-view-actions");
+```
+
+## 🧹 数据治理与巡检
+```dataviewjs
+await dv.view("scripts/pa-view-inspector");
+```
+
+```dataviewjs
+await dv.view("scripts/pa-view-manager");
+```
+
+```dataviewjs
+await dv.view("scripts/pa-view-schema");
+```
 
 # ✅ 每日行动 (Actions)
 
