@@ -20,7 +20,6 @@ await dv.view("scripts/pa-view-memory");
 ```
 
 > [!COLUMN|2]
->
 > > [!success] 🧠 知识与记忆
 > > ```dataviewjs
 > > // 🗺️ 课程地图 (Course Matrix)
