@@ -7,8 +7,8 @@ var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePat
 var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 var utils = basePath ? require(basePath + "/Scripts/pa-utils.js") : {};
 
-const startT = performance.now();
-const todayStr = moment().format("YYYY-MM-DD");
+if (typeof startT === 'undefined') var startT = performance.now();
+if (typeof todayStr === 'undefined') var todayStr = moment().format('YYYY-MM-DD');
 
 // --- 1. 缓存控制 (Smart Cache) ---
 const forceReload = window.paForceReload === true;
