@@ -1,5 +1,19 @@
 /* 文件名: Scripts/pa-view-manager.js (V17 - Crystal Edition)
    用途: 交易系统后台管理
+*/
+const basePath = app.vault.adapter.basePath;
+let cfg;
+try { cfg = require(basePath + "/Scripts/pa-config.js"); } catch(e) { cfg = null; }
+
+if (typeof dv === 'undefined') return;
+
+// manager 可以在没有 paData 时也工作
+
+const container = document.createElement('div');
+container.innerHTML = `<div style="padding:12px;">🛠️ 管理后台 (Manager)</div>`;
+dv.container.innerHTML = ""; dv.container.appendChild(container);
+/* 文件名: Scripts/pa-view-manager.js (V17 - Crystal Edition)
+   用途: 交易系统后台管理
    更新内容:
    1. 视觉升级: 弹窗背景改为"磨砂玻璃 (Glassmorphism)"效果，半透明且模糊。
    2. 交互升级: 弹窗增加 resize 属性，支持右下角拖拽改变大小。

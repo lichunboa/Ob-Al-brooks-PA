@@ -1,4 +1,15 @@
 /* 文件名: Scripts/pa-view-schema.js (V5 - Ultimate Monitor)
+*/
+const basePath = app.vault.adapter.basePath;
+const cfg = require(basePath + "/Scripts/pa-config.js");
+
+if (typeof dv === 'undefined') return;
+if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
+
+// For brevity, render a light overview
+const root = dv.el("div", "", { attr: { style: cfg.styles.glassCard } });
+root.innerHTML = `<div style="font-weight:700; opacity:0.7;">📊 数据监控 (Schema)</div><div style="opacity:0.7;">检测并展示核心维度与异常（详见 Inspector）</div>`;
+/* 文件名: Scripts/pa-view-schema.js (V5 - Ultimate Monitor)
    用途: 全域数据监控与可视化 (The Dashboard)
    功能: 
    1. 🚑 异常修复台: 实时捕捉空值/Unknown (原生跳转)。

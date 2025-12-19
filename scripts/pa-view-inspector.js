@@ -1,5 +1,65 @@
 /* 文件名: Scripts/pa-view-inspector.js
    用途: 全景数据巡检仪 (Ultimate Fusion)
+*/
+
+const basePath = app.vault.adapter.basePath;
+const cfg = require(basePath + "/Scripts/pa-config.js");
+const c = cfg.colors;
+
+if (typeof dv === 'undefined') return;
+if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
+
+const style = document.createElement('style');
+style.innerHTML = `@keyframes glow { 0% { box-shadow: 0 0 5px ${c.accent}44; } 50% { box-shadow: 0 0 15px ${c.accent}88; } 100% { box-shadow: 0 0 5px ${c.accent}44; } }`;
+document.head.appendChild(style);
+
+const D = window.paData;
+const trades = D.trades;
+const sr = D.sr;
+
+let missing = { ticker:0, tf:0, setup:0, logic:0 };
+trades.forEach(t => {
+    if(!t.ticker || t.ticker==="Unknown") missing.ticker++;
+    if(!t.tf || t.tf==="Unknown") missing.tf++;
+    if(!t.setup || t.setup==="Unknown") missing.setup++;
+    if(t.pnl !== 0 && t.r === 0) missing.logic++;
+});
+
+let totalIssues = Object.values(missing).reduce((a,b)=>a+b, 0);
+let healthScore = Math.max(0, 100 - Math.ceil((totalIssues / Math.max(trades.length,1)) * 20));
+let healthColor = healthScore > 90 ? c.live : (healthScore > 60 ? c.back : c.loss);
+
+function getDist(key) {
+    let dist = {};
+    trades.forEach(t => {
+        let val = (t[key] || "Unknown").toString().split("(")[0].trim();
+        if(val) dist[val] = (dist[val] || 0) + 1;
+    });
+    return Object.entries(dist).sort((a,b)=>b[1]-a[1]).slice(0, 5);
+}
+const distTicker = getDist("ticker");
+const distSetup = getDist("setup");
+
+const execColorFn = (name) => {
+    if(name.includes("完美") || name.includes("Perfect")) return c.live;
+    if(name.includes("主动") || name.includes("Valid")) return c.back;
+    if(name.includes("恐慌") || name.includes("Panic")) return c.loss;
+    return "gray";
+};
+
+const renderMiniBar = (data, colorFn) => {
+    let total = trades.length;
+    return data.map(([k,v]) => {
+        let pct = Math.round(v/total*100);
+        let col = typeof colorFn === 'function' ? colorFn(k) : colorFn;
+        return `<div style="margin-bottom:8px;"><div style="display:flex; justify-content:space-between; font-size:0.75em;"><span style="opacity:0.8">${k}</span><span style="opacity:0.5">${v} (${pct}%)</span></div><div style="background:rgba(255,255,255,0.1); height:4px; border-radius:2px; overflow:hidden; margin-top:4px;"><div style="width:${pct}%; background:${col}; height:100%; border-radius:2px;"></div></div></div>`;
+    }).join("");
+};
+
+const root = dv.el("div", "");
+root.innerHTML = `...`;
+/* 文件名: Scripts/pa-view-inspector.js
+   用途: 全景数据巡检仪 (Ultimate Fusion)
    包含: 健康度评分 + 缺失值检测 + 维度分布 + 每日一题诊断
 */
 

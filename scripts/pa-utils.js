@@ -2,6 +2,50 @@
    用途: 通用工具函数库 (数据清洗、计算)
 */
 
+function getVal(page, keys) {
+    for (let k of keys) {
+        if (page[k] !== undefined) return Number(page[k]);
+    }
+    return 0;
+}
+
+function getStr(page, keys) {
+    for (let k of keys) {
+        if (page[k]) {
+            let s = page[k].toString();
+            if (s.match(/[a-zA-Z]/)) {
+                if (s.includes("(")) return s.split("(")[1].replace(")", "").trim();
+                if (s.includes("/")) return s.split("/")[1].trim();
+            }
+            return s.split("(")[0].trim();
+        }
+    }
+    return "Unknown";
+}
+
+function calculateR(entry, stop, exit) {
+    let risk = Math.abs(entry - stop);
+    if (risk === 0) return 0;
+    return ((exit - entry) / risk);
+}
+
+function getAccountType(rawStr) {
+    let s = rawStr.toLowerCase();
+    if (s.includes("live") || s.includes("实盘")) return "Live";
+    if (s.includes("back") || s.includes("回测")) return "Backtest";
+    return "Demo";
+}
+
+module.exports = {
+    getVal,
+    getStr,
+    calculateR,
+    getAccountType
+};
+/* 文件名: Scripts/pa-utils.js
+   用途: 通用工具函数库 (数据清洗、计算)
+*/
+
 // 1. 安全获取数值属性 (支持多键名)
 function getVal(page, keys) {
     for (let k of keys) {
