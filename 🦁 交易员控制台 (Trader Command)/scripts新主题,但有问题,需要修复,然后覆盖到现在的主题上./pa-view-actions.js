@@ -1,6 +1,6 @@
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 const root = dv.el("div", "", { attr: { style: cfg.styles.glassCard + " padding:12px 20px; display:flex; justify-content:space-between; align-items:center;" } });
 

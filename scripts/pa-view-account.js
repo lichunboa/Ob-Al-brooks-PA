@@ -1,8 +1,8 @@
 /* 文件名: Scripts/pa-view-account.js
    用途: 账户资金概览 + 月度热力图
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -71,8 +71,8 @@ root.innerHTML = `
 /* 文件名: Scripts/pa-view-account.js
    用途: 账户资金概览 + 月度热力图
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (window.paData) {
     const trades = window.paData.trades; // 获取所有交易

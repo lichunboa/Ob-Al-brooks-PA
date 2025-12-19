@@ -2,8 +2,8 @@
    用途: 策略实验室 (资金曲线 + 策略排行 + 建议)
    修复: 找回回测数据，还原中文，保持水晶质感
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 
 if (window.paData) {
     const trades = window.paData.tradesAsc; // 正序数据

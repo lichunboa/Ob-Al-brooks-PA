@@ -2,8 +2,8 @@
    用途: 课程地图 (Course Matrix)
    修复: 还原 ID 识别逻辑 (保留 L/M 前缀)，保持 V2.0 水晶 UI
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
 const c = cfg.colors;
 
 if (window.paData && window.paData.course) {

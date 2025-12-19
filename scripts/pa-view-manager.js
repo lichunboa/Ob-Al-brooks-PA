@@ -1,7 +1,7 @@
 /* 文件名: Scripts/pa-view-manager.js (V17 - Crystal Edition)
    用途: 交易系统后台管理
 */
-const basePath = app.vault.adapter.basePath;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 let cfg;
 try { cfg = require(basePath + "/Scripts/pa-config.js"); } catch(e) { cfg = null; }
 
@@ -37,7 +37,7 @@ const ALLOW_DUPLICATES = false;
 // 🎨 核心代码 (CORE)
 // ============================================================
 
-const basePath = app.vault.adapter.basePath;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
 let c;
 
 // --- 1. 配色 (适配半透明背景) ---

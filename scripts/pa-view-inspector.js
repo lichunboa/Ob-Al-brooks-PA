@@ -2,9 +2,9 @@
    用途: 全景数据巡检仪 (Ultimate Fusion)
 */
 
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -63,9 +63,9 @@ root.innerHTML = `...`;
    包含: 健康度评分 + 缺失值检测 + 维度分布 + 每日一题诊断
 */
 
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 const style = document.createElement('style');
 style.innerHTML = `
