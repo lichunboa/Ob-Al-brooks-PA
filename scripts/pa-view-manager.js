@@ -58,9 +58,11 @@ if (!document.getElementById(styleId)) {
         
         /* Dashboard */
         .pa-dash { 
-            background: ${c.bg_dash}; border-radius: 16px; padding: 20px 24px; 
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); 
+            backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-radius: 16px; padding: 20px 24px; 
             display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3); border: 1px solid ${c.border};
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(148, 163, 184, 0.1);
         }
         .pa-logo { font-size: 1.5em; font-weight: 800; color: ${c.text}; letter-spacing: -0.5px; }
         .pa-logo span { color: ${c.accent}; }
@@ -82,13 +84,16 @@ if (!document.getElementById(styleId)) {
 
         .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .pa-card { 
-            background: ${c.bg_card}; border-radius: 12px; padding: 16px; 
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+            backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-radius: 12px; padding: 16px; 
             display: flex; flex-direction: column; gap: 10px; cursor: pointer; 
-            transition: all 0.2s ease; border: 1px solid transparent;
+            transition: all 0.2s ease; border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
         .pa-card:hover { 
-            background: #333; transform: translateY(-3px); 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1);
+            transform: translateY(-3px); 
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4); border-color: rgba(96, 165, 250, 0.3);
         }
         .pa-card.hidden { display: none !important; }
 
