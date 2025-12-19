@@ -99,7 +99,7 @@ if (useCache) {
             pnl: pnl, r: r, 
             setup: utils.getStr(t, ["设置类别/setup_category", "setup_category"]),
             error: errStr, 
-            cover: utils.getStr(t, ["封面/cover", "cover"]),
+            cover: t["封面/cover"] || t["cover"] || "Unknown", // 保留原始值,不清洗
             ticker: utils.getStr(t, ["品种/ticker", "ticker"]),
             dir: utils.getStr(t, ["方向/direction", "direction"]),
             tf: utils.getStr(t, ["时间周期/timeframe", "timeframe"]),
