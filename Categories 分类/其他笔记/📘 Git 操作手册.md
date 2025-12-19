@@ -123,9 +123,21 @@ Bash
 # 第一次推送这个新分支
 git push -u origin dev
 ```
+**切换分支**：
+
+- **方案 A（推荐，暂存修改）**：把现在的修改先“藏”起来，切过去看看，再切回来。
+
 ```
-git switch main
+git stash
+git checkout Scripts-uppercase-and-theme-merge
 ```
+
+- **方案 B（放弃修改，慎用）**：如果您确信刚才改的东西不要了，强制切换。
+
+```
+git checkout -f Scripts-uppercase-and-theme-merge
+```
+
 ### 3. 切回主分支
 
 Bash
