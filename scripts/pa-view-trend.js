@@ -3,7 +3,7 @@
    修复: 还原 R 值图表的颜色逻辑 (Live=Green, Demo=Blue, Back=Orange)
 */
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
 if (window.paData) {

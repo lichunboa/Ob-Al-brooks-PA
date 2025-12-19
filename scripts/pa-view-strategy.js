@@ -3,7 +3,7 @@
    修复: 1:1 还原 2.0 版本逻辑
 */
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
 
 if (window.paData) {
     // 必须使用正序排列的数据来画图

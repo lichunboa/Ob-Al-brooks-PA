@@ -1,5 +1,5 @@
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
 // 重新从 DataView 获取原始页面以读取 market_cycle 属性 (Engine V14.5 未深度清洗此字段)

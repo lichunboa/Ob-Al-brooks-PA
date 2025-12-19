@@ -28,7 +28,7 @@ let c;
 
 // --- 1. 配色 (适配半透明背景) ---
 try {
-    const cfg = require(basePath + "/Scripts/pa-config.js");
+    const cfg = require(basePath + "/scripts/pa-config.js");
     c = cfg.colors;
 } catch (e) {
     c = {

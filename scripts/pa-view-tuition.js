@@ -1,5 +1,5 @@
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
 if (window.paData) {

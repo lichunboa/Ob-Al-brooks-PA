@@ -2,7 +2,7 @@
    用途: 账户资金概览 + 月度热力图
 */
 const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
+const cfg = require(basePath + "/scripts/pa-config.js");
 
 if (window.paData) {
     const trades = window.paData.trades; // 获取所有交易
