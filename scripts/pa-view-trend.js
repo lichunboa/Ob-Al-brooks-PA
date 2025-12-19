@@ -1,9 +1,9 @@
 /* 文件名: Scripts/pa-view-trend.js (V2.2 - Strict Restore)
    用途: 综合趋势与心态监控
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (typeof dv === 'undefined') return;
 if (!window.paData) { dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } }); return; }
@@ -69,9 +69,9 @@ root.innerHTML = `
    用途: 综合趋势与心态 (Multi-Trend & Mind)
    修复: 还原 R 值图表的颜色逻辑 (Live=Green, Demo=Blue, Back=Orange)
 */
-const basePath = app.vault.adapter.basePath;
-const cfg = require(basePath + "/Scripts/pa-config.js");
-const c = cfg.colors;
+var basePath = app && app.vault && app.vault.adapter ? app.vault.adapter.basePath : "";
+var cfg = basePath ? require(basePath + "/Scripts/pa-config.js") : {};
+var c = cfg.colors || {};
 
 if (window.paData) {
     // 取最近 30 笔交易，倒序排列（最新的在最右边/最后）
