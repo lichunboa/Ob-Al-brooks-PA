@@ -33,12 +33,13 @@ if (window.paData) {
 
         let acct = n.type;
         let badgeColor = acct === "Live" ? c.live : (acct === "Backtest" ? c.back : c.demo);
+        let badgeText = acct === "Live" ? "实盘" : (acct === "Backtest" ? "回测" : "模拟");
         let pnlColor = n.pnl >= 0 ? c.live : c.loss;
         let pnlTxt = n.pnl > 0 ? `+${n.pnl}` : `${n.pnl}`;
 
         return `<div style="position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1); margin-bottom:8px;">
             <img src="${src}" style="width:100%; height:100%; object-fit:cover;">
-            <div style="position:absolute; top:5px; right:5px; background:${badgeColor}; color:black; font-size:0.6em; font-weight:800; padding:2px 6px; border-radius:4px;">${acct.toUpperCase()}</div>
+            <div style="position:absolute; top:5px; right:5px; background:${badgeColor}; color:black; font-size:0.6em; font-weight:800; padding:2px 6px; border-radius:4px;">${badgeText}</div>
             <div style="position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent, rgba(0,0,0,0.9)); padding:15px 8px 5px 8px; display:flex; justify-content:space-between; align-items:flex-end;">
                 <a href="${n.id}" class="internal-link" style="color:white; text-decoration:none; font-size:0.75em; font-weight:bold;">${n.name}</a>
                 <div style="color:${pnlColor}; font-weight:800; font-size:0.9em;">${pnlTxt}</div>

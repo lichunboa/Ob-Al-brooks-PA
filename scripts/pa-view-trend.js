@@ -57,9 +57,9 @@ if (window.paData) {
     <div style="flex:2;">
         <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">📈 综合趋势 (R-Multiples)</div>
         <div style="display:flex; gap:10px; font-size:0.6em; margin-bottom:4px; opacity:0.6;">
-            <span style="color:${c.live}">● Live</span>
-            <span style="color:${c.demo}">● Demo</span>
-            <span style="color:${c.back}">● Back</span>
+            <span style="color:${c.live}">● 实盘</span>
+            <span style="color:${c.demo}">● 模拟</span>
+            <span style="color:${c.back}">● 回测</span>
         </div>
         ${bars}
     </div>
@@ -67,8 +67,8 @@ if (window.paData) {
         <div style="font-weight:700; opacity:0.7; margin-bottom:5px;">🧠 实盘心态</div>
         <div style="font-size:1.4em; font-weight:800; color:${mindColor};">${mindStatus}</div>
         <div style="font-size:0.7em; opacity:0.6; margin-top:4px;">
-            Recent Errors:<br>
-            FOMO: ${fomo} | Tilt: ${tilt}
+            近期错误:<br>
+            冲动 (FOMO): ${fomo} | 上头 (Tilt): ${tilt}
         </div>
     </div>`;
 }

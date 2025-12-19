@@ -53,21 +53,21 @@ if (window.paData) {
     <div style="display:flex; gap:20px;">
         <div style="flex:2; padding:10px; border-right:1px solid rgba(255,255,255,0.1);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="color:${c.live}; font-weight:800; font-size:1.1em;">🟢 LIVE ACCOUNT</div>
-                <div style="font-size:0.8em; opacity:0.5;">${live.count} Trades</div>
+                <div style="color:${c.live}; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
+                <div style="font-size:0.8em; opacity:0.5;">${live.count} 笔交易</div>
             </div>
             <div style="margin-top:15px;">
                 <div style="font-size:2.5em; font-weight:900; color:${live.pnl>=0?c.live:c.loss}">${live.pnl>0?'+':''}${live.pnl}<span style="font-size:0.5em; opacity:0.5">$</span></div>
-                <div style="font-size:0.9em; opacity:0.8;">Win Rate: <b>${live.wr}%</b></div>
+                <div style="font-size:0.9em; opacity:0.8;">胜率: <b>${live.wr}%</b></div>
             </div>
         </div>
         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px;">
             <div style="display:flex; justify-content:space-between; font-size:0.9em;">
-                <span style="color:${c.demo}">🔵 Demo</span>
+                <span style="color:${c.demo}">🔵 模拟盘</span>
                 <span>${demo.pnl}$ (${demo.wr}%)</span>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:0.9em;">
-                <span style="color:${c.back}">🟠 Backtest</span>
+                <span style="color:${c.back}">🟠 复盘回测</span>
                 <span>${back.pnl}$ (${back.wr}%)</span>
             </div>
         </div>
