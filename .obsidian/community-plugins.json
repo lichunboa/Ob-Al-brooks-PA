@@ -26,5 +26,6 @@
   "obsidian-tasks-plugin",
   "obsidian-chartsview-plugin",
   "obsidian-image-gallery",
-  "tag-wrangler"
+  "tag-wrangler",
+  "obsidian-git"
 ]
