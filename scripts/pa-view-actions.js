@@ -2,7 +2,7 @@ const basePath = app.vault.adapter.basePath;
 const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
-const root = dv.el("div", "", { attr: { style: `background:rgba(35,35,35,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px;` } });
+const root = dv.el("div", "", { attr: { style: c.cardBg } });
 const btn = (color, text, cmd) => `<button onclick="app.commands.executeCommandById('${cmd}')" style="background:${color}; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:bold; margin-right:10px;">${text}</button>`;
 
 root.innerHTML = `

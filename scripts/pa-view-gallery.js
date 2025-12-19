@@ -16,14 +16,18 @@ if (window.paData) {
         
         let src = "";
         // 1. 处理 Obsidian 内部链接 ![[image.png]]
-        if (rawCover.includes("[[")) {
-            let path = rawCover.replace("![[", "").replace("]]", "").replace("[[", "");
+        if (rawCover.includes("]]")) {
+            let path = rawCover.replace("![[", "").replace("]]", "").replace("[[", "").split("|")[0].trim();
             // 尝试获取文件对象
-            let file = app.metadataCache.getFirstLinkpathDest(path, n.id);
+            let file = app.metadataCache.getFirstLinkpathDest(path, "");
             if (file) {
                 src = app.vault.adapter.getResourcePath(file.path);
+            } else {
+                // 尝试直接在 Attachments 文件夹查找
+                let attachFile = app.vault.getAbstractFileByPath("Attachments/cover/" + path);
+                if (attachFile) src = app.vault.adapter.getResourcePath(attachFile.path);
             }
-        } 
+        }
         // 2. 处理 http 链接
         else {
             src = rawCover; 
