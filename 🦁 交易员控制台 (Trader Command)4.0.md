@@ -12,11 +12,11 @@ btnExport.onclick = async () => {
 ```
 ```dataviewjs
 // 加载引擎
-await dv.view("Scripts/pa-core");
+await dv.view("scripts/pa-core");
 ```
 ```dataviewjs
 // 加载记忆库 UI
-await dv.view("Scripts/pa-view-memory");
+await dv.view("scripts/pa-view-memory");
 ```
 
 > [!COLUMN|2]
@@ -24,20 +24,20 @@ await dv.view("Scripts/pa-view-memory");
 > > [!success] 🧠 知识与记忆
 > > ```dataviewjs
 > > // 🗺️ 课程地图 (Course Matrix)
-> > await dv.view("Scripts/pa-view-course");
+> > await dv.view("scripts/pa-view-course");
 > > ```
 > > ```dataviewjs
 > > // 📘 策略剧本 (Playbook)
-> > await dv.view("Scripts/pa-view-playbook");
+> > await dv.view("scripts/pa-view-playbook");
 > > ```
 > 
 > > [!info] 📊 账户全景
 > > ```dataviewjs
-> > await dv.view("Scripts/pa-view-account");
+> > await dv.view("scripts/pa-view-account");
 > > ```
 > > ```dataviewjs
 > > // 📈 综合趋势 (R-Multiples)
-> > await dv.view("Scripts/pa-view-trend");
+> > await dv.view("scripts/pa-view-trend");
 > > ```
 
 > [!COLUMN|2]
@@ -46,40 +46,40 @@ await dv.view("Scripts/pa-view-memory");
 > >
 > > ```dataviewjs
 > > // 资金增长曲线 (Capital Growth)
-> > await dv.view("Scripts/pa-view-strategy");
+> > await dv.view("scripts/pa-view-strategy");
 > > ```
 > > ```dataviewjs
 > > // 不同市场环境表现 (Live PnL)
-> > await dv.view("Scripts/pa-view-cycle");
+> > await dv.view("scripts/pa-view-cycle");
 > > ```
 > > ```dataviewjs
 > > // 💸 错误的代价 (学费统计)
-> > await dv.view("Scripts/pa-view-tuition");
+> > await dv.view("scripts/pa-view-tuition");
 > > ```
 >
 > > [!example] 🖼️ 综合画廊
 > > ```dataviewjs
 > > // 🖼️ 最新复盘 (Charts)
-> > await dv.view("Scripts/pa-view-gallery");
+> > await dv.view("scripts/pa-view-gallery");
 > > ```
 > > ```dataviewjs
 > > // 🚀 快速行动 (Quick Actions)
-> > await dv.view("Scripts/pa-view-actions");
+> > await dv.view("scripts/pa-view-actions");
 > > ```
 
 > [!example]- 🧹 数据治理与巡检 (Data Governance)
 > **1. 健康度诊断 (Health Check)**
 > ```dataviewjs
-> await dv.view("Scripts/pa-view-inspector");
+> await dv.view("scripts/pa-view-inspector");
 > ```
 > ---
 > > **2. 属性后台管理 (God Mode)**
 > ```dataviewjs
-> await dv.view("Scripts/pa-view-manager");
+> await dv.view("scripts/pa-view-manager");
 > ```
 > > **3. 数据监控**
 > ```dataviewjs
-> await dv.view("Scripts/pa-view-schema");
+> await dv.view("scripts/pa-view-schema");
 > ```
 
 # ✅ 每日行动 (Actions)
