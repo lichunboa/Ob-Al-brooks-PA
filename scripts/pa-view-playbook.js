@@ -3,27 +3,32 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 
 // 策略仓库路径
 const strategyRepo = "策略仓库 (Strategy Repository)";
-const strategies = dv.pages(`"${strategyRepo}"`)
-  .where(p => p.categories && p.categories.includes("策略"));
+const strategies = dv
+  .pages(`"${strategyRepo}"`)
+  .where((p) => p.categories && p.categories.includes("策略"));
 
 // 按市场周期分类
 let cycleGroups = {
   "🚀 急速/突破": ["急速", "突破模式", "Spike", "Breakout"],
   "📈 趋势延续": ["趋势", "强趋势", "趋势回调", "Trend", "Pullback"],
   "🔄 交易区间": ["交易区间", "区间", "Range"],
-  "🔃 反转": ["反转", "Reversal"]
+  "🔃 反转": ["反转", "Reversal"],
 };
 
 let html = "";
 let totalStrategies = strategies.length;
-let activeStrategies = strategies.where(p => p["策略状态"] === "实战中").length;
+let activeStrategies = strategies.where(
+  (p) => p["策略状态"] === "实战中"
+).length;
 let usageCount = 0;
-strategies.forEach(s => usageCount += (s["使用次数"] || 0));
+strategies.forEach((s) => (usageCount += s["使用次数"] || 0));
 
 // 顶部统计
 html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:16px;">
   <div style="background:rgba(59,130,246,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${cfg.colors.demo};">${totalStrategies}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${
+      cfg.colors.demo
+    };">${totalStrategies}</div>
     <div style="font-size:0.7em; opacity:0.7;">总策略</div>
   </div>
   <div style="background:rgba(34,197,94,0.1); padding:8px; border-radius:6px; text-align:center;">
@@ -31,7 +36,9 @@ html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6p
     <div style="font-size:0.7em; opacity:0.7;">实战中</div>
   </div>
   <div style="background:rgba(251,191,36,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:#fbbf24;">${totalStrategies - activeStrategies}</div>
+    <div style="font-size:1.2em; font-weight:700; color:#fbbf24;">${
+      totalStrategies - activeStrategies
+    }</div>
     <div style="font-size:0.7em; opacity:0.7;">学习中</div>
   </div>
   <div style="background:rgba(168,85,247,0.1); padding:8px; border-radius:6px; text-align:center;">
@@ -46,16 +53,14 @@ Object.keys(cycleGroups).forEach((groupName) => {
   let matches = strategies.where((p) => {
     let cycles = p["市场周期"] || [];
     if (!Array.isArray(cycles)) cycles = [cycles];
-    return keywords.some((k) => 
-      cycles.some(c => c.toString().includes(k))
-    );
+    return keywords.some((k) => cycles.some((c) => c.toString().includes(k)));
   });
 
   if (matches.length > 0) {
     html += `<div style="margin-bottom:14px;">
       <div style="font-size:0.85em; opacity:0.7; font-weight:bold; margin-bottom:8px;">${groupName} (${matches.length})</div>
       <div style="display:flex; flex-direction:column; gap:8px;">`;
-    
+
     for (let s of matches) {
       let strategyName = s["策略名称"] || s.file.name;
       let winRate = s["胜率"] || 0;
@@ -64,25 +69,35 @@ Object.keys(cycleGroups).forEach((groupName) => {
       let usageCount = s["使用次数"] || 0;
       let setupCategory = s["设置类别"] || "";
       let source = s["来源"] || "";
-      
+
       // 获取市场周期
       let cycles = s["市场周期"] || [];
       if (!Array.isArray(cycles)) cycles = [cycles];
       let cycleText = cycles.slice(0, 2).join(", ");
-      
+
       // 状态颜色
-      let statusColor = status === "实战中" ? "#22c55e" : 
-                        status === "验证中" ? "#fbbf24" : 
-                        status === "学习中" ? "#3b82f6" : "#6b7280";
-      
+      let statusColor =
+        status === "实战中"
+          ? "#22c55e"
+          : status === "验证中"
+          ? "#fbbf24"
+          : status === "学习中"
+          ? "#3b82f6"
+          : "#6b7280";
+
       // 胜率颜色
-      let winRateColor = winRate >= 60 ? "#22c55e" : 
-                         winRate >= 50 ? "#fbbf24" : 
-                         winRate > 0 ? "#ef4444" : "#6b7280";
-      
+      let winRateColor =
+        winRate >= 60
+          ? "#22c55e"
+          : winRate >= 50
+          ? "#fbbf24"
+          : winRate > 0
+          ? "#ef4444"
+          : "#6b7280";
+
       // 生成唯一ID
-      let cardId = "strategy-" + strategyName.replace(/[^a-zA-Z0-9]/g, '-');
-      
+      let cardId = "strategy-" + strategyName.replace(/[^a-zA-Z0-9]/g, "-");
+
       html += `
       <div style="
         background:rgba(255,255,255,0.03);
@@ -113,13 +128,23 @@ Object.keys(cycleGroups).forEach((groupName) => {
         ">
           <div style="flex:1;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-              <span style="font-size:0.9em; font-weight:600; color:${cfg.colors.demo};">${strategyName}</span>
+              <span style="font-size:0.9em; font-weight:600; color:${
+                cfg.colors.demo
+              };">${strategyName}</span>
               <span style="font-size:0.65em; padding:2px 6px; background:${statusColor}20; color:${statusColor}; border-radius:3px;">● ${status}</span>
             </div>
             <div style="display:flex; gap:12px; font-size:0.7em; opacity:0.7;">
               <span>📊 R/R: <strong>${riskReward}</strong></span>
-              ${winRate > 0 ? `<span>✓ 胜率: <strong style="color:${winRateColor};">${winRate}%</strong></span>` : ''}
-              ${usageCount > 0 ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>` : ''}
+              ${
+                winRate > 0
+                  ? `<span>✓ 胜率: <strong style="color:${winRateColor};">${winRate}%</strong></span>`
+                  : ""
+              }
+              ${
+                usageCount > 0
+                  ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>`
+                  : ""
+              }
             </div>
           </div>
           <div id="${cardId}-arrow" style="
