@@ -6,10 +6,12 @@ tags:
   - PA/Analysis
   - PA/Chart
 创建时间: "{{date:YYYY-MM-DD HH:mm}}"
-品种/ticker: 
+品种/ticker:
+  - BTC (比特币)
 时间周期/timeframe: 5m
 分析时间段: "{{date:HH:mm}}"
-市场周期/market_cycle: []
+市场周期/market_cycle:
+  - 急速
 观察到的形态/patterns: []
 推荐策略/recommended_strategies: []
 ---
@@ -33,10 +35,10 @@ tags:
 ## 🔍 市场背景分析 (Context Analysis)
 
 ### 📍 当前市场周期
-- [ ] 🚀 急速/突破 (Spike/Breakout)
+- [x] 🚀 急速/突破 (Spike/Breakout)
 - [ ] 📈 强趋势 (Strong Trend)
 - [ ] 📉 趋势回调 (Pullback)
-- [x] 🔄 交易区间 (Trading Range)
+- [ ] 🔄 交易区间 (Trading Range)
 - [ ] 🔃 可能反转 (Potential Reversal)
 
 ### 🎯 关键价位标记
@@ -65,7 +67,7 @@ dv.paragraph(canvas);
 ### 🔥 当前观察到的形态 (勾选所有适用项)
 
 #### 🚀 急速/突破相关
-- [ ] 突破后缺口 (Breakout Gap)
+- [x] 突破后缺口 (Breakout Gap)
 - [ ] 急速上涨/下跌 (Spike Up/Down)
 - [ ] 看衰突破 (Failed Breakout)
 
