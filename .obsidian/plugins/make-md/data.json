@@ -51,7 +51,8 @@
     "//PA",
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
-    "//Daily/Daily/Trades"
+    "//Daily/Daily/Trades",
+    "//Categories 分类"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
