@@ -8,43 +8,16 @@ date:
   "{ date }":
 账户类型/account_type: 实盘 (Live)
 品种/ticker:
+  - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
+  - 强趋势 (Strong Trend)
 方向/direction:
+  - 做多 (Long)
+设置类别/setup_category:
+  - 区间反转 (Reversal)
 观察到的形态/patterns_observed:
   - 20EMA缺口 (20 EMA Gap)
-设置类别/setup_category:
-信号K/signal_bar_quality:
-  - 内包线 (ii or ioi)
-  - 强阳收盘 (Strong Bull Close)
-  - 强阴收盘 (Strong Bear Close)
-  - 弱势/长影线 (Weak Tail)
-  - 十字星 (Doji)
-订单类型/order_type:
-入场/entry_price:
-止损/stop_loss:
-目标位/take_profit:
-初始风险/initial_risk:
-净利润/net_profit:
-结果/outcome:
-封面/cover:
-执行评价/execution_quality:
-匹配策略ID/matched_strategy:
----
----
-categories:
-  - 模版
-  - 交易单
-tags:
-  - PA/Trade
-date: "{{date}}"
-账户类型/account_type: 实盘 (Live)
-品种/ticker:
-时间周期/timeframe: 5m
-市场周期/market_cycle:
-方向/direction:
-设置类别/setup_category:
-观察到的形态/patterns_observed: []
 匹配策略ID/matched_strategy:
 信号K/signal_bar_quality:
   - 内包线 (ii or ioi)
@@ -62,7 +35,7 @@ date: "{{date}}"
 封面/cover:
 执行评价/execution_quality:
 ---
-
+---
 # 📊 阶段一: 图表分析与形态识别
 
 > [!info]- 💡 工作流程
@@ -120,19 +93,19 @@ dv.el("div", "", {
 > 请在上方 `frontmatter` 的 `观察到的形态/patterns_observed` 字段中添加形态
 
 **🔥 趋势延续形态:**
-- [x] 20EMA缺口
+- [ ] 20EMA缺口
 - [ ] 第一均线缺口  
 - [ ] 收线追进
 - [ ] 强趋势通道
 
 **⚡ 突破相关:**
-- [x] 突破缺口
+- [ ] 突破缺口
 - [ ] 区间突破回调
 - [ ] 看衰突破
 - [ ] 急速上涨/下跌
 
 **🔄 反转形态:**
-- [x] 双顶/双底
+- [ ] 双顶/双底
 - [ ] 楔形顶/底
 - [ ] 末端旗形
 - [ ] 头肩顶/底
