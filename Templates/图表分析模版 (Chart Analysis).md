@@ -39,7 +39,7 @@ tags:
 - [ ] 📈 强趋势 (Strong Trend)
 - [ ] 📉 趋势回调 (Pullback)
 - [ ] 🔄 交易区间 (Trading Range)
-- [ ] 🔃 可能反转 (Potential Reversal)
+- [x] 🔃 可能反转 (Potential Reversal)
 
 ### 🎯 关键价位标记
 ```dataviewjs
@@ -67,12 +67,12 @@ dv.paragraph(canvas);
 ### 🔥 当前观察到的形态 (勾选所有适用项)
 
 #### 🚀 急速/突破相关
-- [x] 突破后缺口 (Breakout Gap)
+- [ ] 突破后缺口 (Breakout Gap)
 - [ ] 急速上涨/下跌 (Spike Up/Down)
 - [ ] 看衰突破 (Failed Breakout)
 
 #### 📈 趋势延续
-- [ ] 20EMA缺口 (20 EMA Gap)
+- [x] 20EMA缺口 (20 EMA Gap)
 - [ ] 第一均线缺口 (First Moving Average Gap)
 - [ ] 收线追进 (Trend Bar Entry)
 - [ ] 强趋势通道 (Strong Trend Channel)

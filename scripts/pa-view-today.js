@@ -8,16 +8,17 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 const today = moment().format("YYYY-MM-DD");
 
 // 获取今日所有交易笔记
-const todayTrades = dv.pages('"Daily/Trades"')
-  .where(p => p.date && p.date.toString().startsWith(today))
-  .sort(p => p.date, 'desc');
+const todayTrades = dv
+  .pages('"Daily/Trades"')
+  .where((p) => p.date && p.date.toString().startsWith(today))
+  .sort((p) => p.date, "desc");
 
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
 // 统计数据
 let totalTrades = todayTrades.length;
-let completedTrades = todayTrades.where(p => p["结果/outcome"]).length;
+let completedTrades = todayTrades.where((p) => p["结果/outcome"]).length;
 let activeTrades = totalTrades - completedTrades;
 
 let totalPnL = 0;
@@ -25,10 +26,10 @@ let wins = 0;
 let losses = 0;
 let scratches = 0;
 
-todayTrades.forEach(trade => {
+todayTrades.forEach((trade) => {
   let outcome = trade["结果/outcome"];
   let pnl = trade["净利润/net_profit"] || 0;
-  
+
   if (outcome === "Win") {
     wins++;
     totalPnL += pnl;
@@ -40,13 +41,14 @@ todayTrades.forEach(trade => {
   }
 });
 
-let winRate = completedTrades > 0 ? Math.round((wins / completedTrades) * 100) : 0;
+let winRate =
+  completedTrades > 0 ? Math.round((wins / completedTrades) * 100) : 0;
 let avgPnL = completedTrades > 0 ? (totalPnL / completedTrades).toFixed(2) : 0;
 
 // 最近交易列表
 let recentTradesHtml = "";
 if (todayTrades.length > 0) {
-  todayTrades.slice(0, 5).forEach(trade => {
+  todayTrades.slice(0, 5).forEach((trade) => {
     let strategy = trade["策略名称/strategy_name"] || "未指定";
     let ticker = trade["品种/ticker"] || "";
     let direction = trade["方向/direction"] || "";
@@ -55,16 +57,25 @@ if (todayTrades.length > 0) {
     let timeframe = trade["时间周期/timeframe"] || "";
     let entry = trade["入场/entry_price"] || "";
     let stop = trade["止损/stop_loss"] || "";
-    
+
     // 状态颜色
-    let statusColor = outcome === "Win" ? c.live : 
-                     outcome === "Loss" ? c.loss : 
-                     outcome === "Scratch" ? c.back : "#6b7280";
-    
+    let statusColor =
+      outcome === "Win"
+        ? c.live
+        : outcome === "Loss"
+        ? c.loss
+        : outcome === "Scratch"
+        ? c.back
+        : "#6b7280";
+
     // 方向图标
-    let dirIcon = direction === "多" || direction === "Long" ? "📈" : 
-                  direction === "空" || direction === "Short" ? "📉" : "➡️";
-    
+    let dirIcon =
+      direction === "多" || direction === "Long"
+        ? "📈"
+        : direction === "空" || direction === "Short"
+        ? "📉"
+        : "➡️";
+
     recentTradesHtml += `
     <a href="${trade.file.path}" class="internal-link" style="
       display:block;
@@ -86,9 +97,15 @@ if (todayTrades.length > 0) {
         </div>
       </div>
       <div style="display:flex; gap:12px; font-size:0.7em; opacity:0.6;">
-        ${entry ? `<span>入场: ${entry}</span>` : ''}
-        ${stop ? `<span>止损: ${stop}</span>` : ''}
-        ${pnl !== 0 ? `<span style="color:${pnl > 0 ? c.live : c.loss}; font-weight:600;">PnL: ${pnl > 0 ? '+' : ''}${pnl}</span>` : ''}
+        ${entry ? `<span>入场: ${entry}</span>` : ""}
+        ${stop ? `<span>止损: ${stop}</span>` : ""}
+        ${
+          pnl !== 0
+            ? `<span style="color:${
+                pnl > 0 ? c.live : c.loss
+              }; font-weight:600;">PnL: ${pnl > 0 ? "+" : ""}${pnl}</span>`
+            : ""
+        }
       </div>
     </a>`;
   });
@@ -103,15 +120,21 @@ root.innerHTML = `
 <!-- 统计卡片 -->
 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin-bottom:16px;">
   <div style="background:rgba(59,130,246,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${c.demo};">${totalTrades}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${
+      c.demo
+    };">${totalTrades}</div>
     <div style="font-size:0.65em; opacity:0.7;">总交易</div>
   </div>
   <div style="background:rgba(34,197,94,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${c.live};">${wins}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${
+      c.live
+    };">${wins}</div>
     <div style="font-size:0.65em; opacity:0.7;">获胜</div>
   </div>
   <div style="background:rgba(239,68,68,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${c.loss};">${losses}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${
+      c.loss
+    };">${losses}</div>
     <div style="font-size:0.65em; opacity:0.7;">亏损</div>
   </div>
   <div style="background:rgba(251,191,36,0.1); padding:8px; border-radius:6px; text-align:center;">
@@ -119,17 +142,23 @@ root.innerHTML = `
     <div style="font-size:0.65em; opacity:0.7;">胜率</div>
   </div>
   <div style="background:rgba(168,85,247,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${totalPnL >= 0 ? c.live : c.loss};">${totalPnL > 0 ? '+' : ''}${totalPnL.toFixed(0)}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${
+      totalPnL >= 0 ? c.live : c.loss
+    };">${totalPnL > 0 ? "+" : ""}${totalPnL.toFixed(0)}</div>
     <div style="font-size:0.65em; opacity:0.7;">净利润</div>
   </div>
 </div>
 
 <!-- 进行中提示 -->
-${activeTrades > 0 ? `
+${
+  activeTrades > 0
+    ? `
 <div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:0.8em;">
   ⚡ <strong>${activeTrades}</strong> 笔交易进行中...
 </div>
-` : ''}
+`
+    : ""
+}
 
 <!-- 最近交易 -->
 <div style="margin-top:12px;">
