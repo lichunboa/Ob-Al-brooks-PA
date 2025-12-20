@@ -11,11 +11,9 @@ date:
   - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
-  - 强趋势 (Strong Trend)
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
-  - 区间反转 (Reversal)
 观察到的形态/patterns_observed:
   - 20EMA缺口 (20 EMA Gap)
 匹配策略ID/matched_strategy:
