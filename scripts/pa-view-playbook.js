@@ -198,7 +198,7 @@ Object.keys(cycleGroups).forEach((groupName) => {
 // 快速访问链接
 html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
   <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <a href="策略仓库 (Strategy Repository)/太妃方案" class="internal-link" style="
+    <a href="策略仓库 (Strategy Repository)/太妃方案/太妃方案.md" class="internal-link" style="
       background:rgba(147,51,234,0.15);
       color:#a855f7;
       padding:4px 10px;
@@ -207,15 +207,14 @@ html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgb
       font-size:0.75em;
       border:1px solid rgba(147,51,234,0.3);
     ">📚 太妃方案</a>
-    <a href="策略仓库 (Strategy Repository)/Al Brooks经典" class="internal-link" style="
-      background:rgba(236,72,153,0.15);
-      color:#ec4899;
+    <span style="
+      background:rgba(100,100,100,0.15);
+      color:#888;
       padding:4px 10px;
       border-radius:4px;
-      text-decoration:none;
       font-size:0.75em;
-      border:1px solid rgba(236,72,153,0.3);
-    ">📖 Al Brooks经典</a>
+      border:1px solid rgba(100,100,100,0.3);
+    ">📖 Al Brooks经典 (即将推出)</span>
   </div>
 </div>`;
 
