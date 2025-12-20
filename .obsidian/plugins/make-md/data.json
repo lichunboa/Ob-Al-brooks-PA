@@ -52,7 +52,6 @@
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
-    "//策略仓库 (Strategy Repository)",
     "//Templates"
   ],
   "expandFolderOnClick": true,
