@@ -35,7 +35,7 @@ tags:
 ## 🔍 市场背景分析 (Context Analysis)
 
 ### 📍 当前市场周期
-- [x] 🚀 急速/突破 (Spike/Breakout)
+- [ ] 🚀 急速/突破 (Spike/Breakout)
 - [ ] 📈 强趋势 (Strong Trend)
 - [ ] 📉 趋势回调 (Pullback)
 - [ ] 🔄 交易区间 (Trading Range)
