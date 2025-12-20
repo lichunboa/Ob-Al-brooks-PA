@@ -166,22 +166,22 @@ ${
   ${recentTradesHtml}
 </div>
 
-<!-- 快速分析按钮 -->
+<!-- 快速创建按钮 -->
 <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05);">
-  <button onclick="app.commands.executeCommandById('quickadd:choice:New Chart Analysis')" style="
+  <button onclick="app.commands.executeCommandById('quickadd:choice:New Live Trade')" style="
     width:100%;
-    background:linear-gradient(135deg, rgba(59,130,246,0.2), rgba(147,51,234,0.2));
-    color:${c.demo};
-    border:1px solid rgba(59,130,246,0.3);
+    background:linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,185,129,0.2));
+    color:${c.live};
+    border:1px solid rgba(34,197,94,0.3);
     padding:10px;
     border-radius:6px;
     cursor:pointer;
     font-weight:600;
     font-size:0.85em;
     transition: all 0.2s;
-  " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59,130,246,0.3)';" 
+  " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(34,197,94,0.3)';" 
      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-    📈 开始新的图表分析
+    📝 创建新交易笔记 (图表分析 → 形态识别 → 策略匹配)
   </button>
 </div>
 `;

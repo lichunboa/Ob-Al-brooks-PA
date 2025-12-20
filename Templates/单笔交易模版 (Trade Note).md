@@ -28,20 +28,224 @@ date:
 封面/cover:
 执行评价/execution_quality:
 ---
-# 📸 1. 现场图表 (The Setup)
-> [!TIP]- 截图规范
-> 请务必标记：**入场点**、**初始止损**、**逻辑目标位**。
+---
+categories:
+  - 模版
+  - 交易单
+tags:
+  - PA/Trade
+date: "{{date}}"
+账户类型/account_type: 实盘 (Live)
+品种/ticker:
+时间周期/timeframe: 5m
+市场周期/market_cycle:
+方向/direction:
+设置类别/setup_category:
+观察到的形态/patterns_observed: []
+匹配策略ID/matched_strategy:
+信号K/signal_bar_quality:
+  - 内包线 (ii or ioi)
+  - 强阳收盘 (Strong Bull Close)
+  - 强阴收盘 (Strong Bear Close)
+  - 弱势/长影线 (Weak Tail)
+  - 十字星 (Doji)
+订单类型/order_type:
+入场/entry_price:
+止损/stop_loss:
+目标位/take_profit:
+初始风险/initial_risk:
+净利润/net_profit:
+结果/outcome:
+封面/cover:
+执行评价/execution_quality:
+---
 
-(在此处粘贴图片，记得在链接前加 ! 号)
+# 📊 阶段一: 图表分析与形态识别
+
+> [!info]- 💡 工作流程
+> 1. 打开交易软件 → 观察图表
+> 2. 截图并标记关键位置(入场、止损、目标位)
+> 3. 勾选观察到的形态 → 系统自动推荐策略
+> 4. 查看推荐策略的详细信息 → 确认入场条件
+> 5. 等待信号K出现 → 执行交易
+
+## 📸 图表截图 (Chart Screenshot)
+
+![[粘贴图片到这里]]
+
+> [!tip] 📋 截图规范
+> - 务必标记: **入场点**、**初始止损**、**目标位**
+> - 标记关键位: 20EMA、支撑/阻力、前高/低点
+
+---
+
+## 🔍 市场背景与形态识别
+
+### 📍 当前市场状态
+```dataviewjs
+const current = dv.current();
+const cycle = current["市场周期/market_cycle"];
+const setup = current["设置类别/setup_category"];
+
+let cycleColor = cycle && cycle.includes("强趋势") ? "#22c55e" :
+                 cycle && cycle.includes("交易区间") ? "#f59e0b" :
+                 cycle && cycle.includes("突破") ? "#ef4444" : "#3b82f6";
+
+dv.el("div", "", {
+  attr: {
+    style: `
+      background: ${cycleColor}20;
+      border: 1px solid ${cycleColor}50;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    `
+  }
+}).innerHTML = `
+  <div style="font-size:0.9em; font-weight:600; color:${cycleColor};">
+    📊 市场周期: ${cycle || "未填写"}
+  </div>
+  <div style="font-size:0.8em; opacity:0.7; margin-top:4px;">
+    🎯 设置类别: ${setup || "未填写"}
+  </div>
+`;
+```
+
+### 🎨 形态识别清单 (Pattern Checklist)
+
+> [!example]+ 📝 勾选你观察到的形态
+> 请在上方 `frontmatter` 的 `观察到的形态/patterns_observed` 字段中添加形态
+
+**🔥 趋势延续形态:**
+- [ ] 20EMA缺口
+- [ ] 第一均线缺口  
+- [ ] 收线追进
+- [ ] 强趋势通道
+
+**⚡ 突破相关:**
+- [ ] 突破缺口
+- [ ] 区间突破回调
+- [ ] 看衰突破
+- [ ] 急速上涨/下跌
+
+**🔄 反转形态:**
+- [ ] 双顶/双底
+- [ ] 楔形顶/底
+- [ ] 末端旗形
+- [ ] 头肩顶/底
+- [ ] 高潮式反转
+
+**🎯 其他形态:**
+- [ ] 逆1顺1
+- [ ] 急赴磁体
+- [ ] 三角形区间
+- [ ] 测量移动
+
+---
+
+## 💡 智能策略推荐 (Auto Strategy Match)
+
+```dataviewjs
+const current = dv.current();
+const patterns = current["观察到的形态/patterns_observed"] || [];
+
+// 形态到策略的映射 (核心桥梁!)
+const patternToStrategy = {
+  "20EMA缺口": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_20均线缺口.md",
+  "第一均线缺口": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_第一均线缺口.md",
+  "收线追进": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_收线追进.md",
+  "楔形顶底": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_楔形顶底.md",
+  "双顶双底": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_双重顶底.md",
+  "急赴磁体": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_急赴磁体.md",
+  "逆1顺1": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_逆1顺1.md",
+  "看衰突破": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_看衰突破.md",
+  "强趋势通道": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_极速与通道.md",
+  "末端旗形": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_末端旗形.md",
+  "区间突破回调": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_区间突破回调.md"
+};
+
+if (!patterns || patterns.length === 0) {
+  dv.paragraph("💭 **请在上方frontmatter中填写 `观察到的形态` 字段,系统将自动推荐策略**");
+} else {
+  dv.header(3, "🎯 根据观察到的形态,推荐以下策略:");
+  
+  let recommendations = [];
+  for (let pattern of patterns) {
+    if (patternToStrategy[pattern]) {
+      let strategyPath = patternToStrategy[pattern];
+      let strategy = dv.page(strategyPath);
+      if (strategy) {
+        recommendations.push({
+          pattern: pattern,
+          name: strategy["策略名称"] || "未命名",
+          rrRatio: strategy["盈亏比"] || "N/A",
+          winRate: strategy["胜率"] || 0,
+          cycle: strategy["市场周期"] ? strategy["市场周期"].join(", ") : "N/A",
+          path: strategyPath
+        });
+      }
+    }
+  }
+  
+  if (recommendations.length > 0) {
+    dv.table(
+      ["观察到的形态", "推荐策略", "适用周期", "盈亏比", "历史胜率"],
+      recommendations.map(r => [
+        r.pattern,
+        `[[${r.path}|${r.name}]]`,
+        r.cycle,
+        r.rrRatio,
+        r.winRate > 0 ? r.winRate + "%" : "待统计"
+      ])
+    );
+    
+    dv.el("div", "", {
+      attr: {
+        style: `
+          background: rgba(59,130,246,0.1);
+          border: 1px solid rgba(59,130,246,0.3);
+          padding: 12px;
+          border-radius: 6px;
+          margin-top: 12px;
+          font-size: 0.85em;
+        `
+      }
+    }).innerHTML = `
+      <div style="font-weight:600; margin-bottom:6px;">📌 下一步操作:</div>
+      <div style="opacity:0.8; line-height:1.6;">
+        • 点击上方策略名称查看完整入场条件和风险管理规则<br/>
+        • 等待符合条件的信号K出现<br/>
+        • 确认入场信号质量后填写下方交易执行部分<br/>
+        • 策略卡片中包含建议的止损和止盈位置
+      </div>
+    `;
+  } else {
+    dv.paragraph("⚠️ 未找到匹配的策略卡片,请检查形态名称是否正确");
+  }
+}
+```
+
+---
+
+# 📸 阶段二: 交易执行记录
+# 📸 阶段二: 交易执行记录
+
+## 📷 入场时的图表
+> [!TIP]- 截图规范
+> 请务必标记:**入场点**、**初始止损**、**逻辑目标位**。
+
+(在此处粘贴图片,记得在链接前加 ! 号)
 
 
 ---
 
-# 🧠 2. 交易逻辑 (Logic)
+# 🧠 阶段三: 交易逻辑分析
+
+# 🧠 阶段三: 交易逻辑分析
 
 | 📍 市场背景 (Context) | 🎯 进场计划 (Execution) |
 | :--- | :--- |
-| **结构**: ⬜ 趋势 / ⬜ 震荡 / ⬜ 突破 | **策略**: `[[ ]]` |
+| **结构**: ⬜ 趋势 / ⬜ 震荡 / ⬜ 突破 | **使用策略**: `[[匹配策略ID/matched_strategy]]` |
 | **压力**: ⬜ 买方主导 / ⬜ 卖方主导 | **信号K**: ⬜ 强收盘 / ⬜ 弱引线 |
 | **关键位**: (均线/前高/缺口) | **订单**: ⬜ Stop / ⬜ Limit |
 
@@ -61,7 +265,7 @@ date:
 
 ---
 
-# ⚔️ 3. 管理与复盘 (Review)
+# ⚔️ 阶段四: 持仓管理与复盘
 
 ### 🌊 持仓心流
 * **情绪**: 😌 平静 / 😨 焦虑 / 😡 上头 / 🤑 贪婪
