@@ -53,7 +53,8 @@
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
     "//策略仓库 (Strategy Repository)",
-    "//Templates"
+    "//Templates",
+    "//🦁 交易员控制台 (Trader Command)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
