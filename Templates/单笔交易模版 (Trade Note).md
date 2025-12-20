@@ -11,6 +11,8 @@ date:
 时间周期/timeframe: 5m
 市场周期/market_cycle:
 方向/direction:
+观察到的形态/patterns_observed:
+  - 20EMA缺口 (20 EMA Gap)
 设置类别/setup_category:
 信号K/signal_bar_quality:
   - 内包线 (ii or ioi)
@@ -27,6 +29,7 @@ date:
 结果/outcome:
 封面/cover:
 执行评价/execution_quality:
+匹配策略ID/matched_strategy:
 ---
 ---
 categories:
