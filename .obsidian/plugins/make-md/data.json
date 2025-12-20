@@ -52,9 +52,7 @@
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
-    "//🦁 交易员控制台 (Trader Command)",
-    "//Daily",
-    "//Categories 分类"
+    "//🦁 交易员控制台 (Trader Command)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
