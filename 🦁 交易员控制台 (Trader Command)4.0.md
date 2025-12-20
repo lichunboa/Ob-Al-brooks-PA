@@ -1,4 +1,5 @@
 # ⌨️ 总控制台
+
 ```dataviewjs
 // 导出数据按钮 (Manual Export)
 const btnExport = dv.el("button", "📥 导出 JSON (App)", { attr: { style: "margin-bottom: 20px; cursor: pointer;"} });
@@ -10,15 +11,19 @@ btnExport.onclick = async () => {
     new Notice("✅ 数据已导出到根目录: pa-db-export.json");
 };
 ```
+
 ```dataviewjs
 // 加载引擎
 await dv.view("scripts/pa-core");
 ```
+
 ```dataviewjs
 // 加载记忆库 UI
 await dv.view("scripts/pa-view-memory");
 ```
+
 ## 🧠 知识与记忆
+
 ```dataviewjs
 // 🗺️ 课程地图 (Course Matrix)
 await dv.view("scripts/pa-view-course");
@@ -30,6 +35,7 @@ await dv.view("scripts/pa-view-playbook");
 ```
 
 ## 📊 账户全景
+
 ```dataviewjs
 await dv.view("scripts/pa-view-account");
 ```
@@ -40,6 +46,7 @@ await dv.view("scripts/pa-view-trend");
 ```
 
 ## 📉 策略实验室
+
 ```dataviewjs
 // 资金增长曲线 (Capital Growth)
 await dv.view("scripts/pa-view-strategy");
@@ -56,6 +63,7 @@ await dv.view("scripts/pa-view-tuition");
 ```
 
 ## 🖼️ 综合画廊
+
 ```dataviewjs
 // 🖼️ 最新复盘 (Charts)
 await dv.view("scripts/pa-view-gallery");
@@ -67,6 +75,7 @@ await dv.view("scripts/pa-view-actions");
 ```
 
 ## 🧹 数据治理与巡检
+
 ```dataviewjs
 await dv.view("scripts/pa-view-inspector");
 ```
@@ -82,8 +91,10 @@ await dv.view("scripts/pa-view-schema");
 # ✅ 每日行动 (Actions)
 
 > [!COLUMN]
+>
 > > [!failure] 🔥 必须解决 (Inbox & Urgent)
 > > **❓ 疑难杂症 (Questions)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/question
@@ -91,7 +102,9 @@ await dv.view("scripts/pa-view-schema");
 > > hide backlink
 > > short mode
 > > ```
+> >
 > > **🚨 紧急事项 (Urgent)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/urgent
@@ -102,6 +115,7 @@ await dv.view("scripts/pa-view-schema");
 >
 > > [!example] 📚 进修与验证 (Growth)
 > > **📖 待学习/阅读 (Study)**
+> >
 > > ```tasks
 > > not done
 > > (tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)
@@ -110,7 +124,9 @@ await dv.view("scripts/pa-view-schema");
 > > hide backlink
 > > short mode
 > > ```
+> >
 > > **🔬 待验证想法 (Verify)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/verify
@@ -120,13 +136,16 @@ await dv.view("scripts/pa-view-schema");
 > > ```
 
 > [!COLUMN]
+>
 > > [!NOTE] 📅 每日例行 (Routine)
 > > **📝 手动打卡 (Checklist)**
+> >
 > > - [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day
 > > - [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day
 > > - [ ] 🌙 **盘后**：填写当日 `复盘日记` 🔁 every day
-> > 
+> >
 > > **🧹 杂项待办 (To-Do)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/todo
@@ -138,6 +157,7 @@ await dv.view("scripts/pa-view-schema");
 >
 > > [!quote] 🛠️ 系统维护 (Admin)
 > > **🖨️ 待打印 (Print Queue)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/print
@@ -145,7 +165,9 @@ await dv.view("scripts/pa-view-schema");
 > > hide backlink
 > > short mode
 > > ```
+> >
 > > **📂 待整理 (Organize)**
+> >
 > > ```tasks
 > > not done
 > > tag includes #task/organize

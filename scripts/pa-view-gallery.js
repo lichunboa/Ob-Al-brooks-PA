@@ -7,45 +7,52 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
 if (window.paData) {
-    const trades = window.paData.trades.slice(0, 20); // 取前20个备选
+  const trades = window.paData.trades.slice(0, 20); // 取前20个备选
 
-    // 核心修复: 完整的图片渲染函数
-    function renderCard(n) {
-        let rawCover = n.cover; // Engine 已经提取了 cover 属性
-        if (!rawCover || rawCover === "Unknown") return "";
-        
-        let src = "";
-        
-        // 1. 如果是对象(Link类型),直接获取path
-        if (rawCover.path) {
-            src = app.vault.adapter.getResourcePath(rawCover.path);
-        }
-        // 2. 如果是字符串
-        else if (typeof rawCover === 'string') {
-            // 处理 ![[image.png]] 或 [[image.png]] 格式
-            if (rawCover.includes("[[")) {
-                let path = rawCover.replace("![[", "").replace("]]", "").replace("[[", "").split("|")[0].trim();
-                // 使用原始文件路径作为第二个参数来帮助解析相对路径
-                let file = app.metadataCache.getFirstLinkpathDest(path, n.id || "");
-                if (file) {
-                    src = app.vault.adapter.getResourcePath(file.path);
-                }
-            }
-            // 处理 http 链接
-            else if (rawCover.startsWith("http")) {
-                src = rawCover;
-            }
-        }
-        
-        if (!src) return ""; // 如果解析不出图片路径，跳过
-        
-        let acct = n.type;
-        let badgeColor = acct === "Live" ? c.live : (acct === "Backtest" ? c.back : c.demo);
-        let badgeText = acct === "Live" ? "实盘" : (acct === "Backtest" ? "回测" : "模拟");
-        let pnlColor = n.pnl >= 0 ? c.live : c.loss;
-        let pnlTxt = n.pnl > 0 ? `+${n.pnl}` : `${n.pnl}`;
+  // 核心修复: 完整的图片渲染函数
+  function renderCard(n) {
+    let rawCover = n.cover; // Engine 已经提取了 cover 属性
+    if (!rawCover || rawCover === "Unknown") return "";
 
-        return `<div style="position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1); margin-bottom:8px;">
+    let src = "";
+
+    // 1. 如果是对象(Link类型),直接获取path
+    if (rawCover.path) {
+      src = app.vault.adapter.getResourcePath(rawCover.path);
+    }
+    // 2. 如果是字符串
+    else if (typeof rawCover === "string") {
+      // 处理 ![[image.png]] 或 [[image.png]] 格式
+      if (rawCover.includes("[[")) {
+        let path = rawCover
+          .replace("![[", "")
+          .replace("]]", "")
+          .replace("[[", "")
+          .split("|")[0]
+          .trim();
+        // 使用原始文件路径作为第二个参数来帮助解析相对路径
+        let file = app.metadataCache.getFirstLinkpathDest(path, n.id || "");
+        if (file) {
+          src = app.vault.adapter.getResourcePath(file.path);
+        }
+      }
+      // 处理 http 链接
+      else if (rawCover.startsWith("http")) {
+        src = rawCover;
+      }
+    }
+
+    if (!src) return ""; // 如果解析不出图片路径，跳过
+
+    let acct = n.type;
+    let badgeColor =
+      acct === "Live" ? c.live : acct === "Backtest" ? c.back : c.demo;
+    let badgeText =
+      acct === "Live" ? "实盘" : acct === "Backtest" ? "回测" : "模拟";
+    let pnlColor = n.pnl >= 0 ? c.live : c.loss;
+    let pnlTxt = n.pnl > 0 ? `+${n.pnl}` : `${n.pnl}`;
+
+    return `<div style="position:relative; aspect-ratio:16/9; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1); margin-bottom:8px;">
             <img src="${src}" style="width:100%; height:100%; object-fit:cover;">
             <div style="position:absolute; top:5px; right:5px; background:${badgeColor}; color:black; font-size:0.6em; font-weight:800; padding:2px 6px; border-radius:4px;">${badgeText}</div>
             <div style="position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent, rgba(0,0,0,0.9)); padding:15px 8px 5px 8px; display:flex; justify-content:space-between; align-items:flex-end;">
@@ -53,27 +60,32 @@ if (window.paData) {
                 <div style="color:${pnlColor}; font-weight:800; font-size:0.9em;">${pnlTxt}</div>
             </div>
         </div>`;
-    }
+  }
 
-    let imgs = "";
-    let count = 0;
-    for (let i = 0; i < trades.length; i++) {
-        let card = renderCard(trades[i]);
-        if (card) { 
-            imgs += card; 
-            count++; 
-        }
-        if (count >= 4) break; // 只显示 4 张
+  let imgs = "";
+  let count = 0;
+  for (let i = 0; i < trades.length; i++) {
+    let card = renderCard(trades[i]);
+    if (card) {
+      imgs += card;
+      count++;
     }
+    if (count >= 4) break; // 只显示 4 张
+  }
 
-    const root = dv.el("div", "", { attr: { style: c.cardBg } });
-    root.innerHTML = `
+  const root = dv.el("div", "", { attr: { style: c.cardBg } });
+  root.innerHTML = `
     <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">🖼️ 最新复盘 (Charts)</div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        ${imgs || "<div style='opacity:0.5; padding:20px; text-align:center;'>暂无封面图片<br><small>请在 Frontmatter 添加 cover: ![[图片]]</small></div>"}
+        ${
+          imgs ||
+          "<div style='opacity:0.5; padding:20px; text-align:center;'>暂无封面图片<br><small>请在 Frontmatter 添加 cover: ![[图片]]</small></div>"
+        }
     </div>
     <div style="text-align:center; margin-top:12px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
-        <a href="obsidian://search?query=tag:${cfg.tags.trade}" style="color:${c.demo}; text-decoration:none; font-size:0.8em;">📂 查看所有图表</a>
+        <a href="obsidian://search?query=tag:${cfg.tags.trade}" style="color:${
+    c.demo
+  }; text-decoration:none; font-size:0.8em;">📂 查看所有图表</a>
     </div>
     `;
 }
