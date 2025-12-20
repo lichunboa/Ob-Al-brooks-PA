@@ -48,12 +48,13 @@
     "//Notes/Notes/assets",
     "//Notes/Notes/assets/Notes/assets/买卖压力",
     "/",
-    "//Daily/Daily/SPX/Daily/SPX/assets",
     "//PA",
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
-    "//🦁 交易员控制台 (Trader Command)"
+    "//🦁 交易员控制台 (Trader Command)",
+    "//Daily",
+    "//Categories 分类"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
