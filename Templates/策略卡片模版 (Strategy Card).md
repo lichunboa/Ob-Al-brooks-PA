@@ -1,9 +1,11 @@
 ---
 categories:
   - 策略
+  - 模版
 tags:
   - PA/Strategy
-策略名称/strategy_name: {{title}}
+策略名称/strategy_name:
+  "{ title }":
 策略状态/strategy_status: 学习中 (Learning)
 市场周期/market_cycle:
   - 强趋势 (Strong Trend)

@@ -1,5 +1,5 @@
 /* 文件名: Scripts/pa-view-today.js
-   用途: 今日交易实时监控面板
+   用途: 今日交易实时监控面板 (v4.1.0 策略助手版)
 */
 const basePath = app.vault.adapter.basePath;
 const cfg = require(basePath + "/scripts/pa-config.js");
@@ -11,15 +11,127 @@ const today = moment().format("YYYY-MM-DD");
 const todayTrades = dv
   .pages('"Daily/Trades"')
   .where((p) => p.date && p.date.toString().startsWith(today))
-  .sort((p) => p.date, "desc");
+  .sort((p) => p.file.mtime, "desc"); // 按修改时间倒序，确保最新的在最前
 
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
-// 统计数据
+// --- 1. 策略助手逻辑 (Strategy Assistant) ---
+// 查找当前正在进行的交易 (没有结果/outcome 或 结果为空)
+const activeTrade = todayTrades.find((p) => !p["结果/outcome"]);
+let assistantHtml = "";
+
+if (activeTrade) {
+  const patterns = activeTrade["观察到的形态/patterns_observed"];
+  const currentSignal = activeTrade["信号K/signal_bar_quality"];
+
+  if (patterns) {
+    // 查找匹配的策略卡片
+    // 注意: 这里需要扫描策略库，为了性能，我们只扫描 "策略仓库" 文件夹
+    const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
+    let matchedStrategy = null;
+
+    // 简单的匹配逻辑: 策略卡片的 trigger_patterns 包含 activeTrade 的 patterns 中的任意一个
+    // patterns 可能是数组也可能是字符串
+    const observedList = Array.isArray(patterns) ? patterns : [patterns];
+
+    for (let s of strategyPages) {
+      let triggers = s["触发形态/trigger_patterns"];
+      if (!triggers) continue;
+      let triggerList = Array.isArray(triggers) ? triggers : [triggers];
+
+      // 检查是否有交集
+      const hasMatch = observedList.some((obs) => triggerList.includes(obs));
+      if (hasMatch) {
+        matchedStrategy = s;
+        break; // 找到第一个匹配的策略即可
+      }
+    }
+
+    if (matchedStrategy) {
+      // 提取策略建议
+      const sName = matchedStrategy["策略名称/strategy_name"];
+      const sEntry = matchedStrategy["入场条件/entry_criteria"] || [];
+      const sRisk = matchedStrategy["风险提示/risk_alerts"] || [];
+      const sStop = matchedStrategy["止损建议/stop_loss_recommendation"] || [];
+      const sSignalReq =
+        matchedStrategy["信号K要求/signal_bar_requirements"] || [];
+
+      // 信号K 验证逻辑
+      let signalValidationHtml = "";
+      if (currentSignal) {
+        // 这里可以做更复杂的验证，目前先简单显示
+        // 比如: 如果策略要求 "强阳收盘" 但当前是 "十字星"，显示警告
+        signalValidationHtml = `
+          <div style="margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.8em;">
+            <div style="opacity:0.7; margin-bottom:4px;">🔍 信号K验证:</div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
+              <!-- 这里未来可以加自动判定逻辑 -->
+            </div>
+          </div>
+        `;
+      }
+
+      // 渲染助手面板
+      assistantHtml = `
+        <div style="
+          background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%);
+          border: 1px solid rgba(59,130,246,0.3);
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 16px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        ">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+            <div style="font-weight:700; color:${c.accent};">🤖 策略助手: ${sName}</div>
+            <a href="${matchedStrategy.file.path}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <!-- 左侧: 入场检查 -->
+            <div>
+              <div style="font-size:0.75em; font-weight:600; color:${c.live}; margin-bottom:4px;">✅ 入场条件</div>
+              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+                ${
+                  Array.isArray(sEntry)
+                    ? sEntry.map((i) => `<li>${i}</li>`).join("")
+                    : `<li>${sEntry}</li>`
+                }
+              </ul>
+            </div>
+
+            <!-- 右侧: 风险提示 -->
+            <div>
+              <div style="font-size:0.75em; font-weight:600; color:${c.loss}; margin-bottom:4px;">⚠️ 风险提示</div>
+              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+                ${
+                  Array.isArray(sRisk)
+                    ? sRisk.map((i) => `<li>${i}</li>`).join("")
+                    : `<li>${sRisk}</li>`
+                }
+              </ul>
+            </div>
+          </div>
+
+          ${signalValidationHtml}
+
+          <!-- 底部: 止损建议 -->
+          <div style="margin-top:10px; font-size:0.75em; opacity:0.8; border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
+            🛡️ <strong>止损建议:</strong> ${
+              Array.isArray(sStop) ? sStop.join(" | ") : sStop
+            }
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+// --- 2. 统计数据逻辑 ---
 let totalTrades = todayTrades.length;
 let completedTrades = todayTrades.where((p) => p["结果/outcome"]).length;
-let activeTrades = totalTrades - completedTrades;
+let activeTradesCount = totalTrades - completedTrades;
 
 let totalPnL = 0;
 let wins = 0;
@@ -43,9 +155,8 @@ todayTrades.forEach((trade) => {
 
 let winRate =
   completedTrades > 0 ? Math.round((wins / completedTrades) * 100) : 0;
-let avgPnL = completedTrades > 0 ? (totalPnL / completedTrades).toFixed(2) : 0;
 
-// 最近交易列表
+// --- 3. 最近交易列表 ---
 let recentTradesHtml = "";
 if (todayTrades.length > 0) {
   todayTrades.slice(0, 5).forEach((trade) => {
@@ -113,9 +224,12 @@ if (todayTrades.length > 0) {
   recentTradesHtml = `<div style="text-align:center; opacity:0.5; padding:20px; font-size:0.85em;">📭 今日暂无交易记录</div>`;
 }
 
-// 渲染
+// --- 4. 最终渲染 ---
 root.innerHTML = `
 <div style="font-weight:700; opacity:0.7; margin-bottom:12px;">📊 今日实时监控 (Today's Dashboard) - ${today}</div>
+
+<!-- 策略助手 (仅在有活跃交易且匹配到策略时显示) -->
+${assistantHtml}
 
 <!-- 统计卡片 -->
 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin-bottom:16px;">
@@ -151,10 +265,10 @@ root.innerHTML = `
 
 <!-- 进行中提示 -->
 ${
-  activeTrades > 0
+  activeTradesCount > 0 && !assistantHtml
     ? `
 <div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:0.8em;">
-  ⚡ <strong>${activeTrades}</strong> 笔交易进行中...
+  ⚡ <strong>${activeTradesCount}</strong> 笔交易进行中...
 </div>
 `
     : ""
