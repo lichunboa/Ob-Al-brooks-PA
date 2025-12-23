@@ -13,8 +13,15 @@ function getVal(page, keys) {
 // 2. 安全获取文本属性 (自动清洗括号内容)
 function getStr(page, keys) {
     for (let k of keys) {
-        if (page[k]) {
-            let s = page[k].toString();
+        let val = page[k];
+        if (val) {
+            // 如果是数组，取第一个元素
+            if (Array.isArray(val) || (val.constructor && val.constructor.name === 'Proxy')) {
+                 if (val.length > 0) val = val[0];
+                 else continue;
+            }
+            
+            let s = val.toString();
             // 简单清洗: "做多 (Long)" -> "Long"
             if (s.match(/[a-zA-Z]/)) {
                 if (s.includes("(")) return s.split("(")[1].replace(")", "").trim();
