@@ -1,13 +1,11 @@
-# 🦁 交易员控制台 v5.0 (Minimalist)
+# 🦁 交易员控制台 v5.0
 
 ```dataviewjs
 // --- 核心引擎加载 ---
 await dv.view("scripts/pa-core");
 ```
 
-### ⚔️ 交易中心 (Trading Hub)
-> 盘中专注区域
-
+## ⚔️ 交易中心 (Trading Hub)
 ```dataviewjs
 // 1. 今日看板 (含快速行动)
 await dv.view("scripts/pa-view-today");
@@ -17,36 +15,68 @@ await dv.view("scripts/pa-view-today");
 await dv.view("scripts/pa-view-trend");
 ```
 
----
-
-### 📊 数据中心 (Analytics Hub)
-> 盘后复盘区域：账户总览与深度分析（资金曲线、环境分析、错误归因）。
-
+## 📊 数据中心 (Analytics Hub)
 ```dataviewjs
+// 整合了: 账户总览 + 资金曲线 + 环境分析 + 错误归因
 await dv.view("scripts/pa-view-hub-analytics");
 ```
 
----
-
-### 📚 学习中心 (Learning Hub)
-> 知识积累区域
-
+## 📚 学习模块
 ```dataviewjs
-// 1. 课程进度
+// 加载记忆库
+await dv.view("scripts/pa-view-memory");
+```
+```dataviewjs
+// 🗺️ 课程地图 (Course Matrix)
 await dv.view("scripts/pa-view-course");
 ```
+```dataviewjs
+// 📘 策略仓库 (Strategy Repository)
+await dv.view("scripts/pa-view-playbook");
+```
+```dataviewjs
+// 🖼️ 最新复盘 (Charts)
+await dv.view("scripts/pa-view-gallery");
+```
 
-> [!quote]- 🧠 记忆与策略 (点击展开)
-> ```dataviewjs
-> await dv.view("scripts/pa-view-memory");
-> ```
-> ```dataviewjs
-> await dv.view("scripts/pa-view-playbook");
-> ```
+## 📉 管理模块
+```dataviewjs
+// 数据治理与巡检
+await dv.view("scripts/pa-view-inspector");
+```
+```dataviewjs
+// 数据治理与巡检2
+await dv.view("scripts/pa-view-schema");
+```
+```dataviewjs
+// 属性管理
+await dv.view("scripts/pa-view-manager");
+```
 
----
+# ✅ 每日行动 (Actions)
 
-### ⚙️ 系统管理 (System)
+> [!COLUMN]
+>
+> > [!failure] 🔥 必须解决 (Inbox & Urgent)
+> > **❓ 疑难杂症 (Questions)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/question
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
+> >
+> > **🚨 紧急事项 (Urgent)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/urgent
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
 
 > [!bug]- 🛡️ 系统巡检 (Admin Only)
 > ```dataviewjs
