@@ -5,7 +5,6 @@ tags:
   - PA/Daily
 date: 2025-12-17
 账户类型/account_type:
-  - 实盘 (Live)
 市场周期/market_cycle:
   - 交易区间 (Trading Range)
 复盘深度/review_depth:

@@ -31,12 +31,13 @@ if (activeTrade) {
     const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
     let matchedStrategy = null;
 
-    // 简单的匹配逻辑: 策略卡片的 trigger_patterns 包含 activeTrade 的 patterns 中的任意一个
+    // 简单的匹配逻辑: 策略卡片的 patterns_observed 包含 activeTrade 的 patterns 中的任意一个
     // patterns 可能是数组也可能是字符串
     const observedList = Array.isArray(patterns) ? patterns : [patterns];
 
     for (let s of strategyPages) {
-      let triggers = s["触发形态/trigger_patterns"];
+      // 修正: 策略卡片现在使用 "观察到的形态/patterns_observed" 作为匹配键，而不是 "触发形态/trigger_patterns"
+      let triggers = s["观察到的形态/patterns_observed"];
       if (!triggers) continue;
       let triggerList = Array.isArray(triggers) ? triggers : [triggers];
 
