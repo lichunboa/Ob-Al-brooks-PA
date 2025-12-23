@@ -23,7 +23,7 @@
   "I18N_STYLE_SETTINGS": "obsidian-style-settings",
   "I18N_MODE_NDT": true,
   "I18N_IGNORE": true,
-  "I18N_NDT_URL": "gitee",
+  "I18N_NDT_URL": "github",
   "I18N_MODE_NIT": true,
   "I18N_NIT_API": "BAIDU",
   "I18N_NIT_API_INTERVAL": 500,
@@ -39,7 +39,7 @@
   "I18N_NIT_OPENAI_KEY": "",
   "I18N_NIT_OPENAI_MODEL": "gpt-3.5-turbo",
   "I18N_NIT_OPENAI_TIPS": "你是一个翻译工作者，你将进行obsidian笔记软件的插件翻译，本次翻译的插件名称为: ${plugin}，请结合插件名称以及软件翻译的标准进行后续工作，因为大多数文本长度较短，请以符合中文习惯的方式翻译。接下来我会提交给你很多英文文本，请将其翻译为简体中文，并且只返回给我翻译后的内容",
-  "I18N_MODE_IMT": false,
+  "I18N_MODE_IMT": true,
   "I18N_IMT_CONFIG": {
     "selectors": [
       "*"
