@@ -47,13 +47,12 @@ await dv.view("scripts/pa-view-today");
 await dv.view("scripts/pa-view-account");
 ```
 ```dataviewjs
-// 📈 综合趋势 (R-Multiples)
-await dv.view("scripts/pa-view-trend");
-```
-## 📉 管理模块
-```dataviewjs
 // 资金增长曲线 (Capital Growth)
 await dv.view("scripts/pa-view-strategy");
+```
+```dataviewjs
+// 📈 综合趋势 (R-Multiples)
+await dv.view("scripts/pa-view-trend");
 ```
 ```dataviewjs
 // 不同市场环境表现 (Live PnL)
@@ -63,6 +62,7 @@ await dv.view("scripts/pa-view-cycle");
 // 💸 错误的代价 (学费统计)
 await dv.view("scripts/pa-view-tuition");
 ```
+## 📉 管理模块
 ```dataviewjs
 // 数据治理与巡检
 await dv.view("scripts/pa-view-inspector");
