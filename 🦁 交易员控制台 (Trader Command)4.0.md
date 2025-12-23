@@ -15,38 +15,34 @@ btnExport.onclick = async () => {
 // 加载引擎
 await dv.view("scripts/pa-core");
 ```
+## 📚 学习模块
 ```dataviewjs
 // 加载记忆库
 await dv.view("scripts/pa-view-memory");
 ```
 ```dataviewjs
-// 📊 今日实时监控
-await dv.view("scripts/pa-view-today");
-```
-## 🧠 知识与记忆
-
-```dataviewjs
 // 🗺️ 课程地图 (Course Matrix)
 await dv.view("scripts/pa-view-course");
 ```
-
 ```dataviewjs
-// 📘 策略剧本 (Playbook)
+// 📘 策略仓库 (Strategy Repository)
 await dv.view("scripts/pa-view-playbook");
 ```
 
-## 📊 账户全景
-
+## ⚔️ 交易模块
 ```dataviewjs
+// 📊 今日实时监控
+await dv.view("scripts/pa-view-today");
+```
+```dataviewjs
+// 账户数据
 await dv.view("scripts/pa-view-account");
 ```
-
 ```dataviewjs
 // 📈 综合趋势 (R-Multiples)
 await dv.view("scripts/pa-view-trend");
 ```
-
-## 📉 策略实验室
+## 📉 管理模块
 
 ```dataviewjs
 // 资金增长曲线 (Capital Growth)
