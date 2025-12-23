@@ -136,6 +136,37 @@ if (window.paData) {
   };
 
   // --- 5. 主界面渲染 ---
+  // 5.1 构建异常详情 HTML
+  let detailsHTML = "";
+  if (illegalDetails.length > 0 || missing.logic > 0) {
+      detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
+          <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (Action Required)</div>
+          <div style="max-height: 200px; overflow-y: auto;">
+              <table class="insp-table">
+                  <thead><tr><th>File</th><th>Issue</th><th>Value</th></tr></thead>
+                  <tbody>`;
+      
+      // Add Illegal values
+      illegalDetails.forEach(item => {
+          detailsHTML += `<tr>
+              <td>${item.file.link}</td>
+              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">非法${item.field}</span></td>
+              <td style="opacity:0.7">${item.value}</td>
+          </tr>`;
+      });
+
+      // Add Logic issues (R=0 but PnL!=0)
+      trades.filter(t => t.pnl !== 0 && t.r === 0).forEach(t => {
+           detailsHTML += `<tr>
+              <td>${t.file.link}</td>
+              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
+              <td style="opacity:0.7">PnL=${t.pnl}, R=0</td>
+          </tr>`;
+      });
+
+      detailsHTML += `</tbody></table></div></div>`;
+  }
+
   const root = dv.el("div", "");
   root.innerHTML = `
     <div class="insp-container">
@@ -188,6 +219,8 @@ if (window.paData) {
                 }">${D.course.syllabus.length} 课</span></div>
             </div>
         </div>
+
+        ${detailsHTML}
 
         <div class="insp-row-flex">
             <div class="insp-card">
