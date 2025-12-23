@@ -244,16 +244,18 @@ let scratches = 0;
 
 todayTrades.forEach((trade) => {
   let outcome = trade["结果/outcome"];
-  let pnl = trade["净利润/net_profit"] || 0;
+  let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
 
-  if (outcome === "Win") {
+  // 兼容 "Win" 和 "止盈 (Win)" 两种格式
+  if (outcome && (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))) {
     wins++;
     totalPnL += pnl;
-  } else if (outcome === "Loss") {
+  } else if (outcome && (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))) {
     losses++;
     totalPnL += pnl;
-  } else if (outcome === "Scratch") {
+  } else if (outcome && (outcome === "Scratch" || outcome.includes("Scratch") || outcome.includes("保本"))) {
     scratches++;
+    totalPnL += pnl; // 保本单也可能有微小盈亏
   }
 });
 
@@ -274,14 +276,14 @@ if (todayTrades.length > 0) {
     let stop = trade["止损/stop_loss"] || "";
 
     // 状态颜色
-    let statusColor =
-      outcome === "Win"
-        ? c.live
-        : outcome === "Loss"
-        ? c.loss
-        : outcome === "Scratch"
-        ? c.back
-        : "#6b7280";
+    let statusColor = "#6b7280"; // 默认灰色 (进行中)
+    if (outcome && (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))) {
+        statusColor = c.live;
+    } else if (outcome && (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))) {
+        statusColor = c.loss;
+    } else if (outcome && (outcome === "Scratch" || outcome.includes("Scratch") || outcome.includes("保本"))) {
+        statusColor = c.back;
+    }
 
     // 方向图标
     let dirIcon =
