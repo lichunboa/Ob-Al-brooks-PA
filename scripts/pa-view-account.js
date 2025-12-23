@@ -39,7 +39,10 @@ if (window.paData) {
     .filter((t) => t.type === "Live" && t.date.startsWith(targetMonth))
     .forEach((t) => {
       let day = parseInt(t.date.split("-")[2]);
-      dailyMap[day] = (dailyMap[day] || 0) + t.pnl;
+      // Ensure pnl is a number to prevent string concatenation
+      let val = parseFloat(t.pnl);
+      if (isNaN(val)) val = 0;
+      dailyMap[day] = (dailyMap[day] || 0) + val;
     });
 
   let gridHtml = "";
@@ -165,11 +168,6 @@ if (window.paData) {
             <div style="font-size:0.7em; opacity:0.5;">Live Account Only</div>
         </div>
         ${gridHtml}
-    </div>
-    
-    <!-- 调试信息: 显示最近的实盘交易日期，帮助排查日期错误 -->
-    <div style="margin-top:15px; font-size:0.7em; opacity:0.4; text-align:right;">
-        最近实盘数据源: ${trades.filter(t => t.type === "Live").sort((a,b) => b.date.localeCompare(a.date)).slice(0,3).map(t => `${t.date}(${t.pnl})`).join(", ")}
     </div>
     `;
 }

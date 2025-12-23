@@ -5,7 +5,15 @@
 // 1. 安全获取数值属性 (支持多键名)
 function getVal(page, keys) {
     for (let k of keys) {
-        if (page[k] !== undefined) return Number(page[k]);
+        let val = page[k];
+        if (val !== undefined && val !== null) {
+            // Handle Arrays/Proxies (Metadata Menu compatibility)
+            if (Array.isArray(val) || (val.constructor && val.constructor.name === 'Proxy')) {
+                 val = val.length > 0 ? val[0] : 0;
+            }
+            let num = Number(val);
+            return isNaN(num) ? 0 : num;
+        }
     }
     return 0;
 }
