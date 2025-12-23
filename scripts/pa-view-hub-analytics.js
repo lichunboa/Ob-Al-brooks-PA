@@ -14,6 +14,24 @@ if (window.paData) {
     // --- 1. 布局容器 ---
     const root = dv.el("div", "", { attr: { style: "display:flex; flex-direction:column; gap:20px;" } });
 
+    // --- 汉化字典 ---
+    const cycleMap = {
+        "Strong Trend": "强趋势", "Weak Trend": "弱趋势", "Trading Range": "交易区间",
+        "Breakout": "突破", "Channel": "通道", "Broad Channel": "宽通道", "Tight Channel": "窄通道"
+    };
+    const setupMap = {
+        "Trend Pullback": "趋势回调", "Trend Breakout": "趋势突破", "Reversal": "反转",
+        "Wedge": "楔形", "Double Top/Bottom": "双顶/底", "MTR": "主要趋势反转",
+        "Final Flag": "末端旗形", "Opening Reversal": "开盘反转"
+    };
+    function trans(map, key) {
+        if (!key) return "未知";
+        for (let k in map) {
+            if (key.toLowerCase().includes(k.toLowerCase())) return map[k];
+        }
+        return key;
+    }
+
     // --- 2. 顶部：账户总览 (Mini Dashboard) ---
     // 逻辑来自 pa-view-account.js
     function getStats(type) {
@@ -35,35 +53,56 @@ if (window.paData) {
     const daysInMonth = moment(targetMonth, "YYYY-MM").daysInMonth();
     
     let dailyMap = {};
-    trades.filter((t) => t.type === "Live" && t.date.startsWith(targetMonth)).forEach((t) => {
+    // 包含所有类型的交易，但优先显示实盘盈亏颜色
+    trades.filter((t) => t.date.startsWith(targetMonth)).forEach((t) => {
         let day = parseInt(t.date.split("-")[2]);
         let val = parseFloat(t.pnl);
         if (isNaN(val)) val = 0;
-        dailyMap[day] = (dailyMap[day] || 0) + val;
+        
+        if (!dailyMap[day]) dailyMap[day] = { total: 0, hasLive: false, hasDemo: false, hasBack: false };
+        dailyMap[day].total += val;
+        if (t.type === "Live") dailyMap[day].hasLive = true;
+        else if (t.type === "Demo") dailyMap[day].hasDemo = true;
+        else dailyMap[day].hasBack = true;
     });
 
-    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">`;
+    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">`;
     for (let d = 1; d <= daysInMonth; d++) {
-        let pnl = dailyMap[d];
-        let hasTrade = pnl !== undefined;
+        let data = dailyMap[d];
+        let hasTrade = data !== undefined;
+        let pnl = hasTrade ? data.total : 0;
+        
         let bg = "rgba(255, 255, 255, 0.03)";
         let border = "1px solid rgba(255, 255, 255, 0.05)";
-        let content = `<div style="font-size:0.65em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
+        let content = `<div style="font-size:0.6em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
         
         if (hasTrade) {
+            // 颜色逻辑：实盘优先，其次模拟，最后回测
+            let baseColor = data.hasLive ? (pnl > 0 ? "#4ade80" : "#f87171") : 
+                           (data.hasDemo ? "#60a5fa" : "#fbbf24");
+            
             if (pnl > 0) {
-                bg = "rgba(34, 197, 94, 0.15)"; border = "1px solid rgba(34, 197, 94, 0.3)";
-                content += `<div style="font-size:0.7em; font-weight:bold; color:#4ade80;">+${pnl.toFixed(0)}</div>`;
+                bg = data.hasLive ? "rgba(34, 197, 94, 0.15)" : "rgba(96, 165, 250, 0.15)"; 
+                border = `1px solid ${baseColor}40`;
+                content += `<div style="font-size:0.65em; font-weight:bold; color:${baseColor};">+${pnl.toFixed(0)}</div>`;
             } else if (pnl < 0) {
-                bg = "rgba(239, 68, 68, 0.15)"; border = "1px solid rgba(239, 68, 68, 0.3)";
-                content += `<div style="font-size:0.7em; font-weight:bold; color:#f87171;">${pnl.toFixed(0)}</div>`;
+                bg = data.hasLive ? "rgba(239, 68, 68, 0.15)" : "rgba(248, 113, 113, 0.15)";
+                border = `1px solid ${baseColor}40`;
+                content += `<div style="font-size:0.65em; font-weight:bold; color:${baseColor};">${pnl.toFixed(0)}</div>`;
             } else {
                 bg = "rgba(148, 163, 184, 0.15)"; border = "1px solid rgba(148, 163, 184, 0.3)";
-                content += `<div style="font-size:0.7em; font-weight:bold; color:#94a3b8;">0</div>`;
+                content += `<div style="font-size:0.65em; font-weight:bold; color:#94a3b8;">0</div>`;
             }
+            
+            // 添加小点标记类型
+            let dots = "";
+            if (data.hasLive) dots += `<span style="color:${c.live}">●</span>`;
+            if (data.hasDemo) dots += `<span style="color:${c.demo}">●</span>`;
+            if (data.hasBack) dots += `<span style="color:${c.back}">●</span>`;
+            if (dots) content += `<div style="font-size:0.4em; line-height:0.5; margin-top:1px; display:flex; gap:1px;">${dots}</div>`;
         }
         gridHtml += `
-            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
+            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
                 ${content}
             </div>`;
     }
@@ -84,45 +123,7 @@ if (window.paData) {
         </div>`;
     }
 
-    root.innerHTML = `
-    <div style="${c.cardBg}; padding: 15px;">
-        <div style="display:flex; gap:15px; margin-bottom: 15px;">
-            <!-- 实盘大卡片 -->
-            <div style="flex:1.5; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; justify-content: center;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <div style="color:${c.live}; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
-                    <div style="font-size:0.75em; background:${c.live}20; color:${c.live}; padding:2px 8px; border-radius:10px;">Live</div>
-                </div>
-                <div style="display:flex; align-items:baseline; gap:4px;">
-                    <div style="font-size:2.4em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss}; line-height:1;">${live.pnl > 0 ? "+" : ""}${live.pnl}</div>
-                    <div style="font-size:0.9em; opacity:0.6;">$</div>
-                </div>
-                <div style="display:flex; gap:15px; margin-top:10px; font-size:0.85em; opacity:0.8;">
-                    <div>📦 ${live.count} 笔交易</div>
-                    <div>🎯 ${live.wr}% 胜率</div>
-                </div>
-            </div>
-            <!-- 模拟与回测 -->
-            <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
-                ${miniCard("模拟盘", demo, c.demo, "🔵")}
-                ${miniCard("复盘回测", back, c.back, "🟠")}
-            </div>
-        </div>
-
-        <!-- 热力图 -->
-        <div style="padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div style="font-size:0.85em; font-weight:600; opacity:0.9;">📅 盈亏日历 (${targetMonth})</div>
-                <div style="font-size:0.65em; opacity:0.5;">仅限实盘 (Live Only)</div>
-            </div>
-            ${gridHtml}
-        </div>
-    </div>
-    `;
-
     // --- 3. 下部：多维分析 (Consolidated Analytics) ---
-    // 移除 Tab 系统，改为垂直堆叠布局
-
     // A. 资金曲线 (Capital Growth)
     let curves = { live: [0], demo: [0], back: [0] };
     let cum = { live: 0, demo: 0, back: 0 };
@@ -146,7 +147,7 @@ if (window.paData) {
     const maxVal = Math.max(...allValues, 100);
     const minVal = Math.min(...allValues, -100);
     const range = maxVal - minVal;
-    const width = 600; const height = 200;
+    const width = 600; const height = 180; // 稍微调低高度
 
     function getPoints(data) {
         if (data.length < 2) return `0,${height} ${width},${height}`;
@@ -161,7 +162,7 @@ if (window.paData) {
     // 策略排行
     let topStrats = Object.keys(stratStats)
         .map((k) => ({
-        name: k,
+        name: trans(setupMap, k),
         wr: Math.round((stratStats[k].win / stratStats[k].total) * 100),
         total: stratStats[k].total,
         }))
@@ -186,15 +187,18 @@ if (window.paData) {
         return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${r>=0?1:0.6};" title="${t.name} R:${r.toFixed(2)}"></div>`;
     }).join("");
 
-    const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-7);
-    let tilt = 0, fomo = 0;
+    const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-10);
+    let tilt = 0, fomo = 0, hesitation = 0;
     for (let t of recentLive) {
-        let err = (t.error || "").toString();
-        if (err.includes("Tilt") || err.includes("上头")) tilt++;
-        if (err.includes("FOMO") || err.includes("追单")) fomo++;
+        let err = (t.error || "").toString().toLowerCase();
+        if (err.includes("tilt") || err.includes("上头")) tilt++;
+        if (err.includes("fomo") || err.includes("追单")) fomo++;
+        if (err.includes("hesitation") || err.includes("犹豫")) hesitation++;
     }
-    let mindStatus = (tilt + fomo === 0) ? "🛡️ 状态极佳" : (tilt + fomo < 3) ? "⚠️ 有点起伏" : "🔥 极度危险";
-    let mindColor = (tilt + fomo === 0) ? c.live : (tilt + fomo < 3) ? c.back : c.loss;
+    let mindStatus = "🛡️ 状态极佳";
+    let mindColor = c.live;
+    if (tilt > 0 || fomo > 1) { mindStatus = "🔥 极度危险"; mindColor = c.loss; }
+    else if (fomo > 0 || hesitation > 0) { mindStatus = "⚠️ 有点起伏"; mindColor = c.back; }
 
     // C. 环境分析 (Context)
     let cycleStats = {};
@@ -208,7 +212,7 @@ if (window.paData) {
             cycleStats[cycle] += t.pnl;
     });
     let sortedCycles = Object.keys(cycleStats)
-        .map((k) => ({ name: k, pnl: cycleStats[k] }))
+        .map((k) => ({ name: trans(cycleMap, k), pnl: cycleStats[k] }))
         .sort((a, b) => b.pnl - a.pnl);
 
     let cycleHtml = `
@@ -217,9 +221,9 @@ if (window.paData) {
             let color = cy.pnl > 0 ? c.live : cy.pnl < 0 ? c.loss : "gray";
             let bg = cy.pnl > 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
             return `
-            <div style="background:${bg}; border-radius:6px; padding:8px 12px; flex:1; min-width:100px; text-align:center; border:1px solid ${color}33;">
-                <div style="font-size:0.8em; opacity:0.8; margin-bottom:2px;">${cy.name}</div>
-                <div style="font-weight:800; color:${color}; font-size:1.1em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl.toFixed(1)}</div>
+            <div style="background:${bg}; border-radius:6px; padding:6px 10px; flex:1; min-width:80px; text-align:center; border:1px solid ${color}33;">
+                <div style="font-size:0.75em; opacity:0.8; margin-bottom:2px;">${cy.name}</div>
+                <div style="font-weight:800; color:${color}; font-size:1em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl.toFixed(1)}</div>
             </div>`;
         }).join("")}
     </div>`;
@@ -252,24 +256,78 @@ if (window.paData) {
         </div>`;
     }
 
+    // E. 智能建议 (Smart Suggestions)
+    let suggestion = "";
+    let bestStrat = topStrats[0]?.name || "无";
+    let liveWr = live.wr;
+    
+    if (tilt > 0) {
+        suggestion = `检测到 <b style="color:${c.loss}">情绪化交易 (Tilt)</b> 迹象。建议立即停止实盘，强制休息 24 小时。`;
+    } else if (liveWr < 40 && live.count > 5) {
+        suggestion = `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到 <b style="color:${c.demo}">模拟盘</b> 练习 <b style="color:${c.live}">${bestStrat}</b> 策略，直到连续盈利。`;
+    } else if (cum.live < 0 && cum.back > 0) {
+        suggestion = `回测表现良好但实盘亏损。可能是执行力问题。建议降低仓位，专注于 <b style="color:${c.live}">${bestStrat}</b>。`;
+    } else {
+        suggestion = `当前状态良好。表现最好的策略是 <b style="color:${c.demo}">${bestStrat}</b>。建议继续保持一致性。`;
+    }
+
     // --- 4. 最终渲染 (Final Render) ---
-    const analyticsContainer = dv.el("div", "", { attr: { style: c.cardBg + "; padding:20px;" } });
-    analyticsContainer.innerHTML = `
-        <!-- 1. 资金曲线 -->
-        <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
-        <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
-            <line x1="0" y1="${height - ((0 - minVal) / range) * height}" x2="${width}" y2="${height - ((0 - minVal) / range) * height}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
-            <polyline points="${getPoints(curves.back)}" fill="none" stroke="${c.back}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
-            <polyline points="${getPoints(curves.demo)}" fill="none" stroke="${c.demo}" stroke-width="2" stroke-opacity="0.7" />
-            <polyline points="${getPoints(curves.live)}" fill="none" stroke="${c.live}" stroke-width="3" />
-        </svg>
-        <div style="display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8em; margin-bottom:25px;">
-            <span style="color:${c.live}">● 实盘 $${cum.live.toFixed(0)}</span>
-            <span style="color:${c.demo}">● 模拟 $${cum.demo.toFixed(0)}</span>
-            <span style="color:${c.back}">● 回测 $${cum.back.toFixed(0)}</span>
+    // 合并所有 HTML 到一个模板字符串中
+    root.innerHTML = `
+    <div style="${c.cardBg}; padding: 20px;">
+        <!-- 第一部分：账户与日历 -->
+        <div style="display:flex; gap:20px; margin-bottom: 25px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:20px;">
+            <!-- 左侧：账户卡片 -->
+            <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+                <!-- 实盘大卡片 -->
+                <div style="flex:1; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="color:${c.live}; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
+                        <div style="font-size:0.75em; background:${c.live}20; color:${c.live}; padding:2px 8px; border-radius:10px;">Live</div>
+                    </div>
+                    <div style="display:flex; align-items:baseline; gap:4px;">
+                        <div style="font-size:2.4em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss}; line-height:1;">${live.pnl > 0 ? "+" : ""}${live.pnl}</div>
+                        <div style="font-size:0.9em; opacity:0.6;">$</div>
+                    </div>
+                    <div style="display:flex; gap:15px; margin-top:10px; font-size:0.85em; opacity:0.8;">
+                        <div>📦 ${live.count} 笔交易</div>
+                        <div>🎯 ${live.wr}% 胜率</div>
+                    </div>
+                </div>
+                <!-- 模拟与回测 (横向排列) -->
+                <div style="display:flex; gap:10px;">
+                    ${miniCard("模拟盘", demo, c.demo, "🔵")}
+                    ${miniCard("复盘回测", back, c.back, "🟠")}
+                </div>
+            </div>
+
+            <!-- 右侧：日历 (更紧凑) -->
+            <div style="width: 240px; flex-shrink:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div style="font-size:0.85em; font-weight:600; opacity:0.9;">📅 盈亏日历 (${targetMonth})</div>
+                    <div style="font-size:0.65em; opacity:0.5;">All Accounts</div>
+                </div>
+                ${gridHtml}
+            </div>
         </div>
 
-        <!-- 2. R-Multiples & Mindset -->
+        <!-- 第二部分：资金曲线 -->
+        <div style="margin-bottom:25px;">
+            <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
+            <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
+                <line x1="0" y1="${height - ((0 - minVal) / range) * height}" x2="${width}" y2="${height - ((0 - minVal) / range) * height}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
+                <polyline points="${getPoints(curves.back)}" fill="none" stroke="${c.back}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
+                <polyline points="${getPoints(curves.demo)}" fill="none" stroke="${c.demo}" stroke-width="2" stroke-opacity="0.7" />
+                <polyline points="${getPoints(curves.live)}" fill="none" stroke="${c.live}" stroke-width="3" />
+            </svg>
+            <div style="display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8em;">
+                <span style="color:${c.live}">● 实盘 $${cum.live.toFixed(0)}</span>
+                <span style="color:${c.demo}">● 模拟 $${cum.demo.toFixed(0)}</span>
+                <span style="color:${c.back}">● 回测 $${cum.back.toFixed(0)}</span>
+            </div>
+        </div>
+
+        <!-- 第三部分：R-Multiples & Mindset -->
         <div style="display:flex; gap:20px; margin-bottom:25px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1);">
             <div style="flex:2;">
                 <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📈 综合趋势 (R-Multiples)</div>
@@ -280,11 +338,11 @@ if (window.paData) {
             <div style="flex:1; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px; display:flex; flex-direction:column; justify-content:center;">
                  <div style="font-size:0.8em; opacity:0.6; margin-bottom:5px;">🧠 实盘心态</div>
                  <div style="font-size:1.2em; font-weight:bold; color:${mindColor};">${mindStatus}</div>
-                 <div style="font-size:0.7em; opacity:0.5; margin-top:4px;">FOMO: ${fomo} | Tilt: ${tilt}</div>
+                 <div style="font-size:0.7em; opacity:0.5; margin-top:4px;">FOMO: ${fomo} | Tilt: ${tilt} | 犹豫: ${hesitation}</div>
             </div>
         </div>
 
-        <!-- 3. 详细分析网格 (Context & Tuition & Strategy) -->
+        <!-- 第四部分：详细分析网格 -->
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
             <!-- 左列: 环境与策略 -->
             <div style="display:flex; flex-direction:column; gap:20px;">
@@ -316,14 +374,10 @@ if (window.paData) {
                 <div>
                      <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
                      <div style="font-size:0.8em; opacity:0.8; line-height:1.5; background:rgba(59, 130, 246, 0.1); padding:10px; border-radius:6px; border-left:3px solid ${c.demo};">
-                        当前表现最好的策略是 <b style="color:${c.demo}">${topStrats[0]?.name || "无"}</b>。<br>
-                        建议在 <b style="color:${cum.live < 0 ? c.back : c.live}">${cum.live < 0 ? "回测" : "实盘"}</b> 中继续保持执行。
+                        ${suggestion}
                      </div>
                 </div>
             </div>
         </div>
     `;
-
-    root.appendChild(analyticsContainer);
-}
 
