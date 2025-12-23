@@ -140,6 +140,9 @@ if (useCache) {
         "signal_bar_quality",
       ]),
       plan: utils.getStr(t, ["交易方程/trader_equation", "trader_equation"]),
+      // 新增原始字段用于合规性检查
+      cycle: t["市场周期/market_cycle"] || t["market_cycle"],
+      rawSetup: t["设置类别/setup_category"] || t["setup_category"],
     });
   }
   trades.sort((a, b) => a.date.localeCompare(b.date)); // 正序

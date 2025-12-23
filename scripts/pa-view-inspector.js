@@ -68,19 +68,24 @@ if (window.paData) {
              // t.cycle 可能是数组或字符串
              let cycles = Array.isArray(t.cycle) ? t.cycle : [t.cycle];
              cycles.forEach(c => {
-                 if (c && !allowedValues["市场周期/market_cycle"].has(c) && !allowedValues["市场周期/market_cycle"].has(c.split('(')[0].trim())) {
+                 // 兼容处理: 允许完整值 或 括号前中文
+                 let valStr = c.toString().trim();
+                 let valCn = valStr.split('(')[0].trim();
+                 if (valStr && !allowedValues["市场周期/market_cycle"].has(valStr) && !allowedValues["市场周期/market_cycle"].has(valCn)) {
                      missing.illegal++;
-                     illegalDetails.push({file: t.file, field: "市场周期", value: c});
+                     illegalDetails.push({link: t.link, field: "市场周期", value: valStr});
                  }
              });
         }
-        // 检查设置类别
-        if (t.setup && allowedValues["设置类别/setup_category"]) {
-             let setups = Array.isArray(t.setup) ? t.setup : [t.setup];
+        // 检查设置类别 (使用 rawSetup)
+        if (t.rawSetup && allowedValues["设置类别/setup_category"]) {
+             let setups = Array.isArray(t.rawSetup) ? t.rawSetup : [t.rawSetup];
              setups.forEach(s => {
-                 if (s && s !== "Unknown" && !allowedValues["设置类别/setup_category"].has(s) && !allowedValues["设置类别/setup_category"].has(s.split('(')[0].trim())) {
+                 let valStr = s.toString().trim();
+                 let valCn = valStr.split('(')[0].trim();
+                 if (valStr && valStr !== "Unknown" && !allowedValues["设置类别/setup_category"].has(valStr) && !allowedValues["设置类别/setup_category"].has(valCn)) {
                      missing.illegal++;
-                     illegalDetails.push({file: t.file, field: "设置类别", value: s});
+                     illegalDetails.push({link: t.link, field: "设置类别", value: valStr});
                  }
              });
         }
@@ -149,7 +154,7 @@ if (window.paData) {
       // Add Illegal values
       illegalDetails.forEach(item => {
           detailsHTML += `<tr>
-              <td>${item.file.link}</td>
+              <td>${item.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">非法${item.field}</span></td>
               <td style="opacity:0.7">${item.value}</td>
           </tr>`;
@@ -158,7 +163,7 @@ if (window.paData) {
       // Add Logic issues (R=0 but PnL!=0)
       trades.filter(t => t.pnl !== 0 && t.r === 0).forEach(t => {
            detailsHTML += `<tr>
-              <td>${t.file.link}</td>
+              <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
               <td style="opacity:0.7">PnL=${t.pnl}, R=0</td>
           </tr>`;
