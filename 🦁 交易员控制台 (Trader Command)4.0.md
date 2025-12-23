@@ -28,8 +28,16 @@ await dv.view("scripts/pa-view-course");
 // 📘 策略仓库 (Strategy Repository)
 await dv.view("scripts/pa-view-playbook");
 ```
+```dataviewjs
+// 🖼️ 最新复盘 (Charts)
+await dv.view("scripts/pa-view-gallery");
+```
 
 ## ⚔️ 交易模块
+```dataviewjs
+// 🚀 快速行动 (Quick Actions)
+await dv.view("scripts/pa-view-actions");
+```
 ```dataviewjs
 // 📊 今日实时监控
 await dv.view("scripts/pa-view-today");
@@ -43,41 +51,27 @@ await dv.view("scripts/pa-view-account");
 await dv.view("scripts/pa-view-trend");
 ```
 ## 📉 管理模块
-
 ```dataviewjs
 // 资金增长曲线 (Capital Growth)
 await dv.view("scripts/pa-view-strategy");
 ```
-
 ```dataviewjs
 // 不同市场环境表现 (Live PnL)
 await dv.view("scripts/pa-view-cycle");
 ```
-
 ```dataviewjs
 // 💸 错误的代价 (学费统计)
 await dv.view("scripts/pa-view-tuition");
 ```
-
-## 🖼️ 综合画廊
-
-```dataviewjs
-// 🖼️ 最新复盘 (Charts)
-await dv.view("scripts/pa-view-gallery");
-```
-
-```dataviewjs
-// 🚀 快速行动 (Quick Actions)
-await dv.view("scripts/pa-view-actions");
-```
-
 ## 🧹 数据治理与巡检
 
 ```dataviewjs
+// ## 数据治理与巡检
 await dv.view("scripts/pa-view-inspector");
 ```
 
 ```dataviewjs
+// 属性管理
 await dv.view("scripts/pa-view-manager");
 ```
 
