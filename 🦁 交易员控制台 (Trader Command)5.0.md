@@ -10,10 +10,6 @@ await dv.view("scripts/pa-core");
 // 1. 今日看板 (含快速行动)
 await dv.view("scripts/pa-view-today");
 ```
-```dataviewjs
-// 2. 实时趋势 (底部)
-await dv.view("scripts/pa-view-trend");
-```
 
 ## 📊 数据中心 (Analytics Hub)
 ```dataviewjs
