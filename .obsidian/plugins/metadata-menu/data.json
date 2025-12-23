@@ -3,7 +3,7 @@
   "fileClassQueries": [],
   "displayFieldsInContextMenu": true,
   "globallyIgnoredFields": [],
-  "classFilesPath": null,
+  "classFilesPath": "Templates/",
   "isAutosuggestEnabled": true,
   "fileClassAlias": "fileClass",
   "settingsVersion": "5.0",
