@@ -18,11 +18,6 @@ await dv.view("scripts/pa-core");
 ```
 
 ```dataviewjs
-// 加载记忆库 UI
-await dv.view("scripts/pa-view-memory");
-```
-
-```dataviewjs
 // 📊 今日实时监控
 await dv.view("scripts/pa-view-today");
 ```
