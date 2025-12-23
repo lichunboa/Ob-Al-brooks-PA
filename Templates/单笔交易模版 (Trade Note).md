@@ -18,7 +18,6 @@ date:
   - 趋势回调 (Pullback)
 观察到的形态/patterns_observed:
   - 20EMA缺口 (20 EMA Gap)
-匹配策略ID/matched_strategy:
 信号K/signal_bar_quality:
   - 内包线 (ii or ioi)
   - 强阳收盘 (Strong Bull Close)
@@ -34,6 +33,7 @@ date:
 结果/outcome:
 封面/cover:
 执行评价/execution_quality:
+策略名称/strategy_name:
 ---
 
 ---
