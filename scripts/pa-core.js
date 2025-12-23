@@ -13,7 +13,7 @@ const todayStr = moment().format("YYYY-MM-DD");
 
 // --- 1. 缓存控制 (Smart Cache) ---
 // 强制刷新一次以应用 pa-utils.js 的修复
-const forceReload = true; // window.paForceReload === true;
+const forceReload = false; // window.paForceReload === true;
 window.paForceReload = false;
 
 let useCache = false;

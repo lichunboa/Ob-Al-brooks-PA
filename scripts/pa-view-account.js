@@ -22,34 +22,72 @@ if (window.paData) {
   const demo = getStats("Demo");
   const back = getStats("Backtest");
 
-  // 2. 热力图数据 (本月 Live)
-  const today = new Date();
-  const currentMonth = moment().format("YYYY-MM");
-  const daysInMonth = moment().daysInMonth();
+  // 2. 热力图数据 (智能识别月份)
+  // 逻辑: 如果有实盘交易，取最近一笔实盘交易的月份；否则取当前系统月份
+  let targetMonth = moment().format("YYYY-MM");
+  const lastLiveTrade = trades.filter(t => t.type === "Live").sort((a, b) => b.date.localeCompare(a.date))[0];
+  
+  if (lastLiveTrade) {
+      // 提取 YYYY-MM
+      targetMonth = lastLiveTrade.date.substring(0, 7);
+  }
+  
+  const daysInMonth = moment(targetMonth, "YYYY-MM").daysInMonth();
 
   let dailyMap = {};
   trades
-    .filter((t) => t.type === "Live" && t.date.startsWith(currentMonth))
+    .filter((t) => t.type === "Live" && t.date.startsWith(targetMonth))
     .forEach((t) => {
       let day = parseInt(t.date.split("-")[2]);
       dailyMap[day] = (dailyMap[day] || 0) + t.pnl;
     });
 
   let gridHtml = "";
+  // 使用 Grid 布局优化 UI
+  gridHtml += `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;">`;
+  
   for (let d = 1; d <= daysInMonth; d++) {
     let pnl = dailyMap[d];
-    let bg = c.tagBg;
-    let txt = `<div style="font-size:0.6em; opacity:0.3;">${d}</div>`;
-
-    if (pnl !== undefined) {
-      bg = pnl > 0 ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
-      let color = pnl > 0 ? c.live : c.loss;
-      txt = `<div style="font-size:0.6em; opacity:0.5;">${d}</div><div style="font-size:0.7em; font-weight:bold; color:${color};">${pnl.toFixed(
-        0
-      )}</div>`;
+    let hasTrade = pnl !== undefined;
+    
+    // 样式逻辑
+    let bg = "rgba(255, 255, 255, 0.03)";
+    let border = "1px solid rgba(255, 255, 255, 0.05)";
+    let content = `<div style="font-size:0.7em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
+    
+    if (hasTrade) {
+        if (pnl > 0) {
+            bg = "rgba(34, 197, 94, 0.15)"; // Green tint
+            border = "1px solid rgba(34, 197, 94, 0.3)";
+            content += `<div style="font-size:0.75em; font-weight:bold; color:#4ade80;">+${pnl.toFixed(0)}</div>`;
+        } else if (pnl < 0) {
+            bg = "rgba(239, 68, 68, 0.15)"; // Red tint
+            border = "1px solid rgba(239, 68, 68, 0.3)";
+            content += `<div style="font-size:0.75em; font-weight:bold; color:#f87171;">${pnl.toFixed(0)}</div>`;
+        } else {
+            bg = "rgba(148, 163, 184, 0.15)"; // Gray tint
+            border = "1px solid rgba(148, 163, 184, 0.3)";
+            content += `<div style="font-size:0.75em; font-weight:bold; color:#94a3b8;">0</div>`;
+        }
     }
-    gridHtml += `<div style="width:32px; height:32px; background:${bg}; border-radius:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:${c.tagBorder};">${txt}</div>`;
+
+    gridHtml += `
+        <div style="
+            aspect-ratio: 1;
+            background: ${bg};
+            border: ${border};
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            cursor: default;
+        " title="${targetMonth}-${d} PnL: ${hasTrade ? pnl : 0}">
+            ${content}
+        </div>`;
   }
+  gridHtml += `</div>`;
 
   // 3. 渲染
   const root = dv.el("div", "", { attr: { style: c.cardBg } });
@@ -87,8 +125,11 @@ if (window.paData) {
         </div>
     </div>
     <div style="margin-top:20px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
-        <div style="font-size:0.7em; opacity:0.6; margin-bottom:8px;">📅 本月热力图 (${currentMonth})</div>
-        <div style="display:flex; flex-wrap:wrap; gap:4px;">${gridHtml}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-size:0.85em; font-weight:600; opacity:0.8;">📅 盈亏日历 (${targetMonth})</div>
+            <div style="font-size:0.7em; opacity:0.5;">Live Account Only</div>
+        </div>
+        ${gridHtml}
     </div>
     `;
 }
