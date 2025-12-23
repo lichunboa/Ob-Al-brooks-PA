@@ -30,13 +30,61 @@ if (window.paData) {
   const sr = D.sr;
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
-  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0 };
+  // 1.1 读取属性预设作为标准
+  let allowedValues = {};
+  const presetPage = dv.page("Templates/属性值预设.md");
+  if (presetPage) {
+    // 遍历预设文件的所有属性，建立白名单
+    for (let key in presetPage) {
+      if (key === "file" || key === "position") continue;
+      let val = presetPage[key];
+      if (Array.isArray(val)) {
+        // 提取括号前的内容作为标准值，同时也允许完整值
+        allowedValues[key] = new Set();
+        val.forEach(v => {
+            if(typeof v === 'string') {
+                allowedValues[key].add(v);
+                allowedValues[key].add(v.split('(')[0].trim());
+            }
+        });
+      }
+    }
+  }
+
+  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0 };
+  let illegalDetails = []; // 记录具体的非法值详情
+
   trades.forEach((t) => {
     if (!t.ticker || t.ticker === "Unknown") missing.ticker++;
     if (!t.tf || t.tf === "Unknown") missing.tf++;
     if (!t.setup || t.setup === "Unknown") missing.setup++;
     // 逻辑自检: 有盈亏但R值为0
     if (t.pnl !== 0 && t.r === 0) missing.logic++;
+
+    // 1.2 合规性检查 (Compliance Check)
+    if (presetPage) {
+        // 检查市场周期
+        if (t.cycle && allowedValues["市场周期/market_cycle"]) {
+             // t.cycle 可能是数组或字符串
+             let cycles = Array.isArray(t.cycle) ? t.cycle : [t.cycle];
+             cycles.forEach(c => {
+                 if (c && !allowedValues["市场周期/market_cycle"].has(c) && !allowedValues["市场周期/market_cycle"].has(c.split('(')[0].trim())) {
+                     missing.illegal++;
+                     illegalDetails.push({file: t.file, field: "市场周期", value: c});
+                 }
+             });
+        }
+        // 检查设置类别
+        if (t.setup && allowedValues["设置类别/setup_category"]) {
+             let setups = Array.isArray(t.setup) ? t.setup : [t.setup];
+             setups.forEach(s => {
+                 if (s && s !== "Unknown" && !allowedValues["设置类别/setup_category"].has(s) && !allowedValues["设置类别/setup_category"].has(s.split('(')[0].trim())) {
+                     missing.illegal++;
+                     illegalDetails.push({file: t.file, field: "设置类别", value: s});
+                 }
+             });
+        }
+    }
   });
 
   let totalIssues = Object.values(missing).reduce((a, b) => a + b, 0);
@@ -112,6 +160,9 @@ if (window.paData) {
                 <div class="insp-item"><span>逻辑异常 (R=0)</span> <span class="${
                   missing.logic > 0 ? "txt-red" : "txt-dim"
                 }">${missing.logic}</span></div>
+                <div class="insp-item"><span>非法属性值</span> <span class="${
+                  missing.illegal > 0 ? "txt-red" : "txt-dim"
+                }">${missing.illegal}</span></div>
             </div>
 
             <div class="insp-card">
