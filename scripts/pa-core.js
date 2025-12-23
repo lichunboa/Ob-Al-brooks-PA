@@ -156,6 +156,7 @@ if (useCache) {
       pnl: pnl,
       r: r,
       setup: utils.getStr(t, ["设置类别/setup_category", "setup_category"]),
+      market_cycle: utils.getStr(t, ["市场周期/market_cycle", "market_cycle"]),
       error: errStr,
       cover: t["封面/cover"] || t["cover"] || "Unknown", // 保留原始值,不清洗
       ticker: utils.getStr(t, ["品种/ticker", "ticker"]),

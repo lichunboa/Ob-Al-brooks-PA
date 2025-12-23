@@ -16,17 +16,6 @@ const todayTrades = dv
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
-// --- 0. 快速行动 (Quick Actions) [Merged from pa-view-actions.js] ---
-const btn = (color, text, cmd) =>
-  `<button onclick="app.commands.executeCommandById('${cmd}')" style="background:${color}; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; margin-right:8px; font-size:0.85em; transition: all 0.2s;">${text}</button>`;
-
-const actionsHtml = `
-<div style="display:flex; justify-content:flex-end; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05);">
-    ${btn(c.live, "+ 实盘", "quickadd:choice:New Live Trade")}
-    ${btn(c.demo, "+ 模拟", "quickadd:choice:New Demo Trade")}
-    ${btn(c.back, "+ 回测", "quickadd:choice:New Backtest")}
-</div>`;
-
 // --- 1. 市场环境与策略推荐 (Context & Strategy) ---
 // 尝试查找今日的复盘日记 (通常在 Daily 目录下)
 const todayJournal = dv.pages('"Daily"').where(p => p.file.day && p.file.day.toISODate() === today).first();
