@@ -20,7 +20,11 @@ if (window.paData) {
     leftCol.style.cssText = `${c.cardBg}; padding: 20px; display: flex; flex-direction: column; gap: 15px;`;
     
     // 1.1 头部状态
-    const todayTrades = dv.pages('"Daily/Trades"').where(p => p.date && p.date.toString().startsWith(today));
+    // dv.pages 返回的是 DataArray，需要转换为普通数组才能使用 reduce
+    const todayTrades = dv.pages('"Daily/Trades"')
+        .where(p => p.date && p.date.toString().startsWith(today))
+        .values; // .values 提取底层数组
+        
     const todayPnL = todayTrades.reduce((acc, t) => acc + (t["净利润/net_profit"] || 0), 0);
     const todayCount = todayTrades.length;
     
