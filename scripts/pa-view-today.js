@@ -16,6 +16,39 @@ const todayTrades = dv
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
+// --- 0. 市场环境与策略推荐 (Context & Strategy) ---
+// 尝试查找今日的复盘日记 (通常在 Daily 目录下)
+const todayJournal = dv.pages('"Daily"').where(p => p.file.day && p.file.day.toISODate() === today).first();
+let contextHtml = "";
+
+if (todayJournal && todayJournal.market_cycle) {
+    const currentCycle = todayJournal.market_cycle;
+    // 查找匹配的策略
+    const recommendedStrategies = dv.pages('"策略仓库"')
+        .where(p => p.strategy_status == "实战中 (Active)" && p.market_cycle)
+        .where(p => {
+            const cycles = Array.isArray(p.market_cycle) ? p.market_cycle : [p.market_cycle];
+            return cycles.some(c => c.includes(currentCycle) || currentCycle.includes(c));
+        });
+
+    contextHtml += `
+    <div style="margin-bottom: 15px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 3px solid #3b82f6;">
+        <div style="font-weight: bold; color: #3b82f6; margin-bottom: 5px;">
+            🌊 今日市场: ${currentCycle}
+        </div>
+        <div style="font-size: 0.9em; color: var(--text-muted);">
+            ${recommendedStrategies.length > 0 
+                ? `推荐关注: ${recommendedStrategies.map(p => `<b>${p.file.link}</b>`).join(" · ")}` 
+                : "暂无特定策略推荐，建议观望。"}
+        </div>
+    </div>`;
+} else {
+    contextHtml += `
+    <div style="margin-bottom: 15px; padding: 10px; border: 1px dashed var(--text-faint); border-radius: 8px; text-align: center; font-size: 0.85em; color: var(--text-muted);">
+        📝 <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">创建今日日记</a> 并设置市场周期以获取策略推荐
+    </div>`;
+}
+
 // --- 1. 策略助手逻辑 (Strategy Assistant) ---
 // 查找当前正在进行的交易 (没有结果/outcome 或 结果为空)
 const activeTrade = todayTrades.find((p) => !p["结果/outcome"]);

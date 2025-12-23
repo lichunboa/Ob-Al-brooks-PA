@@ -39,43 +39,7 @@ WHERE file.cday = this.file.cday
 SORT file.ctime ASC
 ```
 
-# 🧠 3. 智能策略推荐 (Strategy Assistant)
-
-> [!ai] 根据今日市场周期 `$= dv.current().market_cycle || "未设置"` 推荐：
-
-```dataviewjs
-const currentCycle = dv.current().market_cycle;
-if (!currentCycle) {
-    dv.paragraph("⚠️ **请先在上方设置 '市场周期' 以获取策略推荐。**");
-} else {
-    // 获取所有活跃策略
-    const strategies = dv.pages('"策略仓库"')
-        .where(p => p.strategy_status == "实战中 (Active)" && p.market_cycle)
-        .where(p => {
-            // 检查策略的市场周期是否包含当前周期
-            // 处理列表或单个值的情况
-            const cycles = Array.isArray(p.market_cycle) ? p.market_cycle : [p.market_cycle];
-            // 模糊匹配 (例如 "强趋势" 匹配 "强趋势 (Strong Trend)")
-            return cycles.some(c => c.includes(currentCycle) || currentCycle.includes(c));
-        });
-
-    if (strategies.length === 0) {
-        dv.paragraph(`🚫 在 **${currentCycle}** 周期下暂无推荐的实战策略。建议观望或切换周期。`);
-    } else {
-        dv.table(
-            ["策略名称", "入场条件 (Checklist)", "风险提示 (Risk)", "盈亏比"],
-            strategies.map(p => [
-                p.file.link,
-                p.entry_criteria ? p.entry_criteria.slice(0, 3).join("<br>") + "..." : "无",
-                p.risk_alerts ? "⚠️ " + p.risk_alerts.slice(0, 2).join("<br>") : "无",
-                p.risk_reward
-            ])
-        );
-    }
-}
-```
-
-# 🌇 4. 盘后总结 (Post-Market)
+# 🌇 3. 盘后总结 (Post-Market)
 
 ### 📊 数据概览
 
