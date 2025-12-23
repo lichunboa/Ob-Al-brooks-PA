@@ -1,5 +1,5 @@
 ---
-categories: 交易单
+categories: 交易日记
 tags:
   - PA/Trade
 date: 2025-12-17

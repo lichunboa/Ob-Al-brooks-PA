@@ -1,7 +1,7 @@
 ---
 categories:
   - 模版
-  - 交易单
+  - 交易日记
 tags:
   - PA/Trade
 date:
