@@ -72,7 +72,32 @@ if (useCache) {
     .where((p) => !p.file.path.includes(cfg.paths.templates));
 
   for (let t of tradePages) {
-    let date = moment(t.date || t.file.day).format("YYYY-MM-DD");
+    // 增强的日期解析逻辑
+    let dateStr = "";
+    let rawDate = t.date || t.file.day;
+    
+    if (rawDate) {
+        if (rawDate.path) { 
+            // 处理链接类型 [[2025-12-19]] -> "2025-12-19"
+            // 假设文件名就是日期，或者链接文本是日期
+            // Dataview Link 对象: { path: "...", display: "...", ... }
+            // 通常 path 是 "2025-12-19.md" 或 "2025-12-19"
+            let path = rawDate.path;
+            // 移除扩展名
+            dateStr = path.replace(/\.md$/i, "").split("/").pop();
+        } else if (rawDate.ts) {
+            // 处理 Luxon DateTime 对象 (Dataview 默认日期格式)
+            dateStr = moment(rawDate.ts).format("YYYY-MM-DD");
+        } else {
+            // 处理字符串或其他
+            dateStr = rawDate.toString();
+        }
+    }
+    
+    // 验证日期有效性，无效则回退到文件创建时间
+    let m = moment(dateStr, ["YYYY-MM-DD", "YYYYMMDD", "MM-DD-YYYY", "DD-MM-YYYY"]);
+    let date = m.isValid() ? m.format("YYYY-MM-DD") : moment(t.file.ctime.ts).format("YYYY-MM-DD");
+
     let pnl = utils.getVal(t, ["净利润/net_profit", "net_profit"]);
     let rawAcct = utils.getStr(t, ["账户类型/account_type", "account_type"]);
     let type = utils.getAccountType(rawAcct);
