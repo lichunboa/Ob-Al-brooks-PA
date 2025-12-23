@@ -34,8 +34,6 @@ date:
 封面/cover:
 执行评价/execution_quality:
 策略名称/strategy_name:
-匹配策略ID/matched_strategy_id:
-策略执行评分/strategy_score:
 ---
 
 ---
