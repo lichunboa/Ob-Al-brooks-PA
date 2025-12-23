@@ -197,6 +197,36 @@ if (window.paData) {
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
+        // --- 新增: R-Multiples & Mindset (Merged from pa-view-trend.js) ---
+        const recentTrades = tradesAsc.slice(-30); // 取最近30笔 (时间正序: 旧->新)
+        let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
+        
+        let barsHtml = recentTrades.map(t => {
+            let r = t.r || 0;
+            let h = Math.round((Math.abs(r) / maxR) * 40); // 最大高度 40px
+            if (h < 3) h = 3;
+            let color = c.loss;
+            if (r >= 0) {
+                let type = (t.type || "").toLowerCase();
+                if (type === "live") color = c.live;
+                else if (type === "demo") color = c.demo;
+                else color = c.back;
+            }
+            return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${r>=0?1:0.6};" title="${t.name} R:${r.toFixed(2)}"></div>`;
+        }).join("");
+
+        // 心态监控 (只看最近 7 笔 Live 交易)
+        const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-7);
+        let tilt = 0, fomo = 0;
+        for (let t of recentLive) {
+            let err = (t.error || "").toString();
+            if (err.includes("Tilt") || err.includes("上头")) tilt++;
+            if (err.includes("FOMO") || err.includes("追单")) fomo++;
+        }
+        let mindStatus = (tilt + fomo === 0) ? "🛡️ 状态极佳" : (tilt + fomo < 3) ? "⚠️ 有点起伏" : "🔥 极度危险";
+        let mindColor = (tilt + fomo === 0) ? c.live : (tilt + fomo < 3) ? c.back : c.loss;
+
+
         return `
         <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
         <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
@@ -211,7 +241,22 @@ if (window.paData) {
             <span style="color:${c.back}">● 回测 $${cum.back.toFixed(0)}</span>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+        <!-- R-Multiples & Mindset Row -->
+        <div style="display:flex; gap:20px; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1);">
+            <div style="flex:2;">
+                <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📈 综合趋势 (R-Multiples)</div>
+                <div style="display:flex; align-items:flex-end; gap:4px; height:50px;">
+                    ${barsHtml || '<div style="opacity:0.5; font-size:0.8em;">暂无数据</div>'}
+                </div>
+            </div>
+            <div style="flex:1; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="font-size:0.8em; opacity:0.6; margin-bottom:5px;">🧠 实盘心态</div>
+                 <div style="font-size:1.2em; font-weight:bold; color:${mindColor};">${mindStatus}</div>
+                 <div style="font-size:0.7em; opacity:0.5; margin-top:4px;">FOMO: ${fomo} | Tilt: ${tilt}</div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
             <div>
                 <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略表现 (Top Setups)</div>
                 <div style="display:flex; flex-direction:column; gap:6px;">
