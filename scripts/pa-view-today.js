@@ -74,6 +74,22 @@ if (activeTrade) {
         `;
       }
 
+      // 辅助函数: 格式化建议列表 (处理字符串或对象)
+      const formatList = (list) => {
+        if (!Array.isArray(list)) return list;
+        return list
+          .map((item) => {
+            if (typeof item === "object" && item !== null) {
+              // 处理 YAML 对象 {Key: Value}
+              return Object.entries(item)
+                .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+                .join(", ");
+            }
+            return item;
+          })
+          .join(" | ");
+      };
+
       // 渲染助手面板
       assistantHtml = `
         <div style="
@@ -119,12 +135,66 @@ if (activeTrade) {
 
           <!-- 底部: 止损建议 -->
           <div style="margin-top:10px; font-size:0.75em; opacity:0.8; border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
-            🛡️ <strong>止损建议:</strong> ${
-              Array.isArray(sStop) ? sStop.join(" | ") : sStop
-            }
+            🛡️ <strong>止损建议:</strong> ${formatList(sStop)}
           </div>
         </div>
       `;
+    }
+  } else {
+    // --- 早期建议逻辑 (Early Suggestions) ---
+    // 如果没有选定形态，则根据市场周期和设置类别提供建议
+    const marketCycle = activeTrade["市场周期/market_cycle"];
+    const setupCategory = activeTrade["设置类别/setup_category"];
+
+    if (marketCycle || setupCategory) {
+      // 查找匹配的策略
+      const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
+      let suggestedStrategies = [];
+
+      for (let s of strategyPages) {
+        let sCycle = s["市场周期/market_cycle"];
+        let sSetup = s["设置类别/setup_category"];
+        let score = 0;
+
+        // 简单的评分逻辑
+        if (marketCycle && sCycle && sCycle.some((c) => marketCycle.includes(c))) score += 2;
+        if (setupCategory && sSetup && sSetup.includes(setupCategory)) score += 1;
+
+        if (score > 0) {
+          suggestedStrategies.push({ file: s.file, score: score, name: s["策略名称/strategy_name"] });
+        }
+      }
+
+      // 按相关性排序并取前3个
+      suggestedStrategies.sort((a, b) => b.score - a.score);
+      const topSuggestions = suggestedStrategies.slice(0, 3);
+
+      if (topSuggestions.length > 0) {
+        assistantHtml = `
+          <div style="
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+          ">
+            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"}) 的策略建议:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${topSuggestions.map(s => `
+                <a href="${s.file.path}" class="internal-link" style="
+                  background:rgba(59,130,246,0.1);
+                  color:${c.accent};
+                  padding:4px 8px;
+                  border-radius:4px;
+                  text-decoration:none;
+                  font-size:0.75em;
+                  border:1px solid rgba(59,130,246,0.2);
+                ">${s.name}</a>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
     }
   }
 }
