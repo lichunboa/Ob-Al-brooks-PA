@@ -11,17 +11,18 @@ btnExport.onclick = async () => {
     new Notice("✅ 数据已导出到根目录: pa-db-export.json");
 };
 ```
-
 ```dataviewjs
 // 加载引擎
 await dv.view("scripts/pa-core");
 ```
-
+```dataviewjs
+// 加载记忆库
+await dv.view("scripts/pa-view-memory");
+```
 ```dataviewjs
 // 📊 今日实时监控
 await dv.view("scripts/pa-view-today");
 ```
-
 ## 🧠 知识与记忆
 
 ```dataviewjs
