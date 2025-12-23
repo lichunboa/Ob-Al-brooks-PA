@@ -47,13 +47,13 @@
     "//Notes",
     "//Notes/Notes/assets",
     "//Notes/Notes/assets/Notes/assets/买卖压力",
-    "/",
-    "//Daily/Daily/SPX/Daily/SPX/assets",
     "//PA",
     "//PA/PA/Journal",
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
-    "//Categories 分类"
+    "/",
+    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/太妃方案",
+    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
@@ -66,7 +66,6 @@
     "_blocks"
   ],
   "newFileLocation": "root",
-  "newFileFolderPath": "",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,
