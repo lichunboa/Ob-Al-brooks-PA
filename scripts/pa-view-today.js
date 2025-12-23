@@ -351,7 +351,11 @@ if (todayTrades.length > 0) {
 
 // --- 4. 最终渲染 ---
 root.innerHTML = `
+${actionsHtml}
 <div style="font-weight:700; opacity:0.7; margin-bottom:12px;">📊 今日实时监控 (Today's Dashboard) - ${today}</div>
+
+<!-- 市场环境 (Context) -->
+${contextHtml}
 
 <!-- 策略助手 (仅在有活跃交易且匹配到策略时显示) -->
 ${assistantHtml}

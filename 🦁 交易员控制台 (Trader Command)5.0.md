@@ -6,10 +6,15 @@ await dv.view("scripts/pa-core");
 ```
 
 ### ⚔️ 交易中心 (Trading Hub)
-> 盘中专注区域：左侧监控今日状态，右侧快速开仓与趋势概览。
+> 盘中专注区域
 
 ```dataviewjs
-await dv.view("scripts/pa-view-hub-trading");
+// 1. 今日看板 (含快速行动)
+await dv.view("scripts/pa-view-today");
+```
+```dataviewjs
+// 2. 实时趋势 (底部)
+await dv.view("scripts/pa-view-trend");
 ```
 
 ---
