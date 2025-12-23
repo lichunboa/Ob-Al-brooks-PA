@@ -22,7 +22,8 @@ date: 2025-12-17
   - 追单 (FOMO)
 封面/cover: "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]"
 banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
-市场周期/market_cycle: []
+市场周期/market_cycle:
+  - 突破模式 (Breakout Mode)
 初始风险/initial_risk: 10
 入场/entry_price: 12
 止损/stop_loss: 10

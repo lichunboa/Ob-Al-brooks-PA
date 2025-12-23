@@ -33,7 +33,7 @@ await dv.view("scripts/pa-view-playbook");
 await dv.view("scripts/pa-view-gallery");
 ```
 
-## ⚔️ 交易模块
+[[]]## ⚔️ 交易模块
 ```dataviewjs
 // 🚀 快速行动 (Quick Actions)
 await dv.view("scripts/pa-view-actions");
