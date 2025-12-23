@@ -120,114 +120,142 @@ if (window.paData) {
     </div>
     `;
 
-    // --- 3. 下部：多维分析 (Tabs) ---
-    // 我们使用简单的 JS 切换逻辑来实现 Tab
-    const tabContainer = dv.el("div", "", { attr: { style: c.cardBg + "; padding:0; overflow:hidden; min-height: 300px;" } });
-    
-    // Tab Header
-    const header = document.createElement("div");
-    header.style.cssText = "display:flex; border-bottom:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2);";
-    const tabs = [
-        { id: "curve", icon: "📈", name: "资金曲线" },
-        { id: "cycle", icon: "🌪️", name: "环境分析" },
-        { id: "tuition", icon: "💸", name: "错误归因" }
-    ];
-    
-    let activeTab = "curve";
+    // --- 3. 下部：多维分析 (Consolidated Analytics) ---
+    // 移除 Tab 系统，改为垂直堆叠布局
 
-    tabs.forEach(t => {
-        const btn = document.createElement("div");
-        btn.innerHTML = `${t.icon} ${t.name}`;
-        btn.style.cssText = `flex:1; text-align:center; padding:12px; cursor:pointer; font-size:0.9em; transition:all 0.2s; opacity:0.6; border-bottom:2px solid transparent;`;
-        btn.dataset.tab = t.id;
-        btn.onclick = () => switchTab(t.id);
-        header.appendChild(btn);
+    // A. 资金曲线 (Capital Growth)
+    let curves = { live: [0], demo: [0], back: [0] };
+    let cum = { live: 0, demo: 0, back: 0 };
+    let stratStats = {};
+
+    for (let t of tradesAsc) {
+        let pnl = t.pnl;
+        let acct = t.type.toLowerCase();
+        if (acct === "live") { cum.live += pnl; curves.live.push(cum.live); }
+        else if (acct === "demo") { cum.demo += pnl; curves.demo.push(cum.demo); }
+        else if (acct === "backtest") { cum.back += pnl; curves.back.push(cum.back); }
+
+        // 策略统计
+        let s = t.setup || "Unknown";
+        if (!stratStats[s]) stratStats[s] = { win: 0, total: 0 };
+        stratStats[s].total++;
+        if (pnl > 0) stratStats[s].win++;
+    }
+
+    const allValues = [...curves.live, ...curves.demo, ...curves.back];
+    const maxVal = Math.max(...allValues, 100);
+    const minVal = Math.min(...allValues, -100);
+    const range = maxVal - minVal;
+    const width = 600; const height = 200;
+
+    function getPoints(data) {
+        if (data.length < 2) return `0,${height} ${width},${height}`;
+        let step = width / (data.length - 1);
+        return data.map((v, i) => {
+            let x = i * step;
+            let y = height - ((v - minVal) / range) * height;
+            return `${x},${y}`;
+        }).join(" ");
+    }
+
+    // 策略排行
+    let topStrats = Object.keys(stratStats)
+        .map((k) => ({
+        name: k,
+        wr: Math.round((stratStats[k].win / stratStats[k].total) * 100),
+        total: stratStats[k].total,
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+
+    // B. R-Multiples & Mindset
+    const recentTrades = tradesAsc.slice(-30);
+    let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
+    
+    let barsHtml = recentTrades.map(t => {
+        let r = t.r || 0;
+        let h = Math.round((Math.abs(r) / maxR) * 40);
+        if (h < 3) h = 3;
+        let color = c.loss;
+        if (r >= 0) {
+            let type = (t.type || "").toLowerCase();
+            if (type === "live") color = c.live;
+            else if (type === "demo") color = c.demo;
+            else color = c.back;
+        }
+        return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${r>=0?1:0.6};" title="${t.name} R:${r.toFixed(2)}"></div>`;
+    }).join("");
+
+    const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-7);
+    let tilt = 0, fomo = 0;
+    for (let t of recentLive) {
+        let err = (t.error || "").toString();
+        if (err.includes("Tilt") || err.includes("上头")) tilt++;
+        if (err.includes("FOMO") || err.includes("追单")) fomo++;
+    }
+    let mindStatus = (tilt + fomo === 0) ? "🛡️ 状态极佳" : (tilt + fomo < 3) ? "⚠️ 有点起伏" : "🔥 极度危险";
+    let mindColor = (tilt + fomo === 0) ? c.live : (tilt + fomo < 3) ? c.back : c.loss;
+
+    // C. 环境分析 (Context)
+    let cycleStats = {};
+    trades.filter(t => t.type === "Live").forEach(t => {
+            let cycle = t.market_cycle || "Unknown";
+            // 清洗逻辑
+            if (cycle.includes("/")) cycle = cycle.split("/")[1].trim();
+            else if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
+            
+            if (!cycleStats[cycle]) cycleStats[cycle] = 0;
+            cycleStats[cycle] += t.pnl;
     });
-    tabContainer.appendChild(header);
+    let sortedCycles = Object.keys(cycleStats)
+        .map((k) => ({ name: k, pnl: cycleStats[k] }))
+        .sort((a, b) => b.pnl - a.pnl);
 
-    // Tab Content Area
-    const contentArea = document.createElement("div");
-    contentArea.style.padding = "20px";
-    tabContainer.appendChild(contentArea);
+    let cycleHtml = `
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${sortedCycles.map(cy => {
+            let color = cy.pnl > 0 ? c.live : cy.pnl < 0 ? c.loss : "gray";
+            let bg = cy.pnl > 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
+            return `
+            <div style="background:${bg}; border-radius:6px; padding:8px 12px; flex:1; min-width:100px; text-align:center; border:1px solid ${color}33;">
+                <div style="font-size:0.8em; opacity:0.8; margin-bottom:2px;">${cy.name}</div>
+                <div style="font-weight:800; color:${color}; font-size:1.1em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl}</div>
+            </div>`;
+        }).join("")}
+    </div>`;
 
-    // 渲染函数
-    function renderCurve() {
-        // 逻辑来自 pa-view-strategy.js
-        let curves = { live: [0], demo: [0], back: [0] };
-        let cum = { live: 0, demo: 0, back: 0 };
-        let stratStats = {};
+    // D. 错误归因 (Tuition)
+    let tuitionHtml = "";
+    if (stats.tuition === 0) {
+        tuitionHtml = `<div style="text-align:center; padding:20px; color:${c.live}; opacity:0.8; font-size:0.9em;">🎉 完美执行！近期无纪律性亏损。</div>`;
+    } else {
+        let sortedErrors = Object.entries(stats.errors).sort((a, b) => b[1] - a[1]);
+        tuitionHtml = `
+        <div style="display:flex; align-items:center; margin-bottom:15px;">
+            <div style="font-size:1.5em;">💸</div>
+            <div style="margin-left:10px;">
+                <div style="font-size:0.8em; opacity:0.6;">总学费 (Tuition)</div>
+                <div style="font-size:1.2em; font-weight:bold; color:${c.loss};">-$${stats.tuition}</div>
+            </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            ${sortedErrors.slice(0, 5).map(([name, cost]) => {
+                let percent = Math.round((cost / stats.tuition) * 100);
+                return `<div style="display:flex; align-items:center; font-size:0.85em;">
+                    <div style="width:90px; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                    <div style="flex:1; background:rgba(255,255,255,0.05); height:6px; border-radius:3px; overflow:hidden; margin:0 10px;">
+                        <div style="width:${percent}%; height:100%; background:${c.loss};"></div>
+                    </div>
+                    <div style="width:50px; text-align:right; font-weight:bold; color:${c.loss};">-$${cost}</div>
+                </div>`;
+            }).join("")}
+        </div>`;
+    }
 
-        for (let t of tradesAsc) {
-            let pnl = t.pnl;
-            let acct = t.type.toLowerCase();
-            if (acct === "live") { cum.live += pnl; curves.live.push(cum.live); }
-            else if (acct === "demo") { cum.demo += pnl; curves.demo.push(cum.demo); }
-            else if (acct === "backtest") { cum.back += pnl; curves.back.push(cum.back); }
-
-            // 策略统计
-            let s = t.setup || "Unknown";
-            if (!stratStats[s]) stratStats[s] = { win: 0, total: 0 };
-            stratStats[s].total++;
-            if (pnl > 0) stratStats[s].win++;
-        }
-
-        const allValues = [...curves.live, ...curves.demo, ...curves.back];
-        const maxVal = Math.max(...allValues, 100);
-        const minVal = Math.min(...allValues, -100);
-        const range = maxVal - minVal;
-        const width = 600; const height = 200; // 适配 Tab 宽度
-
-        function getPoints(data) {
-            if (data.length < 2) return `0,${height} ${width},${height}`;
-            let step = width / (data.length - 1);
-            return data.map((v, i) => {
-                let x = i * step;
-                let y = height - ((v - minVal) / range) * height;
-                return `${x},${y}`;
-            }).join(" ");
-        }
-
-        // 策略排行
-        let topStrats = Object.keys(stratStats)
-            .map((k) => ({
-            name: k,
-            wr: Math.round((stratStats[k].win / stratStats[k].total) * 100),
-            total: stratStats[k].total,
-            }))
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 5);
-
-        // --- 新增: R-Multiples & Mindset (Merged from pa-view-trend.js) ---
-        const recentTrades = tradesAsc.slice(-30); // 取最近30笔 (时间正序: 旧->新)
-        let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
-        
-        let barsHtml = recentTrades.map(t => {
-            let r = t.r || 0;
-            let h = Math.round((Math.abs(r) / maxR) * 40); // 最大高度 40px
-            if (h < 3) h = 3;
-            let color = c.loss;
-            if (r >= 0) {
-                let type = (t.type || "").toLowerCase();
-                if (type === "live") color = c.live;
-                else if (type === "demo") color = c.demo;
-                else color = c.back;
-            }
-            return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${r>=0?1:0.6};" title="${t.name} R:${r.toFixed(2)}"></div>`;
-        }).join("");
-
-        // 心态监控 (只看最近 7 笔 Live 交易)
-        const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-7);
-        let tilt = 0, fomo = 0;
-        for (let t of recentLive) {
-            let err = (t.error || "").toString();
-            if (err.includes("Tilt") || err.includes("上头")) tilt++;
-            if (err.includes("FOMO") || err.includes("追单")) fomo++;
-        }
-        let mindStatus = (tilt + fomo === 0) ? "🛡️ 状态极佳" : (tilt + fomo < 3) ? "⚠️ 有点起伏" : "🔥 极度危险";
-        let mindColor = (tilt + fomo === 0) ? c.live : (tilt + fomo < 3) ? c.back : c.loss;
-
-
-        return `
+    // --- 4. 最终渲染 (Final Render) ---
+    const analyticsContainer = dv.el("div", "", { attr: { style: c.cardBg + "; padding:20px;" } });
+    analyticsContainer.innerHTML = `
+        <!-- 1. 资金曲线 -->
         <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
         <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
             <line x1="0" y1="${height - ((0 - minVal) / range) * height}" x2="${width}" y2="${height - ((0 - minVal) / range) * height}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
@@ -235,14 +263,14 @@ if (window.paData) {
             <polyline points="${getPoints(curves.demo)}" fill="none" stroke="${c.demo}" stroke-width="2" stroke-opacity="0.7" />
             <polyline points="${getPoints(curves.live)}" fill="none" stroke="${c.live}" stroke-width="3" />
         </svg>
-        <div style="display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8em; margin-bottom:20px;">
+        <div style="display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8em; margin-bottom:25px;">
             <span style="color:${c.live}">● 实盘 $${cum.live.toFixed(0)}</span>
             <span style="color:${c.demo}">● 模拟 $${cum.demo.toFixed(0)}</span>
             <span style="color:${c.back}">● 回测 $${cum.back.toFixed(0)}</span>
         </div>
 
-        <!-- R-Multiples & Mindset Row -->
-        <div style="display:flex; gap:20px; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1);">
+        <!-- 2. R-Multiples & Mindset -->
+        <div style="display:flex; gap:20px; margin-bottom:25px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1);">
             <div style="flex:2;">
                 <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📈 综合趋势 (R-Multiples)</div>
                 <div style="display:flex; align-items:flex-end; gap:4px; height:50px;">
@@ -256,108 +284,46 @@ if (window.paData) {
             </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <div>
-                <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略表现 (Top Setups)</div>
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                    ${topStrats.map(s => `
-                        <div style="display:flex; justify-content:space-between; font-size:0.85em; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
-                            <span>${s.name}</span>
-                            <span><span style="color:${s.wr > 50 ? c.live : c.back}">${s.wr}%</span> <span style="opacity:0.4">(${s.total})</span></span>
-                        </div>
-                    `).join("")}
+        <!-- 3. 详细分析网格 (Context & Tuition & Strategy) -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
+            <!-- 左列: 环境与策略 -->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+                <div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">🌪️ 环境分析 (Context Performance)</div>
+                    ${cycleHtml}
+                </div>
+                <div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略 (Top Setups)</div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        ${topStrats.map(s => `
+                            <div style="display:flex; justify-content:space-between; font-size:0.85em; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
+                                <span>${s.name}</span>
+                                <span><span style="color:${s.wr > 50 ? c.live : c.back}">${s.wr}%</span> <span style="opacity:0.4">(${s.total})</span></span>
+                            </div>
+                        `).join("")}
+                    </div>
                 </div>
             </div>
-            <div>
-                 <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
-                 <div style="font-size:0.8em; opacity:0.8; line-height:1.5;">
-                    当前表现最好的策略是 <b style="color:${c.demo}">${topStrats[0]?.name || "无"}</b>。<br>
-                    建议在 <b style="color:${cum.live < 0 ? c.back : c.live}">${cum.live < 0 ? "回测" : "实盘"}</b> 中继续保持执行。
-                 </div>
-            </div>
-        </div>`;
-    }
 
-    function renderCycle() {
-        // 逻辑来自 pa-view-cycle.js
-        let cycleStats = {};
-        trades.filter(t => t.type === "Live").forEach(t => {
-             let cycle = t.market_cycle || "Unknown";
-             // 清洗逻辑
-             if (cycle.includes("/")) cycle = cycle.split("/")[1].trim();
-             else if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
-             
-             if (!cycleStats[cycle]) cycleStats[cycle] = 0;
-             cycleStats[cycle] += t.pnl;
-        });
-        
-        let sortedCycles = Object.keys(cycleStats)
-            .map((k) => ({ name: k, pnl: cycleStats[k] }))
-            .sort((a, b) => b.pnl - a.pnl);
-
-        return `
-        <div style="text-align:center; margin-bottom:15px; font-size:0.9em; opacity:0.7;">不同市场环境下的实盘表现 (Live PnL)</div>
-        <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
-            ${sortedCycles.map(cy => {
-                let color = cy.pnl > 0 ? c.live : cy.pnl < 0 ? c.loss : "gray";
-                let bg = cy.pnl > 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
-                return `
-                <div style="background:${bg}; border-radius:6px; padding:10px 15px; flex:1; min-width:120px; text-align:center; border:1px solid ${color}33;">
-                    <div style="font-size:0.85em; opacity:0.8; margin-bottom:4px;">${cy.name}</div>
-                    <div style="font-weight:800; color:${color}; font-size:1.2em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl}</div>
-                </div>`;
-            }).join("")}
-        </div>`;
-    }
-
-    function renderTuition() {
-        // 逻辑来自 pa-view-tuition.js
-        if (stats.tuition === 0) return `<div style="text-align:center; padding:40px; color:${c.live};">🎉 完美执行！近期无纪律性亏损。</div>`;
-        
-        let sortedErrors = Object.entries(stats.errors).sort((a, b) => b[1] - a[1]);
-        return `
-        <div style="display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
-            <div style="font-size:3em;">💸</div>
-            <div style="margin-left:15px;">
-                <div style="font-size:0.9em; opacity:0.6;">总学费 (Tuition Paid)</div>
-                <div style="font-size:1.8em; font-weight:bold; color:${c.loss};">-$${stats.tuition}</div>
+            <!-- 右列: 错误与建议 -->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+                <div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">💸 错误归因 (Tuition Analysis)</div>
+                    <div style="background:rgba(255,255,255,0.02); border-radius:8px; padding:15px;">
+                        ${tuitionHtml}
+                    </div>
+                </div>
+                <div>
+                     <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
+                     <div style="font-size:0.8em; opacity:0.8; line-height:1.5; background:rgba(59, 130, 246, 0.1); padding:10px; border-radius:6px; border-left:3px solid ${c.demo};">
+                        当前表现最好的策略是 <b style="color:${c.demo}">${topStrats[0]?.name || "无"}</b>。<br>
+                        建议在 <b style="color:${cum.live < 0 ? c.back : c.live}">${cum.live < 0 ? "回测" : "实盘"}</b> 中继续保持执行。
+                     </div>
+                </div>
             </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            ${sortedErrors.map(([name, cost]) => {
-                let percent = Math.round((cost / stats.tuition) * 100);
-                return `<div style="display:flex; align-items:center; font-size:0.9em;">
-                    <div style="width:100px; opacity:0.9;">${name}</div>
-                    <div style="flex:1; background:rgba(255,255,255,0.05); height:8px; border-radius:4px; overflow:hidden; margin:0 15px;">
-                        <div style="width:${percent}%; height:100%; background:${c.loss};"></div>
-                    </div>
-                    <div style="width:60px; text-align:right; font-weight:bold; color:${c.loss};">-$${cost}</div>
-                </div>`;
-            }).join("")}
-        </div>`;
-    }
+    `;
 
-    function switchTab(id) {
-        activeTab = id;
-        // Update Header Styles
-        Array.from(header.children).forEach(btn => {
-            if (btn.dataset.tab === id) {
-                btn.style.opacity = "1";
-                btn.style.borderBottom = "2px solid " + c.accent;
-                btn.style.background = "rgba(255,255,255,0.05)";
-            } else {
-                btn.style.opacity = "0.6";
-                btn.style.borderBottom = "2px solid transparent";
-                btn.style.background = "transparent";
-            }
-        });
-        // Update Content
-        if (id === "curve") contentArea.innerHTML = renderCurve();
-        else if (id === "cycle") contentArea.innerHTML = renderCycle();
-        else if (id === "tuition") contentArea.innerHTML = renderTuition();
-    }
-
-    // Init
-    switchTab("curve");
-    root.appendChild(tabContainer);
+    root.appendChild(analyticsContainer);
 }
+
