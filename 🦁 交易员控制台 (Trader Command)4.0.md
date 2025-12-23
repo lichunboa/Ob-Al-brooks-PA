@@ -63,22 +63,18 @@ await dv.view("scripts/pa-view-cycle");
 // 💸 错误的代价 (学费统计)
 await dv.view("scripts/pa-view-tuition");
 ```
-## 🧹 数据治理与巡检
-
 ```dataviewjs
-// ## 数据治理与巡检
+// 数据治理与巡检
 await dv.view("scripts/pa-view-inspector");
 ```
-
+```dataviewjs
+// 数据治理与巡检2
+await dv.view("scripts/pa-view-schema");
+```
 ```dataviewjs
 // 属性管理
 await dv.view("scripts/pa-view-manager");
 ```
-
-```dataviewjs
-await dv.view("scripts/pa-view-schema");
-```
-
 # ✅ 每日行动 (Actions)
 
 > [!COLUMN]
