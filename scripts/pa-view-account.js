@@ -91,45 +91,85 @@ if (window.paData) {
 
   // 3. 渲染
   const root = dv.el("div", "", { attr: { style: c.cardBg } });
+  
+  // 辅助函数：生成迷你卡片
+  function miniCard(title, stats, color, icon) {
+      return `
+      <div style="
+          flex: 1;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+      ">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:0.9em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;">
+                  <span>${icon}</span> ${title}
+              </div>
+              <div style="font-size:0.7em; opacity:0.5;">${stats.count} 笔</div>
+          </div>
+          <div>
+              <div style="font-size:1.4em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss};">
+                  ${stats.pnl > 0 ? "+" : ""}${stats.pnl}<span style="font-size:0.6em; opacity:0.6;">$</span>
+              </div>
+              <div style="font-size:0.75em; opacity:0.7; margin-top:2px;">
+                  胜率: ${stats.wr}%
+              </div>
+          </div>
+      </div>`;
+  }
+
   root.innerHTML = `
-    <div style="display:flex; gap:20px;">
-        <div style="flex:2; padding:10px; border-right:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="color:${
-                  c.live
-                }; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
-                <div style="font-size:0.8em; opacity:0.5;">${
-                  live.count
-                } 笔交易</div>
+    <div style="display:flex; gap:15px; margin-bottom: 20px;">
+        <!-- 实盘大卡片 -->
+        <div style="
+            flex:1.5; 
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        ">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="color:${c.live}; font-weight:800; font-size:1.2em;">🟢 实盘账户</div>
+                <div style="font-size:0.8em; background:${c.live}20; color:${c.live}; padding:2px 8px; border-radius:10px;">Live</div>
             </div>
-            <div style="margin-top:15px;">
-                <div style="font-size:2.5em; font-weight:900; color:${
-                  live.pnl >= 0 ? c.live : c.loss
-                }">${live.pnl > 0 ? "+" : ""}${
-    live.pnl
-  }<span style="font-size:0.5em; opacity:0.5">$</span></div>
-                <div style="font-size:0.9em; opacity:0.8;">胜率: <b>${
-                  live.wr
-                }%</b></div>
+            <div style="display:flex; align-items:baseline; gap:4px;">
+                <div style="font-size:2.8em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss}; line-height:1;">
+                    ${live.pnl > 0 ? "+" : ""}${live.pnl}
+                </div>
+                <div style="font-size:1em; opacity:0.6;">$</div>
+            </div>
+            <div style="display:flex; gap:15px; margin-top:10px; font-size:0.9em; opacity:0.8;">
+                <div>📦 ${live.count} 笔交易</div>
+                <div>🎯 ${live.wr}% 胜率</div>
             </div>
         </div>
-        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.9em;">
-                <span style="color:${c.demo}">🔵 模拟盘</span>
-                <span>${demo.pnl}$ (${demo.wr}%)</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.9em;">
-                <span style="color:${c.back}">🟠 复盘回测</span>
-                <span>${back.pnl}$ (${back.wr}%)</span>
-            </div>
+
+        <!-- 模拟与回测 -->
+        <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            ${miniCard("模拟盘", demo, c.demo, "🔵")}
+            ${miniCard("复盘回测", back, c.back, "🟠")}
         </div>
     </div>
-    <div style="margin-top:20px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+
+    <!-- 热力图 -->
+    <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div style="font-size:0.85em; font-weight:600; opacity:0.8;">📅 盈亏日历 (${targetMonth})</div>
+            <div style="font-size:0.9em; font-weight:600; opacity:0.9;">📅 盈亏日历 (${targetMonth})</div>
             <div style="font-size:0.7em; opacity:0.5;">Live Account Only</div>
         </div>
         ${gridHtml}
+    </div>
+    
+    <!-- 调试信息: 显示最近的实盘交易日期，帮助排查日期错误 -->
+    <div style="margin-top:15px; font-size:0.7em; opacity:0.4; text-align:right;">
+        最近实盘数据源: ${trades.filter(t => t.type === "Live").sort((a,b) => b.date.localeCompare(a.date)).slice(0,3).map(t => `${t.date}(${t.pnl})`).join(", ")}
     </div>
     `;
 }
