@@ -33,6 +33,7 @@ if (window.paData) {
   // 1.1 读取属性预设作为标准
   let allowedValues = {};
   const presetPage = dv.page("Templates/属性值预设.md");
+  const presetLoaded = !!presetPage;
   if (presetPage) {
     // 遍历预设文件的所有属性，建立白名单
     for (let key in presetPage) {
@@ -143,7 +144,7 @@ if (window.paData) {
   // --- 5. 主界面渲染 ---
   // 5.1 构建异常详情 HTML
   let detailsHTML = "";
-  if (illegalDetails.length > 0 || missing.logic > 0) {
+  if (illegalDetails.length > 0 || missing.logic > 0 || missing.setup > 0 || missing.ticker > 0 || missing.tf > 0) {
       detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
           <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (Action Required)</div>
           <div style="max-height: 200px; overflow-y: auto;">
@@ -169,6 +170,33 @@ if (window.paData) {
           </tr>`;
       });
 
+      // Add Missing Setup
+      trades.filter(t => !t.setup || t.setup === "Unknown").forEach(t => {
+           detailsHTML += `<tr>
+              <td>${t.link}</td>
+              <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失策略</span></td>
+              <td style="opacity:0.7">Empty</td>
+          </tr>`;
+      });
+
+      // Add Missing Ticker
+      trades.filter(t => !t.ticker || t.ticker === "Unknown").forEach(t => {
+           detailsHTML += `<tr>
+              <td>${t.link}</td>
+              <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
+              <td style="opacity:0.7">Empty</td>
+          </tr>`;
+      });
+
+      // Add Missing Timeframe
+      trades.filter(t => !t.tf || t.tf === "Unknown").forEach(t => {
+           detailsHTML += `<tr>
+              <td>${t.link}</td>
+              <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
+              <td style="opacity:0.7">Empty</td>
+          </tr>`;
+      });
+
       detailsHTML += `</tbody></table></div></div>`;
   }
 
@@ -184,6 +212,7 @@ if (window.paData) {
                       trades.length
                     } 交易</span>
                 </div>
+                ${ !presetLoaded ? `<div class="insp-item" style="color:${c.loss}; font-weight:bold;">⚠️ 未找到 'Templates/属性值预设.md'</div>` : '' }
                 <div class="insp-item"><span>缺失品种 (Ticker)</span> <span class="${
                   missing.ticker > 0 ? "txt-red" : "txt-dim"
                 }">${missing.ticker}</span></div>
