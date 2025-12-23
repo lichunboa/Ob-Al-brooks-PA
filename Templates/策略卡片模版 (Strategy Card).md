@@ -14,7 +14,6 @@ tags:
 设置类别/setup_category:
   - 趋势回调 (Pullback)
   - 趋势突破 (Trend Breakout)
-  - 区间反转 (Reversal)
 观察到的形态/patterns_observed:
   - 形态名称1
   - 形态名称2
