@@ -42,28 +42,28 @@ if (window.paData) {
         dailyMap[day] = (dailyMap[day] || 0) + val;
     });
 
-    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;">`;
+    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">`;
     for (let d = 1; d <= daysInMonth; d++) {
         let pnl = dailyMap[d];
         let hasTrade = pnl !== undefined;
         let bg = "rgba(255, 255, 255, 0.03)";
         let border = "1px solid rgba(255, 255, 255, 0.05)";
-        let content = `<div style="font-size:0.7em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
+        let content = `<div style="font-size:0.65em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
         
         if (hasTrade) {
             if (pnl > 0) {
                 bg = "rgba(34, 197, 94, 0.15)"; border = "1px solid rgba(34, 197, 94, 0.3)";
-                content += `<div style="font-size:0.75em; font-weight:bold; color:#4ade80;">+${pnl.toFixed(0)}</div>`;
+                content += `<div style="font-size:0.7em; font-weight:bold; color:#4ade80;">+${pnl.toFixed(0)}</div>`;
             } else if (pnl < 0) {
                 bg = "rgba(239, 68, 68, 0.15)"; border = "1px solid rgba(239, 68, 68, 0.3)";
-                content += `<div style="font-size:0.75em; font-weight:bold; color:#f87171;">${pnl.toFixed(0)}</div>`;
+                content += `<div style="font-size:0.7em; font-weight:bold; color:#f87171;">${pnl.toFixed(0)}</div>`;
             } else {
                 bg = "rgba(148, 163, 184, 0.15)"; border = "1px solid rgba(148, 163, 184, 0.3)";
-                content += `<div style="font-size:0.75em; font-weight:bold; color:#94a3b8;">0</div>`;
+                content += `<div style="font-size:0.7em; font-weight:bold; color:#94a3b8;">0</div>`;
             }
         }
         gridHtml += `
-            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
+            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
                 ${content}
             </div>`;
     }
@@ -72,48 +72,48 @@ if (window.paData) {
     // 辅助函数：生成迷你卡片
     function miniCard(title, stats, color, icon) {
         return `
-        <div style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <div style="font-size:0.9em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${title}</div>
-                <div style="font-size:0.7em; opacity:0.5;">${stats.count} 笔</div>
+        <div style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-size:0.85em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${title}</div>
+                <div style="font-size:0.65em; opacity:0.5;">${stats.count} 笔</div>
             </div>
             <div>
-                <div style="font-size:1.4em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss};">${stats.pnl > 0 ? "+" : ""}${stats.pnl}<span style="font-size:0.6em; opacity:0.6;">$</span></div>
-                <div style="font-size:0.75em; opacity:0.7; margin-top:2px;">胜率: ${stats.wr}%</div>
+                <div style="font-size:1.2em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss};">${stats.pnl > 0 ? "+" : ""}${stats.pnl}<span style="font-size:0.6em; opacity:0.6;">$</span></div>
+                <div style="font-size:0.7em; opacity:0.7; margin-top:2px;">胜率: ${stats.wr}%</div>
             </div>
         </div>`;
     }
 
     root.innerHTML = `
-    <div style="${c.cardBg}; padding: 20px;">
-        <div style="display:flex; gap:15px; margin-bottom: 20px;">
+    <div style="${c.cardBg}; padding: 15px;">
+        <div style="display:flex; gap:15px; margin-bottom: 15px;">
             <!-- 实盘大卡片 -->
             <div style="flex:1.5; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; justify-content: center;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <div style="color:${c.live}; font-weight:800; font-size:1.2em;">🟢 实盘账户</div>
-                    <div style="font-size:0.8em; background:${c.live}20; color:${c.live}; padding:2px 8px; border-radius:10px;">Live</div>
+                    <div style="color:${c.live}; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
+                    <div style="font-size:0.75em; background:${c.live}20; color:${c.live}; padding:2px 8px; border-radius:10px;">Live</div>
                 </div>
                 <div style="display:flex; align-items:baseline; gap:4px;">
-                    <div style="font-size:2.8em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss}; line-height:1;">${live.pnl > 0 ? "+" : ""}${live.pnl}</div>
-                    <div style="font-size:1em; opacity:0.6;">$</div>
+                    <div style="font-size:2.4em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss}; line-height:1;">${live.pnl > 0 ? "+" : ""}${live.pnl}</div>
+                    <div style="font-size:0.9em; opacity:0.6;">$</div>
                 </div>
-                <div style="display:flex; gap:15px; margin-top:10px; font-size:0.9em; opacity:0.8;">
+                <div style="display:flex; gap:15px; margin-top:10px; font-size:0.85em; opacity:0.8;">
                     <div>📦 ${live.count} 笔交易</div>
                     <div>🎯 ${live.wr}% 胜率</div>
                 </div>
             </div>
             <!-- 模拟与回测 -->
-            <div style="flex:1; display:flex; flex-direction:column; gap:10px;">
+            <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
                 ${miniCard("模拟盘", demo, c.demo, "🔵")}
                 ${miniCard("复盘回测", back, c.back, "🟠")}
             </div>
         </div>
 
         <!-- 热力图 -->
-        <div style="padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div style="font-size:0.9em; font-weight:600; opacity:0.9;">📅 盈亏日历 (${targetMonth})</div>
-                <div style="font-size:0.7em; opacity:0.5;">Live Account Only</div>
+        <div style="padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="font-size:0.85em; font-weight:600; opacity:0.9;">📅 盈亏日历 (${targetMonth})</div>
+                <div style="font-size:0.65em; opacity:0.5;">仅限实盘 (Live Only)</div>
             </div>
             ${gridHtml}
         </div>
@@ -219,7 +219,7 @@ if (window.paData) {
             return `
             <div style="background:${bg}; border-radius:6px; padding:8px 12px; flex:1; min-width:100px; text-align:center; border:1px solid ${color}33;">
                 <div style="font-size:0.8em; opacity:0.8; margin-bottom:2px;">${cy.name}</div>
-                <div style="font-weight:800; color:${color}; font-size:1.1em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl}</div>
+                <div style="font-weight:800; color:${color}; font-size:1.1em;">${cy.pnl > 0 ? "+" : ""}${cy.pnl.toFixed(1)}</div>
             </div>`;
         }).join("")}
     </div>`;
@@ -289,11 +289,11 @@ if (window.paData) {
             <!-- 左列: 环境与策略 -->
             <div style="display:flex; flex-direction:column; gap:20px;">
                 <div>
-                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">🌪️ 环境分析 (Context Performance)</div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">🌪️ 环境表现</div>
                     ${cycleHtml}
                 </div>
                 <div>
-                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略 (Top Setups)</div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略</div>
                     <div style="display:flex; flex-direction:column; gap:6px;">
                         ${topStrats.map(s => `
                             <div style="display:flex; justify-content:space-between; font-size:0.85em; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
@@ -308,7 +308,7 @@ if (window.paData) {
             <!-- 右列: 错误与建议 -->
             <div style="display:flex; flex-direction:column; gap:20px;">
                 <div>
-                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">💸 错误归因 (Tuition Analysis)</div>
+                    <div style="font-size:0.8em; opacity:0.6; margin-bottom:10px;">💸 错误归因</div>
                     <div style="background:rgba(255,255,255,0.02); border-radius:8px; padding:15px;">
                         ${tuitionHtml}
                     </div>
