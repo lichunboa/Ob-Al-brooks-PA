@@ -244,6 +244,11 @@ let scratches = 0;
 
 todayTrades.forEach((trade) => {
   let outcome = trade["结果/outcome"];
+  // 如果是数组，转换为字符串以便匹配
+  if (Array.isArray(outcome)) {
+    outcome = outcome.join(" ");
+  }
+  
   let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
 
   // 兼容 "Win" 和 "止盈 (Win)" 两种格式
@@ -270,18 +275,21 @@ if (todayTrades.length > 0) {
     let ticker = trade["品种/ticker"] || "";
     let direction = trade["方向/direction"] || "";
     let outcome = trade["结果/outcome"] || "进行中";
-    let pnl = trade["净利润/net_profit"] || 0;
+    // 如果是数组，转换为字符串以便匹配
+    let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : outcome;
+    
+    let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
     let timeframe = trade["时间周期/timeframe"] || "";
     let entry = trade["入场/entry_price"] || "";
     let stop = trade["止损/stop_loss"] || "";
 
     // 状态颜色
     let statusColor = "#6b7280"; // 默认灰色 (进行中)
-    if (outcome && (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))) {
+    if (outcomeStr && (outcomeStr === "Win" || outcomeStr.includes("Win") || outcomeStr.includes("止盈"))) {
         statusColor = c.live;
-    } else if (outcome && (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))) {
+    } else if (outcomeStr && (outcomeStr === "Loss" || outcomeStr.includes("Loss") || outcomeStr.includes("止损"))) {
         statusColor = c.loss;
-    } else if (outcome && (outcome === "Scratch" || outcome.includes("Scratch") || outcome.includes("保本"))) {
+    } else if (outcomeStr && (outcomeStr === "Scratch" || outcomeStr.includes("Scratch") || outcomeStr.includes("保本"))) {
         statusColor = c.back;
     }
 
