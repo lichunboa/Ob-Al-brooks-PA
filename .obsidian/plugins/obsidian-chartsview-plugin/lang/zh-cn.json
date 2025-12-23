@@ -1,6 +1,6 @@
 {
     "manifest": {
-        "translationVersion": 1766523504209,
+        "translationVersion": 1766523478108,
         "pluginVersion": "1.2.8"
     },
     "description": {
@@ -218,9 +218,9 @@
         "name:\"combo-delegate-shape\"": "name:\"combo-delegate-shape\"",
         "name:\"lasso-shape\"": "name:\"lasso-shape\"",
         "name:\"minimap\"": "name:\"minimap\"",
-        "name:\"menu\"": "name:\"menu\"",
-        "name:\"main-box\"": "name:\"main-box\"",
-        "name:\"text\"": "name:\"text\"",
+        "name:\"menu\"": "name:\"Error: Request failed, status 401\"",
+        "name:\"main-box\"": "name:\"Error: Request failed, status 401\"",
+        "name:\"text\"": "name:\"Error: Request failed, status 401\"",
         "name:\"\".concat(le,\"": "name:\"\".concat(le,\"",
         "name:\"OrganizationGraph\"": "name:\"OrganizationGraph\"",
         "name:\"RadialTreeGraph\"": "name:\"RadialTreeGraph\"",

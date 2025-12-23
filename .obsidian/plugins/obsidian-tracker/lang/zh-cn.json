@@ -1,0 +1,37 @@
+{
+    "manifest": {
+        "translationVersion": 1766523658211,
+        "pluginVersion": "1.17.0"
+    },
+    "description": {
+        "original": "A plugin tracks occurrences and numbers in your notes",
+        "translation": "A plugin tracks occurrences and numbers in your notes"
+    },
+    "dict": {
+        ".log(e)": ".log(e)",
+        ".log(`threshold: ${u}, thresholdType: ${c}`)": ".log(`threshold: ${u}, thresholdType: ${c}`)",
+        ".log(o)": ".log(o)",
+        ".log(yo(t,n.dateFormat)": ".log(yo(t,n.dateFormat)",
+        ".log(a)": ".log(a)",
+        ".log(p)": ".log(p)",
+        ".log(v)": ".log(v)",
+        ".log(s)": ".log(s)",
+        ".log(`preValue: ${f}, curValue: ${a}, nextValue: ${h}`)": ".log(`preValue: ${f}, curValue: ${a}, nextValue: ${h}`)",
+        ".log(r.threshold)": ".log(r.threshold)",
+        ".log(`streakIn: ${d}, streakOut: ${g}`)": ".log(`streakIn: ${d}, streakOut: ${g}`)",
+        ".log(\"loading obsidian-tracker plugin\")": ".log(\"loading obsidian-tracker plugin\")",
+        ".log(\"unloading obsidian-tracker plugin\")": ".log(\"unloading obsidian-tracker plugin\")",
+        ".log(t)": ".log(t)",
+        "name:\"ternary\"": "name:\"ternary\"",
+        "name:\"Add Line Chart Tracker\"": "name:\"Add Line Chart Tracker\"",
+        "name:\"Add Bar Chart Tracker\"": "name:\"Add Bar Chart Tracker\"",
+        "name:\"Add Summary Tracker\"": "name:\"Add Summary Tracker\"",
+        "link:\"http://www.w3.org/1999/xlink\"": "link:\"http://www.w3.org/1999/xlink\"",
+        ".setName(\"Default folder location\")": ".setName(\"Default folder location\")",
+        ".setName(\"Default date format\")": ".setName(\"Default date format\")",
+        ".setDesc(\"Files in this folder will be parsed and used as input data of the tracker plugin.\\nYou can also override it using 'folder' argument in the tracker codeblock.\")": ".setDesc(\"Files in this folder will be parsed and used as input data of the tracker plugin.\\nYou can also override it using 'folder' argument in the tracker codeblock.\")",
+        ".setDesc(\"This format is used to parse the date in your diary title.\\nYou can also override it using 'dateFormat' argument in the tracker codeblock.\")": ".setDesc(\"This format is used to parse the date in your diary title.\\nYou can also override it using 'dateFormat' argument in the tracker codeblock.\")",
+        ".setPlaceholder(\"Folder Path\")": ".setPlaceholder(\"Folder Path\")",
+        ".setPlaceholder(\"YYYY-MM-DD\")": ".setPlaceholder(\"YYYY-MM-DD\")"
+    }
+}

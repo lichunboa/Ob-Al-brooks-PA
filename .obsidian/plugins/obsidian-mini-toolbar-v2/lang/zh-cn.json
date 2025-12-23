@@ -1,0 +1,22 @@
+{
+    "manifest": {
+        "translationVersion": 1766523647319,
+        "pluginVersion": "0.0.2"
+    },
+    "description": {
+        "original": "mini context toolbar in editor",
+        "translation": "mini context toolbar in editor"
+    },
+    "dict": {
+        ".log(this.menuOpened)": ".log(this.menuOpened)",
+        ".log(\"loading MiniToolbar\")": ".log(\"loading MiniToolbar\")",
+        "name:\"flip\"": "name:\"flip\"",
+        "name:\"offset\"": "name:\"offset\"",
+        "name:\"shift\"": "name:\"shift\"",
+        "text:\"Text colour\"": "text:\"Text colour\"",
+        "text:\"Background\"": "text:\"Background\"",
+        ".setTooltip(\"Underline\")": ".setTooltip(\"Underline\")",
+        ".setTooltip(\"Text color\")": ".setTooltip(\"Text color\")",
+        ".setTitle(\"A\")": ".setTitle(\"A\")"
+    }
+}

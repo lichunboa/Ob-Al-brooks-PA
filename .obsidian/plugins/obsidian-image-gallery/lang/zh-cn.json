@@ -1,0 +1,15 @@
+{
+    "manifest": {
+        "translationVersion": 1766523639322,
+        "pluginVersion": "1.1.1"
+    },
+    "description": {
+        "original": "A zero setup masonry image gallery for Obsidian",
+        "translation": "A zero setup masonry image gallery for Obsidian"
+    },
+    "dict": {
+        ".error(\"lightGallery :- data-src is not provided on slide item \" + (index + 1)": ".error(\"lightGallery :- data-src is not provided on slide item \" + (index + 1)",
+        ".error(\"Please provide a valid license key\")": ".error(\"Please provide a valid license key\")",
+        "text: `(Error) Image Gallery: ${error}`": "text: `(Error) Image Gallery: ${error}`"
+    }
+}
