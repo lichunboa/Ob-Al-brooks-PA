@@ -10,7 +10,7 @@ date: 2025-12-17
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
-  - 突破跟随 (Breakout)
+  - 趋势突破 (Trend Breakout)
 结果/outcome:
   - 止盈 (Win)
 净利润/net_profit: 20

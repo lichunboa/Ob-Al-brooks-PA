@@ -13,7 +13,7 @@ tags:
   - 交易区间 (Trading Range)
 设置类别/setup_category:
   - 趋势回调 (Pullback)
-  - 突破跟随 (Breakout)
+  - 趋势突破 (Trend Breakout)
   - 区间反转 (Reversal)
 观察到的形态/patterns_observed:
   - 形态名称1
