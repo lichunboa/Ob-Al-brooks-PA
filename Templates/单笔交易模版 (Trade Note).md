@@ -15,7 +15,7 @@ date:
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
-  - 趋势回调 (Pullback)
+  - 趋势回调 (Trend Pullback)
 观察到的形态/patterns_observed:
   - 20EMA缺口 (20 EMA Gap)
 信号K/signal_bar_quality:

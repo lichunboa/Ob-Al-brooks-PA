@@ -12,7 +12,7 @@ tags:
   - 突破模式 (Breakout Mode)
   - 交易区间 (Trading Range)
 设置类别/setup_category:
-  - 趋势回调 (Pullback)
+  - 趋势回调 (Trend Pullback)
   - 趋势突破 (Trend Breakout)
 观察到的形态/patterns_observed:
   - 形态名称1
