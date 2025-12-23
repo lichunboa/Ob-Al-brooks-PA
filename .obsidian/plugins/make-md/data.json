@@ -54,7 +54,7 @@
     "/",
     "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典",
     "//Categories 分类/Categories 分类/Al brooks",
-    "//Notes 笔记"
+    "//🦁 交易员控制台 (Trader Command)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
@@ -67,6 +67,7 @@
     "_blocks"
   ],
   "newFileLocation": "root",
+  "newFileFolderPath": "",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,
