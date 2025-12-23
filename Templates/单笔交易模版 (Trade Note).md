@@ -11,7 +11,7 @@ date:
   - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
-  - 强趋势 (Strong Trend)
+  - 突破模式 (Breakout Mode)
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
