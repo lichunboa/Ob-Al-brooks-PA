@@ -219,21 +219,29 @@ if (window.paData) {
   // 渲染迷你条形图函数
   const renderMiniChart = (title, data, colorFn) => {
     let html = `<div class="sch-mini-card"><div style="font-size:0.8em; opacity:0.7; margin-bottom:8px; font-weight:bold;">${title}</div>`;
-    let total = data.reduce((a, b) => a + b[1], 0) || 1;
+    const total = data.reduce((a, b) => a + b[1], 0) || 1;
+    const maxShow = 10;
+    const shown = data.slice(0, maxShow);
+    const rest = Math.max(0, data.length - shown.length);
 
-    data.forEach(([k, v]) => {
-      let pct = Math.round((v / total) * 100);
-      let col = typeof colorFn === "function" ? colorFn(k) : colorFn;
-      html += `
-            <div style="margin-bottom:6px;">
-                <div style="display:flex; justify-content:space-between; font-size:0.75em;">
-                    <span style="opacity:0.9">${k}</span>
-                    <span style="opacity:0.5">${v}</span>
-                </div>
-                <div class="sch-bar-bg"><div class="sch-bar-fill" style="width:${pct}%; background:${col};"></div></div>
-            </div>`;
+    const pill = (label, value, col) => {
+      return `<span style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); font-size:0.75em;">
+          <span style="display:inline-block; width:6px; height:6px; border-radius:999px; background:${col}; opacity:0.9;"></span>
+          <span style="opacity:0.9; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${label}</span>
+          <span style="opacity:0.6; font-variant-numeric:tabular-nums;">${value}</span>
+        </span>`;
+    };
+
+    html += `<div style="display:flex; flex-wrap:wrap; gap:6px;">`;
+    shown.forEach(([k, v]) => {
+      const pct = Math.round((v / total) * 100);
+      const col = typeof colorFn === "function" ? colorFn(k) : colorFn;
+      html += pill(k, `${v} (${pct}%)`, col);
     });
-    html += `</div>`;
+    if (rest > 0) {
+      html += `<span style="display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.12); font-size:0.75em; opacity:0.6;">+${rest}</span>`;
+    }
+    html += `</div></div>`;
     return html;
   };
 

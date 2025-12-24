@@ -254,19 +254,23 @@ if (window.paData) {
 
   // --- 4. 辅助渲染函数 ---
   const renderMiniBar = (data, colorFn) => {
-    let total = trades.length; // 用总数做分母
-    return data
-      .map(([k, v]) => {
-        let pct = Math.round((v / total) * 100);
-        let col = typeof colorFn === "function" ? colorFn(k) : colorFn;
-        return `<div style="margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; font-size:0.75em;">
-                    <span style="opacity:0.8">${k}</span><span style="opacity:0.5">${v} (${pct}%)</span>
-                </div>
-                <div class="insp-bar-bg"><div class="insp-bar-fill" style="width:${pct}%; background:${col};"></div></div>
-            </div>`;
-      })
-      .join("");
+    const total = trades.length || 1; // 用总数做分母
+    const pill = (label, value, col) => {
+      return `<span style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); font-size:0.75em;">
+          <span style="display:inline-block; width:6px; height:6px; border-radius:999px; background:${col}; opacity:0.9;"></span>
+          <span style="opacity:0.85; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${label}</span>
+          <span style="opacity:0.6; font-variant-numeric:tabular-nums;">${value}</span>
+        </span>`;
+    };
+
+    let html = `<div style="display:flex; flex-wrap:wrap; gap:6px;">`;
+    data.forEach(([k, v]) => {
+      const pct = Math.round((v / total) * 100);
+      const col = typeof colorFn === "function" ? colorFn(k) : colorFn;
+      html += pill(k, `${v} (${pct}%)`, col);
+    });
+    html += `</div>`;
+    return html;
   };
 
   // --- 5. 主界面渲染 ---
