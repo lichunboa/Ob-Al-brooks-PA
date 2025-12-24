@@ -16,6 +16,33 @@ const todayTrades = dv
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
+// 策略索引 (来自 pa-core)
+const strategyIndex = window.paData?.strategyIndex;
+const strategyList = strategyIndex?.list || [];
+const strategyByName = strategyIndex?.byName;
+const strategyLookup = strategyIndex?.lookup;
+const strategyByPattern = strategyIndex?.byPattern || {};
+const toArr = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+  return [v];
+};
+const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+const isActiveStrategy = (statusRaw) => {
+  const s = normStr(statusRaw);
+  if (!s) return false;
+  return s.includes("实战") || s.toLowerCase().includes("active");
+};
+const cycleMatches = (cycles, currentCycle) => {
+  const cur = normStr(currentCycle);
+  if (!cur) return false;
+  return (cycles || []).some((c) => {
+    const cc = normStr(c);
+    return cc && (cc.includes(cur) || cur.includes(cc));
+  });
+};
+
 // --- 1. 市场环境与策略推荐 (Context & Strategy) ---
 // 尝试查找今日的复盘日记 (通常在 Daily 目录下)
 const todayJournal = dv
@@ -26,18 +53,10 @@ let contextHtml = "";
 
 if (todayJournal && todayJournal.market_cycle) {
   const currentCycle = todayJournal.market_cycle;
-  // 查找匹配的策略
-  const recommendedStrategies = dv
-    .pages('"策略仓库"')
-    .where((p) => p.strategy_status == "实战中 (Active)" && p.market_cycle)
-    .where((p) => {
-      const cycles = Array.isArray(p.market_cycle)
-        ? p.market_cycle
-        : [p.market_cycle];
-      return cycles.some(
-        (c) => c.includes(currentCycle) || currentCycle.includes(c)
-      );
-    });
+  // 查找匹配的策略（复用 strategyIndex，避免重复扫描）
+  const recommendedStrategies = strategyList
+    .filter((s) => isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle))
+    .slice(0, 6);
 
   contextHtml += `
     <div style="margin-bottom: 15px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 3px solid #3b82f6;">
@@ -47,8 +66,8 @@ if (todayJournal && todayJournal.market_cycle) {
         <div style="font-size: 0.9em; color: var(--text-muted);">
             ${
               recommendedStrategies.length > 0
-                ? `推荐关注: ${recommendedStrategies
-                    .map((p) => `<b>${p.file.link}</b>`)
+            ? `推荐关注: ${recommendedStrategies
+              .map((p) => `<b>${p.file.link}</b>`)
                     .join(" · ")}`
                 : "暂无特定策略推荐，建议观望。"
             }
@@ -71,29 +90,20 @@ if (activeTrade) {
   const currentSignal = activeTrade["信号K/signal_bar_quality"];
 
   if (patterns) {
-    // 查找匹配的策略卡片
-    // 注意: 这里需要扫描策略库，为了性能，我们只扫描 "策略仓库" 文件夹
-    const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
-    let matchedStrategy = null;
-
-    // 简单的匹配逻辑: 策略卡片的 patterns_observed 包含 activeTrade 的 patterns 中的任意一个
-    // patterns 可能是数组也可能是字符串
-    const observedList = Array.isArray(patterns) ? patterns : [patterns];
-
-    for (let s of strategyPages) {
-      // 修正: 策略卡片现在使用 "观察到的形态/patterns_observed" 作为匹配键，而不是 "触发形态/trigger_patterns"
-      let triggers = s["观察到的形态/patterns_observed"];
-      if (!triggers) continue;
-      let triggerList = Array.isArray(triggers) ? triggers : [triggers];
-
-      // 检查是否有交集
-      const hasMatch = observedList.some((obs) => triggerList.includes(obs));
-      if (hasMatch) {
-        matchedStrategy = s;
-        break; // 找到第一个匹配的策略即可
+    // 查找匹配的策略卡片（优先使用 strategyIndex.byPattern）
+    const observedList = toArr(patterns).map(normStr).filter(Boolean);
+    let matchedFilePath = null;
+    for (const obs of observedList) {
+      const canonical = strategyByPattern[obs];
+      if (!canonical) continue;
+      const item = strategyByName?.get?.(canonical);
+      if (item?.file?.path) {
+        matchedFilePath = item.file.path;
+        break;
       }
     }
 
+    const matchedStrategy = matchedFilePath ? dv.page(matchedFilePath) : null;
     if (matchedStrategy) {
       // 提取策略建议
       const sName = matchedStrategy["策略名称/strategy_name"];
@@ -204,30 +214,22 @@ if (activeTrade) {
     const setupCategory = activeTrade["设置类别/setup_category"];
 
     if (marketCycle || setupCategory) {
-      // 查找匹配的策略
-      const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
       let suggestedStrategies = [];
 
-      for (let s of strategyPages) {
-        let sCycle = s["市场周期/market_cycle"];
-        let sSetup = s["设置类别/setup_category"];
+      for (let s of strategyList) {
         let score = 0;
-
-        // 简单的评分逻辑
+        if (marketCycle && cycleMatches(s.marketCycles, marketCycle)) score += 2;
         if (
-          marketCycle &&
-          sCycle &&
-          sCycle.some((c) => marketCycle.includes(c))
+          setupCategory &&
+          (s.setupCategories || []).some((x) => normStr(x).includes(normStr(setupCategory)))
         )
-          score += 2;
-        if (setupCategory && sSetup && sSetup.includes(setupCategory))
           score += 1;
 
         if (score > 0) {
           suggestedStrategies.push({
             file: s.file,
             score: score,
-            name: s["策略名称/strategy_name"],
+            name: s.displayName || s.canonicalName,
           });
         }
       }
