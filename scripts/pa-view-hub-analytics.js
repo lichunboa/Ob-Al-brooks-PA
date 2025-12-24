@@ -117,7 +117,9 @@ if (window.paData) {
       }
     }
     // 2. 回退到 setup (类别)
-    let cat = trade.setup || "Unknown";
+    // v5.0+: 优先使用引擎归一化后的 setupKey（稳定口径），展示仍可用 trade.setup
+    let cat = trade.setupKey || trade.setup || "Unknown";
+    if (typeof cat === "string" && cat.includes("(")) cat = cat.split("(")[0].trim();
     // 简单的汉化映射
     const catMap = {
       "Trend Pullback": "趋势回调",
@@ -377,8 +379,9 @@ if (window.paData) {
   trades
     .filter((t) => t.type === "Live")
     .forEach((t) => {
-      // 优先使用 rawCycle (数组或字符串), 兼容 pa-core 的处理
-      let cycleRaw = t.cycle || t.market_cycle || "Unknown";
+      // v5.0+: 优先使用引擎归一化后的 marketCycleKey（稳定口径）
+      let cycleRaw =
+        t.marketCycleKey || t.cycle || t.market_cycle || "Unknown";
       let cycle = Array.isArray(cycleRaw) ? cycleRaw[0] : cycleRaw.toString();
 
       // 归一化处理: 移除括号内容，处理中英文
