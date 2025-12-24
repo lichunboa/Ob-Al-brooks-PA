@@ -11,7 +11,7 @@ date:
   - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
-  - 突破模式 (Breakout Mode)
+  - 强趋势 (Strong Trend)
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
@@ -38,205 +38,136 @@ date:
 
 ---
 
-# 📊 阶段一: 图表分析与形态识别
+# ✅ 交易快照（Al Brooks PA / 项目联动）
 
-> [!info]- 💡 工作流程
->
-> 1. 打开交易软件 → 观察图表
-> 2. 截图并标记关键位置(入场、止损、目标位)
-> 3. 勾选观察到的形态 → 系统自动推荐策略
-> 4. 查看推荐策略的详细信息 → 确认入场条件
-> 5. 等待信号 K 出现 → 执行交易
+> [!info]- 使用方式（建议 30 秒内完成）
+> 1) 先把上面的 frontmatter 填到“能跑统计”的程度（品种/周期/方向/净利润/初始风险/执行评价）。
+> 2) 再补“能复盘”的程度（市场周期/设置类别/形态/策略名称）。
+> 3) 最后写一句“核心教训”。
 
-## 📸 图表截图 (Chart Screenshot)
-
-![[粘贴图片到这里]]
-
-> [!tip] 📋 截图规范
->
-> - 务必标记: **入场点**、**初始止损**、**目标位**
-> - 标记关键位: 20EMA、支撑/阻力、前高/低点
-
----
-
-## 🔍 市场背景与形态识别
-
-### 📍 当前市场状态
+## 🧭 1) 市场背景（Context）
 
 ```dataviewjs
-const current = dv.current();
-const cycle = current["市场周期/market_cycle"];
-const setup = current["设置类别/setup_category"];
+const basePath = app.vault.adapter.basePath;
+const cfg = require(basePath + "/scripts/pa-config.js");
+const c = cfg.colors;
 
-let cycleColor = cycle && cycle.includes("强趋势") ? "#22c55e" :
-                 cycle && cycle.includes("交易区间") ? "#f59e0b" :
-                 cycle && cycle.includes("突破") ? "#ef4444" : "#3b82f6";
+const cur = dv.current();
+const cycle = (cur["市场周期/market_cycle"] || "").toString();
+const setup = (cur["设置类别/setup_category"] || "").toString();
+const ticker = (cur["品种/ticker"] || "").toString();
+const tf = (cur["时间周期/timeframe"] || "").toString();
+const dir = (cur["方向/direction"] || "").toString();
 
-dv.el("div", "", {
-  attr: {
-    style: `
-      background: ${cycleColor}20;
-      border: 1px solid ${cycleColor}50;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-    `
-  }
-}).innerHTML = `
-  <div style="font-size:0.9em; font-weight:600; color:${cycleColor};">
-    📊 市场周期: ${cycle || "未填写"}
+const pick = (s) => {
+  const v = (s || "").toString();
+  if (!v || v === "Unknown") return "未填写";
+  return v;
+};
+
+const cycleColor =
+  cycle.includes("强趋势") || cycle.includes("Strong")
+    ? c.live
+    : cycle.includes("区间") || cycle.includes("Range")
+      ? c.back
+      : cycle.includes("突破") || cycle.includes("Breakout")
+        ? c.loss
+        : c.accent;
+
+dv.el("div", "", { attr: { style: `
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-left: 4px solid ${cycleColor};
+  padding: 12px;
+  border-radius: 8px;
+` } }).innerHTML = `
+  <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:0.9em;">
+    <div><strong>品种</strong>: ${pick(ticker)}</div>
+    <div><strong>周期</strong>: ${pick(tf)}</div>
+    <div><strong>方向</strong>: ${pick(dir)}</div>
   </div>
-  <div style="font-size:0.8em; opacity:0.7; margin-top:4px;">
-    🎯 设置类别: ${setup || "未填写"}
+  <div style="margin-top:6px; font-size:0.85em; opacity:0.85;">
+    🌊 <strong>市场周期</strong>: <span style="color:${cycleColor}; font-weight:700;">${pick(cycle)}</span>
+  </div>
+  <div style="margin-top:2px; font-size:0.85em; opacity:0.75;">
+    🎯 <strong>设置类别</strong>: ${pick(setup)}
   </div>
 `;
 ```
 
-### 🎨 形态识别清单 (Pattern Checklist)
-
-> [!example]+ 📝 勾选你观察到的形态
-> 请在上方 `frontmatter` 的 `观察到的形态/patterns_observed` 字段中添加形态
-
-**🔥 趋势延续形态:**
-
-- [ ] 20EMA 缺口
-- [ ] 第一均线缺口
-- [ ] 收线追进
-- [ ] 强趋势通道
-
-**⚡ 突破相关:**
-
-- [ ] 突破缺口
-- [ ] 区间突破回调
-- [ ] 看衰突破
-- [ ] 急速上涨/下跌
-
-**🔄 反转形态:**
-
-- [ ] 双顶/双底
-- [ ] 楔形顶/底
-- [ ] 末端旗形
-- [ ] 头肩顶/底
-- [ ] 高潮式反转
-
-**🎯 其他形态:**
-
-- [ ] 逆 1 顺 1
-- [ ] 急赴磁体
-- [ ] 三角形区间
-- [ ] 测量移动
+> [!note] 一句话复述（Brooks 风格）
+> **今天是**（趋势/区间/突破模式）**，关键磁体/位置是**（昨日高低/开盘价/测量移动/均线/缺口），我做的是（顺势/逆势）的一笔（回调/突破/反转）。
 
 ---
 
-## 💡 智能策略推荐 (Auto Strategy Match)
+## 🧩 2) Setup / 形态（Setup & Patterns）
+
+> [!example]+ 只写“最重要的 1–2 个”
+> 这部分的目标：让未来的你一眼知道这笔交易“属于哪一类”。
+
+- 这笔交易的 **主要形态/信号**：
+  - （例：楔形底 + 第二次入场 / 双底 + 失败突破 / 末端旗形）
+- 这笔交易的 **交易逻辑类型**：
+  - 顺势回调 / 区间高抛低吸 / 失败突破反转 / 突破后回测
+- **信号K质量**（只选最关键的）：强收盘 / 弱引线 / 内包线 / 十字星
+
+---
+
+## 🤖 3) 智能策略匹配（Single Source of Truth）
 
 ```dataviewjs
-const current = dv.current();
-const patterns = current["观察到的形态/patterns_observed"] || [];
+const cur = dv.current();
+const patternsRaw = cur["观察到的形态/patterns_observed"] || [];
 
-// 形态到策略的映射 (核心桥梁!)
-const patternToStrategy = {
-  "20EMA缺口": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_20均线缺口.md",
-  "第一均线缺口": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_第一均线缺口.md",
-  "收线追进": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_收线追进.md",
-  "楔形顶底": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_楔形顶底.md",
-  "双顶双底": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_双重顶底.md",
-  "急赴磁体": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_急赴磁体.md",
-  "逆1顺1": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_逆1顺1.md",
-  "看衰突破": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_看衰突破.md",
-  "强趋势通道": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_极速与通道.md",
-  "末端旗形": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_末端旗形.md",
-  "区间突破回调": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_区间突破回调.md"
+const toArr = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+  return [v];
 };
+const norm = (v) => (v ?? "").toString().trim();
 
-if (!patterns || patterns.length === 0) {
-  dv.paragraph("💭 **请在上方frontmatter中填写 `观察到的形态` 字段,系统将自动推荐策略**");
+const observed = toArr(patternsRaw).map(norm).filter(Boolean);
+if (observed.length === 0) {
+  dv.paragraph("💭 请在 frontmatter 的 `观察到的形态/patterns_observed` 填 1 个关键形态，系统就能推荐策略卡。");
 } else {
-  dv.header(3, "🎯 根据观察到的形态,推荐以下策略:");
+  const D = window.paData;
+  const byPattern = D?.strategyIndex?.byPattern || {};
+  const byName = D?.strategyIndex?.byName;
 
-  let recommendations = [];
-  for (let pattern of patterns) {
-    if (patternToStrategy[pattern]) {
-      let strategyPath = patternToStrategy[pattern];
-      let strategy = dv.page(strategyPath);
-      if (strategy) {
-        recommendations.push({
-          pattern: pattern,
-          name: strategy["策略名称"] || "未命名",
-          rrRatio: strategy["盈亏比"] || "N/A",
-          winRate: strategy["胜率"] || 0,
-          cycle: strategy["市场周期"] ? strategy["市场周期"].join(", ") : "N/A",
-          path: strategyPath
-        });
-      }
-    }
+  const picks = [];
+  for (const p of observed) {
+    const canonical = byPattern?.[p] || byPattern?.[p.toLowerCase?.()];
+    if (!canonical) continue;
+    const item = byName?.get?.(canonical);
+    if (!item?.file?.path) continue;
+    picks.push({ pattern: p, canonical, path: item.file.path });
   }
 
-  if (recommendations.length > 0) {
-    dv.table(
-      ["观察到的形态", "推荐策略", "适用周期", "盈亏比", "历史胜率"],
-      recommendations.map(r => [
-        r.pattern,
-        `[[${r.path}|${r.name}]]`,
-        r.cycle,
-        r.rrRatio,
-        r.winRate > 0 ? r.winRate + "%" : "待统计"
-      ])
-    );
-
-    dv.el("div", "", {
-      attr: {
-        style: `
-          background: rgba(59,130,246,0.1);
-          border: 1px solid rgba(59,130,246,0.3);
-          padding: 12px;
-          border-radius: 6px;
-          margin-top: 12px;
-          font-size: 0.85em;
-        `
-      }
-    }).innerHTML = `
-      <div style="font-weight:600; margin-bottom:6px;">📌 下一步操作:</div>
-      <div style="opacity:0.8; line-height:1.6;">
-        • 点击上方策略名称查看完整入场条件和风险管理规则<br/>
-        • 等待符合条件的信号K出现<br/>
-        • 确认入场信号质量后填写下方交易执行部分<br/>
-        • 策略卡片中包含建议的止损和止盈位置
-      </div>
-    `;
+  if (picks.length === 0) {
+    dv.paragraph("⚠️ 未匹配到策略卡：可能是形态命名不一致，或需要在策略仓库补充 patterns 映射。");
   } else {
-    dv.paragraph("⚠️ 未找到匹配的策略卡片,请检查形态名称是否正确");
+    dv.table(
+      ["形态", "推荐策略卡"],
+      picks.slice(0, 3).map((x) => [x.pattern, `[[${x.path}|${x.canonical}]]`])
+    );
+    dv.paragraph("📌 下一步：打开策略卡对照入场条件/止损/管理规则，再写你的入场触发点。");
   }
 }
 ```
 
 ---
 
-# 📸 阶段二: 交易执行记录
+## 🎯 4) 入场（Entry）
 
-# 📸 阶段二: 交易执行记录
+> [!tip] Brooks 的核心：你入场是因为“信号”，还是因为“想要”？写清楚触发点。
 
-## 📷 入场时的图表
-
-> [!TIP]- 截图规范
-> 请务必标记:**入场点**、**初始止损**、**逻辑目标位**。
-
-(在此处粘贴图片,记得在链接前加 ! 号)
-
----
-
-# 🧠 阶段三: 交易逻辑分析
-
-# 🧠 阶段三: 交易逻辑分析
-
-| 📍 市场背景 (Context)                 | 🎯 进场计划 (Execution)                         |
-| :------------------------------------ | :---------------------------------------------- |
-| **结构**: ⬜ 趋势 / ⬜ 震荡 / ⬜ 突破 | **使用策略**: `[[匹配策略ID/matched_strategy]]` |
-| **压力**: ⬜ 买方主导 / ⬜ 卖方主导   | **信号 K**: ⬜ 强收盘 / ⬜ 弱引线               |
-| **关键位**: (均线/前高/缺口)          | **订单**: ⬜ Stop / ⬜ Limit                    |
+- 入场触发（Trigger）：（例：第二次入场、突破失败后的反转信号、回调到均线后的强收盘）
+- 入场位置（Entry Price）：（已在 frontmatter 填）
+- 止损位置（Stop Loss）：（已在 frontmatter 填）
+- 目标/退出计划（Target / Exit Plan）：（固定目标/分批/顺势推止损/到磁体减仓）
 
 > [!abstract] 🧮 风险计算器 (Auto Calc)
->
 > ```dataviewjs
 > const c = dv.current();
 > const e = c["入场/entry_price"];
@@ -252,33 +183,33 @@ if (!patterns || patterns.length === 0) {
 
 ---
 
-# ⚔️ 阶段四: 持仓管理与复盘
+## 🧰 5) 持仓管理（Trade Management）
 
-### 🌊 持仓心流
+> [!note] Brooks：大多数问题不在入场，而在管理（过早止盈、止损移动错误、加仓冲动）。
 
-- **情绪**: 😌 平静 / 😨 焦虑 / 😡 上头 / 🤑 贪婪
-- **处理**:
-  - [ ] **Set & Forget** (硬止损/硬止盈)
-  - [ ] **Trailing** (推止损)
-  - [ ] **Scratch / Early Exit** (主动离场)
-    - _原因_: (例如：连续 3 根 K 线重叠/动能衰竭/发现看错了)
-
-### 🏁 最终判决
-
-> [!summary] 💡 核心教训 (Key Lesson)
-> _(一句话总结：这笔交易教会了你什么？)_
-
-> [!fail]- ⚠️ 如果失败/非受迫平仓 (Failure Analysis)
-> _如果结果是 Loss 或 Panic Scratch，原因是：_
->
-> - [ ] **看错了背景** (Context Error)
-> - [ ] **进得太早/太晚** (Timing Error)
-> - [ ] **心态崩了** (Psychology Error - FOMO/Fear)
-> - [ ] **纯粹的概率** (Good Trade, Bad Outcome)
+- 我用的管理方式：
+  - [ ] Set & Forget（硬止损/硬止盈）
+  - [ ] Trailing（顺势推止损）
+  - [ ] Scale In/Out（加/减仓）
+  - [ ] Scratch / Early Exit（主动离场）
+- 做出关键决定的原因（写 1 句）：
 
 ---
 
-## 🧩 智能复盘要点 (Review Hints)
+## 🏁 6) 结果与复盘（Outcome & Review）
+
+> [!summary] 💡 核心教训 (Key Lesson)
+> （一句话：这笔交易教会了你什么？最好能写成“下次可执行的规则”。）
+
+> [!fail]- ⚠️ 失败/错误复盘（Failure Analysis）
+> - [ ] 看错背景（Context Error）
+> - [ ] 进得太早/太晚（Timing Error）
+> - [ ] 心态问题（FOMO/Fear）
+> - [ ] 概率问题（Good Trade, Bad Outcome）
+
+---
+
+## 🧩 智能复盘要点（来自引擎）
 
 ```dataviewjs
 const cur = dv.current();
@@ -319,8 +250,4 @@ if (!D) {
     }
   }
 }
-```
-
----
-
 ```
