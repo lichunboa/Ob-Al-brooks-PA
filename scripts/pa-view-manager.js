@@ -232,9 +232,38 @@ let keyMap = {};
 let valMap = {};
 
 function normalizeVal(v) {
-  let valStr = v === undefined || v === null ? "null" : v.toString().trim();
-  if (valStr === "") valStr = "Empty";
-  return valStr;
+  if (v === undefined || v === null) return "null";
+
+  if (typeof v === "string") {
+    const s = v.trim();
+    return s === "" ? "Empty" : s;
+  }
+
+  if (typeof v === "number" || typeof v === "boolean") {
+    return String(v);
+  }
+
+  if (typeof v === "object") {
+    // 尽量避免 frontmatter 里出现 Link/Object 时被 stringify 成 "[object Object]"
+    if (typeof v.path === "string") return v.path;
+    if (v.link && typeof v.link.path === "string") return v.link.path;
+    if (v.file && typeof v.file.path === "string") return v.file.path;
+
+    try {
+      const s = v.toString ? String(v.toString()).trim() : "";
+      if (s && s !== "[object Object]") return s;
+    } catch (e) {}
+
+    try {
+      const s = JSON.stringify(v);
+      return s && s !== "{}" ? s : "Object";
+    } catch (e) {
+      return "Object";
+    }
+  }
+
+  const s = String(v).trim();
+  return s === "" ? "Empty" : s;
 }
 
 for (let p of dvPages) {
@@ -336,65 +365,103 @@ async function customConfirm(msg, isDanger = false) {
 async function batchUpdate(paths, op, args) {
   new Notice(`🚀 正在处理 ${paths.length} 个文件...`);
   let count = 0;
+  const failed = [];
+
+  const normEq = (a, b) => normalizeVal(a) === normalizeVal(b);
+  const arrHas = (arr, v) => Array.isArray(arr) && arr.some((x) => normEq(x, v));
+
   for (let path of paths) {
     let tFile = app.vault.getAbstractFileByPath(path);
     if (!tFile) continue;
     try {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
+        let changed = false;
+
         if (op === "RENAME_KEY") {
-          if (fm[args.oldKey] !== undefined) {
-            fm[args.newKey] = fm[args.oldKey];
-            delete fm[args.oldKey];
-            count++;
+          if (args.oldKey && args.newKey && fm[args.oldKey] !== undefined) {
+            // 安全：避免覆盖已有字段
+            if (fm[args.newKey] === undefined || args.newKey === args.oldKey) {
+              fm[args.newKey] = fm[args.oldKey];
+              if (args.newKey !== args.oldKey) delete fm[args.oldKey];
+              changed = args.newKey !== args.oldKey;
+            } else {
+              console.warn(
+                "[PA Manager] rename key skipped (target exists):",
+                { path, oldKey: args.oldKey, newKey: args.newKey }
+              );
+            }
           }
         } else if (op === "DELETE_KEY") {
-          if (fm[args.key] !== undefined) {
+          if (args.key && fm[args.key] !== undefined) {
             delete fm[args.key];
-            count++;
+            changed = true;
           }
         } else if (op === "UPDATE_VAL") {
           let c = fm[args.key];
           if (Array.isArray(c)) {
-            let i = c.findIndex((v) => normalizeVal(v) === args.oldVal);
+            let i = c.findIndex((v) => normEq(v, args.oldVal));
             if (i !== -1) {
               c[i] = args.newVal;
-              count++;
+              changed = true;
             }
           } else {
-            fm[args.key] = args.newVal;
-            count++;
+            if (c !== undefined && normEq(c, args.oldVal)) {
+              fm[args.key] = args.newVal;
+              changed = true;
+            }
           }
         } else if (op === "APPEND_VAL") {
           let c = fm[args.key];
-          if (c === undefined) fm[args.key] = args.val;
-          else if (Array.isArray(c)) {
-            if (!c.includes(args.val)) c.push(args.val);
+          if (c === undefined) {
+            fm[args.key] = args.val;
+            changed = true;
+          } else if (Array.isArray(c)) {
+            if (!arrHas(c, args.val)) {
+              c.push(args.val);
+              changed = true;
+            }
           } else {
-            if (c !== args.val) fm[args.key] = [c, args.val];
+            if (!normEq(c, args.val)) {
+              fm[args.key] = [c, args.val];
+              changed = true;
+            }
           }
-          count++;
         } else if (op === "DELETE_VAL") {
           let c = fm[args.key];
           if (Array.isArray(c)) {
-            fm[args.key] = c.filter((v) => normalizeVal(v) !== args.val);
-            count++;
-          } else if (normalizeVal(c) === args.val) {
+            const next = c.filter((v) => !normEq(v, args.val));
+            if (next.length !== c.length) {
+              fm[args.key] = next;
+              changed = true;
+            }
+          } else if (c !== undefined && normEq(c, args.val)) {
             delete fm[args.key];
-            count++;
+            changed = true;
           }
         } else if (op === "INJECT_PROP") {
-          if (fm[args.newKey] === undefined) fm[args.newKey] = args.newVal;
-          else {
+          if (!args.newKey) return;
+          if (fm[args.newKey] === undefined) {
+            fm[args.newKey] = args.newVal;
+            changed = true;
+          } else {
             let c = fm[args.newKey];
             if (Array.isArray(c)) {
-              if (!c.includes(args.newVal)) c.push(args.newVal);
-            } else if (c !== args.newVal) fm[args.newKey] = [c, args.newVal];
+              if (!arrHas(c, args.newVal)) {
+                c.push(args.newVal);
+                changed = true;
+              }
+            } else if (!normEq(c, args.newVal)) {
+              fm[args.newKey] = [c, args.newVal];
+              changed = true;
+            }
           }
-          count++;
         }
+
+        if (changed) count++;
       });
     } catch (e) {
       console.error(e);
+      failed.push({ path, error: e });
     }
   }
   if (count > 0) {
@@ -406,7 +473,19 @@ async function batchUpdate(paths, op, args) {
           : app.workspace.trigger("dataview:refresh-views"),
       800
     );
-  } else new Notice("无变化");
+
+    if (failed.length) {
+      console.warn("[PA Manager] batchUpdate failed files:", failed);
+      new Notice(`⚠️ ${failed.length} 个文件处理失败（已记录到控制台）`);
+    }
+  } else {
+    if (failed.length) {
+      console.warn("[PA Manager] batchUpdate failed files:", failed);
+      new Notice(`⚠️ ${failed.length} 个文件处理失败（已记录到控制台）`);
+    } else {
+      new Notice("无变化");
+    }
+  }
 }
 
 // --- 6. 弹窗 UI (Crystal Inspector) ---
