@@ -183,25 +183,12 @@ for (const t of trades) {
 const strategyRepo = idx?.repoPath || "策略仓库 (Strategy Repository)";
 const strategies = strategyList;
 
-// 按市场周期分类
-const cycleGroupDefs = [
-  { name: "🔄 交易区间", keywords: ["交易区间", "区间", "Range"] },
-  {
-    name: "📈 趋势延续",
-    keywords: ["趋势", "强趋势", "趋势回调", "Trend", "Pullback"],
-  },
-  { name: "🚀 急速/突破", keywords: ["急速", "突破模式", "Spike", "Breakout"] },
-  { name: "🔃 反转", keywords: ["反转", "Reversal"] },
-];
-
-// 避免“同一策略出现在多个组”造成混乱：只归入一个最合适的组。
-// 这里优先把包含“交易区间”的归到交易区间组，其余再按常规优先级分配。
-const groupAssignPriority = [
-  "🔄 交易区间",
-  "📈 趋势延续",
-  "🚀 急速/突破",
-  "🔃 反转",
-];
+// 按市场周期/market_cycle 分组（取第一项作为主周期，避免同一策略重复出现在多个组）
+const otherGroupName = "📦 其他/未分类";
+const primaryCycleOf = (s) => {
+  const cycles = (s?.marketCycles || []).map(normStr).filter(Boolean);
+  return cycles.length > 0 ? cycleToCn(cycles[0]) : "";
+};
 
 let html = "";
 let totalStrategies = strategies.length;
@@ -293,46 +280,27 @@ if (
   </div>`;
 }
 
-// 按市场周期分组显示
-const groupByName = new Map(cycleGroupDefs.map((d) => [d.name, d]));
-const groupBuckets = new Map(cycleGroupDefs.map((d) => [d.name, []]));
-const otherBucket = [];
-
-const matchesGroup = (def, cycles) => {
-  const keywords = def?.keywords || [];
-  return keywords.some((k) =>
-    cycles.some((c) => c.includes(k) || k.includes(c))
-  );
+// 分组收集（保持插入顺序，最后再把“其他/未分类”放到底部）
+const cycleBuckets = new Map(); // groupName -> strategies[]
+const cycleOrder = [];
+const pushBucket = (name, item) => {
+  if (!cycleBuckets.has(name)) {
+    cycleBuckets.set(name, []);
+    cycleOrder.push(name);
+  }
+  cycleBuckets.get(name).push(item);
 };
 
 for (const s of strategies) {
-  const cycles = (s.marketCycles || []).map(normStr).filter(Boolean);
-  let assigned = null;
-
-  for (const name of groupAssignPriority) {
-    const def = groupByName.get(name);
-    if (def && matchesGroup(def, cycles)) {
-      assigned = name;
-      break;
-    }
-  }
-
-  if (!assigned) {
-    for (const def of cycleGroupDefs) {
-      if (matchesGroup(def, cycles)) {
-        assigned = def.name;
-        break;
-      }
-    }
-  }
-
-  if (assigned) groupBuckets.get(assigned).push(s);
-  else otherBucket.push(s);
+  const g = primaryCycleOf(s) || otherGroupName;
+  pushBucket(g, s);
 }
 
-cycleGroupDefs.forEach((def) => {
-  const groupName = def.name;
-  let matches = groupBuckets.get(groupName) || [];
+const orderedGroups = cycleOrder.filter((n) => n !== otherGroupName);
+if (cycleBuckets.has(otherGroupName)) orderedGroups.push(otherGroupName);
+
+orderedGroups.forEach((groupName) => {
+  let matches = cycleBuckets.get(groupName) || [];
 
   // 让列表更“可用”：实战优先，其次近期/使用/表现
   matches = matches.sort((a, b) => {
@@ -517,7 +485,7 @@ cycleGroupDefs.forEach((def) => {
             </div>
             
             <div style="margin-top:10px; display:flex; gap:6px;">
-              <a href="${safeHref}" class="internal-link" style="
+              <a href="${safeHref}" data-href="${safePath || ""}" class="internal-link" style="
                 flex:1;
                 background:rgba(59,130,246,0.15);
                 color:${cfg.colors.demo};
@@ -537,40 +505,14 @@ cycleGroupDefs.forEach((def) => {
   }
 });
 
-// 未分类
-if (otherBucket.length > 0) {
-  html += `<div style="margin-bottom:14px;">
-    <div style="font-size:0.85em; opacity:0.7; font-weight:bold; margin-bottom:8px;">📦 其他/未分类 (${otherBucket.length})</div>
-    <div style="display:flex; flex-direction:column; gap:8px;">`;
-  otherBucket
-    .sort((a, b) =>
-      (a.displayName || a.canonicalName || "").localeCompare(
-        b.displayName || b.canonicalName || ""
-      )
-    )
-    .forEach((s) => {
-      const name = prettyName(
-        s.displayName || s.canonicalName || s.file?.name || "(未命名)"
-      );
-      const safePath = s?.file?.path;
-      const safeHref = safePath ? encodeURI(safePath) : "";
-      html += `
-        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
-          <div style="font-size:0.88em; font-weight:600; color:${
-            cfg.colors.demo
-          };">${name}</div>
-          <a href="${safeHref}" class="internal-link" style="font-size:0.75em; opacity:0.75; text-decoration:none;">${
-        safePath ? "打开 →" : "缺少路径"
-      }</a>
-        </div>`;
-    });
-  html += `</div></div>`;
-}
+// 旧的 otherBucket 渲染已合并到 orderedGroups（otherGroupName）里
 
 // 快速访问链接
+const quickPath = "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
+const quickHref = encodeURI(quickPath);
 html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
   <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <a href="策略仓库 (Strategy Repository)/太妃方案/太妃方案.md" class="internal-link" style="
+    <a href="${quickHref}" data-href="${quickPath}" class="internal-link" style="
       background:rgba(147,51,234,0.15);
       color:#a855f7;
       padding:4px 10px;
@@ -615,7 +557,7 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
     const nameDisplay = item?.file?.path
       ? `<a href="${encodeURI(
           item.file.path
-        )}" class="internal-link">${display}</a>`
+        )}" data-href="${item.file.path}" class="internal-link">${display}</a>`
       : display;
 
     statsHtml += `

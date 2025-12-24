@@ -426,16 +426,42 @@ if (useCache) {
       strategyIndex.lookup.set(k.toLowerCase(), canonical);
     };
 
+    const firstScalar = (val) => {
+      if (val === undefined || val === null) return null;
+      if (Array.isArray(val)) return val.length > 0 ? val[0] : null;
+      if (val?.constructor && val.constructor.name === "Proxy") {
+        try {
+          const arr = Array.from(val);
+          return arr.length > 0 ? arr[0] : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      return val;
+    };
+    const getRawStr = (page, keys, fallback = "") => {
+      for (let k of keys) {
+        let v = page?.[k];
+        if (v === undefined || v === null) continue;
+        v = firstScalar(v);
+        if (v === undefined || v === null) continue;
+        const s = v.toString().trim();
+        if (s) return s;
+      }
+      return fallback;
+    };
+
     for (let p of stratPages) {
+      // 注意：这里不能用 utils.getStr（会把“中文 (English)”清洗成只剩英文）
       const canonicalName =
-        utils.getStr(p, ["策略名称/strategy_name", "strategy_name"]) ||
+        getRawStr(p, ["策略名称/strategy_name", "strategy_name"], "") ||
         p.file.name;
 
-      const statusRaw = utils.getStr(p, [
-        "策略状态/strategy_status",
-        "strategy_status",
-        "策略状态",
-      ]);
+      const statusRaw = getRawStr(
+        p,
+        ["策略状态/strategy_status", "strategy_status", "策略状态"],
+        ""
+      );
 
       const marketCycles = toArr(
         p["市场周期/market_cycle"] || p["market_cycle"] || p["市场周期"]
@@ -454,7 +480,7 @@ if (useCache) {
       )
         .map(normStr)
         .filter(Boolean);
-      const source = utils.getStr(p, ["来源/source", "source", "来源"]);
+      const source = getRawStr(p, ["来源/source", "source", "来源"], "");
 
       let displayName = canonicalName;
       if (displayName.includes("(") && displayName.includes(")")) {
