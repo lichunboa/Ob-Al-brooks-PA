@@ -398,6 +398,96 @@ if (useCache) {
       } catch (e) {}
     }
   }
+
+  // --- D. 策略索引 (Single Source of Truth) ---
+  // 统一策略仓库字段、别名、形态映射，供 Today/Playbook/Inspector/Analytics 复用
+  try {
+    const strategyRepo = strategyIndex.repoPath;
+    const stratPages = dv.pages(`"${strategyRepo}"`);
+
+    strategyIndex.list = [];
+    strategyIndex.byName = new Map();
+    strategyIndex.lookup = new Map();
+    strategyIndex.byPattern = {};
+
+    const toArr = (v) => {
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+      return [v];
+    };
+    const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+    const addLookup = (alias, canonical) => {
+      const k = normStr(alias);
+      if (!k) return;
+      strategyIndex.lookup.set(k, canonical);
+      strategyIndex.lookup.set(k.toLowerCase(), canonical);
+    };
+
+    for (let p of stratPages) {
+      const canonicalName =
+        utils.getStr(p, ["策略名称/strategy_name", "strategy_name"]) || p.file.name;
+
+      const statusRaw = utils.getStr(p, [
+        "策略状态/strategy_status",
+        "strategy_status",
+        "策略状态",
+      ]);
+
+      const marketCycles = toArr(
+        p["市场周期/market_cycle"] || p["market_cycle"] || p["市场周期"]
+      ).map(normStr).filter(Boolean);
+      const setupCategories = toArr(
+        p["设置类别/setup_category"] || p["setup_category"] || p["设置类别"]
+      ).map(normStr).filter(Boolean);
+      const patterns = toArr(
+        p["观察到的形态/patterns_observed"] ||
+          p["patterns_observed"] ||
+          p["观察到的形态"]
+      ).map(normStr).filter(Boolean);
+      const source = utils.getStr(p, ["来源/source", "source", "来源"]);
+
+      let displayName = canonicalName;
+      if (displayName.includes("(") && displayName.includes(")")) {
+        displayName = displayName.split("(")[0].trim();
+      }
+
+      const item = {
+        canonicalName,
+        displayName,
+        statusRaw,
+        marketCycles,
+        setupCategories,
+        patterns,
+        source,
+        file: p.file,
+      };
+
+      strategyIndex.list.push(item);
+      strategyIndex.byName.set(canonicalName, item);
+
+      addLookup(canonicalName, canonicalName);
+      if (canonicalName.includes("(") && canonicalName.includes(")")) {
+        const parts = canonicalName.split("(");
+        const cn = parts[0].trim();
+        const en = parts[1].replace(")", "").trim();
+        if (cn) addLookup(cn, canonicalName);
+        if (en) addLookup(en, canonicalName);
+      }
+
+      for (const pat of patterns) {
+        strategyIndex.byPattern[pat] = canonicalName;
+        if (pat.includes("(") && pat.includes(")")) {
+          const m = pat.match(/\(([^)]+)\)/);
+          if (m && m[1]) strategyIndex.byPattern[m[1].trim()] = canonicalName;
+        }
+      }
+    }
+
+    strategyIndex.updatedAt = moment().format("YYYY-MM-DD HH:mm:ss");
+  } catch (e) {
+    console.log("策略索引构建失败", e);
+  }
 }
 
 // ============================================================
@@ -439,6 +529,7 @@ window.paData = {
   stats: stats,
   sr: srData,
   course: courseData,
+  strategyIndex: strategyIndex,
   updateTime: moment().format("HH:mm:ss"),
   cacheTs: Date.now(),
   loadTime: (performance.now() - startT).toFixed(0) + "ms",
