@@ -31,6 +31,8 @@ banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
 时间周期/timeframe: 5m
 交易方程/trader_equation:
   - 波段 (Swing)
+策略名称/strategy_name:
+  - 收线追进 (Buy/Sell NOW)
 ---
 
 # 📸 1. 现场图表 (Chart)
