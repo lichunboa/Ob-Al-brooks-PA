@@ -242,29 +242,88 @@ if (window.paData) {
   const toZh = (v) => {
     if (v === null || v === undefined) return "";
     if (typeof v !== "string") return v;
+
     let s = v.toString().trim();
     if (!s) return s;
-    if (s === "Unknown") return "未知";
-    if (s === "Empty") return "空";
-    if (s.includes("(")) s = s.split("(")[0].trim();
-    if (s.includes("/")) s = s.split("/")[0].trim();
-    return s;
+
+    const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
+    const normalizePair = (cn, en) => {
+      cn = (cn || "").toString().trim();
+      en = (en || "").toString().trim();
+      if (!cn && en) cn = "未翻译";
+      if (cn && !en) return cn;
+      if (!cn && !en) return "";
+      return `${cn}/${en}`;
+    };
+    const splitPair = (str) => {
+      if (!str) return null;
+      if (str.includes("/")) {
+        const parts = str.split("/");
+        const cn = (parts[0] || "").trim();
+        const en = parts.slice(1).join("/").trim();
+        return { cn, en };
+      }
+      if (str.includes("(") && str.endsWith(")")) {
+        const parts = str.split("(");
+        const cn = (parts[0] || "").trim();
+        const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+        return { cn, en };
+      }
+      return null;
+    };
+
+    if (s === "Unknown") return "未知/Unknown";
+    if (s === "Empty") return "空/Empty";
+
+    const directPair = splitPair(s);
+    if (directPair) {
+      let { cn, en } = directPair;
+      if (!hasCJK(cn) && hasCJK(en)) {
+        const tmp = cn;
+        cn = en;
+        en = tmp;
+      }
+      if (!hasCJK(cn) && en) cn = "未翻译";
+      return normalizePair(cn, en);
+    }
+
+    // preset 预设映射（英文 -> 中文），尽量输出 中文/英文
+    if (valueMap && valueMap[s]) {
+      const cn = valueMap[s];
+      if (hasCJK(cn)) return normalizePair(cn, s);
+    }
+
+    // 策略索引映射（英文别名 -> 规范名，常见为 中文(English)）
+    if (strategyLookup && typeof strategyLookup.get === "function") {
+      const canonical = strategyLookup.get(s);
+      if (canonical && canonical !== s) {
+        const p = splitPair(canonical);
+        if (p) return normalizePair(p.cn, p.en);
+        if (hasCJK(canonical)) return canonical;
+        return normalizePair("未翻译", canonical);
+      }
+    }
+
+    // 如果已经是中文，就直接返回；纯英文则保证带中文前缀
+    if (hasCJK(s)) return s;
+    return normalizePair("未翻译", s);
   };
 
   function getDist(key, useMap = false) {
     let dist = {};
     trades.forEach((t) => {
-      let val = (t[key] || "Unknown").toString().split("(")[0].trim();
-      // 如果启用了映射且存在映射值，则使用映射值 (例如: Strong Trend -> 强趋势)
-      if (useMap && valueMap[val]) val = valueMap[val];
+      let val = (t[key] || "Unknown").toString().trim();
+      // 如果启用了映射且存在映射值，则尽量输出 中文/英文（由 toZh 统一处理）
+      if (useMap && valueMap[val]) {
+        // no-op: toZh(val) 会基于 valueMap 生成 中文/英文
+      }
       // 特殊处理: 如果是 setup 且有 strategyName，优先使用 strategyName (并尝试映射)
       if (key === "setup" && t.strategyName && t.strategyName !== "Unknown") {
         let sName = t.strategyName;
         // 尝试获取规范名称 (中文优先)
         if (strategyLookup.get(sName)) {
           let canonical = strategyLookup.get(sName);
-          if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
-          else sName = canonical;
+          sName = canonical;
         }
         val = sName;
       }
@@ -372,7 +431,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
-          <td style="opacity:0.7">空</td>
+          <td style="opacity:0.7">空/Empty</td>
           </tr>`;
     });
 
@@ -381,7 +440,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
-          <td style="opacity:0.7">空</td>
+          <td style="opacity:0.7">空/Empty</td>
           </tr>`;
     });
 
@@ -390,7 +449,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
-          <td style="opacity:0.7">空</td>
+          <td style="opacity:0.7">空/Empty</td>
           </tr>`;
     });
 
