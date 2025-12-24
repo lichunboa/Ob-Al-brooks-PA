@@ -14,8 +14,6 @@ style.innerHTML = `
     .insp-card { flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
     .insp-title { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
     .insp-item { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 6px; align-items: center; }
-    .insp-bar-bg { background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 4px; }
-    .insp-bar-fill { height: 100%; border-radius: 2px; }
     .insp-tag { padding: 1px 5px; border-radius: 3px; font-size: 0.75em; font-weight: bold; }
     .insp-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
     .insp-table th { text-align: left; opacity: 0.5; padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -30,40 +28,60 @@ if (window.paData) {
   const sr = D.sr;
 
   // --- 0. 策略仓库同步 (Strategy Sync) ---
-  let strategyMap = new Map(); // name -> { patterns: Set, category: Set }
+  let strategyMap = new Map(); // canonicalName -> { patterns: Set, category: Set }
   let strategyLookup = new Map(); // alias (CN/EN/Full) -> canonicalName
 
-  const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
-  for (let p of strategyPages) {
-    let name = p["策略名称/strategy_name"] || p.file.name;
-    let patterns = p["观察到的形态/patterns_observed"];
-    let category = p["设置类别/setup_category"];
-
-    let patternSet = new Set();
-    if (patterns) {
-      if (!Array.isArray(patterns)) patterns = [patterns];
-      patterns.forEach((a) => {
-        let pStr = a.toString().trim();
-        patternSet.add(pStr);
-      });
+  const sIdx = D.strategyIndex;
+  if (sIdx?.list?.length) {
+    // 优先复用引擎的单一信源，避免 Inspector 自扫导致口径漂移
+    for (const s of sIdx.list) {
+      const canonical = s.canonicalName || s.displayName || s.file?.name;
+      if (!canonical) continue;
+      const patternSet = new Set((s.patterns || []).map((x) => x.toString().trim()).filter(Boolean));
+      const categorySet = new Set(
+        (s.setupCategories || []).map((x) => x.toString().trim()).filter(Boolean)
+      );
+      strategyMap.set(canonical, { patterns: patternSet, category: categorySet });
     }
-
-    let categorySet = new Set();
-    if (category) {
-      if (!Array.isArray(category)) category = [category];
-      category.forEach((c) => categorySet.add(c.toString().trim()));
+    if (sIdx.lookup) strategyLookup = sIdx.lookup;
+    else {
+      // 兜底：至少保证 canonical 自身可查
+      for (const key of strategyMap.keys()) strategyLookup.set(key, key);
     }
+  } else {
+    // 回退：引擎尚未加载 strategyIndex 时，仍可工作
+    const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
+    for (let p of strategyPages) {
+      let name = p["策略名称/strategy_name"] || p.file.name;
+      let patterns = p["观察到的形态/patterns_observed"];
+      let category = p["设置类别/setup_category"];
 
-    strategyMap.set(name, { patterns: patternSet, category: categorySet });
+      let patternSet = new Set();
+      if (patterns) {
+        if (!Array.isArray(patterns)) patterns = [patterns];
+        patterns.forEach((a) => {
+          let pStr = a.toString().trim();
+          patternSet.add(pStr);
+        });
+      }
 
-    // Build Lookup Table
-    strategyLookup.set(name, name); // Full name
-    if (name.includes("(")) {
-      let parts = name.split("(");
-      let cn = parts[0].trim();
-      let en = parts[1].replace(")", "").trim();
-      if (cn) strategyLookup.set(cn, name);
-      if (en) strategyLookup.set(en, name);
+      let categorySet = new Set();
+      if (category) {
+        if (!Array.isArray(category)) category = [category];
+        category.forEach((c) => categorySet.add(c.toString().trim()));
+      }
+
+      strategyMap.set(name, { patterns: patternSet, category: categorySet });
+
+      // Build Lookup Table
+      strategyLookup.set(name, name); // Full name
+      if (name.includes("(")) {
+        let parts = name.split("(");
+        let cn = parts[0].trim();
+        let en = parts[1].replace(")", "").trim();
+        if (cn) strategyLookup.set(cn, name);
+        if (en) strategyLookup.set(en, name);
+      }
     }
   }
 
@@ -419,26 +437,32 @@ if (window.paData) {
 
         ${detailsHTML}
 
-        <div class="insp-row-flex">
-            <div class="insp-card">
-                <div class="insp-title" style="color:${
-                  c.demo
-                }">品种分布 (Ticker)</div>
-                ${renderMiniBar(distTicker, c.demo)}
+        <details class="insp-card" style="flex:unset; min-width: unset;">
+            <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; opacity:0.85; font-weight:700;">
+              <span>📊 分布摘要（可展开）</span>
+              <span style="font-size:0.8em; opacity:0.6; font-weight:normal;">完整画像建议看 Schema</span>
+            </summary>
+            <div style="margin-top:12px;" class="insp-row-flex">
+                <div class="insp-card" style="box-shadow:none;">
+                    <div class="insp-title" style="color:${
+                      c.demo
+                    }">品种分布 (Ticker)</div>
+                    ${renderMiniBar(distTicker, c.demo)}
+                </div>
+                <div class="insp-card" style="box-shadow:none;">
+                    <div class="insp-title" style="color:${
+                      c.live
+                    }">策略分布 (Setup)</div>
+                    ${renderMiniBar(distSetup, c.live)}
+                </div>
+                <div class="insp-card" style="box-shadow:none;">
+                    <div class="insp-title" style="color:${
+                      c.back
+                    }">执行质量 (Execution)</div>
+                    ${renderMiniBar(distExec, execColorFn)}
+                </div>
             </div>
-            <div class="insp-card">
-                <div class="insp-title" style="color:${
-                  c.live
-                }">策略分布 (Setup)</div>
-                ${renderMiniBar(distSetup, c.live)}
-            </div>
-            <div class="insp-card">
-                <div class="insp-title" style="color:${
-                  c.back
-                }">执行质量 (Execution)</div>
-                ${renderMiniBar(distExec, execColorFn)}
-            </div>
-        </div>
+        </details>
 
         <div class="insp-card">
             <div class="insp-title" style="border:none;">
