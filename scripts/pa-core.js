@@ -355,19 +355,43 @@ if (useCache) {
       type: type,
       pnl: pnl,
       r: r,
-      setup: utils.getStr(t, ["设置类别/setup_category", "setup_category"]),
-      market_cycle: utils.getStr(t, ["市场周期/market_cycle", "market_cycle"]),
+      setup: utils.getRawStr(t, ["设置类别/setup_category", "setup_category"]),
+      setupKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["设置类别/setup_category", "setup_category"], "")
+      ),
+      market_cycle: utils.getRawStr(t, ["市场周期/market_cycle", "market_cycle"]),
+      marketCycleKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["市场周期/market_cycle", "market_cycle"], "")
+      ),
       error: errStr,
       cover: t["封面/cover"] || t["cover"] || "Unknown", // 保留原始值,不清洗
-      ticker: utils.getStr(t, ["品种/ticker", "ticker"]),
-      dir: utils.getStr(t, ["方向/direction", "direction"]),
-      tf: utils.getStr(t, ["时间周期/timeframe", "timeframe"]),
-      order: utils.getStr(t, ["订单类型/order_type", "order_type"]),
-      signal: utils.getStr(t, [
+      ticker: utils.getRawStr(t, ["品种/ticker", "ticker"]),
+      tickerKey: utils.normalizeTickerKey(
+        utils.getRawStr(t, ["品种/ticker", "ticker"], "")
+      ),
+      dir: utils.getRawStr(t, ["方向/direction", "direction"]),
+      dirKey: utils.normalizeDirectionKey(
+        utils.getRawStr(t, ["方向/direction", "direction"], "")
+      ),
+      tf: utils.getRawStr(t, ["时间周期/timeframe", "timeframe"]),
+      tfKey: utils.normalizeTimeframeKey(
+        utils.getRawStr(t, ["时间周期/timeframe", "timeframe"], "")
+      ),
+      order: utils.getRawStr(t, ["订单类型/order_type", "order_type"]),
+      orderKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["订单类型/order_type", "order_type"], "")
+      ),
+      signal: utils.getRawStr(t, [
         "信号K/signal_bar_quality",
         "signal_bar_quality",
       ]),
-      plan: utils.getStr(t, ["交易方程/trader_equation", "trader_equation"]),
+      signalKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["信号K/signal_bar_quality", "signal_bar_quality"], "")
+      ),
+      plan: utils.getRawStr(t, ["交易方程/trader_equation", "trader_equation"]),
+      planKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["交易方程/trader_equation", "trader_equation"], "")
+      ),
       // 新增原始字段用于合规性检查
       cycle: t["市场周期/market_cycle"] || t["market_cycle"],
       rawSetup: t["设置类别/setup_category"] || t["setup_category"],
@@ -380,10 +404,13 @@ if (useCache) {
         "观察到的形态/patterns_observed",
         "patterns_observed",
       ]),
-      strategyName: utils.getStr(t, [
+      strategyName: utils.getRawStr(t, [
         "策略名称/strategy_name",
         "strategy_name",
       ]),
+      strategyKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"], "")
+      ),
     };
 
     // v5.0: 智能复盘要点（仅生成，不改变现有 UI）
