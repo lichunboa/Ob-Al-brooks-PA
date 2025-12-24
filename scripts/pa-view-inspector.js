@@ -416,11 +416,25 @@ if (window.paData) {
                                 ? t.tf
                                 : `<span class="txt-red">-</span>`;
 
+                            // 策略显示逻辑: 优先策略名(中文) > Setup类别
+                            let stratDisp = t.setup || "-";
+                            if (t.strategyName && t.strategyName !== "Unknown") {
+                                let sName = t.strategyName;
+                                if (strategyLookup.get(sName)) {
+                                    let canonical = strategyLookup.get(sName);
+                                    if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
+                                    else sName = canonical;
+                                }
+                                stratDisp = sName;
+                            } else {
+                                stratDisp = stratDisp.slice(0, 8); // 仅对英文类别截断
+                            }
+
                             return `<tr>
                                 <td style="opacity:0.6">${t.date.slice(5)}</td>
                                 <td>${tkDisp}</td>
                                 <td>${tfDisp}</td>
-                                <td>${(t.setup || "-").slice(0, 8)}</td>
+                                <td>${stratDisp}</td>
                                 <td style="color:${resCol}; font-weight:bold;">${resTxt}</td>
                                 <td style="color:${execCol}">${execTxt}</td>
                             </tr>`;
