@@ -269,7 +269,7 @@ if (
                     s?.displayName || s?.canonicalName || s?.file?.name
                   );
                   return safeHref
-                    ? `<a href=\"${safeHref}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
+                    ? `<a href=\"${safeHref}\" data-href=\"${safePath}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
                     : `<span style=\"white-space:nowrap;\">${label}</span>`;
                 }
               )
