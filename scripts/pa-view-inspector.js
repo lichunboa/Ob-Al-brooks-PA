@@ -23,6 +23,7 @@ style.innerHTML = `
   .insp-td-tf { width: 54px; }
   .insp-td-outcome { width: 58px; }
   .insp-td-exec { width: 100px; }
+  .insp-td-review { width: 86px; }
     .txt-red { color: ${c.loss}; } .txt-green { color: ${c.live}; } .txt-dim { opacity: 0.5; }
 `;
 document.head.appendChild(style);
@@ -652,7 +653,7 @@ if (window.paData) {
             </div>
             <div style="overflow-x:auto;">
                 <table class="insp-table">
-                    <thead><tr><th>日期</th><th>品种</th><th>周期</th><th>策略</th><th>结果</th><th>执行</th></tr></thead>
+            <thead><tr><th>日期</th><th>品种</th><th>周期</th><th>策略</th><th>结果</th><th>执行</th><th>复盘</th></tr></thead>
                     <tbody>
                         ${trades
                           .slice(0, 15)
@@ -704,6 +705,14 @@ if (window.paData) {
                                       .replace(/>/g, "&gt;")
                                       .replace(/\"/g, "&quot;")
                                       .replace(/'/g, "&#39;");
+
+                                  const escHtml = (s) =>
+                                    (s ?? "")
+                                      .toString()
+                                      .replace(/&/g, "&amp;")
+                                      .replace(/</g, "&lt;")
+                                      .replace(/>/g, "&gt;");
+
                                   const dateDisp = t.date
                                     ? t.date.slice(5)
                                     : "--";
@@ -717,6 +726,30 @@ if (window.paData) {
                                     execFull.length > 12
                                       ? execFull.slice(0, 12) + "…"
                                       : execFull;
+
+                                  const hints = Array.isArray(t.reviewHints)
+                                    ? t.reviewHints
+                                    : [];
+                                  const reviewCell =
+                                    hints.length > 0
+                                      ? `<details style="display:inline-block;">
+                                          <summary style="cursor:pointer; list-style:none; opacity:0.85; font-weight:700;">
+                                            🧩 ${hints.length}
+                                          </summary>
+                                          <div style="margin-top:6px; padding:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; max-width:420px;">
+                                            ${hints
+                                              .map((h) => {
+                                                const zh = escHtml(h?.zh || "");
+                                                const en = escHtml(h?.en || "");
+                                                const showZh = zh || "-";
+                                                const showEn = en ? ` <span style=\"opacity:0.6\">(${en})</span>` : "";
+                                                return `<div style=\"font-size:0.72em; line-height:1.35; margin-bottom:6px; white-space:normal;\">• ${showZh}${showEn}</div>`;
+                                              })
+                                              .join("")}
+                                          </div>
+                                        </details>`
+                                      : `<span class="txt-dim">-</span>`;
+
                                   return `
                                     <td class="insp-td-date" style="opacity:0.6">${dateDisp}</td>
                                     <td class="insp-td-ticker">${tkDisp}</td>
@@ -728,6 +761,7 @@ if (window.paData) {
                                     <td class="insp-td-exec" style="color:${execCol}" title="${escAttr(
                                     execFull
                                   )}">${execShort}</td>
+                                    <td class="insp-td-review" style="white-space:normal; overflow:visible;">${reviewCell}</td>
                                   `;
                                 })()}
                             </tr>`;
