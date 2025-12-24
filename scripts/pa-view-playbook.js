@@ -26,8 +26,7 @@ const prettyName = (raw) => {
   if (low === "unknown") return "未知/Unknown";
   if (low === "n/a" || low === "na") return "无/N/A";
 
-  const looked =
-    strategyLookup?.get?.(s) || strategyLookup?.get?.(low) || "";
+  const looked = strategyLookup?.get?.(s) || strategyLookup?.get?.(low) || "";
   const out = normStr(looked) || s;
 
   // 已经是中文/英文格式（或至少包含中文）则原样展示
@@ -268,18 +267,16 @@ if (
       ${
         rec.length
           ? `推荐优先关注：${rec
-              .map(
-                (s) => {
-                  const safePath = s?.file?.path;
-                  const safeHref = safePath ? encodeURI(safePath) : "";
-                  const label = prettyName(
-                    s?.displayName || s?.canonicalName || s?.file?.name
-                  );
-                  return safeHref
-                    ? `<a href=\"${safeHref}\" data-href=\"${safePath}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
-                    : `<span style=\"white-space:nowrap;\">${label}</span>`;
-                }
-              )
+              .map((s) => {
+                const safePath = s?.file?.path;
+                const safeHref = safePath ? encodeURI(safePath) : "";
+                const label = prettyName(
+                  s?.displayName || s?.canonicalName || s?.file?.name
+                );
+                return safeHref
+                  ? `<a href=\"${safeHref}\" data-href=\"${safePath}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
+                  : `<span style=\"white-space:nowrap;\">${label}</span>`;
+              })
               .join(" · ")}`
           : "暂无匹配的实战策略（可去 Today 里补充周期/或按形态匹配）。"
       }
@@ -344,7 +341,9 @@ orderedGroups.forEach((groupName) => {
 
     for (let s of matches) {
       const page = dv.page(s.file.path);
-      let strategyName = prettyName(s.displayName || s.canonicalName || s.file.name);
+      let strategyName = prettyName(
+        s.displayName || s.canonicalName || s.file.name
+      );
       const p = perf.get(s.canonicalName) || {
         total: 0,
         wins: 0,
@@ -472,7 +471,9 @@ orderedGroups.forEach((groupName) => {
             </div>
 
             <div style="margin-top:10px; display:flex; gap:6px;">
-              <a href="${safeHref}" data-href="${safePath || ""}" class="internal-link" style="
+              <a href="${safeHref}" data-href="${
+        safePath || ""
+      }" class="internal-link" style="
                 flex:1;
                 background:rgba(59,130,246,0.15);
                 color:${cfg.colors.demo};
@@ -542,9 +543,9 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
     const item = strategyByName?.get?.(canonical);
     const display = prettyName(item?.displayName || canonical);
     const nameDisplay = item?.file?.path
-      ? `<a href="${encodeURI(
+      ? `<a href="${encodeURI(item.file.path)}" data-href="${
           item.file.path
-        )}" data-href="${item.file.path}" class="internal-link">${display}</a>`
+        }" class="internal-link">${display}</a>`
       : display;
 
     statsHtml += `

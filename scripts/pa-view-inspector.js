@@ -394,7 +394,8 @@ if (window.paData) {
     if (key === "none" || key.includes("normal")) return "正常/None";
     if (key.includes("fomo")) return "追涨杀跌/FOMO";
     if (key.includes("panic")) return "恐慌/Panic";
-    if (key.includes("valid") || key.includes("scratch")) return "主动离场/Scratch";
+    if (key.includes("valid") || key.includes("scratch"))
+      return "主动离场/Scratch";
     if (key.includes("tight")) return "止损太紧/Tight Stop";
     return toZh(s);
   };
@@ -449,7 +450,9 @@ if (window.paData) {
       return /[a-zA-Z]/.test(s);
     };
     const cnTodoIssues = trades
-      .filter((t) => needsCn(t.strategyName) || needsCn(t.setup) || needsCn(t.error))
+      .filter(
+        (t) => needsCn(t.strategyName) || needsCn(t.setup) || needsCn(t.error)
+      )
       .slice(0, 30);
     const issueCount =
       illegalDetails.length +
