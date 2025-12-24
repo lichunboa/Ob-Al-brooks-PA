@@ -303,7 +303,7 @@ cycleGroupDefs.forEach((def) => {
 
     for (let s of matches) {
       const page = dv.page(s.file.path);
-      let strategyName = s.displayName || s.canonicalName || s.file.name;
+      let strategyName = prettyName(s.displayName || s.canonicalName || s.file.name);
       const p = perf.get(s.canonicalName) || {
         total: 0,
         wins: 0,
@@ -318,11 +318,17 @@ cycleGroupDefs.forEach((def) => {
         "N/A";
       let status = s.statusRaw || "学习中";
       let usageCount = p.total || 0;
-      let setupCategory = (s.setupCategories || []).slice(0, 2).join(", ");
-      let source = s.source || "";
+      let setupCategory = (s.setupCategories || [])
+        .slice(0, 2)
+        .map(prettyName)
+        .join(", ");
+      let source = prettyName(s.source || "");
 
       // 获取市场周期
-      let cycleText = (s.marketCycles || []).slice(0, 2).join(", ");
+      let cycleText = (s.marketCycles || [])
+        .slice(0, 2)
+        .map(prettyName)
+        .join(", ");
 
       // 状态颜色
       let statusColor =
@@ -344,10 +350,15 @@ cycleGroupDefs.forEach((def) => {
           ? "#ef4444"
           : "#6b7280";
 
-      // 生成唯一ID
-      let cardId =
-        "strategy-" +
-        (s.canonicalName || strategyName).replace(/[^a-zA-Z0-9]/g, "-");
+      // 生成唯一ID（避免中文/空导致空ID）
+      const cardIdBase = normStr(
+        s?.file?.path || s?.file?.name || s?.canonicalName || strategyName
+      );
+      const cardIdSlug = (cardIdBase || "strategy")
+        .replace(/[^a-zA-Z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      let cardId = `strategy-${cardIdSlug || "strategy"}`;
       const safePath = s?.file?.path;
       const safeHref = safePath ? encodeURI(safePath) : "";
 
