@@ -73,21 +73,100 @@ await dv.view("scripts/pa-view-manager");
 > > hide backlink
 > > short mode
 > > ```
+>
+> > [!todo] 🛠️ 持续改进 (Improvement)
+> > **🧪 回测任务 (Backtest)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/backtest
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
+> >
+> > **📝 复盘任务 (Review)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/review
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
+> >
+> > **📖 待学习/阅读 (Study)**
+> >
+> > ```tasks
+> > not done
+> > (tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)
+> > path does not include Templates
+> > limit 5
+> > hide backlink
+> > short mode
+> > ```
+> >
+> > **🔬 待验证想法 (Verify)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/verify
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
 
-> [!bug]- 🛡️ 系统巡检 (Admin Only)
-> ```dataviewjs
-> await dv.view("scripts/pa-view-inspector");
+> [!COLUMN]
+>
+> > [!NOTE] 📅 每日例行 (Routine)
+> > **📝 手动打卡 (Checklist)**
+> >
+> > - [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day
+> > - [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day
+> > - [ ] 🌙 **盘后**：填写当日 `复盘日记` 🔁 every day
+> >
+> > **🧹 杂项待办 (To-Do)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/todo
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > limit 5
+> > ```
+
+
+> [!quote] 🛠️ 等待任务 (Maintenance Tasks)
+> **🖨️ 待打印 (Print Queue)**
+>
+> ```tasks
+> not done
+> tag includes #task/print
+> path does not include Templates
+> hide backlink
+> short mode
 > ```
-> ```dataviewjs
-> await dv.view("scripts/pa-view-schema");
+>
+> **📂 待整理 (Organize)**
+>
+> ```tasks
+> not done
+> tag includes #task/organize
+> path does not include Templates
+> hide backlink
+> short mode
 > ```
-> ```dataviewjs
-> // 导出按钮
-> const btn = dv.el("button", "📥 备份数据库");
-> btn.onclick = async () => {
->     const exportData = JSON.stringify(window.paData, null, 2);
->     await app.vault.adapter.write("pa-db-export.json", exportData);
->     new Notice("✅ 备份完成");
-> };
-> ```
+
+
+
+ ```dataviewjs
+ // 导出按钮
+ const btn = dv.el("button", "📥 备份数据库");
+ btn.onclick = async () => {
+     const exportData = JSON.stringify(window.paData, null, 2);
+     await app.vault.adapter.write("pa-db-export.json", exportData);
+     new Notice("✅ 备份完成");
+ };
+ ```
 
