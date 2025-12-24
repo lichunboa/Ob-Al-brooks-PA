@@ -23,7 +23,6 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 const cur = dv.current();
 
-const raw = cur["封面/cover"] ?? cur["cover"];
 const toArr = (v) => {
   if (!v) return [];
   if (Array.isArray(v)) return v;
@@ -48,16 +47,56 @@ const resolvePath = (p) => {
   const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
   return dest?.path || linkpath;
 };
+const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
 
-const covers = toArr(raw)
-  .map(asStr)
-  .map(resolvePath)
-  .map((s) => s.trim())
-  .filter(Boolean);
+async function ensureCoverFromPasteAnchor() {
+  const rawCover = cur["封面/cover"] ?? cur["cover"];
+  const existing = toArr(rawCover).map(asStr).join(" ").trim();
+  if (existing) return;
 
-if (covers.length === 0) {
-  dv.paragraph("（未设置封面：可留空）");
-} else {
+  const tFile = app.vault.getAbstractFileByPath(cur?.file?.path);
+  if (!tFile) return;
+
+  const md = await app.vault.read(tFile);
+  const anchor = "<!--PA_COVER_SOURCE-->";
+  const idx = md.indexOf(anchor);
+  if (idx === -1) return;
+
+  const after = md.slice(idx + anchor.length);
+  const scope = after.split(/\n#{1,6}\s/)[0] || after;
+
+  let m;
+  const wikiRe = /!\[\[([^\]]+?)\]\]/g;
+  while ((m = wikiRe.exec(scope)) !== null) {
+    const linkpath = (m[1] || "").split("|")[0].trim();
+    const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+    const p = dest?.path || linkpath;
+    if (isImagePath(p)) {
+      await app.fileManager.processFrontMatter(tFile, (fm) => {
+        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+          fm["封面/cover"] = `![[${p}]]`;
+        }
+      });
+      return;
+    }
+  }
+}
+
+(async () => {
+  await ensureCoverFromPasteAnchor();
+
+  const raw = cur["封面/cover"] ?? cur["cover"];
+  const covers = toArr(raw)
+    .map(asStr)
+    .map(resolvePath)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (covers.length === 0) {
+    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `封面/cover`）");
+    return;
+  }
+
   for (const p of covers.slice(0, 2)) {
     const f = app.vault.getAbstractFileByPath(p);
     if (!f) {
@@ -73,8 +112,12 @@ if (covers.length === 0) {
       <img src="${app.vault.getResourcePath(f)}" style="max-width:100%; height:auto; display:block; border-radius:6px;" />
     `;
   }
-}
+})();
 ```
+
+<!--PA_COVER_SOURCE-->
+
+> 这里粘贴你的“本节一张代表性截图/图表”（粘贴后会自动写入 frontmatter 的 `封面/cover`）
 
 > **本节核心 (Core Theme)**：
 > *在此处简述本节课主要解决什么问题（例如：如何识别并交易开盘即形成的趋势）*
