@@ -359,6 +359,20 @@ if (window.paData) {
     return "gray";
   };
 
+  const execToCn = (raw) => {
+    const s = (raw || "").toString().trim();
+    if (!s || s === "-") return s;
+    // 常见执行标签：保证一定有中文
+    const key = s.toLowerCase();
+    if (key.includes("perfect")) return "完美/Perfect";
+    if (key === "none" || key.includes("normal")) return "正常/None";
+    if (key.includes("fomo")) return "追涨杀跌/FOMO";
+    if (key.includes("panic")) return "恐慌/Panic";
+    if (key.includes("valid") || key.includes("scratch")) return "主动离场/Scratch";
+    if (key.includes("tight")) return "止损太紧/Tight Stop";
+    return toZh(s);
+  };
+
   // --- 4. 辅助渲染函数 ---
   const renderMiniBar = (data, colorFn) => {
     const total = trades.length || 1; // 用总数做分母
@@ -398,12 +412,26 @@ if (window.paData) {
       (t) => !t.ticker || t.ticker === "Unknown"
     );
     const missingTfIssues = trades.filter((t) => !t.tf || t.tf === "Unknown");
+
+    // 待补充（需要汉化）：常见出现在策略名/执行标签仍为纯英文时
+    const hasCJK = (str) => /[\u4e00-\u9fff]/.test((str || "").toString());
+    const needsCn = (str) => {
+      const s = (str || "").toString().trim();
+      if (!s) return false;
+      if (s === "Unknown" || s === "Empty") return false;
+      if (hasCJK(s)) return false;
+      return /[a-zA-Z]/.test(s);
+    };
+    const cnTodoIssues = trades
+      .filter((t) => needsCn(t.strategyName) || needsCn(t.setup) || needsCn(t.error))
+      .slice(0, 30);
     const issueCount =
       illegalDetails.length +
       logicIssues.length +
       missingSetupIssues.length +
       missingTickerIssues.length +
-      missingTfIssues.length;
+      missingTfIssues.length +
+      cnTodoIssues.length;
 
     detailsHTML = `
       <details class="insp-card" style="border-left: 3px solid ${c.loss};">
@@ -411,7 +439,7 @@ if (window.paData) {
           <span style="font-weight:bold; color:${c.loss};">⚠️ 异常详情</span>
           <span style="font-size:0.8em; opacity:0.7; white-space:nowrap;">
             <strong style="color:${c.loss};">${issueCount}</strong>
-            <span style="opacity:0.8;">（非法值 ${illegalDetails.length} · 逻辑错误 ${logicIssues.length} · 缺失设置 ${missingSetupIssues.length} · 缺失品种 ${missingTickerIssues.length} · 缺失周期 ${missingTfIssues.length}）</span>
+            <span style="opacity:0.8;">（非法值 ${illegalDetails.length} · 逻辑错误 ${logicIssues.length} · 缺失设置 ${missingSetupIssues.length} · 缺失品种 ${missingTickerIssues.length} · 缺失周期 ${missingTfIssues.length} · 待补充 ${cnTodoIssues.length}）</span>
           </span>
         </summary>
         <div style="margin-top:10px; max-height: 200px; overflow-y: auto;">
@@ -468,6 +496,19 @@ if (window.paData) {
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
           <td style="opacity:0.7">空/Empty</td>
           </tr>`;
+    });
+
+    // Add CN TODO issues (click file link to jump)
+    cnTodoIssues.forEach((t) => {
+      const rawStrat = (t.strategyName || t.setup || "-").toString();
+      const rawExec = (t.error || "-").toString();
+      const showStrat = toZh(rawStrat);
+      const showExec = execToCn(rawExec);
+      detailsHTML += `<tr>
+        <td>${t.link}</td>
+        <td><span class="insp-tag" style="background:rgba(59, 130, 246, 0.12); color:${c.demo}">待补充</span></td>
+        <td style="opacity:0.75">策略: ${showStrat} · 执行: ${showExec}</td>
+      </tr>`;
     });
 
     detailsHTML += `</tbody></table></div></details>`;
@@ -592,17 +633,18 @@ if (window.paData) {
                             let resCol =
                               t.pnl > 0 ? c.live : t.pnl < 0 ? c.loss : "gray";
                             // 优先显示新字段，兼容旧字段
-                            let execTxt = (t.error || "-").split("(")[0];
-                            let execCol = execColorFn(execTxt);
+                            let execTxt = (t.error || "-").toString();
+                            let execDisp = execToCn(execTxt);
+                            let execCol = execColorFn(execDisp);
 
                             // 检查缺失项
                             let tkDisp =
                               t.ticker && t.ticker !== "Unknown"
-                                ? `<b>${t.ticker}</b>`
+                                ? `<b>${toZh(t.ticker)}</b>`
                                 : `<span class="txt-red">未知</span>`;
                             let tfDisp =
                               t.tf && t.tf !== "Unknown"
-                                ? t.tf
+                                ? toZh(t.tf)
                                 : `<span class="txt-red">-</span>`;
 
                             // 策略显示逻辑: 优先策略名(中文) > Setup类别
@@ -614,14 +656,14 @@ if (window.paData) {
                               let sName = t.strategyName;
                               if (strategyLookup.get(sName)) {
                                 let canonical = strategyLookup.get(sName);
-                                if (canonical.includes("("))
-                                  sName = canonical.split("(")[0].trim();
-                                else sName = canonical;
+                                sName = canonical;
                               }
                               stratDisp = sName;
                             } else {
-                              stratDisp = stratDisp.slice(0, 8); // 仅对英文类别截断
+                              stratDisp = stratDisp; // 展示值统一交给 toZh
                             }
+
+                            stratDisp = toZh(stratDisp);
 
                             return `<tr>
                                 ${(() => {
@@ -641,7 +683,7 @@ if (window.paData) {
                                     stratFull.length > 16
                                       ? stratFull.slice(0, 16) + "…"
                                       : stratFull;
-                                  const execFull = execTxt || "-";
+                                  const execFull = execDisp || "-";
                                   const execShort =
                                     execFull.length > 12
                                       ? execFull.slice(0, 12) + "…"

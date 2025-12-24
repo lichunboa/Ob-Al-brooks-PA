@@ -243,62 +243,6 @@ if (scanStats.issues > 0) {
 }
 root.appendChild(panelFix);
 
-// === 模块 3: 📊 数据可视化 (Visual Stats) ===
-// 替代了之前的“字典列表”，提供更有价值的信息
-if (window.paData) {
-  const panelStats = document.createElement("div");
-  panelStats.className = "sch-panel";
-  panelStats.innerHTML = `<div class="sch-header" style="color:${c.text}">📊 核心数据分布 (Data Profile)</div>`;
-
-  const grid = document.createElement("div");
-  grid.className = "sch-grid";
-
-  // 渲染迷你条形图函数
-  const renderMiniChart = (title, data, colorFn) => {
-    let html = `<div class="sch-mini-card"><div style="font-size:0.8em; opacity:0.7; margin-bottom:8px; font-weight:bold;">${title}</div>`;
-    const total = data.reduce((a, b) => a + b[1], 0) || 1;
-    const maxShow = 10;
-    const shown = data.slice(0, maxShow);
-    const rest = Math.max(0, data.length - shown.length);
-
-    const pill = (label, value, col) => {
-      return `<span style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); font-size:0.75em;">
-          <span style="display:inline-block; width:6px; height:6px; border-radius:999px; background:${col}; opacity:0.9;"></span>
-          <span style="opacity:0.9; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${label}</span>
-          <span style="opacity:0.6; font-variant-numeric:tabular-nums;">${value}</span>
-        </span>`;
-    };
-
-    html += `<div style="display:flex; flex-wrap:wrap; gap:6px;">`;
-    shown.forEach(([k, v]) => {
-      const pct = Math.round((v / total) * 100);
-      const col = typeof colorFn === "function" ? colorFn(k) : colorFn;
-      html += pill(prettyVal(k), `${v} (${pct}%)`, col);
-    });
-    if (rest > 0) {
-      html += `<span style="display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.12); font-size:0.75em; opacity:0.6;">+${rest}</span>`;
-    }
-    html += `</div></div>`;
-    return html;
-  };
-
-  // 执行质量配色逻辑
-  const execColor = (k) => {
-    if (k.includes("完美") || k.includes("正常")) return c.live;
-    if (k.includes("主动")) return c.back;
-    return c.loss;
-  };
-
-  grid.innerHTML = `
-        ${renderMiniChart("品种分布 (Ticker)", distData.ticker, c.demo)}
-        ${renderMiniChart("策略分布 (Setup)", distData.setup, c.purple)}
-        ${renderMiniChart("执行质量 (Execution)", distData.exec, execColor)}
-    `;
-
-  panelStats.appendChild(grid);
-  root.appendChild(panelStats);
-}
-
 // === 模块 4: 🏷️ 标签全景 (Tag Cloud) ===
 const panelTag = document.createElement("div");
 panelTag.className = "sch-panel";
