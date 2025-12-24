@@ -19,48 +19,62 @@ if (window.paData) {
         "Strong Trend": "强趋势", "Weak Trend": "弱趋势", "Trading Range": "交易区间",
         "Breakout": "突破", "Channel": "通道", "Broad Channel": "宽通道", "Tight Channel": "窄通道"
     };
-    // 基础映射
-    let setupMap = {
-        "Trend Pullback": "趋势回调", "Trend Breakout": "趋势突破", "Reversal": "反转",
-        "Wedge": "楔形", "Double Top/Bottom": "双顶/底", "MTR": "主要趋势反转",
-        "Final Flag": "末端旗形", "Opening Reversal": "开盘反转"
-    };
-    // 尝试从策略仓库读取最新策略名 (如果有)
+    // --- 策略匹配逻辑 ---
+    let patternToStrategy = {};
+    
     try {
-        // 搜索 "策略仓库 (Strategy Repository)" 文件夹
         let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
         if (stratPages && stratPages.length > 0) {
             stratPages.forEach(p => {
-                // 获取策略名称 (优先使用 frontmatter 中的中文名)
-                let fName = p["策略名称/strategy_name"] || p.file.name;
-                
-                // 1. 映射文件名本身
-                setupMap[p.file.name] = fName;
-                
-                // 2. 映射别名 (aliases)
-                if (p.aliases && p.aliases.length > 0) {
-                    p.aliases.forEach(a => setupMap[a] = fName);
-                }
-
-                // 3. 映射英文策略名 (如果有)
-                // 假设文件名或属性中包含英文，尝试提取括号内的内容作为 key
-                // e.g. "第一均线缺口 (First MA Gap)" -> key: "First MA Gap"
-                if (fName.includes("(") && fName.includes(")")) {
-                    let enName = fName.match(/\(([^)]+)\)/)[1];
-                    if (enName) setupMap[enName] = fName;
+                let sName = p["策略名称/strategy_name"] || p.file.name;
+                // 获取该策略定义的所有形态
+                let patterns = p["观察到的形态/patterns_observed"];
+                if (patterns) {
+                    // 归一化为数组
+                    if (!Array.isArray(patterns)) {
+                        // 处理 Proxy 或单一值
+                        patterns = Array.from(patterns || []); 
+                        if (patterns.length === 0 && p["观察到的形态/patterns_observed"]) patterns = [p["观察到的形态/patterns_observed"]];
+                    }
+                    
+                    // 建立映射: 形态 -> 策略名
+                    patterns.forEach(pat => {
+                        let key = pat.toString().trim();
+                        patternToStrategy[key] = sName;
+                        // 同时也映射英文部分 (如果存在括号) e.g. "20EMA缺口 (20 EMA Gap)" -> "20 EMA Gap"
+                        if (key.includes("(") && key.includes(")")) {
+                            let en = key.match(/\(([^)]+)\)/)[1];
+                            if (en) patternToStrategy[en.trim()] = sName;
+                        }
+                    });
                 }
             });
         }
-    } catch (e) { console.log("策略仓库读取失败", e); }
+    } catch (e) { console.log("策略映射构建失败", e); }
+
+    // 辅助函数: 根据交易的形态列表推断策略
+    function identifyStrategy(trade) {
+        // 1. 优先检查 patterns (精确匹配策略)
+        if (trade.patterns && trade.patterns.length > 0) {
+            for (let p of trade.patterns) {
+                let key = p.toString().trim();
+                if (patternToStrategy[key]) return patternToStrategy[key];
+            }
+        }
+        // 2. 回退到 setup (类别)
+        let cat = trade.setup || "Unknown";
+        // 简单的汉化映射
+        const catMap = {
+            "Trend Pullback": "趋势回调", "Trend Breakout": "趋势突破", "Reversal": "反转",
+            "Wedge": "楔形", "Double Top/Bottom": "双顶/底", "MTR": "主要趋势反转",
+            "Final Flag": "末端旗形", "Opening Reversal": "开盘反转"
+        };
+        return catMap[cat] || cat;
+    }
 
     function trans(map, key) {
         if (!key) return "未知";
-        // 精确匹配优先
         if (map[key]) return map[key];
-        // 模糊匹配
-        for (let k in map) {
-            if (key.toLowerCase().includes(k.toLowerCase())) return map[k];
-        }
         return key;
     }
 
@@ -107,7 +121,7 @@ if (window.paData) {
         else if (acct === "demo") { cum.demo += pnl; curves.demo.push(cum.demo); }
         else if (acct === "backtest") { cum.back += pnl; curves.back.push(cum.back); }
 
-        let s = t.setup || "Unknown";
+        let s = identifyStrategy(t);
         if (!stratStats[s]) stratStats[s] = { win: 0, total: 0 };
         stratStats[s].total++;
         if (pnl > 0) stratStats[s].win++;
@@ -192,7 +206,7 @@ if (window.paData) {
     // 策略排行
     let topStrats = Object.keys(stratStats)
         .map((k) => ({
-        name: trans(setupMap, k),
+        name: k,
         wr: Math.round((stratStats[k].win / stratStats[k].total) * 100),
         total: stratStats[k].total,
         }))

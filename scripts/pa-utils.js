@@ -56,9 +56,24 @@ function getAccountType(rawStr) {
     return "Demo";
 }
 
+// 5. 安全获取数组属性
+function getArr(page, keys) {
+    for (let k of keys) {
+        let val = page[k];
+        if (val) {
+            if (Array.isArray(val) || (val.constructor && val.constructor.name === 'Proxy')) {
+                 return Array.from(val).map(v => v.toString());
+            }
+            return [val.toString()];
+        }
+    }
+    return [];
+}
+
 module.exports = {
     getVal,
     getStr,
     calculateR,
-    getAccountType
+    getAccountType,
+    getArr
 };
