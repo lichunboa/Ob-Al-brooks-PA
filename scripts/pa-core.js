@@ -946,6 +946,154 @@ const buildTradeIndex = (tradeListAsc) => {
 };
 
 // ============================================================
+// 2.6 教练焦点 (仅派生数据，不改 UI)
+// ============================================================
+const buildCoachFocus = (tradeListAsc, index, todayIso) => {
+  const list = Array.isArray(tradeListAsc) ? tradeListAsc : [];
+  const safeNum = (v) => (typeof v === "number" && !Number.isNaN(v) ? v : Number(v) || 0);
+  const isDone = (t) => {
+    const s = (t?.outcome || "").toString().trim();
+    return !!s;
+  };
+  const isWin = (t) => {
+    const s = (t?.outcome || "").toString();
+    return s === "Win" || s.includes("Win") || s.includes("止盈");
+  };
+  const isLoss = (t) => {
+    const s = (t?.outcome || "").toString();
+    return s === "Loss" || s.includes("Loss") || s.includes("止损");
+  };
+  const isScratch = (t) => {
+    const s = (t?.outcome || "").toString();
+    return s === "Scratch" || s.includes("Scratch") || s.includes("保本");
+  };
+
+  const weekStart = moment(todayIso, "YYYY-MM-DD").startOf("isoWeek").format("YYYY-MM-DD");
+  const weekEnd = moment(todayIso, "YYYY-MM-DD").endOf("isoWeek").format("YYYY-MM-DD");
+
+  const windowed = {
+    today: list.filter((t) => t && t.date === todayIso),
+    week: list.filter((t) => t && t.date >= weekStart && t.date <= weekEnd),
+    last30: list.filter((t) => t && t.date && t.date >= moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD")),
+  };
+
+  const summarize = (items) => {
+    const out = {
+      total: items.length,
+      completed: 0,
+      active: 0,
+      wins: 0,
+      losses: 0,
+      scratches: 0,
+      pnl: 0,
+      avgR: 0,
+      winRate: 0,
+      expectancyR: 0,
+    };
+    if (items.length === 0) return out;
+    let rSum = 0;
+    let rCnt = 0;
+    for (const t of items) {
+      out.pnl += safeNum(t?.pnl);
+      if (isDone(t)) {
+        out.completed += 1;
+        if (isWin(t)) out.wins += 1;
+        else if (isLoss(t)) out.losses += 1;
+        else if (isScratch(t)) out.scratches += 1;
+      } else {
+        out.active += 1;
+      }
+      if (typeof t?.r === "number" && !Number.isNaN(t.r)) {
+        rSum += t.r;
+        rCnt += 1;
+      }
+    }
+    out.avgR = rCnt > 0 ? rSum / rCnt : 0;
+    out.winRate = out.completed > 0 ? Math.round((out.wins / out.completed) * 100) : 0;
+    out.expectancyR = out.completed > 0 ? rSum / out.completed : 0;
+    return out;
+  };
+
+  const dimDefs = [
+    { kind: "setupKey", label: "设置/Setup" },
+    { kind: "marketCycleKey", label: "周期/Cycle" },
+    { kind: "strategyKey", label: "策略/Strategy" },
+    { kind: "tickerKey", label: "品种/Ticker" },
+    { kind: "tfKey", label: "周期/TF" },
+    { kind: "dirKey", label: "方向/Dir" },
+  ];
+
+  const computeDim = (items, kind) => {
+    const groups = new Map();
+    for (const t of items) {
+      const k = (t?.[kind] || "unknown").toString().trim() || "unknown";
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    }
+
+    const rows = [];
+    for (const [k, g] of groups) {
+      const s = summarize(g);
+      // 只在“已完成样本”足够时才给出强信号，避免噪声
+      const minCompleted = 2;
+      const weight = Math.min(1, s.completed / 8); // 0~1
+      const penalty = s.completed >= minCompleted ? Math.max(0, -s.expectancyR) : 0;
+      const urgency = penalty * (0.5 + 0.5 * weight); // 越亏、样本越多越紧急
+
+      rows.push({
+        kind,
+        key: k,
+        label: index?.labels?.[kind]?.get?.(k) || "",
+        stats: s,
+        urgency,
+      });
+    }
+
+    rows.sort((a, b) => (b.urgency || 0) - (a.urgency || 0));
+    return rows;
+  };
+
+  const pickFocus = (items) => {
+    let best = null;
+    for (const def of dimDefs) {
+      const rows = computeDim(items, def.kind);
+      if (rows.length === 0) continue;
+      const top = rows[0];
+      if (!best || (top.urgency || 0) > (best.urgency || 0)) {
+        best = { ...top, dimLabel: def.label };
+      }
+    }
+    return best;
+  };
+
+  const build = (items, meta) => {
+    const summary = summarize(items);
+    const focus = pickFocus(items);
+    const topDims = {};
+    for (const def of dimDefs) {
+      const rows = computeDim(items, def.kind).slice(0, 3);
+      topDims[def.kind] = rows;
+    }
+
+    return {
+      ...meta,
+      summary,
+      focus,
+      top: topDims,
+    };
+  };
+
+  return {
+    today: build(windowed.today, { date: todayIso }),
+    week: build(windowed.week, { start: weekStart, end: weekEnd }),
+    last30: build(windowed.last30, {
+      start: moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD"),
+      end: todayIso,
+    }),
+  };
+};
+
+// ============================================================
 // 3. 混合推荐 (每次运行重算)
 // ============================================================
 let candidates = [];
@@ -979,10 +1127,12 @@ if (candidates.length > 0) {
 // 4. 数据挂载 & 状态栏
 // ============================================================
 const index = buildTradeIndex(trades);
+const coach = buildCoachFocus(trades, index, todayStr);
 window.paData = {
   trades: [...trades].reverse(),
   tradesAsc: trades,
   index: index,
+  coach: coach,
   stats: stats,
   sr: srData,
   course: courseData,
