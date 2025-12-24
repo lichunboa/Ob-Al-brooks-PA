@@ -340,7 +340,7 @@ orderedGroups.forEach((groupName) => {
   if (matches.length > 0) {
     html += `<div style="margin-bottom:14px;">
       <div style="font-size:0.85em; opacity:0.7; font-weight:bold; margin-bottom:8px;">${groupName} (${matches.length})</div>
-      <div style="display:flex; flex-direction:column; gap:8px;">`;
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:8px;">`;
 
     for (let s of matches) {
       const page = dv.page(s.file.path);
@@ -367,85 +367,28 @@ orderedGroups.forEach((groupName) => {
       let source = prettyName(s.source || "");
 
       // 获取市场周期
-      let cycleText = (s.marketCycles || [])
-        .slice(0, 2)
-        .map(cycleToCn)
-        .join(", ");
-
-      // 状态颜色
-      let statusColor =
-        statusKey.includes("active") || statusKey.includes("实战")
-          ? "#22c55e"
-          : statusKey.includes("valid") ||
-            statusKey.includes("verify") ||
-            statusKey.includes("test") ||
-            statusKey.includes("验证")
-          ? "#fbbf24"
-          : statusKey.includes("learn") ||
-            statusKey.includes("study") ||
-            statusKey.includes("read") ||
-            statusKey.includes("学习")
-          ? "#3b82f6"
-          : "#6b7280";
-
-      // 胜率颜色
-      let winRateColor =
-        winRate >= 60
-          ? "#22c55e"
-          : winRate >= 50
-          ? "#fbbf24"
-          : winRate > 0
-          ? "#ef4444"
-          : "#6b7280";
-
-      // 生成唯一ID（避免中文/空导致空ID）
-      const cardIdBase = normStr(
-        s?.file?.path || s?.file?.name || s?.canonicalName || strategyName
-      );
-      const cardIdSlugBase = normStr(s?.file?.name || s?.canonicalName || "s");
-      const cardIdSlug = cardIdSlugBase
-        .replace(/[^a-zA-Z0-9]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-      const cardIdHash = hashId(cardIdBase || cardIdSlugBase);
-      let cardId = `strategy-${cardIdSlug || "s"}-${cardIdHash}`;
-      const safePath = s?.file?.path;
-      const safeHref = safePath ? encodeURI(safePath) : "";
-
       html += `
-      <div style="
+      <details id="${cardId}" style="
         background:rgba(255,255,255,0.03);
         border:1px solid rgba(255,255,255,0.1);
         border-radius:8px;
         overflow:hidden;
-        transition: all 0.2s;
-      " onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(59,130,246,0.3)';" 
-         onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.1)';">
-        
-        <!-- 卡片头部 - 可点击展开 -->
-        <div onclick="
-          let detail = document.getElementById('${cardId}');
-          let arrow = document.getElementById('${cardId}-arrow');
-          if(detail.style.display === 'none') {
-            detail.style.display = 'block';
-            arrow.style.transform = 'rotate(90deg)';
-          } else {
-            detail.style.display = 'none';
-            arrow.style.transform = 'rotate(0deg)';
-          }
-        " style="
+      ">
+        <summary style="
+          list-style:none;
           padding:8px 10px;
           cursor:pointer;
           display:flex;
           justify-content:space-between;
-          align-items:center;
+          align-items:flex-start;
+          gap:8px;
         ">
-          <div style="flex:1;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; min-width:0;">
               <span style="font-size:0.88em; font-weight:600; color:${
                 cfg.colors.demo
-              };">${strategyName}</span>
-              <span style="font-size:0.65em; padding:2px 6px; background:${statusColor}20; color:${statusColor}; border-radius:3px;">● ${status}</span>
+              }; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${strategyName}</span>
+              <span style="font-size:0.65em; padding:2px 6px; background:${statusColor}20; color:${statusColor}; border-radius:3px; white-space:nowrap;">● ${status}</span>
             </div>
             <div style="display:flex; gap:10px; font-size:0.68em; opacity:0.7; flex-wrap:wrap;">
               <span>📊 R/R: <strong>${riskReward}</strong></span>
@@ -464,6 +407,40 @@ orderedGroups.forEach((groupName) => {
                   ? `<span>🕒 最近: <strong>${p.lastDate}</strong></span>`
                   : ""
               }
+            </div>
+          </div>
+          <span class="pb-arrow" style="font-size:0.8em; opacity:0.5; line-height:1.4; transform:rotate(0deg); transition:transform 0.15s;">▶</span>
+        </summary>
+
+        <div style="padding:0 10px 10px 10px; border-top:1px solid rgba(255,255,255,0.05);">
+          <div style="margin-top:8px; font-size:0.74em;">
+            <div style="display:grid; grid-template-columns: auto 1fr; gap:6px 12px; opacity:0.8;">
+              <span style="opacity:0.6;">市场周期:</span>
+              <span>${cycleText || "无/N/A"}</span>
+
+              <span style="opacity:0.6;">设置类别:</span>
+              <span>${setupCategory || "无/N/A"}</span>
+
+              <span style="opacity:0.6;">来源:</span>
+              <span>${source || "无/N/A"}</span>
+            </div>
+
+            <div style="margin-top:10px; display:flex; gap:6px;">
+              <a href="${safeHref}" data-href="${safePath || ""}" class="internal-link" style="
+                flex:1;
+                background:rgba(59,130,246,0.15);
+                color:${cfg.colors.demo};
+                padding:6px 10px;
+                border-radius:4px;
+                text-decoration:none;
+                font-size:0.75em;
+                text-align:center;
+                border:1px solid rgba(59,130,246,0.3);
+              ">${safePath ? "📖 查看详情" : "⚠️ 无法打开"}</a>
+            </div>
+          </div>
+        </div>
+      </details>`;
             </div>
           </div>
           <div id="${cardId}-arrow" style="
@@ -585,9 +562,16 @@ html += statsHtml;
 
 const root = dv.el("div", "", { attr: { style: cfg.colors.cardBg } });
 root.innerHTML = `
+<style>
+  .pa-pb summary::-webkit-details-marker { display: none; }
+  .pa-pb details[open] .pb-arrow { transform: rotate(90deg); }
+  .pa-pb summary { user-select: none; }
+</style>
+<div class="pa-pb">
 <div style="font-weight:700; opacity:0.7; margin-bottom:12px;">🗂️ 策略仓库 (Strategy Repository)</div>
 ${
   html ||
   `<div style='opacity:0.5; font-size:0.8em;'>暂无策略卡片。<br>请在策略仓库中创建策略卡片。</div>`
 }
+</div>
 `;
