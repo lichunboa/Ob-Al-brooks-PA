@@ -42,11 +42,18 @@ if (window.paData) {
     for (const s of sIdx.list) {
       const canonical = s.canonicalName || s.displayName || s.file?.name;
       if (!canonical) continue;
-      const patternSet = new Set((s.patterns || []).map((x) => x.toString().trim()).filter(Boolean));
-      const categorySet = new Set(
-        (s.setupCategories || []).map((x) => x.toString().trim()).filter(Boolean)
+      const patternSet = new Set(
+        (s.patterns || []).map((x) => x.toString().trim()).filter(Boolean)
       );
-      strategyMap.set(canonical, { patterns: patternSet, category: categorySet });
+      const categorySet = new Set(
+        (s.setupCategories || [])
+          .map((x) => x.toString().trim())
+          .filter(Boolean)
+      );
+      strategyMap.set(canonical, {
+        patterns: patternSet,
+        category: categorySet,
+      });
     }
     if (sIdx.lookup) strategyLookup = sIdx.lookup;
     else {
@@ -266,7 +273,11 @@ if (window.paData) {
       if (str.includes("(") && str.endsWith(")")) {
         const parts = str.split("(");
         const cn = (parts[0] || "").trim();
-        const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+        const en = parts
+          .slice(1)
+          .join("(")
+          .replace(/\)\s*$/, "")
+          .trim();
         return { cn, en };
       }
       return null;
@@ -380,8 +391,12 @@ if (window.paData) {
     missing.tf > 0
   ) {
     const logicIssues = trades.filter((t) => t.pnl !== 0 && t.r === 0);
-    const missingSetupIssues = trades.filter((t) => !t.setup || t.setup === "Unknown");
-    const missingTickerIssues = trades.filter((t) => !t.ticker || t.ticker === "Unknown");
+    const missingSetupIssues = trades.filter(
+      (t) => !t.setup || t.setup === "Unknown"
+    );
+    const missingTickerIssues = trades.filter(
+      (t) => !t.ticker || t.ticker === "Unknown"
+    );
     const missingTfIssues = trades.filter((t) => !t.tf || t.tf === "Unknown");
     const issueCount =
       illegalDetails.length +
@@ -412,14 +427,16 @@ if (window.paData) {
 
       detailsHTML += `<tr>
               <td>${item.link}</td>
-              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">${label}</span></td>
+              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${
+                c.loss
+              }">${label}</span></td>
               <td style="opacity:0.7">${toZh(item.value)}</td>
           </tr>`;
     });
 
     // Add Logic issues (R=0 but PnL!=0)
     logicIssues.forEach((t) => {
-        detailsHTML += `<tr>
+      detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
           <td style="opacity:0.7">盈亏=${t.pnl}, R=0</td>
@@ -428,7 +445,7 @@ if (window.paData) {
 
     // Add Missing Setup
     missingSetupIssues.forEach((t) => {
-        detailsHTML += `<tr>
+      detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
           <td style="opacity:0.7">空/Empty</td>
@@ -437,7 +454,7 @@ if (window.paData) {
 
     // Add Missing Ticker
     missingTickerIssues.forEach((t) => {
-        detailsHTML += `<tr>
+      detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
           <td style="opacity:0.7">空/Empty</td>
@@ -446,7 +463,7 @@ if (window.paData) {
 
     // Add Missing Timeframe
     missingTfIssues.forEach((t) => {
-        detailsHTML += `<tr>
+      detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
           <td style="opacity:0.7">空/Empty</td>
@@ -498,9 +515,13 @@ if (window.paData) {
 
             <details class="insp-card" style="flex:1;">
                 <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:bold; color:${c.purple};">🧠 神经系统诊断</span>
+                    <span style="font-weight:bold; color:${
+                      c.purple
+                    };">🧠 神经系统诊断</span>
                     <span style="display:flex; align-items:center; gap:8px;">
-                      <span style="font-size:0.8em; opacity:0.6;">${D.loadTime}</span>
+                      <span style="font-size:0.8em; opacity:0.6;">${
+                        D.loadTime
+                      }</span>
                       <span class="insp-tag" style="background:${
                         D.isCached ? c.live : c.back
                       }; color:black;">${D.isCached ? "⚡️" : "🐢"}</span>
@@ -612,7 +633,9 @@ if (window.paData) {
                                       .replace(/>/g, "&gt;")
                                       .replace(/\"/g, "&quot;")
                                       .replace(/'/g, "&#39;");
-                                  const dateDisp = t.date ? t.date.slice(5) : "--";
+                                  const dateDisp = t.date
+                                    ? t.date.slice(5)
+                                    : "--";
                                   const stratFull = stratDisp || "-";
                                   const stratShort =
                                     stratFull.length > 16
@@ -627,9 +650,13 @@ if (window.paData) {
                                     <td class="insp-td-date" style="opacity:0.6">${dateDisp}</td>
                                     <td class="insp-td-ticker">${tkDisp}</td>
                                     <td class="insp-td-tf">${tfDisp}</td>
-                                    <td title="${escAttr(stratFull)}">${stratShort}</td>
+                                    <td title="${escAttr(
+                                      stratFull
+                                    )}">${stratShort}</td>
                                     <td class="insp-td-outcome" style="color:${resCol}; font-weight:bold;">${resTxt}</td>
-                                    <td class="insp-td-exec" style="color:${execCol}" title="${escAttr(execFull)}">${execShort}</td>
+                                    <td class="insp-td-exec" style="color:${execCol}" title="${escAttr(
+                                    execFull
+                                  )}">${execShort}</td>
                                   `;
                                 })()}
                             </tr>`;

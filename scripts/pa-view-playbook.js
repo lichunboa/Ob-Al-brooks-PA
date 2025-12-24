@@ -15,7 +15,8 @@ const toArr = (v) => {
   if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
   return [v];
 };
-const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+const normStr = (v) =>
+  v === undefined || v === null ? "" : v.toString().trim();
 const cycleMatches = (cycles, currentCycle) => {
   const cur = normStr(currentCycle);
   if (!cur) return false;
@@ -63,7 +64,9 @@ const todayJournal = dv
   .where((p) => {
     const name = (p?.file?.name || "").toString();
     const isJournal =
-      name.includes("_Journal") || name.toLowerCase().includes("journal") || name.includes("复盘");
+      name.includes("_Journal") ||
+      name.toLowerCase().includes("journal") ||
+      name.includes("复盘");
     if (!isJournal) return false;
     return pageISODate(p) === today;
   })
@@ -73,14 +76,16 @@ const isActiveStrategy = (statusRaw) => {
   if (!s) return false;
   return s.includes("实战") || s.toLowerCase().includes("active");
 };
-const safePct = (wins, total) => (total > 0 ? Math.round((wins / total) * 100) : 0);
+const safePct = (wins, total) =>
+  total > 0 ? Math.round((wins / total) * 100) : 0;
 
 // 将交易归因到策略（策略名优先，其次形态匹配）
 function resolveStrategyCanonical(trade) {
   const raw = normStr(trade?.strategyName);
   if (raw && raw !== "Unknown") {
     if (strategyLookup?.get?.(raw)) return strategyLookup.get(raw);
-    if (strategyLookup?.get?.(raw.toLowerCase())) return strategyLookup.get(raw.toLowerCase());
+    if (strategyLookup?.get?.(raw.toLowerCase()))
+      return strategyLookup.get(raw.toLowerCase());
     return raw;
   }
   const pats = toArr(trade?.patterns).map(normStr).filter(Boolean);
@@ -111,18 +116,28 @@ const strategies = strategyList;
 // 按市场周期分类
 const cycleGroupDefs = [
   { name: "🚀 急速/突破", keywords: ["急速", "突破模式", "Spike", "Breakout"] },
-  { name: "📈 趋势延续", keywords: ["趋势", "强趋势", "趋势回调", "Trend", "Pullback"] },
+  {
+    name: "📈 趋势延续",
+    keywords: ["趋势", "强趋势", "趋势回调", "Trend", "Pullback"],
+  },
   { name: "🔄 交易区间", keywords: ["交易区间", "区间", "Range"] },
   { name: "🔃 反转", keywords: ["反转", "Reversal"] },
 ];
 
 // 避免“同一策略出现在多个组”造成混乱：只归入一个最合适的组。
 // 这里优先把包含“交易区间”的归到交易区间组，其余再按常规优先级分配。
-const groupAssignPriority = ["🔄 交易区间", "📈 趋势延续", "🚀 急速/突破", "🔃 反转"];
+const groupAssignPriority = [
+  "🔄 交易区间",
+  "📈 趋势延续",
+  "🚀 急速/突破",
+  "🔃 反转",
+];
 
 let html = "";
 let totalStrategies = strategies.length;
-let activeStrategies = strategies.filter((s) => isActiveStrategy(s.statusRaw)).length;
+let activeStrategies = strategies.filter((s) =>
+  isActiveStrategy(s.statusRaw)
+).length;
 let usageCount = 0;
 perf.forEach((p) => (usageCount += p.total));
 
@@ -151,25 +166,49 @@ html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6p
 </div>`;
 
 // 今日推荐（基于复盘日记市场周期）
-if (todayJournal && (todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle)) {
+if (
+  todayJournal &&
+  (todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle)
+) {
   const currentCycle =
     todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle;
   const rec = strategies
-    .filter((s) => isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle))
+    .filter(
+      (s) =>
+        isActiveStrategy(s.statusRaw) &&
+        cycleMatches(s.marketCycles, currentCycle)
+    )
     .sort((a, b) => {
-      const pa = perf.get(a.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
-      const pb = perf.get(b.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+      const pa = perf.get(a.canonicalName) || {
+        total: 0,
+        wins: 0,
+        pnl: 0,
+        lastDate: "",
+      };
+      const pb = perf.get(b.canonicalName) || {
+        total: 0,
+        wins: 0,
+        pnl: 0,
+        lastDate: "",
+      };
       return (pb.total || 0) - (pa.total || 0) || (pb.pnl || 0) - (pa.pnl || 0);
     })
     .slice(0, 6);
 
   html += `
   <div style="margin:-6px 0 14px 0; padding:10px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:8px;">
-    <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🌊 今日市场周期: <span style="color:${cfg.colors.demo};">${currentCycle}</span></div>
+    <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🌊 今日市场周期: <span style="color:${
+      cfg.colors.demo
+    };">${currentCycle}</span></div>
     <div style="font-size:0.85em; opacity:0.75;">
       ${
         rec.length
-          ? `推荐优先关注：${rec.map((s) => `<span style=\"white-space:nowrap;\">${s.file.link}</span>`).join(" · ")}`
+          ? `推荐优先关注：${rec
+              .map(
+                (s) =>
+                  `<span style=\"white-space:nowrap;\">${s.file.link}</span>`
+              )
+              .join(" · ")}`
           : "暂无匹配的实战策略（可去 Today 里补充周期/或按形态匹配）。"
       }
     </div>
@@ -183,7 +222,9 @@ const otherBucket = [];
 
 const matchesGroup = (def, cycles) => {
   const keywords = def?.keywords || [];
-  return keywords.some((k) => cycles.some((c) => c.includes(k) || k.includes(c)));
+  return keywords.some((k) =>
+    cycles.some((c) => c.includes(k) || k.includes(c))
+  );
 };
 
 for (const s of strategies) {
@@ -221,12 +262,26 @@ cycleGroupDefs.forEach((def) => {
     const bActive = isActiveStrategy(b.statusRaw) ? 1 : 0;
     if (bActive !== aActive) return bActive - aActive;
 
-    const pa = perf.get(a.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
-    const pb = perf.get(b.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
-    if ((pb.lastDate || "") !== (pa.lastDate || "")) return (pb.lastDate || "").localeCompare(pa.lastDate || "");
-    if ((pb.total || 0) !== (pa.total || 0)) return (pb.total || 0) - (pa.total || 0);
+    const pa = perf.get(a.canonicalName) || {
+      total: 0,
+      wins: 0,
+      pnl: 0,
+      lastDate: "",
+    };
+    const pb = perf.get(b.canonicalName) || {
+      total: 0,
+      wins: 0,
+      pnl: 0,
+      lastDate: "",
+    };
+    if ((pb.lastDate || "") !== (pa.lastDate || ""))
+      return (pb.lastDate || "").localeCompare(pa.lastDate || "");
+    if ((pb.total || 0) !== (pa.total || 0))
+      return (pb.total || 0) - (pa.total || 0);
     if ((pb.pnl || 0) !== (pa.pnl || 0)) return (pb.pnl || 0) - (pa.pnl || 0);
-    return (a.displayName || a.canonicalName || "").localeCompare(b.displayName || b.canonicalName || "");
+    return (a.displayName || a.canonicalName || "").localeCompare(
+      b.displayName || b.canonicalName || ""
+    );
   });
 
   if (matches.length > 0) {
@@ -237,10 +292,18 @@ cycleGroupDefs.forEach((def) => {
     for (let s of matches) {
       const page = dv.page(s.file.path);
       let strategyName = s.displayName || s.canonicalName || s.file.name;
-      const p = perf.get(s.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+      const p = perf.get(s.canonicalName) || {
+        total: 0,
+        wins: 0,
+        pnl: 0,
+        lastDate: "",
+      };
       let winRate = safePct(p.wins, p.total);
       let riskReward =
-        page?.["盈亏比/risk_reward"] || page?.["risk_reward"] || page?.["盈亏比"] || "N/A";
+        page?.["盈亏比/risk_reward"] ||
+        page?.["risk_reward"] ||
+        page?.["盈亏比"] ||
+        "N/A";
       let status = s.statusRaw || "学习中";
       let usageCount = p.total || 0;
       let setupCategory = (s.setupCategories || []).slice(0, 2).join(", ");
@@ -270,7 +333,9 @@ cycleGroupDefs.forEach((def) => {
           : "#6b7280";
 
       // 生成唯一ID
-      let cardId = "strategy-" + (s.canonicalName || strategyName).replace(/[^a-zA-Z0-9]/g, "-");
+      let cardId =
+        "strategy-" +
+        (s.canonicalName || strategyName).replace(/[^a-zA-Z0-9]/g, "-");
       const safePath = s?.file?.path;
       const safeHref = safePath ? encodeURI(safePath) : "";
 
@@ -316,8 +381,16 @@ cycleGroupDefs.forEach((def) => {
                   ? `<span>✓ 胜率: <strong style="color:${winRateColor};">${winRate}%</strong></span>`
                   : ""
               }
-              ${usageCount > 0 ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>` : ""}
-              ${p.lastDate ? `<span>🕒 最近: <strong>${p.lastDate}</strong></span>` : ""}
+              ${
+                usageCount > 0
+                  ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>`
+                  : ""
+              }
+              ${
+                p.lastDate
+                  ? `<span>🕒 最近: <strong>${p.lastDate}</strong></span>`
+                  : ""
+              }
             </div>
           </div>
           <div id="${cardId}-arrow" style="
@@ -374,15 +447,24 @@ if (otherBucket.length > 0) {
     <div style="font-size:0.85em; opacity:0.7; font-weight:bold; margin-bottom:8px;">📦 其他/未分类 (${otherBucket.length})</div>
     <div style="display:flex; flex-direction:column; gap:8px;">`;
   otherBucket
-    .sort((a, b) => (a.displayName || a.canonicalName || "").localeCompare(b.displayName || b.canonicalName || ""))
+    .sort((a, b) =>
+      (a.displayName || a.canonicalName || "").localeCompare(
+        b.displayName || b.canonicalName || ""
+      )
+    )
     .forEach((s) => {
-      const name = s.displayName || s.canonicalName || s.file?.name || "(未命名)";
+      const name =
+        s.displayName || s.canonicalName || s.file?.name || "(未命名)";
       const safePath = s?.file?.path;
       const safeHref = safePath ? encodeURI(safePath) : "";
       html += `
         <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
-          <div style="font-size:0.88em; font-weight:600; color:${cfg.colors.demo};">${name}</div>
-          <a href="${safeHref}" class="internal-link" style="font-size:0.75em; opacity:0.75; text-decoration:none;">${safePath ? "打开 →" : "缺少路径"}</a>
+          <div style="font-size:0.88em; font-weight:600; color:${
+            cfg.colors.demo
+          };">${name}</div>
+          <a href="${safeHref}" class="internal-link" style="font-size:0.75em; opacity:0.75; text-decoration:none;">${
+        safePath ? "打开 →" : "缺少路径"
+      }</a>
         </div>`;
     });
   html += `</div></div>`;
@@ -434,7 +516,9 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
     const item = strategyByName?.get?.(canonical);
     const display = item?.displayName || canonical;
     const nameDisplay = item?.file?.path
-      ? `<a href="${encodeURI(item.file.path)}" class="internal-link">${display}</a>`
+      ? `<a href="${encodeURI(
+          item.file.path
+        )}" class="internal-link">${display}</a>`
       : display;
 
     statsHtml += `

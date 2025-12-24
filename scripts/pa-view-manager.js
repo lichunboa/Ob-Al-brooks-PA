@@ -431,7 +431,11 @@ function openInspector(key, initialTab = "vals") {
     if (s.includes("(") && s.endsWith(")")) {
       const parts = s.split("(");
       const cn = (parts[0] || "").trim();
-      const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+      const en = parts
+        .slice(1)
+        .join("(")
+        .replace(/\)\s*$/, "")
+        .trim();
       if (cn && en) return `${cn}/${en}`;
       if (cn) return cn;
       if (en) return `待补充/${en}`;

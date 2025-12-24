@@ -413,10 +413,12 @@ if (useCache) {
     const toArr = (v) => {
       if (!v) return [];
       if (Array.isArray(v)) return v;
-      if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+      if (v?.constructor && v.constructor.name === "Proxy")
+        return Array.from(v);
       return [v];
     };
-    const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+    const normStr = (v) =>
+      v === undefined || v === null ? "" : v.toString().trim();
     const addLookup = (alias, canonical) => {
       const k = normStr(alias);
       if (!k) return;
@@ -426,7 +428,8 @@ if (useCache) {
 
     for (let p of stratPages) {
       const canonicalName =
-        utils.getStr(p, ["策略名称/strategy_name", "strategy_name"]) || p.file.name;
+        utils.getStr(p, ["策略名称/strategy_name", "strategy_name"]) ||
+        p.file.name;
 
       const statusRaw = utils.getStr(p, [
         "策略状态/strategy_status",
@@ -436,15 +439,21 @@ if (useCache) {
 
       const marketCycles = toArr(
         p["市场周期/market_cycle"] || p["market_cycle"] || p["市场周期"]
-      ).map(normStr).filter(Boolean);
+      )
+        .map(normStr)
+        .filter(Boolean);
       const setupCategories = toArr(
         p["设置类别/setup_category"] || p["setup_category"] || p["设置类别"]
-      ).map(normStr).filter(Boolean);
+      )
+        .map(normStr)
+        .filter(Boolean);
       const patterns = toArr(
         p["观察到的形态/patterns_observed"] ||
           p["patterns_observed"] ||
           p["观察到的形态"]
-      ).map(normStr).filter(Boolean);
+      )
+        .map(normStr)
+        .filter(Boolean);
       const source = utils.getStr(p, ["来源/source", "source", "来源"]);
 
       let displayName = canonicalName;

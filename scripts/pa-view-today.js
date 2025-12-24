@@ -69,7 +69,8 @@ const toArr = (v) => {
   if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
   return [v];
 };
-const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+const normStr = (v) =>
+  v === undefined || v === null ? "" : v.toString().trim();
 const isActiveStrategy = (statusRaw) => {
   const s = normStr(statusRaw);
   if (!s) return false;
@@ -91,7 +92,9 @@ const todayJournal = dv
   .where((p) => {
     const name = (p?.file?.name || "").toString();
     const isJournal =
-      name.includes("_Journal") || name.toLowerCase().includes("journal") || name.includes("复盘");
+      name.includes("_Journal") ||
+      name.toLowerCase().includes("journal") ||
+      name.includes("复盘");
     if (!isJournal) return false;
     return pageISODate(p) === today;
   })
@@ -102,7 +105,11 @@ if (todayJournal && todayJournal.market_cycle) {
   const currentCycle = todayJournal.market_cycle;
   // 查找匹配的策略（复用 strategyIndex，避免重复扫描）
   const recommendedStrategies = strategyList
-    .filter((s) => isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle))
+    .filter(
+      (s) =>
+        isActiveStrategy(s.statusRaw) &&
+        cycleMatches(s.marketCycles, currentCycle)
+    )
     .slice(0, 6);
 
   contextHtml += `
@@ -113,8 +120,8 @@ if (todayJournal && todayJournal.market_cycle) {
         <div style="font-size: 0.9em; color: var(--text-muted);">
             ${
               recommendedStrategies.length > 0
-            ? `推荐关注: ${recommendedStrategies
-              .map((p) => `<b>${p.file.link}</b>`)
+                ? `推荐关注: ${recommendedStrategies
+                    .map((p) => `<b>${p.file.link}</b>`)
                     .join(" · ")}`
                 : "暂无特定策略推荐，建议观望。"
             }
@@ -265,10 +272,13 @@ if (activeTrade) {
 
       for (let s of strategyList) {
         let score = 0;
-        if (marketCycle && cycleMatches(s.marketCycles, marketCycle)) score += 2;
+        if (marketCycle && cycleMatches(s.marketCycles, marketCycle))
+          score += 2;
         if (
           setupCategory &&
-          (s.setupCategories || []).some((x) => normStr(x).includes(normStr(setupCategory)))
+          (s.setupCategories || []).some((x) =>
+            normStr(x).includes(normStr(setupCategory))
+          )
         )
           score += 1;
 
