@@ -15,9 +15,14 @@ style.innerHTML = `
     .insp-title { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
     .insp-item { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 6px; align-items: center; }
     .insp-tag { padding: 1px 5px; border-radius: 3px; font-size: 0.75em; font-weight: bold; }
-    .insp-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
-    .insp-table th { text-align: left; opacity: 0.5; padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .insp-table td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .insp-table { width: 100%; border-collapse: collapse; font-size: 0.76em; margin-top: 8px; table-layout: fixed; }
+  .insp-table th { text-align: left; opacity: 0.5; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; }
+  .insp-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .insp-td-date { width: 44px; }
+  .insp-td-ticker { width: 54px; }
+  .insp-td-tf { width: 54px; }
+  .insp-td-outcome { width: 58px; }
+  .insp-td-exec { width: 100px; }
     .txt-red { color: ${c.loss}; } .txt-green { color: ${c.live}; } .txt-dim { opacity: 0.5; }
 `;
 document.head.appendChild(style);
@@ -408,31 +413,33 @@ if (window.paData) {
                 }">${missing.stratMismatch}</span></div>
             </div>
 
-            <div class="insp-card">
-                <div class="insp-title" style="color:${c.purple}">
-                    <span>🧠 神经系统诊断</span>
-                    <span class="insp-tag" style="background:${
-                      D.isCached ? c.live : c.back
-                    }; color:black;">${D.isCached ? "⚡️" : "🐢"}</span>
-                </div>
-                <div class="insp-item"><span>加载耗时</span> <span>${
-                  D.loadTime
-                }</span></div>
-                <div class="insp-item"><span>每日一题池</span> <span class="${
-                  sr.quizPool.length > 0 ? "txt-green" : "txt-red"
-                }">${sr.quizPool.length} 题</span></div>
-                <div class="insp-item"><span>文件夹识别</span> <span class="${
-                  Object.keys(sr.folders).length > 0 ? "txt-green" : "txt-red"
-                }">${
+            <details class="insp-card" style="flex:1;">
+                <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:bold; color:${c.purple};">🧠 神经系统诊断</span>
+                    <span style="display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:0.8em; opacity:0.6;">${D.loadTime}</span>
+                      <span class="insp-tag" style="background:${
+                        D.isCached ? c.live : c.back
+                      }; color:black;">${D.isCached ? "⚡️" : "🐢"}</span>
+                    </span>
+                </summary>
+                <div style="margin-top:10px;">
+                  <div class="insp-item"><span>每日一题池</span> <span class="${
+                    sr.quizPool.length > 0 ? "txt-green" : "txt-red"
+                  }">${sr.quizPool.length} 题</span></div>
+                  <div class="insp-item"><span>文件夹识别</span> <span class="${
+                    Object.keys(sr.folders).length > 0 ? "txt-green" : "txt-red"
+                  }">${
     Object.keys(sr.folders).length > 0 ? "✅ 正常" : "❌ 失败"
   }</span></div>
-                <div class="insp-item"><span>大纲加载</span> <span class="${
-                  D.course.syllabus.length > 0 ? "txt-green" : "txt-red"
-                }">${D.course.syllabus.length} 课</span></div>
-                <div class="insp-item"><span>策略库同步</span> <span class="${
-                  strategyMap.size > 0 ? "txt-green" : "txt-red"
-                }">${strategyMap.size} 个</span></div>
-            </div>
+                  <div class="insp-item"><span>大纲加载</span> <span class="${
+                    D.course.syllabus.length > 0 ? "txt-green" : "txt-red"
+                  }">${D.course.syllabus.length} 课</span></div>
+                  <div class="insp-item"><span>策略库同步</span> <span class="${
+                    strategyMap.size > 0 ? "txt-green" : "txt-red"
+                  }">${strategyMap.size} 个</span></div>
+                </div>
+            </details>
         </div>
 
         ${detailsHTML}
@@ -513,12 +520,35 @@ if (window.paData) {
                             }
 
                             return `<tr>
-                                <td style="opacity:0.6">${t.date.slice(5)}</td>
-                                <td>${tkDisp}</td>
-                                <td>${tfDisp}</td>
-                                <td>${stratDisp}</td>
-                                <td style="color:${resCol}; font-weight:bold;">${resTxt}</td>
-                                <td style="color:${execCol}">${execTxt}</td>
+                                ${(() => {
+                                  const escAttr = (s) =>
+                                    (s ?? "")
+                                      .toString()
+                                      .replace(/&/g, "&amp;")
+                                      .replace(/</g, "&lt;")
+                                      .replace(/>/g, "&gt;")
+                                      .replace(/\"/g, "&quot;")
+                                      .replace(/'/g, "&#39;");
+                                  const dateDisp = t.date ? t.date.slice(5) : "--";
+                                  const stratFull = stratDisp || "-";
+                                  const stratShort =
+                                    stratFull.length > 16
+                                      ? stratFull.slice(0, 16) + "…"
+                                      : stratFull;
+                                  const execFull = execTxt || "-";
+                                  const execShort =
+                                    execFull.length > 12
+                                      ? execFull.slice(0, 12) + "…"
+                                      : execFull;
+                                  return `
+                                    <td class="insp-td-date" style="opacity:0.6">${dateDisp}</td>
+                                    <td class="insp-td-ticker">${tkDisp}</td>
+                                    <td class="insp-td-tf">${tfDisp}</td>
+                                    <td title="${escAttr(stratFull)}">${stratShort}</td>
+                                    <td class="insp-td-outcome" style="color:${resCol}; font-weight:bold;">${resTxt}</td>
+                                    <td class="insp-td-exec" style="color:${execCol}" title="${escAttr(execFull)}">${execShort}</td>
+                                  `;
+                                })()}
                             </tr>`;
                           })
                           .join("")}
