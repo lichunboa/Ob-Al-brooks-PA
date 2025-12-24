@@ -3,15 +3,15 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover:
+cover:
 module_id:
 studied: false
-关联知识/associated knowledge:
+associated_knowledge:
 aliases:
-市场周期/market_cycle:
-设置类别/setup_category:
-概率/probability:
-来源/source:
+market_cycle:
+setup_category:
+probability:
+source:
 ---
 
 # 📺 1. 课程概览 (Module Overview)
@@ -51,7 +51,7 @@ const resolvePath = (p) => {
 const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
 
 async function ensureCoverFromPasteAnchor() {
-  const rawCover = cur["封面/cover"] ?? cur["cover"];
+  const rawCover = cur["cover"] ?? cur["封面/cover"];
   const existing = toArr(rawCover).map(asStr).join(" ").trim();
   if (existing) return;
 
@@ -74,8 +74,8 @@ async function ensureCoverFromPasteAnchor() {
     const p = dest?.path || linkpath;
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
-          fm["封面/cover"] = `![[${p}]]`;
+        if (fm["cover"] === undefined && fm["封面/cover"] === undefined) {
+          fm["cover"] = `![[${p}]]`;
         }
       });
       return;
@@ -86,7 +86,7 @@ async function ensureCoverFromPasteAnchor() {
 (async () => {
   await ensureCoverFromPasteAnchor();
 
-  const raw = cur["封面/cover"] ?? cur["cover"];
+  const raw = cur["cover"] ?? cur["封面/cover"];
   const covers = toArr(raw)
     .map(asStr)
     .map(resolvePath)
@@ -94,7 +94,7 @@ async function ensureCoverFromPasteAnchor() {
     .filter(Boolean);
 
   if (covers.length === 0) {
-    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `封面/cover`）");
+    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `cover`）");
     return;
   }
 
