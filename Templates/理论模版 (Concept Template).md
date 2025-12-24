@@ -117,37 +117,38 @@ async function ensureCoverFromPasteAnchor() {
 
 <!--PA_COVER_SOURCE-->
 
-> 这里粘贴你的“本节一张代表性截图/图表”（粘贴后会自动写入 frontmatter 的 `封面/cover`）
+（在此粘贴本节主图；会自动写入 `封面/cover`）
 
-> **本节核心 (Core Theme)**：
-> *在此处简述本节课主要解决什么问题（例如：如何识别并交易开盘即形成的趋势）*
+**本节核心**：
 
-> [!COLUMN] 🚀 核心知识点
-> 1. 开盘时的趋势 (Trend from Open)
-> 2. 交易区间的趋势 (Trend in Trading Range)
-> 3. 宽通道趋势 (Broad Channel Trend)
-> 4. 
+- 
+
+**核心知识点**
+
+1. 开盘时的趋势 (Trend from Open)
+2. 交易区间的趋势 (Trend in Trading Range)
+3. 宽通道趋势 (Broad Channel Trend)
 
 
 ---
 
 # 📝 2. 核心知识点拆解 (Key Topics)
-*根据大纲，本节课包含以下部分，请分别记录细节：*
+
 
 ## 🔹 2.1 开盘时的趋势 (Trend from Open)
-* **特征 (Characteristics)**：📖
-    * 第一根K线就是强趋势K线吗？
-    * 缺口有多大？
+
+**特征 (Characteristics)**
+
+- 第一根K线是强趋势K线吗？
+- 缺口有多大？
 
 ### 🔍  结构拆解 (Micro-Structure)
-*这里结合 Al Brooks 的逐根 K 线讲解 (Bar-by-bar analysis)*
 
-* **信号棒 (Signal Bar)**：
-* **入场棒 (Entry Bar)**：
-* **后续跟进 (Follow-through)**：
+- **信号棒 (Signal Bar)**：
+- **入场棒 (Entry Bar)**：
+- **后续跟进 (Follow-through)**：
 
-> [!EXAMPLE] ⚖️ 优质 vs 劣质形态对比 (Comparison)
-> *Al Brooks 经常强调 setup 的质量差异，请填下表*
+### ⚖️ 优质 vs 劣质形态对比 (Comparison)
 > 
 | 特征 (Feature) | ✅ 高胜率版本 (High Prob) | ❌ 低胜率/陷阱版本 (Trap/Low Prob) |
 | :--- | :--- | :--- |
@@ -168,24 +169,29 @@ async function ensureCoverFromPasteAnchor() {
 
 ---
 
-> [!TIP] 🧠 市场心理 (Psychology)
-> * **被套方 (Trapped)**：
-> * **获利方 (Profit)**：
 
-> [!TIP] 细节与例外 (Nuances & Exceptions)
-> * "When the market is in a broad channel, you trade it like a trading range."
-> * (在此记录他在视频里随口说的重要规则)
+### 🧠 市场心理 (Psychology)
+
+- **被套方 (Trapped)**：
+- **获利方 (Profit)**：
+
+### 细节与例外 (Nuances & Exceptions)
+
+- "When the market is in a broad channel, you trade it like a trading range."
+- 
 
 
 ### ⚔️ 交易策略 (Strategy)
-* **入场 (Entry)**：
-    * Stop Order (突破单):
-    * Limit Order (限价单):
-* **止损 (Stop)**：
-* **目标 (Target / MM)**：
 
-> [!DANGER] ⚠️ 陷阱与失败 (Failure Mode)
-> * 如果此形态失败 (Failure)，通常演变为：[[ ]]
+- **入场 (Entry)**：
+  - Stop Order (突破单):
+  - Limit Order (限价单):
+- **止损 (Stop)**：
+- **目标 (Target / MM)**：
+
+### ⚠️ 陷阱与失败 (Failure Mode)
+
+- 如果此形态失败 (Failure)，通常演变为：
 
 ---
 
@@ -202,18 +208,17 @@ async function ensureCoverFromPasteAnchor() {
 ---
 
 # 🧠 3. 课后总结 (Summary) #task/Summary
-> [!CHECK] 学习检查清单
-> - [ ] 我能区分宽通道和窄通道吗？
-> - [ ] 我知道开盘趋势的止损放在哪吗？
+
+学习检查清单
+
+- [ ] 我能区分宽通道和窄通道吗？
+- [ ] 我知道开盘趋势的止损放在哪吗？
 
 ---
 
 # 🗂️ 4. 制卡/复习（可选 / SR）
 
-> [!note] 规则对齐当前卡片模块
-> - 只有你给本笔记加了 `#flashcards`（标签）时，系统才会纳入复习。
-> - 卡片语法支持：`问题 :: 答案`、`答案 ::: 问题`、以及 `==cloze==`。
-> - 示例放在代码块里，不会被系统计入；你要制卡就把格式写在正文普通段落里。
+（需要 `#flashcards` 才会进入复习）
 
 ```text
 什么是 Trend from Open（TFO）？ :: （一句话定义 + 最关键的交易含义）
@@ -221,4 +226,4 @@ async function ensureCoverFromPasteAnchor() {
 宽通道趋势更像 ==交易区间==（如何执行）
 ```
 
-- （在这里写你的卡片，每行一张；不要写在代码块里）
+- 
