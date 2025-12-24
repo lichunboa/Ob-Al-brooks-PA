@@ -114,7 +114,7 @@ if (window.paData && window.paData.sr) {
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-                <div class="mem-icon-btn" title="Force Refresh" onclick="window.paForceReload=true; this.innerHTML='⏳'; setTimeout(()=>app.commands.executeCommandById('dataview:dataview-force-refresh-views'), 200);">🔄</div>
+              <div class="mem-icon-btn" title="Force Refresh" onclick="this.innerHTML='⏳'; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
             </div>
         </div>
     `;
@@ -239,7 +239,7 @@ if (window.paData && window.paData.sr) {
             </div>
             <div class="mem-rec-box mem-card" style="border-color:${recColor}44; background: linear-gradient(135deg, ${recColor}11 0%, rgba(0,0,0,0) 100%);">
                 ${recContent}
-                <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); window.paForceReload=true; app.commands.executeCommandById('dataview:dataview-force-refresh-views');" title="Shake for new card">🎲</div>
+              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="Shake for new card">🎲</div>
             </div>
         </div>
     `;

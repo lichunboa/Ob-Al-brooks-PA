@@ -12,13 +12,46 @@ const startT = performance.now();
 const todayStr = moment().format("YYYY-MM-DD");
 
 // --- 1. 缓存控制 (Smart Cache) ---
-// 强制刷新一次以应用 pa-utils.js 的修复
-const forceReload = false; // window.paForceReload === true;
+// 强制刷新: 由各视图/按钮置位 window.paForceReload=true 触发
+const forceReload = window.paForceReload === true;
 window.paForceReload = false;
 
+// 统一 Dataview 刷新：兼容不同版本的 commandId
+window.paRefreshViews = async (opts = {}) => {
+  try {
+    if (opts.hard) window.paForceReload = true;
+    const cmdIds = [
+      "dataview:force-refresh-views",
+      "dataview:dataview-force-refresh-views",
+    ];
+    for (const id of cmdIds) {
+      try {
+        await app.commands.executeCommandById(id);
+        return true;
+      } catch (_) {
+        // try next id
+      }
+    }
+  } catch (e) {
+    console.log("paRefreshViews failed", e);
+  }
+  return false;
+};
+
 let useCache = false;
+
+// 缓存过期控制（默认使用 cfg.settings.cacheExpiry）
+const cacheExpiryMs = Number(cfg?.settings?.cacheExpiry || 0);
+const nowMs = Date.now();
+const cacheFresh =
+  !cacheExpiryMs ||
+  (window.paData &&
+    typeof window.paData.cacheTs === "number" &&
+    nowMs - window.paData.cacheTs < cacheExpiryMs);
+
 if (
   !forceReload &&
+  cacheFresh &&
   window.paData &&
   window.paData.tradesAsc &&
   window.paData.tradesAsc.length > 0
@@ -397,6 +430,7 @@ window.paData = {
   sr: srData,
   course: courseData,
   updateTime: moment().format("HH:mm:ss"),
+  cacheTs: Date.now(),
   loadTime: (performance.now() - startT).toFixed(0) + "ms",
   isCached: useCache,
 };
@@ -430,12 +464,10 @@ setTimeout(() => {
   const btnRefresh = document.getElementById(refreshBtnId);
   const btnHard = document.getElementById(hardBtnId);
   if (btnRefresh)
-    btnRefresh.onclick = () =>
-      app.commands.executeCommandById("dataview:force-refresh-views");
+    btnRefresh.onclick = () => window.paRefreshViews?.({ hard: false });
   if (btnHard)
     btnHard.onclick = () => {
       new Notice("正在重新扫描全库...");
-      window.paForceReload = true;
-      app.commands.executeCommandById("dataview:force-refresh-views");
+      window.paRefreshViews?.({ hard: true });
     };
 }, 500);
