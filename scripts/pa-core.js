@@ -1100,8 +1100,19 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       const s = start.format("YYYY-MM-DD");
       const e = end.format("YYYY-MM-DD");
       const items = list.filter((t) => t && t.date && t.date >= s && t.date <= e);
-      const focus = pickFocus(items);
-      out.push({ start: s, end: e, focus });
+
+      // 每周 Top3 候选：把各维度最紧急的那一条汇总后取 Top3
+      const cand = [];
+      for (const def of dimDefs) {
+        const rows = computeDim(items, def.kind);
+        if (!rows || rows.length === 0) continue;
+        const top = rows[0];
+        if (top && (Number(top.urgency) || 0) > 0) cand.push({ ...top, dimLabel: def.label });
+      }
+      cand.sort((a, b) => (Number(b.urgency) || 0) - (Number(a.urgency) || 0));
+      const top3 = cand.slice(0, 3);
+      const focus = top3.length > 0 ? top3[0] : pickFocus(items);
+      out.push({ start: s, end: e, focus, top3 });
     }
     return out; // 从本周开始倒序
   };
@@ -1124,27 +1135,31 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       return `${row.kind}:${row.key}`;
     };
 
-    // 周维度：出现次数 + 连续周数（周优先）
+    // 周维度：Top3 暴露次数 + 连续周数（周优先，SR 风格）
+    const weeklyTopIdSets = weeklySeries.map((w) => {
+      const ids = (Array.isArray(w?.top3) ? w.top3 : [])
+        .map(idOf)
+        .filter(Boolean);
+      return new Set(ids);
+    });
+
     const weekHits = new Map(); // id -> count
-    for (const w of weeklySeries) {
-      const id = idOf(w?.focus);
-      if (!id) continue;
-      weekHits.set(id, (weekHits.get(id) || 0) + 1);
+    for (const set of weeklyTopIdSets) {
+      for (const id of set) weekHits.set(id, (weekHits.get(id) || 0) + 1);
     }
-    let weekStreakId = null;
-    let weekStreakLen = 0;
-    for (const w of weeklySeries) {
-      const id = idOf(w?.focus);
-      if (!id) break;
-      if (weekStreakId === null) {
-        weekStreakId = id;
-        weekStreakLen = 1;
-      } else if (id === weekStreakId) {
-        weekStreakLen += 1;
-      } else {
-        break;
+
+    const weekStreakCache = new Map();
+    const weekStreakOf = (id) => {
+      if (!id) return 0;
+      if (weekStreakCache.has(id)) return weekStreakCache.get(id);
+      let n = 0;
+      for (const set of weeklyTopIdSets) {
+        if (set.has(id)) n += 1;
+        else break;
       }
-    }
+      weekStreakCache.set(id, n);
+      return n;
+    };
 
     const addRow = (windowName, row) => {
       if (!row) return;
@@ -1164,7 +1179,7 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
           windows: new Set(),
           lastSeen: windowName,
           weekHitCount: weekHits.get(k) || 0,
-          weekStreak: weekStreakId === k ? weekStreakLen : 0,
+          weekStreak: weekStreakOf(k) || 0,
           // 取“更大样本”的统计作为展示参考（last30 优先）
           stats: row.stats,
           urgency: row.urgency,
@@ -1245,6 +1260,14 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
                 stats: w.focus.stats,
               }
             : null,
+          top3: (Array.isArray(w.top3) ? w.top3 : []).map((t) => ({
+            kind: t.kind,
+            key: t.key,
+            label: t.label,
+            dimLabel: t.dimLabel,
+            urgency: t.urgency,
+            stats: t.stats,
+          })),
         })),
       },
     };
