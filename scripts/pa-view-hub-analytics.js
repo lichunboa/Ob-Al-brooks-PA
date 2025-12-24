@@ -435,13 +435,29 @@ if (window.paData) {
                 </div>
                 <div>
                     <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略</div>
-                    <div style="display:flex; flex-direction:column; gap:6px;">
-                        ${topStrats.map(s => `
-                            <div style="display:flex; justify-content:space-between; font-size:0.85em; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
-                                <span>${s.name}</span>
-                                <span><span style="color:${s.wr > 50 ? c.live : c.back}">${s.wr}%</span> <span style="opacity:0.4">(${s.total})</span></span>
-                            </div>
-                        `).join("")}
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${topStrats.map(s => {
+                            let color = s.wr >= 50 ? c.live : (s.wr >= 40 ? c.back : c.loss);
+                            // 简化的策略名显示 (去除括号内的英文以节省空间，如果太长)
+                            let displayName = s.name;
+                            if (displayName.length > 12 && displayName.includes("(")) {
+                                displayName = displayName.split("(")[0].trim();
+                            }
+                            
+                            return `
+                            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
+                                <div style="flex:1; min-width:0; margin-right:10px;">
+                                    <div style="font-size:0.85em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;" title="${s.name}">${displayName}</div>
+                                    <div style="width:100%; height:3px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
+                                        <div style="width:${s.wr}%; height:100%; background:${color};"></div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right; flex-shrink:0;">
+                                    <div style="font-size:0.9em; font-weight:bold; color:${color};">${s.wr}%</div>
+                                    <div style="font-size:0.65em; opacity:0.4;">${s.total} 笔</div>
+                                </div>
+                            </div>`;
+                        }).join("")}
                     </div>
                 </div>
             </div>
