@@ -73,18 +73,31 @@ container.onmousedown = (e) => {
   if (e.target === container) e.stopPropagation();
 };
 
+// 外层折叠容器：默认收起，避免在控制台里占太多空间
+const wrapper = document.createElement("details");
+wrapper.className = "pa-v18-wrap";
+wrapper.open = false;
+const wrapperSummary = document.createElement("summary");
+wrapperSummary.className = "pa-v18-summary";
+wrapperSummary.innerHTML = `<span style="font-weight:800;">💎 上帝模式（属性管理器）</span><span style="opacity:0.65; font-size:0.85em;">点击展开/收起</span>`;
+wrapper.appendChild(wrapperSummary);
+wrapper.appendChild(container);
+
 const styleId = "pa-mgr-v18";
 if (!document.getElementById(styleId)) {
   const s = document.createElement("style");
   s.id = styleId;
   s.innerHTML = `
-        .pa-v18-root { font-family: 'Inter', system-ui, sans-serif; color: ${c.text}; display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
+      .pa-v18-wrap { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; background: rgba(15, 23, 42, 0.25); }
+      .pa-v18-summary { cursor: pointer; list-style: none; display:flex; justify-content: space-between; align-items:center; padding: 10px 14px; background: rgba(15, 23, 42, 0.35); }
+      .pa-v18-summary::-webkit-details-marker { display:none; }
+      .pa-v18-root { font-family: 'Inter', system-ui, sans-serif; color: ${c.text}; display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 16px 12px; }
         
         /* Dashboard Header */
         .pa-dash { 
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.7) 100%); 
             backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-radius: 16px; padding: 12px 20px; 
+          border-radius: 14px; padding: 10px 14px; 
             display: flex; justify-content: space-between; align-items: center; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.4); border: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -93,13 +106,13 @@ if (!document.getElementById(styleId)) {
         
         .pa-search { 
             background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; 
-            padding: 8px 16px; border-radius: 10px; width: 250px; outline: none; 
+          padding: 6px 12px; border-radius: 10px; width: 220px; outline: none; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-size: 0.9em;
         }
-        .pa-search:focus { width: 320px; background: rgba(0,0,0,0.4); border-color: ${c.accent}; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+        .pa-search:focus { width: 280px; background: rgba(0,0,0,0.4); border-color: ${c.accent}; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
 
         /* Groups & Grid */
-        .pa-group { display: flex; flex-direction: column; gap: 10px; }
+        .pa-group { display: flex; flex-direction: column; gap: 8px; }
         .pa-group-title { 
             font-size: 0.9em; font-weight: 700; color: ${c.sub}; margin-left: 4px; 
             display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px;
@@ -107,7 +120,7 @@ if (!document.getElementById(styleId)) {
         }
         .pa-group-count { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 8px; font-size: 0.8em; color: ${c.text}; }
 
-        .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+        .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
         .pa-card { 
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.4) 100%);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -661,4 +674,4 @@ for (let [gName, keys] of Object.entries(finalGroups)) {
 }
 
 dv.container.innerHTML = "";
-dv.container.appendChild(container);
+dv.container.appendChild(wrapper);
