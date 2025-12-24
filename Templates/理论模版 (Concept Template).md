@@ -3,15 +3,15 @@ categories:
   - 模版
 tags:
   - PA/Course
-cover:
+封面/cover:
 module_id:
 studied: false
-associated_knowledge:
+关联知识/associated knowledge:
 aliases:
-market_cycle:
-setup_category:
-probability:
-source:
+市场周期/market_cycle:
+设置类别/setup_category:
+概率/probability:
+来源/source:
 ---
 
 # 📺 1. 课程概览 (Module Overview)
@@ -51,7 +51,7 @@ const resolvePath = (p) => {
 const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
 
 async function ensureCoverFromPasteAnchor() {
-  const rawCover = cur["cover"] ?? cur["封面/cover"];
+  const rawCover = cur["封面/cover"] ?? cur["cover"];
   const existing = toArr(rawCover).map(asStr).join(" ").trim();
   if (existing) return;
 
@@ -74,8 +74,8 @@ async function ensureCoverFromPasteAnchor() {
     const p = dest?.path || linkpath;
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["cover"] === undefined && fm["封面/cover"] === undefined) {
-          fm["cover"] = `![[${p}]]`;
+        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+          fm["封面/cover"] = `![[${p}]]`;
         }
       });
       return;
@@ -86,7 +86,7 @@ async function ensureCoverFromPasteAnchor() {
 (async () => {
   await ensureCoverFromPasteAnchor();
 
-  const raw = cur["cover"] ?? cur["封面/cover"];
+  const raw = cur["封面/cover"] ?? cur["cover"];
   const covers = toArr(raw)
     .map(asStr)
     .map(resolvePath)
@@ -94,7 +94,7 @@ async function ensureCoverFromPasteAnchor() {
     .filter(Boolean);
 
   if (covers.length === 0) {
-    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `cover`）");
+    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `封面/cover`）");
     return;
   }
 
@@ -122,9 +122,7 @@ async function ensureCoverFromPasteAnchor() {
 
 **本节核心**：
 
--
-
-**核心知识点**
+- **核心知识点**
 
 1. 开盘时的趋势 (Trend from Open)
 2. 交易区间的趋势 (Trend in Trading Range)
