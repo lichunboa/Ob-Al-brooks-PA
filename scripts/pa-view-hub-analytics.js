@@ -27,27 +27,28 @@ if (window.paData) {
     };
     // 尝试从策略仓库读取最新策略名 (如果有)
     try {
-        // 搜索 "Notes 笔记" 文件夹 (根据用户实际结构调整)
-        let stratPages = dv.pages(`"Notes 笔记"`);
+        // 搜索 "策略仓库 (Strategy Repository)" 文件夹
+        let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
         if (stratPages && stratPages.length > 0) {
             stratPages.forEach(p => {
-                let fName = p.file.name;
+                // 获取策略名称 (优先使用 frontmatter 中的中文名)
+                let fName = p["策略名称/strategy_name"] || p.file.name;
                 
-                // 1. 如果有别名，映射别名 -> 文件名
+                // 1. 映射文件名本身
+                setupMap[p.file.name] = fName;
+                
+                // 2. 映射别名 (aliases)
                 if (p.aliases && p.aliases.length > 0) {
                     p.aliases.forEach(a => setupMap[a] = fName);
                 }
-                
-                // 2. 尝试反向匹配：如果文件名包含英文关键词，则更新映射
-                // 例如: 文件名 "交易主要趋势反转MTR" 包含 "MTR" -> setupMap["MTR"] = "交易主要趋势反转MTR"
-                for (let key in setupMap) {
-                    if (fName.toLowerCase().includes(key.toLowerCase())) {
-                        setupMap[key] = fName;
-                    }
+
+                // 3. 映射英文策略名 (如果有)
+                // 假设文件名或属性中包含英文，尝试提取括号内的内容作为 key
+                // e.g. "第一均线缺口 (First MA Gap)" -> key: "First MA Gap"
+                if (fName.includes("(") && fName.includes(")")) {
+                    let enName = fName.match(/\(([^)]+)\)/)[1];
+                    if (enName) setupMap[enName] = fName;
                 }
-                
-                // 3. 确保文件名本身也能被识别
-                setupMap[fName] = fName;
             });
         }
     } catch (e) { console.log("策略仓库读取失败", e); }
@@ -199,7 +200,8 @@ if (window.paData) {
         .slice(0, 5);
 
     // R-Multiples (综合趋势) - 优化为上下柱状图
-    const recentTrades = tradesAsc.slice(-30);
+    // 只显示实盘 (Live) 交易，以保持图表清晰
+    const recentTrades = tradesAsc.filter(t => (t.type || "").toLowerCase() === "live").slice(-30);
     let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
     let avgR = (recentTrades.reduce((acc, t) => acc + (t.r || 0), 0) / (recentTrades.length || 1)).toFixed(2);
     
@@ -218,13 +220,8 @@ if (window.paData) {
         let h = Math.abs(r) * rScale;
         if (h < 3) h = 3; // 最小高度
         
-        let color = c.loss;
-        if (r >= 0) {
-            let type = (t.type || "").toLowerCase();
-            if (type === "live") color = c.live;
-            else if (type === "demo") color = c.demo;
-            else color = c.back;
-        }
+        // 颜色逻辑: 绿色=盈利, 红色=亏损 (仅限实盘)
+        let color = r >= 0 ? c.live : c.loss;
         
         // 计算位置: 正数向上生长，负数向下生长
         let top = r >= 0 ? (rZeroY - h) : rZeroY;
@@ -392,10 +389,10 @@ if (window.paData) {
         <div style="display:flex; gap:20px; margin-bottom:25px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1);">
             <div style="flex:2;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples)</div>
+                    <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples) - 仅实盘</div>
                     <div style="display:flex; gap:10px; font-size:0.65em; opacity:0.6;">
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.live}; border-radius:50%;"></div>实盘赢</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.loss}; border-radius:50%;"></div>亏损(红)</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.live}; border-radius:50%;"></div>盈利</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.loss}; border-radius:50%;"></div>亏损</span>
                         <span>Avg R: ${avgR}</span>
                     </div>
                 </div>
