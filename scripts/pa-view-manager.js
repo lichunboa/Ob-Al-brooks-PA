@@ -386,7 +386,13 @@ async function batchUpdate(paths, op, args) {
   }
   if (count > 0) {
     new Notice(`✅ 完成 ${count} 处修改`);
-    setTimeout(() => app.workspace.trigger("dataview:refresh-views"), 800);
+    setTimeout(
+      () =>
+        window.paRefreshViews
+          ? window.paRefreshViews({ hard: true })
+          : app.workspace.trigger("dataview:refresh-views"),
+      800
+    );
   } else new Notice("无变化");
 }
 

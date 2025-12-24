@@ -7,10 +7,51 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 // 获取今日日期
 const today = moment().format("YYYY-MM-DD");
 
+// --- 日期解析健壮化 (兼容 Luxon / 字符串 / {"YYYY-MM-DD": ...} / Proxy) ---
+const isoFromAny = (v) => {
+  if (!v) return "";
+  try {
+    if (typeof v.toISODate === "function") return v.toISODate();
+  } catch (e) {}
+  if (Array.isArray(v)) return isoFromAny(v[0]);
+  if (v?.constructor && v.constructor.name === "Proxy") {
+    try {
+      const arr = Array.from(v);
+      return isoFromAny(arr[0]);
+    } catch (e) {}
+  }
+  if (typeof v === "string") {
+    const m = v.match(/\d{4}-\d{2}-\d{2}/);
+    return m ? m[0] : "";
+  }
+  try {
+    if (v instanceof Date) return moment(v).format("YYYY-MM-DD");
+  } catch (e) {}
+  if (typeof v === "object") {
+    try {
+      for (const k of Object.keys(v)) {
+        const m = k.match(/\d{4}-\d{2}-\d{2}/);
+        if (m) return m[0];
+      }
+      for (const vv of Object.values(v)) {
+        const iso = isoFromAny(vv);
+        if (iso) return iso;
+      }
+    } catch (e) {}
+  }
+  return "";
+};
+
+const pageISODate = (p) => {
+  const d1 = isoFromAny(p?.file?.day);
+  if (d1) return d1;
+  return isoFromAny(p?.date);
+};
+
 // 获取今日所有交易笔记
 const todayTrades = dv
   .pages('"Daily/Trades"')
-  .where((p) => p.date && p.date.toString().startsWith(today))
+  .where((p) => pageISODate(p) === today)
   .sort((p) => p.file.mtime, "desc"); // 按修改时间倒序，确保最新的在最前
 
 const c = cfg.colors;
@@ -47,7 +88,13 @@ const cycleMatches = (cycles, currentCycle) => {
 // 尝试查找今日的复盘日记 (通常在 Daily 目录下)
 const todayJournal = dv
   .pages('"Daily"')
-  .where((p) => p.file.day && p.file.day.toISODate() === today)
+  .where((p) => {
+    const name = (p?.file?.name || "").toString();
+    const isJournal =
+      name.includes("_Journal") || name.toLowerCase().includes("journal") || name.includes("复盘");
+    if (!isJournal) return false;
+    return pageISODate(p) === today;
+  })
   .first();
 let contextHtml = "";
 
