@@ -17,6 +17,18 @@ const toArr = (v) => {
 };
 const normStr = (v) =>
   v === undefined || v === null ? "" : v.toString().trim();
+
+const hasCJK = (str) => /[\u4e00-\u9fff]/.test((str || "").toString());
+const prettyName = (raw) => {
+  const s = normStr(raw);
+  if (!s) return s;
+  const canonical = strategyLookup?.get?.(s);
+  if (canonical) return canonical;
+  if (s.includes("(") && s.endsWith(")")) return s;
+  if (s.includes("/") && hasCJK(s.split("/")[0])) return s;
+  if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
+  return s;
+};
 const cycleMatches = (cycles, currentCycle) => {
   const cur = normStr(currentCycle);
   if (!cur) return false;
@@ -115,12 +127,12 @@ const strategies = strategyList;
 
 // 按市场周期分类
 const cycleGroupDefs = [
-  { name: "🚀 急速/突破", keywords: ["急速", "突破模式", "Spike", "Breakout"] },
+  { name: "🔄 交易区间", keywords: ["交易区间", "区间", "Range"] },
   {
     name: "📈 趋势延续",
     keywords: ["趋势", "强趋势", "趋势回调", "Trend", "Pullback"],
   },
-  { name: "🔄 交易区间", keywords: ["交易区间", "区间", "Range"] },
+  { name: "🚀 急速/突破", keywords: ["急速", "突破模式", "Spike", "Breakout"] },
   { name: "🔃 反转", keywords: ["反转", "Reversal"] },
 ];
 
