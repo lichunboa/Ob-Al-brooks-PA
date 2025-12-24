@@ -1284,6 +1284,133 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
 };
 
 // ============================================================
+// 2.7 统一推荐中枢（交易 > 课程 > 卡片）
+// ============================================================
+const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath }) => {
+  const out = {
+    ranked: [],
+    weights: { trade: 1.0, course: 0.7, sr: 0.5 },
+    generatedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
+  };
+
+  const push = (item) => {
+    if (!item) return;
+    out.ranked.push(item);
+  };
+
+  const linkTo = (path, label) => ({ path, label });
+  const h = {
+    trading: `${consolePath}#⚔️ 交易中心 (Trading Hub)` ,
+    learning: `${consolePath}#📚 学习模块`,
+    manage: `${consolePath}#📉 管理模块`,
+  };
+
+  // 1) 交易（最优先）：来自 coach.combined.focus
+  const focus =
+    coach?.combined?.focus || coach?.today?.focus || coach?.week?.focus || coach?.last30?.focus;
+  if (focus) {
+    const label = (focus.label || focus.key || "Unknown").toString();
+    const dim = (focus.dimLabel || focus.kind || "").toString();
+    const completed = Number(focus?.stats?.completed) || 0;
+    const winRate = Number(focus?.stats?.winRate) || 0;
+    const exp = Number(focus?.stats?.expectancyR);
+    const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
+    const streak = Number(focus?.weekStreak) || 0;
+    const streakStr = streak >= 2 ? `（连续${streak}周）` : "";
+    const score = Number(focus.score) || Number(focus.urgency) || 0;
+
+    push({
+      source: "trade",
+      score: score * out.weights.trade,
+      title: `复盘焦点：${dim} → ${label}${streakStr}`,
+      reason: `样本${completed}，期望R ${expStr}，胜率 ${winRate}%`,
+      action: linkTo(h.manage, "打开 Inspector 做针对性复盘"),
+      data: {
+        kind: focus.kind,
+        key: focus.key,
+        weekStreak: streak,
+        weekHitCount: Number(focus?.weekHitCount) || 0,
+      },
+    });
+  } else {
+    push({
+      source: "trade",
+      score: 0,
+      title: "复盘焦点：暂无（交易样本不足）",
+      reason: "先记录更多交易/完善字段，再计算教练焦点。",
+      action: linkTo(h.trading, "打开交易中心"),
+      data: {},
+    });
+  }
+
+  // 2) 课程：优先用 Core 的 hybridRec
+  const hybrid = courseData?.hybridRec;
+  if (hybrid && hybrid.data) {
+    const isNew = hybrid.type === "New";
+    const title = isNew
+      ? `课程推荐：继续学习 ${hybrid.data.t || hybrid.data.id || ""}`
+      : `课程推荐：复习/测验 ${hybrid.data.t || hybrid.data.q || ""}`;
+    const path = hybrid.data.path || h.learning;
+    push({
+      source: "course",
+      score: (Number(hybrid.weight) || (isNew ? 30 : 20)) * out.weights.course,
+      title,
+      reason: isNew ? "新章节推进" : "复习巩固/闪卡测验", 
+      action: linkTo(path, "打开课程/笔记"),
+      data: { type: hybrid.type },
+    });
+  } else {
+    push({
+      source: "course",
+      score: 0,
+      title: "课程推荐：暂无（未加载大纲或无候选）",
+      reason: "检查 PA_Syllabus_Data.md 或课程标签。",
+      action: linkTo(h.learning, "打开学习模块"),
+      data: {},
+    });
+  }
+
+  // 3) 卡片：优先 due/focusFile，其次随机 quizPool
+  if (srData?.due > 0 && srData?.focusFile?.path) {
+    push({
+      source: "sr",
+      score: Math.min(50, Number(srData.due) * 2) * out.weights.sr,
+      title: `卡片推荐：优先复习 ${srData.focusFile.name.replace(/\.md$/i, "")}`,
+      reason: `今日到期 ${srData.focusFile.due}（优先清零）`,
+      action: linkTo(srData.focusFile.path, "打开卡片"),
+      data: { type: "Focus" },
+    });
+  } else if (Array.isArray(srData?.quizPool) && srData.quizPool.length > 0) {
+    const rnd = srData.quizPool[Math.floor(Math.random() * srData.quizPool.length)];
+    if (rnd?.path) {
+      push({
+        source: "sr",
+        score: 10 * out.weights.sr,
+        title: `卡片推荐：随机一题 ${rnd.q || ""}`,
+        reason: "随手保持曝光", 
+        action: linkTo(rnd.path, "打开卡片"),
+        data: { type: "Random" },
+      });
+    }
+  } else {
+    push({
+      source: "sr",
+      score: 0,
+      title: "卡片推荐：暂无（无到期/无题库）",
+      reason: "可以先建立 flashcards 或配置 SR 数据源。",
+      action: linkTo(h.learning, "打开记忆库"),
+      data: {},
+    });
+  }
+
+  // 按 score 排序，并保证 trade > course > sr 的默认展示顺序（同分时）
+  const pri = { trade: 3, course: 2, sr: 1 };
+  out.ranked.sort((a, b) => (b.score || 0) - (a.score || 0) || (pri[b.source] || 0) - (pri[a.source] || 0));
+
+  return out;
+};
+
+// ============================================================
 // 3. 混合推荐 (每次运行重算)
 // ============================================================
 let candidates = [];
@@ -1318,11 +1445,18 @@ if (candidates.length > 0) {
 // ============================================================
 const index = buildTradeIndex(trades);
 const coach = buildCoachFocus(trades, index, todayStr);
+const recommendations = buildUnifiedRecommendations({
+  coach,
+  courseData,
+  srData,
+  consolePath: "🦁 交易员控制台 (Trader Command)5.0.md",
+});
 window.paData = {
   trades: [...trades].reverse(),
   tradesAsc: trades,
   index: index,
   coach: coach,
+  recommendations: recommendations,
   stats: stats,
   sr: srData,
   course: courseData,

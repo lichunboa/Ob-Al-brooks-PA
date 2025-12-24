@@ -53,6 +53,18 @@ if (window.paData) {
     window.paData?.coach?.today?.focus ||
     window.paData?.coach?.week?.focus ||
     window.paData?.coach?.last30?.focus;
+
+  const recs = Array.isArray(window.paData?.recommendations?.ranked)
+    ? window.paData.recommendations.ranked
+    : [];
+  const pickRec = (source) => recs.find((r) => r && r.source === source);
+  const renderActionLink = (action) => {
+    const p = action?.path;
+    const label = (action?.label || "打开").toString();
+    if (!p) return "";
+    const safeHref = encodeURI(p);
+    return `<a href="${safeHref}" data-href="${p}" class="internal-link" style="text-decoration:none; font-weight:700;">${label}</a>`;
+  };
   const formatCoachLine = (f) => {
     if (!f) return "";
     const label = (f.label || f.key || "").toString();
@@ -68,19 +80,49 @@ if (window.paData) {
 
   if (todayJournal && todayJournal.market_cycle) {
     const coachLine = formatCoachLine(coachFocus);
+    const rTrade = pickRec("trade");
+    const rCourse = pickRec("course");
+    const rSr = pickRec("sr");
     leftCol.innerHTML += `
         <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
             <div style="font-weight:bold; color:#3b82f6; margin-bottom:4px;">🌊 市场环境: ${todayJournal.market_cycle}</div>
-            <div style="font-size:0.85em; opacity:0.8;">${
-              coachLine || "策略建议: 顺势而为，寻找回调入场机会。"
-            }</div>
+            <div style="font-size:0.85em; opacity:0.85; line-height:1.55;">
+              <div>${coachLine || "策略建议: 顺势而为，寻找回调入场机会。"}</div>
+              ${
+                rCourse
+                  ? `<div style="margin-top:6px; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                  : ""
+              }
+              ${
+                rSr
+                  ? `<div style="margin-top:4px; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                  : ""
+              }
+              ${
+                rTrade && rTrade.action
+                  ? `<div style="margin-top:4px; opacity:0.85;">📉 ${renderActionLink(rTrade.action)}</div>`
+                  : ""
+              }
+            </div>
         </div>`;
   } else {
     const coachLine = formatCoachLine(coachFocus);
+    const rCourse = pickRec("course");
+    const rSr = pickRec("sr");
     leftCol.innerHTML += `
         <div style="padding: 12px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; text-align: center; font-size: 0.9em; opacity: 0.6;">
             <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">📝 创建今日日记</a> 以激活策略推荐
             ${coachLine ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>` : ""}
+            ${
+              rCourse
+                ? `<div style="margin-top:10px; font-size:0.85em; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                : ""
+            }
+            ${
+              rSr
+                ? `<div style="margin-top:6px; font-size:0.85em; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                : ""
+            }
         </div>`;
   }
 
