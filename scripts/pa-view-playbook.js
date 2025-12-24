@@ -441,51 +441,6 @@ orderedGroups.forEach((groupName) => {
           </div>
         </div>
       </details>`;
-            </div>
-          </div>
-          <div id="${cardId}-arrow" style="
-            font-size:0.8em; 
-            opacity:0.5; 
-            transition:transform 0.2s;
-            transform:rotate(0deg);
-          ">▶</div>
-        </div>
-        
-        <!-- 展开详情 -->
-        <div id="${cardId}" style="
-          display:none;
-          padding:0 10px 10px 10px;
-          border-top:1px solid rgba(255,255,255,0.05);
-          animation: slideDown 0.2s ease-out;
-        ">
-          <div style="margin-top:8px; font-size:0.74em;">
-            <div style="display:grid; grid-template-columns: auto 1fr; gap:6px 12px; opacity:0.8;">
-              <span style="opacity:0.6;">市场周期:</span>
-              <span>${cycleText || "无/N/A"}</span>
-              
-              <span style="opacity:0.6;">设置类别:</span>
-              <span>${setupCategory || "无/N/A"}</span>
-              
-              <span style="opacity:0.6;">来源:</span>
-              <span>${source || "无/N/A"}</span>
-            </div>
-            
-            <div style="margin-top:10px; display:flex; gap:6px;">
-              <a href="${safeHref}" data-href="${safePath || ""}" class="internal-link" style="
-                flex:1;
-                background:rgba(59,130,246,0.15);
-                color:${cfg.colors.demo};
-                padding:6px 10px;
-                border-radius:4px;
-                text-decoration:none;
-                font-size:0.75em;
-                text-align:center;
-                border:1px solid rgba(59,130,246,0.3);
-              ">${safePath ? "📖 查看详情" : "⚠️ 无法打开"}</a>
-            </div>
-          </div>
-        </div>
-      </div>`;
     }
     html += `</div></div>`;
   }
