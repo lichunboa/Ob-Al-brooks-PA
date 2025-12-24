@@ -403,6 +403,42 @@ function openInspector(key, initialTab = "vals") {
     (a, b) => b[1].length - a[1].length
   );
   const allPaths = keyMap[key] || [];
+
+  const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
+  const prettyVal = (val) => {
+    if (val === null || val === undefined) return "";
+    let s = val.toString().trim();
+    if (!s) return s;
+
+    if (s === "Empty") return "空/Empty";
+    if (s === "Unknown") return "未知/Unknown";
+    if (s === "null") return "空/null";
+
+    // 统一把 中文(English) 变成 中文/English
+    if (s.includes("(") && s.endsWith(")")) {
+      const parts = s.split("(");
+      const cn = (parts[0] || "").trim();
+      const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+      if (cn && en) return `${cn}/${en}`;
+      if (cn) return cn;
+      if (en) return `待补充/${en}`;
+    }
+
+    // 已经是 中文/英文（或 英文/中文）则尽量纠正顺序
+    if (s.includes("/")) {
+      const parts = s.split("/");
+      const left = (parts[0] || "").trim();
+      const right = parts.slice(1).join("/").trim();
+      if (hasCJK(left)) return s;
+      if (hasCJK(right)) return `${right}/${left}`;
+      return `待补充/${s}`;
+    }
+
+    // 纯英文也保证有中文
+    if (!hasCJK(s) && /^[a-zA-Z0-9_\-\.\s]+$/.test(s)) return `待补充/${s}`;
+    return s;
+  };
+
   const mask = document.createElement("div");
   mask.className = "pa-mask";
   // 点击背景关闭
@@ -437,7 +473,9 @@ function openInspector(key, initialTab = "vals") {
       let row = document.createElement("div");
       row.className = "pa-row";
       row.innerHTML = `
-                <div class="pa-val-grp"><span class="pa-pill">${val}</span><span class="pa-count">${paths.length}</span></div>
+                <div class="pa-val-grp"><span class="pa-pill">${prettyVal(
+                  val
+                )}</span><span class="pa-count">${paths.length}</span></div>
                 <div class="pa-acts">
                     <div class="pa-ico" id="ed" title="修改">✏️</div><div class="pa-ico del" id="rm" title="删除">🗑️</div><div class="pa-ico" id="vw" title="查看文件">👁️</div>
                 </div>`;
@@ -459,7 +497,7 @@ function openInspector(key, initialTab = "vals") {
         }
       };
       row.querySelector("#vw").onclick = () =>
-        switchToFiles(paths, `值: ${val}`);
+        switchToFiles(paths, `值: ${prettyVal(val)}`);
       c.appendChild(row);
     });
   };

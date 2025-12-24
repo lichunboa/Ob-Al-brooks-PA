@@ -250,7 +250,7 @@ if (window.paData) {
     const normalizePair = (cn, en) => {
       cn = (cn || "").toString().trim();
       en = (en || "").toString().trim();
-      if (!cn && en) cn = "未翻译";
+      if (!cn && en) cn = "待补充";
       if (cn && !en) return cn;
       if (!cn && !en) return "";
       return `${cn}/${en}`;
@@ -283,7 +283,7 @@ if (window.paData) {
         cn = en;
         en = tmp;
       }
-      if (!hasCJK(cn) && en) cn = "未翻译";
+      if (!hasCJK(cn) && en) cn = "待补充";
       return normalizePair(cn, en);
     }
 
@@ -300,13 +300,13 @@ if (window.paData) {
         const p = splitPair(canonical);
         if (p) return normalizePair(p.cn, p.en);
         if (hasCJK(canonical)) return canonical;
-        return normalizePair("未翻译", canonical);
+        return normalizePair("待补充", canonical);
       }
     }
 
     // 如果已经是中文，就直接返回；纯英文则保证带中文前缀
     if (hasCJK(s)) return s;
-    return normalizePair("未翻译", s);
+    return normalizePair("待补充", s);
   };
 
   function getDist(key, useMap = false) {
