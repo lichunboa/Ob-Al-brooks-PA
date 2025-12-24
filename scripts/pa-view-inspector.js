@@ -31,7 +31,7 @@ if (window.paData) {
 
   // --- 0. 策略仓库同步 (Strategy Sync) ---
   let strategyMap = new Map(); // name -> { patterns: Set, category: Set }
-  let patternToStrategy = new Map(); // pattern -> strategyName
+  let strategyLookup = new Map(); // alias (CN/EN/Full) -> canonicalName
   
   const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
   for(let p of strategyPages) {
@@ -45,7 +45,6 @@ if (window.paData) {
           patterns.forEach(a => {
               let pStr = a.toString().trim();
               patternSet.add(pStr);
-              patternToStrategy.set(pStr, name);
           });
       }
       
@@ -56,11 +55,23 @@ if (window.paData) {
       }
 
       strategyMap.set(name, { patterns: patternSet, category: categorySet });
+      
+      // Build Lookup Table
+      strategyLookup.set(name, name); // Full name
+      if (name.includes("(")) {
+          let parts = name.split("(");
+          let cn = parts[0].trim();
+          let en = parts[1].replace(")", "").trim();
+          if (cn) strategyLookup.set(cn, name);
+          if (en) strategyLookup.set(en, name);
+      }
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
   // 1.1 读取属性预设作为标准
   let allowedValues = {};
+  let valueMap = {}; // alias -> canonical (for normalization)
+  
   const presetPage = dv.page("Templates/属性值预设.md");
   const presetLoaded = !!presetPage;
   if (presetPage) {
@@ -73,8 +84,22 @@ if (window.paData) {
         allowedValues[key] = new Set();
         val.forEach(v => {
             if(typeof v === 'string') {
-                allowedValues[key].add(v);
-                allowedValues[key].add(v.split('(')[0].trim());
+                let full = v.trim();
+                allowedValues[key].add(full);
+                
+                if (full.includes("(")) {
+                    let parts = full.split("(");
+                    let cn = parts[0].trim();
+                    let en = parts[1].replace(")", "").trim();
+                    allowedValues[key].add(cn);
+                    
+                    // Map aliases to CN name for display
+                    valueMap[full] = cn;
+                    valueMap[cn] = cn;
+                    valueMap[en] = cn;
+                } else {
+                    valueMap[full] = full;
+                }
             }
         });
       }
@@ -97,13 +122,15 @@ if (window.paData) {
     let sPatterns = t.patterns || [];
     
     if (sName && sName !== "Unknown") {
-        // 1. 检查策略名称是否存在
-        if (!strategyMap.has(sName)) {
+        // 1. 检查策略名称是否存在 (支持别名)
+        let canonicalName = strategyLookup.get(sName);
+        
+        if (!canonicalName) {
             missing.unknownStrat++;
             illegalDetails.push({link: t.link, field: "未知策略名", value: sName});
         } else {
             // 2. 检查形态是否匹配策略
-            let stratInfo = strategyMap.get(sName);
+            let stratInfo = strategyMap.get(canonicalName);
             let hasValidPattern = sPatterns.some(p => stratInfo.patterns.has(p.toString().trim()));
             
             // 如果交易记录了形态，但没有一个属于该策略，则警告
@@ -111,16 +138,7 @@ if (window.paData) {
                 missing.stratMismatch++;
                 illegalDetails.push({link: t.link, field: "策略/形态不匹配", value: `${sName} vs [${sPatterns.join(",")}]`});
             }
-            
-            // 3. 检查设置类别是否匹配 (可选)
-            if (t.setup && t.setup !== "Unknown") {
-                 let setupVal = t.setup.split('(')[0].trim(); // 简化处理
-                 // 这里不做严格检查，因为 setup 可能是大类
-            }
         }
-    } else {
-        // 如果没有策略名，检查是否可以通过形态推断 (仅作提示，不计入错误)
-        // if (sPatterns.length > 0) { ... }
     }
 
     // 1.2 合规性检查 (Compliance Check)
@@ -163,10 +181,24 @@ if (window.paData) {
     healthScore > 90 ? c.live : healthScore > 60 ? c.back : c.loss;
 
   // --- 2. 维度分布统计 (Distributions) ---
-  function getDist(key) {
+  function getDist(key, useMap = false) {
     let dist = {};
     trades.forEach((t) => {
       let val = (t[key] || "Unknown").toString().split("(")[0].trim();
+      // 如果启用了映射且存在映射值，则使用映射值 (例如: Strong Trend -> 强趋势)
+      if (useMap && valueMap[val]) val = valueMap[val];
+      // 特殊处理: 如果是 setup 且有 strategyName，优先使用 strategyName (并尝试映射)
+      if (key === "setup" && t.strategyName && t.strategyName !== "Unknown") {
+          let sName = t.strategyName;
+          // 尝试获取规范名称 (中文优先)
+          if (strategyLookup.get(sName)) {
+              let canonical = strategyLookup.get(sName);
+              if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
+              else sName = canonical;
+          }
+          val = sName;
+      }
+
       if (val) dist[val] = (dist[val] || 0) + 1;
     });
     return Object.entries(dist)
@@ -174,7 +206,7 @@ if (window.paData) {
       .slice(0, 5); // Top 5
   }
   const distTicker = getDist("ticker");
-  const distSetup = getDist("setup");
+  const distSetup = getDist("setup", true); // Enable mapping for setup/strategy
 
   // --- 3. 执行质量统计 ---
   const distExec = getDist("error");

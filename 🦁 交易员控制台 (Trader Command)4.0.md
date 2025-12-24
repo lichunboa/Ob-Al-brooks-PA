@@ -72,26 +72,7 @@ await dv.view("scripts/pa-view-schema");
 await dv.view("scripts/pa-view-manager");
 ```
 
-> [!quote] 🛠️ 维护任务 (Maintenance Tasks)
-> **🖨️ 待打印 (Print Queue)**
->
-> ```tasks
-> not done
-> tag includes #task/print
-> path does not include Templates
-> hide backlink
-> short mode
-> ```
->
-> **📂 待整理 (Organize)**
->
-> ```tasks
-> not done
-> tag includes #task/organize
-> path does not include Templates
-> hide backlink
-> short mode
-> ```
+
 # ✅ 每日行动 (Actions)
 
 > [!COLUMN]
@@ -178,3 +159,25 @@ await dv.view("scripts/pa-view-manager");
 > > short mode
 > > limit 5
 > > ```
+
+
+> [!quote] 🛠️ 等待任务 (Maintenance Tasks)
+> **🖨️ 待打印 (Print Queue)**
+>
+> ```tasks
+> not done
+> tag includes #task/print
+> path does not include Templates
+> hide backlink
+> short mode
+> ```
+>
+> **📂 待整理 (Organize)**
+>
+> ```tasks
+> not done
+> tag includes #task/organize
+> path does not include Templates
+> hide backlink
+> short mode
+> ```
