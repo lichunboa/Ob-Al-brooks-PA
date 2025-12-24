@@ -236,9 +236,12 @@ if (window.paData) {
       
       // Add Illegal values
       illegalDetails.forEach(item => {
+          let label = item.field;
+          if(["市场周期", "设置类别"].includes(item.field)) label = "非法" + item.field;
+
           detailsHTML += `<tr>
               <td>${item.link}</td>
-              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">非法${item.field}</span></td>
+              <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">${label}</span></td>
               <td style="opacity:0.7">${item.value}</td>
           </tr>`;
       });

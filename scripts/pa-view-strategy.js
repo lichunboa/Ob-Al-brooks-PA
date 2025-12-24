@@ -32,7 +32,8 @@ if (window.paData) {
     }
 
     // 策略表现统计
-    let setup = (t.setup || "Unknown").split("(")[0].trim();
+    // 优先使用具体的策略名称，如果没有则使用 Setup 类别
+    let setup = t.strategyName && t.strategyName !== "Unknown" ? t.strategyName : (t.setup || "Unknown").split("(")[0].trim();
     if (!stratStats[setup]) stratStats[setup] = { win: 0, total: 0 };
     stratStats[setup].total++;
     if (t.pnl > 0) stratStats[setup].win++;
