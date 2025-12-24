@@ -238,6 +238,23 @@ if (useCache) {
   srData = window.paData.sr;
   courseData = window.paData.course;
   strategyIndex = window.paData.strategyIndex;
+
+  // v5.0: 兼容旧缓存（确保 reviewHints 可用）
+  try {
+    if (Array.isArray(trades) && trades.length > 0) {
+      const needsReviewHints = trades.some(
+        (t) => !t || !Array.isArray(t.reviewHints)
+      );
+      if (needsReviewHints) {
+        for (const t of trades) {
+          if (!t) continue;
+          if (!Array.isArray(t.reviewHints)) t.reviewHints = buildReviewHints(t);
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
 } else {
   // 🐢 扫描模式 (Full Scan)
 
