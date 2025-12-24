@@ -381,3 +381,6 @@ if (window.paData) {
         </div>
     `;
 
+    root.appendChild(analyticsContainer);
+}
+
