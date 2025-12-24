@@ -217,10 +217,6 @@ if (window.paData) {
     
     // R图表容器宽度
     let rWidth = recentTrades.length * 7;
-        // 增加透明度区分
-        let opacity = Math.abs(r) < 0.5 ? 0.4 : 1;
-        return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${opacity};" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
-    }).join("");
 
     // 心态分析
     const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-10);
