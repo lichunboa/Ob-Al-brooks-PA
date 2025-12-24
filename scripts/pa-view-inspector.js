@@ -152,27 +152,6 @@ if (window.paData) {
              });
         }
     }
-  });                 let valStr = c.toString().trim();
-                 let valCn = valStr.split('(')[0].trim();
-                 if (valStr && !allowedValues["市场周期/market_cycle"].has(valStr) && !allowedValues["市场周期/market_cycle"].has(valCn)) {
-                     missing.illegal++;
-                     illegalDetails.push({link: t.link, field: "市场周期", value: valStr});
-                 }
-             });
-        }
-        // 检查设置类别 (使用 rawSetup)
-        if (t.rawSetup && allowedValues["设置类别/setup_category"]) {
-             let setups = Array.isArray(t.rawSetup) ? t.rawSetup : [t.rawSetup];
-             setups.forEach(s => {
-                 let valStr = s.toString().trim();
-                 let valCn = valStr.split('(')[0].trim();
-                 if (valStr && valStr !== "Unknown" && !allowedValues["设置类别/setup_category"].has(valStr) && !allowedValues["设置类别/setup_category"].has(valCn)) {
-                     missing.illegal++;
-                     illegalDetails.push({link: t.link, field: "设置类别", value: valStr});
-                 }
-             });
-        }
-    }
   });
 
   let totalIssues = Object.values(missing).reduce((a, b) => a + b, 0);
