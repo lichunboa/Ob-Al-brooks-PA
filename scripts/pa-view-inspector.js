@@ -29,6 +29,25 @@ if (window.paData) {
   const trades = D.trades; // 倒序
   const sr = D.sr;
 
+  // --- 0. 策略仓库同步 (Strategy Sync) ---
+  let strategyMap = new Map(); // alias -> canonical name
+  let knownStrategies = new Set();
+  
+  const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
+  for(let p of strategyPages) {
+      let name = p["策略名称/strategy_name"] || p.file.name;
+      knownStrategies.add(name);
+      
+      // 收集所有别名
+      let aliases = p["观察到的形态/patterns_observed"];
+      if(aliases) {
+          if(!Array.isArray(aliases)) aliases = [aliases];
+          aliases.forEach(a => strategyMap.set(a.toString().trim(), name));
+      }
+      // 自身名字也是别名
+      strategyMap.set(name, name);
+  }
+
   // --- 1. 健康度体检逻辑 (Health Check) ---
   // 1.1 读取属性预设作为标准
   let allowedValues = {};
@@ -52,7 +71,7 @@ if (window.paData) {
     }
   }
 
-  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0 };
+  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0, unknownStrat: 0 };
   let illegalDetails = []; // 记录具体的非法值详情
 
   trades.forEach((t) => {
@@ -61,6 +80,15 @@ if (window.paData) {
     if (!t.setup || t.setup === "Unknown") missing.setup++;
     // 逻辑自检: 有盈亏但R值为0
     if (t.pnl !== 0 && t.r === 0) missing.logic++;
+
+    // 策略识别检查
+    let setupName = (t.setup || "").split("(")[0].trim();
+    if (setupName && setupName !== "Unknown") {
+        if (!strategyMap.has(setupName) && !knownStrategies.has(setupName)) {
+            missing.unknownStrat++;
+            illegalDetails.push({link: t.link, field: "未知策略", value: setupName});
+        }
+    }
 
     // 1.2 合规性检查 (Compliance Check)
     if (presetPage) {
@@ -228,6 +256,9 @@ if (window.paData) {
                 <div class="insp-item"><span>非法属性值</span> <span class="${
                   missing.illegal > 0 ? "txt-red" : "txt-dim"
                 }">${missing.illegal}</span></div>
+                <div class="insp-item"><span>未知策略 (Unknown)</span> <span class="${
+                  missing.unknownStrat > 0 ? "txt-red" : "txt-dim"
+                }">${missing.unknownStrat}</span></div>
             </div>
 
             <div class="insp-card">
@@ -251,6 +282,9 @@ if (window.paData) {
                 <div class="insp-item"><span>大纲加载</span> <span class="${
                   D.course.syllabus.length > 0 ? "txt-green" : "txt-red"
                 }">${D.course.syllabus.length} 课</span></div>
+                <div class="insp-item"><span>策略库同步</span> <span class="${
+                  knownStrategies.size > 0 ? "txt-green" : "txt-red"
+                }">${knownStrategies.size} 个</span></div>
             </div>
         </div>
 
