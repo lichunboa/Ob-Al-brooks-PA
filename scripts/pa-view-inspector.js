@@ -30,22 +30,32 @@ if (window.paData) {
   const sr = D.sr;
 
   // --- 0. 策略仓库同步 (Strategy Sync) ---
-  let strategyMap = new Map(); // alias -> canonical name
-  let knownStrategies = new Set();
+  let strategyMap = new Map(); // name -> { patterns: Set, category: Set }
+  let patternToStrategy = new Map(); // pattern -> strategyName
   
   const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
   for(let p of strategyPages) {
       let name = p["策略名称/strategy_name"] || p.file.name;
-      knownStrategies.add(name);
+      let patterns = p["观察到的形态/patterns_observed"];
+      let category = p["设置类别/setup_category"];
       
-      // 收集所有别名
-      let aliases = p["观察到的形态/patterns_observed"];
-      if(aliases) {
-          if(!Array.isArray(aliases)) aliases = [aliases];
-          aliases.forEach(a => strategyMap.set(a.toString().trim(), name));
+      let patternSet = new Set();
+      if(patterns) {
+          if(!Array.isArray(patterns)) patterns = [patterns];
+          patterns.forEach(a => {
+              let pStr = a.toString().trim();
+              patternSet.add(pStr);
+              patternToStrategy.set(pStr, name);
+          });
       }
-      // 自身名字也是别名
-      strategyMap.set(name, name);
+      
+      let categorySet = new Set();
+      if(category) {
+          if(!Array.isArray(category)) category = [category];
+          category.forEach(c => categorySet.add(c.toString().trim()));
+      }
+
+      strategyMap.set(name, { patterns: patternSet, category: categorySet });
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
@@ -71,23 +81,46 @@ if (window.paData) {
     }
   }
 
-  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0, unknownStrat: 0 };
+  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0, unknownStrat: 0, stratMismatch: 0 };
   let illegalDetails = []; // 记录具体的非法值详情
 
   trades.forEach((t) => {
     if (!t.ticker || t.ticker === "Unknown") missing.ticker++;
     if (!t.tf || t.tf === "Unknown") missing.tf++;
+    // setup (category) is less critical if strategyName is present, but still good to have
     if (!t.setup || t.setup === "Unknown") missing.setup++;
     // 逻辑自检: 有盈亏但R值为0
     if (t.pnl !== 0 && t.r === 0) missing.logic++;
 
-    // 策略识别检查
-    let setupName = (t.setup || "").split("(")[0].trim();
-    if (setupName && setupName !== "Unknown") {
-        if (!strategyMap.has(setupName) && !knownStrategies.has(setupName)) {
+    // --- 策略一致性检查 (Strategy Consistency) ---
+    let sName = t.strategyName;
+    let sPatterns = t.patterns || [];
+    
+    if (sName && sName !== "Unknown") {
+        // 1. 检查策略名称是否存在
+        if (!strategyMap.has(sName)) {
             missing.unknownStrat++;
-            illegalDetails.push({link: t.link, field: "未知策略", value: setupName});
+            illegalDetails.push({link: t.link, field: "未知策略名", value: sName});
+        } else {
+            // 2. 检查形态是否匹配策略
+            let stratInfo = strategyMap.get(sName);
+            let hasValidPattern = sPatterns.some(p => stratInfo.patterns.has(p.toString().trim()));
+            
+            // 如果交易记录了形态，但没有一个属于该策略，则警告
+            if (sPatterns.length > 0 && !hasValidPattern) {
+                missing.stratMismatch++;
+                illegalDetails.push({link: t.link, field: "策略/形态不匹配", value: `${sName} vs [${sPatterns.join(",")}]`});
+            }
+            
+            // 3. 检查设置类别是否匹配 (可选)
+            if (t.setup && t.setup !== "Unknown") {
+                 let setupVal = t.setup.split('(')[0].trim(); // 简化处理
+                 // 这里不做严格检查，因为 setup 可能是大类
+            }
         }
+    } else {
+        // 如果没有策略名，检查是否可以通过形态推断 (仅作提示，不计入错误)
+        // if (sPatterns.length > 0) { ... }
     }
 
     // 1.2 合规性检查 (Compliance Check)
@@ -99,6 +132,27 @@ if (window.paData) {
              cycles.forEach(c => {
                  // 兼容处理: 允许完整值 或 括号前中文
                  let valStr = c.toString().trim();
+                 let valCn = valStr.split('(')[0].trim();
+                 if (valStr && !allowedValues["市场周期/market_cycle"].has(valStr) && !allowedValues["市场周期/market_cycle"].has(valCn)) {
+                     missing.illegal++;
+                     illegalDetails.push({link: t.link, field: "市场周期", value: valStr});
+                 }
+             });
+        }
+        // 检查设置类别 (使用 rawSetup)
+        if (t.rawSetup && allowedValues["设置类别/setup_category"]) {
+             let setups = Array.isArray(t.rawSetup) ? t.rawSetup : [t.rawSetup];
+             setups.forEach(s => {
+                 let valStr = s.toString().trim();
+                 let valCn = valStr.split('(')[0].trim();
+                 if (valStr && valStr !== "Unknown" && !allowedValues["设置类别/setup_category"].has(valStr) && !allowedValues["设置类别/setup_category"].has(valCn)) {
+                     missing.illegal++;
+                     illegalDetails.push({link: t.link, field: "设置类别", value: valStr});
+                 }
+             });
+        }
+    }
+  });                 let valStr = c.toString().trim();
                  let valCn = valStr.split('(')[0].trim();
                  if (valStr && !allowedValues["市场周期/market_cycle"].has(valStr) && !allowedValues["市场周期/market_cycle"].has(valCn)) {
                      missing.illegal++;
@@ -202,7 +256,7 @@ if (window.paData) {
       trades.filter(t => !t.setup || t.setup === "Unknown").forEach(t => {
            detailsHTML += `<tr>
               <td>${t.link}</td>
-              <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失策略</span></td>
+              <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
       });
@@ -247,7 +301,7 @@ if (window.paData) {
                 <div class="insp-item"><span>缺失周期 (Timeframe)</span> <span class="${
                   missing.tf > 0 ? "txt-red" : "txt-dim"
                 }">${missing.tf}</span></div>
-                <div class="insp-item"><span>缺失策略 (Setup)</span> <span class="${
+                <div class="insp-item"><span>缺失设置 (Setup)</span> <span class="${
                   missing.setup > 0 ? "txt-red" : "txt-dim"
                 }">${missing.setup}</span></div>
                 <div class="insp-item"><span>逻辑异常 (R=0)</span> <span class="${
@@ -259,6 +313,9 @@ if (window.paData) {
                 <div class="insp-item"><span>未知策略 (Unknown)</span> <span class="${
                   missing.unknownStrat > 0 ? "txt-red" : "txt-dim"
                 }">${missing.unknownStrat}</span></div>
+                <div class="insp-item"><span>策略不匹配 (Mismatch)</span> <span class="${
+                  missing.stratMismatch > 0 ? "txt-red" : "txt-dim"
+                }">${missing.stratMismatch}</span></div>
             </div>
 
             <div class="insp-card">
@@ -283,8 +340,8 @@ if (window.paData) {
                   D.course.syllabus.length > 0 ? "txt-green" : "txt-red"
                 }">${D.course.syllabus.length} 课</span></div>
                 <div class="insp-item"><span>策略库同步</span> <span class="${
-                  knownStrategies.size > 0 ? "txt-green" : "txt-red"
-                }">${knownStrategies.size} 个</span></div>
+                  strategyMap.size > 0 ? "txt-green" : "txt-red"
+                }">${strategyMap.size} 个</span></div>
             </div>
         </div>
 
