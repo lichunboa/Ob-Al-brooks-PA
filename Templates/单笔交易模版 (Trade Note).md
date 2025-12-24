@@ -45,6 +45,75 @@ date:
 > 2) 再补“能复盘”的程度（市场周期/设置类别/形态/策略名称）。
 > 3) 最后写一句“核心教训”。
 
+## 📸 图表/封面预览（自动）
+
+> [!tip] 你只需要维护 frontmatter 的 `封面/cover`
+> - 建议填图片路径（例如：`Attachments/cover/xxx.png`）。
+> - 也支持 `![[...]]` / `[[...]]`（会尝试解析成真实文件路径）。
+
+```dataviewjs
+const basePath = app.vault.adapter.basePath;
+const cfg = require(basePath + "/scripts/pa-config.js");
+const c = cfg.colors;
+
+const cur = dv.current();
+const raw = cur["封面/cover"] ?? cur["cover"];
+
+const toArr = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+  return [v];
+};
+
+const asStr = (v) => {
+  if (!v) return "";
+  if (typeof v === "string") return v;
+  if (v?.path) return v.path;
+  return v.toString?.() ?? "";
+};
+
+const unwrapWiki = (s) => {
+  let t = (s || "").toString().trim();
+  t = t.replace(/^!\[\[/, "").replace(/\]\]$/, "");
+  if (t.startsWith("[[") && t.endsWith("]]")) t = t.slice(2, -2);
+  t = t.split("|")[0].trim();
+  return t;
+};
+
+const resolvePath = (p) => {
+  const linkpath = unwrapWiki(p);
+  const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+  return dest?.path || linkpath;
+};
+
+const covers = toArr(raw)
+  .map(asStr)
+  .map(resolvePath)
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+if (covers.length === 0) {
+  dv.paragraph("（未设置封面：请在 frontmatter 的 `封面/cover` 填图片路径或链接）");
+} else {
+  for (const p of covers.slice(0, 3)) {
+    const f = app.vault.getAbstractFileByPath(p);
+    if (!f) {
+      dv.paragraph(`⚠️ 找不到封面文件：${p}`);
+      continue;
+    }
+    dv.el("div", "", {
+      attr: {
+        style: `margin: 8px 0; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.10); border-left: 4px solid ${c.accent};`,
+      },
+    }).innerHTML = `
+      <div style="font-size:0.8em; opacity:0.8; margin-bottom:6px;">${p}</div>
+      <img src="${app.vault.getResourcePath(f)}" style="max-width:100%; height:auto; display:block; border-radius:6px;" />
+    `;
+  }
+}
+```
+
 ## 🧭 1) 市场背景（Context）
 
 ```dataviewjs
