@@ -62,7 +62,7 @@ await dv.view("scripts/pa-view-cycle");
 // 💸 错误的代价 (学费统计)
 await dv.view("scripts/pa-view-tuition");
 ```
-## 📉 管理模块
+## �️ 系统管理与巡检 (Admin & Inspector)
 ```dataviewjs
 // 数据治理与巡检
 await dv.view("scripts/pa-view-inspector");
@@ -75,6 +75,27 @@ await dv.view("scripts/pa-view-schema");
 // 属性管理
 await dv.view("scripts/pa-view-manager");
 ```
+
+> [!quote] 🛠️ 维护任务 (Maintenance Tasks)
+> **🖨️ 待打印 (Print Queue)**
+>
+> ```tasks
+> not done
+> tag includes #task/print
+> path does not include Templates
+> hide backlink
+> short mode
+> ```
+>
+> **📂 待整理 (Organize)**
+>
+> ```tasks
+> not done
+> tag includes #task/organize
+> path does not include Templates
+> hide backlink
+> short mode
+> ```
 # ✅ 每日行动 (Actions)
 
 > [!COLUMN]
@@ -140,25 +161,4 @@ await dv.view("scripts/pa-view-manager");
 > > hide backlink
 > > short mode
 > > limit 5
-> > ```
->
-> > [!quote] 🛠️ 系统维护 (Admin)
-> > **🖨️ 待打印 (Print Queue)**
-> >
-> > ```tasks
-> > not done
-> > tag includes #task/print
-> > path does not include Templates
-> > hide backlink
-> > short mode
-> > ```
-> >
-> > **📂 待整理 (Organize)**
-> >
-> > ```tasks
-> > not done
-> > tag includes #task/organize
-> > path does not include Templates
-> > hide backlink
-> > short mode
 > > ```
