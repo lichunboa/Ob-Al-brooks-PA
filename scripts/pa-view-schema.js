@@ -94,11 +94,44 @@ let healthScore = 100;
 if (window.paData && window.paData.trades) {
   const trades = window.paData.trades;
 
+  const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
+  const prettyVal = (val) => {
+    if (val === null || val === undefined) return "";
+    let s = val.toString().trim();
+    if (!s) return s;
+    if (s === "Unknown") return "未知/Unknown";
+    if (s === "Empty") return "空/Empty";
+    if (s === "null") return "空/null";
+
+    // 中文(English) -> 中文/English
+    if (s.includes("(") && s.endsWith(")")) {
+      const parts = s.split("(");
+      const cn = (parts[0] || "").trim();
+      const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+      if (cn && en) return `${cn}/${en}`;
+      if (cn) return cn;
+      if (en) return `待补充/${en}`;
+    }
+
+    // 已是 pair，尽量保证中文在左
+    if (s.includes("/")) {
+      const parts = s.split("/");
+      const left = (parts[0] || "").trim();
+      const right = parts.slice(1).join("/").trim();
+      if (hasCJK(left)) return s;
+      if (hasCJK(right)) return `${right}/${left}`;
+      return `待补充/${s}`;
+    }
+
+    if (!hasCJK(s) && /^[a-zA-Z0-9_\-\.\s]+$/.test(s)) return `待补充/${s}`;
+    return s;
+  };
+
   // 辅助统计函数
   const getDist = (key) => {
     let map = {};
     trades.forEach((t) => {
-      let v = (t[key] || "Unknown").toString().split("(")[0].trim();
+      let v = (t[key] || "Unknown").toString().trim();
       if (v) map[v] = (map[v] || 0) + 1;
     });
     return Object.entries(map)
@@ -236,7 +269,7 @@ if (window.paData) {
     shown.forEach(([k, v]) => {
       const pct = Math.round((v / total) * 100);
       const col = typeof colorFn === "function" ? colorFn(k) : colorFn;
-      html += pill(k, `${v} (${pct}%)`, col);
+      html += pill(prettyVal(k), `${v} (${pct}%)`, col);
     });
     if (rest > 0) {
       html += `<span style="display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.12); font-size:0.75em; opacity:0.6;">+${rest}</span>`;
