@@ -27,15 +27,27 @@ if (window.paData) {
     };
     // 尝试从策略仓库读取最新策略名 (如果有)
     try {
-        let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
+        // 搜索 "Notes 笔记" 文件夹 (根据用户实际结构调整)
+        let stratPages = dv.pages(`"Notes 笔记"`);
         if (stratPages && stratPages.length > 0) {
             stratPages.forEach(p => {
-                // 如果有别名，映射别名到文件名
+                let fName = p.file.name;
+                
+                // 1. 如果有别名，映射别名 -> 文件名
                 if (p.aliases && p.aliases.length > 0) {
-                    p.aliases.forEach(a => setupMap[a] = p.file.name);
+                    p.aliases.forEach(a => setupMap[a] = fName);
                 }
-                // 确保文件名本身也能被识别
-                setupMap[p.file.name] = p.file.name;
+                
+                // 2. 尝试反向匹配：如果文件名包含英文关键词，则更新映射
+                // 例如: 文件名 "交易主要趋势反转MTR" 包含 "MTR" -> setupMap["MTR"] = "交易主要趋势反转MTR"
+                for (let key in setupMap) {
+                    if (fName.toLowerCase().includes(key.toLowerCase())) {
+                        setupMap[key] = fName;
+                    }
+                }
+                
+                // 3. 确保文件名本身也能被识别
+                setupMap[fName] = fName;
             });
         }
     } catch (e) { console.log("策略仓库读取失败", e); }
@@ -192,14 +204,19 @@ if (window.paData) {
     let avgR = (recentTrades.reduce((acc, t) => acc + (t.r || 0), 0) / (recentTrades.length || 1)).toFixed(2);
     
     // R图表参数
-    const rHeight = 60;
+    const rHeight = 80; // 增加高度
     const rZeroY = rHeight / 2;
-    const rScale = (rHeight / 2 - 2) / maxR; // 留2px边距
+    const rScale = (rHeight / 2 - 5) / maxR; // 留边距
+
+    // 柱状图参数
+    const barWidth = 8;
+    const barGap = 4;
+    const step = barWidth + barGap;
 
     let barsHtml = recentTrades.map((t, i) => {
         let r = t.r || 0;
         let h = Math.abs(r) * rScale;
-        if (h < 2) h = 2;
+        if (h < 3) h = 3; // 最小高度
         
         let color = c.loss;
         if (r >= 0) {
@@ -212,11 +229,11 @@ if (window.paData) {
         // 计算位置: 正数向上生长，负数向下生长
         let top = r >= 0 ? (rZeroY - h) : rZeroY;
         
-        return `<div style="position:absolute; left:${i * 7}px; top:${top}px; width:5px; height:${h}px; background:${color}; border-radius:1px;" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
+        return `<div style="position:absolute; left:${i * step}px; top:${top}px; width:${barWidth}px; height:${h}px; background:${color}; border-radius:2px;" title="${t.date} | ${t.name} | R: ${t.r}"></div>`;
     }).join("");
     
     // R图表容器宽度
-    let rWidth = recentTrades.length * 7;
+    let rWidth = Math.max(recentTrades.length * step, 200); // 最小宽度保证布局
 
     // 心态分析
     const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-10);
@@ -376,13 +393,18 @@ if (window.paData) {
             <div style="flex:2;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples)</div>
-                    <div style="font-size:0.7em; opacity:0.4;">Avg R: ${avgR}</div>
+                    <div style="display:flex; gap:10px; font-size:0.65em; opacity:0.6;">
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.live}; border-radius:50%;"></div>实盘赢</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.loss}; border-radius:50%;"></div>亏损(红)</span>
+                        <span>Avg R: ${avgR}</span>
+                    </div>
                 </div>
                 <!-- R图表容器: 使用 relative 定位 -->
-                <div style="position:relative; height:${rHeight}px; width:${rWidth}px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="position:relative; height:${rHeight}px; width:100%; overflow-x:auto; border-bottom:1px solid rgba(255,255,255,0.05);">
                     <!-- 0轴线 -->
-                    <div style="position:absolute; left:0; right:0; top:${rZeroY}px; height:1px; background:rgba(255,255,255,0.1);"></div>
-                    ${barsHtml || '<div style="opacity:0.5; font-size:0.8em;">暂无数据</div>'}
+                    <div style="position:absolute; left:0; right:0; top:${rZeroY}px; height:1px; background:rgba(255,255,255,0.2); border-top:1px dashed rgba(255,255,255,0.3);"></div>
+                    <div style="position:absolute; left:0; top:${rZeroY-8}px; font-size:0.6em; opacity:0.3;">0R</div>
+                    ${barsHtml || '<div style="opacity:0.5; font-size:0.8em; padding:20px;">暂无数据</div>'}
                 </div>
             </div>
             <div style="flex:1; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px; display:flex; flex-direction:column; justify-content:center;">
