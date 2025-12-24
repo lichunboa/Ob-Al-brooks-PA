@@ -117,7 +117,27 @@ await dv.view("scripts/pa-view-manager");
 > > short mode
 > > ```
 >
-> > [!example] 📚 进修与验证 (Growth)
+> > [!todo] 🛠️ 持续改进 (Improvement)
+> > **🧪 回测任务 (Backtest)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/backtest
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
+> >
+> > **📝 复盘任务 (Review)**
+> >
+> > ```tasks
+> > not done
+> > tag includes #task/review
+> > path does not include Templates
+> > hide backlink
+> > short mode
+> > ```
+> >
 > > **📖 待学习/阅读 (Study)**
 > >
 > > ```tasks
