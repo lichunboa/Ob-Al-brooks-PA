@@ -306,12 +306,30 @@ if (window.paData) {
     missing.ticker > 0 ||
     missing.tf > 0
   ) {
-    detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
-          <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (需处理)</div>
-          <div style="max-height: 200px; overflow-y: auto;">
-              <table class="insp-table">
-                  <thead><tr><th>文件</th><th>问题</th><th>当前值</th></tr></thead>
-                  <tbody>`;
+    const logicIssues = trades.filter((t) => t.pnl !== 0 && t.r === 0);
+    const missingSetupIssues = trades.filter((t) => !t.setup || t.setup === "Unknown");
+    const missingTickerIssues = trades.filter((t) => !t.ticker || t.ticker === "Unknown");
+    const missingTfIssues = trades.filter((t) => !t.tf || t.tf === "Unknown");
+    const issueCount =
+      illegalDetails.length +
+      logicIssues.length +
+      missingSetupIssues.length +
+      missingTickerIssues.length +
+      missingTfIssues.length;
+
+    detailsHTML = `
+      <details class="insp-card" style="border-left: 3px solid ${c.loss};">
+        <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <span style="font-weight:bold; color:${c.loss};">⚠️ 异常详情</span>
+          <span style="font-size:0.8em; opacity:0.7; white-space:nowrap;">
+            <strong style="color:${c.loss};">${issueCount}</strong>
+            <span style="opacity:0.8;">（非法 ${illegalDetails.length} · 逻辑 ${logicIssues.length} · 缺设 ${missingSetupIssues.length} · 缺品 ${missingTickerIssues.length} · 缺周 ${missingTfIssues.length}）</span>
+          </span>
+        </summary>
+        <div style="margin-top:10px; max-height: 200px; overflow-y: auto;">
+            <table class="insp-table">
+                <thead><tr><th>文件</th><th>问题</th><th>当前值</th></tr></thead>
+                <tbody>`;
 
     // Add Illegal values
     illegalDetails.forEach((item) => {
@@ -327,50 +345,42 @@ if (window.paData) {
     });
 
     // Add Logic issues (R=0 but PnL!=0)
-    trades
-      .filter((t) => t.pnl !== 0 && t.r === 0)
-      .forEach((t) => {
+    logicIssues.forEach((t) => {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
               <td style="opacity:0.7">PnL=${t.pnl}, R=0</td>
           </tr>`;
-      });
+    });
 
     // Add Missing Setup
-    trades
-      .filter((t) => !t.setup || t.setup === "Unknown")
-      .forEach((t) => {
+    missingSetupIssues.forEach((t) => {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
-      });
+    });
 
     // Add Missing Ticker
-    trades
-      .filter((t) => !t.ticker || t.ticker === "Unknown")
-      .forEach((t) => {
+    missingTickerIssues.forEach((t) => {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
-      });
+    });
 
     // Add Missing Timeframe
-    trades
-      .filter((t) => !t.tf || t.tf === "Unknown")
-      .forEach((t) => {
+    missingTfIssues.forEach((t) => {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
-      });
+    });
 
-    detailsHTML += `</tbody></table></div></div>`;
+    detailsHTML += `</tbody></table></div></details>`;
   }
 
   const root = dv.el("div", "");
