@@ -177,6 +177,7 @@ if (useCache) {
       stop: utils.getVal(t, ["止损/stop_loss", "stop_loss", "stop"]),
       tags: t.file.tags || [],
       patterns: utils.getArr(t, ["观察到的形态/patterns_observed", "patterns_observed"]),
+      strategyName: utils.getStr(t, ["策略名称/strategy_name", "strategy_name"]),
     });
   }
   trades.sort((a, b) => a.date.localeCompare(b.date)); // 正序
