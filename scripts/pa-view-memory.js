@@ -83,20 +83,20 @@ if (window.paData && window.paData.sr) {
     recItem = {
       title: sr.focusFile.name.replace(".md", ""),
       path: sr.focusFile.path,
-      desc: `Due: ${sr.focusFile.due} | Ease: ${sr.focusFile.avgEase}`,
+      desc: `到期: ${sr.focusFile.due} | 易度: ${sr.focusFile.avgEase}`,
     };
   } else if (course.hybridRec) {
     recType = course.hybridRec.type; // New or Review
     recItem = {
       title: course.hybridRec.data.t || course.hybridRec.data.q,
       path: course.hybridRec.data.path,
-      desc: recType === "New" ? "New Topic" : "Flashcard Quiz",
+      desc: recType === "New" ? "新主题" : "闪卡测验",
     };
   } else {
     const rnd = randomCard();
     if (rnd) {
       recType = "Shake";
-      recItem = { title: rnd.q, path: rnd.path, desc: "🎲 Random Pick" };
+      recItem = { title: rnd.q, path: rnd.path, desc: "🎲 随机抽取" };
     }
   }
 
@@ -109,12 +109,12 @@ if (window.paData && window.paData.sr) {
             <div class="mem-title">
                 <span style="font-size:1.4em">🧠</span>
                 <div>
-                    <div>Memory Core</div>
+            <div>记忆核心</div>
                     <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.0 Quantum</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <div class="mem-icon-btn" title="Force Refresh" onclick="this.innerHTML='⏳'; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
+          <div class="mem-icon-btn" title="强制刷新" onclick="this.innerHTML='⏳'; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
             </div>
         </div>
     `;
@@ -123,13 +123,13 @@ if (window.paData && window.paData.sr) {
   const statsRow = `
         <div style="display:flex; justify-content:space-between; align-items:flex-end; padding: 0 8px;">
             <div>
-                <div class="mem-stat-label">Total Cards</div>
+                <div class="mem-stat-label">卡片总数</div>
                 <div class="mem-stat-big" style="color:${c.text}">${
     sr.total
   }</div>
             </div>
             <div style="text-align:right;">
-                <div class="mem-stat-label">Due Today</div>
+                <div class="mem-stat-label">今日到期</div>
                 <div class="mem-stat-big" style="color:${
                   sr.due > 0 ? c.loss : c.live
                 }; text-shadow:0 0 15px ${sr.due > 0 ? c.loss : c.live}44;">${
@@ -166,7 +166,7 @@ if (window.paData && window.paData.sr) {
             <div class="mem-mini-stat">
                 <div style="color:${
                   c.demo
-                }; font-size:0.7em; font-weight:bold;">BASIC</div>
+                }; font-size:0.7em; font-weight:bold;">基础</div>
                 <div style="font-weight:800;">${
                   sr.cnt.sNorm + sr.cnt.sRev * 2
                 }</div>
@@ -174,7 +174,7 @@ if (window.paData && window.paData.sr) {
             <div class="mem-mini-stat">
                 <div style="color:${
                   c.live
-                }; font-size:0.7em; font-weight:bold;">MULTI</div>
+                }; font-size:0.7em; font-weight:bold;">多选</div>
                 <div style="font-weight:800;">${
                   sr.cnt.mNorm + sr.cnt.mRev * 2
                 }</div>
@@ -182,7 +182,7 @@ if (window.paData && window.paData.sr) {
             <div class="mem-mini-stat">
                 <div style="color:${
                   c.accent
-                }; font-size:0.7em; font-weight:bold;">CLOZE</div>
+                }; font-size:0.7em; font-weight:bold;">填空</div>
                 <div style="font-weight:800;">${sr.cnt.cloze}</div>
             </div>
         </div>
@@ -215,10 +215,10 @@ if (window.paData && window.paData.sr) {
     ? `
         <div style="color:${recColor}; font-size:0.7em; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">${
         recType === "Focus"
-          ? "🔥 PRIORITY"
+          ? "🔥 优先复习"
           : recType === "Shake"
-          ? "🎲 RANDOM PICK"
-          : "🚀 RECOMMEND"
+          ? "🎲 随机抽取"
+          : "🚀 推荐"
       }</div>
         <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${
           recItem.title
@@ -228,9 +228,9 @@ if (window.paData && window.paData.sr) {
         }</div>
         <a href="${
           recItem.path
-        }" class="internal-link" style="text-decoration:none; background:${recColor}22; color:${recColor}; padding:6px 12px; border-radius:6px; font-size:0.8em; font-weight:bold; display:inline-block;">👉 Open Card</a>
+        }" class="internal-link" style="text-decoration:none; background:${recColor}22; color:${recColor}; padding:6px 12px; border-radius:6px; font-size:0.8em; font-weight:bold; display:inline-block;">👉 打开卡片</a>
     `
-    : `<div style="opacity:0.5; text-align:center;">All caught up!</div>`;
+    : `<div style="opacity:0.5; text-align:center;">今日已清空！</div>`;
 
   const chartRow = `
         <div class="mem-chart-row">
@@ -239,7 +239,7 @@ if (window.paData && window.paData.sr) {
             </div>
             <div class="mem-rec-box mem-card" style="border-color:${recColor}44; background: linear-gradient(135deg, ${recColor}11 0%, rgba(0,0,0,0) 100%);">
                 ${recContent}
-              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="Shake for new card">🎲</div>
+              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="摇一摇换卡片">🎲</div>
             </div>
         </div>
     `;
@@ -247,7 +247,7 @@ if (window.paData && window.paData.sr) {
   // Action Button
   const btn = `
         <button class="mem-btn mem-btn-primary" onclick="app.commands.executeCommandById('obsidian-spaced-repetition:srs-review-flashcards')">
-            <span>⚡️ Start Review Session</span>
+        <span>⚡️ 开始复习</span>
         </button>
     `;
 

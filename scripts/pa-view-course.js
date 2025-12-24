@@ -11,14 +11,18 @@ if (window.paData && window.paData.course) {
   const doneSet = course.done;
   const linkMap = course.map;
 
+  const simpleId = (id) => id.replace(/[A-Z]/g, "");
+  const isDoneCourse = (id) => doneSet.has(id) || doneSet.has(simpleId(id));
+  const doneCount = syllabus.filter((s) => isDoneCourse(s.id)).length;
+
   // 1. 智能推荐逻辑 (Engine 可能已经算过，这里再做一次 UI 层面的确认)
   let next = null;
   let recommendationType = "New";
 
   // 优先找没学过的
   for (let c of syllabus) {
-    let simpleId = c.id.replace(/[A-Z]/g, "");
-    if (!doneSet.has(c.id) && !doneSet.has(simpleId)) {
+    const sid = simpleId(c.id);
+    if (!doneSet.has(c.id) && !doneSet.has(sid)) {
       next = c;
       break;
     }
@@ -40,8 +44,8 @@ if (window.paData && window.paData.course) {
     let dots = "";
     for (let c of items) {
       // 状态判断
-      let isDone = doneSet.has(c.id) || doneSet.has(c.id.replace(/[A-Z]/g, ""));
-      let linkObj = linkMap[c.id] || linkMap[c.id.replace(/[A-Z]/g, "")];
+      let isDone = isDoneCourse(c.id);
+      let linkObj = linkMap[c.id] || linkMap[simpleId(c.id)];
 
       // 颜色逻辑
       let color = isDone
@@ -81,27 +85,39 @@ if (window.paData && window.paData.course) {
   // 3. 推荐卡片 UI
   let nextHtml = "";
   if (next) {
-    let linkObj = linkMap[next.id] || linkMap[next.id.replace(/[A-Z]/g, "")];
+    let linkObj = linkMap[next.id] || linkMap[simpleId(next.id)];
     let prefix = recommendationType === "New" ? "🚀 继续学习" : "🔄 建议复习";
     let linkStr = linkObj
       ? `<a href="${linkObj.path}" class="internal-link" style="color:white; font-weight:bold; text-decoration:none;">${prefix}: ${next.t}</a>`
       : `<span style="opacity:0.6">${prefix}: ${next.t} (笔记未创建)</span>`;
 
+    const noteStatus = linkObj ? "已创建" : "未创建";
+
     nextHtml = `
-        <div style="background:rgba(59, 130, 246, 0.15); border:1px solid ${cfg.colors.demo}; border-radius:8px; padding:12px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
-            <div>${linkStr}</div>
-            <div style="font-size:0.9em; opacity:0.8; font-family:monospace;">${next.id}</div>
+        <div style="background:rgba(59, 130, 246, 0.15); border:1px solid ${cfg.colors.demo}; border-radius:8px; padding:12px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+              <div>${linkStr}</div>
+              <div style="font-size:0.9em; opacity:0.8; font-family:monospace; white-space:nowrap;">${next.id}</div>
+            </div>
+            <div style="margin-top:6px; font-size:0.85em; opacity:0.75; display:flex; gap:12px; flex-wrap:wrap;">
+              <span>章节: <strong>${next.p}</strong></span>
+              <span>进度: <strong>${doneCount}/${syllabus.length}</strong></span>
+              <span>笔记: <strong>${noteStatus}</strong></span>
+            </div>
         </div>`;
   }
 
   // 4. 渲染容器
   const root = dv.el("div", "", { attr: { style: cfg.colors.cardBg } });
   root.innerHTML = `
-    <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">🗺️ 课程地图 (Course Matrix)</div>
+    <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">🗺️ 课程地图</div>
     ${nextHtml}
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-        ${gridHtml}
-    </div>
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer; opacity:0.6; font-size:0.85em; user-select:none;">展开课程矩阵</summary>
+      <div style="margin-top:12px; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          ${gridHtml}
+      </div>
+    </details>
     `;
 } else {
   dv.paragraph("⚠️ 课程数据未加载，请检查 Engine 或 PA_Syllabus_Data.md");
