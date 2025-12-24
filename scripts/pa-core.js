@@ -61,7 +61,8 @@ if (
     window.paData.tradesAsc[0].ticker !== undefined &&
     window.paData.sr &&
     window.paData.sr.load && // 确保 load 存在
-    window.paData.sr.fileList
+    window.paData.sr.fileList &&
+    window.paData.strategyIndex
   ) {
     useCache = true;
   }
@@ -85,6 +86,14 @@ let srData = {
   focusFile: null,
 };
 let courseData = { done: new Set(), map: {}, syllabus: [], hybridRec: null };
+let strategyIndex = {
+  repoPath: "策略仓库 (Strategy Repository)",
+  list: [],
+  byName: new Map(), // canonicalName -> item
+  lookup: new Map(), // alias (CN/EN/Full) -> canonicalName
+  byPattern: {}, // pattern -> canonicalName
+  updatedAt: null,
+};
 
 // ============================================================
 // 2. 数据加载逻辑
@@ -96,6 +105,7 @@ if (useCache) {
   stats = window.paData.stats;
   srData = window.paData.sr;
   courseData = window.paData.course;
+  strategyIndex = window.paData.strategyIndex;
 } else {
   // 🐢 扫描模式 (Full Scan)
 
