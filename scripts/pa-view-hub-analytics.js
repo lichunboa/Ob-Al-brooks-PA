@@ -17,17 +17,31 @@ if (window.paData) {
     // --- 汉化与策略映射 ---
     const cycleMap = {
         "Strong Trend": "强趋势", "Weak Trend": "弱趋势", "Trading Range": "交易区间",
-        "Breakout": "突破", "Channel": "通道", "Broad Channel": "宽通道", "Tight Channel": "窄通道"
+        "Breakout Mode": "突破模式", "Breakout": "突破", 
+        "Channel": "通道", "Broad Channel": "宽通道", "Tight Channel": "窄通道"
     };
+    
     // --- 策略匹配逻辑 ---
     let patternToStrategy = {};
-    
+    let strategyLookup = new Map(); // alias (CN/EN/Full) -> canonicalName (Full)
+
     try {
         let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
         if (stratPages && stratPages.length > 0) {
             stratPages.forEach(p => {
                 let sName = p["策略名称/strategy_name"] || p.file.name;
-                // 获取该策略定义的所有形态
+                
+                // 1. 构建名称查找表 (Name Lookup)
+                strategyLookup.set(sName, sName); // Full name
+                if (sName.includes("(")) {
+                    let parts = sName.split("(");
+                    let cn = parts[0].trim();
+                    let en = parts[1].replace(")", "").trim();
+                    if (cn) strategyLookup.set(cn, sName);
+                    if (en) strategyLookup.set(en, sName);
+                }
+
+                // 2. 构建形态映射 (Pattern Mapping)
                 let patterns = p["观察到的形态/patterns_observed"];
                 if (patterns) {
                     // 归一化为数组
@@ -57,7 +71,21 @@ if (window.paData) {
         // 0. 优先检查显式的策略名称 (Strategy Name)
         if (trade.strategyName && trade.strategyName !== "Unknown") {
             let sName = trade.strategyName;
-            // 尝试去除括号内的英文 (e.g. "20均线缺口 (20 EMA Gap)" -> "20均线缺口")
+            
+            // 尝试查找标准名称 (解决中英文混用问题)
+            if (strategyLookup.has(sName)) {
+                sName = strategyLookup.get(sName);
+            } else {
+                // 尝试作为英文别名查找
+                for (let [alias, canonical] of strategyLookup) {
+                    if (alias.toLowerCase() === sName.toLowerCase()) {
+                        sName = canonical;
+                        break;
+                    }
+                }
+            }
+
+            // 最终显示: 去除括号内的英文 (e.g. "20均线缺口 (20 EMA Gap)" -> "20均线缺口")
             if (sName.includes("(") && sName.includes(")")) {
                 sName = sName.split("(")[0].trim();
             }
@@ -68,7 +96,14 @@ if (window.paData) {
         if (trade.patterns && trade.patterns.length > 0) {
             for (let p of trade.patterns) {
                 let key = p.toString().trim();
-                if (patternToStrategy[key]) return patternToStrategy[key];
+                if (patternToStrategy[key]) {
+                    let sName = patternToStrategy[key];
+                    // 同样做一次汉化处理
+                    if (sName.includes("(") && sName.includes(")")) {
+                        sName = sName.split("(")[0].trim();
+                    }
+                    return sName;
+                }
             }
         }
         // 2. 回退到 setup (类别)
