@@ -22,12 +22,44 @@ const hasCJK = (str) => /[\u4e00-\u9fff]/.test((str || "").toString());
 const prettyName = (raw) => {
   const s = normStr(raw);
   if (!s) return s;
-  const canonical = strategyLookup?.get?.(s);
-  if (canonical) return canonical;
-  if (s.includes("(") && s.endsWith(")")) return s;
-  if (s.includes("/") && hasCJK(s.split("/")[0])) return s;
-  if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
-  return s;
+  const low = s.toLowerCase();
+  if (low === "unknown") return "未知/Unknown";
+  if (low === "n/a" || low === "na") return "无/N/A";
+
+  const looked =
+    strategyLookup?.get?.(s) || strategyLookup?.get?.(low) || "";
+  const out = normStr(looked) || s;
+
+  // 已经是中文/英文格式（或至少包含中文）则原样展示
+  if (hasCJK(out)) return out;
+  if (out.includes("/") && hasCJK(out.split("/")[0])) return out;
+
+  // 纯英文：强制带中文前缀，避免“无中文”
+  if (!hasCJK(out) && /[a-zA-Z]/.test(out)) return `待补充/${out}`;
+  return out;
+};
+
+const statusToCn = (raw) => {
+  const s0 = normStr(raw);
+  if (!s0) return "学习中/Learning";
+  if (hasCJK(s0)) return s0;
+  const s = s0.toLowerCase();
+  if (s.includes("active") || s.includes("实战")) return "实战中/Active";
+  if (
+    s.includes("valid") ||
+    s.includes("verify") ||
+    s.includes("test") ||
+    s.includes("验证")
+  )
+    return "验证中/Validating";
+  if (
+    s.includes("learn") ||
+    s.includes("study") ||
+    s.includes("read") ||
+    s.includes("学习")
+  )
+    return "学习中/Learning";
+  return `待补充/${s0}`;
 };
 
 const cycleToCn = (raw) => {
@@ -350,7 +382,8 @@ cycleGroupDefs.forEach((def) => {
         page?.["risk_reward"] ||
         page?.["盈亏比"] ||
         "无/N/A";
-      let status = s.statusRaw || "学习中";
+      const statusKey = normStr(s.statusRaw || "学习中").toLowerCase();
+      let status = statusToCn(s.statusRaw || "学习中");
       let usageCount = p.total || 0;
       let setupCategory = (s.setupCategories || [])
         .slice(0, 2)
@@ -366,11 +399,17 @@ cycleGroupDefs.forEach((def) => {
 
       // 状态颜色
       let statusColor =
-        status === "实战中"
+        statusKey.includes("active") || statusKey.includes("实战")
           ? "#22c55e"
-          : status === "验证中"
+          : statusKey.includes("valid") ||
+            statusKey.includes("verify") ||
+            statusKey.includes("test") ||
+            statusKey.includes("验证")
           ? "#fbbf24"
-          : status === "学习中"
+          : statusKey.includes("learn") ||
+            statusKey.includes("study") ||
+            statusKey.includes("read") ||
+            statusKey.includes("学习")
           ? "#3b82f6"
           : "#6b7280";
 
