@@ -34,13 +34,12 @@ if (window.paData) {
 
   // 优先使用 pa-core 构建的策略索引（单一信源，避免重复实现导致口径漂移）
   const sIdx = window.paData.strategyIndex;
-  const hasStrategyIndex =
-    !!(
-      sIdx &&
-      ((sIdx.list && sIdx.list.length > 0) ||
-        (sIdx.byName && sIdx.byName.size > 0) ||
-        (sIdx.byPattern && Object.keys(sIdx.byPattern).length > 0))
-    );
+  const hasStrategyIndex = !!(
+    sIdx &&
+    ((sIdx.list && sIdx.list.length > 0) ||
+      (sIdx.byName && sIdx.byName.size > 0) ||
+      (sIdx.byPattern && Object.keys(sIdx.byPattern).length > 0))
+  );
 
   if (hasStrategyIndex) {
     patternToStrategy = sIdx.byPattern || {};
@@ -89,7 +88,8 @@ if (window.paData) {
     if (!name) return null;
     const raw = String(name).trim();
     if (!raw) return null;
-    if (strategyLookup && strategyLookup.has(raw)) return strategyLookup.get(raw);
+    if (strategyLookup && strategyLookup.has(raw))
+      return strategyLookup.get(raw);
     const low = raw.toLowerCase();
     if (strategyLookup) {
       for (let [alias, canonical] of strategyLookup) {

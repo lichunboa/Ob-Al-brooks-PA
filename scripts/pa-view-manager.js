@@ -368,7 +368,8 @@ async function batchUpdate(paths, op, args) {
   const failed = [];
 
   const normEq = (a, b) => normalizeVal(a) === normalizeVal(b);
-  const arrHas = (arr, v) => Array.isArray(arr) && arr.some((x) => normEq(x, v));
+  const arrHas = (arr, v) =>
+    Array.isArray(arr) && arr.some((x) => normEq(x, v));
 
   for (let path of paths) {
     let tFile = app.vault.getAbstractFileByPath(path);
@@ -385,10 +386,11 @@ async function batchUpdate(paths, op, args) {
               if (args.newKey !== args.oldKey) delete fm[args.oldKey];
               changed = args.newKey !== args.oldKey;
             } else {
-              console.warn(
-                "[PA Manager] rename key skipped (target exists):",
-                { path, oldKey: args.oldKey, newKey: args.newKey }
-              );
+              console.warn("[PA Manager] rename key skipped (target exists):", {
+                path,
+                oldKey: args.oldKey,
+                newKey: args.newKey,
+              });
             }
           }
         } else if (op === "DELETE_KEY") {
