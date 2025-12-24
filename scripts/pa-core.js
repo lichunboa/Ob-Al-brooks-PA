@@ -209,7 +209,11 @@ const buildReviewHints = (trade) => {
       }
     }
 
-    if (has(err) && String(err).trim() !== "None" && String(err).trim() !== "无") {
+    if (
+      has(err) &&
+      String(err).trim() !== "None" &&
+      String(err).trim() !== "无"
+    ) {
       push(
         "error_review",
         "针对执行评价：具体哪里做得不对？给出 1 条可执行的改进规则。",
