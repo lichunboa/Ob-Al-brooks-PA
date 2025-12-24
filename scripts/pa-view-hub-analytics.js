@@ -32,74 +32,79 @@ if (window.paData) {
   let patternToStrategy = {};
   let strategyLookup = new Map(); // alias (CN/EN/Full) -> canonicalName (Full)
 
-  try {
-    let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
-    if (stratPages && stratPages.length > 0) {
-      stratPages.forEach((p) => {
-        let sName = p["策略名称/strategy_name"] || p.file.name;
+  // 优先使用 pa-core 构建的策略索引（单一信源，避免重复实现导致口径漂移）
+  const sIdx = window.paData.strategyIndex;
+  const hasStrategyIndex =
+    !!(
+      sIdx &&
+      ((sIdx.list && sIdx.list.length > 0) ||
+        (sIdx.byName && sIdx.byName.size > 0) ||
+        (sIdx.byPattern && Object.keys(sIdx.byPattern).length > 0))
+    );
 
-        // 1. 构建名称查找表 (Name Lookup)
-        strategyLookup.set(sName, sName); // Full name
-        if (sName.includes("(")) {
-          let parts = sName.split("(");
-          let cn = parts[0].trim();
-          let en = parts[1].replace(")", "").trim();
-          if (cn) strategyLookup.set(cn, sName);
-          if (en) strategyLookup.set(en, sName);
-        }
+  if (hasStrategyIndex) {
+    patternToStrategy = sIdx.byPattern || {};
+    strategyLookup = sIdx.lookup || new Map();
+  } else {
+    // 兼容兜底：如果 paData 没有索引（极少数情况），才退回扫描策略仓库
+    try {
+      let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
+      if (stratPages && stratPages.length > 0) {
+        stratPages.forEach((p) => {
+          let sName = p["策略名称/strategy_name"] || p.file.name;
 
-        // 2. 构建形态映射 (Pattern Mapping)
-        let patterns = p["观察到的形态/patterns_observed"];
-        if (patterns) {
-          // 归一化为数组
-          if (!Array.isArray(patterns)) {
-            // 处理 Proxy 或单一值
-            patterns = Array.from(patterns || []);
-            if (patterns.length === 0 && p["观察到的形态/patterns_observed"])
-              patterns = [p["观察到的形态/patterns_observed"]];
+          strategyLookup.set(sName, sName);
+          if (sName.includes("(") && sName.includes(")")) {
+            let parts = sName.split("(");
+            let cn = parts[0].trim();
+            let en = parts[1].replace(")", "").trim();
+            if (cn) strategyLookup.set(cn, sName);
+            if (en) strategyLookup.set(en, sName);
           }
 
-          // 建立映射: 形态 -> 策略名
-          patterns.forEach((pat) => {
-            let key = pat.toString().trim();
-            patternToStrategy[key] = sName;
-            // 同时也映射英文部分 (如果存在括号) e.g. "20EMA缺口 (20 EMA Gap)" -> "20 EMA Gap"
-            if (key.includes("(") && key.includes(")")) {
-              let en = key.match(/\(([^)]+)\)/)[1];
-              if (en) patternToStrategy[en.trim()] = sName;
+          let patterns = p["观察到的形态/patterns_observed"];
+          if (patterns) {
+            if (!Array.isArray(patterns)) {
+              patterns = Array.from(patterns || []);
+              if (patterns.length === 0 && p["观察到的形态/patterns_observed"])
+                patterns = [p["观察到的形态/patterns_observed"]];
             }
-          });
-        }
-      });
+            patterns.forEach((pat) => {
+              let key = pat.toString().trim();
+              patternToStrategy[key] = sName;
+              if (key.includes("(") && key.includes(")")) {
+                let m = key.match(/\(([^)]+)\)/);
+                if (m && m[1]) patternToStrategy[m[1].trim()] = sName;
+              }
+            });
+          }
+        });
+      }
+    } catch (e) {
+      console.log("策略映射构建失败", e);
     }
-  } catch (e) {
-    console.log("策略映射构建失败", e);
   }
+
+  const lookupCanonical = (name) => {
+    if (!name) return null;
+    const raw = String(name).trim();
+    if (!raw) return null;
+    if (strategyLookup && strategyLookup.has(raw)) return strategyLookup.get(raw);
+    const low = raw.toLowerCase();
+    if (strategyLookup) {
+      for (let [alias, canonical] of strategyLookup) {
+        if (String(alias).toLowerCase() === low) return canonical;
+      }
+    }
+    return null;
+  };
 
   // 辅助函数: 根据交易的形态列表推断策略
   function identifyStrategy(trade) {
     // 0. 优先检查显式的策略名称 (Strategy Name)
     if (trade.strategyName && trade.strategyName !== "Unknown") {
-      let sName = trade.strategyName;
-
-      // 尝试查找标准名称 (解决中英文混用问题)
-      if (strategyLookup.has(sName)) {
-        sName = strategyLookup.get(sName);
-      } else {
-        // 尝试作为英文别名查找
-        for (let [alias, canonical] of strategyLookup) {
-          if (alias.toLowerCase() === sName.toLowerCase()) {
-            sName = canonical;
-            break;
-          }
-        }
-      }
-
-      // 最终显示: 去除括号内的英文 (e.g. "20均线缺口 (20 EMA Gap)" -> "20均线缺口")
-      if (sName.includes("(") && sName.includes(")")) {
-        sName = sName.split("(")[0].trim();
-      }
-      return sName;
+      const canonical = lookupCanonical(trade.strategyName);
+      return canonical || trade.strategyName;
     }
 
     // 1. 优先检查 patterns (精确匹配策略)
@@ -107,12 +112,7 @@ if (window.paData) {
       for (let p of trade.patterns) {
         let key = p.toString().trim();
         if (patternToStrategy[key]) {
-          let sName = patternToStrategy[key];
-          // 同样做一次汉化处理
-          if (sName.includes("(") && sName.includes(")")) {
-            sName = sName.split("(")[0].trim();
-          }
-          return sName;
+          return patternToStrategy[key];
         }
       }
     }
