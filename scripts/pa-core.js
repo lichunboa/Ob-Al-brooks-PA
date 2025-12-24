@@ -86,6 +86,7 @@ let srData = {
   focusFile: null,
 };
 let courseData = { done: new Set(), map: {}, syllabus: [], hybridRec: null };
+let dailyData = { journalsByDate: new Map(), todayJournal: null };
 let strategyIndex = {
   repoPath: "策略仓库 (Strategy Repository)",
   list: [],
@@ -237,6 +238,7 @@ if (useCache) {
   stats = window.paData.stats;
   srData = window.paData.sr;
   courseData = window.paData.course;
+  dailyData = window.paData.daily || dailyData;
   strategyIndex = window.paData.strategyIndex;
 
   // v5.0: 兼容旧缓存（确保 reviewHints 可用）
@@ -352,6 +354,8 @@ if (useCache) {
       link: t.file.link,
       name: t.file.name,
       date: date,
+      mtime: t.file?.mtime?.ts || t.file?.ctime?.ts || null,
+      ctime: t.file?.ctime?.ts || null,
       type: type,
       pnl: pnl,
       r: r,
@@ -364,6 +368,7 @@ if (useCache) {
         utils.getRawStr(t, ["市场周期/market_cycle", "market_cycle"], "")
       ),
       error: errStr,
+      outcome: utils.getRawStr(t, ["结果/outcome", "outcome"], ""),
       cover: t["封面/cover"] || t["cover"] || "Unknown", // 保留原始值,不清洗
       ticker: utils.getRawStr(t, ["品种/ticker", "ticker"]),
       tickerKey: utils.normalizeTickerKey(
@@ -716,6 +721,23 @@ if (useCache) {
         setupCategories,
         patterns,
         source,
+        // 策略助手/Playbook 需要的扩展字段（仍保持单一信源）
+        riskReward:
+          p["盈亏比/risk_reward"] || p["risk_reward"] || p["盈亏比"] || "无/N/A",
+        entryCriteria:
+          p["入场条件/entry_criteria"] || p["entry_criteria"] || p["入场条件"] || [],
+        riskAlerts:
+          p["风险提示/risk_alerts"] || p["risk_alerts"] || p["风险提示"] || [],
+        stopLossRecommendation:
+          p["止损建议/stop_loss_recommendation"] ||
+          p["stop_loss_recommendation"] ||
+          p["止损建议"] ||
+          [],
+        signalBarRequirements:
+          p["信号K要求/signal_bar_requirements"] ||
+          p["signal_bar_requirements"] ||
+          p["信号K要求"] ||
+          [],
         file: p.file,
       };
 
@@ -744,6 +766,88 @@ if (useCache) {
   } catch (e) {
     console.log("策略索引构建失败", e);
   }
+}
+
+// ============================================================
+// 2.4 日记上下文 (Daily Journal Context)
+// ============================================================
+try {
+  // 优先复用缓存，缺失/强刷才重建
+  const canReuseDaily =
+    !forceReload &&
+    window.paData &&
+    window.paData.daily &&
+    window.paData.daily.journalsByDate;
+  if (canReuseDaily) {
+    dailyData = window.paData.daily;
+  } else {
+    const journalsByDate = new Map();
+    const dailyPages = dv.pages('"Daily"');
+
+    const isoFromAny = (v) => {
+      if (!v) return "";
+      try {
+        if (typeof v.toISODate === "function") return v.toISODate();
+      } catch (e) {}
+      if (Array.isArray(v)) return isoFromAny(v[0]);
+      if (v?.constructor && v.constructor.name === "Proxy") {
+        try {
+          const arr = Array.from(v);
+          return isoFromAny(arr[0]);
+        } catch (e) {}
+      }
+      if (typeof v === "string") {
+        const m = v.match(/\d{4}-\d{2}-\d{2}/);
+        return m ? m[0] : "";
+      }
+      if (typeof v === "object") {
+        try {
+          for (const k of Object.keys(v)) {
+            const m = k.match(/\d{4}-\d{2}-\d{2}/);
+            if (m) return m[0];
+          }
+          for (const vv of Object.values(v)) {
+            const iso = isoFromAny(vv);
+            if (iso) return iso;
+          }
+        } catch (e) {}
+      }
+      return "";
+    };
+    const pageISODate = (p) => {
+      const d1 = isoFromAny(p?.file?.day);
+      if (d1) return d1;
+      return isoFromAny(p?.date);
+    };
+    const isJournal = (p) => {
+      const name = (p?.file?.name || "").toString();
+      return (
+        name.includes("_Journal") ||
+        name.toLowerCase().includes("journal") ||
+        name.includes("复盘")
+      );
+    };
+
+    for (const p of dailyPages) {
+      if (!isJournal(p)) continue;
+      const d = pageISODate(p);
+      if (!d) continue;
+      const mc = utils.getRawStr(p, ["市场周期/market_cycle", "market_cycle"], "");
+      journalsByDate.set(d, {
+        date: d,
+        path: p.file.path,
+        link: p.file.link,
+        market_cycle: mc,
+      });
+    }
+
+    dailyData = {
+      journalsByDate,
+      todayJournal: journalsByDate.get(todayStr) || null,
+    };
+  }
+} catch (e) {
+  // ignore
 }
 
 // ============================================================
@@ -882,6 +986,7 @@ window.paData = {
   stats: stats,
   sr: srData,
   course: courseData,
+  daily: dailyData,
   strategyIndex: strategyIndex,
   updateTime: moment().format("HH:mm:ss"),
   cacheTs: Date.now(),

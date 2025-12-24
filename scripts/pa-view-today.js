@@ -7,52 +7,10 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 // 获取今日日期
 const today = moment().format("YYYY-MM-DD");
 
-// --- 日期解析健壮化 (兼容 Luxon / 字符串 / {"YYYY-MM-DD": ...} / Proxy) ---
-const isoFromAny = (v) => {
-  if (!v) return "";
-  try {
-    if (typeof v.toISODate === "function") return v.toISODate();
-  } catch (e) {}
-  if (Array.isArray(v)) return isoFromAny(v[0]);
-  if (v?.constructor && v.constructor.name === "Proxy") {
-    try {
-      const arr = Array.from(v);
-      return isoFromAny(arr[0]);
-    } catch (e) {}
-  }
-  if (typeof v === "string") {
-    const m = v.match(/\d{4}-\d{2}-\d{2}/);
-    return m ? m[0] : "";
-  }
-  try {
-    if (v instanceof Date) return moment(v).format("YYYY-MM-DD");
-  } catch (e) {}
-  if (typeof v === "object") {
-    try {
-      for (const k of Object.keys(v)) {
-        const m = k.match(/\d{4}-\d{2}-\d{2}/);
-        if (m) return m[0];
-      }
-      for (const vv of Object.values(v)) {
-        const iso = isoFromAny(vv);
-        if (iso) return iso;
-      }
-    } catch (e) {}
-  }
-  return "";
-};
-
-const pageISODate = (p) => {
-  const d1 = isoFromAny(p?.file?.day);
-  if (d1) return d1;
-  return isoFromAny(p?.date);
-};
-
-// 获取今日所有交易笔记
-const todayTrades = dv
-  .pages('"Daily/Trades"')
-  .where((p) => pageISODate(p) === today)
-  .sort((p) => p.file.mtime, "desc"); // 按修改时间倒序，确保最新的在最前
+// 单一信源：直接使用 pa-core 输出的 tradesAsc
+const todayTrades = (window.paData?.tradesAsc || [])
+  .filter((t) => t && t.date === today)
+  .sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
 
 const c = cfg.colors;
 const root = dv.el("div", "", { attr: { style: c.cardBg } });
@@ -87,18 +45,7 @@ const cycleMatches = (cycles, currentCycle) => {
 
 // --- 1. 市场环境与策略推荐 (Context & Strategy) ---
 // 尝试查找今日的复盘日记 (通常在 Daily 目录下)
-const todayJournal = dv
-  .pages('"Daily"')
-  .where((p) => {
-    const name = (p?.file?.name || "").toString();
-    const isJournal =
-      name.includes("_Journal") ||
-      name.toLowerCase().includes("journal") ||
-      name.includes("复盘");
-    if (!isJournal) return false;
-    return pageISODate(p) === today;
-  })
-  .first();
+const todayJournal = window.paData?.daily?.todayJournal;
 let contextHtml = "";
 
 if (todayJournal && todayJournal.market_cycle) {
@@ -136,36 +83,37 @@ if (todayJournal && todayJournal.market_cycle) {
 
 // --- 1. 策略助手逻辑 (Strategy Assistant) ---
 // 查找当前正在进行的交易 (没有结果/outcome 或 结果为空)
-const activeTrade = todayTrades.find((p) => !p["结果/outcome"]);
+const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
 let assistantHtml = "";
 
 if (activeTrade) {
-  const patterns = activeTrade["观察到的形态/patterns_observed"];
-  const currentSignal = activeTrade["信号K/signal_bar_quality"];
+  const patterns = activeTrade.patterns;
+  const currentSignal = activeTrade.signal;
 
   if (patterns) {
     // 查找匹配的策略卡片（优先使用 strategyIndex.byPattern）
     const observedList = toArr(patterns).map(normStr).filter(Boolean);
     let matchedFilePath = null;
+    let matchedItem = null;
     for (const obs of observedList) {
       const canonical = strategyByPattern[obs];
       if (!canonical) continue;
       const item = strategyByName?.get?.(canonical);
       if (item?.file?.path) {
         matchedFilePath = item.file.path;
+        matchedItem = item;
         break;
       }
     }
 
-    const matchedStrategy = matchedFilePath ? dv.page(matchedFilePath) : null;
-    if (matchedStrategy) {
+    if (matchedItem) {
       // 提取策略建议
-      const sName = matchedStrategy["策略名称/strategy_name"];
-      const sEntry = matchedStrategy["入场条件/entry_criteria"] || [];
-      const sRisk = matchedStrategy["风险提示/risk_alerts"] || [];
-      const sStop = matchedStrategy["止损建议/stop_loss_recommendation"] || [];
-      const sSignalReq =
-        matchedStrategy["信号K要求/signal_bar_requirements"] || [];
+      const sName =
+        matchedItem.canonicalName || matchedItem.displayName || "策略";
+      const sEntry = matchedItem.entryCriteria || [];
+      const sRisk = matchedItem.riskAlerts || [];
+      const sStop = matchedItem.stopLossRecommendation || [];
+      const sSignalReq = matchedItem.signalBarRequirements || [];
 
       // 信号K 验证逻辑
       let signalValidationHtml = "";
@@ -213,9 +161,7 @@ if (activeTrade) {
             <div style="font-weight:700; color:${
               c.accent
             };">🤖 策略助手: ${sName}</div>
-            <a href="${
-              matchedStrategy.file.path
-            }" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+            <a href="${matchedItem.file?.path || matchedFilePath}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -264,8 +210,8 @@ if (activeTrade) {
   } else {
     // --- 早期建议逻辑 (Early Suggestions) ---
     // 如果没有选定形态，则根据市场周期和设置类别提供建议
-    const marketCycle = activeTrade["市场周期/market_cycle"];
-    const setupCategory = activeTrade["设置类别/setup_category"];
+    const marketCycle = activeTrade.market_cycle;
+    const setupCategory = activeTrade.setup;
 
     if (marketCycle || setupCategory) {
       let suggestedStrategies = [];
@@ -333,7 +279,7 @@ if (activeTrade) {
 
 // --- 2. 统计数据逻辑 ---
 let totalTrades = todayTrades.length;
-let completedTrades = todayTrades.where((p) => p["结果/outcome"]).length;
+let completedTrades = todayTrades.filter((t) => (t.outcome || "").toString().trim()).length;
 let activeTradesCount = totalTrades - completedTrades;
 
 let totalPnL = 0;
@@ -342,32 +288,29 @@ let losses = 0;
 let scratches = 0;
 
 todayTrades.forEach((trade) => {
-  let outcome = trade["结果/outcome"];
-  // 如果是数组，转换为字符串以便匹配
-  if (Array.isArray(outcome)) {
-    outcome = outcome.join(" ");
-  }
+  let outcome = trade.outcome;
+  let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : (outcome || "").toString();
 
-  let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
+  let pnl = Number(trade.pnl) || 0;
 
   // 兼容 "Win" 和 "止盈 (Win)" 两种格式
   if (
-    outcome &&
-    (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))
+    outcomeStr &&
+    (outcomeStr === "Win" || outcomeStr.includes("Win") || outcomeStr.includes("止盈"))
   ) {
     wins++;
     totalPnL += pnl;
   } else if (
-    outcome &&
-    (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))
+    outcomeStr &&
+    (outcomeStr === "Loss" || outcomeStr.includes("Loss") || outcomeStr.includes("止损"))
   ) {
     losses++;
     totalPnL += pnl;
   } else if (
-    outcome &&
-    (outcome === "Scratch" ||
-      outcome.includes("Scratch") ||
-      outcome.includes("保本"))
+    outcomeStr &&
+    (outcomeStr === "Scratch" ||
+      outcomeStr.includes("Scratch") ||
+      outcomeStr.includes("保本"))
   ) {
     scratches++;
     totalPnL += pnl; // 保本单也可能有微小盈亏
@@ -381,17 +324,16 @@ let winRate =
 let recentTradesHtml = "";
 if (todayTrades.length > 0) {
   todayTrades.slice(0, 5).forEach((trade) => {
-    let strategy = trade["策略名称/strategy_name"] || "未指定";
-    let ticker = trade["品种/ticker"] || "";
-    let direction = trade["方向/direction"] || "";
-    let outcome = trade["结果/outcome"] || "进行中";
-    // 如果是数组，转换为字符串以便匹配
-    let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : outcome;
+    let strategy = trade.strategyName || "未指定";
+    let ticker = trade.ticker || "";
+    let direction = trade.dir || "";
+    let outcome = trade.outcome || "进行中";
+    let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : (outcome || "").toString();
 
-    let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
-    let timeframe = trade["时间周期/timeframe"] || "";
-    let entry = trade["入场/entry_price"] || "";
-    let stop = trade["止损/stop_loss"] || "";
+    let pnl = Number(trade.pnl) || 0;
+    let timeframe = trade.tf || "";
+    let entry = trade.entry || "";
+    let stop = trade.stop || "";
 
     // 状态颜色
     let statusColor = "#6b7280"; // 默认灰色 (进行中)
@@ -427,7 +369,7 @@ if (todayTrades.length > 0) {
         : "➡️";
 
     recentTradesHtml += `
-    <a href="${trade.file.path}" class="internal-link" style="
+    <a href="${trade.id}" class="internal-link" style="
       display:block;
       background:rgba(255,255,255,0.02);
       border:1px solid rgba(255,255,255,0.05);

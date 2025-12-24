@@ -24,15 +24,12 @@ if (window.paData) {
   leftCol.style.cssText = `${c.cardBg}; padding: 20px; display: flex; flex-direction: column; gap: 15px;`;
 
   // 1.1 头部状态
-  // dv.pages 返回的是 DataArray，需要转换为普通数组才能使用 reduce
-  const todayTrades = dv
-    .pages('"Daily/Trades"')
-    .where((p) => p.date && p.date.toString().startsWith(today)).values; // .values 提取底层数组
+  // 单一信源：直接使用 pa-core 输出的 tradesAsc
+  const todayTrades = (window.paData.tradesAsc || [])
+    .filter((t) => t && t.date === today)
+    .sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
 
-  const todayPnL = todayTrades.reduce(
-    (acc, t) => acc + (t["净利润/net_profit"] || 0),
-    0
-  );
+  const todayPnL = todayTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
   const todayCount = todayTrades.length;
 
   leftCol.innerHTML = `
@@ -50,10 +47,7 @@ if (window.paData) {
     </div>`;
 
   // 1.2 市场环境 (Context)
-  const todayJournal = dv
-    .pages('"Daily"')
-    .where((p) => p.file.day && p.file.day.toISODate() === today)
-    .first();
+  const todayJournal = window.paData?.daily?.todayJournal;
   if (todayJournal && todayJournal.market_cycle) {
     leftCol.innerHTML += `
         <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
@@ -68,7 +62,7 @@ if (window.paData) {
   }
 
   // 1.3 活跃交易 (Active Trade)
-  const activeTrade = todayTrades.find((p) => !p["结果/outcome"]);
+  const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
   if (activeTrade) {
     leftCol.innerHTML += `
         <div style="flex:1; background:rgba(255,255,255,0.03); border-radius:8px; padding:15px; border:1px solid ${
@@ -77,13 +71,13 @@ if (window.paData) {
             <div style="color:${
               c.accent
             }; font-weight:bold; margin-bottom:10px;">⚡️ 进行中: ${
-      activeTrade.file.link
+      activeTrade.link
     }</div>
             <div style="font-size:0.9em; opacity:0.8;">
-                <div>方向: ${activeTrade["方向/direction"] || "-"}</div>
-                <div>形态: ${
-                  activeTrade["观察到的形态/patterns_observed"] || "-"
-                }</div>
+                <div>方向: ${activeTrade.dir || "-"}</div>
+                <div>形态: ${(Array.isArray(activeTrade.patterns) && activeTrade.patterns.length > 0)
+                  ? activeTrade.patterns.map((x) => x.toString().trim()).filter(Boolean).join(", ")
+                  : (activeTrade.patterns || "-")}</div>
             </div>
         </div>`;
   } else {

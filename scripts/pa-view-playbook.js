@@ -102,51 +102,9 @@ const cycleMatches = (cycles, currentCycle) => {
   });
 };
 
-// 今日复盘日记（用于“今日推荐”）
+// 今日复盘日记（用于“今日推荐”）- 单一信源：pa-core daily
 const today = moment().format("YYYY-MM-DD");
-const isoFromAny = (v) => {
-  if (!v) return "";
-  try {
-    if (typeof v.toISODate === "function") return v.toISODate();
-  } catch (e) {}
-  if (Array.isArray(v)) return isoFromAny(v[0]);
-  if (v?.constructor && v.constructor.name === "Proxy") {
-    try {
-      const arr = Array.from(v);
-      return isoFromAny(arr[0]);
-    } catch (e) {}
-  }
-  if (typeof v === "string") {
-    const m = v.match(/\d{4}-\d{2}-\d{2}/);
-    return m ? m[0] : "";
-  }
-  if (typeof v === "object") {
-    try {
-      for (const k of Object.keys(v)) {
-        const m = k.match(/\d{4}-\d{2}-\d{2}/);
-        if (m) return m[0];
-      }
-    } catch (e) {}
-  }
-  return "";
-};
-const pageISODate = (p) => {
-  const d1 = isoFromAny(p?.file?.day);
-  if (d1) return d1;
-  return isoFromAny(p?.date);
-};
-const todayJournal = dv
-  .pages('"Daily"')
-  .where((p) => {
-    const name = (p?.file?.name || "").toString();
-    const isJournal =
-      name.includes("_Journal") ||
-      name.toLowerCase().includes("journal") ||
-      name.includes("复盘");
-    if (!isJournal) return false;
-    return pageISODate(p) === today;
-  })
-  .first();
+const todayJournal = window.paData?.daily?.todayJournal;
 const isActiveStrategy = (statusRaw) => {
   const s = normStr(statusRaw);
   if (!s) return false;
@@ -340,7 +298,6 @@ orderedGroups.forEach((groupName) => {
       <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:8px;">`;
 
     for (let s of matches) {
-      const page = dv.page(s.file.path);
       let strategyName = prettyName(
         s.displayName || s.canonicalName || s.file.name
       );
@@ -351,11 +308,7 @@ orderedGroups.forEach((groupName) => {
         lastDate: "",
       };
       let winRate = safePct(p.wins, p.total);
-      let riskReward =
-        page?.["盈亏比/risk_reward"] ||
-        page?.["risk_reward"] ||
-        page?.["盈亏比"] ||
-        "无/N/A";
+      let riskReward = s.riskReward || "无/N/A";
       const statusKey = normStr(s.statusRaw || "学习中").toLowerCase();
       let status = statusToCn(s.statusRaw || "学习中");
       let usageCount = p.total || 0;

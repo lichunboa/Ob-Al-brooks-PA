@@ -2,25 +2,19 @@ const basePath = app.vault.adapter.basePath;
 const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
-// 重新从 DataView 获取原始页面以读取 market_cycle 属性 (Engine V14.5 未深度清洗此字段)
-// 为了方便，这里还是做一次轻量查询，或者你也可以去修改 Engine 把 cycle 加进去
-const pages = dv
-  .pages(cfg.tags.trade)
-  .where((p) => !p.file.path.includes(cfg.paths.templates));
+// 单一信源：直接使用 pa-core 输出的 tradesAsc
+const tradesAsc = window.paData?.tradesAsc || [];
 let cycleStats = {};
 
-for (let p of pages) {
-  let acct = (p["账户类型/account_type"] || "").toString();
-  if (!acct.includes("Live") && !acct.includes("实盘")) continue;
+for (let t of tradesAsc) {
+  if (!t || t.type !== "Live") continue;
 
-  let cycleRaw = p["市场周期/market_cycle"] || p["market_cycle"] || "Unknown";
-  let cycle = Array.isArray(cycleRaw) ? cycleRaw[0] : cycleRaw.toString();
+  let cycle = (t.market_cycle || "Unknown").toString();
   if (cycle.includes("/")) cycle = cycle.split("/")[1].trim();
   else if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
 
   if (!cycleStats[cycle]) cycleStats[cycle] = 0;
-  let pnl = Number(p["净利润/net_profit"] || p["net_profit"] || 0);
-  cycleStats[cycle] += pnl;
+  cycleStats[cycle] += Number(t.pnl) || 0;
 }
 
 let sortedCycles = Object.keys(cycleStats)
