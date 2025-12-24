@@ -62,6 +62,13 @@ const statusToCn = (raw) => {
   return `待补充/${s0}`;
 };
 
+const hashId = (input) => {
+  const s = normStr(input);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return (h >>> 0).toString(16);
+};
+
 const cycleToCn = (raw) => {
   const s0 = normStr(raw);
   if (!s0) return s0;
@@ -395,11 +402,13 @@ orderedGroups.forEach((groupName) => {
       const cardIdBase = normStr(
         s?.file?.path || s?.file?.name || s?.canonicalName || strategyName
       );
-      const cardIdSlug = (cardIdBase || "strategy")
+      const cardIdSlugBase = normStr(s?.file?.name || s?.canonicalName || "s");
+      const cardIdSlug = cardIdSlugBase
         .replace(/[^a-zA-Z0-9]/g, "-")
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "");
-      let cardId = `strategy-${cardIdSlug || "strategy"}`;
+      const cardIdHash = hashId(cardIdBase || cardIdSlugBase);
+      let cardId = `strategy-${cardIdSlug || "s"}-${cardIdHash}`;
       const safePath = s?.file?.path;
       const safeHref = safePath ? encodeURI(safePath) : "";
 

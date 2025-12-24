@@ -453,9 +453,22 @@ if (useCache) {
 
     for (let p of stratPages) {
       // 注意：这里不能用 utils.getStr（会把“中文 (English)”清洗成只剩英文）
-      const canonicalName =
-        getRawStr(p, ["策略名称/strategy_name", "strategy_name"], "") ||
-        p.file.name;
+      const rawStrategyName = getRawStr(
+        p,
+        ["策略名称/strategy_name", "strategy_name"],
+        ""
+      );
+
+      // 只收录真正的“策略卡片”，排除方案说明/索引页
+      const cats = toArr(p?.categories || p?.category || []).map(normStr);
+      const tags = toArr(p?.tags || p?.tag || []).map(normStr);
+      const isStrategyCard =
+        !!rawStrategyName ||
+        cats.includes("策略") ||
+        tags.some((t) => t === "PA/Strategy" || t.endsWith("/Strategy"));
+      if (!isStrategyCard) continue;
+
+      const canonicalName = rawStrategyName || p.file.name;
 
       const statusRaw = getRawStr(
         p,
