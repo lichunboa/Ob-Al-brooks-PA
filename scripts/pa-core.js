@@ -96,6 +96,134 @@ let strategyIndex = {
 };
 
 // ============================================================
+// 1.5 智能复盘要点（仅生成 hints，不改 UI）
+// ============================================================
+const buildReviewHints = (trade) => {
+  try {
+    const hints = [];
+    const push = (id, zh, en) => hints.push({ id, zh, en });
+
+    const has = (v) => {
+      if (v === null || v === undefined) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      const s = String(v).trim();
+      return !!s && s !== "Unknown";
+    };
+
+    const setup = trade?.setup;
+    const cycle = trade?.market_cycle;
+    const tf = trade?.tf;
+    const dir = trade?.dir;
+    const ticker = trade?.ticker;
+    const patterns = Array.isArray(trade?.patterns) ? trade.patterns : [];
+    const err = trade?.error;
+    const r = trade?.r;
+
+    push(
+      "context",
+      "一句话复述市场背景（趋势/区间/突破）与当天关键位置（磁体/支撑阻力）。",
+      "In one sentence: market context (trend/range/breakout) and key levels (magnet/SR)."
+    );
+
+    if (!has(setup)) {
+      push(
+        "setup_missing",
+        "补齐设置类别：这笔更像哪类 setup？（趋势回调/突破/反转/楔形/双顶底/末端旗形…）",
+        "Fill setup category: which setup fits best (pullback/breakout/reversal/wedge/DTDB/final flag…)?"
+      );
+    }
+
+    if (!has(cycle)) {
+      push(
+        "cycle_missing",
+        "补齐市场周期：强趋势/弱趋势/区间/突破模式/通道？用一词标注。",
+        "Fill market cycle: strong trend/weak trend/range/breakout mode/channel—label with one term."
+      );
+    }
+
+    if (!has(trade?.strategyName) || trade?.strategyName === "Unknown") {
+      push(
+        "strategy_missing",
+        "补齐策略名称：用策略卡的规范名（中文/英文）记录，方便后续统计与复盘检索。",
+        "Fill strategy name: use the canonical strategy card name (CN/EN) for consistent stats/search."
+      );
+    }
+
+    if (patterns.length === 0) {
+      push(
+        "patterns_missing",
+        "补齐观察到的形态：至少写 1 个最关键的形态或信号（如：楔形/双顶底/末端旗形/缺口…）。",
+        "Fill observed patterns: record at least one key pattern/signal (wedge/DTDB/final flag/gap…)."
+      );
+    }
+
+    if (!has(tf)) {
+      push(
+        "tf_missing",
+        "补齐时间周期：这笔的执行周期是什么？（如 5分钟/15分钟/1小时/日线）",
+        "Fill timeframe: what execution timeframe (e.g., 5m/15m/1h/daily)?"
+      );
+    }
+
+    if (!has(ticker)) {
+      push(
+        "ticker_missing",
+        "补齐品种：这笔交易的标的是什么？（SPX/ES/NQ/…）",
+        "Fill ticker: what instrument (SPX/ES/NQ/…)?"
+      );
+    }
+
+    if (!has(dir)) {
+      push(
+        "dir_missing",
+        "补齐方向：做多/做空？为什么顺势/逆势？",
+        "Fill direction: long/short? why with-trend or counter-trend?"
+      );
+    }
+
+    push(
+      "entry_logic",
+      "写清入场理由：触发点是什么？（信号K、突破/回调到位、二次入场等）",
+      "Entry logic: what triggered the entry (signal bar, breakout/pullback, second entry, etc.)?"
+    );
+
+    push(
+      "risk_mgmt",
+      "写清风控：止损放哪、初始风险、是否加仓/减仓、何时移动止损？",
+      "Risk management: stop placement, initial risk, scaling in/out, and stop management."
+    );
+
+    if (typeof r === "number" && !Number.isNaN(r)) {
+      if (r < 0) {
+        push(
+          "loss_review",
+          "亏损复盘：这是计划内亏损还是错误亏损？下一次如何避免同类错误？",
+          "Loss review: planned loss or error loss? what will you change next time?"
+        );
+      } else if (r > 0) {
+        push(
+          "win_review",
+          "盈利复盘：有没有过早止盈/错过加仓/持仓管理可以优化？",
+          "Win review: any early exit/missed scale-in/management improvements?"
+        );
+      }
+    }
+
+    if (has(err) && String(err).trim() !== "None" && String(err).trim() !== "无") {
+      push(
+        "error_review",
+        "针对执行评价：具体哪里做得不对？给出 1 条可执行的改进规则。",
+        "Execution quality: what exactly went wrong? write 1 actionable improvement rule."
+      );
+    }
+
+    return hints;
+  } catch (e) {
+    return [];
+  }
+};
+
+// ============================================================
 // 2. 数据加载逻辑
 // ============================================================
 
@@ -197,7 +325,7 @@ if (useCache) {
       r = rawR;
     }
 
-    trades.push({
+    const tradeItem = {
       id: t.file.path,
       link: t.file.link,
       name: t.file.name,
@@ -234,7 +362,12 @@ if (useCache) {
         "策略名称/strategy_name",
         "strategy_name",
       ]),
-    });
+    };
+
+    // v5.0: 智能复盘要点（仅生成，不改变现有 UI）
+    tradeItem.reviewHints = buildReviewHints(tradeItem);
+
+    trades.push(tradeItem);
   }
   trades.sort((a, b) => a.date.localeCompare(b.date)); // 正序
 
