@@ -106,7 +106,7 @@ if (window.paData) {
     const minVal = Math.min(...allValues, -100);
     const range = maxVal - minVal;
     const width = 600; const height = 180;
-    const padding = 20; // 增加内边距给坐标轴
+    const padding = 30; // 增加内边距给坐标轴
 
     function getPoints(data) {
         if (data.length < 2) return `${padding},${height-padding} ${width},${height-padding}`;
@@ -117,6 +117,10 @@ if (window.paData) {
             return `${x},${y}`;
         }).join(" ");
     }
+    
+    // 获取日期范围
+    const startDate = tradesAsc.length > 0 ? tradesAsc[0].date : "";
+    const endDate = tradesAsc.length > 0 ? tradesAsc[tradesAsc.length-1].date : "";
 
     // 辅助函数：生成迷你卡片
     function miniCard(title, stats, color, icon) {
@@ -163,7 +167,7 @@ if (window.paData) {
             if (data.types.has("Demo")) bars += `<div style="flex:1; background:${c.demo}; border-radius:1px;"></div>`;
             if (data.types.has("Backtest")) bars += `<div style="flex:1; background:${c.back}; border-radius:1px;"></div>`;
             
-            content += `<div style="display:flex; gap:1px; height:3px; width:80%; margin-top:3px; opacity:0.8;">${bars}</div>`;
+            content += `<div style="display:flex; gap:1px; height:4px; width:90%; margin-top:3px; opacity:0.9;">${bars}</div>`;
         }
         gridHtml += `
             <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
@@ -182,15 +186,21 @@ if (window.paData) {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
-    // R-Multiples (综合趋势)
+    // R-Multiples (综合趋势) - 优化为上下柱状图
     const recentTrades = tradesAsc.slice(-30);
     let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
     let avgR = (recentTrades.reduce((acc, t) => acc + (t.r || 0), 0) / (recentTrades.length || 1)).toFixed(2);
     
+    // R图表参数
+    const rHeight = 60;
+    const rZeroY = rHeight / 2;
+    const rScale = (rHeight / 2 - 2) / maxR; // 留2px边距
+
     let barsHtml = recentTrades.map(t => {
         let r = t.r || 0;
-        let h = Math.round((Math.abs(r) / maxR) * 40);
+        let h = Math.abs(r) * rScale;
         if (h < 2) h = 2;
+        
         let color = c.loss;
         if (r >= 0) {
             let type = (t.type || "").toLowerCase();
@@ -198,6 +208,15 @@ if (window.paData) {
             else if (type === "demo") color = c.demo;
             else color = c.back;
         }
+        
+        // 计算位置: 正数向上生长，负数向下生长
+        let top = r >= 0 ? (rZeroY - h) : rZeroY;
+        
+        return `<div style="position:absolute; left:${recentTrades.indexOf(t) * 7}px; top:${top}px; width:5px; height:${h}px; background:${color}; border-radius:1px;" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
+    }).join("");
+    
+    // R图表容器宽度
+    let rWidth = recentTrades.length * 7;
         // 增加透明度区分
         let opacity = Math.abs(r) < 0.5 ? 0.4 : 1;
         return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${opacity};" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
@@ -340,6 +359,10 @@ if (window.paData) {
                 <text x="${padding-5}" y="${padding+5}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${maxVal.toFixed(0)}</text>
                 <text x="${padding-5}" y="${height-padding}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${minVal.toFixed(0)}</text>
                 
+                <!-- X轴标签 (日期) -->
+                <text x="${padding}" y="${height-5}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="start">${startDate}</text>
+                <text x="${width}" y="${height-5}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${endDate}</text>
+
                 <!-- 曲线 -->
                 <polyline points="${getPoints(curves.back)}" fill="none" stroke="${c.back}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
                 <polyline points="${getPoints(curves.demo)}" fill="none" stroke="${c.demo}" stroke-width="2" stroke-opacity="0.7" />
@@ -359,7 +382,10 @@ if (window.paData) {
                     <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples)</div>
                     <div style="font-size:0.7em; opacity:0.4;">Avg R: ${avgR}</div>
                 </div>
-                <div style="display:flex; align-items:flex-end; gap:4px; height:50px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <!-- R图表容器: 使用 relative 定位 -->
+                <div style="position:relative; height:${rHeight}px; width:${rWidth}px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <!-- 0轴线 -->
+                    <div style="position:absolute; left:0; right:0; top:${rZeroY}px; height:1px; background:rgba(255,255,255,0.1);"></div>
                     ${barsHtml || '<div style="opacity:0.5; font-size:0.8em;">暂无数据</div>'}
                 </div>
             </div>
