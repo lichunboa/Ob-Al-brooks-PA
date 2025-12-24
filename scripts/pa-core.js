@@ -747,6 +747,101 @@ if (useCache) {
 }
 
 // ============================================================
+// 2.5 交易索引 (仅派生数据，不改 UI)
+// ============================================================
+const buildTradeIndex = (tradeListAsc) => {
+  const by = {
+    tickerKey: new Map(),
+    tfKey: new Map(),
+    setupKey: new Map(),
+    marketCycleKey: new Map(),
+    strategyKey: new Map(),
+    dirKey: new Map(),
+  };
+  const labels = {
+    tickerKey: new Map(),
+    tfKey: new Map(),
+    setupKey: new Map(),
+    marketCycleKey: new Map(),
+    strategyKey: new Map(),
+    dirKey: new Map(),
+  };
+
+  const normKey = (v) => {
+    const s = v === undefined || v === null ? "" : String(v).trim();
+    if (!s || s === "Unknown") return "unknown";
+    return s;
+  };
+
+  const ensureKeys = (t) => {
+    if (!t || typeof t !== "object") return;
+    // 兼容旧缓存：如果缺少 *Key，则用 utils 的 normalize 系列补齐
+    if (!t.tickerKey) t.tickerKey = utils.normalizeTickerKey(t.ticker || "");
+    if (!t.tfKey) t.tfKey = utils.normalizeTimeframeKey(t.tf || "");
+    if (!t.dirKey) t.dirKey = utils.normalizeDirectionKey(t.dir || "");
+    if (!t.setupKey) t.setupKey = utils.normalizeEnumKey(t.setup || "");
+    if (!t.marketCycleKey)
+      t.marketCycleKey = utils.normalizeEnumKey(t.market_cycle || "");
+    if (!t.strategyKey)
+      t.strategyKey = utils.normalizeEnumKey(t.strategyName || "");
+  };
+
+  const add = (map, key, trade) => {
+    const k = normKey(key);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(trade);
+    return k;
+  };
+
+  const addLabel = (labelMap, k, label) => {
+    if (labelMap.has(k)) return;
+    const s = label === undefined || label === null ? "" : String(label).trim();
+    if (!s || s === "Unknown") return;
+    labelMap.set(k, s);
+  };
+
+  const list = Array.isArray(tradeListAsc) ? tradeListAsc : [];
+  for (const t of list) {
+    ensureKeys(t);
+
+    const kTicker = add(by.tickerKey, t.tickerKey, t);
+    addLabel(labels.tickerKey, kTicker, t.ticker);
+
+    const kTf = add(by.tfKey, t.tfKey, t);
+    addLabel(labels.tfKey, kTf, t.tf);
+
+    const kDir = add(by.dirKey, t.dirKey, t);
+    addLabel(labels.dirKey, kDir, t.dir);
+
+    const kSetup = add(by.setupKey, t.setupKey, t);
+    addLabel(labels.setupKey, kSetup, t.setup);
+
+    const kCycle = add(by.marketCycleKey, t.marketCycleKey, t);
+    addLabel(labels.marketCycleKey, kCycle, t.market_cycle);
+
+    const kStrat = add(by.strategyKey, t.strategyKey, t);
+    addLabel(labels.strategyKey, kStrat, t.strategyName);
+  }
+
+  const counts = {
+    tickerKey: new Map(),
+    tfKey: new Map(),
+    setupKey: new Map(),
+    marketCycleKey: new Map(),
+    strategyKey: new Map(),
+    dirKey: new Map(),
+  };
+  for (const k of by.tickerKey.keys()) counts.tickerKey.set(k, by.tickerKey.get(k).length);
+  for (const k of by.tfKey.keys()) counts.tfKey.set(k, by.tfKey.get(k).length);
+  for (const k of by.setupKey.keys()) counts.setupKey.set(k, by.setupKey.get(k).length);
+  for (const k of by.marketCycleKey.keys()) counts.marketCycleKey.set(k, by.marketCycleKey.get(k).length);
+  for (const k of by.strategyKey.keys()) counts.strategyKey.set(k, by.strategyKey.get(k).length);
+  for (const k of by.dirKey.keys()) counts.dirKey.set(k, by.dirKey.get(k).length);
+
+  return { by, labels, counts };
+};
+
+// ============================================================
 // 3. 混合推荐 (每次运行重算)
 // ============================================================
 let candidates = [];
@@ -779,9 +874,11 @@ if (candidates.length > 0) {
 // ============================================================
 // 4. 数据挂载 & 状态栏
 // ============================================================
+const index = buildTradeIndex(trades);
 window.paData = {
   trades: [...trades].reverse(),
   tradesAsc: trades,
+  index: index,
   stats: stats,
   sr: srData,
   course: courseData,

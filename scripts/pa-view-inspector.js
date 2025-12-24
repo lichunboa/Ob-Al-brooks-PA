@@ -62,40 +62,9 @@ if (window.paData) {
       for (const key of strategyMap.keys()) strategyLookup.set(key, key);
     }
   } else {
-    // 回退：引擎尚未加载 strategyIndex 时，仍可工作
-    const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
-    for (let p of strategyPages) {
-      let name = p["策略名称/strategy_name"] || p.file.name;
-      let patterns = p["观察到的形态/patterns_observed"];
-      let category = p["设置类别/setup_category"];
-
-      let patternSet = new Set();
-      if (patterns) {
-        if (!Array.isArray(patterns)) patterns = [patterns];
-        patterns.forEach((a) => {
-          let pStr = a.toString().trim();
-          patternSet.add(pStr);
-        });
-      }
-
-      let categorySet = new Set();
-      if (category) {
-        if (!Array.isArray(category)) category = [category];
-        category.forEach((c) => categorySet.add(c.toString().trim()));
-      }
-
-      strategyMap.set(name, { patterns: patternSet, category: categorySet });
-
-      // Build Lookup Table
-      strategyLookup.set(name, name); // Full name
-      if (name.includes("(")) {
-        let parts = name.split("(");
-        let cn = parts[0].trim();
-        let en = parts[1].replace(")", "").trim();
-        if (cn) strategyLookup.set(cn, name);
-        if (en) strategyLookup.set(en, name);
-      }
-    }
+    // 强制单一信源：Inspector 不再自行扫描策略仓库。
+    // 若这里为空，说明 pa-core 的策略索引构建失败/尚未加载。
+    console.warn("[PA] strategyIndex missing; Inspector strategy mapping disabled");
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---

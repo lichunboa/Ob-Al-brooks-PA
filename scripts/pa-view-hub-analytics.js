@@ -45,43 +45,8 @@ if (window.paData) {
     patternToStrategy = sIdx.byPattern || {};
     strategyLookup = sIdx.lookup || new Map();
   } else {
-    // 兼容兜底：如果 paData 没有索引（极少数情况），才退回扫描策略仓库
-    try {
-      let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
-      if (stratPages && stratPages.length > 0) {
-        stratPages.forEach((p) => {
-          let sName = p["策略名称/strategy_name"] || p.file.name;
-
-          strategyLookup.set(sName, sName);
-          if (sName.includes("(") && sName.includes(")")) {
-            let parts = sName.split("(");
-            let cn = parts[0].trim();
-            let en = parts[1].replace(")", "").trim();
-            if (cn) strategyLookup.set(cn, sName);
-            if (en) strategyLookup.set(en, sName);
-          }
-
-          let patterns = p["观察到的形态/patterns_observed"];
-          if (patterns) {
-            if (!Array.isArray(patterns)) {
-              patterns = Array.from(patterns || []);
-              if (patterns.length === 0 && p["观察到的形态/patterns_observed"])
-                patterns = [p["观察到的形态/patterns_observed"]];
-            }
-            patterns.forEach((pat) => {
-              let key = pat.toString().trim();
-              patternToStrategy[key] = sName;
-              if (key.includes("(") && key.includes(")")) {
-                let m = key.match(/\(([^)]+)\)/);
-                if (m && m[1]) patternToStrategy[m[1].trim()] = sName;
-              }
-            });
-          }
-        });
-      }
-    } catch (e) {
-      console.log("策略映射构建失败", e);
-    }
+    // 强制单一信源：Analytics Hub 不再自行扫描策略仓库。
+    console.warn("[PA] strategyIndex missing; analytics strategy mapping disabled");
   }
 
   const lookupCanonical = (name) => {
