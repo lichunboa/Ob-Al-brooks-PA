@@ -49,6 +49,7 @@ if (window.paData) {
   // 1.2 市场环境 (Context)
   const todayJournal = window.paData?.daily?.todayJournal;
   const coachFocus =
+    window.paData?.coach?.combined?.focus ||
     window.paData?.coach?.today?.focus ||
     window.paData?.coach?.week?.focus ||
     window.paData?.coach?.last30?.focus;
@@ -60,7 +61,9 @@ if (window.paData) {
     const exp = Number(f?.stats?.expectancyR);
     const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
     const dim = (f.dimLabel || f.kind || "").toString();
-    return `🧭 复盘焦点：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+    const streak = Number(f?.weekStreak) || 0;
+    const streakStr = streak >= 2 ? `，连续${streak}周` : "";
+    return `🧭 复盘焦点：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
   };
 
   if (todayJournal && todayJournal.market_cycle) {

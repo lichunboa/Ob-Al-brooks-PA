@@ -250,6 +250,7 @@ if (
   )
 ) {
   const focus =
+    window.paData?.coach?.combined?.focus ||
     window.paData?.coach?.today?.focus ||
     window.paData?.coach?.week?.focus ||
     window.paData?.coach?.last30?.focus;
@@ -262,7 +263,9 @@ if (
     const exp = Number(focus?.stats?.expectancyR);
     const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
 
-    let msg = `教练焦点：${dim} → ${focusLabel || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+    const streak = Number(focus?.weekStreak) || 0;
+    const streakStr = streak >= 2 ? `，连续${streak}周` : "";
+    let msg = `教练焦点：${dim} → ${focusLabel || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
     let recHtml = "";
 
     // 1) 如果焦点是市场周期，则按周期推荐实战策略

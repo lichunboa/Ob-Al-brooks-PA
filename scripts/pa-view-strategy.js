@@ -10,6 +10,7 @@ if (window.paData) {
   const trades = window.paData.tradesAsc;
   const c = cfg.colors;
   const coachFocus =
+    window.paData?.coach?.combined?.focus ||
     window.paData?.coach?.last30?.focus ||
     window.paData?.coach?.week?.focus ||
     window.paData?.coach?.today?.focus;
@@ -23,7 +24,9 @@ if (window.paData) {
     const dim = (f.dimLabel || f.kind || "").toString();
     const urgency = Number(f?.urgency);
     const tag = Number.isFinite(urgency) && urgency > 0 ? "🔎 复盘优先" : "🧭 复盘提示";
-    return `${tag}：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+    const streak = Number(f?.weekStreak) || 0;
+    const streakStr = streak >= 2 ? `，连续${streak}周` : "";
+    return `${tag}：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
   };
 
   // --- 1. 数据清洗与分离 ---

@@ -1083,13 +1083,180 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
     };
   };
 
+  const todayPack = build(windowed.today, { date: todayIso });
+  const weekPack = build(windowed.week, { start: weekStart, end: weekEnd });
+  const last30Pack = build(windowed.last30, {
+    start: moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD"),
+    end: todayIso,
+  });
+
+  // 最近 N 周焦点序列：用于“周优先”的持续性加权（类似复习卡片：重复暴露=需要强化）
+  const buildWeeklyFocusSeries = (weeksBack = 8) => {
+    const out = [];
+    const base = moment(todayIso, "YYYY-MM-DD").startOf("isoWeek");
+    for (let i = 0; i < weeksBack; i++) {
+      const start = base.clone().subtract(i, "weeks");
+      const end = start.clone().endOf("isoWeek");
+      const s = start.format("YYYY-MM-DD");
+      const e = end.format("YYYY-MM-DD");
+      const items = list.filter((t) => t && t.date && t.date >= s && t.date <= e);
+      const focus = pickFocus(items);
+      out.push({ start: s, end: e, focus });
+    }
+    return out; // 从本周开始倒序
+  };
+
+  const weeklySeries = buildWeeklyFocusSeries(8);
+
+  // 多时间窗加权：
+  // - today: 更敏感但样本小 -> 权重较低
+  // - week: 默认主窗口
+  // - last30: 用于检测“顽固问题” -> 权重更高
+  // 并对“同一问题跨窗口仍为负期望”的情况做持续性加成（类似复习卡片：重复暴露=需要强化）。
+  const buildCombined = (packs) => {
+    const weights = { today: 0.8, week: 1.0, last30: 1.25 };
+    const byKey = new Map(); // kind:key -> agg
+
+    const idOf = (row) => {
+      if (!row) return null;
+      const u = Number(row.urgency) || 0;
+      if (u <= 0) return null;
+      return `${row.kind}:${row.key}`;
+    };
+
+    // 周维度：出现次数 + 连续周数（周优先）
+    const weekHits = new Map(); // id -> count
+    for (const w of weeklySeries) {
+      const id = idOf(w?.focus);
+      if (!id) continue;
+      weekHits.set(id, (weekHits.get(id) || 0) + 1);
+    }
+    let weekStreakId = null;
+    let weekStreakLen = 0;
+    for (const w of weeklySeries) {
+      const id = idOf(w?.focus);
+      if (!id) break;
+      if (weekStreakId === null) {
+        weekStreakId = id;
+        weekStreakLen = 1;
+      } else if (id === weekStreakId) {
+        weekStreakLen += 1;
+      } else {
+        break;
+      }
+    }
+
+    const addRow = (windowName, row) => {
+      if (!row) return;
+      const k = `${row.kind}:${row.key}`;
+      const w = weights[windowName] || 1;
+      const base = Number(row.urgency) || 0;
+      const score = base * w;
+
+      let agg = byKey.get(k);
+      if (!agg) {
+        agg = {
+          kind: row.kind,
+          key: row.key,
+          label: row.label,
+          dimLabel: row.dimLabel,
+          score: 0,
+          windows: new Set(),
+          lastSeen: windowName,
+          weekHitCount: weekHits.get(k) || 0,
+          weekStreak: weekStreakId === k ? weekStreakLen : 0,
+          // 取“更大样本”的统计作为展示参考（last30 优先）
+          stats: row.stats,
+          urgency: row.urgency,
+        };
+        byKey.set(k, agg);
+      }
+
+      agg.score += score;
+      if (base > 0) agg.windows.add(windowName);
+      // stats/urgency 取更“稳”的窗口：last30 > week > today
+      const rank = (n) => (n === "last30" ? 3 : n === "week" ? 2 : 1);
+      if (rank(windowName) >= rank(agg.lastSeen)) {
+        agg.lastSeen = windowName;
+        agg.stats = row.stats;
+        agg.urgency = row.urgency;
+      }
+    };
+
+    // 把每个窗口的 top 候选（各维度 top3）灌入 combined，避免全量扫描过重
+    for (const [windowName, pack] of Object.entries(packs)) {
+      const top = pack?.top || {};
+      for (const kind of Object.keys(top)) {
+        const rows = Array.isArray(top[kind]) ? top[kind] : [];
+        for (const r of rows) {
+          addRow(windowName, { ...r, dimLabel: r.dimLabel || r.kind });
+        }
+      }
+    }
+
+    // 持续性加成：同一问题在多个窗口都为负期望 -> 提升优先级
+    const list = [];
+    for (const agg of byKey.values()) {
+      const n = agg.windows.size;
+      const persistence = n >= 2 ? 1 + 0.25 * (n - 1) : 1;
+
+      // 周优先：同一问题在最近多周重复出现/连续出现 -> 加权更高
+      const hit = Number(agg.weekHitCount) || 0;
+      const streak = Number(agg.weekStreak) || 0;
+      const hitBonus = hit >= 2 ? 1 + 0.2 * (Math.min(hit, 5) - 1) : 1;
+      const streakBonus = streak >= 2 ? 1 + 0.35 * (Math.min(streak, 5) - 1) : 1;
+      const weeklyBonus = Math.min(2.2, hitBonus * streakBonus);
+
+      agg.score = agg.score * persistence * weeklyBonus;
+      list.push(agg);
+    }
+    list.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    const focus = list.length > 0 ? list[0] : null;
+    return {
+      focus,
+      // 给 UI/调试用：只保留前 12 条
+      ranked: list.slice(0, 12).map((x) => ({
+        kind: x.kind,
+        key: x.key,
+        label: x.label,
+        dimLabel: x.dimLabel,
+        score: x.score,
+        urgency: x.urgency,
+        stats: x.stats,
+        weekHitCount: x.weekHitCount,
+        weekStreak: x.weekStreak,
+        windows: Array.from(x.windows),
+        sourceWindow: x.lastSeen,
+      })),
+      weights,
+      weekly: {
+        weeksBack: weeklySeries.length,
+        series: weeklySeries.map((w) => ({
+          start: w.start,
+          end: w.end,
+          focus: w.focus
+            ? {
+                kind: w.focus.kind,
+                key: w.focus.key,
+                label: w.focus.label,
+                dimLabel: w.focus.dimLabel,
+                urgency: w.focus.urgency,
+                stats: w.focus.stats,
+              }
+            : null,
+        })),
+      },
+    };
+  };
+
+  const combined = buildCombined({ today: todayPack, week: weekPack, last30: last30Pack });
+
   return {
-    today: build(windowed.today, { date: todayIso }),
-    week: build(windowed.week, { start: weekStart, end: weekEnd }),
-    last30: build(windowed.last30, {
-      start: moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD"),
-      end: todayIso,
-    }),
+    today: todayPack,
+    week: weekPack,
+    last30: last30Pack,
+    combined,
   };
 };
 
