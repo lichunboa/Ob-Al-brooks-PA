@@ -573,10 +573,36 @@ if (useCache) {
     if (syFile) {
       try {
         const syText = await app.vault.read(syFile);
-        const start = syText.indexOf("[");
-        const end = syText.lastIndexOf("]");
-        if (start !== -1 && end !== -1)
-          courseData.syllabus = JSON.parse(syText.substring(start, end + 1));
+        const parseSyllabusJson = (mdText) => {
+          if (!mdText || typeof mdText !== "string") return null;
+
+          // 1) 优先解析 ```json 代码块
+          let m = mdText.match(/```json\s*([\s\S]*?)```/i);
+          if (m && m[1]) {
+            const candidate = m[1].trim();
+            if (candidate) return JSON.parse(candidate);
+          }
+
+          // 2) 次选：任意 ``` 代码块
+          m = mdText.match(/```\s*([\s\S]*?)```/);
+          if (m && m[1]) {
+            const candidate = m[1].trim();
+            if (candidate) return JSON.parse(candidate);
+          }
+
+          // 3) 兜底：兼容旧逻辑（扫描第一段 JSON 数组）
+          const start = mdText.indexOf("[");
+          const end = mdText.lastIndexOf("]");
+          if (start !== -1 && end !== -1 && end > start) {
+            const candidate = mdText.substring(start, end + 1).trim();
+            if (candidate) return JSON.parse(candidate);
+          }
+
+          return null;
+        };
+
+        const parsed = parseSyllabusJson(syText);
+        if (parsed && Array.isArray(parsed)) courseData.syllabus = parsed;
       } catch (e) {}
     }
   }
