@@ -367,6 +367,52 @@ orderedGroups.forEach((groupName) => {
       let source = prettyName(s.source || "");
 
       // 获取市场周期
+      let cycleText = (s.marketCycles || [])
+        .slice(0, 2)
+        .map(cycleToCn)
+        .join(", ");
+
+      // 状态颜色
+      let statusColor =
+        statusKey.includes("active") || statusKey.includes("实战")
+          ? "#22c55e"
+          : statusKey.includes("valid") ||
+            statusKey.includes("verify") ||
+            statusKey.includes("test") ||
+            statusKey.includes("验证")
+          ? "#fbbf24"
+          : statusKey.includes("learn") ||
+            statusKey.includes("study") ||
+            statusKey.includes("read") ||
+            statusKey.includes("学习")
+          ? "#3b82f6"
+          : "#6b7280";
+
+      // 胜率颜色
+      let winRateColor =
+        winRate >= 60
+          ? "#22c55e"
+          : winRate >= 50
+          ? "#fbbf24"
+          : winRate > 0
+          ? "#ef4444"
+          : "#6b7280";
+
+      // 生成唯一ID（避免重复导致无法展开）
+      const cardIdBase = normStr(
+        s?.file?.path || s?.file?.name || s?.canonicalName || strategyName
+      );
+      const cardIdSlugBase = normStr(s?.file?.name || s?.canonicalName || "s");
+      const cardIdSlug = cardIdSlugBase
+        .replace(/[^a-zA-Z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      const cardIdHash = hashId(cardIdBase || cardIdSlugBase);
+      const cardId = `strategy-${cardIdSlug || "s"}-${cardIdHash}`;
+
+      const safePath = s?.file?.path;
+      const safeHref = safePath ? encodeURI(safePath) : "";
+
       html += `
       <details id="${cardId}" style="
         background:rgba(255,255,255,0.03);
