@@ -1,11 +1,60 @@
 const basePath = app.vault.adapter.basePath;
 const cfg = require(basePath + "/scripts/pa-config.js");
 
+// === 数据源：优先使用引擎缓存，避免重复全库扫描 ===
+const idx = window.paData?.strategyIndex;
+const strategyList = idx?.list || [];
+const strategyByName = idx?.byName;
+const strategyLookup = idx?.lookup;
+const strategyByPattern = idx?.byPattern || {};
+const trades = window.paData?.tradesAsc || [];
+
+const toArr = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+  return [v];
+};
+const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+const isActiveStrategy = (statusRaw) => {
+  const s = normStr(statusRaw);
+  if (!s) return false;
+  return s.includes("实战") || s.toLowerCase().includes("active");
+};
+const safePct = (wins, total) => (total > 0 ? Math.round((wins / total) * 100) : 0);
+
+// 将交易归因到策略（策略名优先，其次形态匹配）
+function resolveStrategyCanonical(trade) {
+  const raw = normStr(trade?.strategyName);
+  if (raw && raw !== "Unknown") {
+    if (strategyLookup?.get?.(raw)) return strategyLookup.get(raw);
+    if (strategyLookup?.get?.(raw.toLowerCase())) return strategyLookup.get(raw.toLowerCase());
+    return raw;
+  }
+  const pats = toArr(trade?.patterns).map(normStr).filter(Boolean);
+  for (const p of pats) {
+    const canonical = strategyByPattern[p];
+    if (canonical) return canonical;
+  }
+  return null;
+}
+
+// 汇总每个策略的实战表现
+const perf = new Map(); // canonical -> { total, wins, pnl, lastDate }
+for (const t of trades) {
+  const canonical = resolveStrategyCanonical(t);
+  if (!canonical) continue;
+  const p = perf.get(canonical) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+  p.total += 1;
+  if (t.pnl > 0) p.wins += 1;
+  p.pnl += Number(t.pnl) || 0;
+  if (t.date && (!p.lastDate || t.date > p.lastDate)) p.lastDate = t.date;
+  perf.set(canonical, p);
+}
+
 // 策略仓库路径
-const strategyRepo = "策略仓库 (Strategy Repository)";
-const strategies = dv
-  .pages(`"${strategyRepo}"`)
-  .where((p) => p.categories && p.categories.includes("策略"));
+const strategyRepo = idx?.repoPath || "策略仓库 (Strategy Repository)";
+const strategies = strategyList;
 
 // 按市场周期分类
 let cycleGroups = {
@@ -17,11 +66,9 @@ let cycleGroups = {
 
 let html = "";
 let totalStrategies = strategies.length;
-let activeStrategies = strategies.where(
-  (p) => p["策略状态"] === "实战中"
-).length;
+let activeStrategies = strategies.filter((s) => isActiveStrategy(s.statusRaw)).length;
 let usageCount = 0;
-strategies.forEach((s) => (usageCount += s["使用次数"] || 0));
+perf.forEach((p) => (usageCount += p.total));
 
 // 顶部统计
 html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:16px;">
@@ -50,10 +97,9 @@ html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6p
 // 按市场周期分组显示
 Object.keys(cycleGroups).forEach((groupName) => {
   let keywords = cycleGroups[groupName];
-  let matches = strategies.where((p) => {
-    let cycles = p["市场周期"] || [];
-    if (!Array.isArray(cycles)) cycles = [cycles];
-    return keywords.some((k) => cycles.some((c) => c.toString().includes(k)));
+  let matches = strategies.filter((s) => {
+    const cycles = (s.marketCycles || []).map(normStr).filter(Boolean);
+    return keywords.some((k) => cycles.some((c) => c.includes(k) || k.includes(c)));
   });
 
   if (matches.length > 0) {
@@ -62,18 +108,19 @@ Object.keys(cycleGroups).forEach((groupName) => {
       <div style="display:flex; flex-direction:column; gap:8px;">`;
 
     for (let s of matches) {
-      let strategyName = s["策略名称"] || s.file.name;
-      let winRate = s["胜率"] || 0;
-      let riskReward = s["盈亏比"] || "N/A";
-      let status = s["策略状态"] || "学习中";
-      let usageCount = s["使用次数"] || 0;
-      let setupCategory = s["设置类别"] || "";
-      let source = s["来源"] || "";
+      const page = dv.page(s.file.path);
+      let strategyName = s.displayName || s.canonicalName || s.file.name;
+      const p = perf.get(s.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+      let winRate = safePct(p.wins, p.total);
+      let riskReward =
+        page?.["盈亏比/risk_reward"] || page?.["risk_reward"] || page?.["盈亏比"] || "N/A";
+      let status = s.statusRaw || "学习中";
+      let usageCount = p.total || 0;
+      let setupCategory = (s.setupCategories || []).slice(0, 2).join(", ");
+      let source = s.source || "";
 
       // 获取市场周期
-      let cycles = s["市场周期"] || [];
-      if (!Array.isArray(cycles)) cycles = [cycles];
-      let cycleText = cycles.slice(0, 2).join(", ");
+      let cycleText = (s.marketCycles || []).slice(0, 2).join(", ");
 
       // 状态颜色
       let statusColor =
@@ -96,7 +143,7 @@ Object.keys(cycleGroups).forEach((groupName) => {
           : "#6b7280";
 
       // 生成唯一ID
-      let cardId = "strategy-" + strategyName.replace(/[^a-zA-Z0-9]/g, "-");
+      let cardId = "strategy-" + (s.canonicalName || strategyName).replace(/[^a-zA-Z0-9]/g, "-");
 
       html += `
       <div style="
@@ -140,11 +187,8 @@ Object.keys(cycleGroups).forEach((groupName) => {
                   ? `<span>✓ 胜率: <strong style="color:${winRateColor};">${winRate}%</strong></span>`
                   : ""
               }
-              ${
-                usageCount > 0
-                  ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>`
-                  : ""
-              }
+              ${usageCount > 0 ? `<span>🔢 使用: <strong>${usageCount}次</strong></span>` : ""}
+              ${p.lastDate ? `<span>🕒 最近: <strong>${p.lastDate}</strong></span>` : ""}
             </div>
           </div>
           <div id="${cardId}-arrow" style="
@@ -219,25 +263,6 @@ html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgb
 </div>`;
 
 // --- 📊 策略表现统计 (Strategy Performance) ---
-const trades = dv.pages('"Daily/Trades"');
-const stats = {};
-
-// 遍历所有交易，统计每个策略的表现
-for (let t of trades) {
-  let sName = t.strategy_name;
-  if (!sName) continue;
-
-  if (!stats[sName]) {
-    stats[sName] = { wins: 0, losses: 0, total: 0, pnl: 0 };
-  }
-
-  stats[sName].total++;
-  stats[sName].pnl += t.net_profit || 0;
-
-  if (t.outcome == "止盈 (Win)") stats[sName].wins++;
-  else if (t.outcome == "止损 (Loss)") stats[sName].losses++;
-}
-
 // 生成统计表格 HTML
 let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--background-modifier-border);">
 <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">🏆 实战表现 (Performance)</div>
@@ -249,20 +274,19 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
         <th style="padding:4px;">次数</th>
     </tr>`;
 
-// 排序并生成行
-Object.keys(stats)
-  .sort((a, b) => stats[b].pnl - stats[a].pnl) // 按盈亏排序
-  .forEach((name) => {
-    const s = stats[name];
-    const winRate = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+// 排序并生成行（按盈亏排序）
+[...perf.entries()]
+  .sort((a, b) => (b[1].pnl || 0) - (a[1].pnl || 0))
+  .forEach(([canonical, s]) => {
+    const winRate = safePct(s.wins, s.total);
     const pnlColor =
       s.pnl > 0 ? "#22c55e" : s.pnl < 0 ? "#ef4444" : "var(--text-muted)";
 
-    // 尝试找到策略文件的链接
-    const strategyPage = strategies.find((p) => p.strategy_name == name);
-    const nameDisplay = strategyPage
-      ? `<a href="${strategyPage.file.path}" class="internal-link">${name}</a>`
-      : name;
+    const item = strategyByName?.get?.(canonical);
+    const display = item?.displayName || canonical;
+    const nameDisplay = item?.file?.path
+      ? `<a href="${item.file.path}" class="internal-link">${display}</a>`
+      : display;
 
     statsHtml += `
         <tr style="border-bottom:1px solid var(--background-modifier-border);">
@@ -270,7 +294,7 @@ Object.keys(stats)
             <td style="padding:6px 4px;">${winRate}%</td>
             <td style="padding:6px 4px; color:${pnlColor}; font-weight:bold;">${
       s.pnl > 0 ? "+" : ""
-    }${s.pnl}</td>
+    }${Math.round(s.pnl)}</td>
             <td style="padding:6px 4px;">${s.total}</td>
         </tr>`;
   });
