@@ -742,7 +742,9 @@ if (window.paData) {
                                                 const zh = escHtml(h?.zh || "");
                                                 const en = escHtml(h?.en || "");
                                                 const showZh = zh || "-";
-                                                const showEn = en ? ` <span style=\"opacity:0.6\">(${en})</span>` : "";
+                                                const showEn = en
+                                                  ? ` <span style=\"opacity:0.6\">(${en})</span>`
+                                                  : "";
                                                 return `<div style=\"font-size:0.72em; line-height:1.35; margin-bottom:6px; white-space:normal;\">• ${showZh}${showEn}</div>`;
                                               })
                                               .join("")}

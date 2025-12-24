@@ -248,7 +248,8 @@ if (useCache) {
       if (needsReviewHints) {
         for (const t of trades) {
           if (!t) continue;
-          if (!Array.isArray(t.reviewHints)) t.reviewHints = buildReviewHints(t);
+          if (!Array.isArray(t.reviewHints))
+            t.reviewHints = buildReviewHints(t);
         }
       }
     }
