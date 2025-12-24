@@ -16,6 +16,58 @@ const toArr = (v) => {
   return [v];
 };
 const normStr = (v) => (v === undefined || v === null ? "" : v.toString().trim());
+const cycleMatches = (cycles, currentCycle) => {
+  const cur = normStr(currentCycle);
+  if (!cur) return false;
+  return (cycles || []).some((c) => {
+    const cc = normStr(c);
+    return cc && (cc.includes(cur) || cur.includes(cc));
+  });
+};
+
+// 今日复盘日记（用于“今日推荐”）
+const today = moment().format("YYYY-MM-DD");
+const isoFromAny = (v) => {
+  if (!v) return "";
+  try {
+    if (typeof v.toISODate === "function") return v.toISODate();
+  } catch (e) {}
+  if (Array.isArray(v)) return isoFromAny(v[0]);
+  if (v?.constructor && v.constructor.name === "Proxy") {
+    try {
+      const arr = Array.from(v);
+      return isoFromAny(arr[0]);
+    } catch (e) {}
+  }
+  if (typeof v === "string") {
+    const m = v.match(/\d{4}-\d{2}-\d{2}/);
+    return m ? m[0] : "";
+  }
+  if (typeof v === "object") {
+    try {
+      for (const k of Object.keys(v)) {
+        const m = k.match(/\d{4}-\d{2}-\d{2}/);
+        if (m) return m[0];
+      }
+    } catch (e) {}
+  }
+  return "";
+};
+const pageISODate = (p) => {
+  const d1 = isoFromAny(p?.file?.day);
+  if (d1) return d1;
+  return isoFromAny(p?.date);
+};
+const todayJournal = dv
+  .pages('"Daily"')
+  .where((p) => {
+    const name = (p?.file?.name || "").toString();
+    const isJournal =
+      name.includes("_Journal") || name.toLowerCase().includes("journal") || name.includes("复盘");
+    if (!isJournal) return false;
+    return pageISODate(p) === today;
+  })
+  .first();
 const isActiveStrategy = (statusRaw) => {
   const s = normStr(statusRaw);
   if (!s) return false;
@@ -94,12 +146,52 @@ html += `<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6p
   </div>
 </div>`;
 
+// 今日推荐（基于复盘日记市场周期）
+if (todayJournal && (todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle)) {
+  const currentCycle =
+    todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle;
+  const rec = strategies
+    .filter((s) => isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle))
+    .sort((a, b) => {
+      const pa = perf.get(a.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+      const pb = perf.get(b.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+      return (pb.total || 0) - (pa.total || 0) || (pb.pnl || 0) - (pa.pnl || 0);
+    })
+    .slice(0, 6);
+
+  html += `
+  <div style="margin:-6px 0 14px 0; padding:10px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:8px;">
+    <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🌊 今日市场周期: <span style="color:${cfg.colors.demo};">${currentCycle}</span></div>
+    <div style="font-size:0.85em; opacity:0.75;">
+      ${
+        rec.length
+          ? `推荐优先关注：${rec.map((s) => `<span style=\"white-space:nowrap;\">${s.file.link}</span>`).join(" · ")}`
+          : "暂无匹配的实战策略（可去 Today 里补充周期/或按形态匹配）。"
+      }
+    </div>
+  </div>`;
+}
+
 // 按市场周期分组显示
 Object.keys(cycleGroups).forEach((groupName) => {
   let keywords = cycleGroups[groupName];
   let matches = strategies.filter((s) => {
     const cycles = (s.marketCycles || []).map(normStr).filter(Boolean);
     return keywords.some((k) => cycles.some((c) => c.includes(k) || k.includes(c)));
+  });
+
+  // 让列表更“可用”：实战优先，其次近期/使用/表现
+  matches = matches.sort((a, b) => {
+    const aActive = isActiveStrategy(a.statusRaw) ? 1 : 0;
+    const bActive = isActiveStrategy(b.statusRaw) ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+
+    const pa = perf.get(a.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+    const pb = perf.get(b.canonicalName) || { total: 0, wins: 0, pnl: 0, lastDate: "" };
+    if ((pb.lastDate || "") !== (pa.lastDate || "")) return (pb.lastDate || "").localeCompare(pa.lastDate || "");
+    if ((pb.total || 0) !== (pa.total || 0)) return (pb.total || 0) - (pa.total || 0);
+    if ((pb.pnl || 0) !== (pa.pnl || 0)) return (pb.pnl || 0) - (pa.pnl || 0);
+    return (a.displayName || a.canonicalName || "").localeCompare(b.displayName || b.canonicalName || "");
   });
 
   if (matches.length > 0) {

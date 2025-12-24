@@ -107,12 +107,12 @@ if (!document.getElementById(styleId)) {
         }
         .pa-group-count { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 8px; font-size: 0.8em; color: ${c.text}; }
 
-        .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+        .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
         .pa-card { 
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.4) 100%);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-radius: 12px; padding: 12px; 
-            display: flex; flex-direction: column; gap: 8px; cursor: pointer; 
+          border-radius: 12px; padding: 10px; 
+          display: flex; flex-direction: column; gap: 6px; cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             position: relative; overflow: hidden;
@@ -131,9 +131,9 @@ if (!document.getElementById(styleId)) {
         .pa-card.hidden { display: none !important; }
 
         .pa-card-head { display: flex; justify-content: space-between; align-items: center; }
-        .pa-key { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.0em; color: ${c.text}; letter-spacing: -0.5px; }
-        .pa-card-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.8em; color: ${c.sub}; }
-        .pa-badge { background: rgba(56, 189, 248, 0.1); color: ${c.accent}; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.85em; }
+        .pa-key { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95em; color: ${c.text}; letter-spacing: -0.5px; }
+        .pa-card-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.78em; color: ${c.sub}; }
+        .pa-badge { background: rgba(56, 189, 248, 0.1); color: ${c.accent}; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.82em; }
         .pa-act-hint { opacity: 0; transform: translateX(10px); transition: 0.3s; color: ${c.text}; font-weight: 500; display: flex; align-items: center; gap: 4px; }
         .pa-card:hover .pa-act-hint { opacity: 1; transform: translateX(0); }
 
@@ -151,8 +151,8 @@ if (!document.getElementById(styleId)) {
             box-shadow: 0 50px 120px rgba(0,0,0,0.8); 
             border-radius: 20px; 
             display: flex; flex-direction: column; 
-            width: 800px; height: 85vh;
-            min-width: 450px; min-height: 400px;
+            width: 720px; height: 85vh;
+            min-width: 360px; min-height: 360px;
             max-width: 98vw; max-height: 98vh;
             resize: both; overflow: hidden;
             animation: pa-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
