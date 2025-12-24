@@ -350,7 +350,26 @@ if (window.paData) {
   function getDist(key, useMap = false) {
     let dist = {};
     trades.forEach((t) => {
-      let val = (t[key] || "Unknown").toString().trim();
+      // v5.0+: 聚合优先使用引擎的稳定 key，避免“中文/英文/括号写法”把同一类拆散
+      const keyMap = {
+        ticker: "tickerKey",
+        tf: "tfKey",
+        setup: "setupKey",
+        market_cycle: "marketCycleKey",
+      };
+
+      const stableKeyField = keyMap[key];
+      let stableKey = stableKeyField ? t?.[stableKeyField] : null;
+      if (Array.isArray(stableKey)) stableKey = stableKey.length ? stableKey[0] : null;
+      if (stableKey && typeof stableKey !== "string") stableKey = stableKey.toString();
+      stableKey = (stableKey || "").toString().trim();
+
+      // 展示仍优先使用原始字段（带中英），但分组以 stableKey 为准
+      let raw = t?.[key];
+      if (Array.isArray(raw)) raw = raw.length ? raw[0] : "";
+      raw = (raw || "").toString().trim();
+
+      let val = stableKey || raw || "Unknown";
       // 如果启用了映射且存在映射值，则尽量输出 中文/英文（由 toZh 统一处理）
       if (useMap && valueMap[val]) {
         // no-op: toZh(val) 会基于 valueMap 生成 中文/英文
@@ -366,7 +385,10 @@ if (window.paData) {
         val = sName;
       }
 
-      val = toZh(val);
+      // 如果 val 来自 stableKey（如 ES/5m/Trend Pullback），优先用 raw 做展示汉化
+      // 这样既不影响分组稳定，又尽量保留你填写的中英信息。
+      const displayVal = raw && stableKey ? raw : val;
+      val = toZh(displayVal);
 
       if (val) dist[val] = (dist[val] || 0) + 1;
     });
