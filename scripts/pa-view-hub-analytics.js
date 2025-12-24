@@ -14,26 +14,45 @@ if (window.paData) {
     // --- 1. 布局容器 ---
     const root = dv.el("div", "", { attr: { style: "display:flex; flex-direction:column; gap:20px;" } });
 
-    // --- 汉化字典 ---
+    // --- 汉化与策略映射 ---
     const cycleMap = {
         "Strong Trend": "强趋势", "Weak Trend": "弱趋势", "Trading Range": "交易区间",
         "Breakout": "突破", "Channel": "通道", "Broad Channel": "宽通道", "Tight Channel": "窄通道"
     };
-    const setupMap = {
+    // 基础映射
+    let setupMap = {
         "Trend Pullback": "趋势回调", "Trend Breakout": "趋势突破", "Reversal": "反转",
         "Wedge": "楔形", "Double Top/Bottom": "双顶/底", "MTR": "主要趋势反转",
         "Final Flag": "末端旗形", "Opening Reversal": "开盘反转"
     };
+    // 尝试从策略仓库读取最新策略名 (如果有)
+    try {
+        let stratPages = dv.pages(`"策略仓库 (Strategy Repository)"`);
+        if (stratPages && stratPages.length > 0) {
+            stratPages.forEach(p => {
+                // 如果有别名，映射别名到文件名
+                if (p.aliases && p.aliases.length > 0) {
+                    p.aliases.forEach(a => setupMap[a] = p.file.name);
+                }
+                // 确保文件名本身也能被识别
+                setupMap[p.file.name] = p.file.name;
+            });
+        }
+    } catch (e) { console.log("策略仓库读取失败", e); }
+
     function trans(map, key) {
         if (!key) return "未知";
+        // 精确匹配优先
+        if (map[key]) return map[key];
+        // 模糊匹配
         for (let k in map) {
             if (key.toLowerCase().includes(k.toLowerCase())) return map[k];
         }
         return key;
     }
 
-    // --- 2. 顶部：账户总览 (Mini Dashboard) ---
-    // 逻辑来自 pa-view-account.js
+    // --- 2. 数据处理 ---
+    // 账户统计
     function getStats(type) {
         let subset = trades.filter((t) => t.type === type);
         let total = subset.length;
@@ -46,85 +65,24 @@ if (window.paData) {
     const demo = getStats("Demo");
     const back = getStats("Backtest");
 
-    // 热力图逻辑 (还原 pa-view-account.js 的 7列日历布局)
+    // 日历数据
     let targetMonth = moment().format("YYYY-MM");
     const lastLiveTrade = trades.filter(t => t.type === "Live").sort((a, b) => b.date.localeCompare(a.date))[0];
     if (lastLiveTrade) targetMonth = lastLiveTrade.date.substring(0, 7);
     const daysInMonth = moment(targetMonth, "YYYY-MM").daysInMonth();
     
     let dailyMap = {};
-    // 包含所有类型的交易，但优先显示实盘盈亏颜色
     trades.filter((t) => t.date.startsWith(targetMonth)).forEach((t) => {
         let day = parseInt(t.date.split("-")[2]);
         let val = parseFloat(t.pnl);
         if (isNaN(val)) val = 0;
         
-        if (!dailyMap[day]) dailyMap[day] = { total: 0, hasLive: false, hasDemo: false, hasBack: false };
+        if (!dailyMap[day]) dailyMap[day] = { total: 0, types: new Set() };
         dailyMap[day].total += val;
-        if (t.type === "Live") dailyMap[day].hasLive = true;
-        else if (t.type === "Demo") dailyMap[day].hasDemo = true;
-        else dailyMap[day].hasBack = true;
+        dailyMap[day].types.add(t.type);
     });
 
-    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">`;
-    for (let d = 1; d <= daysInMonth; d++) {
-        let data = dailyMap[d];
-        let hasTrade = data !== undefined;
-        let pnl = hasTrade ? data.total : 0;
-        
-        let bg = "rgba(255, 255, 255, 0.03)";
-        let border = "1px solid rgba(255, 255, 255, 0.05)";
-        let content = `<div style="font-size:0.6em; color:var(--text-muted); opacity:0.5;">${d}</div>`;
-        
-        if (hasTrade) {
-            // 颜色逻辑：实盘优先，其次模拟，最后回测
-            let baseColor = data.hasLive ? (pnl > 0 ? "#4ade80" : "#f87171") : 
-                           (data.hasDemo ? "#60a5fa" : "#fbbf24");
-            
-            if (pnl > 0) {
-                bg = data.hasLive ? "rgba(34, 197, 94, 0.15)" : "rgba(96, 165, 250, 0.15)"; 
-                border = `1px solid ${baseColor}40`;
-                content += `<div style="font-size:0.65em; font-weight:bold; color:${baseColor};">+${pnl.toFixed(0)}</div>`;
-            } else if (pnl < 0) {
-                bg = data.hasLive ? "rgba(239, 68, 68, 0.15)" : "rgba(248, 113, 113, 0.15)";
-                border = `1px solid ${baseColor}40`;
-                content += `<div style="font-size:0.65em; font-weight:bold; color:${baseColor};">${pnl.toFixed(0)}</div>`;
-            } else {
-                bg = "rgba(148, 163, 184, 0.15)"; border = "1px solid rgba(148, 163, 184, 0.3)";
-                content += `<div style="font-size:0.65em; font-weight:bold; color:#94a3b8;">0</div>`;
-            }
-            
-            // 添加小点标记类型
-            let dots = "";
-            if (data.hasLive) dots += `<span style="color:${c.live}">●</span>`;
-            if (data.hasDemo) dots += `<span style="color:${c.demo}">●</span>`;
-            if (data.hasBack) dots += `<span style="color:${c.back}">●</span>`;
-            if (dots) content += `<div style="font-size:0.4em; line-height:0.5; margin-top:1px; display:flex; gap:1px;">${dots}</div>`;
-        }
-        gridHtml += `
-            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
-                ${content}
-            </div>`;
-    }
-    gridHtml += `</div>`;
-
-    // 辅助函数：生成迷你卡片
-    function miniCard(title, stats, color, icon) {
-        return `
-        <div style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <div style="font-size:0.85em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${title}</div>
-                <div style="font-size:0.65em; opacity:0.5;">${stats.count} 笔</div>
-            </div>
-            <div>
-                <div style="font-size:1.2em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss};">${stats.pnl > 0 ? "+" : ""}${stats.pnl}<span style="font-size:0.6em; opacity:0.6;">$</span></div>
-                <div style="font-size:0.7em; opacity:0.7; margin-top:2px;">胜率: ${stats.wr}%</div>
-            </div>
-        </div>`;
-    }
-
-    // --- 3. 下部：多维分析 (Consolidated Analytics) ---
-    // A. 资金曲线 (Capital Growth)
+    // 资金曲线数据
     let curves = { live: [0], demo: [0], back: [0] };
     let cum = { live: 0, demo: 0, back: 0 };
     let stratStats = {};
@@ -136,28 +94,68 @@ if (window.paData) {
         else if (acct === "demo") { cum.demo += pnl; curves.demo.push(cum.demo); }
         else if (acct === "backtest") { cum.back += pnl; curves.back.push(cum.back); }
 
-        // 策略统计
         let s = t.setup || "Unknown";
         if (!stratStats[s]) stratStats[s] = { win: 0, total: 0 };
         stratStats[s].total++;
         if (pnl > 0) stratStats[s].win++;
     }
 
+    // 曲线坐标计算
     const allValues = [...curves.live, ...curves.demo, ...curves.back];
     const maxVal = Math.max(...allValues, 100);
     const minVal = Math.min(...allValues, -100);
     const range = maxVal - minVal;
-    const width = 600; const height = 180; // 稍微调低高度
+    const width = 600; const height = 180;
+    const padding = 20; // 增加内边距给坐标轴
 
     function getPoints(data) {
-        if (data.length < 2) return `0,${height} ${width},${height}`;
-        let step = width / (data.length - 1);
+        if (data.length < 2) return `${padding},${height-padding} ${width},${height-padding}`;
+        let step = (width - padding) / (data.length - 1);
         return data.map((v, i) => {
-            let x = i * step;
-            let y = height - ((v - minVal) / range) * height;
+            let x = padding + i * step;
+            let y = (height - padding) - ((v - minVal) / range) * (height - 2 * padding);
             return `${x},${y}`;
         }).join(" ");
     }
+
+    // --- 3. HTML 生成 ---
+    
+    // 日历 HTML
+    let gridHtml = `<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;">`;
+    for (let d = 1; d <= daysInMonth; d++) {
+        let data = dailyMap[d];
+        let hasTrade = data !== undefined;
+        let pnl = hasTrade ? data.total : 0;
+        
+        let bg = "rgba(255, 255, 255, 0.03)";
+        let border = "1px solid rgba(255, 255, 255, 0.05)";
+        let content = `<div style="font-size:0.6em; color:var(--text-muted); opacity:0.5; margin-bottom:2px;">${d}</div>`;
+        
+        if (hasTrade) {
+            let isWin = pnl > 0;
+            let pnlColor = isWin ? "#4ade80" : "#f87171";
+            if (pnl === 0) pnlColor = "#94a3b8";
+            
+            // 背景色根据总盈亏决定，但更淡
+            bg = isWin ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)";
+            border = `1px solid ${pnlColor}30`;
+            
+            content += `<div style="font-size:0.65em; font-weight:bold; color:${pnlColor}; line-height:1;">${pnl > 0 ? "+" : ""}${pnl.toFixed(0)}</div>`;
+            
+            // 底部账户类型条
+            let bars = "";
+            if (data.types.has("Live")) bars += `<div style="flex:1; background:${c.live}; border-radius:1px;"></div>`;
+            if (data.types.has("Demo")) bars += `<div style="flex:1; background:${c.demo}; border-radius:1px;"></div>`;
+            if (data.types.has("Backtest")) bars += `<div style="flex:1; background:${c.back}; border-radius:1px;"></div>`;
+            
+            content += `<div style="display:flex; gap:1px; height:3px; width:80%; margin-top:3px; opacity:0.8;">${bars}</div>`;
+        }
+        gridHtml += `
+            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0}">
+                ${content}
+            </div>`;
+    }
+    gridHtml += `</div>`;
 
     // 策略排行
     let topStrats = Object.keys(stratStats)
@@ -169,14 +167,15 @@ if (window.paData) {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
-    // B. R-Multiples & Mindset
+    // R-Multiples (综合趋势)
     const recentTrades = tradesAsc.slice(-30);
     let maxR = Math.max(...recentTrades.map(t => Math.abs(t.r || 0))) || 1;
+    let avgR = (recentTrades.reduce((acc, t) => acc + (t.r || 0), 0) / (recentTrades.length || 1)).toFixed(2);
     
     let barsHtml = recentTrades.map(t => {
         let r = t.r || 0;
         let h = Math.round((Math.abs(r) / maxR) * 40);
-        if (h < 3) h = 3;
+        if (h < 2) h = 2;
         let color = c.loss;
         if (r >= 0) {
             let type = (t.type || "").toLowerCase();
@@ -184,9 +183,12 @@ if (window.paData) {
             else if (type === "demo") color = c.demo;
             else color = c.back;
         }
-        return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${r>=0?1:0.6};" title="${t.name} R:${r.toFixed(2)}"></div>`;
+        // 增加透明度区分
+        let opacity = Math.abs(r) < 0.5 ? 0.4 : 1;
+        return `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${opacity};" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
     }).join("");
 
+    // 心态分析
     const recentLive = tradesAsc.filter(t => (t.type||"").toLowerCase() === "live").slice(-10);
     let tilt = 0, fomo = 0, hesitation = 0;
     for (let t of recentLive) {
@@ -200,14 +202,12 @@ if (window.paData) {
     if (tilt > 0 || fomo > 1) { mindStatus = "🔥 极度危险"; mindColor = c.loss; }
     else if (fomo > 0 || hesitation > 0) { mindStatus = "⚠️ 有点起伏"; mindColor = c.back; }
 
-    // C. 环境分析 (Context)
+    // 环境分析
     let cycleStats = {};
     trades.filter(t => t.type === "Live").forEach(t => {
             let cycle = t.market_cycle || "Unknown";
-            // 清洗逻辑
             if (cycle.includes("/")) cycle = cycle.split("/")[1].trim();
             else if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
-            
             if (!cycleStats[cycle]) cycleStats[cycle] = 0;
             cycleStats[cycle] += t.pnl;
     });
@@ -228,7 +228,7 @@ if (window.paData) {
         }).join("")}
     </div>`;
 
-    // D. 错误归因 (Tuition)
+    // 错误归因
     let tuitionHtml = "";
     if (stats.tuition === 0) {
         tuitionHtml = `<div style="text-align:center; padding:20px; color:${c.live}; opacity:0.8; font-size:0.9em;">🎉 完美执行！近期无纪律性亏损。</div>`;
@@ -256,7 +256,7 @@ if (window.paData) {
         </div>`;
     }
 
-    // E. 智能建议 (Smart Suggestions)
+    // 智能建议
     let suggestion = "";
     let bestStrat = topStrats[0]?.name || "无";
     let liveWr = live.wr;
@@ -271,8 +271,7 @@ if (window.paData) {
         suggestion = `当前状态良好。表现最好的策略是 <b style="color:${c.demo}">${bestStrat}</b>。建议继续保持一致性。`;
     }
 
-    // --- 4. 最终渲染 (Final Render) ---
-    // 合并所有 HTML 到一个模板字符串中
+    // --- 4. 最终渲染 ---
     root.innerHTML = `
     <div style="${c.cardBg}; padding: 20px;">
         <!-- 第一部分：账户与日历 -->
@@ -311,11 +310,22 @@ if (window.paData) {
             </div>
         </div>
 
-        <!-- 第二部分：资金曲线 -->
+        <!-- 第二部分：资金曲线 (带坐标轴) -->
         <div style="margin-bottom:25px;">
             <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
             <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
-                <line x1="0" y1="${height - ((0 - minVal) / range) * height}" x2="${width}" y2="${height - ((0 - minVal) / range) * height}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
+                <!-- 坐标轴线 -->
+                <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                <line x1="${padding}" y1="${height-padding}" x2="${width}" y2="${height-padding}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                
+                <!-- 0轴 -->
+                <line x1="${padding}" y1="${(height-padding) - ((0 - minVal) / range) * (height-2*padding)}" x2="${width}" y2="${(height-padding) - ((0 - minVal) / range) * (height-2*padding)}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
+                
+                <!-- Y轴标签 -->
+                <text x="${padding-5}" y="${padding+5}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${maxVal.toFixed(0)}</text>
+                <text x="${padding-5}" y="${height-padding}" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${minVal.toFixed(0)}</text>
+                
+                <!-- 曲线 -->
                 <polyline points="${getPoints(curves.back)}" fill="none" stroke="${c.back}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
                 <polyline points="${getPoints(curves.demo)}" fill="none" stroke="${c.demo}" stroke-width="2" stroke-opacity="0.7" />
                 <polyline points="${getPoints(curves.live)}" fill="none" stroke="${c.live}" stroke-width="3" />
@@ -330,8 +340,11 @@ if (window.paData) {
         <!-- 第三部分：R-Multiples & Mindset -->
         <div style="display:flex; gap:20px; margin-bottom:25px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1);">
             <div style="flex:2;">
-                <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📈 综合趋势 (R-Multiples)</div>
-                <div style="display:flex; align-items:flex-end; gap:4px; height:50px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples)</div>
+                    <div style="font-size:0.7em; opacity:0.4;">Avg R: ${avgR}</div>
+                </div>
+                <div style="display:flex; align-items:flex-end; gap:4px; height:50px; border-bottom:1px solid rgba(255,255,255,0.05);">
                     ${barsHtml || '<div style="opacity:0.5; font-size:0.8em;">暂无数据</div>'}
                 </div>
             </div>
@@ -380,7 +393,4 @@ if (window.paData) {
             </div>
         </div>
     `;
-
-    root.appendChild(analyticsContainer);
-}
 
