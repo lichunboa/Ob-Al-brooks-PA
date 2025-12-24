@@ -196,7 +196,7 @@ if (window.paData) {
     const rZeroY = rHeight / 2;
     const rScale = (rHeight / 2 - 2) / maxR; // 留2px边距
 
-    let barsHtml = recentTrades.map(t => {
+    let barsHtml = recentTrades.map((t, i) => {
         let r = t.r || 0;
         let h = Math.abs(r) * rScale;
         if (h < 2) h = 2;
@@ -212,7 +212,7 @@ if (window.paData) {
         // 计算位置: 正数向上生长，负数向下生长
         let top = r >= 0 ? (rZeroY - h) : rZeroY;
         
-        return `<div style="position:absolute; left:${recentTrades.indexOf(t) * 7}px; top:${top}px; width:5px; height:${h}px; background:${color}; border-radius:1px;" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
+        return `<div style="position:absolute; left:${i * 7}px; top:${top}px; width:5px; height:${h}px; background:${color}; border-radius:1px;" title="${t.date} | ${t.name} | R: ${r.toFixed(2)}"></div>`;
     }).join("");
     
     // R图表容器宽度
