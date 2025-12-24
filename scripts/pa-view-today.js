@@ -18,32 +18,44 @@ const root = dv.el("div", "", { attr: { style: c.cardBg } });
 
 // --- 1. 市场环境与策略推荐 (Context & Strategy) ---
 // 尝试查找今日的复盘日记 (通常在 Daily 目录下)
-const todayJournal = dv.pages('"Daily"').where(p => p.file.day && p.file.day.toISODate() === today).first();
+const todayJournal = dv
+  .pages('"Daily"')
+  .where((p) => p.file.day && p.file.day.toISODate() === today)
+  .first();
 let contextHtml = "";
 
 if (todayJournal && todayJournal.market_cycle) {
-    const currentCycle = todayJournal.market_cycle;
-    // 查找匹配的策略
-    const recommendedStrategies = dv.pages('"策略仓库"')
-        .where(p => p.strategy_status == "实战中 (Active)" && p.market_cycle)
-        .where(p => {
-            const cycles = Array.isArray(p.market_cycle) ? p.market_cycle : [p.market_cycle];
-            return cycles.some(c => c.includes(currentCycle) || currentCycle.includes(c));
-        });
+  const currentCycle = todayJournal.market_cycle;
+  // 查找匹配的策略
+  const recommendedStrategies = dv
+    .pages('"策略仓库"')
+    .where((p) => p.strategy_status == "实战中 (Active)" && p.market_cycle)
+    .where((p) => {
+      const cycles = Array.isArray(p.market_cycle)
+        ? p.market_cycle
+        : [p.market_cycle];
+      return cycles.some(
+        (c) => c.includes(currentCycle) || currentCycle.includes(c)
+      );
+    });
 
-    contextHtml += `
+  contextHtml += `
     <div style="margin-bottom: 15px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 3px solid #3b82f6;">
         <div style="font-weight: bold; color: #3b82f6; margin-bottom: 5px;">
             🌊 今日市场: ${currentCycle}
         </div>
         <div style="font-size: 0.9em; color: var(--text-muted);">
-            ${recommendedStrategies.length > 0 
-                ? `推荐关注: ${recommendedStrategies.map(p => `<b>${p.file.link}</b>`).join(" · ")}` 
-                : "暂无特定策略推荐，建议观望。"}
+            ${
+              recommendedStrategies.length > 0
+                ? `推荐关注: ${recommendedStrategies
+                    .map((p) => `<b>${p.file.link}</b>`)
+                    .join(" · ")}`
+                : "暂无特定策略推荐，建议观望。"
+            }
         </div>
     </div>`;
 } else {
-    contextHtml += `
+  contextHtml += `
     <div style="margin-bottom: 15px; padding: 10px; border: 1px dashed var(--text-faint); border-radius: 8px; text-align: center; font-size: 0.85em; color: var(--text-muted);">
         📝 <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">创建今日日记</a> 并设置市场周期以获取策略推荐
     </div>`;
@@ -134,15 +146,23 @@ if (activeTrade) {
           box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         ">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-            <div style="font-weight:700; color:${c.accent};">🤖 策略助手: ${sName}</div>
-            <a href="${matchedStrategy.file.path}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+            <div style="font-weight:700; color:${
+              c.accent
+            };">🤖 策略助手: ${sName}</div>
+            <a href="${
+              matchedStrategy.file.path
+            }" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
             <!-- 左侧: 入场检查 -->
             <div>
-              <div style="font-size:0.75em; font-weight:600; color:${c.live}; margin-bottom:4px;">✅ 入场条件</div>
-              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+              <div style="font-size:0.75em; font-weight:600; color:${
+                c.live
+              }; margin-bottom:4px;">✅ 入场条件</div>
+              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
+                c.text
+              };">
                 ${
                   Array.isArray(sEntry)
                     ? sEntry.map((i) => `<li>${i}</li>`).join("")
@@ -153,8 +173,12 @@ if (activeTrade) {
 
             <!-- 右侧: 风险提示 -->
             <div>
-              <div style="font-size:0.75em; font-weight:600; color:${c.loss}; margin-bottom:4px;">⚠️ 风险提示</div>
-              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+              <div style="font-size:0.75em; font-weight:600; color:${
+                c.loss
+              }; margin-bottom:4px;">⚠️ 风险提示</div>
+              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
+                c.text
+              };">
                 ${
                   Array.isArray(sRisk)
                     ? sRisk.map((i) => `<li>${i}</li>`).join("")
@@ -190,11 +214,21 @@ if (activeTrade) {
         let score = 0;
 
         // 简单的评分逻辑
-        if (marketCycle && sCycle && sCycle.some((c) => marketCycle.includes(c))) score += 2;
-        if (setupCategory && sSetup && sSetup.includes(setupCategory)) score += 1;
+        if (
+          marketCycle &&
+          sCycle &&
+          sCycle.some((c) => marketCycle.includes(c))
+        )
+          score += 2;
+        if (setupCategory && sSetup && sSetup.includes(setupCategory))
+          score += 1;
 
         if (score > 0) {
-          suggestedStrategies.push({ file: s.file, score: score, name: s["策略名称/strategy_name"] });
+          suggestedStrategies.push({
+            file: s.file,
+            score: score,
+            name: s["策略名称/strategy_name"],
+          });
         }
       }
 
@@ -211,9 +245,13 @@ if (activeTrade) {
             padding: 12px;
             margin-bottom: 16px;
           ">
-            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"}) 的策略建议:</div>
+            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${
+              marketCycle || "未知"
+            }) 的策略建议:</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              ${topSuggestions.map(s => `
+              ${topSuggestions
+                .map(
+                  (s) => `
                 <a href="${s.file.path}" class="internal-link" style="
                   background:rgba(59,130,246,0.1);
                   color:${c.accent};
@@ -223,7 +261,9 @@ if (activeTrade) {
                   font-size:0.75em;
                   border:1px solid rgba(59,130,246,0.2);
                 ">${s.name}</a>
-              `).join("")}
+              `
+                )
+                .join("")}
             </div>
           </div>
         `;
@@ -248,17 +288,28 @@ todayTrades.forEach((trade) => {
   if (Array.isArray(outcome)) {
     outcome = outcome.join(" ");
   }
-  
+
   let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
 
   // 兼容 "Win" 和 "止盈 (Win)" 两种格式
-  if (outcome && (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))) {
+  if (
+    outcome &&
+    (outcome === "Win" || outcome.includes("Win") || outcome.includes("止盈"))
+  ) {
     wins++;
     totalPnL += pnl;
-  } else if (outcome && (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))) {
+  } else if (
+    outcome &&
+    (outcome === "Loss" || outcome.includes("Loss") || outcome.includes("止损"))
+  ) {
     losses++;
     totalPnL += pnl;
-  } else if (outcome && (outcome === "Scratch" || outcome.includes("Scratch") || outcome.includes("保本"))) {
+  } else if (
+    outcome &&
+    (outcome === "Scratch" ||
+      outcome.includes("Scratch") ||
+      outcome.includes("保本"))
+  ) {
     scratches++;
     totalPnL += pnl; // 保本单也可能有微小盈亏
   }
@@ -277,7 +328,7 @@ if (todayTrades.length > 0) {
     let outcome = trade["结果/outcome"] || "进行中";
     // 如果是数组，转换为字符串以便匹配
     let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : outcome;
-    
+
     let pnl = parseFloat(trade["净利润/net_profit"]) || 0;
     let timeframe = trade["时间周期/timeframe"] || "";
     let entry = trade["入场/entry_price"] || "";
@@ -285,12 +336,27 @@ if (todayTrades.length > 0) {
 
     // 状态颜色
     let statusColor = "#6b7280"; // 默认灰色 (进行中)
-    if (outcomeStr && (outcomeStr === "Win" || outcomeStr.includes("Win") || outcomeStr.includes("止盈"))) {
-        statusColor = c.live;
-    } else if (outcomeStr && (outcomeStr === "Loss" || outcomeStr.includes("Loss") || outcomeStr.includes("止损"))) {
-        statusColor = c.loss;
-    } else if (outcomeStr && (outcomeStr === "Scratch" || outcomeStr.includes("Scratch") || outcomeStr.includes("保本"))) {
-        statusColor = c.back;
+    if (
+      outcomeStr &&
+      (outcomeStr === "Win" ||
+        outcomeStr.includes("Win") ||
+        outcomeStr.includes("止盈"))
+    ) {
+      statusColor = c.live;
+    } else if (
+      outcomeStr &&
+      (outcomeStr === "Loss" ||
+        outcomeStr.includes("Loss") ||
+        outcomeStr.includes("止损"))
+    ) {
+      statusColor = c.loss;
+    } else if (
+      outcomeStr &&
+      (outcomeStr === "Scratch" ||
+        outcomeStr.includes("Scratch") ||
+        outcomeStr.includes("保本"))
+    ) {
+      statusColor = c.back;
     }
 
     // 方向图标

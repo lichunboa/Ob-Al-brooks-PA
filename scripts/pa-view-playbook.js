@@ -224,18 +224,18 @@ const stats = {};
 
 // 遍历所有交易，统计每个策略的表现
 for (let t of trades) {
-    let sName = t.strategy_name;
-    if (!sName) continue;
-    
-    if (!stats[sName]) {
-        stats[sName] = { wins: 0, losses: 0, total: 0, pnl: 0 };
-    }
-    
-    stats[sName].total++;
-    stats[sName].pnl += (t.net_profit || 0);
-    
-    if (t.outcome == "止盈 (Win)") stats[sName].wins++;
-    else if (t.outcome == "止损 (Loss)") stats[sName].losses++;
+  let sName = t.strategy_name;
+  if (!sName) continue;
+
+  if (!stats[sName]) {
+    stats[sName] = { wins: 0, losses: 0, total: 0, pnl: 0 };
+  }
+
+  stats[sName].total++;
+  stats[sName].pnl += t.net_profit || 0;
+
+  if (t.outcome == "止盈 (Win)") stats[sName].wins++;
+  else if (t.outcome == "止损 (Loss)") stats[sName].losses++;
 }
 
 // 生成统计表格 HTML
@@ -251,24 +251,29 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
 
 // 排序并生成行
 Object.keys(stats)
-    .sort((a, b) => stats[b].pnl - stats[a].pnl) // 按盈亏排序
-    .forEach(name => {
-        const s = stats[name];
-        const winRate = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
-        const pnlColor = s.pnl > 0 ? "#22c55e" : (s.pnl < 0 ? "#ef4444" : "var(--text-muted)");
-        
-        // 尝试找到策略文件的链接
-        const strategyPage = strategies.find(p => p.strategy_name == name);
-        const nameDisplay = strategyPage ? `<a href="${strategyPage.file.path}" class="internal-link">${name}</a>` : name;
+  .sort((a, b) => stats[b].pnl - stats[a].pnl) // 按盈亏排序
+  .forEach((name) => {
+    const s = stats[name];
+    const winRate = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+    const pnlColor =
+      s.pnl > 0 ? "#22c55e" : s.pnl < 0 ? "#ef4444" : "var(--text-muted)";
 
-        statsHtml += `
+    // 尝试找到策略文件的链接
+    const strategyPage = strategies.find((p) => p.strategy_name == name);
+    const nameDisplay = strategyPage
+      ? `<a href="${strategyPage.file.path}" class="internal-link">${name}</a>`
+      : name;
+
+    statsHtml += `
         <tr style="border-bottom:1px solid var(--background-modifier-border);">
             <td style="padding:6px 4px;">${nameDisplay}</td>
             <td style="padding:6px 4px;">${winRate}%</td>
-            <td style="padding:6px 4px; color:${pnlColor}; font-weight:bold;">${s.pnl > 0 ? "+" : ""}${s.pnl}</td>
+            <td style="padding:6px 4px; color:${pnlColor}; font-weight:bold;">${
+      s.pnl > 0 ? "+" : ""
+    }${s.pnl}</td>
             <td style="padding:6px 4px;">${s.total}</td>
         </tr>`;
-    });
+  });
 
 statsHtml += `</table></div>`;
 html += statsHtml;

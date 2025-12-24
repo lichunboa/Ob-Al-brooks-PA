@@ -32,46 +32,46 @@ if (window.paData) {
   // --- 0. 策略仓库同步 (Strategy Sync) ---
   let strategyMap = new Map(); // name -> { patterns: Set, category: Set }
   let strategyLookup = new Map(); // alias (CN/EN/Full) -> canonicalName
-  
-  const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
-  for(let p of strategyPages) {
-      let name = p["策略名称/strategy_name"] || p.file.name;
-      let patterns = p["观察到的形态/patterns_observed"];
-      let category = p["设置类别/setup_category"];
-      
-      let patternSet = new Set();
-      if(patterns) {
-          if(!Array.isArray(patterns)) patterns = [patterns];
-          patterns.forEach(a => {
-              let pStr = a.toString().trim();
-              patternSet.add(pStr);
-          });
-      }
-      
-      let categorySet = new Set();
-      if(category) {
-          if(!Array.isArray(category)) category = [category];
-          category.forEach(c => categorySet.add(c.toString().trim()));
-      }
 
-      strategyMap.set(name, { patterns: patternSet, category: categorySet });
-      
-      // Build Lookup Table
-      strategyLookup.set(name, name); // Full name
-      if (name.includes("(")) {
-          let parts = name.split("(");
-          let cn = parts[0].trim();
-          let en = parts[1].replace(")", "").trim();
-          if (cn) strategyLookup.set(cn, name);
-          if (en) strategyLookup.set(en, name);
-      }
+  const strategyPages = dv.pages('"策略仓库 (Strategy Repository)"');
+  for (let p of strategyPages) {
+    let name = p["策略名称/strategy_name"] || p.file.name;
+    let patterns = p["观察到的形态/patterns_observed"];
+    let category = p["设置类别/setup_category"];
+
+    let patternSet = new Set();
+    if (patterns) {
+      if (!Array.isArray(patterns)) patterns = [patterns];
+      patterns.forEach((a) => {
+        let pStr = a.toString().trim();
+        patternSet.add(pStr);
+      });
+    }
+
+    let categorySet = new Set();
+    if (category) {
+      if (!Array.isArray(category)) category = [category];
+      category.forEach((c) => categorySet.add(c.toString().trim()));
+    }
+
+    strategyMap.set(name, { patterns: patternSet, category: categorySet });
+
+    // Build Lookup Table
+    strategyLookup.set(name, name); // Full name
+    if (name.includes("(")) {
+      let parts = name.split("(");
+      let cn = parts[0].trim();
+      let en = parts[1].replace(")", "").trim();
+      if (cn) strategyLookup.set(cn, name);
+      if (en) strategyLookup.set(en, name);
+    }
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
   // 1.1 读取属性预设作为标准
   let allowedValues = {};
   let valueMap = {}; // alias -> canonical (for normalization)
-  
+
   const presetPage = dv.page("Templates/属性值预设.md");
   const presetLoaded = !!presetPage;
   if (presetPage) {
@@ -82,31 +82,39 @@ if (window.paData) {
       if (Array.isArray(val)) {
         // 提取括号前的内容作为标准值，同时也允许完整值
         allowedValues[key] = new Set();
-        val.forEach(v => {
-            if(typeof v === 'string') {
-                let full = v.trim();
-                allowedValues[key].add(full);
-                
-                if (full.includes("(")) {
-                    let parts = full.split("(");
-                    let cn = parts[0].trim();
-                    let en = parts[1].replace(")", "").trim();
-                    allowedValues[key].add(cn);
-                    
-                    // Map aliases to CN name for display
-                    valueMap[full] = cn;
-                    valueMap[cn] = cn;
-                    valueMap[en] = cn;
-                } else {
-                    valueMap[full] = full;
-                }
+        val.forEach((v) => {
+          if (typeof v === "string") {
+            let full = v.trim();
+            allowedValues[key].add(full);
+
+            if (full.includes("(")) {
+              let parts = full.split("(");
+              let cn = parts[0].trim();
+              let en = parts[1].replace(")", "").trim();
+              allowedValues[key].add(cn);
+
+              // Map aliases to CN name for display
+              valueMap[full] = cn;
+              valueMap[cn] = cn;
+              valueMap[en] = cn;
+            } else {
+              valueMap[full] = full;
             }
+          }
         });
       }
     }
   }
 
-  let missing = { ticker: 0, tf: 0, setup: 0, logic: 0, illegal: 0, unknownStrat: 0, stratMismatch: 0 };
+  let missing = {
+    ticker: 0,
+    tf: 0,
+    setup: 0,
+    logic: 0,
+    illegal: 0,
+    unknownStrat: 0,
+    stratMismatch: 0,
+  };
   let illegalDetails = []; // 记录具体的非法值详情
 
   trades.forEach((t) => {
@@ -120,55 +128,82 @@ if (window.paData) {
     // --- 策略一致性检查 (Strategy Consistency) ---
     let sName = t.strategyName;
     let sPatterns = t.patterns || [];
-    
+
     if (sName && sName !== "Unknown") {
-        // 1. 检查策略名称是否存在 (支持别名)
-        let canonicalName = strategyLookup.get(sName);
-        
-        if (!canonicalName) {
-            missing.unknownStrat++;
-            illegalDetails.push({link: t.link, field: "未知策略名", value: sName});
-        } else {
-            // 2. 检查形态是否匹配策略
-            let stratInfo = strategyMap.get(canonicalName);
-            let hasValidPattern = sPatterns.some(p => stratInfo.patterns.has(p.toString().trim()));
-            
-            // 如果交易记录了形态，但没有一个属于该策略，则警告
-            if (sPatterns.length > 0 && !hasValidPattern) {
-                missing.stratMismatch++;
-                illegalDetails.push({link: t.link, field: "策略/形态不匹配", value: `${sName} vs [${sPatterns.join(",")}]`});
-            }
+      // 1. 检查策略名称是否存在 (支持别名)
+      let canonicalName = strategyLookup.get(sName);
+
+      if (!canonicalName) {
+        missing.unknownStrat++;
+        illegalDetails.push({
+          link: t.link,
+          field: "未知策略名",
+          value: sName,
+        });
+      } else {
+        // 2. 检查形态是否匹配策略
+        let stratInfo = strategyMap.get(canonicalName);
+        let hasValidPattern = sPatterns.some((p) =>
+          stratInfo.patterns.has(p.toString().trim())
+        );
+
+        // 如果交易记录了形态，但没有一个属于该策略，则警告
+        if (sPatterns.length > 0 && !hasValidPattern) {
+          missing.stratMismatch++;
+          illegalDetails.push({
+            link: t.link,
+            field: "策略/形态不匹配",
+            value: `${sName} vs [${sPatterns.join(",")}]`,
+          });
         }
+      }
     }
 
     // 1.2 合规性检查 (Compliance Check)
     if (presetPage) {
-        // 检查市场周期
-        if (t.cycle && allowedValues["市场周期/market_cycle"]) {
-             // t.cycle 可能是数组或字符串
-             let cycles = Array.isArray(t.cycle) ? t.cycle : [t.cycle];
-             cycles.forEach(c => {
-                 // 兼容处理: 允许完整值 或 括号前中文
-                 let valStr = c.toString().trim();
-                 let valCn = valStr.split('(')[0].trim();
-                 if (valStr && !allowedValues["市场周期/market_cycle"].has(valStr) && !allowedValues["市场周期/market_cycle"].has(valCn)) {
-                     missing.illegal++;
-                     illegalDetails.push({link: t.link, field: "市场周期", value: valStr});
-                 }
-             });
-        }
-        // 检查设置类别 (使用 rawSetup)
-        if (t.rawSetup && allowedValues["设置类别/setup_category"]) {
-             let setups = Array.isArray(t.rawSetup) ? t.rawSetup : [t.rawSetup];
-             setups.forEach(s => {
-                 let valStr = s.toString().trim();
-                 let valCn = valStr.split('(')[0].trim();
-                 if (valStr && valStr !== "Unknown" && !allowedValues["设置类别/setup_category"].has(valStr) && !allowedValues["设置类别/setup_category"].has(valCn)) {
-                     missing.illegal++;
-                     illegalDetails.push({link: t.link, field: "设置类别", value: valStr});
-                 }
-             });
-        }
+      // 检查市场周期
+      if (t.cycle && allowedValues["市场周期/market_cycle"]) {
+        // t.cycle 可能是数组或字符串
+        let cycles = Array.isArray(t.cycle) ? t.cycle : [t.cycle];
+        cycles.forEach((c) => {
+          // 兼容处理: 允许完整值 或 括号前中文
+          let valStr = c.toString().trim();
+          let valCn = valStr.split("(")[0].trim();
+          if (
+            valStr &&
+            !allowedValues["市场周期/market_cycle"].has(valStr) &&
+            !allowedValues["市场周期/market_cycle"].has(valCn)
+          ) {
+            missing.illegal++;
+            illegalDetails.push({
+              link: t.link,
+              field: "市场周期",
+              value: valStr,
+            });
+          }
+        });
+      }
+      // 检查设置类别 (使用 rawSetup)
+      if (t.rawSetup && allowedValues["设置类别/setup_category"]) {
+        let setups = Array.isArray(t.rawSetup) ? t.rawSetup : [t.rawSetup];
+        setups.forEach((s) => {
+          let valStr = s.toString().trim();
+          let valCn = valStr.split("(")[0].trim();
+          if (
+            valStr &&
+            valStr !== "Unknown" &&
+            !allowedValues["设置类别/setup_category"].has(valStr) &&
+            !allowedValues["设置类别/setup_category"].has(valCn)
+          ) {
+            missing.illegal++;
+            illegalDetails.push({
+              link: t.link,
+              field: "设置类别",
+              value: valStr,
+            });
+          }
+        });
+      }
     }
   });
 
@@ -189,14 +224,14 @@ if (window.paData) {
       if (useMap && valueMap[val]) val = valueMap[val];
       // 特殊处理: 如果是 setup 且有 strategyName，优先使用 strategyName (并尝试映射)
       if (key === "setup" && t.strategyName && t.strategyName !== "Unknown") {
-          let sName = t.strategyName;
-          // 尝试获取规范名称 (中文优先)
-          if (strategyLookup.get(sName)) {
-              let canonical = strategyLookup.get(sName);
-              if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
-              else sName = canonical;
-          }
-          val = sName;
+        let sName = t.strategyName;
+        // 尝试获取规范名称 (中文优先)
+        if (strategyLookup.get(sName)) {
+          let canonical = strategyLookup.get(sName);
+          if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
+          else sName = canonical;
+        }
+        val = sName;
       }
 
       if (val) dist[val] = (dist[val] || 0) + 1;
@@ -237,63 +272,78 @@ if (window.paData) {
   // --- 5. 主界面渲染 ---
   // 5.1 构建异常详情 HTML
   let detailsHTML = "";
-  if (illegalDetails.length > 0 || missing.logic > 0 || missing.setup > 0 || missing.ticker > 0 || missing.tf > 0) {
-      detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
+  if (
+    illegalDetails.length > 0 ||
+    missing.logic > 0 ||
+    missing.setup > 0 ||
+    missing.ticker > 0 ||
+    missing.tf > 0
+  ) {
+    detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
           <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (需处理)</div>
           <div style="max-height: 200px; overflow-y: auto;">
               <table class="insp-table">
                   <thead><tr><th>文件</th><th>问题</th><th>当前值</th></tr></thead>
                   <tbody>`;
-      
-      // Add Illegal values
-      illegalDetails.forEach(item => {
-          let label = item.field;
-          if(["市场周期", "设置类别"].includes(item.field)) label = "非法" + item.field;
 
-          detailsHTML += `<tr>
+    // Add Illegal values
+    illegalDetails.forEach((item) => {
+      let label = item.field;
+      if (["市场周期", "设置类别"].includes(item.field))
+        label = "非法" + item.field;
+
+      detailsHTML += `<tr>
               <td>${item.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">${label}</span></td>
               <td style="opacity:0.7">${item.value}</td>
           </tr>`;
-      });
+    });
 
-      // Add Logic issues (R=0 but PnL!=0)
-      trades.filter(t => t.pnl !== 0 && t.r === 0).forEach(t => {
-           detailsHTML += `<tr>
+    // Add Logic issues (R=0 but PnL!=0)
+    trades
+      .filter((t) => t.pnl !== 0 && t.r === 0)
+      .forEach((t) => {
+        detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
               <td style="opacity:0.7">PnL=${t.pnl}, R=0</td>
           </tr>`;
       });
 
-      // Add Missing Setup
-      trades.filter(t => !t.setup || t.setup === "Unknown").forEach(t => {
-           detailsHTML += `<tr>
+    // Add Missing Setup
+    trades
+      .filter((t) => !t.setup || t.setup === "Unknown")
+      .forEach((t) => {
+        detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
       });
 
-      // Add Missing Ticker
-      trades.filter(t => !t.ticker || t.ticker === "Unknown").forEach(t => {
-           detailsHTML += `<tr>
+    // Add Missing Ticker
+    trades
+      .filter((t) => !t.ticker || t.ticker === "Unknown")
+      .forEach((t) => {
+        detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
       });
 
-      // Add Missing Timeframe
-      trades.filter(t => !t.tf || t.tf === "Unknown").forEach(t => {
-           detailsHTML += `<tr>
+    // Add Missing Timeframe
+    trades
+      .filter((t) => !t.tf || t.tf === "Unknown")
+      .forEach((t) => {
+        detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
               <td style="opacity:0.7">Empty</td>
           </tr>`;
       });
 
-      detailsHTML += `</tbody></table></div></div>`;
+    detailsHTML += `</tbody></table></div></div>`;
   }
 
   const root = dv.el("div", "");
@@ -308,7 +358,11 @@ if (window.paData) {
                       trades.length
                     } 交易</span>
                 </div>
-                ${ !presetLoaded ? `<div class="insp-item" style="color:${c.loss}; font-weight:bold;">⚠️ 未找到 'Templates/属性值预设.md'</div>` : '' }
+                ${
+                  !presetLoaded
+                    ? `<div class="insp-item" style="color:${c.loss}; font-weight:bold;">⚠️ 未找到 'Templates/属性值预设.md'</div>`
+                    : ""
+                }
                 <div class="insp-item"><span>缺失品种 (Ticker)</span> <span class="${
                   missing.ticker > 0 ? "txt-red" : "txt-dim"
                 }">${missing.ticker}</span></div>
@@ -395,11 +449,7 @@ if (window.paData) {
                           .slice(0, 15)
                           .map((t) => {
                             let resTxt =
-                              t.pnl > 0
-                                ? "盈利"
-                                : t.pnl < 0
-                                ? "亏损"
-                                : "平保";
+                              t.pnl > 0 ? "盈利" : t.pnl < 0 ? "亏损" : "平保";
                             let resCol =
                               t.pnl > 0 ? c.live : t.pnl < 0 ? c.loss : "gray";
                             // 优先显示新字段，兼容旧字段
@@ -418,16 +468,20 @@ if (window.paData) {
 
                             // 策略显示逻辑: 优先策略名(中文) > Setup类别
                             let stratDisp = t.setup || "-";
-                            if (t.strategyName && t.strategyName !== "Unknown") {
-                                let sName = t.strategyName;
-                                if (strategyLookup.get(sName)) {
-                                    let canonical = strategyLookup.get(sName);
-                                    if (canonical.includes("(")) sName = canonical.split("(")[0].trim();
-                                    else sName = canonical;
-                                }
-                                stratDisp = sName;
+                            if (
+                              t.strategyName &&
+                              t.strategyName !== "Unknown"
+                            ) {
+                              let sName = t.strategyName;
+                              if (strategyLookup.get(sName)) {
+                                let canonical = strategyLookup.get(sName);
+                                if (canonical.includes("("))
+                                  sName = canonical.split("(")[0].trim();
+                                else sName = canonical;
+                              }
+                              stratDisp = sName;
                             } else {
-                                stratDisp = stratDisp.slice(0, 8); // 仅对英文类别截断
+                              stratDisp = stratDisp.slice(0, 8); // 仅对英文类别截断
                             }
 
                             return `<tr>

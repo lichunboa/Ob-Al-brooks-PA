@@ -75,28 +75,35 @@ if (useCache) {
     // 增强的日期解析逻辑
     let dateStr = "";
     let rawDate = t.date || t.file.day;
-    
+
     if (rawDate) {
-        if (rawDate.path) { 
-            // 处理链接类型 [[2025-12-19]] -> "2025-12-19"
-            // 假设文件名就是日期，或者链接文本是日期
-            // Dataview Link 对象: { path: "...", display: "...", ... }
-            // 通常 path 是 "2025-12-19.md" 或 "2025-12-19"
-            let path = rawDate.path;
-            // 移除扩展名
-            dateStr = path.replace(/\.md$/i, "").split("/").pop();
-        } else if (rawDate.ts) {
-            // 处理 Luxon DateTime 对象 (Dataview 默认日期格式)
-            dateStr = moment(rawDate.ts).format("YYYY-MM-DD");
-        } else {
-            // 处理字符串或其他
-            dateStr = rawDate.toString();
-        }
+      if (rawDate.path) {
+        // 处理链接类型 [[2025-12-19]] -> "2025-12-19"
+        // 假设文件名就是日期，或者链接文本是日期
+        // Dataview Link 对象: { path: "...", display: "...", ... }
+        // 通常 path 是 "2025-12-19.md" 或 "2025-12-19"
+        let path = rawDate.path;
+        // 移除扩展名
+        dateStr = path.replace(/\.md$/i, "").split("/").pop();
+      } else if (rawDate.ts) {
+        // 处理 Luxon DateTime 对象 (Dataview 默认日期格式)
+        dateStr = moment(rawDate.ts).format("YYYY-MM-DD");
+      } else {
+        // 处理字符串或其他
+        dateStr = rawDate.toString();
+      }
     }
-    
+
     // 验证日期有效性，无效则回退到文件创建时间
-    let m = moment(dateStr, ["YYYY-MM-DD", "YYYYMMDD", "MM-DD-YYYY", "DD-MM-YYYY"]);
-    let date = m.isValid() ? m.format("YYYY-MM-DD") : moment(t.file.ctime.ts).format("YYYY-MM-DD");
+    let m = moment(dateStr, [
+      "YYYY-MM-DD",
+      "YYYYMMDD",
+      "MM-DD-YYYY",
+      "DD-MM-YYYY",
+    ]);
+    let date = m.isValid()
+      ? m.format("YYYY-MM-DD")
+      : moment(t.file.ctime.ts).format("YYYY-MM-DD");
 
     let pnl = utils.getVal(t, ["净利润/net_profit", "net_profit"]);
     let rawAcct = utils.getStr(t, ["账户类型/account_type", "account_type"]);
@@ -176,159 +183,177 @@ if (useCache) {
       exit: utils.getVal(t, ["离场/exit_price", "exit_price", "exit"]),
       stop: utils.getVal(t, ["止损/stop_loss", "stop_loss", "stop"]),
       tags: t.file.tags || [],
-      patterns: utils.getArr(t, ["观察到的形态/patterns_observed", "patterns_observed"]),
-      strategyName: utils.getStr(t, ["策略名称/strategy_name", "strategy_name"]),
+      patterns: utils.getArr(t, [
+        "观察到的形态/patterns_observed",
+        "patterns_observed",
+      ]),
+      strategyName: utils.getStr(t, [
+        "策略名称/strategy_name",
+        "strategy_name",
+      ]),
     });
   }
   trades.sort((a, b) => a.date.localeCompare(b.date)); // 正序
 
   // --- B. 记忆库数据处理 (智能增量更新) ---
   // 优化: 如果内存中已有 SR 数据且不是强制完全重载，则复用旧数据，避免每次改交易都重读所有卡片
-  if (window.paData && window.paData.sr && window.paData.sr.total > 0 && !forceReload) {
-      srData = window.paData.sr;
-      // console.log("🚀 复用 SR 缓存数据");
+  if (
+    window.paData &&
+    window.paData.sr &&
+    window.paData.sr.total > 0 &&
+    !forceReload
+  ) {
+    srData = window.paData.sr;
+    // console.log("🚀 复用 SR 缓存数据");
   } else {
-      const srPages = dv.pages(
-        `${cfg.tags.flashcards} AND -"${cfg.paths.templates}"`
-      );
-      let easeSum = 0;
-      const srRegex = /!(\d{4}-\d{2}-\d{2}),(\d+),(\d+)/g;
+    const srPages = dv.pages(
+      `${cfg.tags.flashcards} AND -"${cfg.paths.templates}"`
+    );
+    let easeSum = 0;
+    const srRegex = /!(\d{4}-\d{2}-\d{2}),(\d+),(\d+)/g;
 
-      await Promise.all(
-        srPages.map(async (p) => {
-          try {
-            let file = app.vault.getAbstractFileByPath(p.file.path);
-            if (!file) return;
-            let content = await app.vault.read(file);
-            if (!content) return;
+    await Promise.all(
+      srPages.map(async (p) => {
+        try {
+          let file = app.vault.getAbstractFileByPath(p.file.path);
+          if (!file) return;
+          let content = await app.vault.read(file);
+          if (!content) return;
 
-            // 简单清洗代码块
-            let clean = content
-              .replace(/```[\s\S]*?```/g, "")
-              .replace(/`[^`]*`/g, "");
+          // 简单清洗代码块
+          let clean = content
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/`[^`]*`/g, "");
 
-            // 统计卡片
-            let c_cloze = (clean.match(/==[^=]+==/g) || []).length;
-            let c_sRev = (clean.match(/(?<!:):{3}(?!:)/g) || []).length;
-            let c_sNorm = (clean.match(/(?<!:):{2}(?!:)/g) || []).length;
-            let c_mRev = (clean.match(/^(?:\>)?\s*\?{2}\s*$/gm) || []).length;
-            let c_mNorm = (clean.match(/^(?:\>)?\s*\?{1}\s*$/gm) || []).length;
+          // 统计卡片
+          let c_cloze = (clean.match(/==[^=]+==/g) || []).length;
+          let c_sRev = (clean.match(/(?<!:):{3}(?!:)/g) || []).length;
+          let c_sNorm = (clean.match(/(?<!:):{2}(?!:)/g) || []).length;
+          let c_mRev = (clean.match(/^(?:\>)?\s*\?{2}\s*$/gm) || []).length;
+          let c_mNorm = (clean.match(/^(?:\>)?\s*\?{1}\s*$/gm) || []).length;
 
-            let fileCards = c_cloze + c_sNorm + c_mNorm + c_sRev * 2 + c_mRev * 2;
-            srData.total += fileCards;
-            srData.cnt.cloze += c_cloze;
-            srData.cnt.sRev += c_sRev;
-            srData.cnt.sNorm += c_sNorm;
-            srData.cnt.mRev += c_mRev;
-            srData.cnt.mNorm += c_mNorm;
+          let fileCards = c_cloze + c_sNorm + c_mNorm + c_sRev * 2 + c_mRev * 2;
+          srData.total += fileCards;
+          srData.cnt.cloze += c_cloze;
+          srData.cnt.sRev += c_sRev;
+          srData.cnt.sNorm += c_sNorm;
+          srData.cnt.mRev += c_mRev;
+          srData.cnt.mNorm += c_mNorm;
 
-            // 抓取题目
-            let singleMatches = [...clean.matchAll(/^(.+?)::(.+)$/gm)];
-            singleMatches.forEach((m) =>
-              srData.quizPool.push({
-                q: m[1].trim(),
-                file: p.file.name,
-                path: p.file.path,
-                type: "Basic",
-              })
-            );
-
-            // 文件夹归属
-            let folderName = p.file.folder.split("/").pop() || "Root";
-            if (fileCards > 0)
-              srData.folders[folderName] =
-                (srData.folders[folderName] || 0) + fileCards;
-
-            let fStat = {
-              name: p.file.name,
+          // 抓取题目
+          let singleMatches = [...clean.matchAll(/^(.+?)::(.+)$/gm)];
+          singleMatches.forEach((m) =>
+            srData.quizPool.push({
+              q: m[1].trim(),
+              file: p.file.name,
               path: p.file.path,
-              folder: folderName,
-              count: fileCards,
-              due: 0,
-              easeSum: 0,
-              easeCount: 0,
-              avgEase: 250,
-            };
+              type: "Basic",
+            })
+          );
 
-            // SR 数据提取 (关键修复点)
-            let matches = [...content.matchAll(srRegex)];
-            matches.forEach((m) => {
-              srData.reviewed++;
-              let d = m[1];
-              let ease = parseInt(m[3]);
-              easeSum += ease;
+          // 文件夹归属
+          let folderName = p.file.folder.split("/").pop() || "Root";
+          if (fileCards > 0)
+            srData.folders[folderName] =
+              (srData.folders[folderName] || 0) + fileCards;
 
-              // 填充 load 对象，防止 View 报错
-              if (d <= todayStr) {
-                srData.due++;
-              } else {
-                srData.load[d] = (srData.load[d] || 0) + 1;
-              }
+          let fStat = {
+            name: p.file.name,
+            path: p.file.path,
+            folder: folderName,
+            count: fileCards,
+            due: 0,
+            easeSum: 0,
+            easeCount: 0,
+            avgEase: 250,
+          };
 
-              fStat.easeSum += ease;
-              fStat.easeCount++;
-              if (d <= todayStr) fStat.due++;
-            });
+          // SR 数据提取 (关键修复点)
+          let matches = [...content.matchAll(srRegex)];
+          matches.forEach((m) => {
+            srData.reviewed++;
+            let d = m[1];
+            let ease = parseInt(m[3]);
+            easeSum += ease;
 
-            if (fStat.easeCount > 0)
-              fStat.avgEase = Math.round(fStat.easeSum / fStat.easeCount);
-            if (fileCards > 0) srData.fileList.push(fStat);
-          } catch (e) {}
-        })
+            // 填充 load 对象，防止 View 报错
+            if (d <= todayStr) {
+              srData.due++;
+            } else {
+              srData.load[d] = (srData.load[d] || 0) + 1;
+            }
+
+            fStat.easeSum += ease;
+            fStat.easeCount++;
+            if (d <= todayStr) fStat.due++;
+          });
+
+          if (fStat.easeCount > 0)
+            fStat.avgEase = Math.round(fStat.easeSum / fStat.easeCount);
+          if (fileCards > 0) srData.fileList.push(fStat);
+        } catch (e) {}
+      })
+    );
+
+    // 计算最难文件
+    srData.fileList.sort((a, b) => b.count - a.count);
+    let dueFiles = srData.fileList.filter((f) => f.due > 0);
+    if (dueFiles.length > 0) {
+      dueFiles.sort((a, b) => a.avgEase - b.avgEase);
+      srData.focusFile = dueFiles[0];
+    } else if (srData.fileList.length > 0) {
+      let hardFiles = [...srData.fileList].sort(
+        (a, b) => a.avgEase - b.avgEase
       );
+      srData.focusFile = hardFiles[0];
+    }
 
-      // 计算最难文件
-      srData.fileList.sort((a, b) => b.count - a.count);
-      let dueFiles = srData.fileList.filter((f) => f.due > 0);
-      if (dueFiles.length > 0) {
-        dueFiles.sort((a, b) => a.avgEase - b.avgEase);
-        srData.focusFile = dueFiles[0];
-      } else if (srData.fileList.length > 0) {
-        let hardFiles = [...srData.fileList].sort((a, b) => a.avgEase - b.avgEase);
-        srData.focusFile = hardFiles[0];
-      }
-
-      // 计算全局分数
-      if (srData.reviewed > 0) {
-        srData.avgEase = easeSum / srData.reviewed;
-        let rawScore = (srData.avgEase / cfg.settings.masteryDivider) * 100;
-        srData.score = Math.min(100, Math.round(rawScore));
-        if (srData.due > 50) srData.status = "🔥 积压 (Overload)";
-        else if (srData.score < 70) srData.status = "🧠 吃力 (Hard)";
-        else if (srData.score > 90) srData.status = "🦁 精通 (Master)";
-        else srData.status = "🟢 健康 (Healthy)";
-      }
+    // 计算全局分数
+    if (srData.reviewed > 0) {
+      srData.avgEase = easeSum / srData.reviewed;
+      let rawScore = (srData.avgEase / cfg.settings.masteryDivider) * 100;
+      srData.score = Math.min(100, Math.round(rawScore));
+      if (srData.due > 50) srData.status = "🔥 积压 (Overload)";
+      else if (srData.score < 70) srData.status = "🧠 吃力 (Hard)";
+      else if (srData.score > 90) srData.status = "🦁 精通 (Master)";
+      else srData.status = "🟢 健康 (Healthy)";
+    }
   }
 
   // --- C. 课程进度处理 (智能增量更新) ---
-  if (window.paData && window.paData.course && window.paData.course.syllabus.length > 0 && !forceReload) {
-      courseData = window.paData.course;
-      // console.log("🚀 复用 Course 缓存数据");
+  if (
+    window.paData &&
+    window.paData.course &&
+    window.paData.course.syllabus.length > 0 &&
+    !forceReload
+  ) {
+    courseData = window.paData.course;
+    // console.log("🚀 复用 Course 缓存数据");
   } else {
-      const coursePages = dv.pages(`${cfg.tags.course}`);
-      for (let p of coursePages) {
-        let ids = p.module_id;
-        if (!ids) continue;
-        if (!Array.isArray(ids)) ids = [ids];
-        for (let id of ids) {
-          let strId = id.toString();
-          courseData.map[strId] = p.file.link;
-          if (p.studied) courseData.done.add(strId);
-        }
+    const coursePages = dv.pages(`${cfg.tags.course}`);
+    for (let p of coursePages) {
+      let ids = p.module_id;
+      if (!ids) continue;
+      if (!Array.isArray(ids)) ids = [ids];
+      for (let id of ids) {
+        let strId = id.toString();
+        courseData.map[strId] = p.file.link;
+        if (p.studied) courseData.done.add(strId);
       }
-      // 读取大纲文件
-      const syFile = app.vault
-        .getFiles()
-        .find((f) => f.name === cfg.paths.syllabus);
-      if (syFile) {
-        try {
-          const syText = await app.vault.read(syFile);
-          const start = syText.indexOf("[");
-          const end = syText.lastIndexOf("]");
-          if (start !== -1 && end !== -1)
-            courseData.syllabus = JSON.parse(syText.substring(start, end + 1));
-        } catch (e) {}
-      }
+    }
+    // 读取大纲文件
+    const syFile = app.vault
+      .getFiles()
+      .find((f) => f.name === cfg.paths.syllabus);
+    if (syFile) {
+      try {
+        const syText = await app.vault.read(syFile);
+        const start = syText.indexOf("[");
+        const end = syText.lastIndexOf("]");
+        if (start !== -1 && end !== -1)
+          courseData.syllabus = JSON.parse(syText.substring(start, end + 1));
+      } catch (e) {}
+    }
   }
 }
 
