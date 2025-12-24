@@ -277,3 +277,50 @@ if (!patterns || patterns.length === 0) {
 > - [ ] **纯粹的概率** (Good Trade, Bad Outcome)
 
 ---
+
+## 🧩 智能复盘要点 (Review Hints)
+
+```dataviewjs
+const cur = dv.current();
+const path = cur?.file?.path;
+const D = window.paData;
+
+if (!D) {
+  dv.paragraph("⚠️ 交易员控制台数据未加载：请先打开一次控制台面板（会生成 window.paData）。");
+} else {
+  const byId = (t) => t?.id && path && t.id === path;
+  const trade =
+    (Array.isArray(D.tradesAsc) ? D.tradesAsc.find(byId) : null) ||
+    (Array.isArray(D.trades) ? D.trades.find(byId) : null);
+
+  if (!trade) {
+    dv.paragraph("⚠️ 未在缓存中找到本笔交易：可在控制台点击 ↻ 数据 重新扫描。");
+  } else {
+    const hints = Array.isArray(trade.reviewHints) ? trade.reviewHints : [];
+    if (hints.length === 0) {
+      dv.paragraph("✅ 暂无复盘要点（字段较完整或未触发提示）。");
+    } else {
+      const wrap = dv.el("details", "");
+      wrap.innerHTML = `
+        <summary style="cursor:pointer; font-weight:700;">
+          复盘要点（${hints.length}）
+        </summary>
+        <div style="margin-top:8px;">
+          ${hints
+            .map((h) => {
+              const zh = (h?.zh || "").toString();
+              const en = (h?.en || "").toString();
+              const enHtml = en ? ` <span style="opacity:0.6;">(${en})</span>` : "";
+              return `<div style="margin:6px 0; line-height:1.4;">• ${zh}${enHtml}</div>`;
+            })
+            .join("")}
+        </div>
+      `;
+    }
+  }
+}
+```
+
+---
+
+```
