@@ -91,41 +91,41 @@ scanStats.tags = Object.keys(tagMap).length;
 let distData = { ticker: [], setup: [], exec: [] };
 let healthScore = 100;
 
+const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
+const prettyVal = (val) => {
+  if (val === null || val === undefined) return "";
+  let s = val.toString().trim();
+  if (!s) return s;
+  if (s === "Unknown") return "未知/Unknown";
+  if (s === "Empty") return "空/Empty";
+  if (s === "null") return "空/null";
+
+  // 中文(English) -> 中文/English
+  if (s.includes("(") && s.endsWith(")")) {
+    const parts = s.split("(");
+    const cn = (parts[0] || "").trim();
+    const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+    if (cn && en) return `${cn}/${en}`;
+    if (cn) return cn;
+    if (en) return `待补充/${en}`;
+  }
+
+  // 已是 pair，尽量保证中文在左
+  if (s.includes("/")) {
+    const parts = s.split("/");
+    const left = (parts[0] || "").trim();
+    const right = parts.slice(1).join("/").trim();
+    if (hasCJK(left)) return s;
+    if (hasCJK(right)) return `${right}/${left}`;
+    return `待补充/${s}`;
+  }
+
+  if (!hasCJK(s) && /^[a-zA-Z0-9_\-\.\s]+$/.test(s)) return `待补充/${s}`;
+  return s;
+};
+
 if (window.paData && window.paData.trades) {
   const trades = window.paData.trades;
-
-  const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
-  const prettyVal = (val) => {
-    if (val === null || val === undefined) return "";
-    let s = val.toString().trim();
-    if (!s) return s;
-    if (s === "Unknown") return "未知/Unknown";
-    if (s === "Empty") return "空/Empty";
-    if (s === "null") return "空/null";
-
-    // 中文(English) -> 中文/English
-    if (s.includes("(") && s.endsWith(")")) {
-      const parts = s.split("(");
-      const cn = (parts[0] || "").trim();
-      const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
-      if (cn && en) return `${cn}/${en}`;
-      if (cn) return cn;
-      if (en) return `待补充/${en}`;
-    }
-
-    // 已是 pair，尽量保证中文在左
-    if (s.includes("/")) {
-      const parts = s.split("/");
-      const left = (parts[0] || "").trim();
-      const right = parts.slice(1).join("/").trim();
-      if (hasCJK(left)) return s;
-      if (hasCJK(right)) return `${right}/${left}`;
-      return `待补充/${s}`;
-    }
-
-    if (!hasCJK(s) && /^[a-zA-Z0-9_\-\.\s]+$/.test(s)) return `待补充/${s}`;
-    return s;
-  };
 
   // 辅助统计函数
   const getDist = (key) => {
