@@ -239,6 +239,18 @@ if (window.paData) {
     healthScore > 90 ? c.live : healthScore > 60 ? c.back : c.loss;
 
   // --- 2. 维度分布统计 (Distributions) ---
+  const toZh = (v) => {
+    if (v === null || v === undefined) return "";
+    if (typeof v !== "string") return v;
+    let s = v.toString().trim();
+    if (!s) return s;
+    if (s === "Unknown") return "未知";
+    if (s === "Empty") return "空";
+    if (s.includes("(")) s = s.split("(")[0].trim();
+    if (s.includes("/")) s = s.split("/")[0].trim();
+    return s;
+  };
+
   function getDist(key, useMap = false) {
     let dist = {};
     trades.forEach((t) => {
@@ -256,6 +268,8 @@ if (window.paData) {
         }
         val = sName;
       }
+
+      val = toZh(val);
 
       if (val) dist[val] = (dist[val] || 0) + 1;
     });
@@ -323,7 +337,7 @@ if (window.paData) {
           <span style="font-weight:bold; color:${c.loss};">⚠️ 异常详情</span>
           <span style="font-size:0.8em; opacity:0.7; white-space:nowrap;">
             <strong style="color:${c.loss};">${issueCount}</strong>
-            <span style="opacity:0.8;">（非法 ${illegalDetails.length} · 逻辑 ${logicIssues.length} · 缺设 ${missingSetupIssues.length} · 缺品 ${missingTickerIssues.length} · 缺周 ${missingTfIssues.length}）</span>
+            <span style="opacity:0.8;">（非法值 ${illegalDetails.length} · 逻辑错误 ${logicIssues.length} · 缺失设置 ${missingSetupIssues.length} · 缺失品种 ${missingTickerIssues.length} · 缺失周期 ${missingTfIssues.length}）</span>
           </span>
         </summary>
         <div style="margin-top:10px; max-height: 200px; overflow-y: auto;">
@@ -340,7 +354,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${item.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">${label}</span></td>
-              <td style="opacity:0.7">${item.value}</td>
+              <td style="opacity:0.7">${toZh(item.value)}</td>
           </tr>`;
     });
 
@@ -349,7 +363,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(239, 68, 68, 0.1); color:${c.loss}">逻辑错误</span></td>
-              <td style="opacity:0.7">PnL=${t.pnl}, R=0</td>
+          <td style="opacity:0.7">盈亏=${t.pnl}, R=0</td>
           </tr>`;
     });
 
@@ -358,7 +372,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
-              <td style="opacity:0.7">Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -367,7 +381,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
-              <td style="opacity:0.7">Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -376,7 +390,7 @@ if (window.paData) {
         detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
-              <td style="opacity:0.7">Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -400,25 +414,25 @@ if (window.paData) {
                     ? `<div class="insp-item" style="color:${c.loss}; font-weight:bold;">⚠️ 未找到 'Templates/属性值预设.md'</div>`
                     : ""
                 }
-                <div class="insp-item"><span>缺失品种 (Ticker)</span> <span class="${
+                <div class="insp-item"><span>缺失品种</span> <span class="${
                   missing.ticker > 0 ? "txt-red" : "txt-dim"
                 }">${missing.ticker}</span></div>
-                <div class="insp-item"><span>缺失周期 (Timeframe)</span> <span class="${
+                <div class="insp-item"><span>缺失周期</span> <span class="${
                   missing.tf > 0 ? "txt-red" : "txt-dim"
                 }">${missing.tf}</span></div>
-                <div class="insp-item"><span>缺失设置 (Setup)</span> <span class="${
+                <div class="insp-item"><span>缺失设置</span> <span class="${
                   missing.setup > 0 ? "txt-red" : "txt-dim"
                 }">${missing.setup}</span></div>
-                <div class="insp-item"><span>逻辑异常 (R=0)</span> <span class="${
+                <div class="insp-item"><span>逻辑异常（R=0）</span> <span class="${
                   missing.logic > 0 ? "txt-red" : "txt-dim"
                 }">${missing.logic}</span></div>
                 <div class="insp-item"><span>非法属性值</span> <span class="${
                   missing.illegal > 0 ? "txt-red" : "txt-dim"
                 }">${missing.illegal}</span></div>
-                <div class="insp-item"><span>未知策略 (Unknown)</span> <span class="${
+                <div class="insp-item"><span>未知策略</span> <span class="${
                   missing.unknownStrat > 0 ? "txt-red" : "txt-dim"
                 }">${missing.unknownStrat}</span></div>
-                <div class="insp-item"><span>策略不匹配 (Mismatch)</span> <span class="${
+                <div class="insp-item"><span>策略不匹配</span> <span class="${
                   missing.stratMismatch > 0 ? "txt-red" : "txt-dim"
                 }">${missing.stratMismatch}</span></div>
             </div>
