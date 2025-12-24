@@ -286,6 +286,32 @@ if (window.paData) {
     if (s === "Unknown") return "未知/Unknown";
     if (s === "Empty") return "空/Empty";
 
+    // 周期/timeframe 代码（PT5M、M5、H1、D1...）优先映射成中文/英文
+    {
+      const tf = s.toUpperCase();
+      const mk = (cn) => normalizePair(cn, s);
+      let m = tf.match(/^PT(\d+)([MH])$/); // ISO-8601: PT5M / PT1H
+      if (m) {
+        const n = Number(m[1]);
+        const u = m[2];
+        if (u === "M") return mk(`${n}分钟`);
+        if (u === "H") return mk(`${n}小时`);
+      }
+      m = tf.match(/^P(\d+)D$/); // P1D
+      if (m) {
+        const n = Number(m[1]);
+        return mk(n === 1 ? "日线" : `${n}天`);
+      }
+      m = tf.match(/^M(\d+)$/);
+      if (m) return mk(`${Number(m[1])}分钟`);
+      m = tf.match(/^H(\d+)$/);
+      if (m) return mk(`${Number(m[1])}小时`);
+      m = tf.match(/^D(\d+)$/);
+      if (m) return mk(Number(m[1]) === 1 ? "日线" : `${Number(m[1])}天`);
+      m = tf.match(/^W(\d+)$/);
+      if (m) return mk(Number(m[1]) === 1 ? "周线" : `${Number(m[1])}周`);
+    }
+
     const directPair = splitPair(s);
     if (directPair) {
       let { cn, en } = directPair;
