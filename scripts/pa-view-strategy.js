@@ -9,6 +9,22 @@ if (window.paData) {
   // 必须使用正序排列的数据来画图
   const trades = window.paData.tradesAsc;
   const c = cfg.colors;
+  const coachFocus =
+    window.paData?.coach?.last30?.focus ||
+    window.paData?.coach?.week?.focus ||
+    window.paData?.coach?.today?.focus;
+  const formatCoachLine = (f) => {
+    if (!f) return "";
+    const label = (f.label || f.key || "").toString();
+    const completed = Number(f?.stats?.completed) || 0;
+    const winRate = Number(f?.stats?.winRate) || 0;
+    const exp = Number(f?.stats?.expectancyR);
+    const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
+    const dim = (f.dimLabel || f.kind || "").toString();
+    const urgency = Number(f?.urgency);
+    const tag = Number.isFinite(urgency) && urgency > 0 ? "🔎 复盘优先" : "🧭 复盘提示";
+    return `${tag}：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+  };
 
   // --- 1. 数据清洗与分离 ---
   let curves = { live: [0], demo: [0], back: [0] };
@@ -145,12 +161,17 @@ if (window.paData) {
         <div>
              <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
              <div style="font-size:0.8em; opacity:0.8; line-height:1.5;">
-                当前表现最好的策略是 <b style="color:${c.demo}">${
-    topStrats[0]?.name || "无"
-  }</b>。<br>
+                ${
+                  coachFocus
+                    ? `${formatCoachLine(coachFocus)}<br>`
+                    : ""
+                }
+                当前最常用的策略是 <b style="color:${c.demo}">${
+                  topStrats[0]?.name || "无"
+                }</b>。<br>
                 建议在 <b style="color:${cum.live < 0 ? c.back : c.live}">${
-    cum.live < 0 ? "回测" : "实盘"
-  }</b> 中继续保持执行。
+                  cum.live < 0 ? "回测" : "实盘"
+                }</b> 中继续保持执行一致性。
              </div>
         </div>
     </div>

@@ -15,19 +15,33 @@ if (window.paData && window.paData.course) {
   const isDoneCourse = (id) => doneSet.has(id) || doneSet.has(simpleId(id));
   const doneCount = syllabus.filter((s) => isDoneCourse(s.id)).length;
 
-  // 1. 智能推荐逻辑 (Engine 可能已经算过，这里再做一次 UI 层面的确认)
+  // 1. 智能推荐逻辑：优先采用 Core 已算好的 hybridRec（避免各视图各算一遍）
   let next = null;
   let recommendationType = "New";
 
-  // 优先找没学过的
-  for (let c of syllabus) {
-    const sid = simpleId(c.id);
-    if (!doneSet.has(c.id) && !doneSet.has(sid)) {
-      next = c;
-      break;
+  const hybrid = course.hybridRec;
+  if (hybrid && hybrid.type === "New" && hybrid.data) {
+    // hybridRec 里 New 指向 syllabus item
+    const cand = hybrid.data;
+    const sid = simpleId(cand.id);
+    if (!doneSet.has(cand.id) && !doneSet.has(sid)) {
+      next = cand;
+      recommendationType = "New";
     }
   }
-  // 如果都学完了，随机推荐一节 (二刷)
+
+  // 兜底：按 syllabus 顺序找没学过的
+  if (!next) {
+    for (let c of syllabus) {
+      const sid = simpleId(c.id);
+      if (!doneSet.has(c.id) && !doneSet.has(sid)) {
+        next = c;
+        break;
+      }
+    }
+  }
+
+  // 如果都学完了，随机推荐一节（二刷）
   if (!next && syllabus.length > 0) {
     let randomIndex = Math.floor(Math.random() * syllabus.length);
     next = syllabus[randomIndex];

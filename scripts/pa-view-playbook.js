@@ -242,6 +242,98 @@ if (
   </div>`;
 }
 
+// 今日推荐兜底（基于 Core 的教练焦点，不依赖今日日记）
+if (
+  !(
+    todayJournal &&
+    (todayJournal["市场周期/market_cycle"] || todayJournal.market_cycle)
+  )
+) {
+  const focus =
+    window.paData?.coach?.today?.focus ||
+    window.paData?.coach?.week?.focus ||
+    window.paData?.coach?.last30?.focus;
+
+  if (focus) {
+    const focusLabel = (focus.label || focus.key || "").toString();
+    const dim = (focus.dimLabel || focus.kind || "").toString();
+    const completed = Number(focus?.stats?.completed) || 0;
+    const winRate = Number(focus?.stats?.winRate) || 0;
+    const exp = Number(focus?.stats?.expectancyR);
+    const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
+
+    let msg = `教练焦点：${dim} → ${focusLabel || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+    let recHtml = "";
+
+    // 1) 如果焦点是市场周期，则按周期推荐实战策略
+    if (focus.kind === "marketCycleKey" && focusLabel) {
+      const currentCycle = focusLabel;
+      const rec = strategies
+        .filter(
+          (s) =>
+            isActiveStrategy(s.statusRaw) &&
+            cycleMatches(s.marketCycles, currentCycle)
+        )
+        .sort((a, b) => {
+          const pa = perf.get(a.canonicalName) || {
+            total: 0,
+            wins: 0,
+            pnl: 0,
+            lastDate: "",
+          };
+          const pb = perf.get(b.canonicalName) || {
+            total: 0,
+            wins: 0,
+            pnl: 0,
+            lastDate: "",
+          };
+          return (pb.total || 0) - (pa.total || 0) || (pb.pnl || 0) - (pa.pnl || 0);
+        })
+        .slice(0, 6);
+
+      recHtml = rec.length
+        ? `推荐优先关注：${rec
+            .map((s) => {
+              const safePath = s?.file?.path;
+              const safeHref = safePath ? encodeURI(safePath) : "";
+              const label = prettyName(
+                s?.displayName || s?.canonicalName || s?.file?.name
+              );
+              return safeHref
+                ? `<a href=\"${safeHref}\" data-href=\"${safePath}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
+                : `<span style=\"white-space:nowrap;\">${label}</span>`;
+            })
+            .join(" · ")}`
+        : "暂无匹配的实战策略（可创建今日日记以获得更精确的周期匹配）。";
+    }
+
+    // 2) 如果焦点是策略，则直链该策略卡（若可解析）
+    if (!recHtml && focus.kind === "strategyKey" && focusLabel) {
+      const raw = focusLabel;
+      const canonical =
+        strategyLookup?.get?.(raw) ||
+        strategyLookup?.get?.(raw.toLowerCase()) ||
+        raw;
+      const item = strategyByName?.get?.(canonical);
+      if (item?.file?.path) {
+        const safePath = item.file.path;
+        const safeHref = encodeURI(safePath);
+        const label = prettyName(item.displayName || item.canonicalName || raw);
+        recHtml = `推荐优先复盘：<a href=\"${safeHref}\" data-href=\"${safePath}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`;
+      } else {
+        recHtml = `推荐优先复盘：${prettyName(raw)}`;
+      }
+    }
+
+    html += `
+    <div style="margin:-6px 0 14px 0; padding:10px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:8px;">
+      <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🧠 今日推荐（兜底）</div>
+      <div style="font-size:0.85em; opacity:0.75; margin-bottom:6px;">${msg}</div>
+      <div style="font-size:0.85em; opacity:0.75;">${recHtml || "建议去 Inspector 按该维度筛选最近交易进行复盘。"}</div>
+    </div>`;
+  }
+}
+
 // 分组收集（保持插入顺序，最后再把“其他/未分类”放到底部）
 const cycleBuckets = new Map(); // groupName -> strategies[]
 const cycleOrder = [];

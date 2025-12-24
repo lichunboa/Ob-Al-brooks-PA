@@ -48,16 +48,36 @@ if (window.paData) {
 
   // 1.2 市场环境 (Context)
   const todayJournal = window.paData?.daily?.todayJournal;
+  const coachFocus =
+    window.paData?.coach?.today?.focus ||
+    window.paData?.coach?.week?.focus ||
+    window.paData?.coach?.last30?.focus;
+  const formatCoachLine = (f) => {
+    if (!f) return "";
+    const label = (f.label || f.key || "").toString();
+    const completed = Number(f?.stats?.completed) || 0;
+    const winRate = Number(f?.stats?.winRate) || 0;
+    const exp = Number(f?.stats?.expectancyR);
+    const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
+    const dim = (f.dimLabel || f.kind || "").toString();
+    return `🧭 复盘焦点：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%）`;
+  };
+
   if (todayJournal && todayJournal.market_cycle) {
+    const coachLine = formatCoachLine(coachFocus);
     leftCol.innerHTML += `
         <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
             <div style="font-weight:bold; color:#3b82f6; margin-bottom:4px;">🌊 市场环境: ${todayJournal.market_cycle}</div>
-            <div style="font-size:0.85em; opacity:0.8;">策略建议: 顺势而为，寻找回调入场机会。</div>
+            <div style="font-size:0.85em; opacity:0.8;">${
+              coachLine || "策略建议: 顺势而为，寻找回调入场机会。"
+            }</div>
         </div>`;
   } else {
+    const coachLine = formatCoachLine(coachFocus);
     leftCol.innerHTML += `
         <div style="padding: 12px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; text-align: center; font-size: 0.9em; opacity: 0.6;">
             <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">📝 创建今日日记</a> 以激活策略推荐
+            ${coachLine ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>` : ""}
         </div>`;
   }
 
