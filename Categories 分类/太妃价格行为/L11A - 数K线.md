@@ -1,5 +1,8 @@
 ---
 tags:
+	- PA/Course
+module_id: L11A
+studied: false
 来源/source:
 ---
 [L11A - 数K线](http://192.168.66.206:5666/v/video/1767c0d90fd6472db132c939461ab8c6)

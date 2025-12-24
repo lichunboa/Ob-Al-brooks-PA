@@ -1,5 +1,8 @@
 ---
 tags:
+	- PA/Course
+module_id: L11B
+studied: false
 来源/source:
 ---
 [L11B - 数k线的原理与应用](http://192.168.66.206:5666/v/video/bddb26cfe5644eb580f0de6a73f8af05)

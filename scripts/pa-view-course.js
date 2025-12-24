@@ -11,7 +11,8 @@ if (window.paData && window.paData.course) {
   const doneSet = course.done;
   const linkMap = course.map;
 
-  const simpleId = (id) => id.replace(/[A-Z]/g, "");
+  // 仅去掉“末尾的章节字母”(如 02A->02, L01A->L01)，避免把前缀也剥掉导致 ID 冲突
+  const simpleId = (id) => id.replace(/([0-9])([A-Z]+)$/g, "$1");
   const isDoneCourse = (id) => doneSet.has(id) || doneSet.has(simpleId(id));
   const doneCount = syllabus.filter((s) => isDoneCourse(s.id)).length;
 
