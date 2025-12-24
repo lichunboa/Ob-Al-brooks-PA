@@ -146,10 +146,10 @@ if (window.paData) {
   let detailsHTML = "";
   if (illegalDetails.length > 0 || missing.logic > 0 || missing.setup > 0 || missing.ticker > 0 || missing.tf > 0) {
       detailsHTML = `<div class="insp-card" style="border-left: 3px solid ${c.loss};">
-          <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (Action Required)</div>
+          <div class="insp-title" style="color:${c.loss}">⚠️ 异常详情 (需处理)</div>
           <div style="max-height: 200px; overflow-y: auto;">
               <table class="insp-table">
-                  <thead><tr><th>File</th><th>Issue</th><th>Value</th></tr></thead>
+                  <thead><tr><th>文件</th><th>问题</th><th>当前值</th></tr></thead>
                   <tbody>`;
       
       // Add Illegal values
@@ -280,21 +280,21 @@ if (window.paData) {
         <div class="insp-card">
             <div class="insp-title" style="border:none;">
                 <span>📄 原始数据明细 (Raw Data)</span>
-                <span style="font-size:0.8em; opacity:0.5; font-weight:normal;">Top 15 Recent</span>
+                <span style="font-size:0.8em; opacity:0.5; font-weight:normal;">最近 15 笔</span>
             </div>
             <div style="overflow-x:auto;">
                 <table class="insp-table">
-                    <thead><tr><th>Date</th><th>Ticker</th><th>TF</th><th>Setup</th><th>Result</th><th>Execution</th></tr></thead>
+                    <thead><tr><th>日期</th><th>品种</th><th>周期</th><th>策略</th><th>结果</th><th>执行</th></tr></thead>
                     <tbody>
                         ${trades
                           .slice(0, 15)
                           .map((t) => {
                             let resTxt =
                               t.pnl > 0
-                                ? "Win"
+                                ? "盈利"
                                 : t.pnl < 0
-                                ? "Loss"
-                                : "Scratch";
+                                ? "亏损"
+                                : "平保";
                             let resCol =
                               t.pnl > 0 ? c.live : t.pnl < 0 ? c.loss : "gray";
                             // 优先显示新字段，兼容旧字段
@@ -305,7 +305,7 @@ if (window.paData) {
                             let tkDisp =
                               t.ticker && t.ticker !== "Unknown"
                                 ? `<b>${t.ticker}</b>`
-                                : `<span class="txt-red">Unknown</span>`;
+                                : `<span class="txt-red">未知</span>`;
                             let tfDisp =
                               t.tf && t.tf !== "Unknown"
                                 ? t.tf

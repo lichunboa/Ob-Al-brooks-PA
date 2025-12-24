@@ -1,17 +1,6 @@
 # ⌨️ 总控制台
 
 ```dataviewjs
-// 导出数据按钮 (Manual Export)
-const btnExport = dv.el("button", "📥 导出 JSON (App)", { attr: { style: "margin-bottom: 20px; cursor: pointer;"} });
-btnExport.onclick = async () => {
-    // 这里的 window.paData 就是引擎算好的数据
-    const exportData = JSON.stringify(window.paData, null, 2);
-    // 写入到根目录的 pa-db-export.json 文件中
-    await app.vault.adapter.write("pa-db-export.json", exportData);
-    new Notice("✅ 数据已导出到根目录: pa-db-export.json");
-};
-```
-```dataviewjs
 // 加载引擎
 await dv.view("scripts/pa-core");
 ```
@@ -63,8 +52,15 @@ await dv.view("scripts/pa-view-cycle");
 await dv.view("scripts/pa-view-tuition");
 ```
 ## �️ 系统管理与巡检 (Admin & Inspector)
-```dataviewjs
-// 数据治理与巡检
+```dataviewjs// 导出数据按钮 (Manual Export)
+const btnExport = dv.el("button", "📥 导出 JSON (App)", { attr: { style: "margin-bottom: 10px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; color: #ccc;"} });
+btnExport.onclick = async () => {
+    const exportData = JSON.stringify(window.paData, null, 2);
+    await app.vault.adapter.write("pa-db-export.json", exportData);
+    new Notice("✅ 数据已导出到根目录: pa-db-export.json");
+};
+```
+```dataviewjs// 数据治理与巡检
 await dv.view("scripts/pa-view-inspector");
 ```
 ```dataviewjs

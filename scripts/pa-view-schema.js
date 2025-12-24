@@ -1,10 +1,8 @@
-/* 文件名: Scripts/pa-view-schema.js (V5 - Ultimate Monitor)
-   用途: 全域数据监控与可视化 (The Dashboard)
+/* 文件名: Scripts/pa-view-schema.js (V5 - Metadata Monitor)
+   用途: 元数据监控与标签全景
    功能: 
    1. 🚑 异常修复台: 实时捕捉空值/Unknown (原生跳转)。
-   2. 📊 数据透视: 集成 Inspector 的分布图 (品种/策略/执行)。
-   3. 🏷️ 标签全景: 统计全库标签。
-   4. ❌ 移除: 冗长的属性字典。
+   2. 🏷️ 标签全景: 统计全库标签。
 */
 
 const basePath = app.vault.adapter.basePath;
@@ -25,12 +23,6 @@ if (!document.getElementById(styleId)) {
         .sch-link:hover { color: ${c.live}; text-decoration-color: ${c.live}; }
         .sch-tag { color: ${c.demo}; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin: 3px; cursor: pointer; display: inline-block; transition:0.2s; }
         .sch-tag:hover { background: rgba(59, 130, 246, 0.2); transform: translateY(-1px); }
-        
-        /* 统计卡片样式 */
-        .sch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-        .sch-mini-card { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; }
-        .sch-bar-bg { background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 6px; }
-        .sch-bar-fill { height: 100%; border-radius: 2px; }
         
         /* 顶部仪表盘 */
         .sch-dash { display: flex; gap: 15px; margin-bottom: 5px; }
@@ -94,10 +86,66 @@ for (let p of dvPages) {
 }
 scanStats.tags = Object.keys(tagMap).length;
 
-// --- 3. 引擎数据聚合 (Engine Data for Charts) ---
-// 使用 window.paData 获取清洗过的统计数据 (Ticker/Setup/Exec)
-let distData = { ticker: [], setup: [], exec: [] };
-let healthScore = 100;
+// --- 3. 渲染 ---
+const root = dv.el("div", "");
+root.innerHTML = `
+<div class="sch-box">
+    <!-- 仪表盘 -->
+    <div class="sch-dash">
+        <div class="sch-dash-item">
+            <div class="sch-big-num" style="color:${c.live}">${scanStats.files}</div>
+            <div class="sch-sub-label">扫描文件</div>
+        </div>
+        <div class="sch-dash-item">
+            <div class="sch-big-num" style="color:${c.demo}">${scanStats.tags}</div>
+            <div class="sch-sub-label">标签总数</div>
+        </div>
+        <div class="sch-dash-item">
+            <div class="sch-big-num" style="color:${scanStats.issues > 0 ? c.loss : c.live}">${scanStats.issues}</div>
+            <div class="sch-sub-label">元数据异常</div>
+        </div>
+    </div>
+
+    <!-- 异常列表 -->
+    ${
+      issueList.length > 0
+        ? `
+    <div class="sch-panel" style="border-left: 3px solid ${c.loss}">
+        <div class="sch-header" style="color:${c.loss}">
+            <span>⚠️ 待修复元数据 (Metadata Issues)</span>
+            <span style="font-size:0.8em;opacity:0.7">${issueList.length} 项</span>
+        </div>
+        <div style="max-height: 200px; overflow-y: auto;">
+            ${issueList.map(i => `
+                <div class="sch-row">
+                    <span class="sch-link" onclick="app.workspace.openLinkText('${i.path}', '', true)">${i.name}</span>
+                    <span style="opacity:0.6; font-family:monospace">${i.key}: ${i.val}</span>
+                    <span style="color:${c.loss}; font-size:0.8em">${i.type}</span>
+                </div>
+            `).join("")}
+        </div>
+    </div>`
+        : `<div class="sch-panel" style="border-left: 3px solid ${c.live}">
+            <div class="sch-header" style="color:${c.live}">✅ 元数据非常健康 (All Clear)</div>
+            <div style="opacity:0.6; font-size:0.9em">所有属性均已规范填写</div>
+           </div>`
+    }
+
+    <!-- 标签全景 -->
+    <div class="sch-panel">
+        <div class="sch-header" style="color:${c.accent}">
+            <span>🏷️ 标签全景 (Tag System)</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${Object.entries(tagMap)
+              .sort((a, b) => b[1] - a[1])
+              .map(([tag, count]) => `
+                <span class="sch-tag">${tag} (${count})</span>
+              `).join("")}
+        </div>
+    </div>
+</div>
+`;
 
 if (window.paData && window.paData.trades) {
   const trades = window.paData.trades;
