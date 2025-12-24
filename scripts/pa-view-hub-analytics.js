@@ -54,6 +54,16 @@ if (window.paData) {
 
     // 辅助函数: 根据交易的形态列表推断策略
     function identifyStrategy(trade) {
+        // 0. 优先检查显式的策略名称 (Strategy Name)
+        if (trade.strategyName && trade.strategyName !== "Unknown") {
+            let sName = trade.strategyName;
+            // 尝试去除括号内的英文 (e.g. "20均线缺口 (20 EMA Gap)" -> "20均线缺口")
+            if (sName.includes("(") && sName.includes(")")) {
+                sName = sName.split("(")[0].trim();
+            }
+            return sName;
+        }
+
         // 1. 优先检查 patterns (精确匹配策略)
         if (trade.patterns && trade.patterns.length > 0) {
             for (let p of trade.patterns) {
@@ -263,14 +273,21 @@ if (window.paData) {
     // 环境分析
     let cycleStats = {};
     trades.filter(t => t.type === "Live").forEach(t => {
-            let cycle = t.market_cycle || "Unknown";
-            if (cycle.includes("/")) cycle = cycle.split("/")[1].trim();
-            else if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
+            // 优先使用 rawCycle (数组或字符串), 兼容 pa-core 的处理
+            let cycleRaw = t.cycle || t.market_cycle || "Unknown";
+            let cycle = Array.isArray(cycleRaw) ? cycleRaw[0] : cycleRaw.toString();
+            
+            // 归一化处理: 移除括号内容，处理中英文
+            if (cycle.includes("(")) cycle = cycle.split("(")[0].trim();
+            
+            // 尝试映射英文到中文
+            if (cycleMap[cycle]) cycle = cycleMap[cycle];
+
             if (!cycleStats[cycle]) cycleStats[cycle] = 0;
             cycleStats[cycle] += t.pnl;
     });
     let sortedCycles = Object.keys(cycleStats)
-        .map((k) => ({ name: trans(cycleMap, k), pnl: cycleStats[k] }))
+        .map((k) => ({ name: k, pnl: cycleStats[k] })) // name 已经是中文了
         .sort((a, b) => b.pnl - a.pnl);
 
     let cycleHtml = `
