@@ -29,6 +29,32 @@ const prettyName = (raw) => {
   if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
   return s;
 };
+
+const cycleToCn = (raw) => {
+  const s0 = normStr(raw);
+  if (!s0) return s0;
+  if (hasCJK(s0)) return s0;
+  if (s0.includes("/")) return s0;
+  if (s0.includes("(") && s0.endsWith(")")) return s0;
+  const key = s0.toLowerCase();
+  const map = {
+    range: "交易区间/Range",
+    "trading range": "交易区间/Trading Range",
+    trend: "趋势/Trend",
+    pullback: "回调/Pullback",
+    reversal: "反转/Reversal",
+    breakout: "突破/Breakout",
+    spike: "急速/Spike",
+  };
+  return map[key] || `待补充/${s0}`;
+};
+const prettyCycles = (v, limit = 2) =>
+  toArr(v)
+    .map(cycleToCn)
+    .map(normStr)
+    .filter(Boolean)
+    .slice(0, limit)
+    .join(", ");
 const cycleMatches = (cycles, currentCycle) => {
   const cur = normStr(currentCycle);
   if (!cur) return false;
@@ -211,14 +237,22 @@ if (
   <div style="margin:-6px 0 14px 0; padding:10px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:8px;">
     <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🌊 今日市场周期: <span style="color:${
       cfg.colors.demo
-    };">${currentCycle}</span></div>
+    }">${prettyCycles(currentCycle, 4) || "无/N/A"}</span></div>
     <div style="font-size:0.85em; opacity:0.75;">
       ${
         rec.length
           ? `推荐优先关注：${rec
               .map(
-                (s) =>
-                  `<span style=\"white-space:nowrap;\">${s.file.link}</span>`
+                (s) => {
+                  const safePath = s?.file?.path;
+                  const safeHref = safePath ? encodeURI(safePath) : "";
+                  const label = prettyName(
+                    s?.displayName || s?.canonicalName || s?.file?.name
+                  );
+                  return safeHref
+                    ? `<a href=\"${safeHref}\" class=\"internal-link\" style=\"white-space:nowrap; text-decoration:none;\">${label}</a>`
+                    : `<span style=\"white-space:nowrap;\">${label}</span>`;
+                }
               )
               .join(" · ")}`
           : "暂无匹配的实战策略（可去 Today 里补充周期/或按形态匹配）。"
@@ -315,7 +349,7 @@ cycleGroupDefs.forEach((def) => {
         page?.["盈亏比/risk_reward"] ||
         page?.["risk_reward"] ||
         page?.["盈亏比"] ||
-        "N/A";
+        "无/N/A";
       let status = s.statusRaw || "学习中";
       let usageCount = p.total || 0;
       let setupCategory = (s.setupCategories || [])
@@ -327,7 +361,7 @@ cycleGroupDefs.forEach((def) => {
       // 获取市场周期
       let cycleText = (s.marketCycles || [])
         .slice(0, 2)
-        .map(prettyName)
+        .map(cycleToCn)
         .join(", ");
 
       // 状态颜色
@@ -434,13 +468,13 @@ cycleGroupDefs.forEach((def) => {
           <div style="margin-top:8px; font-size:0.74em;">
             <div style="display:grid; grid-template-columns: auto 1fr; gap:6px 12px; opacity:0.8;">
               <span style="opacity:0.6;">市场周期:</span>
-              <span>${cycleText || "N/A"}</span>
+              <span>${cycleText || "无/N/A"}</span>
               
               <span style="opacity:0.6;">设置类别:</span>
-              <span>${setupCategory || "N/A"}</span>
+              <span>${setupCategory || "无/N/A"}</span>
               
               <span style="opacity:0.6;">来源:</span>
-              <span>${source || "N/A"}</span>
+              <span>${source || "无/N/A"}</span>
             </div>
             
             <div style="margin-top:10px; display:flex; gap:6px;">
@@ -476,8 +510,9 @@ if (otherBucket.length > 0) {
       )
     )
     .forEach((s) => {
-      const name =
-        s.displayName || s.canonicalName || s.file?.name || "(未命名)";
+      const name = prettyName(
+        s.displayName || s.canonicalName || s.file?.name || "(未命名)"
+      );
       const safePath = s?.file?.path;
       const safeHref = safePath ? encodeURI(safePath) : "";
       html += `
@@ -537,7 +572,7 @@ let statsHtml = `<div style="margin-top: 20px; padding-top: 15px; border-top: 1p
       s.pnl > 0 ? "#22c55e" : s.pnl < 0 ? "#ef4444" : "var(--text-muted)";
 
     const item = strategyByName?.get?.(canonical);
-    const display = item?.displayName || canonical;
+    const display = prettyName(item?.displayName || canonical);
     const nameDisplay = item?.file?.path
       ? `<a href="${encodeURI(
           item.file.path
