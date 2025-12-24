@@ -118,6 +118,21 @@ if (window.paData) {
         }).join(" ");
     }
 
+    // 辅助函数：生成迷你卡片
+    function miniCard(title, stats, color, icon) {
+        return `
+        <div style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-size:0.85em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${title}</div>
+                <div style="font-size:0.65em; opacity:0.5;">${stats.count} 笔</div>
+            </div>
+            <div>
+                <div style="font-size:1.2em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss};">${stats.pnl > 0 ? "+" : ""}${stats.pnl}<span style="font-size:0.6em; opacity:0.6;">$</span></div>
+                <div style="font-size:0.7em; opacity:0.7; margin-top:2px;">胜率: ${stats.wr}%</div>
+            </div>
+        </div>`;
+    }
+
     // --- 3. HTML 生成 ---
     
     // 日历 HTML
