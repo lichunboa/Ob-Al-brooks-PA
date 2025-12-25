@@ -31,7 +31,7 @@ date:
 初始风险/initial_risk:
 净利润/net_profit:
 结果/outcome:
-封面/cover:
+封面/cover: "[[Templates/assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png]]"
 执行评价/execution_quality:
 策略名称/strategy_name:
 ---
@@ -44,7 +44,12 @@ date:
 
 ```dataviewjs
 const basePath = app.vault.adapter.basePath;
-await require(basePath + "/scripts/pa-cover-helper.js")(dv, app);
+const helperPath = basePath + "/scripts/pa-cover-helper.js";
+// 强制清除缓存，确保加载最新逻辑
+if (require.cache && require.resolve) {
+    try { delete require.cache[require.resolve(helperPath)]; } catch(e) {}
+}
+await require(helperPath)(dv, app);
 ```
 
 <!--PA_COVER_SOURCE-->
