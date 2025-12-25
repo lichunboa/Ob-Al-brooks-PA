@@ -138,7 +138,8 @@ async function ensureCoverFromPasteAnchor() {
   const scope = after.split(/\n#{1,6}\s/)[0] || after;
 
   let m;
-  const wikiRe = /!\[\[([^\]]+?)\]\]/g;
+  // 兼容：![[...]]（图片）以及 [[...]]（普通链接）
+  const wikiRe = /!?\[\[([^\]]+?)\]\]/g;
   while ((m = wikiRe.exec(scope)) !== null) {
     const linkpath = (m[1] || "").split("|")[0].trim();
     const p = resolveToVaultPath(linkpath);
@@ -153,7 +154,8 @@ async function ensureCoverFromPasteAnchor() {
     }
   }
 
-  const mdImgRe = /!\[[^\]]*\]\(([^)]+)\)/g;
+  // 兼容：![](...)（图片）以及 [](...)（普通链接，但指向图片文件）
+  const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
   while ((m = mdImgRe.exec(scope)) !== null) {
     const link = normalizeLink((m[1] || "").trim());
     if (!link) continue;
