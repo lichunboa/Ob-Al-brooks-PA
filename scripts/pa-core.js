@@ -11,6 +11,9 @@ const utils = require(basePath + "/scripts/pa-utils.js");
 const startT = performance.now();
 const todayStr = moment().format("YYYY-MM-DD");
 
+// 避免并发/递归刷新导致的卡死
+window.__paBuilding = true;
+
 // --- 1. 缓存控制 (Smart Cache) ---
 // 强制刷新: 由各视图/按钮置位 window.paForceReload=true 触发
 const forceReload = window.paForceReload === true;
@@ -32,11 +35,111 @@ window.paRefreshViews = async (opts = {}) => {
         // try next id
       }
     }
+
+    // 兜底 1：按名称动态寻找命令（Dataview 不同版本 commandId 可能变化）
+    try {
+      const cmds = app?.commands?.commands || {};
+      const needle = "force refresh";
+      let foundId = null;
+      for (const [id, cmd] of Object.entries(cmds)) {
+        const name = (cmd?.name || "").toString().toLowerCase();
+        if (name.includes("dataview") && name.includes(needle)) {
+          foundId = id;
+          break;
+        }
+      }
+      if (foundId) {
+        await app.commands.executeCommandById(foundId);
+        return true;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 兜底 2：尝试 Dataview API（若存在）
+    try {
+      const dvPlugin = app?.plugins?.plugins?.dataview;
+      if (dvPlugin?.api?.forceRefresh) {
+        await dvPlugin.api.forceRefresh();
+        return true;
+      }
+      if (dvPlugin?.api?.refresh) {
+        await dvPlugin.api.refresh();
+        return true;
+      }
+    } catch (e) {
+      // ignore
+    }
   } catch (e) {
     console.log("paRefreshViews failed", e);
   }
   return false;
 };
+
+// --- 1.1 自动失效缓存 + 自动触发刷新 ---
+// 目标：你改任何交易/日记/策略笔记后，不需要关掉重开/重启 Obsidian。
+// 说明：Dataview 默认不会因为“其它文件变化”自动重渲染当前页面；因此需要监听 vault 事件并触发一次 refresh。
+if (!window.__paAutoRefreshInstalled) {
+  window.__paAutoRefreshInstalled = true;
+
+  // 脏标记：有相关文件更新时置位，避免 TTL 内一直读缓存导致“看不到修改”
+  if (window.paDirty === undefined) window.paDirty = false;
+
+  const debounceMs = Number(cfg?.settings?.autoRefreshDebounceMs || 900);
+  let timer = null;
+  const scheduleRefresh = (hard = false) => {
+    // 构建过程中不要递归刷新；结束后下一次 DV 刷新会重新计算
+    if (window.__paBuilding) return;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        await window.paRefreshViews?.({ hard });
+      } catch (e) {
+        // ignore
+      }
+    }, debounceMs);
+  };
+
+  const shouldCare = (file) => {
+    const path = file?.path || "";
+    if (!path) return false;
+    // 只关注 Markdown，避免导出/附件等触发重算
+    if (!path.toLowerCase().endsWith(".md")) return false;
+    // 排除模板（可按需打开）；模板变化一般不需要立刻重算全库
+    if (path.startsWith("Templates/")) return false;
+    return true;
+  };
+
+  window.paMarkDirty = (reason = "modify", path = "") => {
+    window.paDirty = true;
+    // 轻量刷新优先；真正需要全量强刷时依旧可以点 ↻ 数据
+    scheduleRefresh(false);
+  };
+
+  const onModify = (file) => {
+    try {
+      if (!shouldCare(file)) return;
+      window.paMarkDirty("modify", file.path);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  try {
+    app?.vault?.on?.("modify", onModify);
+    app?.vault?.on?.("rename", onModify);
+    app?.vault?.on?.("delete", onModify);
+  } catch (e) {
+    // ignore
+  }
+
+  // metadataCache 事件在某些场景更可靠（frontmatter/标签变化）
+  try {
+    app?.metadataCache?.on?.("changed", (file) => onModify(file));
+  } catch (e) {
+    // ignore
+  }
+}
 
 let useCache = false;
 
@@ -49,8 +152,12 @@ const cacheFresh =
     typeof window.paData.cacheTs === "number" &&
     nowMs - window.paData.cacheTs < cacheExpiryMs);
 
+// 如果最近有相关文件更新，则强制本次不使用缓存（解决“改了但看不到”）
+const dirty = window.paDirty === true;
+
 if (
   !forceReload &&
+  !dirty &&
   cacheFresh &&
   window.paData &&
   window.paData.tradesAsc &&
@@ -431,6 +538,9 @@ if (useCache) {
     trades.push(tradeItem);
   }
   trades.sort((a, b) => a.date.localeCompare(b.date)); // 正序
+
+  // 本轮已重新计算完成，清理脏标记
+  window.paDirty = false;
 
   // --- B. 记忆库数据处理 (智能增量更新) ---
   // 优化: 如果内存中已有 SR 数据且不是强制完全重载，则复用旧数据，避免每次改交易都重读所有卡片
@@ -1543,6 +1653,9 @@ window.paData = {
   loadTime: (performance.now() - startT).toFixed(0) + "ms",
   isCached: useCache,
 };
+
+// 构建结束
+window.__paBuilding = false;
 
 const refreshBtnId = "pa-refresh-" + Date.now();
 const hardBtnId = "pa-reload-" + Date.now();

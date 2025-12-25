@@ -130,6 +130,7 @@ module.exports = {
     recentLimit: 50, // Recent Items Limit | 最近项目限制
     riskRewardMin: 2.0, // Min Risk/Reward Ratio | 最小风险回报比
     cacheExpiry: 300000, // Cache Duration (5min) | 缓存时长
+    autoRefreshDebounceMs: 900, // Auto refresh debounce | 自动刷新防抖（ms）
   },
 
   // 🌐 5. i18n Labels | 多语言标签
