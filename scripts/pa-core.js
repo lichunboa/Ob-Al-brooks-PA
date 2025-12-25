@@ -111,11 +111,20 @@ const paCaptureScrollState = () => {
     const filePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
     const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return null;
+    const maxScrollTop = Math.max(0, (scroller.scrollHeight || 0) - (scroller.clientHeight || 0));
+    const scrollTop = Number(scroller.scrollTop || 0);
+    const scrollLeft = Number(scroller.scrollLeft || 0);
     return {
       leaf,
       filePath,
-      scrollTop: scroller.scrollTop,
-      scrollLeft: scroller.scrollLeft,
+      capturedAt: Date.now(),
+      scrollTop,
+      scrollLeft,
+      scrollHeight: Number(scroller.scrollHeight || 0),
+      clientHeight: Number(scroller.clientHeight || 0),
+      maxScrollTop,
+      scrollRatio: maxScrollTop > 0 ? scrollTop / maxScrollTop : 0,
+      atBottom: maxScrollTop > 0 ? maxScrollTop - scrollTop <= 2 : false,
     };
   } catch (e) {
     return null;
@@ -233,13 +242,38 @@ const paStartScrollLock = (state, opts = {}) => {
 const paRestoreScrollState = (state) => {
   try {
     if (!state) return false;
+
+    // 若用户正在滚动/操作，不要“抢滚动”造成一步步跳
+    try {
+      const now = Date.now();
+      const lastAct = Number(window.__paUserActivityAt || 0);
+      const intentUntil = Number(window.__paUserScrollIntentUntil || 0);
+      if ((intentUntil && now <= intentUntil) || (lastAct && now - lastAct < 250)) {
+        return false;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     const leaf = state.leaf || app?.workspace?.activeLeaf;
     const activePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
     if (state.filePath && activePath && state.filePath !== activePath) return false;
     const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return false;
-    scroller.scrollTop = state.scrollTop;
-    scroller.scrollLeft = state.scrollLeft;
+
+    // 内容高度可能变化：优先按滚动比例恢复（更稳定）
+    const maxNow = Math.max(0, (scroller.scrollHeight || 0) - (scroller.clientHeight || 0));
+    let targetTop = Number(state.scrollTop || 0);
+    if (maxNow > 0) {
+      if (state.atBottom) {
+        targetTop = maxNow;
+      } else if (typeof state.scrollRatio === "number") {
+        targetTop = Math.round(Math.max(0, Math.min(maxNow, state.scrollRatio * maxNow)));
+      }
+    }
+
+    scroller.scrollTop = targetTop;
+    scroller.scrollLeft = Number(state.scrollLeft || 0);
     return true;
   } catch (e) {
     return false;
@@ -249,9 +283,15 @@ const paRestoreScrollState = (state) => {
 const paScheduleRestoreScroll = (state) => {
   if (!state) return;
   // Dataview 刷新是异步重渲染；用多次延迟尝试覆盖不同渲染时机
+  // 但一旦恢复成功，就停止后续尝试，避免“慢慢一步步跳”。
+  state.__paRestored = false;
   const delays = [0, 50, 150, 300, 600, 1000];
   for (const d of delays) {
-    setTimeout(() => paRestoreScrollState(state), d);
+    setTimeout(() => {
+      if (state.__paRestored) return;
+      const ok = paRestoreScrollState(state);
+      if (ok) state.__paRestored = true;
+    }, d);
   }
 };
 
