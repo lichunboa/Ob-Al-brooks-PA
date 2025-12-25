@@ -72,6 +72,8 @@ const paGetScrollerElForLeaf = (leaf) => {
       try {
         if (!el) return false;
         if (typeof el.scrollTop !== "number") return false;
+        // 避免选到隐藏/未挂载的 scroller（常见于模式切换时仍残留在 DOM 里）
+        if (typeof el.getClientRects === "function" && el.getClientRects().length === 0) return false;
         return el.scrollHeight > el.clientHeight + 2;
       } catch (e) {
         return false;
@@ -80,7 +82,7 @@ const paGetScrollerElForLeaf = (leaf) => {
 
     // CM6 编辑模式
     const cm = root.querySelector(".cm-scroller");
-    if (cm && typeof cm.scrollTop === "number") return cm;
+    if (isScrollable(cm)) return cm;
 
     // 预览/阅读模式：通常是 view-content 才是真正滚动容器
     const viewContent = root.querySelector(".view-content");
