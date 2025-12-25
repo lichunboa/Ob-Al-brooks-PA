@@ -543,7 +543,7 @@ orderedGroups.forEach((groupName) => {
 
 // 旧的 otherBucket 渲染已合并到 orderedGroups（otherGroupName）里
 
-// 快速访问链接
+// 快速访问链接（原“太妃方案”，现作为 Brooks Playbook 的索引页保留路径不变）
 const quickPath = "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
 const quickHref = encodeURI(quickPath);
 html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
@@ -556,7 +556,7 @@ html += `<div style="margin-top:16px; padding-top:12px; border-top:1px solid rgb
       text-decoration:none;
       font-size:0.75em;
       border:1px solid rgba(147,51,234,0.3);
-    ">📚 太妃方案</a>
+    ">📚 Brooks Playbook</a>
     <span style="
       background:rgba(100,100,100,0.15);
       color:#888;

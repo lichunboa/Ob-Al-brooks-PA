@@ -26,6 +26,26 @@ fields:
       - 1H
       - 4H
       - Daily
+  - name: always_in
+    type: Select
+    options:
+      - 总是多头 (AIL)
+      - 总是空头 (AIS)
+      - 中性 (Neutral)
+  - name: day_type
+    type: Select
+    options:
+      - 趋势日 (Trend Day)
+      - 交易区间日 (TRD)
+      - 趋势交易区间日 (TTRD)
+      - 尖峰通道 (Spike & Channel)
+  - name: management_plan
+    type: Select
+    options:
+      - Set & Forget
+      - Trailing Stop
+      - Scale In/Out
+      - Scratch / Early Exit
   - name: market_cycle
     type: MultiSelect
     options:
@@ -45,6 +65,18 @@ fields:
       - 趋势回调 (Trend Pullback)
       - 趋势反转 (Reversal)
       - 区间逆势 (TR Fade)
+  - name: probability
+    type: Select
+    options:
+      - P1-低 (Low)
+      - P2-中 (Medium)
+      - P3-高 (High)
+  - name: confidence
+    type: Select
+    options:
+      - 1 (Low)
+      - 2 (Medium)
+      - 3 (High)
   - name: signal_bar_quality
     type: MultiSelect
     options:
@@ -134,8 +166,30 @@ fields:
     options:
       - 波段 (Swing)
       - 剥头皮 (Scalp)
+  - name: strategy_status
+    type: Select
+    options:
+      - 学习中 (Learning)
+      - 实战中 (Active)
+  - name: studied
+    type: Select
+    options:
+      - true
+      - false
   - name: strategy_name
-    type: Input
+    type: Select
+    options:
+      - 20均线缺口 (20 EMA Gap)
+      - 第一均线缺口 (First MA Gap)
+      - 极速与通道 (Spike and Channel)
+      - 急赴磁体 (Rush to Magnet)
+      - 看衰突破 (Fade Breakout)
+      - 末端旗形 (Final Flag)
+      - 逆1顺1 (High 1/Low 1)
+      - 区间突破回调 (Breakout Pullback)
+      - 收线追进 (Buy/Sell NOW)
+      - 双重顶底 (Double Top/Bottom)
+      - 楔形顶底 (Wedge Top/Bottom)
 ---
 
 # Metadata Menu Schema
