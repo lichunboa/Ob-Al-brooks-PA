@@ -9,6 +9,68 @@ const c = cfg.colors;
 if (window.paData) {
   const trades = window.paData.trades.slice(0, 20); // 取前20个备选
 
+  const dirname = (p) => {
+    const s = (p || "").toString();
+    const i = s.lastIndexOf("/");
+    return i >= 0 ? s.slice(0, i) : "";
+  };
+
+  const stripAngles = (s) => {
+    const t = (s || "").toString().trim();
+    return t.startsWith("<") && t.endsWith(">") ? t.slice(1, -1).trim() : t;
+  };
+
+  const safeDecode = (s) => {
+    try {
+      return decodeURIComponent((s || "").toString());
+    } catch {
+      return (s || "").toString();
+    }
+  };
+
+  const normalizeLink = (s) => {
+    let t = (s || "").toString().trim();
+    t = t.replace(/^['"]|['"]$/g, "");
+    t = stripAngles(t);
+    t = safeDecode(t);
+    return t;
+  };
+
+  const extractFirstPathLike = (s) => {
+    const t = (s || "").toString();
+    let m = t.match(/!?\[\[([^\]]+?)\]\]/);
+    if (m && m[1]) return m[1].split("|")[0].trim();
+    m = t.match(/!?\[[^\]]*\]\(([^)]+)\)/);
+    if (m && m[1]) return m[1].trim();
+    m = t.match(/(?:^|\s)([^\s]+\.(?:png|jpg|jpeg|gif|webp|svg))(?:\s|$)/i);
+    if (m && m[1]) return m[1].trim();
+    return t.trim();
+  };
+
+  const resolveToVaultPath = (linkOrPath, fromFilePath) => {
+    let linkpath = normalizeLink(extractFirstPathLike(linkOrPath));
+    if (!linkpath) return "";
+    if (/^https?:\/\//i.test(linkpath)) return linkpath;
+    linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
+
+    const from = (fromFilePath || "").toString();
+    const dest1 = app.metadataCache.getFirstLinkpathDest(linkpath, from);
+    if (dest1?.path) return dest1.path;
+
+    const baseDir = dirname(from);
+    if (baseDir) {
+      const candidate = `${baseDir}/${linkpath}`.replace(/\/+/g, "/");
+      const f1 = app.vault.getAbstractFileByPath(candidate);
+      if (f1) return candidate;
+      const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
+      if (dest2?.path) return dest2.path;
+    }
+
+    const f2 = app.vault.getAbstractFileByPath(linkpath);
+    if (f2) return linkpath;
+    return linkpath;
+  };
+
   // 核心修复: 完整的图片渲染函数
   function renderCard(n) {
     let rawCover = n.cover; // Engine 已经提取了 cover 属性
@@ -22,23 +84,12 @@ if (window.paData) {
     }
     // 2. 如果是字符串
     else if (typeof rawCover === "string") {
-      // 处理 ![[image.png]] 或 [[image.png]] 格式
-      if (rawCover.includes("[[")) {
-        let path = rawCover
-          .replace("![[", "")
-          .replace("]]", "")
-          .replace("[[", "")
-          .split("|")[0]
-          .trim();
-        // 使用原始文件路径作为第二个参数来帮助解析相对路径
-        let file = app.metadataCache.getFirstLinkpathDest(path, n.id || "");
-        if (file) {
-          src = app.vault.adapter.getResourcePath(file.path);
-        }
-      }
-      // 处理 http 链接
-      else if (rawCover.startsWith("http")) {
-        src = rawCover;
+      const p = resolveToVaultPath(rawCover, n.id || "");
+      if (p && /^https?:\/\//i.test(p)) {
+        src = p;
+      } else if (p) {
+        const f = app.vault.getAbstractFileByPath(p);
+        if (f) src = app.vault.adapter.getResourcePath(f.path);
       }
     }
 

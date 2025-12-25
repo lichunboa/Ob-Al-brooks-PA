@@ -23,6 +23,68 @@ aliases:
 ```dataviewjs
 const cur = dv.current();
 
+const dirname = (p) => {
+  const s = (p || "").toString();
+  const i = s.lastIndexOf("/");
+  return i >= 0 ? s.slice(0, i) : "";
+};
+
+const stripAngles = (s) => {
+  const t = (s || "").toString().trim();
+  return t.startsWith("<") && t.endsWith(">") ? t.slice(1, -1).trim() : t;
+};
+
+const safeDecode = (s) => {
+  try {
+    return decodeURIComponent((s || "").toString());
+  } catch {
+    return (s || "").toString();
+  }
+};
+
+const normalizeLink = (s) => {
+  let t = (s || "").toString().trim();
+  t = t.replace(/^['"]|['"]$/g, "");
+  t = stripAngles(t);
+  t = safeDecode(t);
+  return t;
+};
+
+const extractFirstPathLike = (s) => {
+  const t = (s || "").toString();
+  let m = t.match(/!?\[\[([^\]]+?)\]\]/);
+  if (m && m[1]) return m[1].split("|")[0].trim();
+  m = t.match(/!?\[[^\]]*\]\(([^)]+)\)/);
+  if (m && m[1]) return m[1].trim();
+  m = t.match(/(?:^|\s)([^\s]+\.(?:png|jpg|jpeg|gif|webp|svg))(?:\s|$)/i);
+  if (m && m[1]) return m[1].trim();
+  return t.trim();
+};
+
+const resolveToVaultPath = (linkOrPath) => {
+  let linkpath = normalizeLink(extractFirstPathLike(linkOrPath));
+  if (!linkpath) return "";
+  if (/^https?:\/\//i.test(linkpath)) return linkpath;
+  linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
+
+  const from = cur?.file?.path || "";
+  const dest1 = app.metadataCache.getFirstLinkpathDest(linkpath, from);
+  if (dest1?.path) return dest1.path;
+
+  const baseDir = dirname(from);
+  if (baseDir) {
+    const candidate = `${baseDir}/${linkpath}`.replace(/\/+/g, "/");
+    const f1 = app.vault.getAbstractFileByPath(candidate);
+    if (f1) return candidate;
+    const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
+    if (dest2?.path) return dest2.path;
+  }
+
+  const f2 = app.vault.getAbstractFileByPath(linkpath);
+  if (f2) return linkpath;
+  return linkpath;
+};
+
 const toArr = (v) => {
   if (!v) return [];
   if (Array.isArray(v)) return v;
@@ -46,9 +108,8 @@ const unwrapWiki = (s) => {
 };
 
 const resolvePath = (p) => {
-  const linkpath = unwrapWiki(p);
-  const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
-  return dest?.path || linkpath;
+  const maybeWiki = unwrapWiki(p);
+  return resolveToVaultPath(maybeWiki || p);
 };
 
 const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
@@ -73,8 +134,7 @@ async function ensureCoverFromPasteAnchor() {
   const wikiRe = /!\[\[([^\]]+?)\]\]/g;
   while ((m = wikiRe.exec(scope)) !== null) {
     const linkpath = (m[1] || "").split("|")[0].trim();
-    const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
-    const p = dest?.path || linkpath;
+    const p = resolveToVaultPath(linkpath);
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
@@ -87,7 +147,7 @@ async function ensureCoverFromPasteAnchor() {
 
   const mdImgRe = /!\[[^\]]*\]\(([^)]+)\)/g;
   while ((m = mdImgRe.exec(scope)) !== null) {
-    const link = (m[1] || "").trim();
+    const link = normalizeLink((m[1] || "").trim());
     if (!link) continue;
     if (/^https?:\/\//i.test(link)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
@@ -97,8 +157,7 @@ async function ensureCoverFromPasteAnchor() {
       });
       return;
     }
-    const dest = app.metadataCache.getFirstLinkpathDest(link, cur?.file?.path || "");
-    const p = dest?.path || link;
+    const p = resolveToVaultPath(link);
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
