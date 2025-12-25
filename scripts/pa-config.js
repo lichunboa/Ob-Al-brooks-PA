@@ -131,6 +131,7 @@ module.exports = {
     riskRewardMin: 2.0, // Min Risk/Reward Ratio | 最小风险回报比
     cacheExpiry: 300000, // Cache Duration (5min) | 缓存时长
     autoRefreshDebounceMs: 900, // Auto refresh debounce | 自动刷新防抖（ms）
+    autoRefreshIdleMs: 1200, // Auto refresh idle | 停止滚动/操作后等待多久再刷新（ms）
     preserveScrollOnRefresh: true, // Preserve scroll on refresh | 刷新时保留滚动位置（避免页面跳回顶部）
     preserveScrollLockMs: 1800, // Scroll lock duration | 刷新期间锁定滚动位置（ms，尽量做到“完全不跳”）
   },

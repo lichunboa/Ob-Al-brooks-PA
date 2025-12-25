@@ -23,9 +23,12 @@ window.paForceReload = false;
 if (!window.__paUserScrollIntentInstalled) {
   window.__paUserScrollIntentInstalled = true;
   window.__paUserScrollIntentUntil = 0;
+  window.__paUserActivityAt = 0;
   const bump = (ms = 350) => {
     try {
-      window.__paUserScrollIntentUntil = Date.now() + ms;
+      const now = Date.now();
+      window.__paUserActivityAt = now;
+      window.__paUserScrollIntentUntil = now + ms;
     } catch (e) {
       // ignore
     }
@@ -241,7 +244,11 @@ window.paRefreshViews = async (opts = {}) => {
       ? !!opts.preserveScroll
       : cfg?.settings?.preserveScrollOnRefresh !== false;
   const scrollState = preserveScroll ? paCaptureScrollState() : null;
-  const stopScrollLock = preserveScroll ? paStartScrollLock(scrollState) : null;
+  const lockScroll =
+    preserveScroll &&
+    opts.lockScroll !== false &&
+    Number(cfg?.settings?.preserveScrollLockMs ?? 0) > 0;
+  const stopScrollLock = lockScroll ? paStartScrollLock(scrollState) : null;
 
   try {
     if (opts.hard) window.paForceReload = true;
@@ -317,6 +324,7 @@ if (!window.__paAutoRefreshInstalled) {
   if (window.paDirty === undefined) window.paDirty = false;
 
   const debounceMs = Number(cfg?.settings?.autoRefreshDebounceMs || 900);
+  const idleMs = Number(cfg?.settings?.autoRefreshIdleMs || 1200);
   let timer = null;
   const scheduleRefresh = (hard = false) => {
     // 构建过程中不要递归刷新；结束后下一次 DV 刷新会重新计算
@@ -324,11 +332,19 @@ if (!window.__paAutoRefreshInstalled) {
     if (timer) clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
+        // 策略 B：用户停下滚动/操作一段时间后才刷新，避免刷新打断阅读/滚动导致“跳远”
+        const lastAct = Number(window.__paUserActivityAt || 0);
+        const since = Date.now() - lastAct;
+        if (lastAct && since >= 0 && since < idleMs) {
+          scheduleRefresh(hard);
+          return;
+        }
+
         // 自动刷新时：只有当你正在控制台页面上，才保留/锁定滚动。
         // 否则会影响你正在编辑的其它笔记（造成“跳到不知道哪里”）。
         const activePath = app?.workspace?.getActiveFile?.()?.path || "";
         const isConsole = activePath === "🦁 交易员控制台 (Trader Command)5.0.md";
-        await window.paRefreshViews?.({ hard, preserveScroll: isConsole });
+        await window.paRefreshViews?.({ hard, preserveScroll: isConsole, lockScroll: false });
       } catch (e) {
         // ignore
       }

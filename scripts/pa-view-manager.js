@@ -488,7 +488,7 @@ async function batchUpdate(paths, op, args) {
     setTimeout(
       () =>
         window.paRefreshViews
-          ? window.paRefreshViews({ hard: true, preserveScroll: true })
+          ? window.paRefreshViews({ hard: true, preserveScroll: true, lockScroll: false })
           : app.workspace.trigger("dataview:refresh-views"),
       800
     );
