@@ -18,8 +18,8 @@ date: 2025-12-17
   - 突破入场 (Stop Entry)
 信号K/signal_bar_quality:
   - 强阳收盘 (Strong Bull Close)
-管理错误/management_error:
-  - 追单 (FOMO)
+执行评价/execution_quality:
+  - 🔴 追涨杀跌 (FOMO)
 封面/cover: "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]"
 banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
 市场周期/market_cycle:
