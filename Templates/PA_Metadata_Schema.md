@@ -56,10 +56,10 @@ fields:
       - 强趋势K线 (Strong Trend Bar)
       - 反转K线 (Reversal Bar)
       - 强反转K线 (Strong Reversal Bar)
-      - 内包K线 (Inside Bar)
-      - 连续内包 (Consecutive Inside Bars)
+      - 内包K线 (ib / Inside Bar)
+      - 连续内包 (ii / Consecutive Inside Bars)
       - 三连内包 (Three Inside Bars)
-      - 外包夹内包 (Inside-Outside-Inside)
+      - 外包夹内包 (ioi / Inside-Outside-Inside)
       - 外包K线 (Outside Bar)
   - name: patterns_observed
     type: MultiSelect
@@ -85,9 +85,9 @@ fields:
   - name: order_type
     type: Select
     options:
-      - 止损单 (Stop)
-      - 限价单 (Limit)
-      - 市价单 (Market)
+      - 突破入场 (Stop Entry)
+      - 限价入场 (Limit Entry)
+      - 市价入场 (Market Entry)
   - name: entry_price
     type: Number
   - name: stop_loss

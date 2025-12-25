@@ -63,10 +63,10 @@
 | **高概率 (High Probability)**           | HP       | High Probability              | 高胜率。                                     |
 | **头肩底 (Head & Shoulders Bottom)**    | HSB      | Head and Shoulders Bottom     | 经典反转形态。                                  |
 | **头肩顶 (Head & Shoulders Top)**       | HST      | Head and Shoulders Top        | 经典反转形态。                                  |
-| **内包K线 (Inside Bar)**                | ib       | Inside Bar                    | 高点低点均在前一根K线范围内的K线。                       |
-| **连续内包 (Consecutive Inside Bars)**   | ii       | Consecutive inside bars       | 连续两根内包K线 (ib, ib)。                       |
+| **内包K线 (ib / Inside Bar)**           | ib       | Inside Bar                    | 高点低点均在前一根K线范围内的K线。                       |
+| **连续内包 (ii / Consecutive Inside Bars)** | ii       | Consecutive inside bars       | 连续两根内包K线 (ib, ib)。                       |
 | **三连内包 (Three Inside Bars)**         | iii      | Three inside bars             | 连续三根内包K线。                                |
-| **外包夹内包 (Inside-Outside-Inside)**    | ioi      | Inside-Outside-Inside         | 内包后接外包，再接内包的组合。                          |
+| **外包夹内包 (ioi / Inside-Outside-Inside)** | ioi      | Inside-Outside-Inside         | 内包后接外包，再接内包的组合。                          |
 | **外包后接内包 (Inside after Outside)**    | ioii     | Consecutive IB after OB       | 外包K线后接内包K线，常为突破模式。                       |
 | **最低价 (Low)**                        | L        | Low / Low of Day              | 最低价。                                     |
 | **一腿回调-熊 (L1)**                      | L1       | One legged PullBack (Bear)    | 熊市中第一次反弹（尝试做多）。                          |
