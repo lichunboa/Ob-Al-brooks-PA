@@ -57,7 +57,6 @@ module.exports = async (dv, app) => {
     const scope = after.split(/\n#{1,6}\s/)[0] || after;
 
     // 查找所有图片链接（Markdown 格式）
-    // 使用简单粗暴的方法：找到 ![...](，然后向后查找直到找到 .png) 或 .jpg) 等
     const lines = scope.split('\n');
     for (const line of lines) {
       // 匹配 ![...]( 的起始位置
@@ -67,8 +66,8 @@ module.exports = async (dv, app) => {
       const startIdx = match.index + match[0].length;
       const remaining = line.slice(startIdx);
       
-      // 查找图片扩展名
-      const imgMatch = remaining.match(/^(.+?\.(png|jpg|jpeg|gif|webp|svg))\)/i);
+      // 查找图片扩展名（使用非贪婪匹配 + 负向前瞻确保是最后一个）
+      const imgMatch = remaining.match(/(.+?\.(png|jpg|jpeg|gif|webp|svg))(?=\))/i);
       if (!imgMatch) continue;
       
       let rawLink = imgMatch[1].trim();
@@ -93,7 +92,7 @@ module.exports = async (dv, app) => {
           await app.fileManager.processFrontMatter(tFile, (fm) => {
             if (!fm["封面/cover"] && !fm["cover"]) {
               fm["封面/cover"] = `![[${fileObj.path}]]`;
-              console.log("[PA Cover] 封面已设置");
+              console.log("[PA Cover] 封面已设置为:", fileObj.path);
             }
           });
           return true;
