@@ -141,7 +141,8 @@ async function ensureCoverFromPasteAnchor() {
   if (idx === -1) return;
 
   const after = md.slice(idx + anchor.length);
-  const scope = after.slice(0, 8000);
+  // 只在锚点区域内寻找第一张图片：遇到下一个标题就停止
+  const scope = after.split(/\n#{1,6}\s/)[0] || after;
 
   let m;
   const wikiRe = /!\[\[([^\]]+?)\]\]/g;
