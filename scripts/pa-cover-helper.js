@@ -74,12 +74,18 @@ module.exports = async (dv, app) => {
     const rawCover = fm["封面/cover"] ?? fm["cover"];
 
     const existing = toArr(rawCover).map(asStr).join(" ").trim();
-    if (existing) return false; // 已有封面，跳过
+    if (existing) {
+      console.log("[PA Cover] 封面已存在，跳过:", existing);
+      return false; // 已有封面，跳过
+    }
 
     const md = await app.vault.read(tFile);
     const anchor = "<!--PA_COVER_SOURCE-->";
     const idx = md.indexOf(anchor);
-    if (idx === -1) return false;
+    if (idx === -1) {
+      console.log("[PA Cover] 未找到 PA_COVER_SOURCE 标记");
+      return false;
+    }
 
     const after = md.slice(idx + anchor.length);
     // 查找范围：直到下一个标题或文件结束
@@ -87,12 +93,22 @@ module.exports = async (dv, app) => {
 
     // 统一更新逻辑：如果当前没有封面，则设置
     const tryUpdate = async (val) => {
-      await app.fileManager.processFrontMatter(tFile, (fm) => {
-        // 检查 null, undefined, 空字符串
-        if (!fm["封面/cover"] && !fm["cover"]) {
-          fm["封面/cover"] = val;
-        }
-      });
+      console.log("[PA Cover] 尝试更新封面:", val);
+      try {
+        await app.fileManager.processFrontMatter(tFile, (fm) => {
+          // 检查 null, undefined, 空字符串
+          if (!fm["封面/cover"] && !fm["cover"]) {
+            fm["封面/cover"] = val;
+            console.log("[PA Cover] 封面已设置");
+          } else {
+            console.log("[PA Cover] frontmatter 中已有封面，跳过");
+          }
+        });
+        return true;
+      } catch (err) {
+        console.error("[PA Cover] 更新失败:", err);
+        return false;
+      }
     };
 
     let m;
@@ -106,6 +122,7 @@ module.exports = async (dv, app) => {
       );
       const p = dest?.path || linkpath;
       if (isImagePath(p)) {
+        console.log("[PA Cover] 找到 Wiki 图片:", p);
         await tryUpdate(`![[${p}]]`);
         return true; // 找到并设置了
       }
@@ -117,10 +134,13 @@ module.exports = async (dv, app) => {
       let rawLink = (m[1] || "").trim();
       let link = cleanLink(rawLink); // Clean the link (remove <>, decode %20)
       
+      console.log("[PA Cover] 找到 Markdown 图片链接:", { rawLink, link });
+      
       if (!link) continue;
 
       // http 链接
       if (/^https?:\/\//i.test(link)) {
+        console.log("[PA Cover] HTTP 链接");
         await tryUpdate(link);
         return true;
       }
@@ -130,21 +150,25 @@ module.exports = async (dv, app) => {
       
       // 方法1: 标准 Obsidian API 解析
       dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
+      console.log("[PA Cover] 方法1 (标准API):", dest?.path || "未找到");
       
       // 方法2: 相对于当前文件目录
       if (!dest) {
           const parentPath = cur.file.parent?.path || "";
           const possiblePath = parentPath ? `${parentPath}/${link}` : link;
           dest = app.vault.getAbstractFileByPath(possiblePath);
+          console.log("[PA Cover] 方法2 (相对路径):", possiblePath, dest?.path || "未找到");
       }
 
       // 方法3: 相对于库根目录
       if (!dest) {
           dest = app.vault.getAbstractFileByPath(link);
+          console.log("[PA Cover] 方法3 (绝对路径):", link, dest?.path || "未找到");
       }
 
       // 如果找到文件且是图片，写入 frontmatter
       if (dest && dest.path && isImagePath(dest.path)) {
+        console.log("[PA Cover] 成功找到图片文件:", dest.path);
         await tryUpdate(`![[${dest.path}]]`);
         return true;
       }
@@ -154,12 +178,14 @@ module.exports = async (dv, app) => {
         const parentPath = cur.file.parent?.path || "";
         const testPath = parentPath ? `${parentPath}/${link}` : link;
         const testFile = app.vault.getAbstractFileByPath(testPath);
+        console.log("[PA Cover] 最后尝试:", testPath, testFile?.path || "未找到");
         if (testFile && testFile.path) {
           await tryUpdate(`![[${testFile.path}]]`);
           return true;
         }
       }
     }
+    console.log("[PA Cover] 未找到可用的图片");
     return false;
   };
 
