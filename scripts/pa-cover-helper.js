@@ -26,17 +26,25 @@ module.exports = async (dv, app) => {
 
   const resolvePath = (p) => {
     let linkpath = p.replace(/^!\[\[/, "").replace(/\]\]$/, "");
-    if (linkpath.startsWith("[[") && linkpath.endsWith("]]")) linkpath = linkpath.slice(2, -2);
+    if (linkpath.startsWith("[[") && linkpath.endsWith("]]"))
+      linkpath = linkpath.slice(2, -2);
     linkpath = linkpath.split("|")[0].trim();
-    const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur.file.path);
+    const dest = app.metadataCache.getFirstLinkpathDest(
+      linkpath,
+      cur.file.path
+    );
     return dest?.path || linkpath;
   };
 
   const cache = app.metadataCache.getFileCache(tFile);
   const fm = cache?.frontmatter || {};
   const raw = fm["封面/cover"] ?? fm["cover"];
-  
-  const covers = toArr(raw).map(asStr).map(resolvePath).map((s) => s.trim()).filter(Boolean);
+
+  const covers = toArr(raw)
+    .map(asStr)
+    .map(resolvePath)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   if (covers.length === 0) {
     dv.paragraph("*(封面未设置。请在 frontmatter 手动填写)*");
@@ -57,7 +65,9 @@ module.exports = async (dv, app) => {
     }
 
     dv.el("div", "", {
-      attr: { style: `margin:8px 0;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);border-left:4px solid ${c.accent};` }
+      attr: {
+        style: `margin:8px 0;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);border-left:4px solid ${c.accent};`,
+      },
     }).innerHTML = `
       <div style="font-size:0.8em;opacity:0.8;margin-bottom:6px;">封面预览</div>
       <img src="${src}" style="max-width:100%;height:auto;display:block;border-radius:6px;" />

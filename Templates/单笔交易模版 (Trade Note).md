@@ -40,21 +40,15 @@ date:
 
 # ✅ 交易快照（Al Brooks PA / 项目联动）
 
-## 📸 图表/封面预览（自动）
+## 📸 图表/封面预览
 
 ```dataviewjs
 const basePath = app.vault.adapter.basePath;
 const helperPath = basePath + "/scripts/pa-cover-helper.js";
-// 强制清除缓存，确保加载最新逻辑
-if (require.cache && require.resolve) {
-    try { delete require.cache[require.resolve(helperPath)]; } catch(e) {}
-}
-await require(helperPath)(dv, app);
 ```
-
-<!--PA_COVER_SOURCE-->
-
 ![](assets/单笔交易模版%20(Trade%20Note)/单笔交易模版%20(Trade%20Note)-20251225224556657.png)
+
+
 ## 🧭 1) 市场背景（Context）
 
 ```dataviewjs
