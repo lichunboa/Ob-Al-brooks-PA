@@ -10,7 +10,10 @@
 module.exports = async (dv, app) => {
   const cur = dv.current();
   const tFile = app.vault.getAbstractFileByPath(cur.file.path);
-  if (!tFile) return;
+  if (!tFile) {
+    dv.paragraph("❌ 无法获取文件");
+    return;
+  }
 
   // 辅助函数：数组转换
   const toArr = (v) => {
@@ -85,6 +88,10 @@ module.exports = async (dv, app) => {
   const currentCover = fm["封面/cover"] ?? fm["cover"];
   const currentCovers = toArr(currentCover).map(asStr).filter(Boolean);
 
+  // 调试信息
+  console.log("检测到的图片:", detectedImages);
+  console.log("当前封面:", currentCovers);
+
   // 如果检测到新图片且与当前封面不同，自动更新
   if (detectedImages.length > 0) {
     const newCover = detectedImages[0]; // 取第一张图片
@@ -103,6 +110,8 @@ module.exports = async (dv, app) => {
                                  newCoverNorm.includes(cNorm);
                         });
     
+    console.log("是否需要更新:", shouldUpdate);
+    
     if (shouldUpdate) {
       try {
         // 更新 frontmatter
@@ -110,16 +119,25 @@ module.exports = async (dv, app) => {
           frontmatter["封面/cover"] = newCover;
         });
         
-        dv.paragraph(`✅ **封面已自动更新**: \`${newCover.substring(0, 50)}...\``);
+        dv.paragraph(`✅ **封面已自动更新**: \`${newCover.substring(0, 60)}...\``);
       } catch (error) {
         console.error("更新封面失败:", error);
         dv.paragraph(`❌ 更新失败: ${error.message}`);
       }
+    } else {
+      dv.paragraph(`ℹ️ 封面已是最新（无需更新）`);
     }
+  } else {
+    dv.paragraph("*(封面未设置。请在下方"图表/封面预览"章节粘贴图片)*");
   }
 
   // 渲染封面预览
-  const covers = toArr(currentCover)
+  // 重新获取最新的 frontmatter（因为可能刚刚更新过）
+  const updatedCache = app.metadataCache.getFileCache(tFile);
+  const updatedFm = updatedCache?.frontmatter || {};
+  const updatedCover = updatedFm["封面/cover"] ?? updatedFm["cover"];
+  
+  const covers = toArr(updatedCover)
     .map(asStr)
     .map(resolvePath)
     .map((s) => s.trim())
@@ -127,12 +145,12 @@ module.exports = async (dv, app) => {
 
   // 如果刚检测到图片但还未在 frontmatter 中，也显示预览
   if (covers.length === 0 && detectedImages.length > 0) {
-    covers.push(detectedImages[0].replace(/^!\[\[/, "").replace(/\]\]$/, ""));
+    const tempPath = detectedImages[0].replace(/^!\[\[/, "").replace(/\]\]$/, "");
+    covers.push(tempPath);
   }
 
   if (covers.length === 0) {
-    dv.paragraph("*(封面未设置。请在下方"图表/封面预览"章节粘贴图片)*");
-    return;
+    return; // 已经在上面显示了提示信息
   }
 
   // 加载配置
@@ -147,7 +165,11 @@ module.exports = async (dv, app) => {
     let src = p;
     if (!/^https?:\/\//.test(p)) {
       const f = app.vault.getAbstractFileByPath(p);
-      if (f) src = app.vault.getResourcePath(f);
+      if (f) {
+        src = app.vault.getResourcePath(f);
+      } else {
+        console.warn("找不到图片文件:", p);
+      }
     }
 
     dv.el("div", "", {
