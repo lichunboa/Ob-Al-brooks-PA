@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover:
+封面/cover: "[[Templates/assets/理论模版 (Concept Template)/理论模版 (Concept Template)-20251225222057980.png]]"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -31,14 +31,19 @@ const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; 
 
 // 工具函数：提取图片路径（支持所有格式）
 const extractImagePath = (text) => {
-  // 匹配 ![[xxx]], [[xxx]], ![](xxx), [](xxx)
+  // 匹配 ![[xxx]], [[xxx]]
   let m = text.match(/!?\[\[([^\]]+?)\]\]/);
   if (m) return m[1].split("|")[0].trim();
-
+  
+  // 匹配 ![](xxx), [](xxx), ![](<xxx>), [](<xxx>) - 关键：处理尖括号和%20
   m = text.match(/!?\[[^\]]*\]\(<?([^)>]+)>?\)/);
-  if (m) return decode(m[1].trim().replace(/^<|>$/g, ""));
-
-  return null;
+  if (m) {
+    let path = m[1].trim();
+    // 去除尖括号
+    path = path.replace(/^<|>$/g, "");
+    // URL解码
+    return decode(path);
+  }
 };
 
 // 工具函数：解析路径为 vault 完整路径
@@ -130,8 +135,8 @@ dv.el("div", "", {
 ```
 
 <!--PA_COVER_SOURCE-->
+![](assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225222057980.png)
 
-![](<assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225222057980.png>)/理论模版%20(Concept%20Template)-20251225222057980.png)
 
 # 📺 1. 课程概览 (Module Overview)
 
