@@ -11,7 +11,7 @@ date:
   - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
-  - 强趋势 (Strong Trend)
+  - 交易区间 (Trading Range)
 方向/direction:
   - 做多 (Long)
 设置类别/setup_category:
@@ -20,6 +20,7 @@ date:
   - 20EMA缺口 (20 EMA Gap)
 信号K/signal_bar_quality:
   - 内包线 (ii or ioi)
+  - 强阳收盘 (Strong Bull Close)
   - 强阴收盘 (Strong Bear Close)
   - 弱势/长影线 (Weak Tail)
   - 十字星 (Doji)

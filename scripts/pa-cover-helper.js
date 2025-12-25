@@ -96,8 +96,8 @@ module.exports = async (dv, app) => {
     };
 
     let m;
-    // 匹配 Wiki Link ![[...]]
-    const wikiRe = /!\[\[([^\]]+?)\]\]/g;
+    // 匹配 Wiki Link ![[...]] 或 [[...]]
+    const wikiRe = /!?\[\[([^\]]+?)\]\]/g;
     while ((m = wikiRe.exec(scope)) !== null) {
       const linkpath = (m[1] || "").split("|")[0].trim();
       const dest = app.metadataCache.getFirstLinkpathDest(
@@ -111,8 +111,8 @@ module.exports = async (dv, app) => {
       }
     }
 
-    // 匹配 Markdown Link ![...](...)
-    const mdImgRe = /!\[[^\]]*\]\(([^)]+)\)/g;
+    // 匹配 Markdown Link ![...](...) 或 [...](...)
+    const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
     while ((m = mdImgRe.exec(scope)) !== null) {
       let link = (m[1] || "").trim();
       link = cleanLink(link); // Clean the link (remove <>, decode %20)
@@ -127,8 +127,11 @@ module.exports = async (dv, app) => {
 
       // 本地链接
       const dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
+      // 如果找到了文件，使用文件的完整路径；否则使用原始链接路径
       const p = dest?.path || link;
+      
       if (isImagePath(p)) {
+        // 总是使用 Wiki Link 格式写入，确保兼容性
         await tryUpdate(`![[${p}]]`);
         return true;
       }
