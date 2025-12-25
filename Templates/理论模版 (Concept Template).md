@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[[Templates/assets/理论模版 (Concept Template)/截屏2025-12-25 21.47.45.png]]"
+封面/cover:
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -250,7 +250,7 @@ async function ensureCoverFromPasteAnchor() {
 ```
 
 <!--PA_COVER_SOURCE-->
-
+![](assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225221138196.png)/理论模版%20(Concept%20Template)-20251225221138196.png)
 
 
 # 📺 1. 课程概览 (Module Overview)
