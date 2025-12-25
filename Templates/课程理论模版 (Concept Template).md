@@ -235,3 +235,7 @@ async function ensureCoverFromPasteAnchor() {
 > [!CHECK] 学习检查清单
 > - [ ] 我能区分宽通道和窄通道吗？
 > - [ ] 我知道开盘趋势的止损放在哪吗？
+
+
+#flashcards 
+  // 学习卡片制作,根据课程提炼重要知识点,z
