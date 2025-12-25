@@ -17,7 +17,7 @@ date:
 设置类别/setup_category:
   - 趋势回调 (Trend Pullback)
 观察到的形态/patterns_observed:
-  - 20EMA缺口 (20 EMA Gap)
+  - 20均线缺口 (20 EMA Gap)
 信号K/signal_bar_quality:
   - 内包线 (ii or ioi)
   - 强阳收盘 (Strong Bull Close)
