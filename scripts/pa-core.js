@@ -62,25 +62,41 @@ if (!window.__paUserScrollIntentInstalled) {
 }
 
 // 记录/恢复指定 leaf 的滚动位置，避免 Dataview 刷新导致页面“跳一下回到顶部”
+// 注意：Obsidian 不同模式下真正滚动的容器不同；必须选“实际可滚动”的那个元素。
 const paGetScrollerElForLeaf = (leaf) => {
   try {
     const root = leaf?.view?.contentEl || leaf?.view?.containerEl;
     if (!root?.querySelector) return null;
 
+    const isScrollable = (el) => {
+      try {
+        if (!el) return false;
+        if (typeof el.scrollTop !== "number") return false;
+        return el.scrollHeight > el.clientHeight + 2;
+      } catch (e) {
+        return false;
+      }
+    };
+
     // CM6 编辑模式
     const cm = root.querySelector(".cm-scroller");
     if (cm && typeof cm.scrollTop === "number") return cm;
 
+    // 预览/阅读模式：通常是 view-content 才是真正滚动容器
+    const viewContent = root.querySelector(".view-content");
+    if (isScrollable(viewContent)) return viewContent;
+
     // 预览/阅读模式
     const preview = root.querySelector(".markdown-preview-view");
-    if (preview && typeof preview.scrollTop === "number") return preview;
+    if (isScrollable(preview)) return preview;
 
     const reading = root.querySelector(".markdown-reading-view");
-    if (reading && typeof reading.scrollTop === "number") return reading;
+    if (isScrollable(reading)) return reading;
 
-    // 兜底
-    const viewContent = root.querySelector(".view-content");
+    // 兜底：返回任意具备 scrollTop 的候选
     if (viewContent && typeof viewContent.scrollTop === "number") return viewContent;
+    if (preview && typeof preview.scrollTop === "number") return preview;
+    if (reading && typeof reading.scrollTop === "number") return reading;
   } catch (e) {
     // ignore
   }
