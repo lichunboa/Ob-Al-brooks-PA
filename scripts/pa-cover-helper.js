@@ -128,23 +128,16 @@ module.exports = async (dv, app) => {
       }
     }
 
-    // 匹配 Markdown Link ![...](...) 或 [...](...)
-    // 使用更宽松的匹配：匹配到图片文件扩展名为止
-    let m;
-    
-    // 匹配 ![...](路径.png) 或 ![...](路径.jpg) 等
-    // 匹配任意字符直到遇到图片扩展名+)
-    const imgPattern = /!?\[[^\]]*\]\((.+?\.(?:png|jpg|jpeg|gif|webp|svg))\)/gi;
-    while ((m = imgPattern.exec(scope)) !== null) {
-      let rawLink = (m[1] || "").trim();
-      // 移除可能的尖括号
-      if (rawLink.startsWith('<') && rawLink.endsWith('>')) {
-        rawLink = rawLink.slice(1, -1).trim();
-      }
+    // 匹配 Markdown Link ![...](...) 
+    // 按行处理，查找图片扩展名
+    const lines = scope.split('\n');
+    for (const line of lines) {
+      const match = line.match(/!\[[^\]]*\]\((<?)([^)]+)(>?)\)/);
+      if (!match) continue;
       
+      let rawLink = match[2].trim();
       let link = cleanLink(rawLink);
-      
-      console.log("[PA Cover] 找到图片链接:", { rawLink, link });
+      console.log("[PA Cover] 找到图片:", { raw: rawLink, decoded: link });
       
       if (!link) continue;
 
