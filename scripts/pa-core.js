@@ -34,8 +34,14 @@ if (!window.__paUserScrollIntentInstalled) {
     }
   };
   try {
-    document.addEventListener("wheel", () => bump(500), { passive: true, capture: true });
-    document.addEventListener("touchmove", () => bump(700), { passive: true, capture: true });
+    document.addEventListener("wheel", () => bump(500), {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("touchmove", () => bump(700), {
+      passive: true,
+      capture: true,
+    });
     document.addEventListener(
       "keydown",
       (e) => {
@@ -55,7 +61,10 @@ if (!window.__paUserScrollIntentInstalled) {
       true
     );
     // 拖动滚动条/触控板按下也算意图
-    document.addEventListener("pointerdown", () => bump(800), { passive: true, capture: true });
+    document.addEventListener("pointerdown", () => bump(800), {
+      passive: true,
+      capture: true,
+    });
   } catch (e) {
     // ignore
   }
@@ -73,7 +82,11 @@ const paGetScrollerElForLeaf = (leaf) => {
         if (!el) return false;
         if (typeof el.scrollTop !== "number") return false;
         // 避免选到隐藏/未挂载的 scroller（常见于模式切换时仍残留在 DOM 里）
-        if (typeof el.getClientRects === "function" && el.getClientRects().length === 0) return false;
+        if (
+          typeof el.getClientRects === "function" &&
+          el.getClientRects().length === 0
+        )
+          return false;
         return el.scrollHeight > el.clientHeight + 2;
       } catch (e) {
         return false;
@@ -106,7 +119,8 @@ const paGetScrollerElForLeaf = (leaf) => {
     }
 
     // 兜底：返回任意具备 scrollTop 的候选（即便不滚动）
-    if (viewContent && typeof viewContent.scrollTop === "number") return viewContent;
+    if (viewContent && typeof viewContent.scrollTop === "number")
+      return viewContent;
     if (preview && typeof preview.scrollTop === "number") return preview;
     if (reading && typeof reading.scrollTop === "number") return reading;
     if (cm && typeof cm.scrollTop === "number") return cm;
@@ -119,10 +133,14 @@ const paGetScrollerElForLeaf = (leaf) => {
 const paCaptureScrollState = () => {
   try {
     const leaf = app?.workspace?.activeLeaf;
-    const filePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
+    const filePath =
+      leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
     const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return null;
-    const maxScrollTop = Math.max(0, (scroller.scrollHeight || 0) - (scroller.clientHeight || 0));
+    const maxScrollTop = Math.max(
+      0,
+      (scroller.scrollHeight || 0) - (scroller.clientHeight || 0)
+    );
     const scrollTop = Number(scroller.scrollTop || 0);
     const scrollLeft = Number(scroller.scrollLeft || 0);
     return {
@@ -187,7 +205,8 @@ const paStartScrollLock = (state, opts = {}) => {
     const attachTo = (el) => {
       try {
         if (!el || el === currentScroller) return;
-        if (currentScroller) currentScroller.removeEventListener("scroll", onScroll, true);
+        if (currentScroller)
+          currentScroller.removeEventListener("scroll", onScroll, true);
         currentScroller = el;
         currentScroller.addEventListener("scroll", onScroll, true);
       } catch (e) {
@@ -196,7 +215,8 @@ const paStartScrollLock = (state, opts = {}) => {
     };
     const detach = () => {
       try {
-        if (currentScroller) currentScroller.removeEventListener("scroll", onScroll, true);
+        if (currentScroller)
+          currentScroller.removeEventListener("scroll", onScroll, true);
       } catch (e) {
         // ignore
       }
@@ -212,7 +232,9 @@ const paStartScrollLock = (state, opts = {}) => {
       }
 
       // Dataview 刷新可能重建 DOM，必须每帧重新取 scroller
-      const scroller = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
+      const scroller = paGetScrollerElForLeaf(
+        state.leaf || app?.workspace?.activeLeaf
+      );
       attachTo(scroller);
       if (scroller) {
         // 强制回到目标位置，减少可见跳动
@@ -230,7 +252,9 @@ const paStartScrollLock = (state, opts = {}) => {
     };
 
     // 先立即设置一次，尽量避免第一帧闪跳
-    const scroller0 = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
+    const scroller0 = paGetScrollerElForLeaf(
+      state.leaf || app?.workspace?.activeLeaf
+    );
     attachTo(scroller0);
     if (scroller0) {
       internalSetUntil = Date.now() + 50;
@@ -259,7 +283,10 @@ const paRestoreScrollState = (state) => {
       const now = Date.now();
       const lastAct = Number(window.__paUserActivityAt || 0);
       const intentUntil = Number(window.__paUserScrollIntentUntil || 0);
-      if ((intentUntil && now <= intentUntil) || (lastAct && now - lastAct < 250)) {
+      if (
+        (intentUntil && now <= intentUntil) ||
+        (lastAct && now - lastAct < 250)
+      ) {
         return false;
       }
     } catch (e) {
@@ -267,19 +294,26 @@ const paRestoreScrollState = (state) => {
     }
 
     const leaf = state.leaf || app?.workspace?.activeLeaf;
-    const activePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
-    if (state.filePath && activePath && state.filePath !== activePath) return false;
+    const activePath =
+      leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
+    if (state.filePath && activePath && state.filePath !== activePath)
+      return false;
     const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return false;
 
     // 内容高度可能变化：优先按滚动比例恢复（更稳定）
-    const maxNow = Math.max(0, (scroller.scrollHeight || 0) - (scroller.clientHeight || 0));
+    const maxNow = Math.max(
+      0,
+      (scroller.scrollHeight || 0) - (scroller.clientHeight || 0)
+    );
     let targetTop = Number(state.scrollTop || 0);
     if (maxNow > 0) {
       if (state.atBottom) {
         targetTop = maxNow;
       } else if (typeof state.scrollRatio === "number") {
-        targetTop = Math.round(Math.max(0, Math.min(maxNow, state.scrollRatio * maxNow)));
+        targetTop = Math.round(
+          Math.max(0, Math.min(maxNow, state.scrollRatio * maxNow))
+        );
       }
     }
 
@@ -411,7 +445,10 @@ window.paRefreshViews = async (opts = {}) => {
   } finally {
     // 给 Dataview 重渲染留一点时间，避免立即解锁导致跳动
     if (typeof stopScrollLock === "function") {
-      setTimeout(() => stopScrollLock(), Number(cfg?.settings?.preserveScrollLockMs ?? 1800));
+      setTimeout(
+        () => stopScrollLock(),
+        Number(cfg?.settings?.preserveScrollLockMs ?? 1800)
+      );
     }
   }
   return false;
@@ -446,8 +483,13 @@ if (!window.__paAutoRefreshInstalled) {
         // 自动刷新时：只有当你正在控制台页面上，才保留/锁定滚动。
         // 否则会影响你正在编辑的其它笔记（造成“跳到不知道哪里”）。
         const activePath = app?.workspace?.getActiveFile?.()?.path || "";
-        const isConsole = activePath === "🦁 交易员控制台 (Trader Command)5.0.md";
-        await window.paRefreshViews?.({ hard, preserveScroll: isConsole, lockScroll: false });
+        const isConsole =
+          activePath === "🦁 交易员控制台 (Trader Command)5.0.md";
+        await window.paRefreshViews?.({
+          hard,
+          preserveScroll: isConsole,
+          lockScroll: false,
+        });
       } catch (e) {
         // ignore
       }

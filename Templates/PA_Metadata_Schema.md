@@ -129,9 +129,12 @@ fields:
   - name: strategy_name
     type: Input
 ---
+
 # Metadata Menu Schema
+
 此文件定义了 Metadata Menu 插件的 FileClass。
 请在 Metadata Menu 设置中：
+
 1. 进入 **FileClass settings**
 2. 设置 **Class Files path** 为 `Templates/`
 3. 刷新后，您应该能看到 `PA_Metadata_Schema` 这个 Class。
