@@ -363,7 +363,10 @@ if (useCache) {
       setupKey: utils.normalizeEnumKey(
         utils.getRawStr(t, ["设置类别/setup_category", "setup_category"], "")
       ),
-      market_cycle: utils.getRawStr(t, ["市场周期/market_cycle", "market_cycle"]),
+      market_cycle: utils.getRawStr(t, [
+        "市场周期/market_cycle",
+        "market_cycle",
+      ]),
       marketCycleKey: utils.normalizeEnumKey(
         utils.getRawStr(t, ["市场周期/market_cycle", "market_cycle"], "")
       ),
@@ -391,7 +394,11 @@ if (useCache) {
         "signal_bar_quality",
       ]),
       signalKey: utils.normalizeEnumKey(
-        utils.getRawStr(t, ["信号K/signal_bar_quality", "signal_bar_quality"], "")
+        utils.getRawStr(
+          t,
+          ["信号K/signal_bar_quality", "signal_bar_quality"],
+          ""
+        )
       ),
       plan: utils.getRawStr(t, ["交易方程/trader_equation", "trader_equation"]),
       planKey: utils.normalizeEnumKey(
@@ -723,9 +730,15 @@ if (useCache) {
         source,
         // 策略助手/Playbook 需要的扩展字段（仍保持单一信源）
         riskReward:
-          p["盈亏比/risk_reward"] || p["risk_reward"] || p["盈亏比"] || "无/N/A",
+          p["盈亏比/risk_reward"] ||
+          p["risk_reward"] ||
+          p["盈亏比"] ||
+          "无/N/A",
         entryCriteria:
-          p["入场条件/entry_criteria"] || p["entry_criteria"] || p["入场条件"] || [],
+          p["入场条件/entry_criteria"] ||
+          p["entry_criteria"] ||
+          p["入场条件"] ||
+          [],
         riskAlerts:
           p["风险提示/risk_alerts"] || p["risk_alerts"] || p["风险提示"] || [],
         stopLossRecommendation:
@@ -832,7 +845,11 @@ try {
       if (!isJournal(p)) continue;
       const d = pageISODate(p);
       if (!d) continue;
-      const mc = utils.getRawStr(p, ["市场周期/market_cycle", "market_cycle"], "");
+      const mc = utils.getRawStr(
+        p,
+        ["市场周期/market_cycle", "market_cycle"],
+        ""
+      );
       journalsByDate.set(d, {
         date: d,
         path: p.file.path,
@@ -935,12 +952,17 @@ const buildTradeIndex = (tradeListAsc) => {
     strategyKey: new Map(),
     dirKey: new Map(),
   };
-  for (const k of by.tickerKey.keys()) counts.tickerKey.set(k, by.tickerKey.get(k).length);
+  for (const k of by.tickerKey.keys())
+    counts.tickerKey.set(k, by.tickerKey.get(k).length);
   for (const k of by.tfKey.keys()) counts.tfKey.set(k, by.tfKey.get(k).length);
-  for (const k of by.setupKey.keys()) counts.setupKey.set(k, by.setupKey.get(k).length);
-  for (const k of by.marketCycleKey.keys()) counts.marketCycleKey.set(k, by.marketCycleKey.get(k).length);
-  for (const k of by.strategyKey.keys()) counts.strategyKey.set(k, by.strategyKey.get(k).length);
-  for (const k of by.dirKey.keys()) counts.dirKey.set(k, by.dirKey.get(k).length);
+  for (const k of by.setupKey.keys())
+    counts.setupKey.set(k, by.setupKey.get(k).length);
+  for (const k of by.marketCycleKey.keys())
+    counts.marketCycleKey.set(k, by.marketCycleKey.get(k).length);
+  for (const k of by.strategyKey.keys())
+    counts.strategyKey.set(k, by.strategyKey.get(k).length);
+  for (const k of by.dirKey.keys())
+    counts.dirKey.set(k, by.dirKey.get(k).length);
 
   return { by, labels, counts };
 };
@@ -950,7 +972,8 @@ const buildTradeIndex = (tradeListAsc) => {
 // ============================================================
 const buildCoachFocus = (tradeListAsc, index, todayIso) => {
   const list = Array.isArray(tradeListAsc) ? tradeListAsc : [];
-  const safeNum = (v) => (typeof v === "number" && !Number.isNaN(v) ? v : Number(v) || 0);
+  const safeNum = (v) =>
+    typeof v === "number" && !Number.isNaN(v) ? v : Number(v) || 0;
   const isDone = (t) => {
     const s = (t?.outcome || "").toString().trim();
     return !!s;
@@ -968,13 +991,25 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
     return s === "Scratch" || s.includes("Scratch") || s.includes("保本");
   };
 
-  const weekStart = moment(todayIso, "YYYY-MM-DD").startOf("isoWeek").format("YYYY-MM-DD");
-  const weekEnd = moment(todayIso, "YYYY-MM-DD").endOf("isoWeek").format("YYYY-MM-DD");
+  const weekStart = moment(todayIso, "YYYY-MM-DD")
+    .startOf("isoWeek")
+    .format("YYYY-MM-DD");
+  const weekEnd = moment(todayIso, "YYYY-MM-DD")
+    .endOf("isoWeek")
+    .format("YYYY-MM-DD");
 
   const windowed = {
     today: list.filter((t) => t && t.date === todayIso),
     week: list.filter((t) => t && t.date >= weekStart && t.date <= weekEnd),
-    last30: list.filter((t) => t && t.date && t.date >= moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD")),
+    last30: list.filter(
+      (t) =>
+        t &&
+        t.date &&
+        t.date >=
+          moment(todayIso, "YYYY-MM-DD")
+            .subtract(29, "days")
+            .format("YYYY-MM-DD")
+    ),
   };
 
   const summarize = (items) => {
@@ -1009,7 +1044,8 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       }
     }
     out.avgR = rCnt > 0 ? rSum / rCnt : 0;
-    out.winRate = out.completed > 0 ? Math.round((out.wins / out.completed) * 100) : 0;
+    out.winRate =
+      out.completed > 0 ? Math.round((out.wins / out.completed) * 100) : 0;
     out.expectancyR = out.completed > 0 ? rSum / out.completed : 0;
     return out;
   };
@@ -1037,7 +1073,8 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       // 只在“已完成样本”足够时才给出强信号，避免噪声
       const minCompleted = 2;
       const weight = Math.min(1, s.completed / 8); // 0~1
-      const penalty = s.completed >= minCompleted ? Math.max(0, -s.expectancyR) : 0;
+      const penalty =
+        s.completed >= minCompleted ? Math.max(0, -s.expectancyR) : 0;
       const urgency = penalty * (0.5 + 0.5 * weight); // 越亏、样本越多越紧急
 
       rows.push({
@@ -1086,7 +1123,9 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
   const todayPack = build(windowed.today, { date: todayIso });
   const weekPack = build(windowed.week, { start: weekStart, end: weekEnd });
   const last30Pack = build(windowed.last30, {
-    start: moment(todayIso, "YYYY-MM-DD").subtract(29, "days").format("YYYY-MM-DD"),
+    start: moment(todayIso, "YYYY-MM-DD")
+      .subtract(29, "days")
+      .format("YYYY-MM-DD"),
     end: todayIso,
   });
 
@@ -1099,7 +1138,9 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       const end = start.clone().endOf("isoWeek");
       const s = start.format("YYYY-MM-DD");
       const e = end.format("YYYY-MM-DD");
-      const items = list.filter((t) => t && t.date && t.date >= s && t.date <= e);
+      const items = list.filter(
+        (t) => t && t.date && t.date >= s && t.date <= e
+      );
 
       // 每周 Top3 候选：把各维度最紧急的那一条汇总后取 Top3
       const cand = [];
@@ -1107,7 +1148,8 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
         const rows = computeDim(items, def.kind);
         if (!rows || rows.length === 0) continue;
         const top = rows[0];
-        if (top && (Number(top.urgency) || 0) > 0) cand.push({ ...top, dimLabel: def.label });
+        if (top && (Number(top.urgency) || 0) > 0)
+          cand.push({ ...top, dimLabel: def.label });
       }
       cand.sort((a, b) => (Number(b.urgency) || 0) - (Number(a.urgency) || 0));
       const top3 = cand.slice(0, 3);
@@ -1219,7 +1261,8 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
       const hit = Number(agg.weekHitCount) || 0;
       const streak = Number(agg.weekStreak) || 0;
       const hitBonus = hit >= 2 ? 1 + 0.2 * (Math.min(hit, 5) - 1) : 1;
-      const streakBonus = streak >= 2 ? 1 + 0.35 * (Math.min(streak, 5) - 1) : 1;
+      const streakBonus =
+        streak >= 2 ? 1 + 0.35 * (Math.min(streak, 5) - 1) : 1;
       const weeklyBonus = Math.min(2.2, hitBonus * streakBonus);
 
       agg.score = agg.score * persistence * weeklyBonus;
@@ -1273,7 +1316,11 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
     };
   };
 
-  const combined = buildCombined({ today: todayPack, week: weekPack, last30: last30Pack });
+  const combined = buildCombined({
+    today: todayPack,
+    week: weekPack,
+    last30: last30Pack,
+  });
 
   return {
     today: todayPack,
@@ -1286,7 +1333,12 @@ const buildCoachFocus = (tradeListAsc, index, todayIso) => {
 // ============================================================
 // 2.7 统一推荐中枢（交易 > 课程 > 卡片）
 // ============================================================
-const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath }) => {
+const buildUnifiedRecommendations = ({
+  coach,
+  courseData,
+  srData,
+  consolePath,
+}) => {
   const out = {
     ranked: [],
     weights: { trade: 1.0, course: 0.7, sr: 0.5 },
@@ -1300,14 +1352,17 @@ const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath })
 
   const linkTo = (path, label) => ({ path, label });
   const h = {
-    trading: `${consolePath}#⚔️ 交易中心 (Trading Hub)` ,
+    trading: `${consolePath}#⚔️ 交易中心 (Trading Hub)`,
     learning: `${consolePath}#📚 学习模块`,
     manage: `${consolePath}#📉 管理模块`,
   };
 
   // 1) 交易（最优先）：来自 coach.combined.focus
   const focus =
-    coach?.combined?.focus || coach?.today?.focus || coach?.week?.focus || coach?.last30?.focus;
+    coach?.combined?.focus ||
+    coach?.today?.focus ||
+    coach?.week?.focus ||
+    coach?.last30?.focus;
   if (focus) {
     const label = (focus.label || focus.key || "Unknown").toString();
     const dim = (focus.dimLabel || focus.kind || "").toString();
@@ -1355,7 +1410,7 @@ const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath })
       source: "course",
       score: (Number(hybrid.weight) || (isNew ? 30 : 20)) * out.weights.course,
       title,
-      reason: isNew ? "新章节推进" : "复习巩固/闪卡测验", 
+      reason: isNew ? "新章节推进" : "复习巩固/闪卡测验",
       action: linkTo(path, "打开课程/笔记"),
       data: { type: hybrid.type },
     });
@@ -1375,19 +1430,23 @@ const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath })
     push({
       source: "sr",
       score: Math.min(50, Number(srData.due) * 2) * out.weights.sr,
-      title: `卡片推荐：优先复习 ${srData.focusFile.name.replace(/\.md$/i, "")}`,
+      title: `卡片推荐：优先复习 ${srData.focusFile.name.replace(
+        /\.md$/i,
+        ""
+      )}`,
       reason: `今日到期 ${srData.focusFile.due}（优先清零）`,
       action: linkTo(srData.focusFile.path, "打开卡片"),
       data: { type: "Focus" },
     });
   } else if (Array.isArray(srData?.quizPool) && srData.quizPool.length > 0) {
-    const rnd = srData.quizPool[Math.floor(Math.random() * srData.quizPool.length)];
+    const rnd =
+      srData.quizPool[Math.floor(Math.random() * srData.quizPool.length)];
     if (rnd?.path) {
       push({
         source: "sr",
         score: 10 * out.weights.sr,
         title: `卡片推荐：随机一题 ${rnd.q || ""}`,
-        reason: "随手保持曝光", 
+        reason: "随手保持曝光",
         action: linkTo(rnd.path, "打开卡片"),
         data: { type: "Random" },
       });
@@ -1405,7 +1464,11 @@ const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath })
 
   // 按 score 排序，并保证 trade > course > sr 的默认展示顺序（同分时）
   const pri = { trade: 3, course: 2, sr: 1 };
-  out.ranked.sort((a, b) => (b.score || 0) - (a.score || 0) || (pri[b.source] || 0) - (pri[a.source] || 0));
+  out.ranked.sort(
+    (a, b) =>
+      (b.score || 0) - (a.score || 0) ||
+      (pri[b.source] || 0) - (pri[a.source] || 0)
+  );
 
   return out;
 };

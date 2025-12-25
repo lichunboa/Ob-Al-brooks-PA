@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[](assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png)/课程理论模版%20(Concept%20Template)-20251225204421814.png)"
+封面/cover:
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -67,7 +67,7 @@ async function ensureCoverFromPasteAnchor() {
   if (idx === -1) return;
 
   const after = md.slice(idx + anchor.length);
-  const scope = after.slice(0, 8000);
+  const scope = after.split(/\n#{1,6}\s/)[0] || after;
 
   let m;
   const wikiRe = /!\[\[([^\]]+?)\]\]/g;
@@ -77,7 +77,7 @@ async function ensureCoverFromPasteAnchor() {
     const p = dest?.path || linkpath;
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (!fm["封面/cover"] && !fm["cover"]) {
+        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
           fm["封面/cover"] = `![[${p}]]`;
         }
       });
@@ -91,7 +91,7 @@ async function ensureCoverFromPasteAnchor() {
     if (!link) continue;
     if (/^https?:\/\//i.test(link)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (!fm["封面/cover"] && !fm["cover"]) {
+        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
           fm["封面/cover"] = link;
         }
       });
@@ -101,7 +101,7 @@ async function ensureCoverFromPasteAnchor() {
     const p = dest?.path || link;
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (!fm["封面/cover"] && !fm["cover"]) {
+        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
           fm["封面/cover"] = `![[${p}]]`;
         }
       });
@@ -146,7 +146,6 @@ async function ensureCoverFromPasteAnchor() {
 
 <!--PA_COVER_SOURCE-->
 
-![](<assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png>)/课程理论模版%20(Concept%20Template)-20251225204421814.png)
 （在此粘贴主图表/截图）
 
 # 📺 1. 课程概览 (Module Overview)
@@ -247,9 +246,3 @@ _这里结合 Al Brooks 的逐根 K 线讲解 (Bar-by-bar analysis)_
 >
 > - [ ] 我能区分宽通道和窄通道吗？
 > - [ ] 我知道开盘趋势的止损放在哪吗？
-
-#flashcards
-// 学习卡片制作,根据课程提炼重要知识点,制作学习卡片,卡片形式要丰富,每张卡片要隔开.[[卡片使用说明]]
-
-- 卡片 1
-- 卡片 2
