@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover:
+封面/cover: "[](assets/理论模版%20(Concept%20Template)/截屏2025-12-25%2021.47.45.png)"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -145,7 +145,8 @@ async function ensureCoverFromPasteAnchor() {
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
-          fm["封面/cover"] = `![[${p}]]`;
+          // YAML 中以 `!` 开头可能被解析为 tag，导致属性读取异常；用 [[...]] 更稳
+          fm["封面/cover"] = `[[${p}]]`;
         }
       });
       return;
@@ -168,8 +169,8 @@ async function ensureCoverFromPasteAnchor() {
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
-          // 优先保留 wikilink 格式以兼容现有系统
-          fm["封面/cover"] = `![[${p}]]`;
+          // 优先保留 wikilink 格式以兼容现有系统（但不要用 ![[...]]，避免 YAML tag）
+          fm["封面/cover"] = `[[${p}]]`;
         }
       });
       return;
