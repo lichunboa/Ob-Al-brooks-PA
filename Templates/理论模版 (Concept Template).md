@@ -99,6 +99,13 @@ const asStr = (v) => {
   return v.toString?.() ?? "";
 };
 
+const isBlankCoverValue = (v) => {
+  if (v === undefined || v === null) return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "string") return v.trim() === "";
+  return false;
+};
+
 const unwrapWiki = (s) => {
   let t = (s || "").toString().trim();
   t = t.replace(/^!\[\[/, "").replace(/\]\]$/, "");
@@ -137,7 +144,7 @@ async function ensureCoverFromPasteAnchor() {
     const p = resolveToVaultPath(linkpath);
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
           fm["封面/cover"] = `![[${p}]]`;
         }
       });
@@ -151,7 +158,7 @@ async function ensureCoverFromPasteAnchor() {
     if (!link) continue;
     if (/^https?:\/\//i.test(link)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
           fm["封面/cover"] = link;
         }
       });
@@ -160,7 +167,7 @@ async function ensureCoverFromPasteAnchor() {
     const p = resolveToVaultPath(link);
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
           // 优先保留 wikilink 格式以兼容现有系统
           fm["封面/cover"] = `![[${p}]]`;
         }
