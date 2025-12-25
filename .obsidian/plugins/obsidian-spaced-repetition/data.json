@@ -27,12 +27,9 @@
     "noteFoldersToIgnore": [
       "**/*.excalidraw.md",
       "Templates",
-      "**/*PA标签体系 (Tag System).md",
-      "**/*PA知识图谱.md",
-      "**/*理论模版 (Concept Template).md",
-      "**/*实战交易模版 (Trade Log Template).md",
-      "**/*🦁 交易员控制台 (Trader Command).md",
-      "**/*🦁 交易员控制台 (Trader Command) 1.md"
+      "**/*🦁 交易员控制台 (Trader Command)5.0.md",
+      "Clippings 简报",
+      "Excalidraw"
     ],
     "openRandomNote": true,
     "autoNextNote": true,

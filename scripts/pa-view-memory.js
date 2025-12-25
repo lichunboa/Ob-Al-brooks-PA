@@ -15,9 +15,9 @@ const c = cfg.colors;
 // 注入样式
 const styleId = "pa-mem-style-v3";
 if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
+  const style = document.createElement("style");
+  style.id = styleId;
+  style.innerHTML = `
         .mem-container { display: flex; flex-direction: column; gap: 16px; font-family: 'Inter', sans-serif; }
         .mem-card { 
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(51, 65, 85, 0.4) 100%);
@@ -56,152 +56,202 @@ if (!document.getElementById(styleId)) {
         .shake-anim { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 }
 
 if (window.paData && window.paData.sr) {
-    const sr = window.paData.sr;
-    const course = window.paData.course;
-    const pTotal = Math.max(sr.total, 1);
-    
-    // --- 逻辑处理 ---
-    // 1. 随机摇一摇
-    const randomCard = () => {
-        if (sr.quizPool && sr.quizPool.length > 0) {
-            const idx = Math.floor(Math.random() * sr.quizPool.length);
-            return sr.quizPool[idx];
-        }
-        return null;
-    };
-    
-    // 2. 推荐内容 (优先 Due, 其次 Hybrid, 最后 Random)
-    let recItem = null;
-    let recType = "Random";
-    
-    if (sr.due > 0 && sr.focusFile) {
-        recType = "Focus";
-        recItem = { title: sr.focusFile.name.replace(".md",""), path: sr.focusFile.path, desc: `Due: ${sr.focusFile.due} | Ease: ${sr.focusFile.avgEase}` };
-    } else if (course.hybridRec) {
-        recType = course.hybridRec.type; // New or Review
-        recItem = { title: course.hybridRec.data.t || course.hybridRec.data.q, path: course.hybridRec.data.path, desc: recType === "New" ? "New Topic" : "Flashcard Quiz" };
-    } else {
-        const rnd = randomCard();
-        if (rnd) {
-            recType = "Shake";
-            recItem = { title: rnd.q, path: rnd.path, desc: "🎲 Random Pick" };
-        }
-    }
+  const sr = window.paData.sr;
+  const course = window.paData.course;
+  const pTotal = Math.max(sr.total, 1);
 
-    // --- 渲染构建 ---
-    const root = dv.el("div", "", { cls: "mem-container" });
-    
-    // Header
-    const header = `
+  // --- 逻辑处理 ---
+  // 1. 随机摇一摇
+  const randomCard = () => {
+    if (sr.quizPool && sr.quizPool.length > 0) {
+      const idx = Math.floor(Math.random() * sr.quizPool.length);
+      return sr.quizPool[idx];
+    }
+    return null;
+  };
+
+  // 2. 推荐内容 (优先 Due, 其次 Hybrid, 最后 Random)
+  let recItem = null;
+  let recType = "Random";
+
+  if (sr.due > 0 && sr.focusFile) {
+    recType = "Focus";
+    recItem = {
+      title: sr.focusFile.name.replace(".md", ""),
+      path: sr.focusFile.path,
+      desc: `到期: ${sr.focusFile.due} | 易度: ${sr.focusFile.avgEase}`,
+    };
+  } else if (course.hybridRec) {
+    recType = course.hybridRec.type; // New or Review
+    recItem = {
+      title: course.hybridRec.data.t || course.hybridRec.data.q,
+      path: course.hybridRec.data.path,
+      desc: recType === "New" ? "新主题" : "闪卡测验",
+    };
+  } else {
+    const rnd = randomCard();
+    if (rnd) {
+      recType = "Shake";
+      recItem = { title: rnd.q, path: rnd.path, desc: "🎲 随机抽取" };
+    }
+  }
+
+  // --- 渲染构建 ---
+  const root = dv.el("div", "", { cls: "mem-container" });
+
+  // Header
+  const header = `
         <div class="mem-header">
             <div class="mem-title">
                 <span style="font-size:1.4em">🧠</span>
                 <div>
-                    <div>Memory Core</div>
+            <div>记忆核心</div>
                     <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.0 Quantum</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-                <div class="mem-icon-btn" title="Force Refresh" onclick="window.paForceReload=true; this.innerHTML='⏳'; setTimeout(()=>app.commands.executeCommandById('dataview:dataview-force-refresh-views'), 200);">🔄</div>
+          <div class="mem-icon-btn" title="强制刷新" onclick="this.innerHTML='⏳'; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
             </div>
         </div>
     `;
 
-    // Stats Row
-    const statsRow = `
+  // Stats Row
+  const statsRow = `
         <div style="display:flex; justify-content:space-between; align-items:flex-end; padding: 0 8px;">
             <div>
-                <div class="mem-stat-label">Total Cards</div>
-                <div class="mem-stat-big" style="color:${c.text}">${sr.total}</div>
+                <div class="mem-stat-label">卡片总数</div>
+                <div class="mem-stat-big" style="color:${c.text}">${
+    sr.total
+  }</div>
             </div>
             <div style="text-align:right;">
-                <div class="mem-stat-label">Due Today</div>
-                <div class="mem-stat-big" style="color:${sr.due > 0 ? c.loss : c.live}; text-shadow:0 0 15px ${sr.due > 0 ? c.loss : c.live}44;">${sr.due}</div>
+                <div class="mem-stat-label">今日到期</div>
+                <div class="mem-stat-big" style="color:${
+                  sr.due > 0 ? c.loss : c.live
+                }; text-shadow:0 0 15px ${sr.due > 0 ? c.loss : c.live}44;">${
+    sr.due
+  }</div>
             </div>
         </div>
     `;
 
-    // Progress Bar
-    const bar = `
+  // Progress Bar
+  const bar = `
         <div class="mem-bar-container">
-            <div class="mem-bar-seg" style="width:${(sr.cnt.sNorm/pTotal)*100}%; background:${c.demo}"></div>
-            <div class="mem-bar-seg" style="width:${((sr.cnt.sRev*2)/pTotal)*100}%; background:${c.demo}88"></div>
-            <div class="mem-bar-seg" style="width:${(sr.cnt.mNorm/pTotal)*100}%; background:${c.live}"></div>
-            <div class="mem-bar-seg" style="width:${((sr.cnt.mRev*2)/pTotal)*100}%; background:${c.live}88"></div>
-            <div class="mem-bar-seg" style="width:${(sr.cnt.cloze/pTotal)*100}%; background:${c.accent}; box-shadow:0 0 10px ${c.accent}"></div>
+            <div class="mem-bar-seg" style="width:${
+              (sr.cnt.sNorm / pTotal) * 100
+            }%; background:${c.demo}"></div>
+            <div class="mem-bar-seg" style="width:${
+              ((sr.cnt.sRev * 2) / pTotal) * 100
+            }%; background:${c.demo}88"></div>
+            <div class="mem-bar-seg" style="width:${
+              (sr.cnt.mNorm / pTotal) * 100
+            }%; background:${c.live}"></div>
+            <div class="mem-bar-seg" style="width:${
+              ((sr.cnt.mRev * 2) / pTotal) * 100
+            }%; background:${c.live}88"></div>
+            <div class="mem-bar-seg" style="width:${
+              (sr.cnt.cloze / pTotal) * 100
+            }%; background:${c.accent}; box-shadow:0 0 10px ${c.accent}"></div>
         </div>
     `;
 
-    // Mini Stats
-    const miniStats = `
+  // Mini Stats
+  const miniStats = `
         <div class="mem-grid-3">
             <div class="mem-mini-stat">
-                <div style="color:${c.demo}; font-size:0.7em; font-weight:bold;">BASIC</div>
-                <div style="font-weight:800;">${sr.cnt.sNorm + sr.cnt.sRev*2}</div>
+                <div style="color:${
+                  c.demo
+                }; font-size:0.7em; font-weight:bold;">基础</div>
+                <div style="font-weight:800;">${
+                  sr.cnt.sNorm + sr.cnt.sRev * 2
+                }</div>
             </div>
             <div class="mem-mini-stat">
-                <div style="color:${c.live}; font-size:0.7em; font-weight:bold;">MULTI</div>
-                <div style="font-weight:800;">${sr.cnt.mNorm + sr.cnt.mRev*2}</div>
+                <div style="color:${
+                  c.live
+                }; font-size:0.7em; font-weight:bold;">多选</div>
+                <div style="font-weight:800;">${
+                  sr.cnt.mNorm + sr.cnt.mRev * 2
+                }</div>
             </div>
             <div class="mem-mini-stat">
-                <div style="color:${c.accent}; font-size:0.7em; font-weight:bold;">CLOZE</div>
+                <div style="color:${
+                  c.accent
+                }; font-size:0.7em; font-weight:bold;">填空</div>
                 <div style="font-weight:800;">${sr.cnt.cloze}</div>
             </div>
         </div>
     `;
 
-    // Chart & Rec
-    // Chart Logic
-    const days = [];
-    const loadCounts = [];
-    for (let i = 1; i <= 7; i++) {
-        let d = moment().add(i, "days").format("YYYY-MM-DD");
-        days.push(`+${i}`);
-        loadCounts.push(sr.load[d] || 0);
-    }
-    const maxLoad = Math.max(...loadCounts, 3);
-    const chartBars = loadCounts.map((val, i) => {
-        let h = Math.max(4, (val / maxLoad) * 80);
-        let bg = val > 0 ? c.accent : "rgba(255,255,255,0.1)";
-        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+  // Chart & Rec
+  // Chart Logic
+  const days = [];
+  const loadCounts = [];
+  for (let i = 1; i <= 7; i++) {
+    let d = moment().add(i, "days").format("YYYY-MM-DD");
+    days.push(`+${i}`);
+    loadCounts.push(sr.load[d] || 0);
+  }
+  const maxLoad = Math.max(...loadCounts, 3);
+  const chartBars = loadCounts
+    .map((val, i) => {
+      let h = Math.max(4, (val / maxLoad) * 80);
+      let bg = val > 0 ? c.accent : "rgba(255,255,255,0.1)";
+      return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
             <div style="width:6px; height:${h}%; background:${bg}; border-radius:3px; min-height:4px;"></div>
             <div style="font-size:0.5em; opacity:0.4;">${days[i]}</div>
         </div>`;
-    }).join("");
+    })
+    .join("");
 
-    // Rec Logic
-    let recColor = recType === "Focus" ? c.loss : c.accent;
-    let recContent = recItem ? `
-        <div style="color:${recColor}; font-size:0.7em; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">${recType === "Focus" ? "🔥 PRIORITY" : recType === "Shake" ? "🎲 RANDOM PICK" : "🚀 RECOMMEND"}</div>
-        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${recItem.title}</div>
-        <div style="font-size:0.8em; opacity:0.6; margin-bottom:12px;">${recItem.desc}</div>
-        <a href="${recItem.path}" class="internal-link" style="text-decoration:none; background:${recColor}22; color:${recColor}; padding:6px 12px; border-radius:6px; font-size:0.8em; font-weight:bold; display:inline-block;">👉 Open Card</a>
-    ` : `<div style="opacity:0.5; text-align:center;">All caught up!</div>`;
+  // Rec Logic
+  let recColor = recType === "Focus" ? c.loss : c.accent;
+  let recContent = recItem
+    ? `
+        <div style="color:${recColor}; font-size:0.7em; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">${
+        recType === "Focus"
+          ? "🔥 优先复习"
+          : recType === "Shake"
+          ? "🎲 随机抽取"
+          : "🚀 推荐"
+      }</div>
+        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${
+          recItem.title
+        }</div>
+        <div style="font-size:0.8em; opacity:0.6; margin-bottom:12px;">${
+          recItem.desc
+        }</div>
+        <a href="${
+          recItem.path
+        }" class="internal-link" style="text-decoration:none; background:${recColor}22; color:${recColor}; padding:6px 12px; border-radius:6px; font-size:0.8em; font-weight:bold; display:inline-block;">👉 打开卡片</a>
+    `
+    : `<div style="opacity:0.5; text-align:center;">今日已清空！</div>`;
 
-    const chartRow = `
+  const chartRow = `
         <div class="mem-chart-row">
             <div class="mem-chart-box">
                 ${chartBars}
             </div>
             <div class="mem-rec-box mem-card" style="border-color:${recColor}44; background: linear-gradient(135deg, ${recColor}11 0%, rgba(0,0,0,0) 100%);">
                 ${recContent}
-                <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); window.paForceReload=true; app.commands.executeCommandById('dataview:dataview-force-refresh-views');" title="Shake for new card">🎲</div>
+              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="摇一摇换卡片">🎲</div>
             </div>
         </div>
     `;
 
-    // Action Button
-    const btn = `
+  // Action Button
+  const btn = `
         <button class="mem-btn mem-btn-primary" onclick="app.commands.executeCommandById('obsidian-spaced-repetition:srs-review-flashcards')">
-            <span>⚡️ Start Review Session</span>
+        <span>⚡️ 开始复习</span>
         </button>
     `;
 
-    root.innerHTML = `
+  root.innerHTML = `
         <div class="mem-card">
             ${header}
             ${statsRow}
@@ -211,7 +261,8 @@ if (window.paData && window.paData.sr) {
         ${chartRow}
         ${btn}
     `;
-
 } else {
-    dv.el("div", "🦁 Engine Loading...", { attr: { style: "opacity:0.5; padding:20px; text-align:center;" } });
+  dv.el("div", "🦁 Engine Loading...", {
+    attr: { style: "opacity:0.5; padding:20px; text-align:center;" },
+  });
 }

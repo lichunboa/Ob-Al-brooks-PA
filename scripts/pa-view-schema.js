@@ -1,10 +1,8 @@
-/* 文件名: Scripts/pa-view-schema.js (V5 - Ultimate Monitor)
-   用途: 全域数据监控与可视化 (The Dashboard)
+/* 文件名: Scripts/pa-view-schema.js (V5 - Metadata Monitor)
+   用途: 元数据监控与标签全景
    功能: 
    1. 🚑 异常修复台: 实时捕捉空值/Unknown (原生跳转)。
-   2. 📊 数据透视: 集成 Inspector 的分布图 (品种/策略/执行)。
-   3. 🏷️ 标签全景: 统计全库标签。
-   4. ❌ 移除: 冗长的属性字典。
+   2. 🏷️ 标签全景: 统计全库标签。
 */
 
 const basePath = app.vault.adapter.basePath;
@@ -25,12 +23,6 @@ if (!document.getElementById(styleId)) {
         .sch-link:hover { color: ${c.live}; text-decoration-color: ${c.live}; }
         .sch-tag { color: ${c.demo}; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin: 3px; cursor: pointer; display: inline-block; transition:0.2s; }
         .sch-tag:hover { background: rgba(59, 130, 246, 0.2); transform: translateY(-1px); }
-        
-        /* 统计卡片样式 */
-        .sch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-        .sch-mini-card { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; }
-        .sch-bar-bg { background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 6px; }
-        .sch-bar-fill { height: 100%; border-radius: 2px; }
         
         /* 顶部仪表盘 */
         .sch-dash { display: flex; gap: 15px; margin-bottom: 5px; }
@@ -99,6 +91,43 @@ scanStats.tags = Object.keys(tagMap).length;
 let distData = { ticker: [], setup: [], exec: [] };
 let healthScore = 100;
 
+const hasCJK = (str) => /[\u4e00-\u9fff]/.test(str || "");
+const prettyVal = (val) => {
+  if (val === null || val === undefined) return "";
+  let s = val.toString().trim();
+  if (!s) return s;
+  if (s === "Unknown") return "未知/Unknown";
+  if (s === "Empty") return "空/Empty";
+  if (s === "null") return "空/null";
+
+  // 中文(English) -> 中文/English
+  if (s.includes("(") && s.endsWith(")")) {
+    const parts = s.split("(");
+    const cn = (parts[0] || "").trim();
+    const en = parts
+      .slice(1)
+      .join("(")
+      .replace(/\)\s*$/, "")
+      .trim();
+    if (cn && en) return `${cn}/${en}`;
+    if (cn) return cn;
+    if (en) return `待补充/${en}`;
+  }
+
+  // 已是 pair，尽量保证中文在左
+  if (s.includes("/")) {
+    const parts = s.split("/");
+    const left = (parts[0] || "").trim();
+    const right = parts.slice(1).join("/").trim();
+    if (hasCJK(left)) return s;
+    if (hasCJK(right)) return `${right}/${left}`;
+    return `待补充/${s}`;
+  }
+
+  if (!hasCJK(s) && /^[a-zA-Z0-9_\-\.\s]+$/.test(s)) return `待补充/${s}`;
+  return s;
+};
+
 if (window.paData && window.paData.trades) {
   const trades = window.paData.trades;
 
@@ -106,7 +135,7 @@ if (window.paData && window.paData.trades) {
   const getDist = (key) => {
     let map = {};
     trades.forEach((t) => {
-      let v = (t[key] || "Unknown").toString().split("(")[0].trim();
+      let v = (t[key] || "Unknown").toString().trim();
       if (v) map[v] = (map[v] || 0) + 1;
     });
     return Object.entries(map)
@@ -213,54 +242,6 @@ if (scanStats.issues > 0) {
         </div>`;
 }
 root.appendChild(panelFix);
-
-// === 模块 3: 📊 数据可视化 (Visual Stats) ===
-// 替代了之前的“字典列表”，提供更有价值的信息
-if (window.paData) {
-  const panelStats = document.createElement("div");
-  panelStats.className = "sch-panel";
-  panelStats.innerHTML = `<div class="sch-header" style="color:${c.text}">📊 核心数据分布 (Data Profile)</div>`;
-
-  const grid = document.createElement("div");
-  grid.className = "sch-grid";
-
-  // 渲染迷你条形图函数
-  const renderMiniChart = (title, data, colorFn) => {
-    let html = `<div class="sch-mini-card"><div style="font-size:0.8em; opacity:0.7; margin-bottom:8px; font-weight:bold;">${title}</div>`;
-    let total = data.reduce((a, b) => a + b[1], 0) || 1;
-
-    data.forEach(([k, v]) => {
-      let pct = Math.round((v / total) * 100);
-      let col = typeof colorFn === "function" ? colorFn(k) : colorFn;
-      html += `
-            <div style="margin-bottom:6px;">
-                <div style="display:flex; justify-content:space-between; font-size:0.75em;">
-                    <span style="opacity:0.9">${k}</span>
-                    <span style="opacity:0.5">${v}</span>
-                </div>
-                <div class="sch-bar-bg"><div class="sch-bar-fill" style="width:${pct}%; background:${col};"></div></div>
-            </div>`;
-    });
-    html += `</div>`;
-    return html;
-  };
-
-  // 执行质量配色逻辑
-  const execColor = (k) => {
-    if (k.includes("完美") || k.includes("正常")) return c.live;
-    if (k.includes("主动")) return c.back;
-    return c.loss;
-  };
-
-  grid.innerHTML = `
-        ${renderMiniChart("品种分布 (Ticker)", distData.ticker, c.demo)}
-        ${renderMiniChart("策略分布 (Setup)", distData.setup, c.purple)}
-        ${renderMiniChart("执行质量 (Execution)", distData.exec, execColor)}
-    `;
-
-  panelStats.appendChild(grid);
-  root.appendChild(panelStats);
-}
 
 // === 模块 4: 🏷️ 标签全景 (Tag Cloud) ===
 const panelTag = document.createElement("div");

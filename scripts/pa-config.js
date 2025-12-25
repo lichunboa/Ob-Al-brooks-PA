@@ -35,6 +35,13 @@ module.exports = {
     borderLight: "rgba(148, 163, 184, 0.2)", // Light | 浅色
     borderAccent: "rgba(96, 165, 250, 0.3)", // Accent | 强调
 
+    // Legacy Aliases | 旧键兼容（部分 View 历史版本引用）
+    sub: "rgba(243,244,246,0.6)", // -> textSub
+    purple: "#A78BFA", // -> accentPurple
+    danger: "#EF4444", // -> loss
+    warn: "#F59E0B", // -> back
+    success: "#10B981", // -> live
+
     // Legacy Compatibility | 向后兼容 (旧视图文件使用)
     cardBg:
       "background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05); color: #F3F4F6;",
@@ -123,6 +130,10 @@ module.exports = {
     recentLimit: 50, // Recent Items Limit | 最近项目限制
     riskRewardMin: 2.0, // Min Risk/Reward Ratio | 最小风险回报比
     cacheExpiry: 300000, // Cache Duration (5min) | 缓存时长
+    autoRefreshDebounceMs: 900, // Auto refresh debounce | 自动刷新防抖（ms）
+    autoRefreshIdleMs: 1200, // Auto refresh idle | 停止滚动/操作后等待多久再刷新（ms）
+    preserveScrollOnRefresh: true, // Preserve scroll on refresh | 刷新时保留滚动位置（避免页面跳回顶部）
+    preserveScrollLockMs: 1800, // Scroll lock duration | 刷新期间锁定滚动位置（ms，尽量做到“完全不跳”）
   },
 
   // 🌐 5. i18n Labels | 多语言标签

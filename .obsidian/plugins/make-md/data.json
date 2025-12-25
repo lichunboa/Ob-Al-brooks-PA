@@ -53,8 +53,11 @@
     "//Daily/Daily/Trades",
     "/",
     "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典",
-    "//Categories 分类/Categories 分类/Al brooks",
-    "//🦁 交易员控制台 (Trader Command)"
+    "//Templates/Templates/assets",
+    "//Templates/Templates/assets/Templates/assets/课程理论模版 (Concept Template)",
+    "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)",
+    "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
+    "//Templates"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
@@ -67,7 +70,6 @@
     "_blocks"
   ],
   "newFileLocation": "root",
-  "newFileFolderPath": "",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,

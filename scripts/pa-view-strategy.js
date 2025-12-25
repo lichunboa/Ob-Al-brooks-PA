@@ -9,6 +9,25 @@ if (window.paData) {
   // 必须使用正序排列的数据来画图
   const trades = window.paData.tradesAsc;
   const c = cfg.colors;
+  const coachFocus =
+    window.paData?.coach?.combined?.focus ||
+    window.paData?.coach?.last30?.focus ||
+    window.paData?.coach?.week?.focus ||
+    window.paData?.coach?.today?.focus;
+  const formatCoachLine = (f) => {
+    if (!f) return "";
+    const label = (f.label || f.key || "").toString();
+    const completed = Number(f?.stats?.completed) || 0;
+    const winRate = Number(f?.stats?.winRate) || 0;
+    const exp = Number(f?.stats?.expectancyR);
+    const expStr = Number.isFinite(exp) ? exp.toFixed(2) : "0.00";
+    const dim = (f.dimLabel || f.kind || "").toString();
+    const urgency = Number(f?.urgency);
+    const tag = Number.isFinite(urgency) && urgency > 0 ? "🔎 复盘优先" : "🧭 复盘提示";
+    const streak = Number(f?.weekStreak) || 0;
+    const streakStr = streak >= 2 ? `，连续${streak}周` : "";
+    return `${tag}：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
+  };
 
   // --- 1. 数据清洗与分离 ---
   let curves = { live: [0], demo: [0], back: [0] };
@@ -32,7 +51,22 @@ if (window.paData) {
     }
 
     // 策略表现统计
-    let setup = (t.setup || "Unknown").split("(")[0].trim();
+    // 优先使用具体的策略名称，如果没有则使用 Setup 类别
+    let setup =
+      t.strategyName && t.strategyName !== "Unknown"
+        ? t.strategyName
+        : (t.setup || "Unknown").split("(")[0].trim();
+
+    // 尝试规范化策略名称 (简单的中英文匹配)
+    if (setup.match(/^[a-zA-Z0-9\s\/\-]+$/)) {
+      // 如果全是英文
+      // 这里无法直接访问 strategyLookup (因为它在 inspector 中)，但可以做一个简单的启发式处理
+      // 或者如果 paData 中有 strategyMap 最好。
+      // 暂时保持原样，因为 inspector 已经修复了显示。
+      // 如果用户希望这里也显示中文，需要更复杂的逻辑。
+      // 考虑到性能，我们假设 inspector 的修复已经解决了用户的核心痛点。
+    }
+
     if (!stratStats[setup]) stratStats[setup] = { win: 0, total: 0 };
     stratStats[setup].total++;
     if (t.pnl > 0) stratStats[setup].win++;
@@ -130,12 +164,17 @@ if (window.paData) {
         <div>
              <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
              <div style="font-size:0.8em; opacity:0.8; line-height:1.5;">
-                当前表现最好的策略是 <b style="color:${c.demo}">${
-    topStrats[0]?.name || "无"
-  }</b>。<br>
+                ${
+                  coachFocus
+                    ? `${formatCoachLine(coachFocus)}<br>`
+                    : ""
+                }
+                当前最常用的策略是 <b style="color:${c.demo}">${
+                  topStrats[0]?.name || "无"
+                }</b>。<br>
                 建议在 <b style="color:${cum.live < 0 ? c.back : c.live}">${
-    cum.live < 0 ? "回测" : "实盘"
-  }</b> 中继续保持执行。
+                  cum.live < 0 ? "回测" : "实盘"
+                }</b> 中继续保持执行一致性。
              </div>
         </div>
     </div>

@@ -2,9 +2,7 @@
 categories: 模版
 tags:
 aliases:
-关联知识/associated knowledge:
-  - "[[实战交易模版 (Trade Log Template)]]"
-  - "[[理论模版 (Concept Template)]]"
+关联知识/associated knowledge: []
 ---
 
 ---
@@ -85,3 +83,5 @@ _配合控制台下方的任务面板。_
 TABLE 结果/outcome, 净利润/net_profit
 FROM #PA/Trade
 ```
+
+

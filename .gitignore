@@ -18,6 +18,9 @@ Thumbs.db
 # --- 插件缓存 (可选) ---
 .obsidian/plugins/recent-files-obsidian/data.json
 
+# --- Make.md 插件缓存/状态（强烈建议不纳入版本控制） ---
+.makemd/*.mdc
+
 # --- 垃圾箱 ---
 .trash/
 
