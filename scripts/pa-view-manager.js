@@ -366,6 +366,12 @@ async function batchUpdate(paths, op, args) {
   new Notice(`🚀 正在处理 ${paths.length} 个文件...`);
   let count = 0;
   const failed = [];
+  // 写入会触发 vault modify -> core 自动刷新；短暂抑制以避免弹窗/页面跳走
+  try {
+    window.__paSuppressAutoRefreshUntil = Date.now() + 2500;
+  } catch (e) {
+    // ignore
+  }
 
   const normEq = (a, b) => normalizeVal(a) === normalizeVal(b);
   const arrHas = (arr, v) =>
@@ -468,10 +474,21 @@ async function batchUpdate(paths, op, args) {
   }
   if (count > 0) {
     new Notice(`✅ 完成 ${count} 处修改`);
+    // 若正在打开 Inspector，刷新后自动恢复到相同属性
+    try {
+      if (window.__paManagerInspectorState?.key) {
+        window.__paManagerReopenInspector = {
+          key: window.__paManagerInspectorState.key,
+          tab: window.__paManagerInspectorState.tab || "vals",
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
     setTimeout(
       () =>
         window.paRefreshViews
-          ? window.paRefreshViews({ hard: true })
+          ? window.paRefreshViews({ hard: true, preserveScroll: true })
           : app.workspace.trigger("dataview:refresh-views"),
       800
     );
@@ -520,6 +537,12 @@ function openInspector(key, initialTab = "vals") {
       if (cn && en) return `${cn}/${en}`;
       if (cn) return cn;
       if (en) return `待补充/${en}`;
+      // 记录当前 Inspector 状态，便于刷新后恢复
+      try {
+        window.__paManagerInspectorState = { key, tab: initialTab };
+      } catch (e) {
+        // ignore
+      }
     }
 
     // 已经是 中文/英文（或 英文/中文）则尽量纠正顺序
@@ -539,10 +562,20 @@ function openInspector(key, initialTab = "vals") {
 
   const mask = document.createElement("div");
   mask.className = "pa-mask";
+  const clearInspectorState = () => {
+    try {
+      if (window.__paManagerInspectorState?.key === key) {
+        window.__paManagerInspectorState = null;
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
   // 点击背景关闭
   mask.onclick = (e) => {
     if (e.target === mask) mask.remove();
   };
+  mask.addEventListener("remove", clearInspectorState);
 
   const modal = document.createElement("div");
   modal.className = "pa-modal";
@@ -760,3 +793,17 @@ for (let [gName, keys] of Object.entries(finalGroups)) {
 
 dv.container.innerHTML = "";
 dv.container.appendChild(wrapper);
+
+// 刷新后尝试自动恢复 Inspector（避免写入后跳走、需要重新找）
+setTimeout(() => {
+  try {
+    const st = window.__paManagerReopenInspector;
+    if (st?.key) {
+      window.__paManagerReopenInspector = null;
+      wrapper.open = true;
+      openInspector(st.key, st.tab || "vals");
+    }
+  } catch (e) {
+    // ignore
+  }
+}, 350);
