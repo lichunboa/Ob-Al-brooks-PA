@@ -80,25 +80,36 @@ const paGetScrollerElForLeaf = (leaf) => {
       }
     };
 
-    // CM6 编辑模式
+    // 候选容器（不同模式下真正滚动元素不同；DOM 里可能残留隐藏 scroller）
     const cm = root.querySelector(".cm-scroller");
-    if (isScrollable(cm)) return cm;
-
-    // 预览/阅读模式：通常是 view-content 才是真正滚动容器
     const viewContent = root.querySelector(".view-content");
-    if (isScrollable(viewContent)) return viewContent;
-
-    // 预览/阅读模式
     const preview = root.querySelector(".markdown-preview-view");
-    if (isScrollable(preview)) return preview;
-
     const reading = root.querySelector(".markdown-reading-view");
-    if (isScrollable(reading)) return reading;
 
-    // 兜底：返回任意具备 scrollTop 的候选
+    const candidates = [
+      { el: viewContent, pr: 40 },
+      { el: preview, pr: 30 },
+      { el: reading, pr: 20 },
+      { el: cm, pr: 10 },
+    ].filter((x) => !!x.el);
+
+    const scrollable = candidates.filter((x) => isScrollable(x.el));
+    if (scrollable.length > 0) {
+      // 选择“滚动空间最大”的容器，减少选错隐藏/非主滚动容器的概率
+      scrollable.sort((a, b) => {
+        const aSpan = (a.el.scrollHeight || 0) - (a.el.clientHeight || 0);
+        const bSpan = (b.el.scrollHeight || 0) - (b.el.clientHeight || 0);
+        if (bSpan !== aSpan) return bSpan - aSpan;
+        return (b.pr || 0) - (a.pr || 0);
+      });
+      return scrollable[0].el;
+    }
+
+    // 兜底：返回任意具备 scrollTop 的候选（即便不滚动）
     if (viewContent && typeof viewContent.scrollTop === "number") return viewContent;
     if (preview && typeof preview.scrollTop === "number") return preview;
     if (reading && typeof reading.scrollTop === "number") return reading;
+    if (cm && typeof cm.scrollTop === "number") return cm;
   } catch (e) {
     // ignore
   }
@@ -282,17 +293,51 @@ const paRestoreScrollState = (state) => {
 
 const paScheduleRestoreScroll = (state) => {
   if (!state) return;
-  // Dataview 刷新是异步重渲染；用多次延迟尝试覆盖不同渲染时机
-  // 但一旦恢复成功，就停止后续尝试，避免“慢慢一步步跳”。
+  // Dataview 刷新是异步重渲染：布局/高度会在数帧内变化。
+  // 若在高度还在变化时反复 set scrollTop，会表现为“随机跳/一步步爬”。
+  // 策略：等待 scrollHeight 稳定若干帧后再恢复（失败则在截止时间前继续尝试）。
   state.__paRestored = false;
-  const delays = [0, 50, 150, 300, 600, 1000];
-  for (const d of delays) {
-    setTimeout(() => {
-      if (state.__paRestored) return;
+  const startedAt = Date.now();
+  const deadlineMs = 2200;
+  let lastH = -1;
+  let stableCount = 0;
+  let rafId = null;
+
+  const tick = () => {
+    if (state.__paRestored) return;
+    const now = Date.now();
+    if (now - startedAt > deadlineMs) return;
+
+    const leaf = state.leaf || app?.workspace?.activeLeaf;
+    const scroller = paGetScrollerElForLeaf(leaf);
+    if (!scroller) {
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+
+    const h = Number(scroller.scrollHeight || 0);
+    if (lastH >= 0 && Math.abs(h - lastH) <= 2) stableCount += 1;
+    else stableCount = 0;
+    lastH = h;
+
+    // 需要连续几帧高度稳定才恢复，避免在变化过程中抢位置
+    if (stableCount >= 3) {
       const ok = paRestoreScrollState(state);
-      if (ok) state.__paRestored = true;
-    }, d);
+      if (ok) {
+        state.__paRestored = true;
+        return;
+      }
+    }
+
+    rafId = requestAnimationFrame(tick);
+  };
+
+  try {
+    if (rafId) cancelAnimationFrame(rafId);
+  } catch (e) {
+    // ignore
   }
+  rafId = requestAnimationFrame(tick);
 };
 
 // 统一 Dataview 刷新：兼容不同版本的 commandId
