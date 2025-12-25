@@ -128,33 +128,36 @@ module.exports = async (dv, app) => {
       // 尝试解析本地文件（使用解码后的路径）
       let dest = null;
       
-      // 1. 标准解析（Obsidian API 会自动处理相对路径）
+      // 方法1: 标准 Obsidian API 解析
       dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
       
-      // 2. 如果没找到，尝试作为相对于当前文件的路径
+      // 方法2: 相对于当前文件目录
       if (!dest) {
-          const parentPath = cur.file.parent?.path || ""; // 当前文件所在目录
+          const parentPath = cur.file.parent?.path || "";
           const possiblePath = parentPath ? `${parentPath}/${link}` : link;
-          const f = app.vault.getAbstractFileByPath(possiblePath);
-          if (f && f.path) dest = f;
+          dest = app.vault.getAbstractFileByPath(possiblePath);
       }
 
-      // 3. 尝试绝对路径 (相对于库根目录)
+      // 方法3: 相对于库根目录
       if (!dest) {
-          const f = app.vault.getAbstractFileByPath(link);
-          if (f && f.path) dest = f;
+          dest = app.vault.getAbstractFileByPath(link);
       }
 
       // 如果找到文件且是图片，写入 frontmatter
-      if (dest && isImagePath(dest.path)) {
+      if (dest && dest.path && isImagePath(dest.path)) {
         await tryUpdate(`![[${dest.path}]]`);
         return true;
-      } else if (isImagePath(link)) {
-        // 没找到文件对象但看起来像图片，尝试构建完整路径
+      }
+      
+      // 最后的尝试：构建完整路径并测试
+      if (!dest && isImagePath(link)) {
         const parentPath = cur.file.parent?.path || "";
-        const possiblePath = parentPath ? `${parentPath}/${link}` : link;
-        await tryUpdate(`![[${possiblePath}]]`);
-        return true;
+        const testPath = parentPath ? `${parentPath}/${link}` : link;
+        const testFile = app.vault.getAbstractFileByPath(testPath);
+        if (testFile && testFile.path) {
+          await tryUpdate(`![[${testFile.path}]]`);
+          return true;
+        }
       }
     }
     return false;
@@ -176,28 +179,41 @@ module.exports = async (dv, app) => {
 
   if (covers.length === 0) {
     dv.paragraph("*(封面未设置。请在下方粘贴截图，系统会自动抓取第一张图作为封面)*");
-    // 调试信息：显示扫描到的图片链接（如果有）
+    
+    // 详细调试信息
     const md = await app.vault.read(tFile);
     const anchor = "<!--PA_COVER_SOURCE-->";
     const idx = md.indexOf(anchor);
     if (idx !== -1) {
         const after = md.slice(idx + anchor.length);
         const scope = after.split(/\n#{1,6}\s/)[0] || after;
-        const links = [];
-        let m;
         const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
+        let m;
+        let foundLinks = [];
+        
         while ((m = mdImgRe.exec(scope)) !== null) {
-            const rawLink = m[1];
-            const decodedLink = cleanLink(rawLink);
-            links.push({ raw: rawLink, decoded: decodedLink });
+            const rawLink = m[1].trim();
+            const decoded = cleanLink(rawLink);
+            const parentPath = cur.file.parent?.path || "";
+            const fullPath = parentPath ? `${parentPath}/${decoded}` : decoded;
+            const fileObj = app.vault.getAbstractFileByPath(fullPath);
+            
+            foundLinks.push({
+                raw: rawLink,
+                decoded: decoded,
+                fullPath: fullPath,
+                exists: fileObj ? '✅ ' + fileObj.path : '❌ 未找到'
+            });
         }
-        if (links.length > 0) {
-            dv.paragraph(`🔍 调试信息：`);
-            for (const link of links) {
-                const parentPath = cur.file.parent?.path || "";
-                const testPath = parentPath ? `${parentPath}/${link.decoded}` : link.decoded;
-                const testFile = app.vault.getAbstractFileByPath(testPath);
-                dv.paragraph(`- 原始: \`${link.raw}\`<br>- 解码: \`${link.decoded}\`<br>- 测试路径: \`${testPath}\`<br>- 找到文件: ${testFile ? '✅ ' + testFile.path : '❌'}`);
+        
+        if (foundLinks.length > 0) {
+            dv.paragraph("🔍 **调试信息**：");
+            for (const link of foundLinks) {
+                dv.paragraph(`**原始**：\`${link.raw}\``);
+                dv.paragraph(`**解码**：\`${link.decoded}\``);
+                dv.paragraph(`**完整路径**：\`${link.fullPath}\``);
+                dv.paragraph(`**状态**：${link.exists}`);
+                dv.paragraph("---");
             }
         }
     }
