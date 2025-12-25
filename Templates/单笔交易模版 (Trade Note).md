@@ -49,6 +49,7 @@ await require(basePath + "/scripts/pa-cover-helper.js")(dv, app);
 
 <!--PA_COVER_SOURCE-->
 
+![](<assets/单笔交易模版%20(Trade%20Note)/单笔交易模版%20(Trade%20Note)-20251225224556657.png>)
 
 ## 🧭 1) 市场背景（Context）
 

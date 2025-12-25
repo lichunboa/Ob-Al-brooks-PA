@@ -56,7 +56,8 @@
     "//Templates",
     "//Templates/Templates/assets",
     "//Templates/Templates/assets/Templates/assets/课程理论模版 (Concept Template)",
-    "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)"
+    "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)",
+    "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
