@@ -52,7 +52,10 @@
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades",
     "/",
-    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典"
+    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典",
+    "//Templates",
+    "//Templates/Templates/assets",
+    "//Templates/Templates/assets/Templates/assets/课程理论模版 (Concept Template)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",

@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[](assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png)/课程理论模版%20(Concept%20Template)-20251225204421814.png)"
+封面/cover: "![[Pasted_Img_02.png]]"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -22,6 +22,79 @@ aliases:
 
 ```dataviewjs
 const cur = dv.current();
+
+const dirname = (p) => {
+  const s = (p || "").toString();
+  const i = s.lastIndexOf("/");
+  return i >= 0 ? s.slice(0, i) : "";
+};
+
+const stripAngles = (s) => {
+  const t = (s || "").toString().trim();
+  return t.startsWith("<") && t.endsWith(">") ? t.slice(1, -1).trim() : t;
+};
+
+const safeDecode = (s) => {
+  try {
+    return decodeURIComponent((s || "").toString());
+  } catch {
+    return (s || "").toString();
+  }
+};
+
+const normalizeLink = (s) => {
+  let t = (s || "").toString().trim();
+  t = t.replace(/^['"]|['"]$/g, "");
+  t = stripAngles(t);
+  t = safeDecode(t);
+  return t;
+};
+
+const extractFirstPathLike = (s) => {
+  const t = (s || "").toString();
+  // ![[...]] / [[...]]
+  let m = t.match(/!?\[\[([^\]]+?)\]\]/);
+  if (m && m[1]) return m[1].split("|")[0].trim();
+  // ![](...) / [](...)
+  m = t.match(/!?\[[^\]]*\]\(([^)]+)\)/);
+  if (m && m[1]) return m[1].trim();
+  // fallback: try to find an assets/...image.ext substring
+  m = t.match(/(?:^|\s)([^\s]+\.(?:png|jpg|jpeg|gif|webp|svg))(?:\s|$)/i);
+  if (m && m[1]) return m[1].trim();
+  return t.trim();
+};
+
+const resolveToVaultPath = (linkOrPath) => {
+  let linkpath = normalizeLink(extractFirstPathLike(linkOrPath));
+  if (!linkpath) return "";
+
+  // external
+  if (/^https?:\/\//i.test(linkpath)) return linkpath;
+
+  // strip leading ./ or /
+  linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
+
+  // Try Obsidian resolver first
+  const from = cur?.file?.path || "";
+  const dest1 = app.metadataCache.getFirstLinkpathDest(linkpath, from);
+  if (dest1?.path) return dest1.path;
+
+  // If user pasted `assets/...` without ./, treat it as relative to current folder
+  const baseDir = dirname(from);
+  if (baseDir) {
+    const candidate = `${baseDir}/${linkpath}`.replace(/\/+/g, "/");
+    const f1 = app.vault.getAbstractFileByPath(candidate);
+    if (f1) return candidate;
+    const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
+    if (dest2?.path) return dest2.path;
+  }
+
+  // Last resort: direct path lookup
+  const f2 = app.vault.getAbstractFileByPath(linkpath);
+  if (f2) return linkpath;
+
+  return linkpath;
+};
 
 const toArr = (v) => {
   if (!v) return [];
@@ -46,9 +119,10 @@ const unwrapWiki = (s) => {
 };
 
 const resolvePath = (p) => {
-  const linkpath = unwrapWiki(p);
-  const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
-  return dest?.path || linkpath;
+  // Backward-compatible: support wikilink, markdown image, or plain path
+  const maybeWiki = unwrapWiki(p);
+  const out = resolveToVaultPath(maybeWiki || p);
+  return out;
 };
 
 const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
@@ -87,7 +161,7 @@ async function ensureCoverFromPasteAnchor() {
 
   const mdImgRe = /!\[[^\]]*\]\(([^)]+)\)/g;
   while ((m = mdImgRe.exec(scope)) !== null) {
-    const link = (m[1] || "").trim();
+    const link = normalizeLink((m[1] || "").trim());
     if (!link) continue;
     if (/^https?:\/\//i.test(link)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
@@ -97,8 +171,7 @@ async function ensureCoverFromPasteAnchor() {
       });
       return;
     }
-    const dest = app.metadataCache.getFirstLinkpathDest(link, cur?.file?.path || "");
-    const p = dest?.path || link;
+    const p = resolveToVaultPath(link);
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (!fm["封面/cover"] && !fm["cover"]) {
@@ -146,7 +219,6 @@ async function ensureCoverFromPasteAnchor() {
 
 <!--PA_COVER_SOURCE-->
 
-![](<assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png>)/课程理论模版%20(Concept%20Template)-20251225204421814.png)
 （在此粘贴主图表/截图）
 
 # 📺 1. 课程概览 (Module Overview)
