@@ -44,26 +44,37 @@ module.exports = async (dv, app) => {
   // 读取文件内容
   const content = await app.vault.read(tFile);
   
-  // 查找"图表/封面预览"章节下的图片
+  // 查找"图表/封面预览"章节下的图片（从 ## 📸 到下一个 ##）
   const sectionMatch = content.match(/##\s*📸\s*图表\/封面预览[\s\S]*?(?=##|$)/);
   let detectedImages = [];
   
   if (sectionMatch) {
     const sectionContent = sectionMatch[0];
-    // 匹配 Markdown 图片格式: ![alt](path)
-    const mdImageRegex = /!\[.*?\]\((.*?)\)/g;
+    
+    // 匹配 Markdown 图片格式: ![alt](path) 或 ![alt](<path>)
+    const mdImageRegex = /!\[.*?\]\(<?([^)>]+)>?\)/g;
     let match;
     while ((match = mdImageRegex.exec(sectionContent)) !== null) {
       if (match[1]) {
-        detectedImages.push(match[1].trim());
+        let imgPath = match[1].trim();
+        // 移除可能的 < > 包裹
+        imgPath = imgPath.replace(/^<|>$/g, '');
+        // 跳过 dataviewjs 代码块
+        if (!imgPath.includes('dataviewjs') && !imgPath.includes('const ')) {
+          detectedImages.push(imgPath);
+        }
       }
     }
     
     // 匹配 Wiki 图片格式: ![[path]]
-    const wikiImageRegex = /!\[\[(.*?)\]\]/g;
+    const wikiImageRegex = /!\[\[([^\]]+)\]\]/g;
     while ((match = wikiImageRegex.exec(sectionContent)) !== null) {
       if (match[1]) {
-        detectedImages.push(`![[${match[1]}]]`);
+        let imgPath = match[1].trim();
+        // 跳过代码块中的内容
+        if (!imgPath.includes('const ') && !imgPath.includes('require')) {
+          detectedImages.push(`![[${imgPath}]]`);
+        }
       }
     }
   }
@@ -77,8 +88,20 @@ module.exports = async (dv, app) => {
   // 如果检测到新图片且与当前封面不同，自动更新
   if (detectedImages.length > 0) {
     const newCover = detectedImages[0]; // 取第一张图片
+    
+    // 标准化路径进行比较（移除 URL 编码等差异）
+    const normalizePath = (p) => {
+      return decodeURIComponent(p.replace(/^!\[\[/, "").replace(/\]\]$/, "").trim());
+    };
+    
+    const newCoverNorm = normalizePath(newCover);
     const shouldUpdate = currentCovers.length === 0 || 
-                        !currentCovers.some(c => c.includes(newCover) || newCover.includes(c));
+                        !currentCovers.some(c => {
+                          const cNorm = normalizePath(c);
+                          return cNorm === newCoverNorm || 
+                                 cNorm.includes(newCoverNorm) || 
+                                 newCoverNorm.includes(cNorm);
+                        });
     
     if (shouldUpdate) {
       try {
@@ -87,9 +110,10 @@ module.exports = async (dv, app) => {
           frontmatter["封面/cover"] = newCover;
         });
         
-        dv.paragraph(`✅ **封面已自动更新**: \`${newCover}\``);
+        dv.paragraph(`✅ **封面已自动更新**: \`${newCover.substring(0, 50)}...\``);
       } catch (error) {
         console.error("更新封面失败:", error);
+        dv.paragraph(`❌ 更新失败: ${error.message}`);
       }
     }
   }

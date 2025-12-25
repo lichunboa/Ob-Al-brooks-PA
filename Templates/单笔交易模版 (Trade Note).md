@@ -48,8 +48,7 @@ const helperPath = basePath + "/scripts/pa-cover-helper-new.js";
 const helper = require(helperPath);
 await helper(dv, app);
 ```
-
-![](<assets/单笔交易模版%20(Trade%20Note)/单笔交易模版%20(Trade%20Note)-20251225224556657.png>)
+![](assets/单笔交易模版%20(Trade%20Note)/单笔交易模版%20(Trade%20Note)-20251225224556657.png)
 
 ## 🧭 1) 市场背景（Context）
 
