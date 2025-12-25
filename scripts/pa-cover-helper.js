@@ -114,8 +114,8 @@ module.exports = async (dv, app) => {
     // 匹配 Markdown Link ![...](...) 或 [...](...)
     const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
     while ((m = mdImgRe.exec(scope)) !== null) {
-      let link = (m[1] || "").trim();
-      link = cleanLink(link); // Clean the link (remove <>, decode %20)
+      let rawLink = (m[1] || "").trim();
+      let link = cleanLink(rawLink); // Clean the link (remove <>, decode %20)
       
       if (!link) continue;
 
@@ -125,13 +125,15 @@ module.exports = async (dv, app) => {
         return true;
       }
 
-      // 尝试解析本地文件
-      // 1. 标准解析
-      let dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
+      // 尝试解析本地文件（使用解码后的路径）
+      let dest = null;
       
-      // 2. 如果没找到，尝试作为相对路径直接查找 (针对 assets/xxx 这种情况)
+      // 1. 标准解析（Obsidian API 会自动处理相对路径）
+      dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
+      
+      // 2. 如果没找到，尝试作为相对于当前文件的路径
       if (!dest) {
-          const parentPath = cur.file.folder || ""; // 当前文件所在目录
+          const parentPath = cur.file.parent?.path || ""; // 当前文件所在目录
           const possiblePath = parentPath ? `${parentPath}/${link}` : link;
           const f = app.vault.getAbstractFileByPath(possiblePath);
           if (f && f.path) dest = f;
@@ -143,13 +145,15 @@ module.exports = async (dv, app) => {
           if (f && f.path) dest = f;
       }
 
+      // 如果找到文件且是图片，写入 frontmatter
       if (dest && isImagePath(dest.path)) {
-        // 找到了确切的文件，使用完整路径写入，避免歧义
         await tryUpdate(`![[${dest.path}]]`);
         return true;
       } else if (isImagePath(link)) {
-        // 没找到文件对象，但看起来像图片路径，直接写入原始路径
-        await tryUpdate(`![[${link}]]`);
+        // 没找到文件对象但看起来像图片，尝试构建完整路径
+        const parentPath = cur.file.parent?.path || "";
+        const possiblePath = parentPath ? `${parentPath}/${link}` : link;
+        await tryUpdate(`![[${possiblePath}]]`);
         return true;
       }
     }
@@ -182,9 +186,19 @@ module.exports = async (dv, app) => {
         const links = [];
         let m;
         const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
-        while ((m = mdImgRe.exec(scope)) !== null) links.push(m[1]);
+        while ((m = mdImgRe.exec(scope)) !== null) {
+            const rawLink = m[1];
+            const decodedLink = cleanLink(rawLink);
+            links.push({ raw: rawLink, decoded: decodedLink });
+        }
         if (links.length > 0) {
-            dv.paragraph(`🔍 扫描到潜在图片链接: ${links.map(l => '`'+l+'`').join(', ')} (但未能自动匹配，请检查路径)`);
+            dv.paragraph(`🔍 调试信息：`);
+            for (const link of links) {
+                const parentPath = cur.file.parent?.path || "";
+                const testPath = parentPath ? `${parentPath}/${link.decoded}` : link.decoded;
+                const testFile = app.vault.getAbstractFileByPath(testPath);
+                dv.paragraph(`- 原始: \`${link.raw}\`<br>- 解码: \`${link.decoded}\`<br>- 测试路径: \`${testPath}\`<br>- 找到文件: ${testFile ? '✅ ' + testFile.path : '❌'}`);
+            }
         }
     }
     return;
