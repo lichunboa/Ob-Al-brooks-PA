@@ -71,7 +71,7 @@ if (window.paData) {
     return linkpath;
   };
 
-  // 核心修复: 完整的图片渲染函数，支持 ![[...]] 和 ![](...)  
+  // 核心修复: 完整的图片渲染函数，支持 ![[...]] 和 ![](...)
   function renderCard(n) {
     let rawCover = n.cover; // Engine 已经提取了 cover 属性
     if (!rawCover || rawCover === "Unknown") return "";

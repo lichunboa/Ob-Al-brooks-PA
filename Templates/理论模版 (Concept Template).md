@@ -65,23 +65,23 @@ const resolveToVaultPath = (linkOrPath) => {
   let linkpath = normalizeLink(extractFirstPathLike(linkOrPath));
   if (!linkpath) return "";
   if (/^https?:\/\//i.test(linkpath)) return linkpath;
-  
+
   // 关键：不要去除 ./ 前缀，保留它用于后续拼接
   const hasRelativePrefix = linkpath.startsWith("./");
   linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
 
   const from = cur?.file?.path || "";
-  
+
   // 辅助函数：尝试所有可能的编码/解码变体和路径组合
   const tryResolve = (path) => {
     // 1. 尝试 Obsidian 的 linkpath 解析（最标准）
     const dest = app.metadataCache.getFirstLinkpathDest(path, from);
     if (dest?.path) return dest.path;
-    
+
     // 2. 尝试直接作为 vault 绝对路径
     const f = app.vault.getAbstractFileByPath(path);
     if (f) return path;
-    
+
     // 3. 尝试相对于当前文件所在目录
     const baseDir = dirname(from);
     if (baseDir) {
@@ -91,21 +91,21 @@ const resolveToVaultPath = (linkOrPath) => {
       const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
       if (dest2?.path) return dest2.path;
     }
-    
+
     return null;
   };
-  
+
   // 先尝试原始路径（已去除 ./ 前缀）
   let result = tryResolve(linkpath);
   if (result) return result;
-  
+
   // 再尝试解码版本（处理 %20 等）
   const decoded = safeDecode(linkpath);
   if (decoded !== linkpath) {
     result = tryResolve(decoded);
     if (result) return result;
   }
-  
+
   // 再尝试编码版本（如果原始是解码的）
   try {
     const encoded = encodeURIComponent(linkpath).replace(/%2F/g, "/");
@@ -114,7 +114,7 @@ const resolveToVaultPath = (linkOrPath) => {
       if (result) return result;
     }
   } catch {}
-  
+
   // 如果都失败，返回原始路径（让调用者决定如何处理）
   return linkpath;
 };
@@ -239,7 +239,7 @@ async function ensureCoverFromPasteAnchor() {
   }
 
   const p = covers[0];
-  
+
   // 调试信息：显示解析过程
   const debugInfo = `
     <div style="font-size:0.7em; opacity:0.6; margin:4px 0; padding:4px; background:rgba(255,0,0,0.1); border-radius:4px;">
@@ -250,7 +250,7 @@ async function ensureCoverFromPasteAnchor() {
       文件存在: ${app.vault.getAbstractFileByPath(p) ? "✅ 是" : "❌ 否"}
     </div>
   `;
-  
+
   const f = app.vault.getAbstractFileByPath(p);
   if (!f) {
     dv.el("div", "").innerHTML = debugInfo + `<div style="color:#ff6b6b;">⚠️ 找不到封面文件：${p}</div>`;
@@ -270,8 +270,8 @@ async function ensureCoverFromPasteAnchor() {
 ```
 
 <!--PA_COVER_SOURCE-->
-![](assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225221138196.png)/理论模版%20(Concept%20Template)-20251225221138196.png)
 
+![](<assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225222057980.png>)/理论模版%20(Concept%20Template)-20251225222057980.png)
 
 # 📺 1. 课程概览 (Module Overview)
 
