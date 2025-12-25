@@ -19,10 +19,10 @@ date:
 观察到的形态/patterns_observed:
   - 20均线缺口 (20 EMA Gap)
 信号K/signal_bar_quality:
-  - 内包线 (ii or ioi)
+  - 内包K线 (Inside Bar)
   - 强阳收盘 (Strong Bull Close)
   - 强阴收盘 (Strong Bear Close)
-  - 弱势/长影线 (Weak Tail)
+  - 弱势/长影线 (Weak / Tail)
   - 十字星 (Doji)
 订单类型/order_type:
 入场/entry_price:
