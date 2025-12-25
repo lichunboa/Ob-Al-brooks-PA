@@ -186,13 +186,26 @@ module.exports = async (dv, app) => {
     }
     
     // 情况2: 不带尖括号的路径 ![...](...)
-    const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
-    while ((m = mdImgRe.exec(scope)) !== null) {
-      let rawLink = (m[1] || "").trim();
-      // 跳过已经处理过的尖括号路径
-      if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
+    // 手动查找以处理路径中包含括号的情况
+    const plainPattern = /!?\[[^\]]*\]\(/g;
+    let match;
+    while ((match = plainPattern.exec(scope)) !== null) {
+      const startIdx = match.index + match[0].length;
+      // 从这个位置开始查找匹配的 )
+      let depth = 1;
+      let endIdx = startIdx;
+      while (endIdx < scope.length && depth > 0) {
+        if (scope[endIdx] === '(') depth++;
+        else if (scope[endIdx] === ')') depth--;
+        if (depth > 0) endIdx++;
+      }
       
-      let link = cleanLink(rawLink);
+      if (depth === 0) {
+        let rawLink = scope.substring(startIdx, endIdx).trim();
+        // 跳过已经处理过的尖括号路径
+        if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
+        
+        let link = cleanLink(rawLink);
       
       console.log("[PA Cover] 找到 Markdown 图片链接:", { rawLink, link });
       
@@ -294,23 +307,35 @@ module.exports = async (dv, app) => {
             });
         }
         
-        // 匹配不带尖括号的
-        const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
-        while ((m = mdImgRe.exec(scope)) !== null) {
-            const rawLink = m[1].trim();
-            if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
-            const decoded = cleanLink(rawLink);
-            const parentPath = cur.file.parent?.path || "";
-            const fullPath = parentPath ? `${parentPath}/${decoded}` : decoded;
-            const fileObj = app.vault.getAbstractFileByPath(fullPath);
+        // 匹配不带尖括号的（手动括号匹配）
+        const plainPattern = /!?\[[^\]]*\]\(/g;
+        let match;
+        while ((match = plainPattern.exec(scope)) !== null) {
+            const startIdx = match.index + match[0].length;
+            let depth = 1;
+            let endIdx = startIdx;
+            while (endIdx < scope.length && depth > 0) {
+                if (scope[endIdx] === '(') depth++;
+                else if (scope[endIdx] === ')') depth--;
+                if (depth > 0) endIdx++;
+            }
             
-            foundLinks.push({
-                type: '普通',
-                raw: rawLink,
-                decoded: decoded,
-                fullPath: fullPath,
-                exists: fileObj ? '✅ ' + fileObj.path : '❌ 未找到'
-            });
+            if (depth === 0) {
+                const rawLink = scope.substring(startIdx, endIdx).trim();
+                if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
+                const decoded = cleanLink(rawLink);
+                const parentPath = cur.file.parent?.path || "";
+                const fullPath = parentPath ? `${parentPath}/${decoded}` : decoded;
+                const fileObj = app.vault.getAbstractFileByPath(fullPath);
+                
+                foundLinks.push({
+                    type: '普通',
+                    raw: rawLink,
+                    decoded: decoded,
+                    fullPath: fullPath,
+                    exists: fileObj ? '✅ ' + fileObj.path : '❌ 未找到'
+                });
+            }
         }
         
         if (foundLinks.length > 0) {
