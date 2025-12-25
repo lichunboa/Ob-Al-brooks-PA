@@ -19,10 +19,9 @@ window.__paBuilding = true;
 const forceReload = window.paForceReload === true;
 window.paForceReload = false;
 
-// 记录/恢复当前活动页面的滚动位置，避免 Dataview 刷新导致页面“跳一下回到顶部”
-const paGetActiveScrollerEl = () => {
+// 记录/恢复指定 leaf 的滚动位置，避免 Dataview 刷新导致页面“跳一下回到顶部”
+const paGetScrollerElForLeaf = (leaf) => {
   try {
-    const leaf = app?.workspace?.activeLeaf;
     const root = leaf?.view?.contentEl || leaf?.view?.containerEl;
     if (!root?.querySelector) return null;
 
@@ -48,10 +47,12 @@ const paGetActiveScrollerEl = () => {
 
 const paCaptureScrollState = () => {
   try {
-    const filePath = app?.workspace?.getActiveFile?.()?.path || "";
-    const scroller = paGetActiveScrollerEl();
+    const leaf = app?.workspace?.activeLeaf;
+    const filePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
+    const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return null;
     return {
+      leaf,
       filePath,
       scrollTop: scroller.scrollTop,
       scrollLeft: scroller.scrollLeft,
@@ -65,6 +66,15 @@ const paCaptureScrollState = () => {
 const paStartScrollLock = (state, opts = {}) => {
   try {
     if (!state) return () => {};
+
+    // 多次刷新叠加会互相“抢滚动”，导致偶发跳到很远；新锁先停旧锁
+    try {
+      if (typeof window.__paScrollLockStop === "function") {
+        window.__paScrollLockStop();
+      }
+    } catch (e) {
+      // ignore
+    }
 
     const maxMs = Number(
       opts.maxMs ?? cfg?.settings?.preserveScrollLockMs ?? 1800
@@ -84,7 +94,7 @@ const paStartScrollLock = (state, opts = {}) => {
       }
 
       // Dataview 刷新可能重建 DOM，必须每帧重新取 scroller
-      const scroller = paGetActiveScrollerEl();
+      const scroller = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
       if (scroller) {
         // 强制回到目标位置，减少可见跳动
         if (Math.abs(scroller.scrollTop - state.scrollTop) > 1) {
@@ -99,16 +109,18 @@ const paStartScrollLock = (state, opts = {}) => {
     };
 
     // 先立即设置一次，尽量避免第一帧闪跳
-    const scroller0 = paGetActiveScrollerEl();
+    const scroller0 = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
     if (scroller0) {
       scroller0.scrollTop = state.scrollTop;
       scroller0.scrollLeft = state.scrollLeft;
     }
 
     requestAnimationFrame(enforce);
-    return () => {
+    const stop = () => {
       active = false;
     };
+    window.__paScrollLockStop = stop;
+    return stop;
   } catch (e) {
     return () => {};
   }
@@ -117,9 +129,10 @@ const paStartScrollLock = (state, opts = {}) => {
 const paRestoreScrollState = (state) => {
   try {
     if (!state) return false;
-    const activePath = app?.workspace?.getActiveFile?.()?.path || "";
+    const leaf = state.leaf || app?.workspace?.activeLeaf;
+    const activePath = leaf?.view?.file?.path || app?.workspace?.getActiveFile?.()?.path || "";
     if (state.filePath && activePath && state.filePath !== activePath) return false;
-    const scroller = paGetActiveScrollerEl();
+    const scroller = paGetScrollerElForLeaf(leaf);
     if (!scroller) return false;
     scroller.scrollTop = state.scrollTop;
     scroller.scrollLeft = state.scrollLeft;
@@ -228,7 +241,11 @@ if (!window.__paAutoRefreshInstalled) {
     if (timer) clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
-        await window.paRefreshViews?.({ hard });
+        // 自动刷新时：只有当你正在控制台页面上，才保留/锁定滚动。
+        // 否则会影响你正在编辑的其它笔记（造成“跳到不知道哪里”）。
+        const activePath = app?.workspace?.getActiveFile?.()?.path || "";
+        const isConsole = activePath === "🦁 交易员控制台 (Trader Command)5.0.md";
+        await window.paRefreshViews?.({ hard, preserveScroll: isConsole });
       } catch (e) {
         // ignore
       }
