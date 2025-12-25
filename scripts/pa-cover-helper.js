@@ -129,7 +129,8 @@ module.exports = async (dv, app) => {
     }
 
     // 匹配 Markdown Link ![...](...) 或 [...](...)
-    const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
+    // 支持带尖括号的路径：![...](< path >) 以及普通路径：![...]( path )
+    const mdImgRe = /!?\[[^\]]*\]\(<?([^>)]+)>?\)/g;
     while ((m = mdImgRe.exec(scope)) !== null) {
       let rawLink = (m[1] || "").trim();
       let link = cleanLink(rawLink); // Clean the link (remove <>, decode %20)
@@ -213,7 +214,7 @@ module.exports = async (dv, app) => {
     if (idx !== -1) {
         const after = md.slice(idx + anchor.length);
         const scope = after.split(/\n#{1,6}\s/)[0] || after;
-        const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
+        const mdImgRe = /!?\[[^\]]*\]\(<?([^>)]+)>?\)/g;
         let m;
         let foundLinks = [];
         
