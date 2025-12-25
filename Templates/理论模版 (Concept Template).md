@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[](assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-20251225222057980.png)"
+封面/cover: "[[Templates/assets/理论模版 (Concept Template)/理论模版 (Concept Template)-20251225222057980.png]]"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -16,127 +16,7 @@ aliases:
 
 # ✅ 课程快照（项目联动）
 
-## 📸 图表/封面预览（自动）
 
-（`封面/cover` 为空时，会从锚点下第一张图自动写入）
-
-```dataviewjs
-// ========== 简化重写：封面自动写入与预览 ==========
-const cur = dv.current();
-const currentFile = app.vault.getAbstractFileByPath(cur?.file?.path);
-if (!currentFile) { dv.paragraph("❌ 无法获取当前文件"); return; }
-
-// 工具函数：URL 解码
-const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
-
-// 工具函数：提取图片路径（关键：保留 %20 不解码）
-const extractImagePath = (text) => {
-  // 匹配 ![[xxx]], [[xxx]]
-  let m = text.match(/!?\[\[([^\]]+?)\]\]/);
-  if (m) return m[1].split("|")[0].trim();
-  
-  // 匹配 ![](xxx), [](xxx), ![](<xxx>), [](<xxx>) - 保留 %20
-  m = text.match(/!?\[[^\]]*\]\(<?([^)>]+)>?\)/);
-  if (m) {
-    let path = m[1].trim();
-    // 去除尖括号，但保留 %20
-    return path.replace(/^<|>$/g, "");
-  }
-  
-  return null;
-};
-
-// 工具函数：解析路径为 vault 完整路径（保留 %20）
-const resolvePath = (path) => {
-  if (!path) return null;
-  if (/^https?:\/\//i.test(path)) return path;
-  
-  path = path.replace(/^\.\//, ""); // 去除 ./ 但保留 %20
-  
-  const currentDir = cur.file.path.substring(0, cur.file.path.lastIndexOf("/"));
-  
-  // 尝试顺序：1) 相对当前目录 2) vault根目录
-  const candidates = [
-    `${currentDir}/${path}`,
-    path,
-  ];
-  
-  for (const candidate of candidates) {
-    // 用 Obsidian API 查找（会自动处理 %20）
-    const resolved = app.metadataCache.getFirstLinkpathDest(candidate, cur.file.path);
-    if (resolved) return candidate; // 返回带 %20 的路径
-  }
-  
-  return path; // 找不到就返回原路径（带 %20）
-};
-
-// ========== 步骤1：自动从锚点下提取并写入封面 ==========
-const currentCover = cur["封面/cover"] || cur["cover"];
-const isCoverEmpty = !currentCover || currentCover.toString().trim() === "";
-
-if (isCoverEmpty) {
-  const content = await app.vault.read(currentFile);
-  const anchorIndex = content.indexOf("<!--PA_COVER_SOURCE-->");
-
-  if (anchorIndex !== -1) {
-    const afterAnchor = content.slice(anchorIndex + 23); // 23 = anchor length
-    const beforeNextHeading = afterAnchor.split(/\n#{1,6}\s/)[0];
-
-    const imagePath = extractImagePath(beforeNextHeading);
-    if (imagePath) {
-      const resolved = resolvePath(imagePath);
-      if (resolved && /\.(png|jpe?g|gif|webp|svg)$/i.test(resolved)) {
-        await app.fileManager.processFrontMatter(currentFile, (fm) => {
-          fm["封面/cover"] = `[[${resolved}]]`; // 使用标准 wikilink 格式
-        });
-        dv.paragraph("✅ 已自动写入封面，刷新后显示");
-        return;
-      }
-    }
-  }
-}
-
-// ========== 步骤2：显示封面预览 ==========
-const coverValue = cur["封面/cover"] || cur["cover"];
-if (!coverValue || coverValue.toString().trim() === "") {
-  dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入）");
-  return;
-}
-
-// 提取路径（保留 %20）
-const coverPath = extractImagePath(coverValue.toString()) || coverValue.toString();
-
-// 用 Obsidian API 解析（自动处理 %20）
-const resolved = app.metadataCache.getFirstLinkpathDest(coverPath, cur.file.path);
-
-if (!resolved) {
-  dv.el("div", "").innerHTML = `
-    <div style="color:#ff6b6b; font-size:0.9em;">
-      ⚠️ 找不到封面文件<br/>
-      <span style="font-size:0.75em; opacity:0.7;">
-        原始值: ${coverValue}<br/>
-        提取路径: ${coverPath}<br/>
-        当前文件: ${cur.file.path}
-      </span>
-    </div>
-  `;
-  return;
-}
-
-// 显示图片
-dv.el("div", "", {
-  attr: {
-    style: "margin:8px 0; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);"
-  }
-}).innerHTML = `
-  <div style="font-size:0.75em; opacity:0.7; margin-bottom:6px;">📍 ${resolved.path}</div>
-  <img src="${app.vault.getResourcePath(resolved)}"
-       style="max-width:100%; height:auto; display:block; border-radius:6px;" />
-`;
-```
-
-<!--PA_COVER_SOURCE-->
-![](assets/理论模版%20(Concept%20Template)/理论模版%20(Concept%20Template)-202512252220579801.png)
 
 
 # 📺 1. 课程概览 (Module Overview)
