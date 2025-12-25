@@ -57,7 +57,7 @@ fields:
   - name: patterns_observed
     type: MultiSelect
     options:
-      - 20EMA缺口 (20 EMA Gap)
+      - 20均线缺口 (20 EMA Gap)
       - 第一均线缺口 (First MA Gap)
       - 收线追进 (Trend Bar Entry)
       - 楔形顶底 (Wedge Top/Bottom)
