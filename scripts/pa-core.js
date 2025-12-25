@@ -112,6 +112,17 @@ if (!window.__paAutoRefreshInstalled) {
 
   window.paMarkDirty = (reason = "modify", path = "") => {
     window.paDirty = true;
+
+    // 细分：只让受影响的子缓存失效（避免无谓重算）
+    try {
+      const p = (path || "").toString();
+      if (p.startsWith("Daily/") || p.includes("/Daily/")) {
+        window.paDirtyDaily = true;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     // 轻量刷新优先；真正需要全量强刷时依旧可以点 ↻ 数据
     scheduleRefresh(false);
   };
@@ -898,6 +909,8 @@ try {
   // 优先复用缓存，缺失/强刷才重建
   const canReuseDaily =
     !forceReload &&
+    !dirty &&
+    window.paDirtyDaily !== true &&
     window.paData &&
     window.paData.daily &&
     window.paData.daily.journalsByDate;
@@ -972,6 +985,9 @@ try {
       journalsByDate,
       todayJournal: journalsByDate.get(todayStr) || null,
     };
+
+    // 已重建日记上下文，清理脏标记
+    window.paDirtyDaily = false;
   }
 } catch (e) {
   // ignore
