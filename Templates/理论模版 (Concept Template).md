@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[](assets/理论模版%20(Concept%20Template)/截屏2025-12-25%2021.47.45.png)"
+封面/cover: "[[Templates/assets/理论模版 (Concept Template)/截屏2025-12-25 21.47.45.png]]"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -134,8 +134,13 @@ const isBlankCoverValue = (v) => {
 
 const unwrapWiki = (s) => {
   let t = (s || "").toString().trim();
-  t = t.replace(/^!\[\[/, "").replace(/\]\]$/, "");
-  if (t.startsWith("[[") && t.endsWith("]]")) t = t.slice(2, -2);
+  // 先去除外层的 ![[...]] 或 [[...]]
+  if (t.startsWith("![[") && t.endsWith("]]")) {
+    t = t.slice(3, -2);
+  } else if (t.startsWith("[[") && t.endsWith("]]")) {
+    t = t.slice(2, -2);
+  }
+  // 去除 wikilink 的显示文本部分（|后面的）
   t = t.split("|")[0].trim();
   return t;
 };
