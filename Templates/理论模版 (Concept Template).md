@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover:
+封面/cover: "[](assets/理论模版%20(Concept%20Template)/截屏2025-12-25%2021.47.45.png)"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -68,20 +68,46 @@ const resolveToVaultPath = (linkOrPath) => {
   linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
 
   const from = cur?.file?.path || "";
-  const dest1 = app.metadataCache.getFirstLinkpathDest(linkpath, from);
-  if (dest1?.path) return dest1.path;
-
-  const baseDir = dirname(from);
-  if (baseDir) {
-    const candidate = `${baseDir}/${linkpath}`.replace(/\/+/g, "/");
-    const f1 = app.vault.getAbstractFileByPath(candidate);
-    if (f1) return candidate;
-    const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
-    if (dest2?.path) return dest2.path;
+  
+  // 辅助函数：尝试所有可能的编码/解码变体
+  const tryResolve = (path) => {
+    const dest = app.metadataCache.getFirstLinkpathDest(path, from);
+    if (dest?.path) return dest.path;
+    
+    const f = app.vault.getAbstractFileByPath(path);
+    if (f) return path;
+    
+    const baseDir = dirname(from);
+    if (baseDir) {
+      const candidate = `${baseDir}/${path}`.replace(/\/+/g, "/");
+      const f1 = app.vault.getAbstractFileByPath(candidate);
+      if (f1) return candidate;
+      const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
+      if (dest2?.path) return dest2.path;
+    }
+    return null;
+  };
+  
+  // 先尝试原始路径
+  let result = tryResolve(linkpath);
+  if (result) return result;
+  
+  // 再尝试解码版本（如果不同）
+  const decoded = safeDecode(linkpath);
+  if (decoded !== linkpath) {
+    result = tryResolve(decoded);
+    if (result) return result;
   }
-
-  const f2 = app.vault.getAbstractFileByPath(linkpath);
-  if (f2) return linkpath;
+  
+  // 再尝试编码版本（如果原始是解码的）
+  try {
+    const encoded = encodeURIComponent(linkpath).replace(/%2F/g, "/");
+    if (encoded !== linkpath && encoded !== decoded) {
+      result = tryResolve(encoded);
+      if (result) return result;
+    }
+  } catch {}
+  
   return linkpath;
 };
 
@@ -147,7 +173,9 @@ async function ensureCoverFromPasteAnchor() {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
           // YAML 中以 `!` 开头可能被解析为 tag，导致属性读取异常；用 [[...]] 更稳
-          fm["封面/cover"] = `[[${p}]]`;
+          // 关键：写入前解码 %20 等编码，避免后续读取失败
+          const decodedPath = safeDecode(p);
+          fm["封面/cover"] = `[[${decodedPath}]]`;
         }
       });
       return;
@@ -172,7 +200,9 @@ async function ensureCoverFromPasteAnchor() {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
           // 优先保留 wikilink 格式以兼容现有系统（但不要用 ![[...]]，避免 YAML tag）
-          fm["封面/cover"] = `[[${p}]]`;
+          // 关键：写入前解码 %20 等编码，避免后续读取失败
+          const decodedPath = safeDecode(p);
+          fm["封面/cover"] = `[[${decodedPath}]]`;
         }
       });
       return;
