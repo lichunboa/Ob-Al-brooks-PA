@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "![[Pasted_Img_02.png]]"
+封面/cover: "[](assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png)/课程理论模版%20(Concept%20Template)-20251225204421814.png)"
 module_id:
 studied: false
 关联知识/associated knowledge:
