@@ -7,8 +7,7 @@ date: 2025-12-17
 账户类型/account_type:
 市场周期/market_cycle:
   - 交易区间 (Trading Range)
-复盘深度/review_depth:
-  - 1-快速回顾 (Quick)
+复盘深度/review_depth: 1-快速回顾 (Quick)
 封面/cover:
 ---
 

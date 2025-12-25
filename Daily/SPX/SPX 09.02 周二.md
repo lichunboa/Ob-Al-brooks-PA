@@ -3,23 +3,16 @@ categories: 交易日记
 tags:
   - PA/Trade
 date: 2025-12-17
-品种/ticker:
-  - ES (标普)
-账户类型/account_type:
-  - 模拟 (Demo)
-方向/direction:
-  - 做多 (Long)
-设置类别/setup_category:
-  - 趋势突破 (Trend Breakout)
-结果/outcome:
-  - 止盈 (Win)
+品种/ticker: ES (标普)
+账户类型/account_type: 模拟 (Demo)
+方向/direction: 做多 (Long)
+设置类别/setup_category: 趋势突破 (Trend Breakout)
+结果/outcome: 止盈 (Win)
 净利润/net_profit: 20
-订单类型/order_type:
-  - 突破入场 (Stop Entry)
+订单类型/order_type: 突破入场 (Stop Entry)
 信号K/signal_bar_quality:
   - 强阳收盘 (Strong Bull Close)
-执行评价/execution_quality:
-  - 🔴 追涨杀跌 (FOMO)
+执行评价/execution_quality: 🔴 追涨杀跌 (FOMO)
 封面/cover: "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]"
 banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
 市场周期/market_cycle:
@@ -29,10 +22,8 @@ banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
 止损/stop_loss: 10
 目标位/take_profit: 16
 时间周期/timeframe: 5m
-交易方程/trader_equation:
-  - 波段 (Swing)
-策略名称/strategy_name:
-  - 收线追进 (Buy/Sell NOW)
+交易方程/trader_equation: 波段 (Swing)
+策略名称/strategy_name: 收线追进 (Buy/Sell NOW)
 ---
 
 # 📸 1. 现场图表 (Chart)

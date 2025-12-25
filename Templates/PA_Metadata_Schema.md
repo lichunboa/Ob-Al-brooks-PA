@@ -46,7 +46,7 @@ fields:
       - 趋势反转 (Reversal)
       - 区间逆势 (TR Fade)
   - name: signal_bar_quality
-    type: Select
+    type: MultiSelect
     options:
       - 强阳收盘 (Strong Bull Close)
       - 强阴收盘 (Strong Bear Close)
