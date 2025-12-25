@@ -129,11 +129,70 @@ module.exports = async (dv, app) => {
     }
 
     // 匹配 Markdown Link ![...](...) 或 [...](...)
-    // 支持带尖括号的路径：![...](< path >) 以及普通路径：![...]( path )
-    const mdImgRe = /!?\[[^\]]*\]\(<?([^>)]+)>?\)/g;
+    // 分两种情况：1) 带尖括号 <path> 2) 不带尖括号
+    let m;
+    
+    // 情况1: 带尖括号的路径 ![...](<...>)
+    const mdImgReAngled = /!?\[[^\]]*\]\(<([^>]+)>\)/g;
+    while ((m = mdImgReAngled.exec(scope)) !== null) {
+      let rawLink = (m[1] || "").trim();
+      let link = cleanLink(rawLink);
+      
+      console.log("[PA Cover] 找到带尖括号的 Markdown 图片链接:", { rawLink, link });
+      
+      if (!link) continue;
+
+      // http 链接
+      if (/^https?:\/\//i.test(link)) {
+        console.log("[PA Cover] HTTP 链接");
+        await tryUpdate(link);
+        return true;
+      }
+
+      // 尝试解析本地文件
+      let dest = null;
+      
+      dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
+      console.log("[PA Cover] 方法1 (标准API):", dest?.path || "未找到");
+      
+      if (!dest) {
+          const parentPath = cur.file.parent?.path || "";
+          const possiblePath = parentPath ? `${parentPath}/${link}` : link;
+          dest = app.vault.getAbstractFileByPath(possiblePath);
+          console.log("[PA Cover] 方法2 (相对路径):", possiblePath, dest?.path || "未找到");
+      }
+
+      if (!dest) {
+          dest = app.vault.getAbstractFileByPath(link);
+          console.log("[PA Cover] 方法3 (绝对路径):", link, dest?.path || "未找到");
+      }
+
+      if (dest && dest.path && isImagePath(dest.path)) {
+        console.log("[PA Cover] 成功找到图片文件:", dest.path);
+        await tryUpdate(`![[${dest.path}]]`);
+        return true;
+      }
+      
+      if (!dest && isImagePath(link)) {
+        const parentPath = cur.file.parent?.path || "";
+        const testPath = parentPath ? `${parentPath}/${link}` : link;
+        const testFile = app.vault.getAbstractFileByPath(testPath);
+        console.log("[PA Cover] 最后尝试:", testPath, testFile?.path || "未找到");
+        if (testFile && testFile.path) {
+          await tryUpdate(`![[${testFile.path}]]`);
+          return true;
+        }
+      }
+    }
+    
+    // 情况2: 不带尖括号的路径 ![...](...)
+    const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
     while ((m = mdImgRe.exec(scope)) !== null) {
       let rawLink = (m[1] || "").trim();
-      let link = cleanLink(rawLink); // Clean the link (remove <>, decode %20)
+      // 跳过已经处理过的尖括号路径
+      if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
+      
+      let link = cleanLink(rawLink);
       
       console.log("[PA Cover] 找到 Markdown 图片链接:", { rawLink, link });
       
@@ -214,11 +273,12 @@ module.exports = async (dv, app) => {
     if (idx !== -1) {
         const after = md.slice(idx + anchor.length);
         const scope = after.split(/\n#{1,6}\s/)[0] || after;
-        const mdImgRe = /!?\[[^\]]*\]\(<?([^>)]+)>?\)/g;
         let m;
         let foundLinks = [];
         
-        while ((m = mdImgRe.exec(scope)) !== null) {
+        // 匹配带尖括号的
+        const mdImgReAngled = /!?\[[^\]]*\]\(<([^>]+)>\)/g;
+        while ((m = mdImgReAngled.exec(scope)) !== null) {
             const rawLink = m[1].trim();
             const decoded = cleanLink(rawLink);
             const parentPath = cur.file.parent?.path || "";
@@ -226,6 +286,26 @@ module.exports = async (dv, app) => {
             const fileObj = app.vault.getAbstractFileByPath(fullPath);
             
             foundLinks.push({
+                type: '尖括号',
+                raw: rawLink,
+                decoded: decoded,
+                fullPath: fullPath,
+                exists: fileObj ? '✅ ' + fileObj.path : '❌ 未找到'
+            });
+        }
+        
+        // 匹配不带尖括号的
+        const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
+        while ((m = mdImgRe.exec(scope)) !== null) {
+            const rawLink = m[1].trim();
+            if (rawLink.startsWith('<') && rawLink.endsWith('>')) continue;
+            const decoded = cleanLink(rawLink);
+            const parentPath = cur.file.parent?.path || "";
+            const fullPath = parentPath ? `${parentPath}/${decoded}` : decoded;
+            const fileObj = app.vault.getAbstractFileByPath(fullPath);
+            
+            foundLinks.push({
+                type: '普通',
                 raw: rawLink,
                 decoded: decoded,
                 fullPath: fullPath,
@@ -236,6 +316,7 @@ module.exports = async (dv, app) => {
         if (foundLinks.length > 0) {
             dv.paragraph("🔍 **调试信息**：");
             for (const link of foundLinks) {
+                dv.paragraph(`**类型**：${link.type}`);
                 dv.paragraph(`**原始**：\`${link.raw}\``);
                 dv.paragraph(`**解码**：\`${link.decoded}\``);
                 dv.paragraph(`**完整路径**：\`${link.fullPath}\``);
