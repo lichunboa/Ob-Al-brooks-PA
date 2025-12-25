@@ -15,170 +15,118 @@ module.exports = async (dv, app) => {
     return;
   }
 
-  // 辅助函数：数组转换
-  const toArr = (v) => {
-    if (!v) return [];
-    if (Array.isArray(v)) return v;
-    if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
-    return [v];
-  };
-
-  // 辅助函数：字符串转换
-  const asStr = (v) => {
-    if (!v) return "";
-    if (typeof v === "string") return v;
-    if (v?.path) return v.path;
-    return v.toString?.() ?? "";
-  };
-
-  // 辅助函数：解析路径
-  const resolvePath = (p) => {
-    let linkpath = p.replace(/^!\[\[/, "").replace(/\]\]$/, "");
-    if (linkpath.startsWith("[[") && linkpath.endsWith("]]"))
-      linkpath = linkpath.slice(2, -2);
-    linkpath = linkpath.split("|")[0].trim();
-    const dest = app.metadataCache.getFirstLinkpathDest(
-      linkpath,
-      cur.file.path
-    );
-    return dest?.path || linkpath;
-  };
-
   // 读取文件内容
   const content = await app.vault.read(tFile);
   
-  // 查找"图表/封面预览"章节下的图片（从 ## 📸 到下一个 ##）
-  const sectionMatch = content.match(/##\s*📸\s*图表\/封面预览[\s\S]*?(?=##|$)/);
+  // 查找"图表/封面预览"章节下的图片
+  const sectionRegex = /##\s*📸\s*图表\/封面预览([\s\S]*?)(?=##|$)/;
+  const sectionMatch = content.match(sectionRegex);
+  
   let detectedImages = [];
   
-  if (sectionMatch) {
-    const sectionContent = sectionMatch[0];
+  if (sectionMatch && sectionMatch[1]) {
+    const sectionContent = sectionMatch[1];
     
-    // 匹配 Markdown 图片格式: ![alt](path) 或 ![alt](<path>)
-    const mdImageRegex = /!\[.*?\]\(<?([^)>]+)>?\)/g;
+    // 匹配所有 Markdown 图片: ![alt](path) 或 ![alt](<path>)
+    const mdRegex = /!\[[^\]]*\]\(<?([^)>]+)>?\)/g;
     let match;
-    while ((match = mdImageRegex.exec(sectionContent)) !== null) {
-      if (match[1]) {
-        let imgPath = match[1].trim();
-        // 移除可能的 < > 包裹
-        imgPath = imgPath.replace(/^<|>$/g, '');
-        // 跳过 dataviewjs 代码块
-        if (!imgPath.includes('dataviewjs') && !imgPath.includes('const ')) {
-          detectedImages.push(imgPath);
-        }
+    
+    while ((match = mdRegex.exec(sectionContent)) !== null) {
+      let imgPath = match[1].trim();
+      // 跳过代码相关内容
+      if (!imgPath.includes('dataviewjs') && 
+          !imgPath.includes('const ') && 
+          !imgPath.includes('require') &&
+          imgPath.length > 0) {
+        detectedImages.push(imgPath);
       }
     }
     
-    // 匹配 Wiki 图片格式: ![[path]]
-    const wikiImageRegex = /!\[\[([^\]]+)\]\]/g;
-    while ((match = wikiImageRegex.exec(sectionContent)) !== null) {
-      if (match[1]) {
-        let imgPath = match[1].trim();
-        // 跳过代码块中的内容
-        if (!imgPath.includes('const ') && !imgPath.includes('require')) {
-          detectedImages.push(`![[${imgPath}]]`);
-        }
+    // 匹配所有 Wiki 图片: ![[path]]
+    const wikiRegex = /!\[\[([^\]]+)\]\]/g;
+    while ((match = wikiRegex.exec(sectionContent)) !== null) {
+      let imgPath = match[1].trim();
+      if (!imgPath.includes('const ') && !imgPath.includes('require')) {
+        detectedImages.push(`![[${imgPath}]]`);
       }
     }
   }
 
-  // 获取当前 frontmatter 中的封面
+  // 获取当前封面
   const cache = app.metadataCache.getFileCache(tFile);
   const fm = cache?.frontmatter || {};
-  const currentCover = fm["封面/cover"] ?? fm["cover"];
-  const currentCovers = toArr(currentCover).map(asStr).filter(Boolean);
-
-  // 调试信息
-  console.log("检测到的图片:", detectedImages);
-  console.log("当前封面:", currentCovers);
-
-  // 如果检测到新图片且与当前封面不同，自动更新
+  const currentCover = fm["封面/cover"] ?? fm["cover"] ?? "";
+  
+  // 显示检测状态
   if (detectedImages.length > 0) {
-    const newCover = detectedImages[0]; // 取第一张图片
+    const newCover = detectedImages[0];
     
-    // 标准化路径进行比较（移除 URL 编码等差异）
-    const normalizePath = (p) => {
-      return decodeURIComponent(p.replace(/^!\[\[/, "").replace(/\]\]$/, "").trim());
-    };
+    // 检查是否需要更新
+    const needsUpdate = !currentCover || currentCover.length === 0;
     
-    const newCoverNorm = normalizePath(newCover);
-    const shouldUpdate = currentCovers.length === 0 || 
-                        !currentCovers.some(c => {
-                          const cNorm = normalizePath(c);
-                          return cNorm === newCoverNorm || 
-                                 cNorm.includes(newCoverNorm) || 
-                                 newCoverNorm.includes(cNorm);
-                        });
-    
-    console.log("是否需要更新:", shouldUpdate);
-    
-    if (shouldUpdate) {
+    if (needsUpdate) {
       try {
         // 更新 frontmatter
         await app.fileManager.processFrontMatter(tFile, (frontmatter) => {
           frontmatter["封面/cover"] = newCover;
         });
         
-        dv.paragraph(`✅ **封面已自动更新**: \`${newCover.substring(0, 60)}...\``);
+        dv.paragraph(`✅ **封面已自动更新！**`);
+        
+        // 显示封面预览
+        setTimeout(() => {
+          renderCover(dv, app, tFile, newCover);
+        }, 100);
+        
       } catch (error) {
-        console.error("更新封面失败:", error);
         dv.paragraph(`❌ 更新失败: ${error.message}`);
+        console.error("更新封面失败:", error);
       }
     } else {
-      dv.paragraph(`ℹ️ 封面已是最新（无需更新）`);
+      // 已有封面，直接渲染
+      renderCover(dv, app, tFile, currentCover);
     }
   } else {
     dv.paragraph("*(封面未设置。请在下方"图表/封面预览"章节粘贴图片)*");
   }
+};
 
-  // 渲染封面预览
-  // 重新获取最新的 frontmatter（因为可能刚刚更新过）
-  const updatedCache = app.metadataCache.getFileCache(tFile);
-  const updatedFm = updatedCache?.frontmatter || {};
-  const updatedCover = updatedFm["封面/cover"] ?? updatedFm["cover"];
+// 渲染封面预览
+function renderCover(dv, app, tFile, coverPath) {
+  if (!coverPath) return;
   
-  const covers = toArr(updatedCover)
-    .map(asStr)
-    .map(resolvePath)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // 如果刚检测到图片但还未在 frontmatter 中，也显示预览
-  if (covers.length === 0 && detectedImages.length > 0) {
-    const tempPath = detectedImages[0].replace(/^!\[\[/, "").replace(/\]\]$/, "");
-    covers.push(tempPath);
+  // 解析路径
+  let imgPath = coverPath;
+  if (imgPath.startsWith("![[") && imgPath.endsWith("]]")) {
+    imgPath = imgPath.slice(3, -2);
   }
-
-  if (covers.length === 0) {
-    return; // 已经在上面显示了提示信息
+  
+  // 解析相对路径
+  const dest = app.metadataCache.getFirstLinkpathDest(imgPath, tFile.path);
+  let src = imgPath;
+  
+  if (dest) {
+    src = app.vault.getResourcePath(dest);
+  } else if (!/^https?:\/\//.test(imgPath)) {
+    const f = app.vault.getAbstractFileByPath(imgPath);
+    if (f) src = app.vault.getResourcePath(f);
   }
-
+  
   // 加载配置
   let c = { accent: "#22c55e" };
   try {
     const cfg = require(app.vault.adapter.basePath + "/scripts/pa-config.js");
     if (cfg && cfg.colors) Object.assign(c, cfg.colors);
   } catch (e) {}
-
-  // 渲染封面
-  for (const p of covers.slice(0, 1)) {
-    let src = p;
-    if (!/^https?:\/\//.test(p)) {
-      const f = app.vault.getAbstractFileByPath(p);
-      if (f) {
-        src = app.vault.getResourcePath(f);
-      } else {
-        console.warn("找不到图片文件:", p);
-      }
-    }
-
-    dv.el("div", "", {
-      attr: {
-        style: `margin:8px 0;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);border-left:4px solid ${c.accent};`,
-      },
-    }).innerHTML = `
-      <div style="font-size:0.8em;opacity:0.8;margin-bottom:6px;">📸 封面预览</div>
-      <img src="${src}" style="max-width:100%;height:auto;display:block;border-radius:6px;" />
-    `;
-  }
+  
+  // 渲染
+  dv.el("div", "", {
+    attr: {
+      style: `margin:8px 0;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);border-left:4px solid ${c.accent};`,
+    },
+  }).innerHTML = `
+    <div style="font-size:0.8em;opacity:0.8;margin-bottom:6px;">📸 封面预览</div>
+    <img src="${src}" style="max-width:100%;height:auto;display:block;border-radius:6px;" />
+  `;
+}
 };
