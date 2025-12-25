@@ -3,8 +3,173 @@ tags:
 	- PA/Course
 module_id: L11B
 studied: false
+封面/cover:
+关联知识/associated knowledge:
+aliases:
+市场周期/market_cycle: 交易趋势 (Trend)
+设置类别/setup_category: 推动技术/数K线 (Bar Counting)
+概率/probability: P2-中 (Medium)
 来源/source:
+  - http://192.168.66.206:5666/v/video/bddb26cfe5644eb580f0de6a73f8af05
 ---
+
+# ✅ 课程快照（项目联动）
+
+## 📸 图表/封面预览（自动）
+
+（`封面/cover` 为空时，会从锚点下第一张图自动写入）
+
+```dataviewjs
+const cur = dv.current();
+
+const toArr = (v) => {
+	if (!v) return [];
+	if (Array.isArray(v)) return v;
+	if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+	return [v];
+};
+
+const asStr = (v) => {
+	if (!v) return "";
+	if (typeof v === "string") return v;
+	if (v?.path) return v.path;
+	return v.toString?.() ?? "";
+};
+
+const isImagePath = (p) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(p || "");
+
+const unwrapWiki = (s) => {
+	let t = (s || "").toString().trim();
+	t = t.replace(/^!\[\[/, "").replace(/\]\]$/, "");
+	if (t.startsWith("[[") && t.endsWith("]]")) t = t.slice(2, -2);
+	t = t.split("|")[0].trim();
+	return t;
+};
+
+const resolvePath = (p) => {
+	const linkpath = unwrapWiki(p);
+	const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+	return dest?.path || linkpath;
+};
+
+const writeCoverIfMissing = async () => {
+	const rawCover = cur["封面/cover"] ?? cur["cover"];
+	const existing = toArr(rawCover).map(asStr).join(" ").trim();
+	if (existing) return;
+
+	const tFile = app.vault.getAbstractFileByPath(cur?.file?.path);
+	if (!tFile) return;
+
+	const md = await app.vault.read(tFile);
+	const anchor = "<!--PA_COVER_SOURCE-->";
+	const idx = md.indexOf(anchor);
+	if (idx === -1) return;
+
+	const after = md.slice(idx + anchor.length);
+	const scope = after.split(/\n#{1,6}\s/)[0] || after;
+
+	let m;
+	const wikiRe = /!\[\[([^\]]+?)\]\]/g;
+	while ((m = wikiRe.exec(scope)) !== null) {
+		const linkpath = (m[1] || "").split("|")[0].trim();
+		const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+		const p = dest?.path || linkpath;
+		if (isImagePath(p)) {
+			await app.fileManager.processFrontMatter(tFile, (fm) => {
+				if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+					fm["封面/cover"] = `![[${p}]]`;
+				}
+			});
+			return;
+		}
+	}
+};
+
+await writeCoverIfMissing();
+
+const cover = cur["封面/cover"] ?? cur["cover"];
+const coverStr = toArr(cover).map(asStr).join(" ").trim();
+dv.paragraph(coverStr || "（暂无封面：请在下方锚点处粘贴一张图）");
+```
+
+<!--PA_COVER_SOURCE-->
+
+---
+
+# 🧠 1. 概览
+
+- 推动/数K线的共同目标：用“多头/空头互相否决的次数”来量化多空力量对比。
+- 市场惯性：顺势 2–3 推后更容易被逆势方阻断，随后进入回调与再平衡（偶见到 4 推）。
+- 形态质量（匹配度）很关键：推动的间距、K线数量、振幅要“看起来匀称”，更易被机构算法识别并触发共识反应。
+- 数K线是“更小尺度的数推”：在牛旗/区间底部数高点，在熊旗/区间顶部数低点。
+
+# ⚡ 2. 速查表
+
+| 主题 | 规则/要点 | 使用环境 |
+|---|---|---|
+| 推动技术的意义 | 记录多头突破空头次数/空头突破多头次数 | 用于读图、预期管理、止盈/反转判断 |
+| 顺势推的常态 | 2–3 推更常见；第二推结束后更易回调 | 趋势/波段中均适用 |
+| 匹配度三要素 | 间距相近、K线数量相当、振幅比例协调 | 匹配度差的形态更易失效 |
+| 数高点（看涨） | 高1：高点首次抬高；高2：先降后升再抬高 | 牛旗/区间底部 |
+| 数低点（看跌） | 低1：低点首次降低；低2：先升后降再创新低 | 熊旗/区间顶部 |
+| 规模对应 | 高2≈二推回调≈双重底牛旗；高3≈三推回调≈蝎形底牛旗 | 统一用“次数口径”对齐 |
+| 区间提示 | 超过约 20 根K线仍未恢复趋势，可能转为区间 | 需要切换更大级别确认 |
+
+# 🧩 3. 核心知识点
+
+## 3.1 推动技术的“计分板”思维
+
+- 把每次突破/拦阻当成一次“得分/失分”，让读图从“感觉”变成“次数口径”。
+- 第二推结束常出现止盈与观望（AB=CD/等距目标等），这会改变动能结构。
+
+## 3.2 匹配度：为什么“长得像”会更有效
+
+- 形态越接近理想样貌，越容易被算法识别并形成群体反应。
+- 若间距/振幅差异极大，可考虑把多个小推合并成一大推以保持结构匀称。
+
+## 3.3 数K线：高点数法 / 低点数法
+
+- 高点法关键是“先降后升”再抬高；连续抬高不计数。
+- 低点法同理反向：必须“先升后降”再创新低。
+
+# 🎯 4. 交易含义
+
+- 止盈：第二推/第三推附近更容易出现“利润目标汇聚 + 顺势资金止盈”，优先做风控而不是盲目加仓。
+- 预判反转：2–3 推后若未能继续突破，需提高对小型趋势反转/转区间的警惕。
+- 过滤信号：匹配度差的“伪三推”不要硬做；先确保结构可被复述且视觉一致。
+
+# ✅ 5. 小结 (Summary) #task/Summary
+
+- [ ] 我能解释推动/数K线如何量化多空否决次数。
+- [ ] 我能说出顺势 2–3 推的常态，以及第二推后更易回调的原因。
+- [ ] 我能用“匹配度三要素”筛掉质量差的形态。
+- [ ] 我能在看涨环境数高点、在看跌环境数低点，并遵循“先降后升/先升后降”。
+- [ ] 我能把高2/高3与二推/三推形态对应起来用于复盘与预期。
+
+# 🃏 6. Flashcards
+
+#flashcards
+
+---
+推动技术的核心功能是什么？::记录多空互相否决（突破/拦阻）的次数，量化力量对比
+
+---
+匹配度三要素 ↔ 间距 / K线数量 / 振幅::三者越匀称，形态越可能有效
+
+---
+**Q:** 为什么“长得像”（匹配度好）的形态更可靠？
+**A:** 更容易被机构算法识别并形成共识反应，反向订单与预期更集中
+
+---
+高点数法（看涨）里，高2成立的必要条件是{{c1::先降后升}}。
+
+---
+高2回调 ≈ 二推回调 ≈ 双重底牛旗::同一套“次数口径”下的规模对应
+
+---
+
+# 🧾 原始笔记（保留）
+
 [L11B - 数k线的原理与应用](http://192.168.66.206:5666/v/video/bddb26cfe5644eb580f0de6a73f8af05)
 # 一、推动技术 00:02
 ## 1. 推动技术的本质功能
