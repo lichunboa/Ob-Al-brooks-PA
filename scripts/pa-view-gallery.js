@@ -130,7 +130,7 @@ if (window.paData) {
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
         ${
           imgs ||
-          "<div style='opacity:0.5; padding:20px; text-align:center;'>暂无封面图片<br><small>请在 Frontmatter 添加 cover: ![[图片]]</small></div>"
+          "<div style='opacity:0.5; padding:20px; text-align:center;'>暂无封面图片<br><small>请在 Frontmatter 添加 cover: [[图片]] 或 图片路径</small></div>"
         }
     </div>
     <div style="text-align:center; margin-top:12px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
