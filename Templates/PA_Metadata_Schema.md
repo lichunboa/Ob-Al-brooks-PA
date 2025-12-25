@@ -29,23 +29,23 @@ fields:
   - name: always_in
     type: Select
     options:
-      - 总是多头 (AIL)
-      - 总是空头 (AIS)
-      - 中性 (Neutral)
+      - 总是多头 (Always In Long)
+      - 总是空头 (Always In Short)
+      - 中性/不确定 (Neutral)
   - name: day_type
     type: Select
     options:
       - 趋势日 (Trend Day)
-      - 交易区间日 (TRD)
-      - 趋势交易区间日 (TTRD)
-      - 尖峰通道 (Spike & Channel)
+      - 交易区间日/TRD (Trading Range Day)
+      - 趋势交易区间日/TTRD (Trend From Trading Range Day)
+      - 极速与通道 (Spike and Channel)
   - name: management_plan
     type: Select
     options:
-      - Set & Forget
-      - Trailing Stop
-      - Scale In/Out
-      - Scratch / Early Exit
+      - 一次性下单/不管理 (Set & Forget)
+      - 移动止损跟踪 (Trailing)
+      - 分批/加减仓 (Scale)
+      - 平手/止损离场 (Scratch)
   - name: market_cycle
     type: MultiSelect
     options:
