@@ -19,6 +19,45 @@ window.__paBuilding = true;
 const forceReload = window.paForceReload === true;
 window.paForceReload = false;
 
+// 仅在“用户明确在滚动”时才允许更新目标滚动位置，避免 Dataview 重渲染期间的 scroll 事件污染目标位置
+if (!window.__paUserScrollIntentInstalled) {
+  window.__paUserScrollIntentInstalled = true;
+  window.__paUserScrollIntentUntil = 0;
+  const bump = (ms = 350) => {
+    try {
+      window.__paUserScrollIntentUntil = Date.now() + ms;
+    } catch (e) {
+      // ignore
+    }
+  };
+  try {
+    document.addEventListener("wheel", () => bump(500), { passive: true, capture: true });
+    document.addEventListener("touchmove", () => bump(700), { passive: true, capture: true });
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        const k = e?.key;
+        if (
+          k === "ArrowDown" ||
+          k === "ArrowUp" ||
+          k === "PageDown" ||
+          k === "PageUp" ||
+          k === "Home" ||
+          k === "End" ||
+          k === " "
+        ) {
+          bump(700);
+        }
+      },
+      true
+    );
+    // 拖动滚动条/触控板按下也算意图
+    document.addEventListener("pointerdown", () => bump(800), { passive: true, capture: true });
+  } catch (e) {
+    // ignore
+  }
+}
+
 // 记录/恢复指定 leaf 的滚动位置，避免 Dataview 刷新导致页面“跳一下回到顶部”
 const paGetScrollerElForLeaf = (leaf) => {
   try {
@@ -95,6 +134,9 @@ const paStartScrollLock = (state, opts = {}) => {
         const now = Date.now();
         // 忽略我们自己设置 scrollTop 触发的 scroll 事件
         if (now < internalSetUntil) return;
+        // 只在用户明确滚动时更新目标位置，避免渲染导致的 scroll 事件把目标污染成 0 或其它位置
+        const intentUntil = Number(window.__paUserScrollIntentUntil || 0);
+        if (!intentUntil || now > intentUntil) return;
         state.scrollTop = currentScroller.scrollTop;
         state.scrollLeft = currentScroller.scrollLeft;
       } catch (e) {
