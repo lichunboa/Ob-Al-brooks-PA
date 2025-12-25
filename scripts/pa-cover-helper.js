@@ -129,16 +129,22 @@ module.exports = async (dv, app) => {
     }
 
     // 匹配 Markdown Link ![...](...) 或 [...](...)
-    // 分两种情况：1) 带尖括号 <path> 2) 不带尖括号
+    // 使用更宽松的匹配：匹配到图片文件扩展名为止
     let m;
     
-    // 情况1: 带尖括号的路径 ![...](<...>)
-    const mdImgReAngled = /!?\[[^\]]*\]\(<([^>]+)>\)/g;
-    while ((m = mdImgReAngled.exec(scope)) !== null) {
+    // 匹配 ![...](路径.png) 或 ![...](路径.jpg) 等
+    // 匹配任意字符直到遇到图片扩展名+)
+    const imgPattern = /!?\[[^\]]*\]\((.+?\.(?:png|jpg|jpeg|gif|webp|svg))\)/gi;
+    while ((m = imgPattern.exec(scope)) !== null) {
       let rawLink = (m[1] || "").trim();
+      // 移除可能的尖括号
+      if (rawLink.startsWith('<') && rawLink.endsWith('>')) {
+        rawLink = rawLink.slice(1, -1).trim();
+      }
+      
       let link = cleanLink(rawLink);
       
-      console.log("[PA Cover] 找到带尖括号的 Markdown 图片链接:", { rawLink, link });
+      console.log("[PA Cover] 找到图片链接:", { rawLink, link });
       
       if (!link) continue;
 
