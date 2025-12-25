@@ -53,7 +53,8 @@ if (todayJournal && todayJournal.market_cycle) {
   const recommendedStrategies = strategyList
     .filter(
       (s) =>
-        isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle)
+        isActiveStrategy(s.statusRaw) &&
+        cycleMatches(s.marketCycles, currentCycle)
     )
     .slice(0, 6);
 
@@ -80,7 +81,9 @@ if (todayJournal && todayJournal.market_cycle) {
 }
 
 // --- 1. 策略助手逻辑 (Strategy Assistant) ---
-const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
+const activeTrade = todayTrades.find(
+  (t) => !(t.outcome || "").toString().trim()
+);
 let assistantHtml = "";
 
 if (activeTrade) {
@@ -105,7 +108,8 @@ if (activeTrade) {
   }
 
   if (matchedItem) {
-    const sName = matchedItem.canonicalName || matchedItem.displayName || "策略";
+    const sName =
+      matchedItem.canonicalName || matchedItem.displayName || "策略";
     const sEntry = matchedItem.entryCriteria || [];
     const sRisk = matchedItem.riskAlerts || [];
     const sStop = matchedItem.stopLossRecommendation || [];
@@ -146,21 +150,41 @@ if (activeTrade) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       ">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-          <div style="font-weight:700; color:${c.accent};">🤖 策略助手: ${sName}</div>
-          <a href="${matchedItem.file?.path || matchedFilePath}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+          <div style="font-weight:700; color:${
+            c.accent
+          };">🤖 策略助手: ${sName}</div>
+          <a href="${
+            matchedItem.file?.path || matchedFilePath
+          }" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
           <div>
-            <div style="font-size:0.75em; font-weight:600; color:${c.live}; margin-bottom:4px;">✅ 入场条件</div>
-            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
-              ${Array.isArray(sEntry) ? sEntry.map((i) => `<li>${i}</li>`).join("") : `<li>${sEntry}</li>`}
+            <div style="font-size:0.75em; font-weight:600; color:${
+              c.live
+            }; margin-bottom:4px;">✅ 入场条件</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
+              c.text
+            };">
+              ${
+                Array.isArray(sEntry)
+                  ? sEntry.map((i) => `<li>${i}</li>`).join("")
+                  : `<li>${sEntry}</li>`
+              }
             </ul>
           </div>
           <div>
-            <div style="font-size:0.75em; font-weight:600; color:${c.loss}; margin-bottom:4px;">⚠️ 风险提示</div>
-            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
-              ${Array.isArray(sRisk) ? sRisk.map((i) => `<li>${i}</li>`).join("") : `<li>${sRisk}</li>`}
+            <div style="font-size:0.75em; font-weight:600; color:${
+              c.loss
+            }; margin-bottom:4px;">⚠️ 风险提示</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
+              c.text
+            };">
+              ${
+                Array.isArray(sRisk)
+                  ? sRisk.map((i) => `<li>${i}</li>`).join("")
+                  : `<li>${sRisk}</li>`
+              }
             </ul>
           </div>
         </div>
@@ -183,7 +207,8 @@ if (activeTrade) {
       let suggestedStrategies = [];
       for (let s of strategyList) {
         let score = 0;
-        if (marketCycle && cycleMatches(s.marketCycles, marketCycle)) score += 2;
+        if (marketCycle && cycleMatches(s.marketCycles, marketCycle))
+          score += 2;
         if (
           setupCategory &&
           (s.setupCategories || []).some((x) =>
@@ -213,7 +238,9 @@ if (activeTrade) {
             padding: 12px;
             margin-bottom: 16px;
           ">
-            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"}) 的策略建议:</div>
+            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${
+              marketCycle || "未知"
+            }) 的策略建议:</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               ${topSuggestions
                 .map(
@@ -240,7 +267,9 @@ if (activeTrade) {
 
 // --- 2. 统计数据逻辑 ---
 let totalTrades = todayTrades.length;
-let completedTrades = todayTrades.filter((t) => (t.outcome || "").toString().trim()).length;
+let completedTrades = todayTrades.filter((t) =>
+  (t.outcome || "").toString().trim()
+).length;
 let activeTradesCount = totalTrades - completedTrades;
 
 let totalPnL = 0;
@@ -250,20 +279,26 @@ let scratches = 0;
 
 todayTrades.forEach((trade) => {
   let outcome = trade.outcome;
-  let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : (outcome || "").toString();
+  let outcomeStr = Array.isArray(outcome)
+    ? outcome.join(" ")
+    : (outcome || "").toString();
 
   let pnl = Number(trade.pnl) || 0;
 
   // 兼容 "Win" 和 "止盈 (Win)" 两种格式
   if (
     outcomeStr &&
-    (outcomeStr === "Win" || outcomeStr.includes("Win") || outcomeStr.includes("止盈"))
+    (outcomeStr === "Win" ||
+      outcomeStr.includes("Win") ||
+      outcomeStr.includes("止盈"))
   ) {
     wins++;
     totalPnL += pnl;
   } else if (
     outcomeStr &&
-    (outcomeStr === "Loss" || outcomeStr.includes("Loss") || outcomeStr.includes("止损"))
+    (outcomeStr === "Loss" ||
+      outcomeStr.includes("Loss") ||
+      outcomeStr.includes("止损"))
   ) {
     losses++;
     totalPnL += pnl;
@@ -289,7 +324,9 @@ if (todayTrades.length > 0) {
     let ticker = trade.ticker || "";
     let direction = trade.dir || "";
     let outcome = trade.outcome || "进行中";
-    let outcomeStr = Array.isArray(outcome) ? outcome.join(" ") : (outcome || "").toString();
+    let outcomeStr = Array.isArray(outcome)
+      ? outcome.join(" ")
+      : (outcome || "").toString();
 
     let pnl = Number(trade.pnl) || 0;
     let timeframe = trade.tf || "";
