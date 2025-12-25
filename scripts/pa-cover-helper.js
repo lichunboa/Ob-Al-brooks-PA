@@ -125,14 +125,31 @@ module.exports = async (dv, app) => {
         return true;
       }
 
-      // 本地链接
-      const dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
-      // 如果找到了文件，使用文件的完整路径；否则使用原始链接路径
-      const p = dest?.path || link;
+      // 尝试解析本地文件
+      // 1. 标准解析
+      let dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
       
-      if (isImagePath(p)) {
-        // 总是使用 Wiki Link 格式写入，确保兼容性
-        await tryUpdate(`![[${p}]]`);
+      // 2. 如果没找到，尝试作为相对路径直接查找 (针对 assets/xxx 这种情况)
+      if (!dest) {
+          const parentPath = cur.file.folder || ""; // 当前文件所在目录
+          const possiblePath = parentPath ? `${parentPath}/${link}` : link;
+          const f = app.vault.getAbstractFileByPath(possiblePath);
+          if (f && f.path) dest = f;
+      }
+
+      // 3. 尝试绝对路径 (相对于库根目录)
+      if (!dest) {
+          const f = app.vault.getAbstractFileByPath(link);
+          if (f && f.path) dest = f;
+      }
+
+      if (dest && isImagePath(dest.path)) {
+        // 找到了确切的文件，使用完整路径写入，避免歧义
+        await tryUpdate(`![[${dest.path}]]`);
+        return true;
+      } else if (isImagePath(link)) {
+        // 没找到文件对象，但看起来像图片路径，直接写入原始路径
+        await tryUpdate(`![[${link}]]`);
         return true;
       }
     }
@@ -146,7 +163,7 @@ module.exports = async (dv, app) => {
   const cache = app.metadataCache.getFileCache(tFile);
   const fm = cache?.frontmatter || {};
   const raw = fm["封面/cover"] ?? fm["cover"];
-
+  
   const covers = toArr(raw)
     .map(asStr)
     .map(resolvePath)
@@ -154,23 +171,22 @@ module.exports = async (dv, app) => {
     .filter(Boolean);
 
   if (covers.length === 0) {
-    dv.paragraph(
-      "*(封面未设置。请在下方粘贴截图，系统会自动抓取第一张图作为封面)*"
-    );
-    return;
-  }
-
-  // 渲染封面
-  let c = { accent: "#22c55e" }; // 默认绿色
-  try {
-    const basePath = app.vault.adapter.basePath;
-    const cfg = require(basePath + "/scripts/pa-config.js");
-    if (cfg && cfg.colors) Object.assign(c, cfg.colors);
-  } catch (e) {}
-
-  for (const p of covers.slice(0, 1)) {
-    // 只显示第一张
-    let src = p;
+    dv.paragraph("*(封面未设置。请在下方粘贴截图，系统会自动抓取第一张图作为封面)*");
+    // 调试信息：显示扫描到的图片链接（如果有）
+    const md = await app.vault.read(tFile);
+    const anchor = "<!--PA_COVER_SOURCE-->";
+    const idx = md.indexOf(anchor);
+    if (idx !== -1) {
+        const after = md.slice(idx + anchor.length);
+        const scope = after.split(/\n#{1,6}\s/)[0] || after;
+        const links = [];
+        let m;
+        const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
+        while ((m = mdImgRe.exec(scope)) !== null) links.push(m[1]);
+        if (links.length > 0) {
+            dv.paragraph(`🔍 扫描到潜在图片链接: ${links.map(l => '`'+l+'`').join(', ')} (但未能自动匹配，请检查路径)`);
+        }
+    }
     // 如果是本地文件路径，转换为 resource path
     if (!/^https?:\/\//.test(p)) {
       const f = app.vault.getAbstractFileByPath(p);
