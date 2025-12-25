@@ -237,38 +237,6 @@ if (activeTrade) {
     }
   }
 }
-            background: rgba(255,255,255,0.03);
-            border: 1px dashed rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 16px;
-          ">
-            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${
-              marketCycle || "未知"
-            }) 的策略建议:</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              ${topSuggestions
-                .map(
-                  (s) => `
-                <a href="${s.file.path}" class="internal-link" style="
-                  background:rgba(59,130,246,0.1);
-                  color:${c.accent};
-                  padding:4px 8px;
-                  border-radius:4px;
-                  text-decoration:none;
-                  font-size:0.75em;
-                  border:1px solid rgba(59,130,246,0.2);
-                ">${s.name}</a>
-              `
-                )
-                .join("")}
-            </div>
-          </div>
-        `;
-      }
-    }
-  }
-}
 
 // --- 2. 统计数据逻辑 ---
 let totalTrades = todayTrades.length;
