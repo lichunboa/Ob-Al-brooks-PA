@@ -21,252 +21,112 @@ aliases:
 （`封面/cover` 为空时，会从锚点下第一张图自动写入）
 
 ```dataviewjs
+// ========== 简化重写：封面自动写入与预览 ==========
 const cur = dv.current();
+const currentFile = app.vault.getAbstractFileByPath(cur?.file?.path);
+if (!currentFile) { dv.paragraph("❌ 无法获取当前文件"); return; }
 
-const dirname = (p) => {
-  const s = (p || "").toString();
-  const i = s.lastIndexOf("/");
-  return i >= 0 ? s.slice(0, i) : "";
+// 工具函数：URL 解码
+const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
+
+// 工具函数：提取图片路径（支持所有格式）
+const extractImagePath = (text) => {
+  // 匹配 ![[xxx]], [[xxx]], ![](xxx), [](xxx)
+  let m = text.match(/!?\[\[([^\]]+?)\]\]/);
+  if (m) return m[1].split("|")[0].trim();
+
+  m = text.match(/!?\[[^\]]*\]\(<?([^)>]+)>?\)/);
+  if (m) return decode(m[1].trim().replace(/^<|>$/g, ""));
+
+  return null;
 };
 
-const stripAngles = (s) => {
-  const t = (s || "").toString().trim();
-  return t.startsWith("<") && t.endsWith(">") ? t.slice(1, -1).trim() : t;
-};
+// 工具函数：解析路径为 vault 完整路径
+const resolvePath = (path) => {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path; // URL 直接返回
 
-const safeDecode = (s) => {
-  try {
-    return decodeURIComponent((s || "").toString());
-  } catch {
-    return (s || "").toString();
-  }
-};
+  path = decode(path).replace(/^\.\//, ""); // 去除 ./ 并解码
 
-const normalizeLink = (s) => {
-  let t = (s || "").toString().trim();
-  t = t.replace(/^['"]|['"]$/g, "");
-  t = stripAngles(t);
-  t = safeDecode(t);
-  return t;
-};
+  const currentDir = cur.file.path.substring(0, cur.file.path.lastIndexOf("/"));
 
-const extractFirstPathLike = (s) => {
-  const t = (s || "").toString();
-  let m = t.match(/!?\[\[([^\]]+?)\]\]/);
-  if (m && m[1]) return m[1].split("|")[0].trim();
-  m = t.match(/!?\[[^\]]*\]\(([^)]+)\)/);
-  if (m && m[1]) return m[1].trim();
-  m = t.match(/(?:^|\s)([^\s]+\.(?:png|jpg|jpeg|gif|webp|svg))(?:\s|$)/i);
-  if (m && m[1]) return m[1].trim();
-  return t.trim();
-};
+  // 尝试顺序：1) Obsidian链接解析 2) 相对当前目录 3) vault根目录
+  const candidates = [
+    path,
+    `${currentDir}/${path}`,
+  ];
 
-const resolveToVaultPath = (linkOrPath) => {
-  let linkpath = normalizeLink(extractFirstPathLike(linkOrPath));
-  if (!linkpath) return "";
-  if (/^https?:\/\//i.test(linkpath)) return linkpath;
+  for (const candidate of candidates) {
+    const file = app.vault.getAbstractFileByPath(candidate);
+    if (file) return candidate;
 
-  // 关键：不要去除 ./ 前缀，保留它用于后续拼接
-  const hasRelativePrefix = linkpath.startsWith("./");
-  linkpath = linkpath.replace(/^\.\//, "").replace(/^\//, "");
-
-  const from = cur?.file?.path || "";
-
-  // 辅助函数：尝试所有可能的编码/解码变体和路径组合
-  const tryResolve = (path) => {
-    // 1. 尝试 Obsidian 的 linkpath 解析（最标准）
-    const dest = app.metadataCache.getFirstLinkpathDest(path, from);
-    if (dest?.path) return dest.path;
-
-    // 2. 尝试直接作为 vault 绝对路径
-    const f = app.vault.getAbstractFileByPath(path);
-    if (f) return path;
-
-    // 3. 尝试相对于当前文件所在目录
-    const baseDir = dirname(from);
-    if (baseDir) {
-      const candidate = `${baseDir}/${path}`.replace(/\/+/g, "/");
-      const f1 = app.vault.getAbstractFileByPath(candidate);
-      if (f1) return candidate;
-      const dest2 = app.metadataCache.getFirstLinkpathDest(candidate, from);
-      if (dest2?.path) return dest2.path;
-    }
-
-    return null;
-  };
-
-  // 先尝试原始路径（已去除 ./ 前缀）
-  let result = tryResolve(linkpath);
-  if (result) return result;
-
-  // 再尝试解码版本（处理 %20 等）
-  const decoded = safeDecode(linkpath);
-  if (decoded !== linkpath) {
-    result = tryResolve(decoded);
-    if (result) return result;
+    const resolved = app.metadataCache.getFirstLinkpathDest(candidate, cur.file.path);
+    if (resolved) return resolved.path;
   }
 
-  // 再尝试编码版本（如果原始是解码的）
-  try {
-    const encoded = encodeURIComponent(linkpath).replace(/%2F/g, "/");
-    if (encoded !== linkpath && encoded !== decoded) {
-      result = tryResolve(encoded);
-      if (result) return result;
-    }
-  } catch {}
-
-  // 如果都失败，返回原始路径（让调用者决定如何处理）
-  return linkpath;
+  return path; // 找不到就返回原路径
 };
 
-const toArr = (v) => {
-  if (!v) return [];
-  if (Array.isArray(v)) return v;
-  if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
-  return [v];
-};
+// ========== 步骤1：自动从锚点下提取并写入封面 ==========
+const currentCover = cur["封面/cover"] || cur["cover"];
+const isCoverEmpty = !currentCover || currentCover.toString().trim() === "";
 
-const asStr = (v) => {
-  if (!v) return "";
-  if (typeof v === "string") return v;
-  if (v?.path) return v.path;
-  return v.toString?.() ?? "";
-};
+if (isCoverEmpty) {
+  const content = await app.vault.read(currentFile);
+  const anchorIndex = content.indexOf("<!--PA_COVER_SOURCE-->");
 
-const isBlankCoverValue = (v) => {
-  if (v === undefined || v === null) return true;
-  if (Array.isArray(v)) return v.length === 0;
-  if (typeof v === "string") return v.trim() === "";
-  return false;
-};
+  if (anchorIndex !== -1) {
+    const afterAnchor = content.slice(anchorIndex + 23); // 23 = anchor length
+    const beforeNextHeading = afterAnchor.split(/\n#{1,6}\s/)[0];
 
-const unwrapWiki = (s) => {
-  let t = (s || "").toString().trim();
-  // 先去除外层的 ![[...]] 或 [[...]]
-  if (t.startsWith("![[") && t.endsWith("]]")) {
-    t = t.slice(3, -2);
-  } else if (t.startsWith("[[") && t.endsWith("]]")) {
-    t = t.slice(2, -2);
-  }
-  // 去除 wikilink 的显示文本部分（|后面的）
-  t = t.split("|")[0].trim();
-  return t;
-};
-
-const resolvePath = (p) => {
-  const maybeWiki = unwrapWiki(p);
-  return resolveToVaultPath(maybeWiki || p);
-};
-
-const isImagePath = (s) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test((s || "").toString());
-
-async function ensureCoverFromPasteAnchor() {
-  const rawCover = cur["封面/cover"] ?? cur["cover"];
-  const existing = toArr(rawCover).map(asStr).join(" ").trim();
-  if (existing) return;
-
-  const tFile = app.vault.getAbstractFileByPath(cur?.file?.path);
-  if (!tFile) return;
-
-  const md = await app.vault.read(tFile);
-  const anchor = "<!--PA_COVER_SOURCE-->";
-  const idx = md.indexOf(anchor);
-  if (idx === -1) return;
-
-  const after = md.slice(idx + anchor.length);
-  const scope = after.split(/\n#{1,6}\s/)[0] || after;
-
-  let m;
-  // 兼容：![[...]]（图片）以及 [[...]]（普通链接）
-  const wikiRe = /!?\[\[([^\]]+?)\]\]/g;
-  while ((m = wikiRe.exec(scope)) !== null) {
-    const linkpath = (m[1] || "").split("|")[0].trim();
-    const p = resolveToVaultPath(linkpath);
-    if (isImagePath(p)) {
-      await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
-          // YAML 中以 `!` 开头可能被解析为 tag，导致属性读取异常；用 [[...]] 更稳
-          // 关键：写入前解码 %20 等编码，避免后续读取失败
-          const decodedPath = safeDecode(p);
-          fm["封面/cover"] = `[[${decodedPath}]]`;
-        }
-      });
-      return;
-    }
-  }
-
-  // 兼容：![](...)（图片）以及 [](...)（普通链接，但指向图片文件）
-  const mdImgRe = /!?\[[^\]]*\]\(([^)]+)\)/g;
-  while ((m = mdImgRe.exec(scope)) !== null) {
-    const link = normalizeLink((m[1] || "").trim());
-    if (!link) continue;
-    if (/^https?:\/\//i.test(link)) {
-      await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
-          fm["封面/cover"] = link;
-        }
-      });
-      return;
-    }
-    const p = resolveToVaultPath(link);
-    if (isImagePath(p)) {
-      await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (isBlankCoverValue(fm["封面/cover"]) && isBlankCoverValue(fm["cover"])) {
-          // 优先保留 wikilink 格式以兼容现有系统（但不要用 ![[...]]，避免 YAML tag）
-          // 关键：写入前解码 %20 等编码，避免后续读取失败
-          const decodedPath = safeDecode(p);
-          fm["封面/cover"] = `[[${decodedPath}]]`;
-        }
-      });
-      return;
+    const imagePath = extractImagePath(beforeNextHeading);
+    if (imagePath) {
+      const resolved = resolvePath(imagePath);
+      if (resolved && /\.(png|jpe?g|gif|webp|svg)$/i.test(resolved)) {
+        await app.fileManager.processFrontMatter(currentFile, (fm) => {
+          fm["封面/cover"] = `[[${resolved}]]`; // 使用标准 wikilink 格式
+        });
+        dv.paragraph("✅ 已自动写入封面，刷新后显示");
+        return;
+      }
     }
   }
 }
 
-(async () => {
-  await ensureCoverFromPasteAnchor();
+// ========== 步骤2：显示封面预览 ==========
+const coverValue = cur["封面/cover"] || cur["cover"];
+if (!coverValue || coverValue.toString().trim() === "") {
+  dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入）");
+  return;
+}
 
-  const raw = cur["封面/cover"] ?? cur["cover"];
-  const covers = toArr(raw)
-    .map(asStr)
-    .map(resolvePath)
-    .map((s) => s.trim())
-    .filter(Boolean);
+const coverPath = resolvePath(extractImagePath(coverValue.toString()) || coverValue.toString());
+const coverFile = app.vault.getAbstractFileByPath(coverPath);
 
-  if (covers.length === 0) {
-    dv.paragraph("（未设置封面：把截图粘贴到下方锚点区域即可自动写入 `封面/cover`）");
-    return;
-  }
-
-  const p = covers[0];
-
-  // 调试信息：显示解析过程
-  const debugInfo = `
-    <div style="font-size:0.7em; opacity:0.6; margin:4px 0; padding:4px; background:rgba(255,0,0,0.1); border-radius:4px;">
-      🔍 调试信息<br/>
-      原始值: ${JSON.stringify(raw)}<br/>
-      解析路径: ${p}<br/>
-      当前文件: ${cur?.file?.path}<br/>
-      文件存在: ${app.vault.getAbstractFileByPath(p) ? "✅ 是" : "❌ 否"}
+if (!coverFile) {
+  dv.el("div", "").innerHTML = `
+    <div style="color:#ff6b6b; font-size:0.9em;">
+      ⚠️ 找不到封面文件<br/>
+      <span style="font-size:0.75em; opacity:0.7;">
+        原始值: ${coverValue}<br/>
+        解析路径: ${coverPath}<br/>
+        当前目录: ${cur.file.path.substring(0, cur.file.path.lastIndexOf("/"))}
+      </span>
     </div>
   `;
+  return;
+}
 
-  const f = app.vault.getAbstractFileByPath(p);
-  if (!f) {
-    dv.el("div", "").innerHTML = debugInfo + `<div style="color:#ff6b6b;">⚠️ 找不到封面文件：${p}</div>`;
-    return;
+// 显示图片
+dv.el("div", "", {
+  attr: {
+    style: "margin:8px 0; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);"
   }
-
-  dv.el("div", "", {
-    attr: {
-      style:
-        "margin: 8px 0; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.10);",
-    },
-  }).innerHTML = debugInfo + `
-    <div style="font-size:0.8em; opacity:0.8; margin-bottom:6px;">${p}</div>
-    <img src="${app.vault.getResourcePath(f)}" style="max-width:100%; height:auto; display:block; border-radius:6px;" />
-  `;
-})();
+}).innerHTML = `
+  <div style="font-size:0.75em; opacity:0.7; margin-bottom:6px;">📍 ${coverPath}</div>
+  <img src="${app.vault.getResourcePath(coverFile)}"
+       style="max-width:100%; height:auto; display:block; border-radius:6px;" />
+`;
 ```
 
 <!--PA_COVER_SOURCE-->
