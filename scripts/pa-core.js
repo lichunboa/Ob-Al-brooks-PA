@@ -85,6 +85,41 @@ const paStartScrollLock = (state, opts = {}) => {
     const hardEndAt = startedAt + maxMs;
     let active = true;
 
+    // 允许用户在锁定窗口内滚动：用户滚动时把“目标位置”更新为当前滚动位置
+    // 避免出现你滚动到新区域时被锁拉回旧位置（表现为“慢慢混乱/跳很远”）
+    let currentScroller = null;
+    let internalSetUntil = 0;
+    const onScroll = () => {
+      try {
+        if (!active || !currentScroller) return;
+        const now = Date.now();
+        // 忽略我们自己设置 scrollTop 触发的 scroll 事件
+        if (now < internalSetUntil) return;
+        state.scrollTop = currentScroller.scrollTop;
+        state.scrollLeft = currentScroller.scrollLeft;
+      } catch (e) {
+        // ignore
+      }
+    };
+    const attachTo = (el) => {
+      try {
+        if (!el || el === currentScroller) return;
+        if (currentScroller) currentScroller.removeEventListener("scroll", onScroll, true);
+        currentScroller = el;
+        currentScroller.addEventListener("scroll", onScroll, true);
+      } catch (e) {
+        // ignore
+      }
+    };
+    const detach = () => {
+      try {
+        if (currentScroller) currentScroller.removeEventListener("scroll", onScroll, true);
+      } catch (e) {
+        // ignore
+      }
+      currentScroller = null;
+    };
+
     const enforce = () => {
       if (!active) return;
       const now = Date.now();
@@ -95,12 +130,15 @@ const paStartScrollLock = (state, opts = {}) => {
 
       // Dataview 刷新可能重建 DOM，必须每帧重新取 scroller
       const scroller = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
+      attachTo(scroller);
       if (scroller) {
         // 强制回到目标位置，减少可见跳动
         if (Math.abs(scroller.scrollTop - state.scrollTop) > 1) {
+          internalSetUntil = Date.now() + 50;
           scroller.scrollTop = state.scrollTop;
         }
         if (Math.abs(scroller.scrollLeft - state.scrollLeft) > 1) {
+          internalSetUntil = Date.now() + 50;
           scroller.scrollLeft = state.scrollLeft;
         }
       }
@@ -110,7 +148,9 @@ const paStartScrollLock = (state, opts = {}) => {
 
     // 先立即设置一次，尽量避免第一帧闪跳
     const scroller0 = paGetScrollerElForLeaf(state.leaf || app?.workspace?.activeLeaf);
+    attachTo(scroller0);
     if (scroller0) {
+      internalSetUntil = Date.now() + 50;
       scroller0.scrollTop = state.scrollTop;
       scroller0.scrollLeft = state.scrollLeft;
     }
@@ -118,6 +158,7 @@ const paStartScrollLock = (state, opts = {}) => {
     requestAnimationFrame(enforce);
     const stop = () => {
       active = false;
+      detach();
     };
     window.__paScrollLockStop = stop;
     return stop;
