@@ -30,8 +30,32 @@ module.exports = async (dv, app) => {
     return t;
   };
 
+  const stripAngles = (s) => {
+    const t = (s || "").toString().trim();
+    if (t.startsWith("<") && t.endsWith(">")) {
+      return t.slice(1, -1).trim();
+    }
+    return t;
+  };
+
+  const safeDecode = (s) => {
+    try {
+      return decodeURIComponent(s);
+    } catch (e) {
+      return s;
+    }
+  };
+
+  const cleanLink = (s) => {
+    let t = (s || "").toString().trim();
+    t = stripAngles(t);
+    t = safeDecode(t);
+    return t;
+  };
+
   const resolvePath = (p) => {
-    const linkpath = unwrapWiki(p);
+    let linkpath = unwrapWiki(p);
+    linkpath = cleanLink(linkpath); // Handle URL encoding and angle brackets
     const dest = app.metadataCache.getFirstLinkpathDest(
       linkpath,
       cur.file.path
@@ -90,7 +114,9 @@ module.exports = async (dv, app) => {
     // 匹配 Markdown Link ![...](...)
     const mdImgRe = /!\[[^\]]*\]\(([^)]+)\)/g;
     while ((m = mdImgRe.exec(scope)) !== null) {
-      const link = (m[1] || "").trim();
+      let link = (m[1] || "").trim();
+      link = cleanLink(link); // Clean the link (remove <>, decode %20)
+      
       if (!link) continue;
 
       // http 链接
