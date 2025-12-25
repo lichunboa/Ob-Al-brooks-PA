@@ -468,13 +468,8 @@ async function batchUpdate(paths, op, args) {
   }
   if (count > 0) {
     new Notice(`✅ 完成 ${count} 处修改`);
-    setTimeout(
-      () =>
-        window.paRefreshViews
-          ? window.paRefreshViews({ hard: true })
-          : app.workspace.trigger("dataview:refresh-views"),
-      800
-    );
+    // 不再自动触发 Dataview 刷新：避免刷新导致页面跳动/丢滚动。
+    // 如需更新控制台视图，请手动点击 ↻ 数据。
 
     if (failed.length) {
       console.warn("[PA Manager] batchUpdate failed files:", failed);
