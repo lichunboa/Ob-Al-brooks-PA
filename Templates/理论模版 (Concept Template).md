@@ -161,6 +161,7 @@ async function ensureCoverFromPasteAnchor() {
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
         if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+          // 优先保留 wikilink 格式以兼容现有系统
           fm["封面/cover"] = `![[${p}]]`;
         }
       });
@@ -305,3 +306,9 @@ _这里结合 Al Brooks 的逐根 K 线讲解 (Bar-by-bar analysis)_
 >
 > - [ ] 我能区分宽通道和窄通道吗？
 > - [ ] 我知道开盘趋势的止损放在哪吗？
+
+#flashcards
+// 学习卡片制作,根据课程提炼重要知识点,制作学习卡片,卡片形式要丰富,每张卡片要隔开.[[卡片使用说明]]
+
+- 卡片 1
+- 卡片 2

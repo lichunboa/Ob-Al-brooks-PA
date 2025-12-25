@@ -71,7 +71,7 @@ if (window.paData) {
     return linkpath;
   };
 
-  // 核心修复: 完整的图片渲染函数
+  // 核心修复: 完整的图片渲染函数，支持 ![[...]] 和 ![](...)  
   function renderCard(n) {
     let rawCover = n.cover; // Engine 已经提取了 cover 属性
     if (!rawCover || rawCover === "Unknown") return "";
@@ -82,7 +82,7 @@ if (window.paData) {
     if (rawCover.path) {
       src = app.vault.adapter.getResourcePath(rawCover.path);
     }
-    // 2. 如果是字符串
+    // 2. 如果是字符串（包括 ![[...]] 和 ![](...)）
     else if (typeof rawCover === "string") {
       const p = resolveToVaultPath(rawCover, n.id || "");
       if (p && /^https?:\/\//i.test(p)) {
