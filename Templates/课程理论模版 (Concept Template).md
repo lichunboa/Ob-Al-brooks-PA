@@ -77,7 +77,7 @@ async function ensureCoverFromPasteAnchor() {
     const p = dest?.path || linkpath;
     if (isImagePath(p)) {
       await app.fileManager.processFrontMatter(tFile, (fm) => {
-        if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+        if (!fm["封面/cover"] && !fm["cover"]) {
           fm["封面/cover"] = `![[${p}]]`;
         }
       });
