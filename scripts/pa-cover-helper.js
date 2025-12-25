@@ -187,6 +187,20 @@ module.exports = async (dv, app) => {
             dv.paragraph(`🔍 扫描到潜在图片链接: ${links.map(l => '`'+l+'`').join(', ')} (但未能自动匹配，请检查路径)`);
         }
     }
+    return;
+  }
+
+  // 渲染封面
+  let c = { accent: "#22c55e" }; // 默认绿色
+  try {
+    const basePath = app.vault.adapter.basePath;
+    const cfg = require(basePath + "/scripts/pa-config.js");
+    if (cfg && cfg.colors) Object.assign(c, cfg.colors);
+  } catch (e) {}
+
+  for (const p of covers.slice(0, 1)) {
+    // 只显示第一张
+    let src = p;
     // 如果是本地文件路径，转换为 resource path
     if (!/^https?:\/\//.test(p)) {
       const f = app.vault.getAbstractFileByPath(p);
@@ -206,4 +220,5 @@ module.exports = async (dv, app) => {
             <img src="${src}" style="max-width:100%; height:auto; display:block; border-radius:6px;" />
         `;
   }
+};
 };
