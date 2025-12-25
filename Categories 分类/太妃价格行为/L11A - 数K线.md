@@ -1,10 +1,174 @@
 ---
 tags:
-	- PA/Course
+  - PA/Course
 module_id: L11A
 studied: false
+封面/cover:
+关联知识/associated knowledge:
+aliases:
+市场周期/market_cycle: 交易趋势 (Trend)
+设置类别/setup_category: 数K线/数推动 (Bar Counting)
+概率/probability: P2-中 (Medium)
 来源/source:
+  - http://192.168.66.206:5666/v/video/1767c0d90fd6472db132c939461ab8c6
 ---
+
+# ✅ 课程快照（项目联动）
+
+## 📸 图表/封面预览（自动）
+
+（`封面/cover` 为空时，会从锚点下第一张图自动写入）
+
+```dataviewjs
+const cur = dv.current();
+
+const toArr = (v) => {
+	if (!v) return [];
+	if (Array.isArray(v)) return v;
+	if (v?.constructor && v.constructor.name === "Proxy") return Array.from(v);
+	return [v];
+};
+
+const asStr = (v) => {
+	if (!v) return "";
+	if (typeof v === "string") return v;
+	if (v?.path) return v.path;
+	return v.toString?.() ?? "";
+};
+
+const isImagePath = (p) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(p || "");
+
+const unwrapWiki = (s) => {
+	let t = (s || "").toString().trim();
+	t = t.replace(/^!\[\[/, "").replace(/\]\]$/, "");
+	if (t.startsWith("[[") && t.endsWith("]]")) t = t.slice(2, -2);
+	t = t.split("|")[0].trim();
+	return t;
+};
+
+const resolvePath = (p) => {
+	const linkpath = unwrapWiki(p);
+	const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+	return dest?.path || linkpath;
+};
+
+const writeCoverIfMissing = async () => {
+	const rawCover = cur["封面/cover"] ?? cur["cover"];
+	const existing = toArr(rawCover).map(asStr).join(" ").trim();
+	if (existing) return;
+
+	const tFile = app.vault.getAbstractFileByPath(cur?.file?.path);
+	if (!tFile) return;
+
+	const md = await app.vault.read(tFile);
+	const anchor = "<!--PA_COVER_SOURCE-->";
+	const idx = md.indexOf(anchor);
+	if (idx === -1) return;
+
+	const after = md.slice(idx + anchor.length);
+	const scope = after.split(/\n#{1,6}\s/)[0] || after;
+
+	let m;
+	const wikiRe = /!\[\[([^\]]+?)\]\]/g;
+	while ((m = wikiRe.exec(scope)) !== null) {
+		const linkpath = (m[1] || "").split("|")[0].trim();
+		const dest = app.metadataCache.getFirstLinkpathDest(linkpath, cur?.file?.path || "");
+		const p = dest?.path || linkpath;
+		if (isImagePath(p)) {
+			await app.fileManager.processFrontMatter(tFile, (fm) => {
+				if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
+					fm["封面/cover"] = `![[${p}]]`;
+				}
+			});
+			return;
+		}
+	}
+};
+
+await writeCoverIfMissing();
+
+const cover = cur["封面/cover"] ?? cur["cover"];
+const coverStr = toArr(cover).map(asStr).join(" ").trim();
+dv.paragraph(coverStr || "（暂无封面：请在下方锚点处粘贴一张图）");
+```
+
+<!--PA_COVER_SOURCE-->
+
+---
+
+# 🧠 1. 概览
+
+- “数K线/数推动”本质：把价格运动拆成可复述、可对齐的段落（推动/波段/趋势），便于读图与复盘。
+- 趋势不是“时间级别”的名字，而是图上“分量”的表现；推荐一屏只容纳 1 轮（最多 2 轮相互抵消）的趋势。
+- 形态的核心不是外观而是“内部推动次数”：双重顶/底=2推，楔形顶/底=3推。
+- 推动划分高度主观：允许 3 推/4 推等合理差异，但必须保持自己的一套一致标准。
+
+# ⚡ 2. 速查表
+
+| 目标 | 规则/要点 | 常见坑 |
+|---|---|---|
+| 图表容纳 | 建议 80–160 根K线内只放 1 轮趋势 | 线太多导致信息噪音 |
+| 推动分段（法1） | 阴阳交替处视为动能中断点 | 复杂K线会被切太碎 |
+| 推动分段（法2） | 上涨：低点降低=回调K；下跌：高点抬升=回调K | 很短十字星可忽略（如 < 前K的 1/3） |
+| 推动分段（法3） | 连接显著高低点（类似趋势线/通道） | 端点不显著就容易“牵强连线” |
+| 形态与推动 | 双重顶/底=2推；楔形顶/底=3推 | 右肩/右峰可过冲，不改变“次数判别” |
+
+# 🧩 3. 核心知识点
+
+## 3.1 运动分级：趋势 / 波段 / 推动
+
+- 1 轮趋势 ≈ 2–4 个顺向波段；1 个波段 ≈ 2–4 段顺向推动（典型“碎形嵌套”）。
+- 推动（Leg）是最小可操作单位：通常更适合测算剥头皮利润，而非波段利润。
+
+## 3.2 推动计数三原则（可以混用）
+
+- 阴阳交替断点法：用“控制权切换”找分界。
+- 回调K线判定法：用“高低点破坏”找分界。
+- 显著高低点连线法：先抓主骨架，再用前两法校验。
+
+## 3.3 练习与一致性
+
+- 简单走势可用单一规则；复杂走势优先抓显著端点，再决定哪些“无方向震荡段”可忽略。
+- 同一张图出现多个合理答案并不罕见，关键是“标准前后一致”。
+
+# 🎯 4. 交易含义
+
+- 预期管理：突破后往往有“第二推”，第二推结束更容易出现回调；持仓/止盈可据此设计。
+- 机会定位：波段常由两段顺向推动构成；理解“单推结束后的回调”能减少被洗出。
+- 复盘口径：把每次进出场放回“当前所处推动/波段/趋势”的层级里，复盘更稳定。
+
+# ✅ 5. 小结 (Summary) #task/Summary
+
+- [ ] 我能用自己的话说明“趋势/波段/推动”的层级关系。
+- [ ] 我能用 3 种方法之一，把一段行情划分成推动段落。
+- [ ] 我能解释“双重顶/底=2推、楔形=3推”是按内部次数而非外观。
+- [ ] 我能接受 3 推/4 推的合理差异，但在同类行情里保持一致标准。
+- [ ] 我能把“突破后第二推/回调”写进持仓与止盈计划。
+
+# 🃏 6. Flashcards
+
+#flashcards
+
+---
+数K线/数推动的核心目的是什么？::把价格运动拆成可复述的段落（推动/波段/趋势），用于读图与复盘
+
+---
+双重顶/底 ↔ 内部推动次数::2推
+
+---
+楔形顶/底 ↔ 内部推动次数::3推
+
+---
+**Q:** 上涨趋势里，如何用“回调K线判定法”划分推动？
+**A:** 出现“低点降低”的K线视为回调K，作为推动分段依据；很短十字星可选择忽略
+
+---
+推动（Leg）在读图里更像是价格运动的{{c1::最小可操作单位}}。
+
+---
+
+# 🧾 原始笔记（保留）
+
 [L11A - 数K线](http://192.168.66.206:5666/v/video/1767c0d90fd6472db132c939461ab8c6)
 # 一、推动计圈与数K线方法 00:09
 ## 1. 趋势
