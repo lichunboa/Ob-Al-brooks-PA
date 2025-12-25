@@ -131,6 +131,7 @@ module.exports = {
     riskRewardMin: 2.0, // Min Risk/Reward Ratio | 最小风险回报比
     cacheExpiry: 300000, // Cache Duration (5min) | 缓存时长
     autoRefreshDebounceMs: 900, // Auto refresh debounce | 自动刷新防抖（ms）
+    preserveScrollOnRefresh: true, // Preserve scroll on refresh | 刷新时保留滚动位置（避免页面跳回顶部）
   },
 
   // 🌐 5. i18n Labels | 多语言标签

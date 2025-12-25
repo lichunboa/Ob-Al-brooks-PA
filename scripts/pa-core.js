@@ -19,8 +19,80 @@ window.__paBuilding = true;
 const forceReload = window.paForceReload === true;
 window.paForceReload = false;
 
+// 记录/恢复当前活动页面的滚动位置，避免 Dataview 刷新导致页面“跳一下回到顶部”
+const paGetActiveScrollerEl = () => {
+  try {
+    const leaf = app?.workspace?.activeLeaf;
+    const root = leaf?.view?.contentEl || leaf?.view?.containerEl;
+    if (!root?.querySelector) return null;
+
+    // CM6 编辑模式
+    const cm = root.querySelector(".cm-scroller");
+    if (cm && typeof cm.scrollTop === "number") return cm;
+
+    // 预览/阅读模式
+    const preview = root.querySelector(".markdown-preview-view");
+    if (preview && typeof preview.scrollTop === "number") return preview;
+
+    const reading = root.querySelector(".markdown-reading-view");
+    if (reading && typeof reading.scrollTop === "number") return reading;
+
+    // 兜底
+    const viewContent = root.querySelector(".view-content");
+    if (viewContent && typeof viewContent.scrollTop === "number") return viewContent;
+  } catch (e) {
+    // ignore
+  }
+  return null;
+};
+
+const paCaptureScrollState = () => {
+  try {
+    const filePath = app?.workspace?.getActiveFile?.()?.path || "";
+    const scroller = paGetActiveScrollerEl();
+    if (!scroller) return null;
+    return {
+      filePath,
+      scrollTop: scroller.scrollTop,
+      scrollLeft: scroller.scrollLeft,
+    };
+  } catch (e) {
+    return null;
+  }
+};
+
+const paRestoreScrollState = (state) => {
+  try {
+    if (!state) return false;
+    const activePath = app?.workspace?.getActiveFile?.()?.path || "";
+    if (state.filePath && activePath && state.filePath !== activePath) return false;
+    const scroller = paGetActiveScrollerEl();
+    if (!scroller) return false;
+    scroller.scrollTop = state.scrollTop;
+    scroller.scrollLeft = state.scrollLeft;
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+const paScheduleRestoreScroll = (state) => {
+  if (!state) return;
+  // Dataview 刷新是异步重渲染；用多次延迟尝试覆盖不同渲染时机
+  const delays = [0, 50, 150, 300, 600, 1000];
+  for (const d of delays) {
+    setTimeout(() => paRestoreScrollState(state), d);
+  }
+};
+
 // 统一 Dataview 刷新：兼容不同版本的 commandId
 window.paRefreshViews = async (opts = {}) => {
+  const preserveScroll =
+    opts.preserveScroll !== undefined
+      ? !!opts.preserveScroll
+      : cfg?.settings?.preserveScrollOnRefresh !== false;
+  const scrollState = preserveScroll ? paCaptureScrollState() : null;
+
   try {
     if (opts.hard) window.paForceReload = true;
     const cmdIds = [
@@ -30,6 +102,7 @@ window.paRefreshViews = async (opts = {}) => {
     for (const id of cmdIds) {
       try {
         await app.commands.executeCommandById(id);
+        paScheduleRestoreScroll(scrollState);
         return true;
       } catch (_) {
         // try next id
@@ -50,6 +123,7 @@ window.paRefreshViews = async (opts = {}) => {
       }
       if (foundId) {
         await app.commands.executeCommandById(foundId);
+        paScheduleRestoreScroll(scrollState);
         return true;
       }
     } catch (e) {
@@ -61,10 +135,12 @@ window.paRefreshViews = async (opts = {}) => {
       const dvPlugin = app?.plugins?.plugins?.dataview;
       if (dvPlugin?.api?.forceRefresh) {
         await dvPlugin.api.forceRefresh();
+        paScheduleRestoreScroll(scrollState);
         return true;
       }
       if (dvPlugin?.api?.refresh) {
         await dvPlugin.api.refresh();
+        paScheduleRestoreScroll(scrollState);
         return true;
       }
     } catch (e) {
