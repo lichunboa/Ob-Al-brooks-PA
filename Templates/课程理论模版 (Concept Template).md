@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover:
+封面/cover: "![[Pasted_Img_02.png]]"
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -67,7 +67,7 @@ async function ensureCoverFromPasteAnchor() {
   if (idx === -1) return;
 
   const after = md.slice(idx + anchor.length);
-  const scope = after.split(/\n#{1,6}\s/)[0] || after;
+  const scope = after.slice(0, 8000);
 
   let m;
   const wikiRe = /!\[\[([^\]]+?)\]\]/g;
