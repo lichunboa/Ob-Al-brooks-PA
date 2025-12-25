@@ -31,7 +31,7 @@ date:
 初始风险/initial_risk:
 净利润/net_profit:
 结果/outcome:
-封面/cover:
+封面/cover: "![[Templates/assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png]]"
 执行评价/execution_quality:
 策略名称/strategy_name:
 ---
