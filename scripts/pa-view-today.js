@@ -50,174 +50,193 @@ let contextHtml = "";
 
 if (todayJournal && todayJournal.market_cycle) {
   const currentCycle = todayJournal.market_cycle;
-  // 查找匹配的策略（复用 strategyIndex，避免重复扫描）
   const recommendedStrategies = strategyList
     .filter(
       (s) =>
-        isActiveStrategy(s.statusRaw) &&
+        isActiveStrategy(s.statusRaw) && cycleMatches(s.marketCycles, currentCycle)
+    )
+    .slice(0, 6);
 
-  if (activeTrade) {
-    const patterns = activeTrade.patterns;
-    const currentSignal = activeTrade.signal;
+  contextHtml += `
+    <div style="margin-bottom: 15px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 3px solid #3b82f6;">
+        <div style="font-weight: bold; color: #3b82f6; margin-bottom: 5px;">
+            🌊 今日市场: ${currentCycle}
+        </div>
+        <div style="font-size: 0.9em; color: var(--text-muted);">
+            ${
+              recommendedStrategies.length > 0
+                ? `推荐关注: ${recommendedStrategies
+                    .map((p) => `<b>${p.file.link}</b>`)
+                    .join(" · ")}`
+                : "暂无特定策略推荐，建议观望。"
+            }
+        </div>
+    </div>`;
+} else {
+  contextHtml += `
+    <div style="margin-bottom: 15px; padding: 10px; border: 1px dashed var(--text-faint); border-radius: 8px; text-align: center; font-size: 0.85em; color: var(--text-muted);">
+        📝 <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">创建今日日记</a> 并设置市场周期以获取策略推荐
+    </div>`;
+}
 
-    // pa-core 会把 patterns 归一化成数组（空数组也为 truthy），所以必须用 length 判断。
-    const observedList = toArr(patterns).map(normStr).filter(Boolean);
+// --- 1. 策略助手逻辑 (Strategy Assistant) ---
+const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
+let assistantHtml = "";
 
-    // 1) 优先：形态 -> 策略卡
-    let matchedFilePath = null;
-    let matchedItem = null;
-    if (observedList.length > 0) {
-      for (const obs of observedList) {
-        const canonical = strategyByPattern[obs];
-        if (!canonical) continue;
-        const item = strategyByName?.get?.(canonical);
-        if (item?.file?.path) {
-          matchedFilePath = item.file.path;
-          matchedItem = item;
-          break;
-        }
+if (activeTrade) {
+  const patterns = activeTrade.patterns;
+  const currentSignal = activeTrade.signal;
+  const observedList = toArr(patterns).map(normStr).filter(Boolean);
+
+  // 1) 优先：形态 -> 策略卡
+  let matchedFilePath = null;
+  let matchedItem = null;
+  if (observedList.length > 0) {
+    for (const obs of observedList) {
+      const canonical = strategyByPattern[obs];
+      if (!canonical) continue;
+      const item = strategyByName?.get?.(canonical);
+      if (item?.file?.path) {
+        matchedFilePath = item.file.path;
+        matchedItem = item;
+        break;
       }
     }
+  }
 
-    if (matchedItem) {
-      const sName = matchedItem.canonicalName || matchedItem.displayName || "策略";
-      const sEntry = matchedItem.entryCriteria || [];
-      const sRisk = matchedItem.riskAlerts || [];
-      const sStop = matchedItem.stopLossRecommendation || [];
+  if (matchedItem) {
+    const sName = matchedItem.canonicalName || matchedItem.displayName || "策略";
+    const sEntry = matchedItem.entryCriteria || [];
+    const sRisk = matchedItem.riskAlerts || [];
+    const sStop = matchedItem.stopLossRecommendation || [];
 
-      const formatList = (list) => {
-        if (!Array.isArray(list)) return list;
-        return list
-          .map((item) => {
-            if (typeof item === "object" && item !== null) {
-              return Object.entries(item)
-                .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
-                .join(", ");
-            }
-            return item;
-          })
-          .join(" | ");
-      };
+    const formatList = (list) => {
+      if (!Array.isArray(list)) return list;
+      return list
+        .map((item) => {
+          if (typeof item === "object" && item !== null) {
+            return Object.entries(item)
+              .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+              .join(", ");
+          }
+          return item;
+        })
+        .join(" | ");
+    };
 
-      let signalValidationHtml = "";
-      if (currentSignal) {
-        signalValidationHtml = `
-          <div style="margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.8em;">
-            <div style="opacity:0.7; margin-bottom:4px;">🔍 信号K验证:</div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
-            </div>
-          </div>
-        `;
-      }
-
-      assistantHtml = `
-        <div style="
-          background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%);
-          border: 1px solid rgba(59,130,246,0.3);
-          border-radius: 8px;
-          padding: 12px;
-          margin-bottom: 16px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        ">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-            <div style="font-weight:700; color:${c.accent};">🤖 策略助手: ${sName}</div>
-            <a href="${matchedItem.file?.path || matchedFilePath}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <div>
-              <div style="font-size:0.75em; font-weight:600; color:${c.live}; margin-bottom:4px;">✅ 入场条件</div>
-              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
-                ${Array.isArray(sEntry) ? sEntry.map((i) => `<li>${i}</li>`).join("") : `<li>${sEntry}</li>`}
-              </ul>
-            </div>
-
-            <div>
-              <div style="font-size:0.75em; font-weight:600; color:${c.loss}; margin-bottom:4px;">⚠️ 风险提示</div>
-              <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
-                ${Array.isArray(sRisk) ? sRisk.map((i) => `<li>${i}</li>`).join("") : `<li>${sRisk}</li>`}
-              </ul>
-            </div>
-          </div>
-
-          ${signalValidationHtml}
-
-          <div style="margin-top:10px; font-size:0.75em; opacity:0.8; border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
-            🛡️ <strong>止损建议:</strong> ${formatList(sStop)}
+    let signalValidationHtml = "";
+    if (currentSignal) {
+      signalValidationHtml = `
+        <div style="margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.8em;">
+          <div style="opacity:0.7; margin-bottom:4px;">🔍 信号K验证:</div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
           </div>
         </div>
       `;
     }
 
-    // 2) 回退：早期建议（不需要 patterns）
-    if (!assistantHtml) {
-      const marketCycle = activeTrade.market_cycle;
-      const setupCategory = activeTrade.setup;
+    assistantHtml = `
+      <div style="
+        background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%);
+        border: 1px solid rgba(59,130,246,0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      ">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+          <div style="font-weight:700; color:${c.accent};">🤖 策略助手: ${sName}</div>
+          <a href="${matchedItem.file?.path || matchedFilePath}" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+        </div>
 
-      if (marketCycle || setupCategory) {
-        let suggestedStrategies = [];
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div>
+            <div style="font-size:0.75em; font-weight:600; color:${c.live}; margin-bottom:4px;">✅ 入场条件</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+              ${Array.isArray(sEntry) ? sEntry.map((i) => `<li>${i}</li>`).join("") : `<li>${sEntry}</li>`}
+            </ul>
+          </div>
+          <div>
+            <div style="font-size:0.75em; font-weight:600; color:${c.loss}; margin-bottom:4px;">⚠️ 风险提示</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text};">
+              ${Array.isArray(sRisk) ? sRisk.map((i) => `<li>${i}</li>`).join("") : `<li>${sRisk}</li>`}
+            </ul>
+          </div>
+        </div>
 
-        for (let s of strategyList) {
-          let score = 0;
-          if (marketCycle && cycleMatches(s.marketCycles, marketCycle)) score += 2;
-          if (
-            setupCategory &&
-            (s.setupCategories || []).some((x) =>
-              normStr(x).includes(normStr(setupCategory))
-            )
-          ) {
-            score += 1;
-          }
-          if (score > 0) {
-            suggestedStrategies.push({
-              file: s.file,
-              score,
-              name: s.displayName || s.canonicalName,
-            });
-          }
+        ${signalValidationHtml}
+
+        <div style="margin-top:10px; font-size:0.75em; opacity:0.8; border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
+          🛡️ <strong>止损建议:</strong> ${formatList(sStop)}
+        </div>
+      </div>
+    `;
+  }
+
+  // 2) 回退：早期建议（不需要 patterns）
+  if (!assistantHtml) {
+    const marketCycle = activeTrade.market_cycle;
+    const setupCategory = activeTrade.setup;
+
+    if (marketCycle || setupCategory) {
+      let suggestedStrategies = [];
+      for (let s of strategyList) {
+        let score = 0;
+        if (marketCycle && cycleMatches(s.marketCycles, marketCycle)) score += 2;
+        if (
+          setupCategory &&
+          (s.setupCategories || []).some((x) =>
+            normStr(x).includes(normStr(setupCategory))
+          )
+        ) {
+          score += 1;
         }
-
-        suggestedStrategies.sort((a, b) => b.score - a.score);
-        const topSuggestions = suggestedStrategies.slice(0, 3);
-
-        if (topSuggestions.length > 0) {
-          assistantHtml = `
-            <div style="
-              background: rgba(255,255,255,0.03);
-              border: 1px dashed rgba(255,255,255,0.1);
-              border-radius: 8px;
-              padding: 12px;
-              margin-bottom: 16px;
-            ">
-              <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"}) 的策略建议:</div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                ${topSuggestions
-                  .map(
-                    (s) => `
-                      <a href="${s.file.path}" class="internal-link" style="
-                        background:rgba(59,130,246,0.1);
-                        color:${c.accent};
-                        padding:4px 8px;
-                        border-radius:4px;
-                        text-decoration:none;
-                        font-size:0.75em;
-                        border:1px solid rgba(59,130,246,0.2);
-                      ">${s.name}</a>
-                    `
-                  )
-                  .join("")}
-              </div>
-            </div>
-          `;
+        if (score > 0) {
+          suggestedStrategies.push({
+            file: s.file,
+            score,
+            name: s.displayName || s.canonicalName,
+          });
         }
       }
-    }
-  }
+
+      suggestedStrategies.sort((a, b) => b.score - a.score);
+      const topSuggestions = suggestedStrategies.slice(0, 3);
 
       if (topSuggestions.length > 0) {
         assistantHtml = `
           <div style="
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+          ">
+            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"}) 的策略建议:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${topSuggestions
+                .map(
+                  (s) => `
+                    <a href="${s.file.path}" class="internal-link" style="
+                      background:rgba(59,130,246,0.1);
+                      color:${c.accent};
+                      padding:4px 8px;
+                      border-radius:4px;
+                      text-decoration:none;
+                      font-size:0.75em;
+                      border:1px solid rgba(59,130,246,0.2);
+                    ">${s.name}</a>
+                  `
+                )
+                .join("")}
+            </div>
+          </div>
+        `;
+      }
+    }
+  }
+}
             background: rgba(255,255,255,0.03);
             border: 1px dashed rgba(255,255,255,0.1);
             border-radius: 8px;
