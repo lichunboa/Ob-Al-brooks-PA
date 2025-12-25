@@ -212,7 +212,8 @@ async function ensureCoverFromPasteAnchor() {
 ```
 
 <!--PA_COVER_SOURCE-->
-![](assets/课程理论模版%20(Concept%20Template)/课程理论模版%20(Concept%20Template)-20251225204421814.png)
+
+
 
 
 # 📺 1. 课程概览 (Module Overview)
