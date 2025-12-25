@@ -44,6 +44,7 @@ _用于给笔记打“Al Brooks 术语”标签，方便跨笔记聚合与检索
 - `#PA/Term/<abbr>` —— **Brooks 术语标签**
   - _规则：统一用缩写的小写形式作为 tag 尾部（例如 `#PA/Term/mtr`、`#PA/Term/tr`、`#PA/Term/ii`）。_
   - _预设清单：见 [Templates/PA_Brooks_Term_Tags_Preset.md](Templates/PA_Brooks_Term_Tags_Preset.md)。_
+  - _语义分组底稿：见 [Templates/PA_Brooks_Semantic_Groups.md](Templates/PA_Brooks_Semantic_Groups.md)。_
 
 ---
 

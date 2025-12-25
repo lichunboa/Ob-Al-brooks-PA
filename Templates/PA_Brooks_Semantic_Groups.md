@@ -73,7 +73,10 @@ tags:
 | --- | --- | --- | --- |
 | #PA/Term/bom | BOM | 突破模式 (Breakout Mode) | Breakout Mode |
 | #PA/Term/ch | CH | 通道 (Channel) | Channel |
+| #PA/Term/hft | HFT | 高频交易 (HFT) | High Frequency Trading |
 | #PA/Term/lom | LOM | 限价单市场 (Limit Order Market) | Limit Order Market |
+| #PA/Term/scb | SCB | 尖峰通道底部 (Spike & Channel Bottom) | Spike and Channel Bottom |
+| #PA/Term/sct | SCT | 尖峰通道顶部 (Spike & Channel Top) | Spike and Channel Top |
 | #PA/Term/tr | TR | 交易区间 (Trading Range) | Trading Range |
 | #PA/Term/trd | TRD | 交易区间日 (Trading Range Day) | Trading Range Day |
 | #PA/Term/tro | TRO | 交易区间开盘 (Trading Range Open) | Trading Range Open |
@@ -86,6 +89,8 @@ tags:
 | --- | --- | --- | --- |
 | #PA/Term/ail | AIL | 总是多头 (Always In Long) | Always In Long |
 | #PA/Term/ais | AIS | 总是空头 (Always In Short) | Always In Short |
+| #PA/Term/dbl | DBL | 失望的多头 (Disappointed Bulls) | Disappointed Bulls |
+| #PA/Term/dbr | DBR | 失望的空头 (Disappointed Bears) | Disappointed Bears |
 
 ### 关键点位与参考 (Levels & References)
 
@@ -94,18 +99,29 @@ tags:
 | #PA/Term/ath | ATH | 历史最高点 (ATH) | All Time High |
 | #PA/Term/brn | BRN | 大整数关口 (Big Round Number) | Big Round Number |
 | #PA/Term/c | C | 收盘价 (Close) | Close |
+| #PA/Term/ema | EMA | 均线 (EMA) | Exponential Moving Average |
 | #PA/Term/h | H | 最高价 (High) | High / High of Day |
+| #PA/Term/hh | HH | 更高高点 (Higher High) | Higher High |
+| #PA/Term/hl | HL | 更高低点 (Higher Low) | Higher Low |
 | #PA/Term/hod | HOD | 日高 (High of Day) | High of the Day |
 | #PA/Term/hoy | HOY | 昨日高点 (High of Yesterday) | High of Yesterday |
 | #PA/Term/l | L | 最低价 (Low) | Low / Low of Day |
+| #PA/Term/lh | LH | 更低高点 (Lower High) | Lower High |
+| #PA/Term/ll | LL | 更低低点 (Lower Low) | Lower Low |
 | #PA/Term/lod | LOD | 日低 (Low of Day) | Low of the Day |
 | #PA/Term/loy | LOY | 昨日低点 (Low of Yesterday) | Low of Yesterday |
+| #PA/Term/ma | MA | 均线 (Moving Average) | Moving Average |
+| #PA/Term/mag | MAG | 均线缺口K线 (MA Gap Bar) | Moving Average Gap Bar |
 | #PA/Term/mga | MGA | 上方磁铁 (Magnet Above) | Magnet Above |
 | #PA/Term/mgb | MGB | 下方磁铁 (Magnet Below) | Magnet Below |
 | #PA/Term/mgn | MGN | 磁铁效应 (Magnet) | Magnet |
 | #PA/Term/mp | MP | 中点 (Midpoint) | Midpoint |
 | #PA/Term/nl | NL | 颈线 (Neckline) | NeckLine |
 | #PA/Term/ood | OOD | 日开盘价 (Open of Day) | Open of Day |
+| #PA/Term/ph | PH | 可能的高点 (Possible High) | Possible High |
+| #PA/Term/pl | PL | 可能的低点 (Possible Low) | Possible Low |
+| #PA/Term/sh | SH | 波段高点 (Swing High) | Swing High |
+| #PA/Term/sl | SL | 波段低点 (Swing Low) | Swing Low |
 | #PA/Term/tl | TL | 趋势线 (Trendline) | Trendline |
 
 ### 供需与支撑阻力 (S/R & Orderflow)
@@ -119,8 +135,11 @@ tags:
 
 | Tag | Abbr | 中文名 | 英文全称 |
 | --- | --- | --- | --- |
+| #PA/Term/aodd | AODD | 几乎外包下跌日 (AODD) | Almost Outside Down Day |
+| #PA/Term/aoud | AOUD | 几乎外包上涨日 (AOUD) | Almost Outside Up Day |
 | #PA/Term/bsb | BSB | 买入信号K线 (Buy Signal Bar) | Buy Signal Bar |
 | #PA/Term/eb | EB | 入场K线 (Entry Bar) | Entry Bar |
+| #PA/Term/ft | FT | 跟进 (Follow Through) | Follow Through |
 | #PA/Term/gub | GUB | 放弃K线 (Give-up Bar) | Give-up Bar |
 | #PA/Term/ib | ib | 内包K线 (ib / Inside Bar) | Inside Bar |
 | #PA/Term/ii | ii | 连续内包 (ii / Consecutive Inside Bars) | Consecutive inside bars |
@@ -129,8 +148,10 @@ tags:
 | #PA/Term/ioii | ioii | 外包后接内包 (Inside after Outside) | Consecutive IB after OB |
 | #PA/Term/ob | OB | 外包K线 (Outside Bar) | Outside Bar |
 | #PA/Term/od | OD | 外包下跌K线 (Outside Down Bar) | Outside Down Bar |
+| #PA/Term/odd | ODD | 外包下跌日 (Outside Down Day) | Outside Down Day |
 | #PA/Term/oo | OO | 连续外包 (Consecutive Outside Bars) | Consecutive Outside Bars |
 | #PA/Term/ou | OU | 外包上涨K线 (Outside Up Bar) | Outside Up Bar |
+| #PA/Term/oud | OUD | 外包上涨日 (Outside Up Day) | Outside Up Day |
 | #PA/Term/rb #PA/Term/rev | RB / REV | 反转 (Reversal) | Reversal Bar |
 | #PA/Term/sb | SB | 下方有卖家 (Sellers Below) | Sellers Below |
 | #PA/Term/ssb | SSB | 卖出信号K线 (Sell Signal Bar) | Sell Signal Bar |
@@ -160,15 +181,27 @@ tags:
 
 | Tag | Abbr | 中文名 | 英文全称 |
 | --- | --- | --- | --- |
+| #PA/Term/17t | 17t | 17跳陷阱 (17t) | 17 Tick Trap |
+| #PA/Term/41t | 41t | 41跳陷阱 (41t) | 41 Tick Trap |
+| #PA/Term/5t | 5t | 5跳陷阱 (5t) | 5 Tick Trap |
+| #PA/Term/9t | 9t | 9跳陷阱 (9t) | 9 Tick Trap |
 | #PA/Term/b | B | 买入 (Buy) | Buy / Long |
 | #PA/Term/ba | BA | 高点买入 (Buy Above) | Buy Above |
 | #PA/Term/bb | BB | 低点买入 (Buy Below) | Buy Below |
 | #PA/Term/blshs | BLSHS | 低买高卖剥头皮 (Scalp) | Buy Low, Sell High, Scalp |
+| #PA/Term/bo | BO | 突破 (Breakout) | Breakout |
 | #PA/Term/bp | BP | 突破回撤 (Breakout Pullback) | Breakout Pullback |
 | #PA/Term/bt | BT | 突破测试 (Breakout Test) | Breakout Test |
 | #PA/Term/btc | BTC | 买入收盘 (Buy The Close) | Buy The Close |
 | #PA/Term/bvt | BVT | 买入真空测试 (Buy Vacuum Test) | Buy Vacuum Test |
 | #PA/Term/bx | BX | 买入高潮 (Buy Climax) | Buy Climax |
+| #PA/Term/fbo | FBO | 突破失败 (Failed Breakout) | Failed BreakOut |
+| #PA/Term/h1 | H1 | 一腿回调 (H1) | One legged pullback (Bull) |
+| #PA/Term/h2 | H2 | 两腿回调 (H2) | Two legged pullback (Bull) |
+| #PA/Term/h3 | H3 | 三腿回调 (H3) | Three legged pullback (Bull) |
+| #PA/Term/l1 | L1 | 一腿回调-熊 (L1) | One legged PullBack (Bear) |
+| #PA/Term/l2 | L2 | 两腿回调-熊 (L2) | Two legged PullBack (Bear) |
+| #PA/Term/l3 | L3 | 三腿回调-熊 (L3) | Three legged PullBack (Bear) |
 | #PA/Term/pb | PB | 回调 (Pullback) | Pullback |
 | #PA/Term/pbx | PBX | 抛物线买入高潮 (Parabolic Buy Climax) | Parabolic Buy Climax |
 | #PA/Term/psx | PSX | 抛物线卖出高潮 (Parabolic Sell Climax) | Parabolic Sell Climax |
@@ -179,13 +212,18 @@ tags:
 | #PA/Term/stc | STC | 卖出收盘 (Sell The Close) | Sell The Close |
 | #PA/Term/svt | SVT | 卖出真空测试 (Sell Vacuum Test) | Sell Vacuum Test |
 | #PA/Term/sx | SX | 卖出高潮 (Sell Climax) | Sell Climax |
+| #PA/Term/tbtl | TBTL | 十条K线两腿 (Ten Bars Two Legs) | Ten Bars Two Legs |
+| #PA/Term/tga | TGA | 上方目标 (Target Above) | Target Above |
+| #PA/Term/tgb | TGB | 下方目标 (Target Below) | Target Below |
 
 ### 趋势与反转 (Trend & Reversal)
 
 | Tag | Abbr | 中文名 | 英文全称 |
 | --- | --- | --- | --- |
+| #PA/Term/mdr | MDR | 午间反转 (Midday Reversal) | Midday Reversal |
 | #PA/Term/mrv | MRV | 小趋势反转 (Minor Trend Reversal) | Minor Trend Reversal |
 | #PA/Term/mtr | MTR | 主要趋势反转 (Major Trend Reversal) | Major Trend Reversal |
+| #PA/Term/orv | ORV | 开盘反转 (Opening Reversal) | Opening Reversal |
 | #PA/Term/tres | TRES | 趋势恢复 (Trend Resumption) | Trend Resumption |
 | #PA/Term/trev | TREV | 趋势反转 (Trend Reversal) | Trend Reversal |
 
@@ -199,7 +237,6 @@ tags:
 | #PA/Term/gb | GB | 缺口K线 (Gap Bar) | Gap Bar |
 | #PA/Term/gd | GD | 向下缺口 (Gap Down) | Gap Down |
 | #PA/Term/gu | GU | 向上缺口 (Gap Up) | Gap Up |
-| #PA/Term/mag | MAG | 均线缺口K线 (MA Gap Bar) | Moving Average Gap Bar |
 | #PA/Term/mg | MG | 测量缺口 (Measuring Gap) | Measuring Gap |
 | #PA/Term/mm | MM | 测量移动 (Measured Move) | Measured Move |
 
@@ -218,6 +255,7 @@ tags:
 | --- | --- | --- | --- |
 | #PA/Term/sbl | SBL | 牛市加仓 (Scale in Bulls) | Scale in Bulls |
 | #PA/Term/sbr | SBR | 熊市加仓 (Scale in Bears) | Scale in Bears |
+| #PA/Term/te | TE | 交易员方程 (Trader's Equation) | Traders Equation |
 
 ### 风险与概率 (Risk & Probability)
 
@@ -239,49 +277,6 @@ tags:
 | #PA/Term/gxl | GXL | Globex低点 (Globex Low) | Globex Low |
 | #PA/Term/ow | OW | 周开盘价 (Open of Week) | Open of Week |
 
-### 未分组 (Unsorted)
-
-| Tag | Abbr | 中文名 | 英文全称 |
-| --- | --- | --- | --- |
-| #PA/Term/17t | 17t | 17跳陷阱 (17t) | 17 Tick Trap |
-| #PA/Term/41t | 41t | 41跳陷阱 (41t) | 41 Tick Trap |
-| #PA/Term/5t | 5t | 5跳陷阱 (5t) | 5 Tick Trap |
-| #PA/Term/9t | 9t | 9跳陷阱 (9t) | 9 Tick Trap |
-| #PA/Term/aodd | AODD | 几乎外包下跌日 (AODD) | Almost Outside Down Day |
-| #PA/Term/aoud | AOUD | 几乎外包上涨日 (AOUD) | Almost Outside Up Day |
-| #PA/Term/bo | BO | 突破 (Breakout) | Breakout |
-| #PA/Term/dbl | DBL | 失望的多头 (Disappointed Bulls) | Disappointed Bulls |
-| #PA/Term/dbr | DBR | 失望的空头 (Disappointed Bears) | Disappointed Bears |
-| #PA/Term/ema | EMA | 均线 (EMA) | Exponential Moving Average |
-| #PA/Term/fbo | FBO | 突破失败 (Failed Breakout) | Failed BreakOut |
-| #PA/Term/ft | FT | 跟进 (Follow Through) | Follow Through |
-| #PA/Term/h1 | H1 | 一腿回调 (H1) | One legged pullback (Bull) |
-| #PA/Term/h2 | H2 | 两腿回调 (H2) | Two legged pullback (Bull) |
-| #PA/Term/h3 | H3 | 三腿回调 (H3) | Three legged pullback (Bull) |
-| #PA/Term/hft | HFT | 高频交易 (HFT) | High Frequency Trading |
-| #PA/Term/hh | HH | 更高高点 (Higher High) | Higher High |
-| #PA/Term/hl | HL | 更高低点 (Higher Low) | Higher Low |
-| #PA/Term/l1 | L1 | 一腿回调-熊 (L1) | One legged PullBack (Bear) |
-| #PA/Term/l2 | L2 | 两腿回调-熊 (L2) | Two legged PullBack (Bear) |
-| #PA/Term/l3 | L3 | 三腿回调-熊 (L3) | Three legged PullBack (Bear) |
-| #PA/Term/lh | LH | 更低高点 (Lower High) | Lower High |
-| #PA/Term/ll | LL | 更低低点 (Lower Low) | Lower Low |
-| #PA/Term/ma | MA | 均线 (Moving Average) | Moving Average |
-| #PA/Term/mdr | MDR | 午间反转 (Midday Reversal) | Midday Reversal |
-| #PA/Term/odd | ODD | 外包下跌日 (Outside Down Day) | Outside Down Day |
-| #PA/Term/orv | ORV | 开盘反转 (Opening Reversal) | Opening Reversal |
-| #PA/Term/oud | OUD | 外包上涨日 (Outside Up Day) | Outside Up Day |
-| #PA/Term/ph | PH | 可能的高点 (Possible High) | Possible High |
-| #PA/Term/pl | PL | 可能的低点 (Possible Low) | Possible Low |
-| #PA/Term/scb | SCB | 尖峰通道底部 (Spike & Channel Bottom) | Spike and Channel Bottom |
-| #PA/Term/sct | SCT | 尖峰通道顶部 (Spike & Channel Top) | Spike and Channel Top |
-| #PA/Term/sh | SH | 波段高点 (Swing High) | Swing High |
-| #PA/Term/sl | SL | 波段低点 (Swing Low) | Swing Low |
-| #PA/Term/tbtl | TBTL | 十条K线两腿 (Ten Bars Two Legs) | Ten Bars Two Legs |
-| #PA/Term/te | TE | 交易员方程 (Trader's Equation) | Traders Equation |
-| #PA/Term/tga | TGA | 上方目标 (Target Above) | Target Above |
-| #PA/Term/tgb | TGB | 下方目标 (Target Below) | Target Below |
-
 ---
 
-自动分组统计：术语总数=145；未分组=38（后续可手工归位）。
+自动分组统计：术语总数=145；未分组=0（后续可手工归位）。
