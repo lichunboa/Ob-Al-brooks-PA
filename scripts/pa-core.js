@@ -1415,9 +1415,22 @@ const buildUnifiedRecommendations = ({ coach, courseData, srData, consolePath })
 // ============================================================
 let candidates = [];
 if (courseData.syllabus.length > 0) {
+  const hasNote = (s) => {
+    const id = s?.id?.toString?.() ?? "";
+    if (!id) return false;
+    return !!courseData.map?.[id];
+  };
+
+  // 优先推荐“已创建笔记”的下一课（避免大纲里存在但笔记尚未创建时挡在最前面）
   let nextItem = courseData.syllabus.find(
-    (s) => !courseData.done.has(s.id.toString())
+    (s) => !courseData.done.has(s.id.toString()) && hasNote(s)
   );
+  // 兜底：如果还没有任何笔记被创建，仍回退到大纲第一条未完成
+  if (!nextItem) {
+    nextItem = courseData.syllabus.find(
+      (s) => !courseData.done.has(s.id.toString())
+    );
+  }
   if (nextItem) candidates.push({ type: "New", data: nextItem, weight: 30 });
 }
 if (srData.quizPool.length > 0) {
