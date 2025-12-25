@@ -6,8 +6,8 @@ studied: false
 封面/cover:
 关联知识/associated knowledge:
 aliases:
-市场周期/market_cycle: 交易趋势 (Trend)
-设置类别/setup_category: 数K线/数推动 (Bar Counting)
+市场周期/market_cycle:
+设置类别/setup_category:
 概率/probability: P2-中 (Medium)
 来源/source:
   - http://192.168.66.206:5666/v/video/1767c0d90fd6472db132c939461ab8c6

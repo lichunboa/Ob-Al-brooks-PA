@@ -1,13 +1,13 @@
 ---
 tags:
-	- PA/Course
+  - PA/Course
 module_id: L11B
 studied: false
 封面/cover:
 关联知识/associated knowledge:
 aliases:
-市场周期/market_cycle: 交易趋势 (Trend)
-设置类别/setup_category: 推动技术/数K线 (Bar Counting)
+市场周期/market_cycle:
+设置类别/setup_category:
 概率/probability: P2-中 (Medium)
 来源/source:
   - http://192.168.66.206:5666/v/video/bddb26cfe5644eb580f0de6a73f8af05
