@@ -3,7 +3,7 @@ categories:
   - 模版
 tags:
   - PA/Course
-封面/cover: "[[Templates/assets/理论模版 (Concept Template)/理论模版 (Concept Template)-20251225222057980.png]]"
+封面/cover:
 module_id:
 studied: false
 关联知识/associated knowledge:
@@ -15,8 +15,6 @@ aliases:
 ---
 
 # ✅ 课程快照（项目联动）
-
-
 
 
 # 📺 1. 课程概览 (Module Overview)
