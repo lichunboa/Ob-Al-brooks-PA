@@ -61,6 +61,59 @@ const paCaptureScrollState = () => {
   }
 };
 
+// 在刷新期间短时间“锁定”滚动位置，避免出现肉眼可见的跳动
+const paStartScrollLock = (state, opts = {}) => {
+  try {
+    if (!state) return () => {};
+
+    const maxMs = Number(
+      opts.maxMs ?? cfg?.settings?.preserveScrollLockMs ?? 1800
+    );
+    if (!maxMs || maxMs <= 0) return () => {};
+
+    const startedAt = Date.now();
+    const hardEndAt = startedAt + maxMs;
+    let active = true;
+
+    const enforce = () => {
+      if (!active) return;
+      const now = Date.now();
+      if (now >= hardEndAt) {
+        active = false;
+        return;
+      }
+
+      // Dataview 刷新可能重建 DOM，必须每帧重新取 scroller
+      const scroller = paGetActiveScrollerEl();
+      if (scroller) {
+        // 强制回到目标位置，减少可见跳动
+        if (Math.abs(scroller.scrollTop - state.scrollTop) > 1) {
+          scroller.scrollTop = state.scrollTop;
+        }
+        if (Math.abs(scroller.scrollLeft - state.scrollLeft) > 1) {
+          scroller.scrollLeft = state.scrollLeft;
+        }
+      }
+
+      requestAnimationFrame(enforce);
+    };
+
+    // 先立即设置一次，尽量避免第一帧闪跳
+    const scroller0 = paGetActiveScrollerEl();
+    if (scroller0) {
+      scroller0.scrollTop = state.scrollTop;
+      scroller0.scrollLeft = state.scrollLeft;
+    }
+
+    requestAnimationFrame(enforce);
+    return () => {
+      active = false;
+    };
+  } catch (e) {
+    return () => {};
+  }
+};
+
 const paRestoreScrollState = (state) => {
   try {
     if (!state) return false;
@@ -92,6 +145,7 @@ window.paRefreshViews = async (opts = {}) => {
       ? !!opts.preserveScroll
       : cfg?.settings?.preserveScrollOnRefresh !== false;
   const scrollState = preserveScroll ? paCaptureScrollState() : null;
+  const stopScrollLock = preserveScroll ? paStartScrollLock(scrollState) : null;
 
   try {
     if (opts.hard) window.paForceReload = true;
@@ -148,6 +202,11 @@ window.paRefreshViews = async (opts = {}) => {
     }
   } catch (e) {
     console.log("paRefreshViews failed", e);
+  } finally {
+    // 给 Dataview 重渲染留一点时间，避免立即解锁导致跳动
+    if (typeof stopScrollLock === "function") {
+      setTimeout(() => stopScrollLock(), Number(cfg?.settings?.preserveScrollLockMs ?? 1800));
+    }
   }
   return false;
 };
@@ -195,6 +254,14 @@ if (!window.__paAutoRefreshInstalled) {
       if (p.startsWith("Daily/") || p.includes("/Daily/")) {
         window.paDirtyDaily = true;
       }
+    } catch (e) {
+      // ignore
+    }
+
+    // 管理模块写入时会短暂抑制自动刷新，避免弹窗/页面跳走
+    try {
+      const until = Number(window.__paSuppressAutoRefreshUntil || 0);
+      if (until && Date.now() < until) return;
     } catch (e) {
       // ignore
     }
