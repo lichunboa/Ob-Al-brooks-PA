@@ -61,6 +61,16 @@ module.exports = async (dv, app) => {
     // 查找范围：直到下一个标题或文件结束
     const scope = after.split(/\n#{1,6}\s/)[0] || after;
 
+    // 统一更新逻辑：如果当前没有封面，则设置
+    const tryUpdate = async (val) => {
+      await app.fileManager.processFrontMatter(tFile, (fm) => {
+        // 检查 null, undefined, 空字符串
+        if (!fm["封面/cover"] && !fm["cover"]) {
+          fm["封面/cover"] = val;
+        }
+      });
+    };
+
     let m;
     // 匹配 Wiki Link ![[...]]
     const wikiRe = /!\[\[([^\]]+?)\]\]/g;
@@ -72,11 +82,7 @@ module.exports = async (dv, app) => {
       );
       const p = dest?.path || linkpath;
       if (isImagePath(p)) {
-        await app.fileManager.processFrontMatter(tFile, (fm) => {
-          if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
-            fm["封面/cover"] = `![[${p}]]`;
-          }
-        });
+        await tryUpdate(`![[${p}]]`);
         return true; // 找到并设置了
       }
     }
@@ -89,11 +95,7 @@ module.exports = async (dv, app) => {
 
       // http 链接
       if (/^https?:\/\//i.test(link)) {
-        await app.fileManager.processFrontMatter(tFile, (fm) => {
-          if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
-            fm["封面/cover"] = link;
-          }
-        });
+        await tryUpdate(link);
         return true;
       }
 
@@ -101,11 +103,7 @@ module.exports = async (dv, app) => {
       const dest = app.metadataCache.getFirstLinkpathDest(link, cur.file.path);
       const p = dest?.path || link;
       if (isImagePath(p)) {
-        await app.fileManager.processFrontMatter(tFile, (fm) => {
-          if (fm["封面/cover"] === undefined && fm["cover"] === undefined) {
-            fm["封面/cover"] = `![[${p}]]`;
-          }
-        });
+        await tryUpdate(`![[${p}]]`);
         return true;
       }
     }
