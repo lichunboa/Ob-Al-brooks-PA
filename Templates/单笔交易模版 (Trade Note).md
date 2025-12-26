@@ -15,9 +15,6 @@ date:
 日内类型/day_type:
 方向/direction:
 设置类别/setup_category:
-大周期偏向/htf_bias:
-关键位置/key_level:
-入场触发/entry_trigger:
 观察到的形态/patterns_observed:
   - 20均线缺口 (20 EMA Gap)
 信号K/signal_bar_quality:

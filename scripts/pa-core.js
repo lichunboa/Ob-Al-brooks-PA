@@ -965,15 +965,6 @@ if (useCache) {
           utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"], "")
         )
       ),
-      htfBias: utils.getRawStr(t, ["大周期偏向/htf_bias", "htf_bias"]),
-      htfBiasKey: utils.normalizeEnumKey(
-        utils.getRawStr(t, ["大周期偏向/htf_bias", "htf_bias"], "")
-      ),
-      keyLevels: utils.getArr(t, ["关键位置/key_level", "key_level"]),
-      entryTrigger: utils.getRawStr(t, ["入场触发/entry_trigger", "entry_trigger"]),
-      entryTriggerKey: utils.normalizeEnumKey(
-        utils.getRawStr(t, ["入场触发/entry_trigger", "entry_trigger"], "")
-      ),
     };
 
     // v5.0: 智能复盘要点（仅生成，不改变现有 UI）
@@ -1273,13 +1264,6 @@ if (useCache) {
       const patternsCanonical = patterns.map((x) => utils.normalizeBrooksValue(x));
       const source = getRawStr(p, ["来源/source", "source", "来源"], "");
 
-      const backtestSampleSize =
-        p["回测样本数/backtest_sample_size"] ?? p["backtest_sample_size"];
-      const backtestWinRate =
-        p["回测胜率/backtest_win_rate"] ?? p["backtest_win_rate"];
-      const backtestAvgR = p["回测平均R/backtest_avg_r"] ?? p["backtest_avg_r"];
-      const backtestExpectancyR =
-        p["回测期望R/backtest_expectancy_r"] ?? p["backtest_expectancy_r"];
 
       let displayName = canonicalName;
       if (displayName.includes("(") && displayName.includes(")")) {
@@ -1294,10 +1278,6 @@ if (useCache) {
         setupCategories,
         patterns: patternsCanonical,
         source,
-        backtestSampleSize,
-        backtestWinRate,
-        backtestAvgR,
-        backtestExpectancyR,
         // 策略助手/Playbook 需要的扩展字段（仍保持单一信源）
         riskReward:
           p["盈亏比/risk_reward"] ||
