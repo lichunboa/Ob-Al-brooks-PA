@@ -99,7 +99,10 @@ for (let p of dvPages) {
       const tf = pickVal(["时间周期/timeframe", "timeframe"]);
       const dir = pickVal(["方向/direction", "direction"]);
       const outcome = pickVal(["结果/outcome", "outcome"]);
-      const patterns = pickVal(["观察到的形态/patterns_observed", "patterns_observed"]);
+      const patterns = pickVal([
+        "观察到的形态/patterns_observed",
+        "patterns_observed",
+      ]);
       const strategy = pickVal(["策略名称/strategy_name", "strategy_name"]);
 
       // ✅ 减负规则：仅当交易已“完结”才检查必填。
@@ -121,9 +124,14 @@ for (let p of dvPages) {
 
     if (isStrategy) {
       const strategy = pickVal(["策略名称/strategy_name", "strategy_name"]);
-      const patterns = pickVal(["观察到的形态/patterns_observed", "patterns_observed"]);
-      if (isEmpty(strategy)) addIssue("策略名称/strategy_name", "❌ 缺少必填", strategy);
-      if (isEmpty(patterns)) addIssue("观察到的形态/patterns_observed", "❌ 缺少必填", patterns);
+      const patterns = pickVal([
+        "观察到的形态/patterns_observed",
+        "patterns_observed",
+      ]);
+      if (isEmpty(strategy))
+        addIssue("策略名称/strategy_name", "❌ 缺少必填", strategy);
+      if (isEmpty(patterns))
+        addIssue("观察到的形态/patterns_observed", "❌ 缺少必填", patterns);
     }
   }
 }

@@ -99,7 +99,10 @@ function normalizeEnumKey(raw) {
     return right || left || s;
   }
   if (s.includes("/")) {
-    const parts = s.split("/").map((x) => x.trim()).filter(Boolean);
+    const parts = s
+      .split("/")
+      .map((x) => x.trim())
+      .filter(Boolean);
     // 默认取右侧作为 key（常见为 中文/English）
     if (parts.length >= 2) return parts.slice(1).join("/");
   }
@@ -114,7 +117,7 @@ function normalizeBrooksValue(raw) {
   if (!s) return raw;
 
   const map = {
-    "逆1顺1": "高1/低1 (High 1/Low 1)",
+    逆1顺1: "高1/低1 (High 1/Low 1)",
     "逆1顺1 (High 1/Low 1)": "高1/低1 (High 1/Low 1)",
     "急赴磁体 (Spike to Magnet)": "急赴磁体 (Rush to Magnet)",
     "双重顶底 (Double Top/Bottom)": "双顶双底 (Double Top/Bottom)",

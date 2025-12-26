@@ -265,7 +265,9 @@ if (
 
     const streak = Number(focus?.weekStreak) || 0;
     const streakStr = streak >= 2 ? `，连续${streak}周` : "";
-    let msg = `教练焦点：${dim} → ${focusLabel || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
+    let msg = `教练焦点：${dim} → ${
+      focusLabel || "Unknown"
+    }（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
     let recHtml = "";
 
     // 1) 如果焦点是市场周期，则按周期推荐实战策略
@@ -290,7 +292,9 @@ if (
             pnl: 0,
             lastDate: "",
           };
-          return (pb.total || 0) - (pa.total || 0) || (pb.pnl || 0) - (pa.pnl || 0);
+          return (
+            (pb.total || 0) - (pa.total || 0) || (pb.pnl || 0) - (pa.pnl || 0)
+          );
         })
         .slice(0, 6);
 
@@ -332,7 +336,9 @@ if (
     <div style="margin:-6px 0 14px 0; padding:10px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.18); border-radius:8px;">
       <div style="font-weight:700; opacity:0.75; margin-bottom:6px;">🧠 今日推荐（兜底）</div>
       <div style="font-size:0.85em; opacity:0.75; margin-bottom:6px;">${msg}</div>
-      <div style="font-size:0.85em; opacity:0.75;">${recHtml || "建议去 Inspector 按该维度筛选最近交易进行复盘。"}</div>
+      <div style="font-size:0.85em; opacity:0.75;">${
+        recHtml || "建议去 Inspector 按该维度筛选最近交易进行复盘。"
+      }</div>
     </div>`;
   }
 }
