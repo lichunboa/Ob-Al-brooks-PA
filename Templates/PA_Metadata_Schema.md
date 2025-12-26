@@ -26,51 +26,11 @@ fields:
       - 1H
       - 4H
       - Daily
-  - name: always_in
+  - name: direction
     type: Select
     options:
-      - 总是多头 (Always In Long)
-      - 总是空头 (Always In Short)
-      - 中性/不确定 (Neutral)
-  - name: day_type
-    type: Select
-    options:
-      - 趋势日 (Trend Day)
-      - 交易区间日/TRD (Trading Range Day)
-      - 趋势交易区间日/TTRD (Trend From Trading Range Day)
-      - 极速与通道 (Spike and Channel)
-  - name: management_plan
-    type: Select
-    options:
-      - 一次性下单/不管理 (Set & Forget)
-      - 移动止损跟踪 (Trailing)
-      - 分批/加减仓 (Scale)
-      - 平手/止损离场 (Scratch)
-  - name: management_actions
-    type: MultiSelect
-    options:
-      - 不管理 (No Management)
-      - 移动止损到平手 (Move Stop to BE)
-      - 跟踪止损 (Trail Stop)
-      - 分批减仓 (Scale Out)
-      - 分批加仓 (Scale In)
-      - 缩小止损 (Tighten Stop)
-  - name: exit_reason
-    type: Select
-    options:
-      - 止盈-到目标 (Target Hit)
-      - 止损-被动 (Stop Hit)
-      - 移动止损-跟踪 (Trailing Stop)
-      - 平手-策略退出 (Scratch)
-      - 时间止损-到点/收盘 (Time Exit)
-      - 信号反转-提前退出 (Reversal Signal)
-      - 分批止盈-减仓 (Scale Out)
-  - name: plan_adherence
-    type: Select
-    options:
-      - 严格遵守 (Followed)
-      - 部分遵守 (Partial)
-      - 未遵守 (Violated)
+      - 做多 (Long)
+      - 做空 (Short)
   - name: market_cycle
     type: MultiSelect
     options:
@@ -78,11 +38,6 @@ fields:
       - 弱趋势 (Weak Trend)
       - 交易区间 (Trading Range)
       - 突破模式 (Breakout Mode)
-  - name: direction
-    type: Select
-    options:
-      - 做多 (Long)
-      - 做空 (Short)
   - name: setup_category
     type: Select
     options:
@@ -90,34 +45,6 @@ fields:
       - 趋势回调 (Trend Pullback)
       - 趋势反转 (Reversal)
       - 区间逆势 (TR Fade)
-  - name: probability
-    type: Select
-    options:
-      - P1-低 (Low)
-      - P2-中 (Medium)
-      - P3-高 (High)
-  - name: confidence
-    type: Select
-    options:
-      - 1 (Low)
-      - 2 (Medium)
-      - 3 (High)
-  - name: signal_bar_quality
-    type: MultiSelect
-    options:
-      - 强阳收盘 (Strong Bull Close)
-      - 强阴收盘 (Strong Bear Close)
-      - 弱势/长影线 (Weak / Tail)
-      - 十字星 (Doji)
-      - 顺势K线 (Trend Bar)
-      - 强趋势K线 (Strong Trend Bar)
-      - 反转K线 (Reversal Bar)
-      - 强反转K线 (Strong Reversal Bar)
-      - 内包K线 (ib / Inside Bar)
-      - 连续内包 (ii / Consecutive Inside Bars)
-      - 三连内包 (Three Inside Bars)
-      - 外包夹内包 (ioi / Inside-Outside-Inside)
-      - 外包K线 (Outside Bar)
   - name: patterns_observed
     type: MultiSelect
     options:
@@ -139,12 +66,6 @@ fields:
       - 头肩顶底 (Head & Shoulders)
       - 高潮式反转 (Climactic Reversal)
       - 测量移动 (Measured Move)
-  - name: order_type
-    type: Select
-    options:
-      - 突破入场 (Stop Entry)
-      - 限价入场 (Limit Entry)
-      - 市价入场 (Market Entry)
   - name: entry_price
     type: Number
   - name: stop_loss
@@ -154,8 +75,6 @@ fields:
   - name: initial_risk
     type: Number
   - name: net_profit
-    type: Number
-  - name: risk_reward
     type: Number
   - name: outcome
     type: Select
@@ -172,35 +91,6 @@ fields:
       - 🔴 追涨杀跌 (FOMO)
       - 🔴 扛单/不止损 (No Stop)
       - 🔴 过度交易 (Overtrading)
-  - name: review_depth
-    type: Select
-    options:
-      - 1-快速回顾 (Quick)
-      - 2-深度分析 (Deep)
-      - 3-写入Playbook (Playbook)
-  - name: missed_reason
-    type: Select
-    options:
-      - 犹豫不决 (Hesitation)
-      - 没在电脑前 (Away)
-      - 点差过大 (Spread)
-      - 信号不清晰 (Unclear Signal)
-      - 逆势操作 (Counter Trend)
-  - name: trader_equation
-    type: Select
-    options:
-      - 波段 (Swing)
-      - 剥头皮 (Scalp)
-  - name: strategy_status
-    type: Select
-    options:
-      - 学习中 (Learning)
-      - 实战中 (Active)
-  - name: studied
-    type: Select
-    options:
-      - true
-      - false
   - name: strategy_name
     type: Select
     options:
