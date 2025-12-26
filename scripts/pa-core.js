@@ -1299,6 +1299,11 @@ if (useCache) {
           p["stop_loss_recommendation"] ||
           p["止损建议"] ||
           [],
+        takeProfitRecommendation:
+          p["目标建议/take_profit_recommendation"] ||
+          p["take_profit_recommendation"] ||
+          p["目标建议"] ||
+          [],
         signalBarRequirements:
           p["信号K要求/signal_bar_requirements"] ||
           p["signal_bar_requirements"] ||

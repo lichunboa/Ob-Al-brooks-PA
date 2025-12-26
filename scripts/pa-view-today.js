@@ -113,6 +113,7 @@ if (activeTrade) {
     const sEntry = matchedItem.entryCriteria || [];
     const sRisk = matchedItem.riskAlerts || [];
     const sStop = matchedItem.stopLossRecommendation || [];
+    const sSignalReq = matchedItem.signalBarRequirements || [];
 
     const formatList = (list) => {
       if (!Array.isArray(list)) return list;
@@ -128,14 +129,46 @@ if (activeTrade) {
         .join(" | ");
     };
 
+    const sSignalReqList = toArr(sSignalReq)
+      .map((x) => (x == null ? "" : x.toString()))
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const currentSignalNorm = normStr(currentSignal);
+    const hasSignalInfo = !!(currentSignalNorm || sSignalReqList.length);
+    const signalMatch =
+      currentSignalNorm && sSignalReqList.length
+        ? sSignalReqList.some((r) => {
+            const rn = normStr(r);
+            return rn && (rn.includes(currentSignalNorm) || currentSignalNorm.includes(rn));
+          })
+        : null;
+
     let signalValidationHtml = "";
-    if (currentSignal) {
+    if (hasSignalInfo) {
       signalValidationHtml = `
         <div style="margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.8em;">
           <div style="opacity:0.7; margin-bottom:4px;">🔍 信号K验证:</div>
-          <div style="display:flex; justify-content:space-between;">
-            <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
-          </div>
+          ${
+            currentSignalNorm
+              ? `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                   <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
+                 </div>`
+              : ""
+          }
+          ${
+            sSignalReqList.length
+              ? `<div style="opacity:0.9; margin-bottom:4px;">建议: ${sSignalReqList
+                   .map((s) => `<span style=\"opacity:0.95\">${s}</span>`)
+                   .join(" / ")}</div>`
+              : `<div style="opacity:0.55;">建议: 未在策略卡中定义</div>`
+          }
+          ${
+            signalMatch === null
+              ? ""
+              : `<div style="opacity:0.8;">匹配: <strong style=\"color:${
+                  signalMatch ? c.live : c.loss
+                }\">${signalMatch ? "✅" : "⚠️"}</strong></div>`
+          }
         </div>
       `;
     }
