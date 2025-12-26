@@ -102,10 +102,14 @@ for (let p of dvPages) {
       const patterns = pickVal(["观察到的形态/patterns_observed", "patterns_observed"]);
       const strategy = pickVal(["策略名称/strategy_name", "strategy_name"]);
 
+      // ✅ 减负规则：仅当交易已“完结”才检查必填。
+      // 约定：填写了 结果/outcome（且不是 Unknown/Empty）= 交易完结。
+      const finished = !isEmpty(outcome);
+      if (!finished) continue;
+
       if (isEmpty(ticker)) addIssue("品种/ticker", "❌ 缺少必填", ticker);
       if (isEmpty(tf)) addIssue("时间周期/timeframe", "❌ 缺少必填", tf);
       if (isEmpty(dir)) addIssue("方向/direction", "❌ 缺少必填", dir);
-      if (isEmpty(outcome)) addIssue("结果/outcome", "❌ 缺少必填", outcome);
 
       // “形态/策略”二选一：至少有一个即可，避免强迫你每笔都填两份
       const hasPatterns = !isEmpty(patterns);
