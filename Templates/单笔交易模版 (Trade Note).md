@@ -9,36 +9,19 @@ date:
 账户类型/account_type: 实盘 (Live)
 品种/ticker: ES (标普)
 时间周期/timeframe: 5m
-市场周期/market_cycle:
-  - 交易区间 (Trading Range)
-总是方向/always_in:
-日内类型/day_type:
+
 方向/direction:
-设置类别/setup_category:
-观察到的形态/patterns_observed:
-  - 20均线缺口 (20 EMA Gap)
-信号K/signal_bar_quality:
-  - 内包K线 (ib / Inside Bar)
-  - 强阳收盘 (Strong Bull Close)
-  - 强阴收盘 (Strong Bear Close)
-  - 弱势/长影线 (Weak / Tail)
-  - 十字星 (Doji)
-概率/probability:
-信心/confidence:
-订单类型/order_type:
-管理计划/management_plan:
-管理动作/management_actions:
-出场原因/exit_reason:
-计划遵守/plan_adherence:
+观察到的形态/patterns_observed: []
+策略名称/strategy_name:
+
 入场/entry_price:
 止损/stop_loss:
 目标位/take_profit:
-初始风险/initial_risk:
+
 净利润/net_profit:
 结果/outcome:
-封面/cover:
 执行评价/execution_quality:
-策略名称/strategy_name:
+封面/cover:
 ---
 
 ---
