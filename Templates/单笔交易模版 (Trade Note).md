@@ -27,6 +27,9 @@ date:
 信心/confidence:
 订单类型/order_type:
 管理计划/management_plan:
+管理动作/management_actions:
+出场原因/exit_reason:
+计划遵守/plan_adherence:
 入场/entry_price:
 止损/stop_loss:
 目标位/take_profit:

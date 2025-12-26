@@ -46,6 +46,31 @@ fields:
       - 移动止损跟踪 (Trailing)
       - 分批/加减仓 (Scale)
       - 平手/止损离场 (Scratch)
+  - name: management_actions
+    type: MultiSelect
+    options:
+      - 不管理 (No Management)
+      - 移动止损到平手 (Move Stop to BE)
+      - 跟踪止损 (Trail Stop)
+      - 分批减仓 (Scale Out)
+      - 分批加仓 (Scale In)
+      - 缩小止损 (Tighten Stop)
+  - name: exit_reason
+    type: Select
+    options:
+      - 止盈-到目标 (Target Hit)
+      - 止损-被动 (Stop Hit)
+      - 移动止损-跟踪 (Trailing Stop)
+      - 平手-策略退出 (Scratch)
+      - 时间止损-到点/收盘 (Time Exit)
+      - 信号反转-提前退出 (Reversal Signal)
+      - 分批止盈-减仓 (Scale Out)
+  - name: plan_adherence
+    type: Select
+    options:
+      - 严格遵守 (Followed)
+      - 部分遵守 (Partial)
+      - 未遵守 (Violated)
   - name: market_cycle
     type: MultiSelect
     options:

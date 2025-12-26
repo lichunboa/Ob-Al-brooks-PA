@@ -926,6 +926,25 @@ if (useCache) {
       planKey: utils.normalizeEnumKey(
         utils.getRawStr(t, ["交易方程/trader_equation", "trader_equation"], "")
       ),
+      managementPlan: utils.getRawStr(t, [
+        "管理计划/management_plan",
+        "management_plan",
+      ]),
+      managementPlanKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["管理计划/management_plan", "management_plan"], "")
+      ),
+      managementActions: utils.getArr(t, [
+        "管理动作/management_actions",
+        "management_actions",
+      ]),
+      exitReason: utils.getRawStr(t, ["出场原因/exit_reason", "exit_reason"]),
+      exitReasonKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["出场原因/exit_reason", "exit_reason"], "")
+      ),
+      planAdherence: utils.getRawStr(t, ["计划遵守/plan_adherence", "plan_adherence"]),
+      planAdherenceKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["计划遵守/plan_adherence", "plan_adherence"], "")
+      ),
       // 新增原始字段用于合规性检查
       cycle: t["市场周期/market_cycle"] || t["market_cycle"],
       rawSetup: t["设置类别/setup_category"] || t["setup_category"],
