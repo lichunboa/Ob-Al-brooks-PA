@@ -1302,6 +1302,10 @@ if (useCache) {
         signalBarRequirements:
           p["信号K要求/signal_bar_requirements"] ||
           p["signal_bar_requirements"] ||
+          // 兼容：策略卡多数使用 `信号K/signal_bar_quality`
+          p["信号K/signal_bar_quality"] ||
+          p["signal_bar_quality"] ||
+          p["信号K"] ||
           p["信号K要求"] ||
           [],
         file: p.file,
