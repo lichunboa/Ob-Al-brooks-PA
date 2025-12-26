@@ -6,12 +6,17 @@ date: 2025-12-17
 品种/ticker: ES (标普)
 账户类型/account_type: 模拟 (Demo)
 方向/direction: 做多 (Long)
+总是方向/always_in:
+日内类型/day_type:
 设置类别/setup_category: 趋势突破 (Trend Breakout)
 结果/outcome: 止盈 (Win)
 净利润/net_profit: 20
 订单类型/order_type: 突破入场 (Stop Entry)
+管理计划/management_plan:
 信号K/signal_bar_quality:
   - 强阳收盘 (Strong Bull Close)
+概率/probability:
+信心/confidence:
 执行评价/execution_quality: 🔴 追涨杀跌 (FOMO)
 封面/cover: "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]"
 banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png
