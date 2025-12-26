@@ -139,7 +139,10 @@ if (activeTrade) {
       currentSignalNorm && sSignalReqList.length
         ? sSignalReqList.some((r) => {
             const rn = normStr(r);
-            return rn && (rn.includes(currentSignalNorm) || currentSignalNorm.includes(rn));
+            return (
+              rn &&
+              (rn.includes(currentSignalNorm) || currentSignalNorm.includes(rn))
+            );
           })
         : null;
 
@@ -158,8 +161,8 @@ if (activeTrade) {
           ${
             sSignalReqList.length
               ? `<div style="opacity:0.9; margin-bottom:4px;">建议: ${sSignalReqList
-                   .map((s) => `<span style=\"opacity:0.95\">${s}</span>`)
-                   .join(" / ")}</div>`
+                  .map((s) => `<span style=\"opacity:0.95\">${s}</span>`)
+                  .join(" / ")}</div>`
               : `<div style="opacity:0.55;">建议: 未在策略卡中定义</div>`
           }
           ${
