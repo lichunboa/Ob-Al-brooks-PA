@@ -39,6 +39,33 @@ fields:
       - 交易区间日/TRD (Trading Range Day)
       - 趋势交易区间日/TTRD (Trend From Trading Range Day)
       - 极速与通道 (Spike and Channel)
+  - name: htf_bias
+    type: Select
+    options:
+      - 多头 (Bull)
+      - 空头 (Bear)
+      - 区间 (Range)
+      - 中性/不确定 (Neutral)
+  - name: key_level
+    type: MultiSelect
+    options:
+      - 前高/前低 (Prior High/Low)
+      - 区间边界 (Range Boundary)
+      - 开盘价/收盘价 (Open/Close)
+      - 均线/20EMA (MA / 20 EMA)
+      - 缺口 (Gap)
+      - 整数关口 (Round Number)
+      - 测量目标 (Measured Move Target)
+      - 磁体位 (Magnet)
+  - name: entry_trigger
+    type: Select
+    options:
+      - 高1/低1 (High 1/Low 1)
+      - 二次入场 (Second Entry)
+      - 趋势K收盘入场 (Trend Bar Close)
+      - 突破入场 (Breakout)
+      - 突破回调 (Breakout Pullback)
+      - 失败突破反转 (Failed Breakout Reversal)
   - name: management_plan
     type: Select
     options:
@@ -156,6 +183,14 @@ fields:
   - name: net_profit
     type: Number
   - name: risk_reward
+    type: Number
+  - name: backtest_sample_size
+    type: Number
+  - name: backtest_win_rate
+    type: Number
+  - name: backtest_avg_r
+    type: Number
+  - name: backtest_expectancy_r
     type: Number
   - name: outcome
     type: Select
