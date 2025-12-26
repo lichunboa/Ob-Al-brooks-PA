@@ -65,6 +65,7 @@
     "止损/stop_loss": "number",
     "目标位/take_profit": "number",
     "净利润/net_profit": "number",
-    "策略名称/strategy_name": "multitext"
+    "策略名称/strategy_name": "multitext",
+    "策略状态/strategy_status": "multitext"
   }
 }
