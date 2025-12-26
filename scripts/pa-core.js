@@ -937,11 +937,14 @@ if (useCache) {
       patterns: utils.getArr(t, [
         "观察到的形态/patterns_observed",
         "patterns_observed",
-      ]),
+      ]).map((x) => utils.normalizeBrooksValue(x)),
       strategyName: utils.getRawStr(t, [
         "策略名称/strategy_name",
         "strategy_name",
       ]),
+      strategyName: utils.normalizeBrooksValue(
+        utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"])
+      ),
       strategyKey: utils.normalizeEnumKey(
         utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"], "")
       ),
