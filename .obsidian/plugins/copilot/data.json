@@ -1,5 +1,5 @@
 {
-  "userId": "fcd42869-f050-4610-a0f0-2052cd5dc09e",
+  "userId": "cb5acc06-d1fb-4bec-87c1-df14b7557ed1",
   "isPlusUser": false,
   "plusLicenseKey": "",
   "openAIApiKey": "",
@@ -12,17 +12,16 @@
   "azureOpenAIApiDeploymentName": "",
   "azureOpenAIApiVersion": "",
   "azureOpenAIApiEmbeddingDeploymentName": "",
-  "googleApiKey": "",
+  "googleApiKey": "AIzaSyB55vUqaQeueczPbwymtFtXm6Ndo3cJ4Wc",
   "openRouterAiApiKey": "",
   "xaiApiKey": "",
   "mistralApiKey": "",
   "deepseekApiKey": "",
   "amazonBedrockApiKey": "",
   "amazonBedrockRegion": "",
-  "siliconflowApiKey": "",
   "defaultChainType": "llm_chain",
-  "defaultModelKey": "google/gemini-2.5-flash|openrouterai",
-  "embeddingModelKey": "text-embedding-3-small|openai",
+  "defaultModelKey": "gemini-2.5-pro|google",
+  "embeddingModelKey": "gemini-embedding-001|google",
   "temperature": 0.1,
   "maxTokens": 6000,
   "contextTurns": 15,
@@ -36,7 +35,6 @@
   "generateAIChatTitleOnSave": true,
   "includeActiveNoteAsContext": true,
   "defaultOpenArea": "view",
-  "defaultSendShortcut": "enter",
   "customPromptsFolder": "copilot/copilot-custom-prompts",
   "indexVaultToVectorStore": "ON MODE SWITCH",
   "qaExclusions": "copilot",
@@ -186,8 +184,8 @@
       "enabled": true,
       "isBuiltIn": true,
       "capabilities": [
-        "vision",
-        "reasoning"
+        "reasoning",
+        "vision"
       ]
     },
     {
@@ -257,6 +255,11 @@
       "capabilities": [
         "reasoning"
       ]
+    },
+    {
+      "name": "gemini-2.0-flash",
+      "provider": "google",
+      "enabled": true
     }
   ],
   "activeEmbeddingModels": [
@@ -362,9 +365,9 @@
   "enableWordCompletion": false,
   "lastDismissedVersion": null,
   "passMarkdownImages": true,
-  "enableAutonomousAgent": true,
+  "enableAutonomousAgent": false,
   "enableCustomPromptTemplating": true,
-  "enableSemanticSearchV3": false,
+  "enableSemanticSearchV3": true,
   "enableLexicalBoosts": true,
   "suggestedDefaultCommands": true,
   "autonomousAgentMaxIterations": 4,
@@ -384,7 +387,8 @@
   "enableRecentConversations": true,
   "maxRecentConversations": 30,
   "enableSavedMemory": true,
+  "enableInlineCitations": true,
   "quickCommandIncludeNoteContext": true,
   "autoIncludeTextSelection": false,
-  "enableInlineCitations": true
+  "defaultSendShortcut": "enter"
 }

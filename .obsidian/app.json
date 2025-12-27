@@ -1,17 +1,1 @@
-{
-  "useMarkdownLinks": true,
-  "newLinkFormat": "relative",
-  "newFileLocation": "root",
-  "attachmentFolderPath": "/",
-  "promptDelete": false,
-  "uriCallbacks": false,
-  "readableLineLength": false,
-  "alwaysUpdateLinks": true,
-  "pdfExportSettings": {
-    "includeName": true,
-    "pageSize": "A4",
-    "landscape": false,
-    "margin": "0",
-    "downscalePercent": 100
-  }
-}
+{}
