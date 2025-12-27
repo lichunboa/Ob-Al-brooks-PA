@@ -1,18 +1,16 @@
 [
   "remotely-save",
   "pkmer",
-  "smart-composer",
   "obsidian-tasks-plugin",
   "templater-obsidian",
   "pdf-plus",
-  "url-into-selection",
   "obsidian-excalidraw-plugin",
-  "obsidian-outliner",
   "obsidian-markmind",
   "journals",
   "obsidian-enhancing-mindmap",
   "dataview",
-  "obsidian-custom-attachment-location",
-  "colored-text",
-  "copilot"
+  "obsidian-git",
+  "transcription-audio",
+  "obsidian-spaced-repetition",
+  "obsidian-chartsview-plugin"
 ]
