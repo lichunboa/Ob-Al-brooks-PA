@@ -264,7 +264,7 @@ body {
     --nn-theme-mobile-toolbar-button-icon-color: var(--link-color);
     --nn-theme-mobile-toolbar-button-active-bg: var(--background-modifier-hover);
     --nn-theme-mobile-toolbar-button-active-icon-color: var(--link-color);
-    --nn-theme-mobile-toolbar-glass-bg: color-mix(in srgb, var(--background-primary) 72%, transparent);
+    --nn-theme-mobile-toolbar-glass-bg: var(--background-primary);
 
     /* -- File Separator -- */
     --nn-separator-height: 1px;
@@ -298,6 +298,14 @@ body {
     flex-direction: column;
     background-color: var(--background-primary);
     font-family: var(--font-interface);
+}
+
+.nn-svg-filters {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    opacity: 0;
 }
 
 /* Removes focus outline on main container for cleaner appearance */
@@ -623,6 +631,8 @@ body {
     top: 0;
     bottom: 0;
     z-index: 10;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .nn-split-container.nn-orientation-vertical .nn-resize-handle {
@@ -1205,17 +1215,33 @@ body {
 
 /* Container for pinned shortcuts displayed above the scrollable navigation tree */
 .nn-shortcut-pinned {
-    flex-shrink: 0;
-    padding: 8px var(--nn-scroller-padding) 4px;
+    flex: 0 1 auto;
     border-bottom: 1px solid var(--nn-theme-divider-border-color);
     border-right: 1px solid var(--nn-theme-divider-border-color);
     background-color: var(--nn-theme-nav-bg);
     position: relative;
     z-index: 1;
+    overflow: visible;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.nn-shortcut-pinned-scroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    padding: 8px var(--nn-scroller-padding) 4px;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+.nn-shortcut-pinned[data-scroll='true'] .nn-shortcut-pinned-scroll {
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 /* Remove top padding when banner is present to avoid double spacing */
-.nn-shortcut-pinned[data-has-banner='true'] {
+.nn-shortcut-pinned[data-has-banner='true'] .nn-shortcut-pinned-scroll {
     padding-top: 0;
 }
 
@@ -1242,10 +1268,75 @@ body {
     background: linear-gradient(to bottom, var(--nn-theme-pinned-shortcut-shadow-color) 0%, transparent 100%);
 }
 
+.nn-shortcuts-resize-handle {
+    height: 3px;
+    cursor: row-resize;
+    background-color: transparent;
+    touch-action: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 2;
+}
+
+.nn-shortcuts-resize-handle:hover {
+    background-color: var(--nn-theme-divider-resize-handle-hover-bg);
+}
+
+.nn-navigation-pane[data-shortcuts-resizing='true'] .nn-shortcuts-resize-handle {
+    background-color: var(--nn-theme-divider-resize-handle-hover-bg);
+}
+
+.notebook-navigator-mobile .nn-shortcuts-resize-handle {
+    height: 14px;
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    flex-shrink: 0;
+    z-index: 0;
+}
+
+.notebook-navigator-mobile .nn-navigation-pane[data-shortcuts-resizing='true'] .nn-shortcuts-resize-handle {
+    background-color: transparent;
+}
+
+.notebook-navigator-mobile .nn-shortcuts-resize-handle:hover {
+    background-color: transparent;
+}
+
+@media (hover: none) {
+    .nn-shortcuts-resize-handle:hover {
+        background-color: transparent;
+    }
+}
+
+.notebook-navigator-mobile .nn-shortcuts-resize-handle::before {
+    content: '';
+    position: absolute;
+    left: 20%;
+    right: 20%;
+    bottom: 3px;
+    height: 6px;
+    background-color: var(--nn-theme-divider-border-color);
+    border-radius: 3px;
+    pointer-events: none;
+}
+
 .notebook-navigator-mobile .nn-shortcut-pinned {
     background-color: var(--nn-theme-nav-bg);
-    border-bottom: 1px solid var(--nn-theme-divider-border-color);
+    border-bottom: none;
     border-right: none;
+}
+
+/* Mobile-only: hide the pinned shortcuts shadow overlay. */
+.notebook-navigator-mobile .nn-shortcut-pinned::after {
+    content: none;
 }
 
 /* Navigation banner displayed above tree items */
@@ -1416,6 +1507,11 @@ body {
 .nn-desktop .nn-navitem:hover > .nn-navitem-content > * {
     position: relative;
     z-index: 2;
+}
+
+.nn-split-container.nn-resizing .nn-navitem:hover::after {
+    content: none;
+    background-color: transparent;
 }
 
 /* Folder chevron - expand/collapse indicator */
@@ -3837,6 +3933,53 @@ body.nn-resizing {
     --nn-mobile-safe-area-bottom: env(safe-area-inset-bottom, 8px);
 }
 
+/* iOS (Obsidian 1.11+) bottom fade gradient - overlays list content behind the toolbar */
+.notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane,
+.notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane {
+    position: relative;
+}
+
+.notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane {
+    --nn-bottom-fade-bg: var(--nn-theme-nav-bg);
+}
+
+.notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane {
+    --nn-bottom-fade-bg: var(--nn-theme-list-bg);
+}
+
+.notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane::after,
+.notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(88px + var(--nn-mobile-safe-area-bottom, 0px));
+    pointer-events: none;
+    z-index: 4;
+    background: linear-gradient(to top, var(--nn-bottom-fade-bg) 0%, transparent 100%);
+    background: linear-gradient(
+        to top,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 70%, transparent) 0%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 35%, transparent) 40%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 12%, transparent) 70%,
+        transparent 100%
+    );
+}
+
+.notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar {
+    position: relative;
+    z-index: 5;
+}
+
+body.nn-navigation-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane::after {
+    display: none;
+}
+
+body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane::after {
+    display: none;
+}
+
 /* Mobile container - use grid for consistent structure while allowing sliding */
 .notebook-navigator-mobile .nn-split-container {
     display: grid;
@@ -4719,18 +4862,18 @@ body.nn-resizing {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 4px;
+    bottom: 12px;
     pointer-events: none;
     z-index: 5;
 
     justify-content: space-between;
     background-color: transparent;
     border-top: none;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: calc(var(--nn-scroller-padding) + 2px);
+    padding-right: calc(var(--nn-scroller-padding) + 2px);
     padding-bottom: 0;
-    height: 49px;
-    min-height: 49px;
+    height: 40px;
+    min-height: 40px;
 }
 
 .notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-left,
@@ -4741,22 +4884,46 @@ body.nn-resizing {
 
 .notebook-navigator-obsidian-1-11-plus-ios {
     --nn-theme-mobile-toolbar-button-icon-color: var(--text-normal);
-    --nn-ios-toolbar-glass-bg: var(--nn-theme-mobile-toolbar-glass-bg);
-    --nn-ios-toolbar-glass-border: var(--nn-theme-mobile-toolbar-glass-bg);
-    --nn-ios-toolbar-glass-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
-    --nn-ios-toolbar-glass-filter: blur(4px) saturate(160%);
+    --nn-ios-toolbar-glass-bg: color-mix(in srgb, var(--nn-theme-mobile-toolbar-glass-bg) 45%, transparent);
+    --nn-ios-toolbar-glass-outline: rgba(255, 255, 255, 0.6);
+    --nn-ios-toolbar-glass-shadow: 0 0 0 2px var(--nn-ios-toolbar-glass-outline), 0 16px 32px rgba(0, 0, 0, 0.09);
+    --nn-ios-toolbar-glass-filter: blur(3px) saturate(160%);
     --nn-theme-mobile-toolbar-button-active-bg: transparent;
+}
+
+.theme-dark .notebook-navigator-obsidian-1-11-plus-ios {
+    --nn-ios-toolbar-glass-outline: rgba(255, 255, 255, 0.1);
+    --nn-ios-toolbar-glass-shadow: 0 0 0 2px var(--nn-ios-toolbar-glass-outline), 0 16px 32px rgba(0, 0, 0, 0.3);
 }
 
 .notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-pill,
 .notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-circle {
     position: relative;
+    z-index: 0;
     border-radius: 999px;
     background: var(--nn-ios-toolbar-glass-bg);
-    border: 1px solid var(--nn-ios-toolbar-glass-border);
+    border: 2px solid transparent;
     -webkit-backdrop-filter: var(--nn-ios-toolbar-glass-filter);
     backdrop-filter: var(--nn-ios-toolbar-glass-filter);
     box-shadow: var(--nn-ios-toolbar-glass-shadow);
+    overflow: hidden;
+
+    /*
+     * Warped glass (disabled)
+     * Enable when WebKit supports SVG `url(#...)` values for `-webkit-backdrop-filter`.
+     *
+     * Requirements:
+     * - Inject the SVG filter defs into the document (filter id: `notebook-navigator-frosted`)
+     * - Set:
+     *   -webkit-backdrop-filter: url(#notebook-navigator-frosted);
+     *   backdrop-filter: url(#notebook-navigator-frosted);
+     */
+}
+
+.notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-pill > .nn-mobile-toolbar-button,
+.notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-circle > .nn-mobile-toolbar-button {
+    position: relative;
+    z-index: 1;
 }
 
 .notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-pill {
