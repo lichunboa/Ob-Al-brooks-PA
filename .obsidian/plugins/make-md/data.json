@@ -69,7 +69,6 @@
     "_assets",
     "_blocks"
   ],
-  "newFileLocation": "root",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,
@@ -86,7 +85,7 @@
   "fmKeySticker": "sticker",
   "openSpacesOnLaunch": true,
   "indexSVG": false,
-  "readableLineWidth": false,
+  "readableLineWidth": true,
   "autoAddContextsToSubtags": true,
   "releaseNotesPrompt": 0.999,
   "enableDefaultSpaces": true,
