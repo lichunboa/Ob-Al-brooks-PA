@@ -141,49 +141,49 @@ tags:
 
 ### K 线类型与信号 (Bars & Signals)
 
-| Tag                      | Abbr     | 中文名                                   | 英文全称                 |
-| ------------------------ | -------- | ---------------------------------------- | ------------------------ |
-| #PA/Term/aodd            | AODD     | 几乎外包下跌日 (AODD)                    | Almost Outside Down Day  |
-| #PA/Term/aoud            | AOUD     | 几乎外包上涨日 (AOUD)                    | Almost Outside Up Day    |
+| Tag                      | Abbr     | 中文名                                 | 英文全称                     |
+| ------------------------ | -------- | ----------------------------------- | ------------------------ |
+| #PA/Term/aodd            | AODD     | 几乎外包下跌日 (AODD)                      | Almost Outside Down Day  |
+| #PA/Term/aoud            | AOUD     | 几乎外包上涨日 (AOUD)                      | Almost Outside Up Day    |
 | #PA/Term/bsb             | BSB      | 买入信号 K 线 (Buy Signal Bar)           | Buy Signal Bar           |
-| #PA/Term/eb              | EB       | 入场 K 线 (Entry Bar)                    | Entry Bar                |
-| #PA/Term/ft              | FT       | 跟进 (Follow Through)                    | Follow Through           |
-| #PA/Term/gub             | GUB      | 放弃 K 线 (Give-up Bar)                  | Give-up Bar              |
-| #PA/Term/ib              | ib       | 内包 K 线 (ib / Inside Bar)              | Inside Bar               |
-| #PA/Term/ii              | ii       | 连续内包 (ii / Consecutive Inside Bars)  | Consecutive inside bars  |
-| #PA/Term/iii             | iii      | 三连内包 (Three Inside Bars)             | Three inside bars        |
+| #PA/Term/eb              | EB       | 入场 K 线 (Entry Bar)                  | Entry Bar                |
+| #PA/Term/ft              | FT       | 跟进 (Follow Through)                 | Follow Through           |
+| #PA/Term/gub             | GUB      | 放弃 K 线 (Give-up Bar)                | Give-up Bar              |
+| #PA/Term/ib              | ib       | 内包 K 线 (ib / Inside Bar)            | Inside Bar               |
+| #PA/Term/ii              | ii       | 连续内包 (ii / Consecutive Inside Bars) | Consecutive inside bars  |
+| #PA/Term/iii             | iii      | 三连内包 (Three Inside Bars)            | Three inside bars        |
 | #PA/Term/ioi             | ioi      | 外包夹内包 (ioi / Inside-Outside-Inside) | Inside-Outside-Inside    |
-| #PA/Term/ioii            | ioii     | 外包后接内包 (Inside after Outside)      | Consecutive IB after OB  |
-| #PA/Term/ob              | OB       | 外包 K 线 (Outside Bar)                  | Outside Bar              |
+| #PA/Term/ioii            | ioii     | 外包后接内包 (Inside after Outside)       | Consecutive IB after OB  |
+| #PA/Term/ob              | OB       | 外包 K 线 (Outside Bar)                | Outside Bar              |
 | #PA/Term/od              | OD       | 外包下跌 K 线 (Outside Down Bar)         | Outside Down Bar         |
 | #PA/Term/odd             | ODD      | 外包下跌日 (Outside Down Day)            | Outside Down Day         |
-| #PA/Term/oo              | OO       | 连续外包 (Consecutive Outside Bars)      | Consecutive Outside Bars |
+| #PA/Term/oo              | OO       | 连续外包 (Consecutive Outside Bars)     | Consecutive Outside Bars |
 | #PA/Term/ou              | OU       | 外包上涨 K 线 (Outside Up Bar)           | Outside Up Bar           |
 | #PA/Term/oud             | OUD      | 外包上涨日 (Outside Up Day)              | Outside Up Day           |
-| #PA/Term/rb #PA/Term/rev | RB / REV | 反转 (Reversal)                          | Reversal Bar             |
+| #PA/Term/rb #PA/Term/rev | RB / REV | 反转 (Reversal)                       | Reversal Bar             |
 | #PA/Term/sb              | SB       | 下方有卖家 (Sellers Below)               | Sellers Below            |
 | #PA/Term/ssb             | SSB      | 卖出信号 K 线 (Sell Signal Bar)          | Sell Signal Bar          |
 
 ### 形态结构 (Patterns & Structures)
 
-| Tag          | Abbr | 中文名                           | 英文全称                  |
-| ------------ | ---- | -------------------------------- | ------------------------- |
-| #PA/Term/db  | DB   | 双底 (Double Bottom)             | Double Bottom             |
-| #PA/Term/dt  | DT   | 双顶 (Double Top)                | Double Top                |
-| #PA/Term/et  | ET   | 扩张三角形 (Expanding Triangle)  | Expanding Triangle        |
-| #PA/Term/ff  | FF   | 最终旗帜 (Final Flag)            | Final Flag                |
-| #PA/Term/h4  | H4   | 牛旗/H4 (H4)                     | High 4 / Bull Flag        |
+| Tag          | Abbr | 中文名                           | 英文全称                      |
+| ------------ | ---- | ----------------------------- | ------------------------- |
+| #PA/Term/db  | DB   | 双底 (Double Bottom)            | Double Bottom             |
+| #PA/Term/dt  | DT   | 双顶 (Double Top)               | Double Top                |
+| #PA/Term/et  | ET   | 扩张三角形 (Expanding Triangle)    | Expanding Triangle        |
+| #PA/Term/ff  | FF   | 最终旗帜 (Final Flag)             | Final Flag                |
+| #PA/Term/h4  | H4   | 牛旗/H4 (H4)                    | High 4 / Bull Flag        |
 | #PA/Term/hsb | HSB  | 头肩底 (Head & Shoulders Bottom) | Head and Shoulders Bottom |
 | #PA/Term/hst | HST  | 头肩顶 (Head & Shoulders Top)    | Head and Shoulders Top    |
-| #PA/Term/l4  | L4   | 熊旗/L4 (L4)                     | Low 4 / Bear Flag         |
-| #PA/Term/mdb | MDB  | 微型双底 (Micro Double Bottom)   | Micro Double Bottom       |
-| #PA/Term/mdt | MDT  | 微型双顶 (Micro Double Top)      | Micro Double Top          |
-| #PA/Term/mw  | MW   | 微型楔形 (Micro Wedge)           | Micro Wedge               |
-| #PA/Term/nw  | NW   | 嵌套楔形 (Nested Wedge)          | Nested Wedge              |
-| #PA/Term/pw  | PW   | 抛物线楔形 (Parabolic Wedge)     | Parabolic Wedge           |
+| #PA/Term/l4  | L4   | 熊旗/L4 (L4)                    | Low 4 / Bear Flag         |
+| #PA/Term/mdb | MDB  | 微型双底 (Micro Double Bottom)    | Micro Double Bottom       |
+| #PA/Term/mdt | MDT  | 微型双顶 (Micro Double Top)       | Micro Double Top          |
+| #PA/Term/mw  | MW   | 微型楔形 (Micro Wedge)            | Micro Wedge               |
+| #PA/Term/nw  | NW   | 嵌套楔形 (Nested Wedge)           | Nested Wedge              |
+| #PA/Term/pw  | PW   | 抛物线楔形 (Parabolic Wedge)       | Parabolic Wedge           |
 | #PA/Term/tri | TRI  | 三角形 (Triangle)                | Triangle                  |
-| #PA/Term/tw  | TW   | 截断楔形 (Truncated Wedge)       | Truncated Wedge           |
-| #PA/Term/w   | W    | 楔形 (Wedge)                     | Wedge                     |
+| #PA/Term/tw  | TW   | 截断楔形 (Truncated Wedge)        | Truncated Wedge           |
+| #PA/Term/w   | W    | 楔形 (Wedge)                    | Wedge                     |
 
 ### 入场、订单与触发 (Entries & Orders)
 
