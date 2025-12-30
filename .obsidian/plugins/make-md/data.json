@@ -49,16 +49,14 @@
     "//Notes/Notes/assets/Notes/assets/买卖压力",
     "//PA",
     "//PA/PA/Journal",
-    "//Daily/Daily/SPX",
-    "//Daily/Daily/Trades",
     "/",
     "//Templates/Templates/assets",
     "//Templates/Templates/assets/Templates/assets/课程理论模版 (Concept Template)",
     "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)",
     "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
     "//Categories 分类/Categories 分类/卡片",
-    "//Templates",
-    "//Daily"
+    "//Categories 分类",
+    "//Categories 分类/Categories 分类/太妃价格行为"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
