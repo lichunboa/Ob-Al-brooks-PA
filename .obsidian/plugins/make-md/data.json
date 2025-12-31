@@ -54,9 +54,7 @@
     "//Templates/Templates/assets/Templates/assets/课程理论模版 (Concept Template)",
     "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)",
     "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
-    "//Categories 分类/Categories 分类/卡片",
-    "//Categories 分类/Categories 分类/太妃价格行为",
-    "//Categories 分类"
+    "//Categories 分类/Categories 分类/卡片"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",

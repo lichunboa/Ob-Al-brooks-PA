@@ -38,9 +38,9 @@ if (!document.getElementById(styleId)) {
         .mem-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .mem-mini-stat { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         
-        .mem-chart-row { display: flex; gap: 12px; height: 140px; }
+        .mem-chart-row { display: flex; gap: 12px; height: 180px; }
         .mem-chart-box { flex: 1; display: flex; align-items: flex-end; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; }
-        .mem-rec-box { flex: 1.2; display: flex; flex-direction: column; justify-content: center; padding: 16px; position: relative; overflow: hidden; }
+        .mem-rec-box { flex: 1.2; display: flex; flex-direction: column; justify-content: center; padding: 12px; position: relative; overflow: hidden; }
         
         .mem-btn { 
             width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; 
@@ -241,7 +241,7 @@ if (window.paData && window.paData.sr) {
         ? "🎲 随机抽取"
         : "🚀 推荐"
     }</div>
-        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${recItem.title
+        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${recItem.title
     }</div>
         <div style="font-size:0.8em; opacity:0.6; margin-bottom:12px;">${recItem.desc
     }</div>
