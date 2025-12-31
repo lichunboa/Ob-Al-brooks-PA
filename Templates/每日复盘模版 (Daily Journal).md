@@ -35,12 +35,10 @@ date: 2025-12-17
 
 （自动抓取今日交易）
 
-```dataview
-TABLE direction as "方向", ticker as "品种", outcome as "结果", net_profit as "盈亏"
-FROM "Daily/Trades"
-WHERE file.cday = this.file.cday
+TABLE direction as "方向", ticker as "品种", outcome as "结果", default(net_profit, 0) as "盈亏"
+FROM "Daily/Trades" or #PA/Trade
+WHERE file.cday = this.file.cday AND !contains(file.path, "Templates")
 SORT file.ctime ASC
-```
 
 # 🌇 3. 盘后总结 (Post-Market)
 
