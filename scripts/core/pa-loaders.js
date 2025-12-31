@@ -87,6 +87,7 @@ function loadTrades(dv, utils, cfg) {
             type: type,
             pnl: pnl,
             r: r,
+            cover: utils.safeStr(t, ["封面/cover", "cover"]),
             setup: utils.safeStr(t, ["设置类别/setup_category", "setup_category"]),
             market_cycle: utils.safeStr(t, ["市场周期/market_cycle", "market_cycle"]),
             error: errStr,
