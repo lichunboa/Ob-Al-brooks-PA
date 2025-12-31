@@ -82,9 +82,12 @@
 
 #### 🔧 关键实现 (Critical Implementation)
 *   **Recommendation Algorithm (推荐优先级)**:
-    1.  **Due (到期)**: `sr.due > 0` 且有 `sr.focusFile`。
+    1.  **Due (到期)**: `sr.due > 0` 且有 `sr.focusFile` (可通过 Shake 按钮临时 Bypass)。
     2.  **Hybrid (混合)**: `course.hybridRec` (新课或闪卡)。
     3.  **Random (随机)**: 摇一摇 (`quizPool` 随机抽取)。
+*   **Interaction Logic (Bypass)**:
+    *   **Shake 🎲**: 点击摇一摇会设置 `window.paIgnoreFocus = true` 并刷新视图，从而跳过强制复习，进入 Random 模式。
+    *   **Hard Refresh 🔄**: 强制刷新会重置 `window.paIgnoreFocus = false`，恢复默认优先级。
 *   **Command Coupling**:
     *   **Review Button**: 绑定 `obsidian-spaced-repetition:srs-review-flashcards`。此插件必须安装且启用。
     *   **Force Refresh**: 优先尝试 `window.paRefreshViews` (core v14+)，失败则回退到 `dataview:force-refresh-views`。
