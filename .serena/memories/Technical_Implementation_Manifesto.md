@@ -88,6 +88,9 @@
 *   **Interaction Logic (Bypass)**:
     *   **Shake 🎲**: 点击摇一摇会设置 `window.paIgnoreFocus = true` 并刷新视图，从而跳过强制复习，进入 Random 模式。
     *   **Hard Refresh 🔄**: 强制刷新会重置 `window.paIgnoreFocus = false`，恢复默认优先级。
+*   **UI Constraints**:
+    *   **Container Height**: `.mem-chart-row` 增高至 `180px` 以容纳长标题。
+    *   **Text Culling**: 标题强制 `-webkit-line-clamp: 2`，防止中文渲染时的垂直溢出 (V3.1 Fix)。
 *   **Command Coupling**:
     *   **Review Button**: 绑定 `obsidian-spaced-repetition:srs-review-flashcards`。此插件必须安装且启用。
     *   **Force Refresh**: 优先尝试 `window.paRefreshViews` (core v14+)，失败则回退到 `dataview:force-refresh-views`。
