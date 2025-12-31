@@ -36,6 +36,12 @@ const pages = dv.pages("#PA/Trade");
 ```
 **注意**: Agent 不能直接修改文件系统（除非通过 `app.vault` 或者是 tool call）。建议生成脚本让用户在控制台运行，或者使用 `multi_replace_file` 谨慎操作。
 
-## 4. 📝 Post-Maintenance
-- **Manifesto Update (Mandatory)**: 如果修改了逻辑，**必须**更新 `.serena/memories/Technical_Implementation_Manifesto.md` 中的对应章节。这是防止代码逻辑丢失的唯一防线。
-- 更新 `scripts/pa-config.js` 里的版本号。
+## 4. 🚀 Release & Synchronization (发布与同步)
+**定义完成标准 (Definition of Done)**:
+1.  **Manifesto Sync (白皮书同步)**: 
+    *   检查本次修改是否涉及逻辑变更。
+    *   如果有，**必须立即**编辑 `.serena/memories/Technical_Implementation_Manifesto.md`。
+    *   *Self-Correction*: 不要等下次，现在就改。
+2.  **Version Bump**: 更新 `scripts/pa-config.js` 版本号。
+3.  **Final Report**: 在 `notify_user` 中，必须包含一行：
+    *   "✅ **逻辑白皮书已同步**: 更新了 [模块名] 的 [具体逻辑] 章节。"

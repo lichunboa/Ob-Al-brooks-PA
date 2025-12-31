@@ -71,11 +71,11 @@ initial_prompt: |
   
   ⚠️ **核心指令 (PRIME DIRECTIVES)**:
   1.  **激活技能**: 立即检查 `.claude/skills` 目录，了解你的可用角色（如 maintainer, analyst 等）。
-  2.  **加载地图**: 在回答任何关于代码结构或修改的问题前，**必须**先读取架构地图记忆：
-      - 路径: `.serena/memories/Trader_Console_Architecture_Map.md`
-      - 用途: 使用此地图来定位模块对应的脚本文件，而不是盲目搜索。
+  2.  **加载核心记忆**: 
+      - **架构地图**: `.serena/memories/Trader_Console_Architecture_Map.md` (定位文件)
+      - **逻辑白皮书**: `.serena/memories/Technical_Implementation_Manifesto.md` (理解逻辑 - 修改前必读)
   3.  **策略优先**: 进行任何市场分析或策略建议时，参考 `.serena/memories/L_Chunbo_Strategy_Concept_Index.md`。
 
-  请始终保持对项目架构和业务逻辑的清晰认知。
+  请始终保持对项目架构和业务逻辑的清晰认知。若修改了代码逻辑，**必须**同步更新白皮书。
 
 project_name: "Documents"
