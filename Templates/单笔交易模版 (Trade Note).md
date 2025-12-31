@@ -38,11 +38,11 @@ const cfg = require(basePath + "/scripts/pa-config.js");
 const c = cfg.colors;
 
 const cur = dv.current();
-const cycle = utils.safeStr(cur, ["市场周期/market_cycle", "market_cycle", "市场周期"]);
-const setup = utils.safeStr(cur, ["设置类别/setup_category", "setup_category", "设置类别"]);
-const ticker = utils.safeStr(cur, ["品种/ticker", "ticker"]);
-const tf = utils.safeStr(cur, ["时间周期/timeframe", "timeframe"]);
-const dir = utils.safeStr(cur, ["方向/direction", "direction"]);
+const cycle = (cur["市场周期/market_cycle"] || "").toString();
+const setup = (cur["设置类别/setup_category"] || "").toString();
+const ticker = (cur["品种/ticker"] || "").toString();
+const tf = (cur["时间周期/timeframe"] || "").toString();
+const dir = (cur["方向/direction"] || "").toString();
 
 const pick = (s) => {
   const v = (s || "").toString();

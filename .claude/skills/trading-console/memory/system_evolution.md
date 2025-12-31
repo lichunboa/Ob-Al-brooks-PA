@@ -14,4 +14,6 @@
 - **Template Logic**: `Trade Note.md` 极其依赖 Frontmatter 命名。如果修改了 `pa-config.js` 里的 `labels`，必须同步更新模板的 DataviewJS 映射。
 
 ## 📈 Evolution Log (进化日志)
-* [2025-12-31] System decoupled into `loaders/analyzers/cache`. Smart Analyst integrated.
+* [2025-12-31] **MAJOR ROLLBACK**: Attempted to decouple `pa-core.js` into modular components (v5.2). Resulted in multiple view regressions (SR count 0, Course Map missing, Charts missing). Reverted to v14.6 monolithic code. 
+    *   **Lesson**: The monolithic `pa-core.js` has hidden dependencies (like inline SR regex counting) that were lost in translation. Future refactors must strict audit *all* `window.paData` properties.
+    *   **Status**: `scripts/core/` folder exists but is currently ORPHANED (not used by `pa-core.js`).
