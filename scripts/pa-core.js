@@ -110,6 +110,14 @@ window.paRefreshViews = async (opts) => Cache.refreshViews(app, cfg, opts);
       consolePath: "🦁 交易员控制台 (Trader Command)5.0.md"
     });
 
+    // 3.4 Smart Analytics
+    const patternMatrix = SmartAnalyst.buildPatternMatrix(tradesData.trades);
+    const planAudit = dailyData.todayJournal
+      ? SmartAnalyst.auditPlan(dailyData.todayJournal, tradesData.trades.filter(t => t.date === todayStr))
+      : null;
+
+
+
     // ============================================================
     // 4. 发布 (Publish)
     // ============================================================
@@ -127,6 +135,11 @@ window.paRefreshViews = async (opts) => Cache.refreshViews(app, cfg, opts);
       index,
       coach,
       recommendations,
+      smart: {
+        matrix: patternMatrix,
+        audit: planAudit
+      },
+
 
       // Meta
       updateTime: moment().format("HH:mm:ss"),
