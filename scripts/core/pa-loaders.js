@@ -119,7 +119,8 @@ async function loadSR(dv, app, cfg) {
     const srData = {
         total: 0, due: 0, reviewed: 0,
         load: {}, folders: {}, fileList: [],
-        quizPool: [], focusFile: null, status: "🌱 初始"
+        quizPool: [], focusFile: null, status: "🌱 初始",
+        cnt: { sNorm: 0, sRev: 0, mNorm: 0, mRev: 0, cloze: 0 }
     };
 
     const pages = dv.pages(`${cfg.tags.flashcards} AND -"${cfg.paths.templates}"`);
@@ -141,6 +142,10 @@ async function loadSR(dv, app, cfg) {
                 if (d <= todayStr) { srData.due++; fDue++; }
                 else srData.load[d] = (srData.load[d] || 0) + 1;
             });
+
+            // Count for Learning Module UI (Shim)
+            // In v5.2, we just count simple cards to prevent UI crash
+            srData.cnt.sNorm++;
 
             // Add file info
             srData.fileList.push({ name: p.file.name, path: p.file.path, due: fDue, count: matches.length });
