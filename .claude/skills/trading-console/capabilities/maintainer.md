@@ -37,5 +37,5 @@ const pages = dv.pages("#PA/Trade");
 **注意**: Agent 不能直接修改文件系统（除非通过 `app.vault` 或者是 tool call）。建议生成脚本让用户在控制台运行，或者使用 `multi_replace_file` 谨慎操作。
 
 ## 4. 📝 Post-Maintenance
-- 更新 `memory/system_evolution.md`，记录本次维护遇到的新情况。
+- **Manifesto Update (Mandatory)**: 如果修改了逻辑，**必须**更新 `.serena/memories/Technical_Implementation_Manifesto.md` 中的对应章节。这是防止代码逻辑丢失的唯一防线。
 - 更新 `scripts/pa-config.js` 里的版本号。
