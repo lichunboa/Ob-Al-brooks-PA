@@ -77,6 +77,65 @@
     *   **Source of Truth**: 优先使用 `strategyIndex` (来自 core)。这保证了 Dashboard 和 Analytics 看到的策略名称永远一致。
     *   **Fallback**: 若 core 未就绪，会降级为本地简易映射 (不推荐)。
 
+### 3. 🧠 记忆模块: `scripts/pa-view-memory.js`
+**职责**: 间隔重复记忆 (SRS) 的可视化与交互入口。
+
+#### 🔧 关键实现 (Critical Implementation)
+*   **Recommendation Algorithm (推荐优先级)**:
+    1.  **Due (到期)**: `sr.due > 0` 且有 `sr.focusFile`。
+    2.  **Hybrid (混合)**: `course.hybridRec` (新课或闪卡)。
+    3.  **Random (随机)**: 摇一摇 (`quizPool` 随机抽取)。
+*   **Command Coupling**:
+    *   **Review Button**: 绑定 `obsidian-spaced-repetition:srs-review-flashcards`。此插件必须安装且启用。
+    *   **Force Refresh**: 优先尝试 `window.paRefreshViews` (core v14+)，失败则回退到 `dataview:force-refresh-views`。
+*   **DOM Injection**:
+    *   动态注入 `<style id="pa-mem-style-v3">`。若样式错乱，检查是否有其他 Shadow DOM 冲突。
+
+### 4. 🗂️ 策略仓库: `scripts/pa-view-playbook.js`
+**职责**: 策略展示、性能统计、分组索引。
+
+#### 🔧 关键实现 (Critical Implementation)
+*   **Strategy Resolution (名称归一化)**:
+    *   **Canonical Name**: 极其依赖 `strategyLookup` (Map) 将别名 (如 "TR", "Wedge") 转为标准名。
+    *   **CJK Check**: 使用 `/[\u4e00-\u9fff]/` 正则检测中文。若纯英文，强行添加 "待补充/" 前缀以提示汉化。
+*   **Runtime Aggregation (运行时统计)**:
+    *   **Performance**: 不依赖 core 预算的统计，而是**现场遍历** `tradesAsc` 计算每个策略的胜率/盈亏。这保证了 Playbook 看到的数据永远是最新的 (Real-time)。
+*   **Grouping Logic**:
+    *   **Primary Filter**: 取 `s.marketCycles[0]` 作为主分组。如果一个策略属于多个周期，它只会在第一个周期的分组下显示 (UI 权衡)。
+    *   **Sort Order**: 实战中 (Active) > 盈亏高 > 最近使用。
+
+### 5. 🗺️ 课程地图: `scripts/pa-view-course.js`
+**职责**: 展示学习进度矩阵与推荐课程。
+
+#### 🔧 关键实现 (Critical Implementation)
+*   **Rec Algorithm (混合推荐)**:
+    1.  **Core Priority**: 优先使用 core 计算好的 `hybridRec` (避免重复计算)。
+    2.  **Sequential Fallback**: 若无推荐，按 `syllabus` 顺序寻找第一个未完成 (`!isDone`) 的章节。
+    3.  **Random Review**: 若全已完成，随机抽取一节作为复习。
+*   **ID Fuzzy Match**:
+    *   `simpleId(id)`: 移除末尾字母 (如 "L01A" -> "L01")。判定 `done` 时，只要 ID 或 SimpleID 在 `doneSet` 中即视为完成。
+
+### 6. 🖼️ 复盘画廊: `scripts/pa-view-gallery.js`
+**职责**: 视觉化复盘 (Visual Review)，展示交易截图。
+
+#### 🔧 关键实现 (Critical Implementation)
+*   **Image Resolution (图片解析)**:
+    *   **Complex Regex**: 支持解析 `cover` 字段中的 `![[...]]` (WikiLink), `![](...)` (Markdown Link) 或 纯路径。
+    *   **Path Resolve**: 使用 `app.metadataCache.getFirstLinkpathDest` 解决相对路径问题。这是最容易出 Bug 的地方，修改时需测试不同层级的引用。
+*   **Performance Constraint**:
+    *   **Limit**: 硬编码只处理前 20 笔交易，最终只渲染 4 张卡片，防止 DOM 过重卡死 Obsidian。
+
+### 7. 🔍 数据巡检: `scripts/pa-view-inspector.js`
+**职责**: 数据完整性检查、健康度评分、字段分布。
+
+#### 🔧 关键实现 (Critical Implementation)
+*   **Validation Logic (校验规则)**:
+    *   **Whitelist Source**: 读取 `Templates/属性值预设.md` 作为合法值白名单。若此文件缺失，校验功能会失效。
+    *   **Consistency Check**: 检查 `strategyName` 是否在 `strategyIndex` 中存在。若不存在，标记为 "未知策略"。
+    *   **Logic Check**: 检测 `pnl != 0 && r == 0` (有盈亏但无风险回报比) 的逻辑矛盾。
+*   **Stable Aggregation**:
+    *   使用 `stableKey` (如 `tickerKey`, `tfKey`) 进行聚合统计，避免 "ES" 和 "ES(Mini)" 被拆成两项。修改 `pa-core` 的归一化逻辑时需注意此处的依赖。
+
 ---
 
 ## 🛠️ 维护守则 (Maintainer Protocols)
