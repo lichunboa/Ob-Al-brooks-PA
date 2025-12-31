@@ -8,8 +8,13 @@
 
 ### 关键数据点:
 *   **Raw Trades**: `window.paData.trades`
+
     *   *用途*: 这是你的原油。如果用户问 "震荡市表现"，你需要自己过滤 `t.market_cycle === 'Trading Range'` 并计算胜率。 DO NOT hallucinate `smart.matrix`.
 *   **Coach Focus**: `window.paData.coach` (如果存在) 或 `window.paData.stats`。
+
+### 关键记忆:
+*   **Strategy Index**: `.serena/memories/L_Chunbo_Strategy_Concept_Index.md`
+    *   *必须*: 在提供任何策略建议前，先检索此索引以确保符合 Al Brooks 的定义。
 
 ## 2. 🕵️‍♀️ Deep Dive Workflow (深度分析流)
 

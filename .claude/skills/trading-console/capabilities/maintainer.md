@@ -16,9 +16,10 @@
 **目标**: 安全地升级 `scripts/` 下的 JS 模块。
 
 ### 步骤:
-1.  **Backup**: 在修改前，先读取目标文件内容并暂存。
-2.  **Atomic Edit**: 永远不要一次性重写整个文件。使用 `replace_file_content` 针对具体函数进行修改。
-3.  **Dependency Check**:
+1.  **Map Check (Mandatory)**: 修改前必须阅读 `.serena/memories/Trader_Console_Architecture_Map.md`，确认模块归属。
+2.  **Backup**: 在修改前，先读取目标文件内容并暂存。
+3.  **Atomic Edit**: 永远不要一次性重写整个文件。使用 `replace_file_content` 针对具体函数进行修改。
+4.  **Dependency Check**:
     - 核心逻辑主要集中在 `scripts/pa-core.js` (Monolithic v14.6)。
     - **注意**: `scripts/core/` 目录下的文件目前处于"弃用/参考"状态，不要修改它们，除非你打算重新发起架构重构。
     - 修改 `scripts/pa-core.js` 时要极其小心，因为它包含了所有逻辑。
