@@ -19,8 +19,9 @@
 1.  **Backup**: 在修改前，先读取目标文件内容并暂存。
 2.  **Atomic Edit**: 永远不要一次性重写整个文件。使用 `replace_file_content` 针对具体函数进行修改。
 3.  **Dependency Check**:
-    - 如果修改了 `pa-loaders.js` 的返回结构，必须检查 `pa-analyzers.js` 是否能处理新结构。
-    - 运行 `pa-core.js` (或者让用户刷新) 并检查 `window.paData.error`。
+    - 核心逻辑主要集中在 `scripts/pa-core.js` (Monolithic v14.6)。
+    - **注意**: `scripts/core/` 目录下的文件目前处于"弃用/参考"状态，不要修改它们，除非你打算重新发起架构重构。
+    - 修改 `scripts/pa-core.js` 时要极其小心，因为它包含了所有逻辑。
 
 ## 3. 🧹 Data Hygiene (数据卫生清洗)
 **目标**: 批量修复 Frontmatter 格式错误。
