@@ -82,14 +82,8 @@ window.paRefreshViews = async (opts) => Cache.refreshViews(app, cfg, opts);
       // Here we just load fresh.
       srData = await Loaders.loadSR(dv, app, cfg);
 
-      // 5. Course (Inline logic moved to simple loader or just empty for now in core modules?)
-      // We didn't split Course Loader perfectly in step 3, so let's keep basic structure here or implement simple one.
-      // Simplified Course Loader for now
-      courseData = { done: new Set(), map: {}, syllabus: [], hybridRec: null };
-      // (In a real full implementation, this would be in Loaders.loadCourse)
-      // Let's rely on Analyzers to help or just leave it empty until Phase 3. 
-      // Actually, `buildUnifiedRecommendations` needs courseData.
-      // Let's shim it roughly.
+      // 5. Course (Now fully implemented)
+      courseData = Loaders.loadCourse(dv, utils, cfg);
     }
 
     // ============================================================

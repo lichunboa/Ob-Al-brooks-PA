@@ -142,6 +142,7 @@ async function loadSR(dv, app, cfg) {
                 if (d <= todayStr) { srData.due++; fDue++; }
                 else srData.load[d] = (srData.load[d] || 0) + 1;
             });
+            srData.total += matches.length;
 
             // Count for Learning Module UI (Shim)
             // In v5.2, we just count simple cards to prevent UI crash
@@ -226,9 +227,51 @@ function loadDaily(dv, utils) {
     return { journalsByDate: journals, todayJournal: journals.get(todayStr) };
 }
 
+// --- Course Loader ---
+function loadCourse(dv, utils, cfg) {
+    const courseData = {
+        syllabus: [], map: new Map(),
+        done: new Set(),
+        status: { total: 0, done: 0 },
+        hybridRec: null
+    };
+
+    // 1. Load Syllabus Steps (from folders or tags)
+    // Assuming course items are tagged with #Course or explicitly listed
+    // For v5.2, we'll scan for #Course/Step or similar
+    const pages = dv.pages("#Course").sort(p => p.file.name);
+
+    for (const p of pages) {
+        const item = {
+            name: p.file.name,
+            path: p.file.path,
+            status: utils.safeStr(p, ["状态/status", "status"]) || "Todo",
+            module: utils.safeStr(p, ["模块/module", "module"]) || "General",
+            difficulty: utils.safeStr(p, ["难度/difficulty", "difficulty"])
+        };
+        courseData.syllabus.push(item);
+        if (item.status === "Done") courseData.done.add(item.path);
+    }
+
+    courseData.status.total = courseData.syllabus.length;
+    courseData.status.done = courseData.done.size;
+
+    // 2. Hybrid Rec (Simple: Pick first Todo)
+    const nextItem = courseData.syllabus.find(x => x.status !== "Done");
+    if (nextItem) {
+        courseData.hybridRec = {
+            type: "New",
+            data: { t: nextItem.name, path: nextItem.path, q: nextItem.name }
+        };
+    }
+
+    return courseData;
+}
+
 module.exports = {
     loadTrades,
     loadSR,
     loadStrategies,
-    loadDaily
+    loadDaily,
+    loadCourse
 };
