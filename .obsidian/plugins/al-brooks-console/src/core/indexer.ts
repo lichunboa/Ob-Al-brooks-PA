@@ -45,6 +45,14 @@ export class TradeIndex extends Events {
         this.stats.totalTrades = this.db.size;
         console.log(`🦁 TradeIndex: Scanned ${files.length} files. Found ${this.db.size} trades. Time: ${Date.now() - start}ms`);
 
+        // WRITE DEBUG FILE
+        try {
+            const debugContent = `Scan Time: ${new Date().toISOString()}\nTotal Files: ${files.length}\nIndexed Trades: ${this.db.size}\n\nSample Files Found:\n` +
+                Array.from(this.db.values()).slice(0, 10).map(t => `- ${t.path} (${t.pnl}R)`).join("\n");
+
+            await this.vault.adapter.write("plugin_debug_log.md", debugContent);
+        } catch (e) { console.error(e); }
+
         // Register Listeners for Robust Sync
         this.registerListeners();
 
@@ -131,7 +139,16 @@ export class TradeIndex extends Events {
         const direction = getProp(["dir", "direction", "方向/direction", "方向"]) || "Unknown";
         const outcome = getProp(["outcome", "result", "结果/outcome", "结果"]) || "Open";
 
+        // Debug Log
+        if (file.path.includes("251219")) {
+            console.log("🦁 Debug file:", file.path);
+            console.log("   isTradeTag:", isTradeTag);
+            console.log("   isInTradeFolder:", isInTradeFolder);
+            console.log("   Ticker:", ticker);
+        }
+
         // Re-validate based on solved props
+        // Relaxed logic: If it's in a trade folder, accept it even if properties are missing
         if (!isTradeTag && !ticker && pnl === 0 && !isInTradeFolder) {
             if (this.db.has(file.path)) {
                 this.db.delete(file.path);
@@ -144,15 +161,15 @@ export class TradeIndex extends Events {
         const trade: TradeData = {
             path: file.path,
             filename: file.name,
-            date: getProp(["date"]) || file.basename.substring(0, 10),
-            ticker: ticker || "Unknown",
-            direction: direction,
-            setup: setup,
-            market_cycle: getProp(["market_cycle", "市场周期/market_cycle"]),
-            outcome: outcome,
+            date: String(getProp(["date"]) || file.basename.substring(0, 10)),
+            ticker: String(ticker || "Unknown"),
+            direction: String(direction),
+            setup: String(setup || ""),
+            market_cycle: String(getProp(["market_cycle", "市场周期/market_cycle"]) || ""),
+            outcome: String(outcome),
             pnl: pnl,
             r: safeNum(getProp(["r", "R", "R-Multiple"])),
-            tf: getProp(["tf", "timeframe", "时间周期/timeframe"]) || "",
+            tf: String(getProp(["tf", "timeframe", "时间周期/timeframe"]) || ""),
             tags: Array.isArray(tags) ? tags : [],
             frontmatter: fm
         };
