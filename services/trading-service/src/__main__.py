@@ -16,8 +16,8 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-# 加载 .env
-_env_file = Path(__file__).parents[2] / ".env"
+# 加载 config/.env
+_env_file = Path(__file__).parents[1] / "config" / ".env"
 if _env_file.exists():
     for line in _env_file.read_text().splitlines():
         line = line.strip()
