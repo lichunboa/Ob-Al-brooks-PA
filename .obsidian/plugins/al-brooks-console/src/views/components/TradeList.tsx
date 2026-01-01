@@ -27,7 +27,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades }) => {
                     }}
                         onClick={() => {
                             // Open file
-                            window.app.workspace.openLinkText(t.path, "", true);
+                            (window as any).app.workspace.openLinkText(t.path, "", true);
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--interactive-accent)"}
                         onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--background-modifier-border)"}
