@@ -2,6 +2,8 @@ import * as React from "react";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import * as ReactDOM from "react-dom";
 import { TradeIndex } from "../core/indexer";
+import { StatsCard } from "./components/StatsCard";
+import { TradeList } from "./components/TradeList";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -12,6 +14,15 @@ interface Props {
 const ConsoleComponent: React.FC<Props> = ({ index }) => {
     const [stats, setStats] = React.useState(index.stats);
     const [trades, setTrades] = React.useState(index.getAllTrades());
+
+    // Calculate dynamic stats
+    const totalPnl = React.useMemo(() => trades.reduce((acc, t) => acc + t.pnl, 0), [trades]);
+    const winRate = React.useMemo(() => {
+        const closed = trades.filter(t => t.outcome === "Win" || t.outcome === "Loss");
+        if (closed.length === 0) return 0;
+        const wins = closed.filter(t => t.outcome === "Win").length;
+        return Math.round((wins / closed.length) * 100);
+    }, [trades]);
 
     React.useEffect(() => {
         const onUpdate = () => {
@@ -31,40 +42,48 @@ const ConsoleComponent: React.FC<Props> = ({ index }) => {
     }, [index]);
 
     return (
-        <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-            <h1 style={{ color: "#3b82f6" }}>🦁 Trader Console (Bespoke)</h1>
+        <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
+            <h2 style={{
+                borderBottom: "1px solid var(--background-modifier-border)",
+                paddingBottom: "10px",
+                marginBottom: "20px"
+            }}>
+                🦁 Trader Dashboard
+            </h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-                <div style={{ padding: "15px", background: "rgba(59, 130, 246, 0.1)", borderRadius: "8px" }}>
-                    <strong>Total Trades</strong>
-                    <div style={{ fontSize: "2rem", fontWeight: "bold" }}>{stats.totalTrades}</div>
-                </div>
-                <div style={{ padding: "15px", background: "rgba(16, 185, 129, 0.1)", borderRadius: "8px" }}>
-                    <strong>Last Scan</strong>
-                    <div>{new Date(stats.lastScan).toLocaleTimeString()}</div>
-                </div>
+            {/* Stats Row */}
+            <div style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                marginBottom: "24px"
+            }}>
+                <StatsCard
+                    title="Total Trades"
+                    value={stats.totalTrades}
+                    icon="📊"
+                />
+                <StatsCard
+                    title="Net PnL"
+                    value={`${totalPnl > 0 ? "+" : ""}${totalPnl.toFixed(1)}R`}
+                    color={totalPnl >= 0 ? "#10b981" : "#ef4444"}
+                    icon="💰"
+                />
+                <StatsCard
+                    title="Win Rate"
+                    value={`${winRate}%`}
+                    color={winRate > 50 ? "#10b981" : "#eab308"}
+                    icon="🎯"
+                />
             </div>
 
-            <h3>Recent Trades</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {trades.slice(0, 5).map(t => (
-                    <div key={t.path} style={{
-                        padding: "10px",
-                        border: "1px solid #333",
-                        borderRadius: "6px",
-                        display: "flex",
-                        justifyContent: "space-between"
-                    }}>
-                        <span>{t.date}</span>
-                        <strong>{t.ticker}</strong>
-                        <span style={{
-                            color: t.pnl > 0 ? "#10b981" : (t.pnl < 0 ? "#ef4444" : "#888")
-                        }}>
-                            {t.pnl > 0 ? "+" : ""}{t.pnl}R
-                        </span>
-                    </div>
-                ))}
-                {trades.length === 0 && <div>Scanning vault... (0 trades found)</div>}
+            {/* Main Content Area */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+                {/* Trade Feed */}
+                <div>
+                    <h3 style={{ marginBottom: "12px" }}>Recent Activity</h3>
+                    <TradeList trades={trades.slice(0, 50)} />
+                </div>
             </div>
         </div>
     );
