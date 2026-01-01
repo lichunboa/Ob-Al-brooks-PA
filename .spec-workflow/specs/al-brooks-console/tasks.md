@@ -95,3 +95,92 @@ Implement the task for spec al-brooks-console, first run spec-workflow-guide to 
 - Leverage: Existing Dataview console as baseline.
 - Requirements: AC-1..AC-6
 - Success: Clear, repeatable manual validation steps.
+
+## 8. 性能与稳定性优化（对比旧 Dataview 控制台的痛点）
+- [ ] 启动性能：实现索引启动阶段分批（chunked）构建 + 进度状态（UI 可显示“正在建立索引/已就绪”）。
+- [ ] 移动端友好：为 TradeIndex 增加“范围收敛”策略（只扫描匹配 tag 的文件；避免全库扫描）；必要时提供可配置的 folder allowlist（如 `Notes/`、`Trades/`）。
+- [ ] 列表性能：交易列表采用虚拟列表（virtualized list），避免大量 DOM 渲染导致卡顿。
+- [ ] 事件风暴保护：增量更新队列（coalesce）+ 最大频率限制（debounce/throttle），避免频繁编辑触发 UI 抖动。
+- [ ] 崩溃隔离：React error boundary + 数据层错误上报（至少 console.warn）+ “重建索引”按钮（仅重建内存，不写 vault）。
+
+_Prompt:
+Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task:
+- Role: Performance & reliability engineer
+- Task: Add the minimal performance/stability upgrades required to eliminate legacy pain points (flicker, full rescans, mobile OOM).
+- Restrictions: No new UX beyond a basic loading/ready/error state and a rebuild action.
+- Leverage: Incremental indexing + React rendering.
+- Requirements: NFR (performance, stability)
+- Success: Large vault remains responsive; edits do not cause full rescans; UI remains stable.
+
+## 9. 迁移“精华逻辑”：Review Hints（`buildReviewHints`）
+- [ ] 从现有引擎迁移 `buildReviewHints` 的规则集到纯 TS 模块（不依赖 Dataview）。
+- [ ] 定义 `ReviewHint` 类型与生成条件（例如：亏损复盘、盈利复盘、错误复盘、市场环境一句话等）。
+- [ ] 在 TradeIndex 的 TradeRecord 中保留 `reviewHints` 字段（或可派生字段），并在 UI 中最小化展示（例如：今日/最近交易的复盘提示）。
+
+_Prompt:
+Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task:
+- Role: Business logic migration engineer
+- Task: Port the existing review algorithm (`buildReviewHints`) into the native plugin data pipeline.
+- Restrictions: Keep behavior compatible with Dataview baseline; do not add new hint categories without approval.
+- Leverage: Existing pa-core.js logic as reference only.
+- Requirements: FR (coaching/review quality), parity
+- Success: Same trades produce the same (or explainably equivalent) review hints.
+
+## 10. 迁移“精华逻辑”：Context → Strategy Matching（策略推荐）
+- [ ] 实现 `StrategyIndex`（若未在前序任务中完成到可用程度）：支持 `byPattern/lookup/byName/list`。
+- [ ] 实现 `StrategyMatcher`：输入 `market_cycle + patterns/setup/signal`，输出推荐策略卡（先做最小匹配：market_cycle + isActiveStrategy）。
+- [ ] 支持“单一信源”：策略仓库扫描/解析只在一个地方做（避免旧系统里 view 自扫导致口径漂移）。
+- [ ] 在 UI 中加一个最小的“今日策略推荐”区域（仅展示 3-6 个策略链接）。
+
+_Prompt:
+Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task:
+- Role: Strategy engine engineer
+- Task: Implement context-strategy matching that mirrors the Dataview console’s core value.
+- Restrictions: No extra dashboards; keep it minimal.
+- Leverage: `daily.todayJournal.market_cycle` + `strategyIndex`.
+- Requirements: FR (context matching)
+- Success: Given the same market cycle, recommendations are stable and explainable.
+
+## 11. 外部插件集成（Adapter Pattern，确保可随官方升级）
+
+> 目标：集成“卫星插件”能力，但不把它们变成硬依赖。
+> 升级策略：只用稳定入口（Commands / 公开 API）；使用 feature detection；适配器独立封装；缺失时优雅降级。
+
+### 11.1 集成清单（基于当前 vault 已安装插件）
+- [ ] QuickAdd（id: `quickadd`）：Console 的“New Trade”按钮触发 QuickAdd command（例如 `quickadd:choice:New Live Trade` 等），若命令不存在则隐藏/提示。
+- [ ] Spaced Repetition（id: `obsidian-spaced-repetition`）：提供“开始复习”入口；MVP 用命令 `obsidian-spaced-repetition:srs-review-flashcards`；深度队列读取作为后续可选任务（需要 API 且需版本守护）。
+- [ ] Tasks（id: `obsidian-tasks-plugin`）：先做“轻集成”（打开 Tasks 视图/执行命令/跳转到任务页）；复杂查询与渲染后置。
+- [ ] Templater（id: `templater-obsidian`）：不直接耦合（通常由 QuickAdd/模板链路使用）；仅做存在性检测/诊断信息。
+- [ ] Metadata Menu（id: `metadata-menu`）：可作为数据质量工具入口（打开/跳转到 metadata 管理），不把它作为 TradeIndex 的依赖。
+- [ ] Dataview/Datacore（id: `dataview` / `datacore`）：迁移期保留为 baseline；新控制台不依赖其索引；仅用于对照/调试（例如“检测到 Dataview 已安装”并提示可用基准页）。
+
+### 11.2 技术任务（实现方式）
+- [ ] 实现 `PluginIntegrationRegistry`：检测插件是否启用、版本号、可用 capabilities（命令存在/公开 API 存在）。
+- [ ] 为每个集成写一个 `*Adapter`（QuickAddAdapter/SrsAdapter/TasksAdapter/MetadataMenuAdapter），统一接口：`isAvailable()` / `getCapabilities()` / `run(action)`。
+- [ ] 适配器必须：
+	- 优先走 `app.commands.executeCommandById`（命令存在性通过 `app.commands.findCommand` 检测）
+	- 仅当明确有稳定公开 API 时才调用 `app.plugins.plugins[id].api`（并加版本守护与 try/catch）
+	- 缺失时不报错：UI 自动降级
+
+_Prompt:
+Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task:
+- Role: Integration engineer
+- Task: Integrate external plugins via adapters that survive upstream upgrades.
+- Restrictions: No hard dependency; no vendoring other plugins’ code.
+- Leverage: Commands as stable integration points.
+- Requirements: NFR stability, migration safety
+- Success: Console works without these plugins; when present, buttons/actions light up.
+
+## 12. 旧系统对照增强：把 View 依赖矩阵纳入验收
+- [ ] 将当前已整理的依赖矩阵作为验收输入：`🦁 交易员控制台 (Trader Command)/📋 原生插件迁移-View依赖矩阵.md`。
+- [ ] 在验收清单中加入“外部命令存在性/降级行为”检查（QuickAdd/SRS/Dataview）。
+- [ ] 加入“写入风险”提示：旧 `pa-view-manager.js` 会批量写 frontmatter，原生插件 MVP 不实现该能力。
+
+_Prompt:
+Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task:
+- Role: Migration QA engineer
+- Task: Expand validation checklist using the view dependency matrix.
+- Restrictions: Keep it manual; no automation required.
+- Leverage: Existing baseline report and dependency matrix.
+- Requirements: parity, migration safety
+- Success: Clear checklist covering data parity + integration downgrade behaviors.
