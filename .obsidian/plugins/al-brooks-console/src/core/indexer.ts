@@ -106,8 +106,33 @@ export class TradeIndex extends Events {
         const isTradeTag = Array.isArray(tags) && tags.some(t => t.includes("Trade") || t.includes("trade"));
         // Check 2: Key properties
         const hasTradeProps = fm.ticker !== undefined && (fm.setup !== undefined || fm.pnl !== undefined);
+        // Check 3: Path (Common in this vault)
+        const isInTradeFolder = file.path.includes("Trading") || file.path.includes("TradeNotes") || file.path.includes("Start") || file.path.includes("Daily");
 
-        if (!isTradeTag && !hasTradeProps) {
+        if (!isTradeTag && !hasTradeProps && !isInTradeFolder) {
+            if (this.db.has(file.path)) {
+                this.db.delete(file.path);
+                if (triggerUpdate) this.trigger("index-updated");
+            }
+            return;
+        }
+
+        // Helper to get prop with multiple aliases
+        const getProp = (keys: string[]) => {
+            for (const k of keys) {
+                if (fm[k] !== undefined) return fm[k];
+            }
+            return undefined;
+        };
+
+        const pnl = safeNum(getProp(["pnl", "net_profit", "净利润/net_profit", "净利润"]));
+        const ticker = getProp(["ticker", "symbol", "品种/ticker", "品种"]);
+        const setup = getProp(["setup", "setup_category", "设置类别/setup_category", "设置类别"]);
+        const direction = getProp(["dir", "direction", "方向/direction", "方向"]) || "Unknown";
+        const outcome = getProp(["outcome", "result", "结果/outcome", "结果"]) || "Open";
+
+        // Re-validate based on solved props
+        if (!isTradeTag && !ticker && pnl === 0 && !isInTradeFolder) {
             if (this.db.has(file.path)) {
                 this.db.delete(file.path);
                 if (triggerUpdate) this.trigger("index-updated");
@@ -119,15 +144,15 @@ export class TradeIndex extends Events {
         const trade: TradeData = {
             path: file.path,
             filename: file.name,
-            date: fm.date || file.basename.substring(0, 10), // Simple fallback
-            ticker: fm.ticker || "Unknown",
-            direction: fm.dir || fm.direction || "Unknown",
-            setup: fm.setup,
-            market_cycle: fm.market_cycle,
-            outcome: fm.outcome || "Open",
-            pnl: safeNum(fm.pnl),
-            r: safeNum(fm.r),
-            tf: fm.tf || "",
+            date: getProp(["date"]) || file.basename.substring(0, 10),
+            ticker: ticker || "Unknown",
+            direction: direction,
+            setup: setup,
+            market_cycle: getProp(["market_cycle", "市场周期/market_cycle"]),
+            outcome: outcome,
+            pnl: pnl,
+            r: safeNum(getProp(["r", "R", "R-Multiple"])),
+            tf: getProp(["tf", "timeframe", "时间周期/timeframe"]) || "",
             tags: Array.isArray(tags) ? tags : [],
             frontmatter: fm
         };
