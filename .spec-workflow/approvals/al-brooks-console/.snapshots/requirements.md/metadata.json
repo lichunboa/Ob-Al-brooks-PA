@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/al-brooks-console/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-01T22:44:26.258Z",
+      "trigger": "initial",
+      "approvalId": "approval_1767307466247_b9h6yyg9f",
+      "approvalTitle": "Approve requirements for al-brooks-console"
+    }
+  ]
+}
