@@ -39,12 +39,12 @@ _这组标签是系统的"地基"，千万不能改，改了控制台会读不�
 
 # 🧾 1.1 术语标签 (Brooks Terms)
 
-_用于给笔记打“Al Brooks 术语”标签，方便跨笔记聚合与检索。_
-
-- `#PA/Term/<abbr>` —— **Brooks 术语标签**
-  - _规则：统一用缩写的小写形式作为 tag 尾部（例如 `#PA/Term/mtr`、`#PA/Term/tr`、`#PA/Term/ii`）。_
-  - _预设清单：见 [Templates/PA_Brooks_Term_Tags_Preset.md](Templates/PA_Brooks_Term_Tags_Preset.md)。_
-  - _语义分组底稿：见 [Templates/PA_Brooks_Semantic_Groups.md](Templates/PA_Brooks_Semantic_Groups.md)。_
+> [!WARNING] 已废弃 / Deprecated
+> 绝大多数 Brooks 术语（如 MTR, H1/L1, Wedge 等）已迁移至 **属性 (Properties)** 中。
+>
+> - 请直接使用 `patterns_observed` (形态)、`market_cycle` (周期) 等属性进行标记。
+> - 不再建议使用 `#PA/Term/xxx` 标签，以减少标签系统的混乱。
+> - 原有的 `#PA/Term` 标签仅作为历史数据保留，新笔记请勿使用。
 
 ---
 
