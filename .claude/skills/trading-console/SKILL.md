@@ -15,6 +15,8 @@ This Skill is modular. Load the specific capability file based on the user's req
     *   Use when: Fixing bugs, updating templates, adding properties, upgrading core scripts (`pa-core.js`, etc.).
 *   **🧠 Trading Analysis & Coaching**: `capabilities/analyst.md`
     *   Use when: Reviewing performance, analyzing strategies, asking "why did I lose?", generating reports.
+*   **🧩 Native Plugin Migration**: `capabilities/plugin_migrator.md`
+    *   Use when: Building the `al-brooks-console` Obsidian plugin, migrating from DataviewJS, defining MVP/architecture, and planning safe cutover.
 *   **🧬 Self-Evolution Memory**: `memory/system_evolution.md`
     *   **MUST READ**: Always check this file first to learn from past mistakes.
     *   **MUST WRITE**: Update this file after every significant task.
@@ -25,6 +27,7 @@ This Skill is modular. Load the specific capability file based on the user's req
 First, determine the user's intent.
 *   If **Fixing/Coding**: Read `scripts/pa-config.js` to understand current settings.
 *   If **Analyzing**: Assume `window.paData` is available in Obsidian context (if operating via Dataview), or ask user to provide the JSON export of their data.
+*   If **Migrating to Native Plugin**: Start from `capabilities/plugin_migrator.md`, and treat the current Dataview console as the reference baseline (do not remove or refactor it until MVP parity is verified).
 
 ### 2. The "Self-Evolving" Protocol
 Every time you complete a task, ask yourself:
