@@ -202,7 +202,6 @@ body {
     --nn-theme-list-heading-color: var(--text-muted);
     --nn-theme-list-heading-font-weight: 600;
     --nn-theme-list-group-header-color: var(--text-muted);
-    --nn-style-pinned-section-icon: 'lucide-pin';
     --nn-theme-list-separator-color: var(--background-modifier-border);
 
     /* -- File Items -- */
@@ -256,11 +255,11 @@ body {
     --nn-theme-header-button-disabled-icon-color: var(--text-muted);
 
     /* -- Mobile Styles -- */
+    --nn-theme-mobile-bg: var(--mobile-sidebar-background);
     --nn-theme-mobile-list-header-link-color: var(--link-color);
     --nn-theme-mobile-list-header-breadcrumb-color: var(--text-normal);
     --nn-theme-mobile-list-header-breadcrumb-font-weight: 600;
     --nn-theme-mobile-toolbar-bg: var(--background-secondary);
-    --nn-theme-mobile-toolbar-border-color: var(--background-modifier-border);
     --nn-theme-mobile-toolbar-button-icon-color: var(--link-color);
     --nn-theme-mobile-toolbar-button-active-bg: var(--background-modifier-hover);
     --nn-theme-mobile-toolbar-button-active-icon-color: var(--link-color);
@@ -291,6 +290,12 @@ body {
     border: none;
 }
 
+/* Obsidian 1.11+ iOS: view container background */
+/* Targets Obsidian's `.view-content` wrapper to ensure the area behind the navigator matches the mobile pane background. */
+.view-content.notebook-navigator.notebook-navigator-obsidian-1-11-plus-ios {
+    background-color: var(--nn-theme-mobile-bg);
+}
+
 /* Main container - establishes the plugin's layout foundation */
 .notebook-navigator {
     height: 100%;
@@ -319,6 +324,8 @@ body {
     height: 100%;
     overflow: hidden;
     position: relative;
+    --nn-pane-transition-duration: 0.15s;
+    --nn-pane-transition-timing: ease-in-out;
     --nn-selected-file-bg-color: var(--nn-theme-file-selected-bg-solid, var(--nn-theme-file-selected-bg));
     --nn-selected-file-name-color: var(--nn-theme-file-selected-name-color);
     --nn-selected-file-preview-color: var(--nn-theme-file-selected-preview-color);
@@ -387,15 +394,27 @@ body {
     color: var(--text-on-accent);
     padding: 10px 16px;
     border-radius: 10px;
+    border: none;
+    cursor: pointer;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    font: inherit;
+    text-align: left;
     opacity: 1;
     transition:
         opacity 0.4s ease,
         transform 0.4s ease;
+}
+
+.nn-update-banner:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--background-primary),
+        0 0 0 4px var(--interactive-accent),
+        0 8px 18px rgba(0, 0, 0, 0.18);
 }
 
 .nn-update-banner.fade-out {
@@ -581,13 +600,10 @@ body {
     --nn-theme-list-bg: var(--nn-theme-nav-bg);
 }
 
-/* Apply the same background overrides on mobile single-pane layout */
-.nn-split-container.nn-mobile.nn-bg-primary {
-    --nn-theme-nav-bg: var(--nn-theme-list-bg);
-}
-
-.nn-split-container.nn-mobile.nn-bg-secondary {
-    --nn-theme-list-bg: var(--nn-theme-nav-bg);
+/* Mobile pane backgrounds follow --nn-theme-mobile-bg */
+.nn-split-container.nn-mobile {
+    --nn-theme-nav-bg: var(--nn-theme-mobile-bg);
+    --nn-theme-list-bg: var(--nn-theme-mobile-bg);
 }
 
 .nn-split-container.nn-orientation-vertical {
@@ -1322,7 +1338,7 @@ body {
     left: 20%;
     right: 20%;
     bottom: 3px;
-    height: 6px;
+    height: 5px;
     background-color: var(--nn-theme-divider-border-color);
     border-radius: 3px;
     pointer-events: none;
@@ -2303,6 +2319,7 @@ body {
     display: inline-flex;
     align-items: center;
     height: 20px;
+    line-height: 20px;
     padding: 0 8px;
     background-color: var(--nn-theme-file-tag-bg);
     color: var(--nn-theme-file-tag-color);
@@ -3127,6 +3144,53 @@ body.nn-resizing {
 }
 
 /* ========================================================================
+   Shared Modal Action Button
+   ======================================================================== */
+
+.nn-action-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.nn-action-btn:hover:not(:disabled):not(.mod-warning) {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.nn-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.nn-action-btn.mod-warning {
+    background: transparent;
+    color: var(--text-error);
+    border-color: var(--background-modifier-border);
+}
+
+.nn-action-btn.mod-warning:hover:not(:disabled) {
+    background: var(--background-modifier-error);
+    color: var(--text-error);
+    border-color: var(--background-modifier-error-hover);
+}
+
+.nn-action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ========================================================================
    Edit Vault Profiles Modal
    ======================================================================== */
 
@@ -3161,46 +3225,161 @@ body.nn-resizing {
     flex-shrink: 0;
 }
 
-.nn-edit-profiles-action-btn {
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    background-color: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
+/* ========================================================================
+   File Icon Rule Editor Modal
+   ======================================================================== */
+
+.modal.nn-file-icon-rule-editor-modal {
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    max-height: 500px;
+}
+
+.modal.nn-file-icon-rule-editor-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+    padding: var(--size-4-4);
+    overflow: hidden;
+}
+
+.nn-file-icon-rule-editor-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    padding-bottom: var(--size-1-5);
+}
+
+.nn-file-icon-rule-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1-5);
+    width: 100%;
+}
+
+.nn-file-icon-rule-editor-footer {
+    flex-shrink: 0;
+    margin-top: 0;
+    padding-top: var(--size-2-2);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.nn-file-icon-rule-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
+    gap: var(--size-2-2);
 }
 
-.nn-edit-profiles-action-btn:hover:not(:disabled):not(.mod-warning) {
-    background: var(--background-modifier-hover);
+.nn-file-icon-rule-key {
+    flex: 1;
+    min-width: 0;
+}
+
+.nn-file-icon-rule-row-invalid .nn-file-icon-rule-key {
+    border-color: var(--background-modifier-error);
+}
+
+/* ========================================================================
+   UX Icon Map Modal
+   ======================================================================== */
+
+.modal.nn-ux-icon-map-modal {
+    width: 520px;
+    max-width: calc(100vw - 40px);
+    max-height: 500px;
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal {
+    width: 560px;
+    max-width: calc(100vw - 24px);
+    max-height: min(560px, calc(100vh - 24px));
+}
+
+.modal.nn-ux-icon-map-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+    padding: var(--size-4-4);
+    overflow: hidden;
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .modal-content {
+    gap: var(--size-2-3);
+    padding: var(--size-4-6);
+}
+
+.nn-ux-icon-map-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    padding-bottom: var(--size-1-5);
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-scroll {
+    padding-bottom: var(--size-2-2);
+}
+
+.nn-ux-icon-map-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-1-5);
+    width: 100%;
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-list {
+    gap: var(--size-2-2);
+}
+
+.nn-ux-icon-map-footer {
+    flex-shrink: 0;
+    margin-top: 0;
+    padding-top: var(--size-2-2);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-footer {
+    padding-top: var(--size-2-3);
+}
+
+.nn-ux-icon-map-row {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-row {
+    gap: var(--size-2-3);
+}
+
+.nn-ux-icon-map-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-label {
+    font-size: 1.05em;
+}
+
+.is-mobile .modal.nn-ux-icon-map-modal .nn-action-btn {
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.nn-ux-icon-map-group-heading {
+    margin: 0;
+    font-size: 0.95em;
+    font-weight: 600;
     color: var(--text-normal);
-    border-color: var(--background-modifier-border-hover);
 }
 
-.nn-edit-profiles-action-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.is-mobile .modal.nn-ux-icon-map-modal .nn-ux-icon-map-group-heading {
+    font-size: 1em;
 }
 
-.nn-edit-profiles-action-btn.mod-warning {
-    background: transparent;
-    color: var(--text-error);
-    border-color: var(--background-modifier-border);
-}
-
-.nn-edit-profiles-action-btn.mod-warning:hover:not(:disabled) {
-    background: var(--background-modifier-error);
-    color: var(--text-error);
-    border-color: var(--background-modifier-error-hover);
-}
-
-.nn-edit-profiles-action-btn svg {
-    width: 16px;
-    height: 16px;
+.nn-ux-icon-map-group-heading--spaced {
+    margin-top: var(--size-4-4);
 }
 
 /* ========================================================================
@@ -3933,10 +4112,23 @@ body.nn-resizing {
     --nn-mobile-safe-area-bottom: env(safe-area-inset-bottom, 8px);
 }
 
+/* Obsidian 1.11+ iOS: bottom padding inside the navigator viewport */
+/* Applied to the internal split container so the bottom edge doesn't touch the view chrome and the toolbar shadow can render into the padding (8px matches the top spacer). */
+.notebook-navigator-obsidian-1-11-plus-ios .nn-split-container {
+    padding-bottom: 8px;
+    box-sizing: border-box;
+}
+
 /* iOS (Obsidian 1.11+) bottom fade gradient - overlays list content behind the toolbar */
 .notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane,
 .notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane {
     position: relative;
+}
+
+/* Allow the iOS glass toolbar shadow to render into the split container padding */
+.notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane,
+.notebook-navigator-obsidian-1-11-plus-ios .nn-list-pane {
+    overflow: visible;
 }
 
 .notebook-navigator-obsidian-1-11-plus-ios .nn-navigation-pane {
@@ -3960,9 +4152,10 @@ body.nn-resizing {
     background: linear-gradient(to top, var(--nn-bottom-fade-bg) 0%, transparent 100%);
     background: linear-gradient(
         to top,
-        color-mix(in srgb, var(--nn-bottom-fade-bg) 70%, transparent) 0%,
-        color-mix(in srgb, var(--nn-bottom-fade-bg) 35%, transparent) 40%,
-        color-mix(in srgb, var(--nn-bottom-fade-bg) 12%, transparent) 70%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 85%, transparent) 0%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 55%, transparent) 38%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 25%, transparent) 68%,
+        color-mix(in srgb, var(--nn-bottom-fade-bg) 10%, transparent) 86%,
         transparent 100%
     );
 }
@@ -3980,8 +4173,8 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
     display: none;
 }
 
-/* Mobile container - use grid for consistent structure while allowing sliding */
-.notebook-navigator-mobile .nn-split-container {
+/* Single-pane container - use grid for consistent structure while allowing sliding */
+.nn-split-container.nn-single-pane {
     display: grid;
     grid-template-columns: 100%;
     grid-template-rows: 100%;
@@ -3990,19 +4183,38 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
     height: 100%;
 }
 
-/* Mobile panes - maintain flex structure like desktop but positioned in grid */
-.notebook-navigator-mobile .nn-navigation-pane,
-.notebook-navigator-mobile .nn-list-pane {
+/* Single-pane panes - positioned in grid and animated with transforms */
+.nn-split-container.nn-single-pane .nn-navigation-pane,
+.nn-split-container.nn-single-pane .nn-list-pane {
     width: 100% !important;
     max-width: 100% !important;
     height: 100%;
     grid-column: 1;
     grid-row: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s ease-out;
+    transition: transform var(--nn-pane-transition-duration) var(--nn-pane-transition-timing);
+}
+
+.nn-split-container.nn-single-pane.nn-pane-transitioning .nn-navigation-pane,
+.nn-split-container.nn-single-pane.nn-pane-transitioning .nn-list-pane {
     will-change: transform;
+}
+
+/* Single-pane view states - show navigation view */
+.nn-split-container.nn-single-pane.show-navigation .nn-navigation-pane {
+    transform: none;
+}
+
+.nn-split-container.nn-single-pane.show-navigation .nn-list-pane {
+    transform: translateX(100%);
+}
+
+/* Single-pane view states - show files view */
+.nn-split-container.nn-single-pane.show-files .nn-navigation-pane {
+    transform: translateX(-100%);
+}
+
+.nn-split-container.nn-single-pane.show-files .nn-list-pane {
+    transform: none;
 }
 
 /* Make navigation pane flexible on mobile to handle resize gracefully */
@@ -4014,24 +4226,6 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
 /* Hide resize handle on mobile */
 .notebook-navigator-mobile .nn-resize-handle {
     display: none !important;
-}
-
-/* Mobile view states - show navigation view */
-.notebook-navigator-mobile .nn-split-container.show-navigation .nn-navigation-pane {
-    transform: translateX(0%);
-}
-
-.notebook-navigator-mobile .nn-split-container.show-navigation .nn-list-pane {
-    transform: translateX(100%);
-}
-
-/* Mobile view states - show files view */
-.notebook-navigator-mobile .nn-split-container.show-files .nn-navigation-pane {
-    transform: translateX(-100%);
-}
-
-.notebook-navigator-mobile .nn-split-container.show-files .nn-list-pane {
-    transform: translateX(0%);
 }
 
 /* Add touch-action to prevent browser gestures interfering */
@@ -4197,22 +4391,6 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
 }
 
 /* Note: Bottom spacing is handled by a spacer item in the virtualized list */
-
-/* Desktop single-pane mode styles */
-
-/* Desktop single-pane - show navigation view (hide files) */
-.nn-desktop.nn-single-pane.show-navigation .nn-list-pane {
-    position: absolute;
-    contain: layout style paint; /* Exclude 'size' to allow virtualizer to measure properly */
-    content-visibility: hidden; /* Modern optimization */
-}
-
-/* Desktop single-pane - show files view (hide navigation) */
-.nn-desktop.nn-single-pane.show-files .nn-navigation-pane {
-    position: absolute;
-    contain: layout style paint; /* Exclude 'size' to allow virtualizer to measure properly */
-    content-visibility: hidden; /* Modern optimization */
-}
 
 /* Disable drag and drop cursors on mobile */
 .notebook-navigator-mobile [draggable='true'] {
@@ -4810,7 +4988,6 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
     justify-content: space-between;
     align-items: center;
     background-color: var(--nn-theme-list-bg);
-    border-top: 1px solid var(--nn-theme-mobile-toolbar-border-color);
     flex-shrink: 0;
     padding: 0 8px;
 
@@ -4820,6 +4997,18 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
     /* Adjust height to include safe area padding */
     height: calc(49px + var(--nn-mobile-safe-area-bottom));
     min-height: calc(49px + var(--nn-mobile-safe-area-bottom));
+}
+
+/* Mobile toolbars: distribute buttons evenly except on Obsidian 1.11+ iOS glass toolbar */
+.notebook-navigator-mobile:not(.notebook-navigator-obsidian-1-11-plus-ios) .nn-mobile-toolbar {
+    justify-content: space-evenly;
+}
+
+.notebook-navigator-mobile:not(.notebook-navigator-obsidian-1-11-plus-ios) .nn-mobile-toolbar-left,
+.notebook-navigator-mobile:not(.notebook-navigator-obsidian-1-11-plus-ios) .nn-mobile-toolbar-right,
+.notebook-navigator-mobile:not(.notebook-navigator-obsidian-1-11-plus-ios) .nn-mobile-toolbar-pill,
+.notebook-navigator-mobile:not(.notebook-navigator-obsidian-1-11-plus-ios) .nn-mobile-toolbar-circle {
+    display: contents;
 }
 
 /* Mobile toolbar grouping containers */
@@ -4869,8 +5058,9 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
     justify-content: space-between;
     background-color: transparent;
     border-top: none;
-    padding-left: calc(var(--nn-scroller-padding) + 2px);
-    padding-right: calc(var(--nn-scroller-padding) + 2px);
+    /* 2px for border effect + 2px to match Obsidian view selector dropdown */
+    padding-left: calc(var(--nn-scroller-padding) + 4px);
+    padding-right: calc(var(--nn-scroller-padding) + 4px);
     padding-bottom: 0;
     height: 40px;
     min-height: 40px;
@@ -4938,6 +5128,10 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
 }
 
 .notebook-navigator-obsidian-1-11-plus-ios .nn-mobile-toolbar-button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
     border-radius: 999px;
 }
 
@@ -5007,11 +5201,12 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
    ======================================================================== */
 
 /* Android: toolbar at top with reduced height */
-.notebook-navigator-android .nn-mobile-toolbar {
+.notebook-navigator-mobile.notebook-navigator-android .nn-mobile-toolbar {
     background-color: var(--nn-theme-list-bg);
-    border-top: none;
-    border-bottom: 1px solid var(--nn-theme-mobile-toolbar-border-color);
+    border: none;
     padding-bottom: 0;
+    justify-content: center;
+    gap: 16px;
     height: 44px;
     min-height: 44px;
 }
@@ -5133,21 +5328,13 @@ body.nn-list-pane-transparent .notebook-navigator-obsidian-1-11-plus-ios .nn-lis
    RTL (Right-to-Left) Support
    ======================================================================== */
 
-/* Mobile slide animations for RTL */
-.mod-rtl .notebook-navigator-mobile .nn-split-container.show-navigation .nn-navigation-pane {
-    transform: translateX(0%);
-}
-
-.mod-rtl .notebook-navigator-mobile .nn-split-container.show-navigation .nn-list-pane {
+/* Single-pane slide animations for RTL */
+.mod-rtl .nn-split-container.nn-single-pane.show-navigation .nn-list-pane {
     transform: translateX(-100%);
 }
 
-.mod-rtl .notebook-navigator-mobile .nn-split-container.show-files .nn-navigation-pane {
+.mod-rtl .nn-split-container.nn-single-pane.show-files .nn-navigation-pane {
     transform: translateX(100%);
-}
-
-.mod-rtl .notebook-navigator-mobile .nn-split-container.show-files .nn-list-pane {
-    transform: translateX(0%);
 }
 
 .mod-rtl .nn-file-name,
@@ -5447,7 +5634,7 @@ settings:
     -
         id: nn-theme-nav-bg
         title: Navigation pane background
-        description: Background color of the navigation pane.
+        description: Background color of the navigation pane (desktop only).
         type: variable-themed-color
         format: hex
         default-light: '#'
@@ -5824,7 +6011,7 @@ settings:
     -
         id: nn-theme-list-bg
         title: List pane background
-        description: Background color of the list pane.
+        description: Background color of the list pane (desktop only).
         type: variable-themed-color
         format: hex
         default-light: '#'
@@ -5909,13 +6096,6 @@ settings:
         format: hex
         default-light: '#'
         default-dark: '#'
-    -
-    -
-        id: nn-style-pinned-section-icon
-        title: Pinned section icon
-        description: Icon name used for the pinned notes header.
-        type: variable-text
-        default: 'lucide-pin'
     -
     -
         id: nn-theme-list-separator-color
@@ -6364,6 +6544,15 @@ settings:
         collapsed: true
     -
     -
+        id: nn-theme-mobile-bg
+        title: Mobile pane background
+        description: Background color of navigation and list panes on mobile.
+        type: variable-themed-color
+        format: hex
+        default-light: '#'
+        default-dark: '#'
+    -
+    -
         id: nn-theme-mobile-list-header-link-color
         title: Mobile header link color
         description: Color for back button and clickable breadcrumb segments on mobile.
@@ -6406,15 +6595,6 @@ settings:
         type: variable-themed-color
         opacity: true
         format: rgb
-        default-light: '#'
-        default-dark: '#'
-    -
-    -
-        id: nn-theme-mobile-toolbar-border-color
-        title: Mobile toolbar border color
-        description: Border color of the mobile toolbar.
-        type: variable-themed-color
-        format: hex
         default-light: '#'
         default-dark: '#'
     -
