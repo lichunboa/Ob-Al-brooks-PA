@@ -60,3 +60,8 @@ services/order-service/AGENTS.md
 services/order-service/bugs.jsonl
 services/order-service/services/*/.venv/
 services/order-service/services/*/logs/
+# telegram-service
+services/telegram-service/.env
+services/telegram-service/logs/
+services/telegram-service/docs/
+services/telegram-service/data/

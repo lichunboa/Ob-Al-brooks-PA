@@ -6,13 +6,6 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict, Tuple
 from ..base import Indicator, IndicatorMeta, register
 
-try:
-    import redis
-    import msgpack
-    HAS_DEPS = True
-except ImportError:
-    HAS_DEPS = False
-
 
 def _f(v) -> Optional[float]:
     if v is None: return None

@@ -3,7 +3,6 @@
 
 环境变量:
     DATABASE_URL: TimescaleDB 连接串
-    REDIS_URL: Redis 连接串（实时模式）
     INDICATOR_SQLITE_PATH: SQLite 输出路径
     MAX_WORKERS: 并行计算线程数
     KLINE_INTERVALS: K线指标计算周期
@@ -28,12 +27,6 @@ class Config:
     db_url: str = field(default_factory=lambda: os.getenv(
         "DATABASE_URL",
         "postgresql://opentd:OpenTD_pass@localhost:5433/market_data"
-    ))
-    
-    # Redis（实时订阅）
-    redis_url: str = field(default_factory=lambda: os.getenv(
-        "REDIS_URL", 
-        "redis://localhost:6379/0"
     ))
     
     # SQLite（写入指标结果）
