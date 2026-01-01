@@ -17,6 +17,10 @@ This Skill is modular. Load the specific capability file based on the user's req
     *   Use when: Reviewing performance, analyzing strategies, asking "why did I lose?", generating reports.
 *   **🧩 Native Plugin Migration**: `capabilities/plugin_migrator.md`
     *   Use when: Building the `al-brooks-console` Obsidian plugin, migrating from DataviewJS, defining MVP/architecture, and planning safe cutover.
+*   **🏗️ Native Plugin Architecture**: `capabilities/plugin_architect.md`
+    *   Use when: Translating the current Dataview console into a native plugin architecture, defining module boundaries, data contracts, field mapping, and parity/acceptance checks.
+*   **🔧 Native Plugin Implementation**: `capabilities/plugin_implementer.md`
+    *   Use when: Implementing the native plugin step-by-step (scanner, mapper, index, incremental updates, MVP UI) with measurable acceptance checks.
 *   **🧬 Self-Evolution Memory**: `memory/system_evolution.md`
     *   **MUST READ**: Always check this file first to learn from past mistakes.
     *   **MUST WRITE**: Update this file after every significant task.
