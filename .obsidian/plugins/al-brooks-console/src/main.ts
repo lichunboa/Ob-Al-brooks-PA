@@ -1,11 +1,24 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
-import { ConsoleView, VIEW_TYPE_CONSOLE } from "./ConsoleView";
+import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
+import { TradeIndex } from "./core/indexer";
 
 export default class AlBrooksConsolePlugin extends Plugin {
+    public index: TradeIndex;
+
     async onload() {
+        console.log("🦁 Al Brooks Console: Loading...");
+
+        // 1. Initialize Indexer
+        this.index = new TradeIndex(this.app);
+
+        // 2. Start Scanning (Async)
+        this.app.workspace.onLayoutReady(() => {
+            this.index.initialize();
+        });
+
         this.registerView(
             VIEW_TYPE_CONSOLE,
-            (leaf: WorkspaceLeaf) => new ConsoleView(leaf)
+            (leaf: WorkspaceLeaf) => new ConsoleView(leaf, this.index)
         );
 
         this.addRibbonIcon("bar-chart-2", "Open Trader Console", () => {
