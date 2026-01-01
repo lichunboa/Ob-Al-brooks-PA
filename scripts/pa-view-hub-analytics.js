@@ -21,9 +21,7 @@ if (window.paData) {
     "Strong Trend": "强趋势",
     "Weak Trend": "弱趋势",
     "Trading Range": "交易区间",
-    "Tight Trading Range": "紧凑交易区间",
     "Breakout Mode": "突破模式",
-    "Spike and Channel": "尖峰与通道",
     Breakout: "突破",
     Channel: "通道",
     "Broad Channel": "宽通道",
@@ -95,13 +93,8 @@ if (window.paData) {
       Wedge: "楔形",
       "Double Top/Bottom": "双顶/底",
       MTR: "主要趋势反转",
-      "Major Trend Reversal": "主要趋势反转",
-      "Minor Trend Reversal": "小趋势反转",
       "Final Flag": "末端旗形",
       "Opening Reversal": "开盘反转",
-      "Vacuum Test": "真空测试",
-      "Trend Resumption": "趋势恢复",
-      "Breakout Pullback": "突破回调",
     };
     return catMap[cat] || cat;
   }
@@ -206,15 +199,19 @@ if (window.paData) {
         <div style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <div style="font-size:0.85em; font-weight:600; color:${color}; display:flex; align-items:center; gap:6px;"><span>${icon}</span> ${title}</div>
-                <div style="font-size:0.65em; opacity:0.5;">${stats.count
-      } 笔</div>
+                <div style="font-size:0.65em; opacity:0.5;">${
+                  stats.count
+                } 笔</div>
             </div>
             <div>
-                <div style="font-size:1.2em; font-weight:bold; color:${stats.pnl >= 0 ? color : c.loss
-      };">${stats.pnl > 0 ? "+" : ""}${stats.pnl
-      }<span style="font-size:0.6em; opacity:0.6;">$</span></div>
-                <div style="font-size:0.7em; opacity:0.7; margin-top:2px;">胜率: ${stats.wr
-      }%</div>
+                <div style="font-size:1.2em; font-weight:bold; color:${
+                  stats.pnl >= 0 ? color : c.loss
+                };">${stats.pnl > 0 ? "+" : ""}${
+      stats.pnl
+    }<span style="font-size:0.6em; opacity:0.6;">$</span></div>
+                <div style="font-size:0.7em; opacity:0.7; margin-top:2px;">胜率: ${
+                  stats.wr
+                }%</div>
             </div>
         </div>`;
   }
@@ -241,8 +238,9 @@ if (window.paData) {
       bg = isWin ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)";
       border = `1px solid ${pnlColor}30`;
 
-      content += `<div style="font-size:0.65em; font-weight:bold; color:${pnlColor}; line-height:1;">${pnl > 0 ? "+" : ""
-        }${pnl.toFixed(0)}</div>`;
+      content += `<div style="font-size:0.65em; font-weight:bold; color:${pnlColor}; line-height:1;">${
+        pnl > 0 ? "+" : ""
+      }${pnl.toFixed(0)}</div>`;
 
       // 底部账户类型条
       let bars = "";
@@ -256,8 +254,9 @@ if (window.paData) {
       content += `<div style="display:flex; gap:1px; height:4px; width:90%; margin-top:3px; opacity:0.9;">${bars}</div>`;
     }
     gridHtml += `
-            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${hasTrade ? pnl : 0
-      }">
+            <div style="aspect-ratio: 1; background: ${bg}; border: ${border}; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;" title="${targetMonth}-${d}: ${
+      hasTrade ? pnl : 0
+    }">
                 ${content}
             </div>`;
   }
@@ -306,9 +305,11 @@ if (window.paData) {
       // 计算位置: 正数向上生长，负数向下生长
       let top = r >= 0 ? rZeroY - h : rZeroY;
 
-      return `<div style="position:absolute; left:${i * step
-        }px; top:${top}px; width:${barWidth}px; height:${h}px; background:${color}; border-radius:2px;" title="${t.date
-        } | ${t.name} | R: ${t.r}"></div>`;
+      return `<div style="position:absolute; left:${
+        i * step
+      }px; top:${top}px; width:${barWidth}px; height:${h}px; background:${color}; border-radius:2px;" title="${
+        t.date
+      } | ${t.name} | R: ${t.r}"></div>`;
     })
     .join("");
 
@@ -364,19 +365,21 @@ if (window.paData) {
   let cycleHtml = `
     <div style="display:flex; flex-wrap:wrap; gap:8px;">
         ${sortedCycles
-      .map((cy) => {
-        let color = cy.pnl > 0 ? c.live : cy.pnl < 0 ? c.loss : "gray";
-        let bg =
-          cy.pnl > 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
-        return `
+          .map((cy) => {
+            let color = cy.pnl > 0 ? c.live : cy.pnl < 0 ? c.loss : "gray";
+            let bg =
+              cy.pnl > 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
+            return `
             <div style="background:${bg}; border-radius:6px; padding:6px 10px; flex:1; min-width:80px; text-align:center; border:1px solid ${color}33;">
-                <div style="font-size:0.75em; opacity:0.8; margin-bottom:2px;">${cy.name
-          }</div>
-                <div style="font-weight:800; color:${color}; font-size:1em;">${cy.pnl > 0 ? "+" : ""
-          }${cy.pnl.toFixed(1)}</div>
+                <div style="font-size:0.75em; opacity:0.8; margin-bottom:2px;">${
+                  cy.name
+                }</div>
+                <div style="font-weight:800; color:${color}; font-size:1em;">${
+              cy.pnl > 0 ? "+" : ""
+            }${cy.pnl.toFixed(1)}</div>
             </div>`;
-      })
-      .join("")}
+          })
+          .join("")}
     </div>`;
 
   // 错误归因
@@ -390,24 +393,25 @@ if (window.paData) {
             <div style="font-size:1.5em;">💸</div>
             <div style="margin-left:10px;">
                 <div style="font-size:0.8em; opacity:0.6;">总学费 (Tuition)</div>
-                <div style="font-size:1.2em; font-weight:bold; color:${c.loss
-      };">-$${stats.tuition}</div>
+                <div style="font-size:1.2em; font-weight:bold; color:${
+                  c.loss
+                };">-$${stats.tuition}</div>
             </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:8px;">
             ${sortedErrors
-        .slice(0, 5)
-        .map(([name, cost]) => {
-          let percent = Math.round((cost / stats.tuition) * 100);
-          return `<div style="display:flex; align-items:center; font-size:0.85em;">
+              .slice(0, 5)
+              .map(([name, cost]) => {
+                let percent = Math.round((cost / stats.tuition) * 100);
+                return `<div style="display:flex; align-items:center; font-size:0.85em;">
                     <div style="width:90px; opacity:0.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
                     <div style="flex:1; background:rgba(255,255,255,0.05); height:6px; border-radius:3px; overflow:hidden; margin:0 10px;">
                         <div style="width:${percent}%; height:100%; background:${c.loss};"></div>
                     </div>
                     <div style="width:50px; text-align:right; font-weight:bold; color:${c.loss};">-$${cost}</div>
                 </div>`;
-        })
-        .join("")}
+              })
+              .join("")}
         </div>`;
   }
 
@@ -436,16 +440,21 @@ if (window.paData) {
                 <!-- 实盘大卡片 -->
                 <div style="flex:1; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; justify-content: center;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <div style="color:${c.live
-    }; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
-                        <div style="font-size:0.75em; background:${c.live
-    }20; color:${c.live
-    }; padding:2px 8px; border-radius:10px;">Live</div>
+                        <div style="color:${
+                          c.live
+                        }; font-weight:800; font-size:1.1em;">🟢 实盘账户</div>
+                        <div style="font-size:0.75em; background:${
+                          c.live
+                        }20; color:${
+    c.live
+  }; padding:2px 8px; border-radius:10px;">Live</div>
                     </div>
                     <div style="display:flex; align-items:baseline; gap:4px;">
-                        <div style="font-size:2.4em; font-weight:900; color:${live.pnl >= 0 ? c.live : c.loss
-    }; line-height:1;">${live.pnl > 0 ? "+" : ""}${live.pnl
-    }</div>
+                        <div style="font-size:2.4em; font-weight:900; color:${
+                          live.pnl >= 0 ? c.live : c.loss
+                        }; line-height:1;">${live.pnl > 0 ? "+" : ""}${
+    live.pnl
+  }</div>
                         <div style="font-size:0.9em; opacity:0.6;">$</div>
                     </div>
                     <div style="display:flex; gap:15px; margin-top:10px; font-size:0.85em; opacity:0.8;">
@@ -475,56 +484,67 @@ if (window.paData) {
             <div style="text-align:center; margin-bottom:10px; font-size:0.8em; opacity:0.6;">全账户资金增长趋势</div>
             <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; background:rgba(0,0,0,0.2); border-radius:8px;">
                 <!-- 坐标轴线 -->
-                <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding
-    }" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
-                <line x1="${padding}" y1="${height - padding
-    }" x2="${width}" y2="${height - padding
-    }" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${
+    height - padding
+  }" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                <line x1="${padding}" y1="${
+    height - padding
+  }" x2="${width}" y2="${
+    height - padding
+  }" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
                 
                 <!-- 0轴 -->
-                <line x1="${padding}" y1="${height - padding - ((0 - minVal) / range) * (height - 2 * padding)
-    }" x2="${width}" y2="${height - padding - ((0 - minVal) / range) * (height - 2 * padding)
-    }" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
+                <line x1="${padding}" y1="${
+    height - padding - ((0 - minVal) / range) * (height - 2 * padding)
+  }" x2="${width}" y2="${
+    height - padding - ((0 - minVal) / range) * (height - 2 * padding)
+  }" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
                 
                 <!-- Y轴标签 -->
-                <text x="${padding - 5}" y="${padding + 5
-    }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${maxVal.toFixed(
-      0
-    )}</text>
-                <text x="${padding - 5}" y="${height - padding
-    }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${minVal.toFixed(
-      0
-    )}</text>
+                <text x="${padding - 5}" y="${
+    padding + 5
+  }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${maxVal.toFixed(
+    0
+  )}</text>
+                <text x="${padding - 5}" y="${
+    height - padding
+  }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${minVal.toFixed(
+    0
+  )}</text>
                 
                 <!-- X轴标签 (日期) -->
-                <text x="${padding}" y="${height - 5
-    }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="start">${startDate}</text>
-                <text x="${width}" y="${height - 5
-    }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${endDate}</text>
+                <text x="${padding}" y="${
+    height - 5
+  }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="start">${startDate}</text>
+                <text x="${width}" y="${
+    height - 5
+  }" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="end">${endDate}</text>
 
                 <!-- 曲线 -->
                 <polyline points="${getPoints(
-      curves.back
-    )}" fill="none" stroke="${c.back
-    }" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
+                  curves.back
+                )}" fill="none" stroke="${
+    c.back
+  }" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="2" />
                 <polyline points="${getPoints(
-      curves.demo
-    )}" fill="none" stroke="${c.demo
-    }" stroke-width="2" stroke-opacity="0.7" />
+                  curves.demo
+                )}" fill="none" stroke="${
+    c.demo
+  }" stroke-width="2" stroke-opacity="0.7" />
                 <polyline points="${getPoints(
-      curves.live
-    )}" fill="none" stroke="${c.live}" stroke-width="3" />
+                  curves.live
+                )}" fill="none" stroke="${c.live}" stroke-width="3" />
             </svg>
             <div style="display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8em;">
                 <span style="color:${c.live}">● 实盘 $${cum.live.toFixed(
-      0
-    )}</span>
+    0
+  )}</span>
                 <span style="color:${c.demo}">● 模拟 $${cum.demo.toFixed(
-      0
-    )}</span>
+    0
+  )}</span>
                 <span style="color:${c.back}">● 回测 $${cum.back.toFixed(
-      0
-    )}</span>
+    0
+  )}</span>
             </div>
         </div>
 
@@ -534,10 +554,12 @@ if (window.paData) {
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div style="font-size:0.8em; opacity:0.6;">📈 综合趋势 (R-Multiples) - 仅实盘</div>
                     <div style="display:flex; gap:10px; font-size:0.65em; opacity:0.6;">
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.live
-    }; border-radius:50%;"></div>盈利</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${c.loss
-    }; border-radius:50%;"></div>亏损</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${
+                          c.live
+                        }; border-radius:50%;"></div>盈利</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:6px; height:6px; background:${
+                          c.loss
+                        }; border-radius:50%;"></div>亏损</span>
                         <span>Avg R: ${avgR}</span>
                     </div>
                 </div>
@@ -545,11 +567,13 @@ if (window.paData) {
                 <div style="position:relative; height:${rHeight}px; width:100%; overflow-x:auto; border-bottom:1px solid rgba(255,255,255,0.05);">
                     <!-- 0轴线 -->
                     <div style="position:absolute; left:0; right:0; top:${rZeroY}px; height:1px; background:rgba(255,255,255,0.2); border-top:1px dashed rgba(255,255,255,0.3);"></div>
-                    <div style="position:absolute; left:0; top:${rZeroY - 8
-    }px; font-size:0.6em; opacity:0.3;">0R</div>
-                    ${barsHtml ||
-    '<div style="opacity:0.5; font-size:0.8em; padding:20px;">暂无数据</div>'
-    }
+                    <div style="position:absolute; left:0; top:${
+                      rZeroY - 8
+                    }px; font-size:0.6em; opacity:0.3;">0R</div>
+                    ${
+                      barsHtml ||
+                      '<div style="opacity:0.5; font-size:0.8em; padding:20px;">暂无数据</div>'
+                    }
                 </div>
             </div>
             <div style="flex:1; border-left:1px solid rgba(255,255,255,0.1); padding-left:20px; display:flex; flex-direction:column; justify-content:center;">
@@ -571,23 +595,23 @@ if (window.paData) {
                     <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略</div>
                     <div style="display:flex; flex-direction:column; gap:8px;">
                         ${topStrats
-      .map((s) => {
-        let color =
-          s.wr >= 50
-            ? c.live
-            : s.wr >= 40
-              ? c.back
-              : c.loss;
-        // 简化的策略名显示 (去除括号内的英文以节省空间，如果太长)
-        let displayName = s.name;
-        if (
-          displayName.length > 12 &&
-          displayName.includes("(")
-        ) {
-          displayName = displayName.split("(")[0].trim();
-        }
+                          .map((s) => {
+                            let color =
+                              s.wr >= 50
+                                ? c.live
+                                : s.wr >= 40
+                                ? c.back
+                                : c.loss;
+                            // 简化的策略名显示 (去除括号内的英文以节省空间，如果太长)
+                            let displayName = s.name;
+                            if (
+                              displayName.length > 12 &&
+                              displayName.includes("(")
+                            ) {
+                              displayName = displayName.split("(")[0].trim();
+                            }
 
-        return `
+                            return `
                             <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:6px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between;">
                                 <div style="flex:1; min-width:0; margin-right:10px;">
                                     <div style="font-size:0.85em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;" title="${s.name}">${displayName}</div>
@@ -600,8 +624,8 @@ if (window.paData) {
                                     <div style="font-size:0.65em; opacity:0.4;">${s.total} 笔</div>
                                 </div>
                             </div>`;
-      })
-      .join("")}
+                          })
+                          .join("")}
                     </div>
                 </div>
             </div>
@@ -616,8 +640,9 @@ if (window.paData) {
                 </div>
                 <div>
                      <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">💡 系统建议</div>
-                     <div style="font-size:0.8em; opacity:0.8; line-height:1.5; background:rgba(59, 130, 246, 0.1); padding:10px; border-radius:6px; border-left:3px solid ${c.demo
-    };">
+                     <div style="font-size:0.8em; opacity:0.8; line-height:1.5; background:rgba(59, 130, 246, 0.1); padding:10px; border-radius:6px; border-left:3px solid ${
+                       c.demo
+                     };">
                         ${suggestion}
                      </div>
                 </div>
