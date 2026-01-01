@@ -37,14 +37,6 @@ _这组标签是系统的"地基"，千万不能改，改了控制台会读不�
 
 ---
 
-# 🧾 1.1 术语标签 (Brooks Terms)
-
-> [!WARNING] 已废弃 / Deprecated
-> 绝大多数 Brooks 术语（如 MTR, H1/L1, Wedge 等）已迁移至 **属性 (Properties)** 中。
->
-> - 请直接使用 `patterns_observed` (形态)、`market_cycle` (周期) 等属性进行标记。
-> - 不再建议使用 `#PA/Term/xxx` 标签，以减少标签系统的混乱。
-> - 原有的 `#PA/Term` 标签仅作为历史数据保留，新笔记请勿使用。
 
 ---
 
