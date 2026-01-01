@@ -64,13 +64,12 @@ if (todayJournal && todayJournal.market_cycle) {
             🌊 今日市场: ${currentCycle}
         </div>
         <div style="font-size: 0.9em; color: var(--text-muted);">
-            ${
-              recommendedStrategies.length > 0
-                ? `推荐关注: ${recommendedStrategies
-                    .map((p) => `<b>${p.file.link}</b>`)
-                    .join(" · ")}`
-                : "暂无特定策略推荐，建议观望。"
-            }
+            ${recommendedStrategies.length > 0
+      ? `推荐关注: ${recommendedStrategies
+        .map((p) => `<b>${p.file.link}</b>`)
+        .join(" · ")}`
+      : "暂无特定策略推荐，建议观望。"
+    }
         </div>
     </div>`;
 } else {
@@ -138,12 +137,12 @@ if (activeTrade) {
     const signalMatch =
       currentSignalNorm && sSignalReqList.length
         ? sSignalReqList.some((r) => {
-            const rn = normStr(r);
-            return (
-              rn &&
-              (rn.includes(currentSignalNorm) || currentSignalNorm.includes(rn))
-            );
-          })
+          const rn = normStr(r);
+          return (
+            rn &&
+            (rn.includes(currentSignalNorm) || currentSignalNorm.includes(rn))
+          );
+        })
         : null;
 
     let signalValidationHtml = "";
@@ -151,27 +150,23 @@ if (activeTrade) {
       signalValidationHtml = `
         <div style="margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.8em;">
           <div style="opacity:0.7; margin-bottom:4px;">🔍 信号K验证:</div>
-          ${
-            currentSignalNorm
-              ? `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          ${currentSignalNorm
+          ? `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                    <span>当前: <strong style="color:${c.accent}">${currentSignal}</strong></span>
                  </div>`
-              : ""
-          }
-          ${
-            sSignalReqList.length
-              ? `<div style="opacity:0.9; margin-bottom:4px;">建议: ${sSignalReqList
-                  .map((s) => `<span style=\"opacity:0.95\">${s}</span>`)
-                  .join(" / ")}</div>`
-              : `<div style="opacity:0.55;">建议: 未在策略卡中定义</div>`
-          }
-          ${
-            signalMatch === null
-              ? ""
-              : `<div style="opacity:0.8;">匹配: <strong style=\"color:${
-                  signalMatch ? c.live : c.loss
-                }\">${signalMatch ? "✅" : "⚠️"}</strong></div>`
-          }
+          : ""
+        }
+          ${sSignalReqList.length
+          ? `<div style="opacity:0.9; margin-bottom:4px;">建议: ${sSignalReqList
+            .map((s) => `<span style=\"opacity:0.95\">${s}</span>`)
+            .join(" / ")}</div>`
+          : `<div style="opacity:0.55;">建议: 未在策略卡中定义</div>`
+        }
+          ${signalMatch === null
+          ? ""
+          : `<div style="opacity:0.8;">匹配: <strong style=\"color:${signalMatch ? c.live : c.loss
+          }\">${signalMatch ? "✅" : "⚠️"}</strong></div>`
+        }
         </div>
       `;
     }
@@ -186,41 +181,33 @@ if (activeTrade) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       ">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-          <div style="font-weight:700; color:${
-            c.accent
-          };">🤖 策略助手: ${sName}</div>
-          <a href="${
-            matchedItem.file?.path || matchedFilePath
-          }" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
+          <div style="font-weight:700; color:${c.accent
+      };">🤖 策略助手: ${sName}</div>
+          <a href="${matchedItem.file?.path || matchedFilePath
+      }" class="internal-link" style="font-size:0.75em; opacity:0.8; text-decoration:none;">查看详情 -></a>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
           <div>
-            <div style="font-size:0.75em; font-weight:600; color:${
-              c.live
-            }; margin-bottom:4px;">✅ 入场条件</div>
-            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
-              c.text
-            };">
-              ${
-                Array.isArray(sEntry)
-                  ? sEntry.map((i) => `<li>${i}</li>`).join("")
-                  : `<li>${sEntry}</li>`
-              }
+            <div style="font-size:0.75em; font-weight:600; color:${c.live
+      }; margin-bottom:4px;">✅ 入场条件</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text
+      };">
+              ${Array.isArray(sEntry)
+        ? sEntry.map((i) => `<li>${i}</li>`).join("")
+        : `<li>${sEntry}</li>`
+      }
             </ul>
           </div>
           <div>
-            <div style="font-size:0.75em; font-weight:600; color:${
-              c.loss
-            }; margin-bottom:4px;">⚠️ 风险提示</div>
-            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${
-              c.text
-            };">
-              ${
-                Array.isArray(sRisk)
-                  ? sRisk.map((i) => `<li>${i}</li>`).join("")
-                  : `<li>${sRisk}</li>`
-              }
+            <div style="font-size:0.75em; font-weight:600; color:${c.loss
+      }; margin-bottom:4px;">⚠️ 风险提示</div>
+            <ul style="margin:0; padding-left:16px; font-size:0.75em; opacity:0.9; color:${c.text
+      };">
+              ${Array.isArray(sRisk)
+        ? sRisk.map((i) => `<li>${i}</li>`).join("")
+        : `<li>${sRisk}</li>`
+      }
             </ul>
           </div>
         </div>
@@ -274,13 +261,12 @@ if (activeTrade) {
             padding: 12px;
             margin-bottom: 16px;
           ">
-            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${
-              marketCycle || "未知"
-            }) 的策略建议:</div>
+            <div style="font-size:0.8em; opacity:0.7; margin-bottom:8px;">💡 基于当前市场背景 (${marketCycle || "未知"
+          }) 的策略建议:</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               ${topSuggestions
-                .map(
-                  (s) => `
+            .map(
+              (s) => `
                     <a href="${s.file.path}" class="internal-link" style="
                       background:rgba(59,130,246,0.1);
                       color:${c.accent};
@@ -291,8 +277,8 @@ if (activeTrade) {
                       border:1px solid rgba(59,130,246,0.2);
                     ">${s.name}</a>
                   `
-                )
-                .join("")}
+            )
+            .join("")}
             </div>
           </div>
         `;
@@ -399,8 +385,8 @@ if (todayTrades.length > 0) {
       direction === "多" || direction === "Long"
         ? "📈"
         : direction === "空" || direction === "Short"
-        ? "📉"
-        : "➡️";
+          ? "📉"
+          : "➡️";
 
     recentTradesHtml += `
     <a href="${trade.id}" class="internal-link" style="
@@ -425,13 +411,11 @@ if (todayTrades.length > 0) {
       <div style="display:flex; gap:12px; font-size:0.7em; opacity:0.6;">
         ${entry ? `<span>入场: ${entry}</span>` : ""}
         ${stop ? `<span>止损: ${stop}</span>` : ""}
-        ${
-          pnl !== 0
-            ? `<span style="color:${
-                pnl > 0 ? c.live : c.loss
-              }; font-weight:600;">PnL: ${pnl > 0 ? "+" : ""}${pnl}</span>`
-            : ""
-        }
+        ${pnl !== 0
+        ? `<span style="color:${pnl > 0 ? c.live : c.loss
+        }; font-weight:600;">PnL: ${pnl > 0 ? "+" : ""}${pnl}</span>`
+        : ""
+      }
       </div>
     </a>`;
   });
@@ -450,23 +434,20 @@ ${contextHtml}
 ${assistantHtml}
 
 <!-- 统计卡片 -->
-<div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin-bottom:16px;">
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap:6px; margin-bottom:16px;">
   <div style="background:rgba(59,130,246,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${
-      c.demo
-    };">${totalTrades}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${c.demo
+  };">${totalTrades}</div>
     <div style="font-size:0.65em; opacity:0.7;">总交易</div>
   </div>
   <div style="background:rgba(34,197,94,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${
-      c.live
-    };">${wins}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${c.live
+  };">${wins}</div>
     <div style="font-size:0.65em; opacity:0.7;">获胜</div>
   </div>
   <div style="background:rgba(239,68,68,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${
-      c.loss
-    };">${losses}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${c.loss
+  };">${losses}</div>
     <div style="font-size:0.65em; opacity:0.7;">亏损</div>
   </div>
   <div style="background:rgba(251,191,36,0.1); padding:8px; border-radius:6px; text-align:center;">
@@ -474,23 +455,21 @@ ${assistantHtml}
     <div style="font-size:0.65em; opacity:0.7;">胜率</div>
   </div>
   <div style="background:rgba(168,85,247,0.1); padding:8px; border-radius:6px; text-align:center;">
-    <div style="font-size:1.2em; font-weight:700; color:${
-      totalPnL >= 0 ? c.live : c.loss
-    };">${totalPnL > 0 ? "+" : ""}${totalPnL.toFixed(0)}</div>
+    <div style="font-size:1.2em; font-weight:700; color:${totalPnL >= 0 ? c.live : c.loss
+  };">${totalPnL > 0 ? "+" : ""}${totalPnL.toFixed(0)}</div>
     <div style="font-size:0.65em; opacity:0.7;">净利润</div>
   </div>
 </div>
 
 <!-- 进行中提示 -->
-${
-  activeTradesCount > 0 && !assistantHtml
+${activeTradesCount > 0 && !assistantHtml
     ? `
 <div style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:0.8em;">
   ⚡ <strong>${activeTradesCount}</strong> 笔交易进行中...
 </div>
 `
     : ""
-}
+  }
 
 <!-- 最近交易 -->
 <div style="margin-top:12px;">
