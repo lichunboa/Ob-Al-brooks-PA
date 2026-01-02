@@ -111,7 +111,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Business logic migration engineer | Task: Port the existing review algorithm (`buildReviewHints`) into the native plugin data pipeline. | Restrictions: Keep behavior compatible with Dataview baseline; do not add new hint categories without approval. | Success: Same trades produce the same (or explainably equivalent) review hints._
 
 
-- [ ] 10. Next：迁移 Context → Strategy Matching（策略推荐）
+- [x] 10. Next：迁移 Context → Strategy Matching（策略推荐）
 	- 实现 `StrategyIndex`（单一信源）：支持 `byPattern/lookup/byName/list`。
 	- 实现 `StrategyMatcher`：输入 `market_cycle + patterns/setup/signal` 输出推荐策略卡（先做最小匹配）。
 	- UI 增加最小“今日策略推荐”（仅 3-6 个策略链接）。
