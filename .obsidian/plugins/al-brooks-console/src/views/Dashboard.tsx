@@ -3,6 +3,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
+import { buildReviewHints } from "../core/review-hints";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 import type { IntegrationCapability } from "../integrations/contracts";
@@ -157,6 +158,12 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
         [integrations]
     );
 
+    const latestTrade = trades.length > 0 ? trades[0] : undefined;
+    const reviewHints = React.useMemo(() => {
+        if (!latestTrade) return [];
+        return buildReviewHints(latestTrade);
+    }, [latestTrade]);
+
     return (
         <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
             <h2 style={{
@@ -173,6 +180,33 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
                             disabled={!can("quickadd:new-live-trade")}
                             onClick={() => action("quickadd:new-live-trade")}
                             style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
+
+                                    {latestTrade && reviewHints.length > 0 && (
+                                        <div
+                                            style={{
+                                                border: "1px solid var(--background-modifier-border)",
+                                                borderRadius: "10px",
+                                                padding: "12px",
+                                                marginBottom: "16px",
+                                                background: "var(--background-primary)",
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                                                Review Hints
+                                                <span style={{ fontWeight: 400, marginLeft: "8px", color: "var(--text-muted)", fontSize: "0.85em" }}>
+                                                    {latestTrade.name}
+                                                </span>
+                                            </div>
+                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                                {reviewHints.slice(0, 4).map((h) => (
+                                                    <li key={h.id} style={{ marginBottom: "6px" }}>
+                                                        <div>{h.zh}</div>
+                                                        <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>{h.en}</div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                         >
                             New Live Trade
                         </button>

@@ -129,7 +129,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Integration engineer | Task: Integrate external plugins via adapters that survive upstream upgrades. | Restrictions: No hard dependency; no vendoring other plugins’ code. | Success: Console works without these plugins; when present, buttons/actions light up._
 
 
-- [ ] 12. Next：旧系统对照增强（把 View 依赖矩阵纳入验收）
+- [x] 12. Next：旧系统对照增强（把 View 依赖矩阵纳入验收）
 	- 将依赖矩阵作为验收输入：`🦁 交易员控制台 (Trader Command)/📋 原生插件迁移-View依赖矩阵.md`。
 	- 在验收清单中加入“外部命令存在性/降级行为”检查（QuickAdd/SRS/Dataview）。
 	- 加入“写入风险”提示：旧 `pa-view-manager.js` 会批量写 frontmatter，原生插件 MVP 不实现该能力。

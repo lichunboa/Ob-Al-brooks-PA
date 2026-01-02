@@ -5,6 +5,12 @@ export type TradeId = string;
 
 export type TradeOutcome = "win" | "loss" | "scratch" | "open" | "unknown";
 
+export interface ReviewHint {
+	id: string;
+	zh: string;
+	en: string;
+}
+
 export interface TradeRecord {
 	path: string;
 	name: string;
