@@ -18,7 +18,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
 
         this.registerView(
             VIEW_TYPE_CONSOLE,
-            (leaf: WorkspaceLeaf) => new ConsoleView(leaf, this.index)
+            (leaf: WorkspaceLeaf) => new ConsoleView(leaf, this.index, this.manifest.version)
         );
 
         this.addRibbonIcon("bar-chart-2", "Open Trader Console", () => {
