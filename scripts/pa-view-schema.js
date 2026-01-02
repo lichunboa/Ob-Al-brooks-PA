@@ -256,7 +256,7 @@ panelFix.className = "sch-panel";
 
 if (scanStats.issues > 0) {
   panelFix.style.borderLeft = `3px solid ${c.loss}`;
-  panelFix.innerHTML = `<div class="sch-header" style="color:${c.loss}">🚑 异常修复台 (Fix Station)</div>`;
+  panelFix.innerHTML = `<div class="sch-header" style="color:${c.loss}">🚑 异常修复台 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(Fix Station)</span></div>`;
 
   const divList = document.createElement("div");
   divList.style.maxHeight = "200px";
@@ -288,7 +288,7 @@ if (scanStats.issues > 0) {
   panelFix.style.borderLeft = `3px solid ${c.live}`;
   panelFix.innerHTML = `
         <div class="sch-header" style="color:${c.live}; margin-bottom:0; border:none;">
-            ✅ 系统非常健康 (All Clear)
+            ✅ 系统非常健康 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(All Clear)</span>
             <span style="font-size:0.7em; opacity:0.6; font-weight:normal;">所有属性均已规范填写</span>
         </div>`;
 }
@@ -297,7 +297,7 @@ root.appendChild(panelFix);
 // === 模块 4: 🏷️ 标签全景 (Tag Cloud) ===
 const panelTag = document.createElement("div");
 panelTag.className = "sch-panel";
-panelTag.innerHTML = `<div class="sch-header" style="color:${c.demo}">🏷️ 标签全景 (Tag System)</div>`;
+panelTag.innerHTML = `<div class="sch-header" style="color:${c.demo}">🏷️ 标签全景 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(Tag System)</span></div>`;
 
 const divTags = document.createElement("div");
 divTags.style.display = "flex";
@@ -318,3 +318,4 @@ Object.entries(tagMap)
   });
 panelTag.appendChild(divTags);
 root.appendChild(panelTag);
+

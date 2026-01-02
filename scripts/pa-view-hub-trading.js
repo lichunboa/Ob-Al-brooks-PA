@@ -36,13 +36,13 @@ if (window.paData) {
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px;">
         <div>
             <div style="font-size:1.2em; font-weight:bold; opacity:0.9;">📅 今日交易 (${today})</div>
-            <div style="font-size:0.8em; opacity:0.6;">Focus on Execution Quality</div>
+            <div style="font-size:0.8em; opacity:0.6;">专注执行质量（Execution Quality）</div>
         </div>
         <div style="text-align:right;">
             <div style="font-size:1.8em; font-weight:900; color:${
               todayPnL >= 0 ? c.live : c.loss
             };">${todayPnL > 0 ? "+" : ""}${todayPnL}</div>
-            <div style="font-size:0.8em; opacity:0.6;">${todayCount} Trades</div>
+            <div style="font-size:0.8em; opacity:0.6;">今日 ${todayCount} 笔</div>
         </div>
     </div>`;
 
@@ -84,8 +84,8 @@ if (window.paData) {
     const rCourse = pickRec("course");
     const rSr = pickRec("sr");
     leftCol.innerHTML += `
-        <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
-            <div style="font-weight:bold; color:#3b82f6; margin-bottom:4px;">🌊 市场环境: ${todayJournal.market_cycle}</div>
+      <div style="padding: 12px; background: ${c.hover}; border-left: 4px solid ${c.accent}; border-radius: 10px;">
+        <div style="font-weight:bold; color:${c.accent}; margin-bottom:4px;">🌊 市场环境：${todayJournal.market_cycle}</div>
             <div style="font-size:0.85em; opacity:0.85; line-height:1.55;">
               <div>${coachLine || "策略建议: 顺势而为，寻找回调入场机会。"}</div>
               ${
@@ -162,7 +162,7 @@ if (window.paData) {
   const actionsPanel = document.createElement("div");
   actionsPanel.style.cssText = `${c.cardBg}; padding: 15px;`;
   const btn = (color, text, cmd) =>
-    `<button onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+    `<button onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:800; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center; transition: transform 120ms ease, filter 120ms ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.filter='brightness(1.04)';" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none';">
             <span>${text}</span> <span>+</span>
         </button>`;
 
@@ -198,10 +198,11 @@ if (window.paData) {
   bars += `</div>`;
 
   trendPanel.innerHTML = `
-        <div style="font-weight:700; opacity:0.7; margin-bottom:5px;">📈 近期趋势 (Last 10)</div>
+      <div style="font-weight:700; opacity:0.7; margin-bottom:5px;">📈 近期趋势（最近 10 笔）</div>
         ${bars}
     `;
   rightCol.appendChild(trendPanel);
 
   root.appendChild(rightCol);
 }
+

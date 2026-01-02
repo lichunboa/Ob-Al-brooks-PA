@@ -30,7 +30,7 @@ if (!document.getElementById(styleId)) {
         .mem-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .mem-title { font-size: 1.1em; font-weight: 800; color: ${c.text}; display: flex; align-items: center; gap: 8px; }
         .mem-stat-big { font-size: 1.8em; font-weight: 900; line-height: 1; }
-        .mem-stat-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+        .mem-stat-label { font-size: 0.7em; letter-spacing: 0.5px; opacity: 0.6; }
         
         .mem-bar-container { display: flex; height: 8px; width: 100%; border-radius: 4px; overflow: hidden; background: rgba(255,255,255,0.05); margin: 12px 0; }
         .mem-bar-seg { height: 100%; transition: width 0.5s ease; }
@@ -110,7 +110,7 @@ if (window.paData && window.paData.sr) {
                 <span style="font-size:1.4em">🧠</span>
                 <div>
             <div>记忆核心</div>
-                    <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.1 Bypass</div>
+                <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.1 旁路</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
@@ -280,7 +280,7 @@ if (window.paData && window.paData.sr) {
         ${btn}
     `;
 } else {
-  dv.el("div", "🦁 Engine Loading...", {
+  dv.el("div", "🦁 引擎加载中…", {
     attr: { style: "opacity:0.5; padding:20px; text-align:center;" },
   });
 }

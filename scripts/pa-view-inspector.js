@@ -497,7 +497,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -506,7 +506,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -515,7 +515,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -639,7 +639,7 @@ if (window.paData) {
 
         <div class="insp-card">
             <div class="insp-title" style="border:none;">
-                <span>📄 原始数据明细 (Raw Data)</span>
+              <span>📄 原始数据明细 <span style="font-size:0.85em; opacity:0.55; font-weight:600;">(Raw Data)</span></span>
                 <span style="font-size:0.8em; opacity:0.5; font-weight:normal;">最近 15 笔</span>
             </div>
             <div style="overflow-x:auto;">
