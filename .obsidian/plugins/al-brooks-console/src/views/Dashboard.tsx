@@ -18,6 +18,9 @@ import {
     type DailyAgg,
 } from "../core/analytics";
 import { parseCoverRef } from "../core/cover-parser";
+import type { EnumPresets } from "../core/enum-presets";
+import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
+import { buildFixPlan, buildInspectorIssues } from "../core/inspector";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
@@ -85,6 +88,7 @@ interface Props {
 	todayContext?: TodayContext;
     resolveLink?: (linkText: string, fromPath: string) => string | undefined;
     getResourceUrl?: (path: string) => string | undefined;
+    enumPresets?: EnumPresets;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -144,13 +148,14 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, enumPresets, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
     );
 	const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(() => todayContext?.getTodayMarketCycle());
 	const [analyticsScope, setAnalyticsScope] = React.useState<AnalyticsScope>("Live");
+    const [showFixPlan, setShowFixPlan] = React.useState(false);
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -333,6 +338,16 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
 
         return out;
     }, [trades, resolveLink, getResourceUrl]);
+
+    const inspectorIssues = React.useMemo(() => {
+        return buildInspectorIssues(trades, enumPresets);
+    }, [trades, enumPresets]);
+
+    const fixPlanText = React.useMemo(() => {
+        if (!showFixPlan || !enumPresets) return undefined;
+        const plan = buildFixPlan(trades, enumPresets);
+        return JSON.stringify(plan, null, 2);
+    }, [showFixPlan, trades, enumPresets]);
 
     const openTrade = React.useMemo(() => {
         return trades.find((t) => {
