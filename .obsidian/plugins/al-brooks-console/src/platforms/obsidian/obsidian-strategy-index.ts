@@ -9,6 +9,11 @@ const STRATEGY_FIELD_ALIASES = {
 	marketCycle: ["市场周期/market_cycle", "market_cycle", "marketCycle"],
 	setupCategory: ["设置类别/setup_category", "setup_category", "setupCategory"],
 	patternsObserved: ["观察到的形态/patterns_observed", "patterns_observed", "patterns"],
+	signalBarQuality: ["信号K/signal_bar_quality", "signal_bar_quality", "signalBarQuality"],
+	entryCriteria: ["入场条件/entry_criteria", "entry_criteria", "entryCriteria"],
+	riskAlerts: ["风险提示/risk_alerts", "risk_alerts", "riskAlerts"],
+	stopLossRecommendation: ["止损建议/stop_loss_recommendation", "stop_loss_recommendation", "stopLossRecommendation"],
+	takeProfitRecommendation: ["目标建议/take_profit_recommendation", "take_profit_recommendation", "takeProfitRecommendation"],
 } as const;
 
 function toStringArray(v: unknown): string[] {
@@ -117,6 +122,15 @@ export class ObsidianStrategyIndex implements StrategyIndex {
 			const setupCategoriesRaw = getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.setupCategory);
 			const setupCategories = setupCategoriesRaw ? toStringArray(setupCategoriesRaw) : [];
 			const patternsObserved = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.patternsObserved));
+			const signalBarQuality = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.signalBarQuality));
+			const entryCriteria = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.entryCriteria));
+			const riskAlerts = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.riskAlerts));
+			const stopLossRecommendation = toStringArray(
+				getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.stopLossRecommendation)
+			);
+			const takeProfitRecommendation = toStringArray(
+				getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.takeProfitRecommendation)
+			);
 
 			const card: StrategyCard = {
 				path: file.path,
@@ -125,6 +139,11 @@ export class ObsidianStrategyIndex implements StrategyIndex {
 				marketCycles,
 				setupCategories,
 				patternsObserved,
+				signalBarQuality,
+				entryCriteria,
+				riskAlerts,
+				stopLossRecommendation,
+				takeProfitRecommendation,
 			};
 
 			this.cards.push(card);

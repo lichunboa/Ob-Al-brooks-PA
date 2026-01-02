@@ -11,6 +11,7 @@ import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
+import type { TodayContext } from "../core/today-context";
 
 function toLocalDateIso(d: Date): string {
     const y = d.getFullYear();
@@ -56,6 +57,7 @@ export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 interface Props {
     index: TradeIndex;
     strategyIndex: StrategyIndex;
+	todayContext?: TodayContext;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -115,11 +117,12 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
     );
+	const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(() => todayContext?.getTodayMarketCycle());
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -130,6 +133,14 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
 		onUpdate();
 		return unsubscribe;
     }, [index]);
+
+    React.useEffect(() => {
+        if (!todayContext?.onChanged) return;
+        const onUpdate = () => setTodayMarketCycle(todayContext.getTodayMarketCycle());
+        const unsubscribe = todayContext.onChanged(onUpdate);
+        onUpdate();
+        return unsubscribe;
+    }, [todayContext]);
 
     React.useEffect(() => {
         if (!index.onStatusChanged) return;
@@ -221,6 +232,42 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
         return buildReviewHints(latestTrade);
     }, [latestTrade]);
 
+    const openTrade = React.useMemo(() => {
+        return trades.find((t) => {
+            const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+            if (!pnlMissing) return false;
+            return t.outcome === "open" || t.outcome === undefined || t.outcome === "unknown";
+        });
+    }, [trades]);
+
+    const todayStrategyPicks = React.useMemo(() => {
+        if (!todayMarketCycle) return [];
+        return matchStrategies(strategyIndex, {
+            marketCycle: todayMarketCycle,
+            limit: 6,
+        });
+    }, [strategyIndex, todayMarketCycle]);
+
+    const openTradeStrategy = React.useMemo(() => {
+        if (!openTrade) return undefined;
+        const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
+        const patternsRaw = fm["patterns"] ?? fm["形态/patterns"] ?? fm["观察到的形态/patterns_observed"];
+        const patterns = Array.isArray(patternsRaw)
+            ? patternsRaw.filter((x: any) => typeof x === "string").map((s: string) => s.trim()).filter(Boolean)
+            : typeof patternsRaw === "string"
+                ? patternsRaw.split(/[,，;；/|]/g).map((s: string) => s.trim()).filter(Boolean)
+                : [];
+        const setupCategory = (fm["setup_category"] ?? fm["设置类别/setup_category"]) as any;
+        const setupCategoryStr = typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+        const picks = matchStrategies(strategyIndex, {
+            marketCycle: todayMarketCycle,
+            setupCategory: setupCategoryStr,
+            patterns,
+            limit: 3,
+        });
+        return picks[0];
+    }, [openTrade, strategyIndex, todayMarketCycle]);
+
     const strategyPicks = React.useMemo(() => {
         if (!latestTrade) return [];
         const fm = (latestTrade.rawFrontmatter ?? {}) as Record<string, any>;
@@ -231,7 +278,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
                 ? patternsRaw.split(/[,，;；/|]/g).map((s: string) => s.trim()).filter(Boolean)
                 : [];
         const marketCycle = (fm["market_cycle"] ?? fm["市场周期/market_cycle"]) as any;
-        const marketCycleStr = typeof marketCycle === "string" ? marketCycle.trim() : undefined;
+        const marketCycleStr = todayMarketCycle ?? (typeof marketCycle === "string" ? marketCycle.trim() : undefined);
         const setupCategory = (fm["setup_category"] ?? fm["设置类别/setup_category"]) as any;
         const setupCategoryStr = typeof setupCategory === "string" ? setupCategory.trim() : undefined;
         return matchStrategies(strategyIndex, {
@@ -240,7 +287,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
             patterns,
             limit: 6,
         });
-    }, [latestTrade, strategyIndex]);
+    }, [latestTrade, strategyIndex, todayMarketCycle]);
 
     const TrendRow: React.FC<{ label: string; value: number; ratio: number; color: string }> = ({
         label,
@@ -624,6 +671,136 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
 				/>
 			</div>
 
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>Today</div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "10px" }}>
+                    Market Cycle: {todayMarketCycle ?? "—"}
+                </div>
+
+                {todayStrategyPicks.length > 0 && (
+                    <div style={{ marginBottom: "12px" }}>
+                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Cycle → Strategy Picks</div>
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                            {todayStrategyPicks.map((s) => (
+                                <li key={`today-pick-${s.path}`} style={{ marginBottom: "6px" }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => openFile(s.path)}
+                                        style={{
+                                            padding: 0,
+                                            border: "none",
+                                            background: "transparent",
+                                            color: "var(--text-accent)",
+                                            cursor: "pointer",
+                                            textAlign: "left",
+                                        }}
+                                    >
+                                        {s.canonicalName}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {openTrade && (
+                    <div>
+                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>In-Progress Trade Assistant</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "8px" }}>
+                            <button
+                                type="button"
+                                onClick={() => openFile(openTrade.path)}
+                                style={{
+                                    padding: 0,
+                                    border: "none",
+                                    background: "transparent",
+                                    color: "var(--text-accent)",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                }}
+                            >
+                                {openTrade.ticker ?? "Unknown"} • {openTrade.name}
+                            </button>
+                        </div>
+
+                        {openTradeStrategy ? (
+                            <div>
+                                <div style={{ marginBottom: "8px" }}>
+                                    Strategy: {" "}
+                                    <button
+                                        type="button"
+                                        onClick={() => openFile(openTradeStrategy.path)}
+                                        style={{
+                                            padding: 0,
+                                            border: "none",
+                                            background: "transparent",
+                                            color: "var(--text-accent)",
+                                            cursor: "pointer",
+                                            textAlign: "left",
+                                    }}
+                                    >
+                                        {openTradeStrategy.canonicalName}
+                                    </button>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px" }}>
+                                    {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                                        <div>
+                                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>Entry</div>
+                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                                {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => (
+                                                    <li key={`entry-${i}`}>{x}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                                        <div>
+                                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>Stop</div>
+                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                                {openTradeStrategy.stopLossRecommendation!.slice(0, 3).map((x, i) => (
+                                                    <li key={`stop-${i}`}>{x}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                                        <div>
+                                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>Risk</div>
+                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                                {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
+                                                    <li key={`risk-${i}`}>{x}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                                        <div>
+                                            <div style={{ fontWeight: 600, marginBottom: "4px" }}>Target</div>
+                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                                {openTradeStrategy.takeProfitRecommendation!.slice(0, 3).map((x, i) => (
+                                                    <li key={`tp-${i}`}>{x}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No matched strategy found.</div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Main Content Area */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
                 {/* Trade Feed */}
@@ -639,6 +816,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
 export class ConsoleView extends ItemView {
     private index: TradeIndex;
     private strategyIndex: StrategyIndex;
+    private todayContext?: TodayContext;
 	private integrations?: PluginIntegrationRegistry;
 	private version: string;
 	private root: Root | null = null;
@@ -648,12 +826,14 @@ export class ConsoleView extends ItemView {
         leaf: WorkspaceLeaf,
         index: TradeIndex,
         strategyIndex: StrategyIndex,
+		todayContext: TodayContext,
         integrations: PluginIntegrationRegistry,
         version: string
     ) {
         super(leaf);
         this.index = index;
         this.strategyIndex = strategyIndex;
+		this.todayContext = todayContext;
 		this.integrations = integrations;
 		this.version = version;
     }
@@ -683,6 +863,7 @@ export class ConsoleView extends ItemView {
                 <ConsoleComponent
                     index={this.index}
                     strategyIndex={this.strategyIndex}
+					todayContext={this.todayContext}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}

@@ -5,6 +5,11 @@ export interface StrategyCard {
 	marketCycles: string[];
 	setupCategories: string[];
 	patternsObserved: string[];
+	signalBarQuality?: string[];
+	entryCriteria?: string[];
+	riskAlerts?: string[];
+	stopLossRecommendation?: string[];
+	takeProfitRecommendation?: string[];
 }
 
 export interface StrategyIndex {
