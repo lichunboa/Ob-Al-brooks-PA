@@ -148,7 +148,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Console UI engineer | Task: Port Trading Hub core cards and actions (summary, quick open, R trend) into native view. | Restrictions: Keep UI minimal; reuse existing data sources; no heavy chart libs. | Success: Users can perform the same Trading Hub workflows as the Dataview console._
 
 
-- [ ] 14. Next：迁移 Today（市场周期→策略推荐 + 进行中交易策略助手）
+- [x] 14. Next：迁移 Today（市场周期→策略推荐 + 进行中交易策略助手）
 	- 读取 `daily.todayJournal.market_cycle`（或同义字段）驱动“今日推荐”。
 	- 进行中交易识别（outcome 为空/未完结）并展示策略助手：patterns→策略卡→入场/风险/止损要点。
 	- _Leverage: StrategyMatcher + TradeIndex fields (patterns/outcome)._ 
