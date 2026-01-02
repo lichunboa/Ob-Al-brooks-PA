@@ -1577,7 +1577,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   marginBottom: "8px",
                 }}
               >
-                接下来（window={settings.courseRecommendationWindow}）：{" "}
+                接下来（窗口={settings.courseRecommendationWindow}）：{" "}
                 {course.upNext.map((x, idx) => {
                   const label = String(x.item.id);
                   if (x.link) {
@@ -2272,7 +2272,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>检查器 / Schema 监控</div>
+          <div style={{ fontWeight: 600 }}>检查器 / 字段规则（Schema）监控</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
@@ -2286,10 +2286,10 @@ const ConsoleComponent: React.FC<Props> = ({
               title={
                 !enumPresets
                   ? "枚举预设不可用"
-                  : "切换 FixPlan 预览"
+                  : "切换修复方案预览"
               }
             >
-              {showFixPlan ? "隐藏 FixPlan" : "显示 FixPlan"}
+              {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
             </button>
           </div>
         </div>
@@ -2301,7 +2301,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "10px",
           }}
         >
-          只读：仅报告问题；FixPlan 仅预览（不会写入 vault）。
+          只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入 vault）。
           <span style={{ marginLeft: "8px" }}>
             枚举预设：{enumPresets ? "已加载" : "不可用"}
           </span>
@@ -2355,13 +2355,8 @@ const ConsoleComponent: React.FC<Props> = ({
                 type="button"
                 onClick={() => openFile(issue.path)}
                 title={issue.path}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "var(--background-modifier-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
+                onMouseEnter={onTextBtnMouseEnter}
+                onMouseLeave={onTextBtnMouseLeave}
                 onFocus={onTextBtnFocus}
                 onBlur={onTextBtnBlur}
                 style={{
@@ -2394,7 +2389,11 @@ const ConsoleComponent: React.FC<Props> = ({
                       fontWeight: 600,
                     }}
                   >
-                    {issue.severity.toUpperCase()}
+                    {issue.severity === "error"
+                      ? "错误"
+                      : issue.severity === "warn"
+                      ? "警告"
+                      : "—"}
                   </div>
                   <div style={{ flex: "1 1 auto" }}>
                     <div style={{ fontWeight: 600 }}>{issue.title}</div>
@@ -2426,7 +2425,7 @@ const ConsoleComponent: React.FC<Props> = ({
           enumPresets ? (
             <div style={{ marginTop: "10px" }}>
               <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                FixPlan（预览）
+                修复方案（预览）
               </div>
               <pre
                 style={{
@@ -2451,7 +2450,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 fontSize: "0.9em",
               }}
             >
-              枚举预设不可用，已禁用 FixPlan 生成。
+              枚举预设不可用，已禁用修复方案生成。
             </div>
           )
         ) : null}
@@ -2490,7 +2489,7 @@ const ConsoleComponent: React.FC<Props> = ({
               title={
                 !enumPresets
                   ? "枚举预设不可用"
-                  : "使用检查器生成的 FixPlan"
+                  : "使用检查器生成的修复方案"
               }
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
@@ -2498,7 +2497,7 @@ const ConsoleComponent: React.FC<Props> = ({
               onBlur={onBtnBlur}
               style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
             >
-              使用检查器 FixPlan
+              使用检查器修复方案
             </button>
             <button
               type="button"
@@ -2750,7 +2749,7 @@ export class ConsoleView extends ItemView {
   }
 
   getDisplayText() {
-    return "Trader Console";
+    return "交易员控制台";
   }
 
   getIcon() {
@@ -2836,7 +2835,7 @@ export class ConsoleView extends ItemView {
           const af = this.app.vault.getAbstractFileByPath(fu.path);
           if (!(af instanceof TFile)) {
             res.failed += 1;
-            res.errors.push({ path: fu.path, message: "File not found" });
+            res.errors.push({ path: fu.path, message: "文件未找到" });
             continue;
           }
           const oldText = await this.app.vault.read(af);
@@ -2873,7 +2872,7 @@ export class ConsoleView extends ItemView {
           const af = this.app.vault.getAbstractFileByPath(path);
           if (!(af instanceof TFile)) {
             res.failed += 1;
-            res.errors.push({ path, message: "File not found" });
+            res.errors.push({ path, message: "文件未找到" });
             continue;
           }
           const oldText = await this.app.vault.read(af);
