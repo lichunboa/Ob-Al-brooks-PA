@@ -1,11 +1,10 @@
-import type { AccountType, NormalizedTag, TradeOutcome } from "./contracts";
+import type { NormalizedTag, TradeOutcome } from "./contracts";
 
 export const FIELD_ALIASES = {
 	pnl: ["pnl", "net_profit", "净利润/net_profit", "净利润", "盈亏", "收益"],
 	ticker: ["ticker", "symbol", "品种/ticker", "品种", "标的", "代码", "合约"],
 	outcome: ["outcome", "result", "结果/outcome", "结果"],
 	date: ["date", "日期"],
-	accountType: ["account_type", "accountType", "账户/account_type", "账户"],
 	tags: ["tags"],
 	fileClass: ["fileClass", "FileClass"],
 } as const;
@@ -52,15 +51,6 @@ export function normalizeTicker(value: unknown): string | undefined {
 		const first = value.find((v) => typeof v === "string");
 		return typeof first === "string" ? normalizeTicker(first) : undefined;
 	}
-	return undefined;
-}
-
-export function normalizeAccountType(value: unknown): AccountType | undefined {
-	if (typeof value !== "string") return undefined;
-	const v = value.trim().toLowerCase();
-	if (v.includes("live") || v.includes("实盘")) return "Live";
-	if (v.includes("demo") || v.includes("模拟")) return "Demo";
-	if (v.includes("backtest") || v.includes("回测")) return "Backtest";
 	return undefined;
 }
 

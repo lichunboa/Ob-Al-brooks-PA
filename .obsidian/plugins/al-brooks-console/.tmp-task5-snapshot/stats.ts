@@ -1,4 +1,4 @@
-import type { AccountType, TradeOutcome, TradeRecord, TradeStats } from "./contracts";
+import type { TradeOutcome, TradeRecord, TradeStats } from "./contracts";
 
 export function classifyOutcome(trade: TradeRecord): TradeOutcome {
 	if (typeof trade.pnl === "number") {
@@ -27,26 +27,4 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
 
 	const winRatePct = countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
 	return { countTotal, countCompleted, countWins, winRatePct, netProfit };
-}
-
-export type StatsByAccountType = Record<AccountType | "All", TradeStats>;
-
-export function computeTradeStatsByAccountType(trades: TradeRecord[]): StatsByAccountType {
-	const by: Record<AccountType, TradeRecord[]> = {
-		Live: [],
-		Demo: [],
-		Backtest: [],
-	};
-
-	for (const trade of trades) {
-		const at = trade.accountType;
-		if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(trade);
-	}
-
-	return {
-		All: computeTradeStats(trades),
-		Live: computeTradeStats(by.Live),
-		Demo: computeTradeStats(by.Demo),
-		Backtest: computeTradeStats(by.Backtest),
-	};
 }

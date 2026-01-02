@@ -65,7 +65,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian event-driven systems engineer | Task: Add real-time incremental updates and a debounced change signal on TradeIndex. | Restrictions: Avoid full rescans on every event. Do not introduce a second event bus or a second TradeIndex; UI must subscribe to this one. | Success: Editing/renaming/moving trade notes updates dashboard automatically._
 
 
-- [ ] 5. MVP：仪表盘 UI（统计卡片 + 交易列表）
+- [x] 5. MVP：仪表盘 UI（统计卡片 + 交易列表）
 	- 计算 TradeStats（netProfit、count、winRate）。
 	- 统计必须按 `account_type` 分开计算（Live/Demo/Backtest），并同时提供一个“汇总（All）”。
 	- React UI：三张统计卡片 + 最近交易列表。
@@ -75,7 +75,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: React UI engineer for Obsidian | Task: Implement MVP dashboard UI driven by TradeIndex events and Stats SSOT. | Restrictions: No charts, no strategy logic. Must not re-scan vault or compute stats locally in the component; call `src/core/stats.ts`. | Success: UI updates live; list items open notes; per-account_type + All summary shown._
 
 
-- [ ] 6. MVP：口径统一（胜率以 pnl 为主，outcome 为兜底）
+- [x] 6. MVP：口径统一（胜率以 pnl 为主，outcome 为兜底）
 	- 实现统一胜率计算函数。
 	- 在 UI 与统计中只使用该口径。
 	- _Leverage: Implement in `src/core/stats.ts` only; pa-core.js behavior as reference only._

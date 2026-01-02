@@ -5,7 +5,6 @@ import {
 	FIELD_ALIASES,
 	getFirstFieldValue,
 	isTradeTag,
-	normalizeAccountType,
 	normalizeOutcome,
 	normalizeTag,
 	normalizeTicker,
@@ -211,13 +210,11 @@ export class ObsidianTradeIndex implements TradeIndex {
 		const tickerRaw = getFirstFieldValue(fm, FIELD_ALIASES.ticker);
 		const outcomeRaw = getFirstFieldValue(fm, FIELD_ALIASES.outcome);
 		const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
-		const accountTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.accountType);
 
 		const pnl = parseNumber(pnlRaw);
 		const ticker = normalizeTicker(tickerRaw);
 		const outcome = normalizeOutcome(outcomeRaw);
 		const dateIso = typeof dateRaw === "string" ? dateRaw : file.basename.substring(0, 10);
-		const accountType = normalizeAccountType(accountTypeRaw);
 
 		const trade: TradeRecord = {
 			path: file.path,
@@ -226,7 +223,6 @@ export class ObsidianTradeIndex implements TradeIndex {
 			ticker,
 			pnl,
 			outcome,
-			accountType,
 			mtime: file.stat?.mtime,
 			tags: normalizedTags,
 			rawFrontmatter: fm,

@@ -2,7 +2,7 @@ import * as React from "react";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex } from "../core/trade-index";
-import { computeTradeStatsByAccountType } from "../core/stats";
+import { computeTradeStats } from "../core/stats";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 
@@ -17,8 +17,7 @@ interface Props {
 const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
 
-    const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
-    const all = summary.All;
+	const summary = React.useMemo(() => computeTradeStats(trades), [trades]);
 
     React.useEffect(() => {
 		const onUpdate = () => setTrades(index.getAll());
@@ -46,50 +45,22 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
             }}>
                 <StatsCard
                     title="Total Trades"
-                    value={all.countTotal}
+                    value={summary.countTotal}
                     icon="📊"
                 />
                 <StatsCard
                     title="Net PnL"
-                    value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
-                    color={all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
+                    value={`${summary.netProfit > 0 ? "+" : ""}${summary.netProfit.toFixed(1)}R`}
+                    color={summary.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
                     icon="💰"
                 />
                 <StatsCard
                     title="Win Rate"
-                    value={`${all.winRatePct}%`}
-                    color={all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"}
+                    value={`${summary.winRatePct}%`}
+                    color={summary.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"}
                     icon="🎯"
                 />
             </div>
-
-			<div
-				style={{
-					display: "flex",
-					flexWrap: "wrap",
-					gap: "12px",
-					marginBottom: "24px",
-				}}
-			>
-				<StatsCard
-					title="Live"
-					value={`${summary.Live.countTotal} trades`}
-					subValue={`${summary.Live.winRatePct}% • ${summary.Live.netProfit.toFixed(1)}R`}
-					icon="🟢"
-				/>
-				<StatsCard
-					title="Demo"
-					value={`${summary.Demo.countTotal} trades`}
-					subValue={`${summary.Demo.winRatePct}% • ${summary.Demo.netProfit.toFixed(1)}R`}
-					icon="🟡"
-				/>
-				<StatsCard
-					title="Backtest"
-					value={`${summary.Backtest.countTotal} trades`}
-					subValue={`${summary.Backtest.winRatePct}% • ${summary.Backtest.netProfit.toFixed(1)}R`}
-					icon="🔵"
-				/>
-			</div>
 
             {/* Main Content Area */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
