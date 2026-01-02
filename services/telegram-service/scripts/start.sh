@@ -47,7 +47,7 @@ safe_load_env() {
 
 # 加载全局配置 → 服务配置
 safe_load_env "$PROJECT_ROOT/config/.env"
-safe_load_env "$SERVICE_DIR/config/.env"
+# 配置已统一到 config/.env
 
 # 代理自检（重试3次+指数退避冷却）
 check_proxy() {

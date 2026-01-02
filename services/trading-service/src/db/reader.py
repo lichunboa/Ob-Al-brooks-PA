@@ -273,11 +273,15 @@ class DataWriter:
                 df.head(0).to_sql(table, conn, if_exists="replace", index=False)
                 existing_cols = df_cols
             
-            # 批量 INSERT（比 to_sql 快 3-5 倍）
+            # 先删除同一 (交易对, 周期, 数据时间) 的旧数据
+            if "交易对" in df_cols and "周期" in df_cols and "数据时间" in df_cols:
+                for _, row in df[["交易对", "周期", "数据时间"]].drop_duplicates().iterrows():
+                    conn.execute(f"DELETE FROM [{table}] WHERE 交易对=? AND 周期=? AND 数据时间=?",
+                                 (row["交易对"], row["周期"], row["数据时间"]))
+            
+            # 批量 INSERT
             placeholders = ",".join(["?"] * len(df_cols))
             sql = f"INSERT INTO [{table}] ({','.join(df_cols)}) VALUES ({placeholders})"
-            
-            # 转换为元组列表
             data = [tuple(row) for row in df.itertuples(index=False, name=None)]
             conn.executemany(sql, data)
             

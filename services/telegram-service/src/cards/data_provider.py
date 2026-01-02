@@ -8,13 +8,55 @@
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+# ============ 币种过滤（复用 trading-service 逻辑）============
+def _get_configured_symbols() -> Optional[Set[str]]:
+    """根据环境变量获取允许的币种集合，返回 None 表示不过滤"""
+    groups_str = os.environ.get("SYMBOLS_GROUPS", "auto")
+    selected = [g.strip().lower() for g in groups_str.split(",") if g.strip()]
+    
+    if "auto" in selected or "all" in selected:
+        return None
+    
+    # 加载分组
+    symbols = set()
+    for key, val in os.environ.items():
+        if key.startswith("SYMBOLS_GROUP_") and val:
+            name = key[14:].lower()
+            if name in selected:
+                symbols.update(s.strip().upper() for s in val.split(",") if s.strip())
+    
+    # 额外添加/排除
+    extra = os.environ.get("SYMBOLS_EXTRA", "")
+    exclude = os.environ.get("SYMBOLS_EXCLUDE", "")
+    symbols.update(s.strip().upper() for s in extra.split(",") if s.strip())
+    symbols -= {s.strip().upper() for s in exclude.split(",") if s.strip()}
+    
+    return symbols if symbols else None
+
+
+# 缓存配置的币种（延迟初始化）
+_ALLOWED_SYMBOLS: Optional[Set[str]] = None
+_SYMBOLS_LOADED = False
+
+def _get_allowed_symbols() -> Optional[Set[str]]:
+    """获取允许的币种集合（延迟加载，首次调用时读取环境变量）"""
+    global _ALLOWED_SYMBOLS, _SYMBOLS_LOADED
+    if not _SYMBOLS_LOADED:
+        _ALLOWED_SYMBOLS = _get_configured_symbols()
+        _SYMBOLS_LOADED = True
+        if _ALLOWED_SYMBOLS:
+            LOGGER.info("币种过滤已启用: %d 个币种", len(_ALLOWED_SYMBOLS))
+    return _ALLOWED_SYMBOLS
 
 
 def _parse_timestamp(ts_str: str) -> datetime:
@@ -325,9 +367,10 @@ class RankingDataProvider:
 
     # ---------------- 公共读取 ----------------
     def fetch_base(self, period: str) -> Dict[str, Dict]:
-        """按周期取基础数据 - 只取最新批次（同一时间戳）"""
+        """按周期取基础数据 - 只取最新批次（同一时间戳），按配置过滤币种"""
         rows = self._load_table_period("基础数据", period)
         target_period = _normalize_period_value(period)
+        allowed = _get_allowed_symbols()
         
         # 第一遍：找出最新时间戳
         max_ts = datetime.min
@@ -335,6 +378,9 @@ class RankingDataProvider:
             r = dict(row)
             r_period = _normalize_period_value(str(r.get("周期", "")))
             if r_period != target_period:
+                continue
+            sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
                 continue
             ts = _parse_timestamp(str(r.get("数据时间", "")))
             if ts > max_ts:
@@ -352,14 +398,17 @@ class RankingDataProvider:
                 continue
             ts = _parse_timestamp(str(r.get("数据时间", "")))
             sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
+                continue
             if ts == max_ts and sym and sym not in latest:
                 latest[sym] = r
         return latest
 
     def fetch_metric(self, table: str, period: str) -> List[Dict]:
-        """通用指标表读取 - 只取最新一批数据（同一时间戳），每个币种只保留一条"""
+        """通用指标表读取 - 只取最新一批数据（同一时间戳），每个币种只保留一条，按配置过滤币种"""
         rows = self._load_table_period(table, period)
         target_period = _normalize_period_value(period)
+        allowed = _get_allowed_symbols()
         
         # 第一遍：找出最新时间戳（用 datetime 比较）
         max_ts = datetime.min
@@ -367,6 +416,9 @@ class RankingDataProvider:
             r = dict(row)
             r_period = _normalize_period_value(str(r.get("周期", "")))
             if r_period != target_period:
+                continue
+            sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
                 continue
             ts = _parse_timestamp(str(r.get("数据时间", "")))
             if ts > max_ts:
@@ -385,6 +437,8 @@ class RankingDataProvider:
                 continue
             ts = _parse_timestamp(str(r.get("数据时间", "")))
             sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
+                continue
             if ts == max_ts and sym not in seen:
                 seen.add(sym)
                 result.append(r)
