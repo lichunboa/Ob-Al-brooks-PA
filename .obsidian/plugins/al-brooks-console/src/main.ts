@@ -1,15 +1,15 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
 import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
-import { TradeIndex } from "./core/indexer";
+import { ObsidianTradeIndex } from "./platforms/obsidian/obsidian-trade-index";
 
 export default class AlBrooksConsolePlugin extends Plugin {
-    public index: TradeIndex;
+    public index: ObsidianTradeIndex;
 
     async onload() {
         console.log("🦁 Al Brooks Console: Loading...");
 
         // 1. Initialize Indexer
-        this.index = new TradeIndex(this.app);
+        this.index = new ObsidianTradeIndex(this.app);
 
         // 2. Start Scanning (Async)
         this.app.workspace.onLayoutReady(() => {

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import * as ReactDOM from "react-dom";
-import { TradeIndex } from "../core/indexer";
+import type { TradeIndex } from "../core/trade-index";
+import { computeTradeStats } from "../core/stats";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 
@@ -9,36 +10,19 @@ export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
 interface Props {
     index: TradeIndex;
+	openFile: (path: string) => void;
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index }) => {
-    const [stats, setStats] = React.useState(index.stats);
-    const [trades, setTrades] = React.useState(index.getAllTrades());
+const ConsoleComponent: React.FC<Props> = ({ index, openFile }) => {
+    const [trades, setTrades] = React.useState(index.getAll());
 
-    // Calculate dynamic stats
-    const totalPnl = React.useMemo(() => trades.reduce((acc, t) => acc + t.pnl, 0), [trades]);
-    const winRate = React.useMemo(() => {
-        const closed = trades.filter(t => t.outcome === "Win" || t.outcome === "Loss");
-        if (closed.length === 0) return 0;
-        const wins = closed.filter(t => t.outcome === "Win").length;
-        return Math.round((wins / closed.length) * 100);
-    }, [trades]);
+	const summary = React.useMemo(() => computeTradeStats(trades), [trades]);
 
     React.useEffect(() => {
-        const onUpdate = () => {
-            setStats({ ...index.stats });
-            setTrades(index.getAllTrades());
-        };
-
-        // Listen to events
-        index.on("index-updated", onUpdate);
-
-        // Initial Load
-        onUpdate();
-
-        return () => {
-            index.off("index-updated", onUpdate);
-        };
+		const onUpdate = () => setTrades(index.getAll());
+		const unsubscribe = index.onChanged(onUpdate);
+		onUpdate();
+		return unsubscribe;
     }, [index]);
 
     return (
@@ -60,19 +44,19 @@ const ConsoleComponent: React.FC<Props> = ({ index }) => {
             }}>
                 <StatsCard
                     title="Total Trades"
-                    value={stats.totalTrades}
+                    value={summary.countTotal}
                     icon="📊"
                 />
                 <StatsCard
                     title="Net PnL"
-                    value={`${totalPnl > 0 ? "+" : ""}${totalPnl.toFixed(1)}R`}
-                    color={totalPnl >= 0 ? "#10b981" : "#ef4444"}
+                    value={`${summary.netProfit > 0 ? "+" : ""}${summary.netProfit.toFixed(1)}R`}
+                    color={summary.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
                     icon="💰"
                 />
                 <StatsCard
                     title="Win Rate"
-                    value={`${winRate}%`}
-                    color={winRate > 50 ? "#10b981" : "#eab308"}
+                    value={`${summary.winRatePct}%`}
+                    color={summary.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"}
                     icon="🎯"
                 />
             </div>
@@ -82,7 +66,7 @@ const ConsoleComponent: React.FC<Props> = ({ index }) => {
                 {/* Trade Feed */}
                 <div>
                     <h3 style={{ marginBottom: "12px" }}>Recent Activity</h3>
-                    <TradeList trades={trades.slice(0, 50)} />
+					<TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
                 </div>
             </div>
         </div>
@@ -110,8 +94,12 @@ export class ConsoleView extends ItemView {
     }
 
     async onOpen() {
+        const openFile = (path: string) => {
+			this.app.workspace.openLinkText(path, "", true);
+		};
+
         ReactDOM.render(
-            <ConsoleComponent index={this.index} />,
+            <ConsoleComponent index={this.index} openFile={openFile} />,
             this.containerEl.children[1]
         );
     }

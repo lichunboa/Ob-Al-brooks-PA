@@ -1,25 +1,8 @@
-export interface TradeData {
-    path: string;
-    filename: string;
-    date: string;
-    ticker: string;
-    direction: "Long" | "Short" | "Unknown";
-    setup: string;
-    market_cycle: string;
-    outcome: "Win" | "Loss" | "Scratch" | "Open";
-    pnl: number;
-    r: number;
-    tf: string;
-    entry_price?: number;
-    stop_price?: number;
-    exit_price?: number;
-    tags: string[];
-    // raw frontmatter for fallback
-    frontmatter: Record<string, any>;
-}
+export type { TradeRecord as TradeData } from "./core/contracts";
 
+// 兼容旧字段：当前 UI 只需要总数/扫描时间等可在后续迁移中移除。
 export interface TradeIndexStats {
-    totalTrades: number;
-    lastScan: number;
-    dirty: boolean;
+	totalTrades: number;
+	lastScan: number;
+	dirty: boolean;
 }

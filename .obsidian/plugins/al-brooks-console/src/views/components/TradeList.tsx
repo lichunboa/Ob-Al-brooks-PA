@@ -1,17 +1,19 @@
 import * as React from "react";
-import { TradeData } from "../../types";
+import type { TradeData } from "../../types";
 
 interface TradeListProps {
     trades: TradeData[];
+	onOpenFile: (path: string) => void;
 }
 
-export const TradeList: React.FC<TradeListProps> = ({ trades }) => {
+export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {trades.map(t => {
-                const isWin = t.pnl > 0;
-                const isLoss = t.pnl < 0;
-                const pnlColor = isWin ? "#10b981" : (isLoss ? "#ef4444" : "var(--text-muted)");
+				const pnl = typeof t.pnl === "number" ? t.pnl : 0;
+				const isWin = pnl > 0;
+				const isLoss = pnl < 0;
+				const pnlColor = isWin ? "var(--text-success)" : (isLoss ? "var(--text-error)" : "var(--text-muted)");
 
                 return (
                     <div key={t.path} style={{
@@ -27,15 +29,15 @@ export const TradeList: React.FC<TradeListProps> = ({ trades }) => {
                     }}
                         onClick={() => {
                             // Open file
-                            (window as any).app.workspace.openLinkText(t.path, "", true);
+							onOpenFile(t.path);
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--interactive-accent)"}
                         onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--background-modifier-border)"}
                     >
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <div style={{ fontWeight: "600", fontSize: "1rem" }}>{t.ticker}</div>
+                            <div style={{ fontWeight: "600", fontSize: "1rem" }}>{t.ticker ?? "Unknown"}</div>
                             <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                                {t.date} • {t.setup || "No Setup"}
+							{t.dateIso} • {""}
                             </div>
                         </div>
 
@@ -45,10 +47,10 @@ export const TradeList: React.FC<TradeListProps> = ({ trades }) => {
                                 color: pnlColor,
                                 fontSize: "1.1rem"
                             }}>
-                                {t.pnl > 0 ? "+" : ""}{t.pnl}R
+							{pnl > 0 ? "+" : ""}{pnl}R
                             </div>
                             <div style={{ fontSize: "0.8rem", color: "var(--text-faint)" }}>
-                                {t.direction}
+							{t.outcome ?? ""}
                             </div>
                         </div>
                     </div>
