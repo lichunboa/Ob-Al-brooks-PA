@@ -166,7 +166,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Analytics engineer | Task: Implement the core analytics module with per-account_type stats, calendar, equity curve, and strategy attribution. | Restrictions: No heavy charting dependencies; keep render lightweight for mobile. | Success: Analytics provides the same core outputs as legacy hub analytics._
 
 
-- [ ] 16. Next：迁移 Gallery（封面/截图瀑布流）
+- [x] 16. Next：迁移 Gallery（封面/截图瀑布流）
 	- 支持 `cover` 字段解析：wikilink/markdown link/相对路径/资源路径，与旧 gallery 等价。
 	- 提供“查看所有图表/截图”的等价入口（例如搜索 tag 或打开专用列表）。
 	- _Leverage: Obsidian vault resource paths + existing cover conventions._

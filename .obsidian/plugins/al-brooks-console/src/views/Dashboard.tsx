@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
@@ -17,6 +17,7 @@ import {
     type AnalyticsScope,
     type DailyAgg,
 } from "../core/analytics";
+import { parseCoverRef } from "../core/cover-parser";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
@@ -82,6 +83,8 @@ interface Props {
     index: TradeIndex;
     strategyIndex: StrategyIndex;
 	todayContext?: TodayContext;
+    resolveLink?: (linkText: string, fromPath: string) => string | undefined;
+    getResourceUrl?: (path: string) => string | undefined;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -141,7 +144,7 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -294,6 +297,42 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
     const strategyAttribution = React.useMemo(() => {
         return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
     }, [analyticsTrades, strategyIndex]);
+
+    type GalleryItem = {
+        tradePath: string;
+        coverPath: string;
+        url?: string;
+    };
+
+    const galleryItems = React.useMemo((): GalleryItem[] => {
+        if (!getResourceUrl) return [];
+        const out: GalleryItem[] = [];
+        const seen = new Set<string>();
+        const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+
+        for (const t of trades) {
+            const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+            const rawCover = (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+            const ref = parseCoverRef(rawCover);
+            if (!ref) continue;
+
+            let target = ref.target;
+            // 解析 markdown link 的 target 可能带引号/空格
+            target = String(target).trim();
+            if (!target) continue;
+
+            const resolved = resolveLink ? resolveLink(target, t.path) : target;
+            if (!resolved || !isImage(resolved)) continue;
+            if (seen.has(resolved)) continue;
+            seen.add(resolved);
+
+            const url = getResourceUrl(resolved);
+            out.push({ tradePath: t.path, coverPath: resolved, url });
+            if (out.length >= 48) break;
+        }
+
+        return out;
+    }, [trades, resolveLink, getResourceUrl]);
 
     const openTrade = React.useMemo(() => {
         return trades.find((t) => {
@@ -1068,6 +1107,65 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 </div>
             </div>
 
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
+                {!getResourceUrl ? (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>Gallery unavailable.</div>
+                ) : galleryItems.length > 0 ? (
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                            gap: "8px",
+                        }}
+                    >
+                        {galleryItems.map((it) => (
+                            <button
+                                key={`gal-${it.coverPath}`}
+                                type="button"
+                                onClick={() => openFile(it.coverPath)}
+                                title={it.coverPath}
+                                style={{
+                                    padding: 0,
+                                    border: "1px solid var(--background-modifier-border)",
+                                    borderRadius: "8px",
+                                    overflow: "hidden",
+                                    background: `rgba(var(--mono-rgb-100), 0.03)`,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                {it.url ? (
+                                    <img
+                                        src={it.url}
+                                        alt=""
+                                        style={{
+                                            width: "100%",
+                                            height: "120px",
+                                            objectFit: "cover",
+                                            display: "block",
+                                        }}
+                                    />
+                                ) : (
+                                    <div style={{ height: "120px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-faint)", fontSize: "0.85em" }}>
+                                        —
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No cover images found.</div>
+                )}
+            </div>
+
             {/* Main Content Area */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
                 {/* Trade Feed */}
@@ -1122,6 +1220,19 @@ export class ConsoleView extends ItemView {
 			this.app.workspace.openLinkText(path, "", true);
 		};
 
+        const resolveLink = (linkText: string, fromPath: string): string | undefined => {
+            const cleaned = String(linkText ?? "").trim();
+            if (!cleaned) return undefined;
+            const dest = this.app.metadataCache.getFirstLinkpathDest(cleaned, fromPath);
+            return dest?.path;
+        };
+
+        const getResourceUrl = (path: string): string | undefined => {
+            const af = this.app.vault.getAbstractFileByPath(path);
+            if (!(af instanceof TFile)) return undefined;
+            return this.app.vault.getResourcePath(af);
+        };
+
         this.contentEl.empty();
         this.mountEl = this.contentEl.createDiv();
         this.root = createRoot(this.mountEl);
@@ -1131,6 +1242,8 @@ export class ConsoleView extends ItemView {
                     index={this.index}
                     strategyIndex={this.strategyIndex}
 					todayContext={this.todayContext}
+					resolveLink={resolveLink}
+					getResourceUrl={getResourceUrl}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}
