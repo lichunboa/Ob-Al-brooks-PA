@@ -14,6 +14,8 @@ export interface InspectorIssue {
 export interface FixPlanFileUpdate {
 	path: string;
 	updates: Record<string, unknown>;
+	/** Optional legacy keys to remove (Manager may apply this only when explicitly enabled). */
+	deleteKeys?: string[];
 }
 
 export interface FixPlan {

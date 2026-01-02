@@ -5,7 +5,7 @@ export const FIELD_ALIASES = {
 	ticker: ["ticker", "symbol", "品种/ticker", "品种", "标的", "代码", "合约"],
 	outcome: ["outcome", "result", "结果/outcome", "结果"],
 	date: ["date", "日期"],
-	accountType: ["account_type", "accountType", "账户/account_type", "账户"],
+	accountType: ["account_type", "accountType", "账户类型/account_type", "账户类型", "账户/account_type", "账户"],
 	tags: ["tags"],
 	fileClass: ["fileClass", "FileClass"],
 } as const;

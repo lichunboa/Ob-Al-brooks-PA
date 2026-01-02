@@ -174,7 +174,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Media/gallery engineer | Task: Port the Gallery module: cover parsing + gallery listing without adding new UI complexity. | Restrictions: Avoid new theme/colors; keep to existing Obsidian UI primitives. | Success: Gallery shows the same cover/screenshot assets users rely on._
 
 
-- [ ] 17. Advanced：迁移数据治理（Inspector + Schema Monitor）
+- [x] 17. Advanced：迁移数据治理（Inspector + Schema Monitor）
 	- 引入“健康度/异常列表”的只读能力（不改写笔记）。
 	- 枚举白名单来源：`Templates/属性值预设.md`（或未来 schema 文件），支持同义值归一化（CN/EN）。
 	- 支持跳转到具体文件与字段定位（至少打开文件）。
