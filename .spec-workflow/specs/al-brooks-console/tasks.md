@@ -184,7 +184,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data quality engineer | Task: Implement read-only Inspector + Schema Monitor checks to surface missing/invalid metadata and consistency issues. | Restrictions: No writing to vault; only navigation. | Success: Users can find data quality issues at least as well as in legacy Inspector/Schema._
 
 
-- [ ] 18. Advanced：迁移 Manager（高风险写入治理与批量操作）
+- [x] 18. Advanced：迁移 Manager（高风险写入治理与批量操作）
 	- 默认关闭写入能力，仅在明确确认后启用。
 	- 写入白名单/预览/回滚策略（至少提供“预览将改哪些文件/哪些字段”）。
 	- 批处理失败隔离：单文件失败不影响其它文件，并汇总报告。

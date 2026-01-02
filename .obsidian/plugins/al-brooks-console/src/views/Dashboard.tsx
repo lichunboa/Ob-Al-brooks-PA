@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ItemView, WorkspaceLeaf, TFile, parseYaml } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, parseYaml, stringifyYaml } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
@@ -20,10 +20,12 @@ import {
 import { parseCoverRef } from "../core/cover-parser";
 import type { EnumPresets } from "../core/enum-presets";
 import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
-import { buildFixPlan, buildInspectorIssues } from "../core/inspector";
+import { buildFixPlan, buildInspectorIssues, type FixPlan } from "../core/inspector";
+import { buildStrategyMaintenancePlan, buildTradeNormalizationPlan, type ManagerApplyResult, type StrategyNoteFrontmatter } from "../core/manager";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
+import { normalizeTag } from "../core/field-mapper";
 
 function toLocalDateIso(d: Date): string {
     const y = d.getFullYear();
@@ -89,6 +91,9 @@ interface Props {
     resolveLink?: (linkText: string, fromPath: string) => string | undefined;
     getResourceUrl?: (path: string) => string | undefined;
     enumPresets?: EnumPresets;
+	loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
+	applyFixPlan?: (plan: FixPlan, options?: { deleteKeys?: boolean }) => Promise<ManagerApplyResult>;
+	restoreFiles?: (backups: Record<string, string>) => Promise<ManagerApplyResult>;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -148,7 +153,7 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, enumPresets, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, enumPresets, loadStrategyNotes, applyFixPlan, restoreFiles, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -156,6 +161,12 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
 	const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(() => todayContext?.getTodayMarketCycle());
 	const [analyticsScope, setAnalyticsScope] = React.useState<AnalyticsScope>("Live");
     const [showFixPlan, setShowFixPlan] = React.useState(false);
+    const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(undefined);
+    const [managerResult, setManagerResult] = React.useState<ManagerApplyResult | undefined>(undefined);
+    const [managerBusy, setManagerBusy] = React.useState(false);
+    const [managerArmed, setManagerArmed] = React.useState(false);
+    const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
+    const [managerBackups, setManagerBackups] = React.useState<Record<string, string> | undefined>(undefined);
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -348,6 +359,11 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
         const plan = buildFixPlan(trades, enumPresets);
         return JSON.stringify(plan, null, 2);
     }, [showFixPlan, trades, enumPresets]);
+
+	const managerPlanText = React.useMemo(() => {
+		if (!managerPlan) return undefined;
+		return JSON.stringify(managerPlan, null, 2);
+	}, [managerPlan]);
 
     const openTrade = React.useMemo(() => {
         return trades.find((t) => {
@@ -1293,6 +1309,165 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 ) : null}
             </div>
 
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                    <div style={{ fontWeight: 600 }}>Manager (Preview → Confirm → Write)</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                            type="button"
+                            disabled={!enumPresets}
+                            onClick={() => {
+                                if (!enumPresets) return;
+                                const plan = buildFixPlan(trades, enumPresets);
+                                setManagerPlan(plan);
+                                setManagerResult(undefined);
+                                setManagerArmed(false);
+                            }}
+                            title={!enumPresets ? "Enum presets unavailable" : "Use FixPlan generated by Inspector"}
+                            style={{ padding: "6px 10px" }}
+                        >
+                            Use Inspector FixPlan
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const plan = buildTradeNormalizationPlan(trades, enumPresets, { includeDeleteKeys: true });
+                                setManagerPlan(plan);
+                                setManagerResult(undefined);
+                                setManagerArmed(false);
+                            }}
+                            style={{ padding: "6px 10px" }}
+                        >
+                            Generate Trade Plan
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!loadStrategyNotes}
+                            onClick={async () => {
+                                if (!loadStrategyNotes) return;
+                                setManagerBusy(true);
+                                try {
+                                    const notes = await loadStrategyNotes();
+                                    const plan = buildStrategyMaintenancePlan(notes, enumPresets, { includeDeleteKeys: true });
+                                    setManagerPlan(plan);
+                                    setManagerResult(undefined);
+                                    setManagerArmed(false);
+                                } finally {
+                                    setManagerBusy(false);
+                                }
+                            }}
+                            title={!loadStrategyNotes ? "Strategy scan unavailable" : "Generate strategy maintenance plan"}
+                            style={{ padding: "6px 10px" }}
+                        >
+                            Generate Strategy Plan
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em", marginBottom: "10px" }}>
+                    Writes are disabled by default. Preview a plan first; then arm confirmation to apply.
+                </div>
+
+                {managerPlan ? (
+                    <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <input
+                                    type="checkbox"
+                                    checked={managerDeleteKeys}
+                                    onChange={(e) => setManagerDeleteKeys((e.target as HTMLInputElement).checked)}
+                                />
+                                Delete legacy keys (dangerous)
+                            </label>
+                            <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <input
+                                    type="checkbox"
+                                    checked={managerArmed}
+                                    onChange={(e) => setManagerArmed((e.target as HTMLInputElement).checked)}
+                                />
+                                I understand this will write to notes
+                            </label>
+                            <button
+                                type="button"
+                                disabled={!applyFixPlan || !managerArmed || managerBusy}
+                                onClick={async () => {
+                                    if (!applyFixPlan) return;
+                                    setManagerBusy(true);
+                                    try {
+                                        const res = await applyFixPlan(managerPlan, { deleteKeys: managerDeleteKeys });
+                                        setManagerResult(res);
+                                        setManagerBackups(res.backups);
+                                    } finally {
+                                        setManagerBusy(false);
+                                    }
+                                }}
+                                style={{ padding: "6px 10px" }}
+                            >
+                                Apply Plan
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!restoreFiles || !managerBackups || managerBusy}
+                                onClick={async () => {
+                                    if (!restoreFiles || !managerBackups) return;
+                                    setManagerBusy(true);
+                                    try {
+                                        const res = await restoreFiles(managerBackups);
+                                        setManagerResult(res);
+                                        setManagerBackups(undefined);
+                                    } finally {
+                                        setManagerBusy(false);
+                                    }
+                                }}
+                                style={{ padding: "6px 10px" }}
+                            >
+                                Undo Last Apply
+                            </button>
+                        </div>
+
+                        <pre
+                            style={{
+                                margin: 0,
+                                padding: "10px",
+                                border: "1px solid var(--background-modifier-border)",
+                                borderRadius: "8px",
+                                background: "rgba(var(--mono-rgb-100), 0.03)",
+                                maxHeight: "260px",
+                                overflow: "auto",
+                                whiteSpace: "pre-wrap",
+                            }}
+                        >
+                            {managerPlanText ?? ""}
+                        </pre>
+
+                        {managerResult ? (
+                            <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>
+                                Applied: {managerResult.applied}, Failed: {managerResult.failed}
+                                {managerResult.errors.length > 0 ? (
+                                    <div style={{ marginTop: "6px", color: "var(--text-faint)", fontSize: "0.9em" }}>
+                                        {managerResult.errors.slice(0, 5).map((e, idx) => (
+                                            <div key={`mgr-err-${idx}`}>{e.path}: {e.message}</div>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                        No plan loaded. Generate a plan to preview changes.
+                    </div>
+                )}
+            </div>
+
             {/* Main Content Area */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
                 {/* Trade Feed */}
@@ -1379,6 +1554,105 @@ export class ConsoleView extends ItemView {
             // best-effort only; dashboard should still render without presets
         }
 
+        const applyFrontmatterPatch = (text: string, updates: Record<string, unknown>, deleteKeys?: string[]): string => {
+            const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+            const yamlText = m?.[1];
+            const body = m ? text.slice(m[0].length) : text;
+            const fmRaw = yamlText ? (parseYaml(yamlText) as any) : {};
+            const fm: Record<string, any> = fmRaw && typeof fmRaw === "object" ? { ...fmRaw } : {};
+            for (const [k, v] of Object.entries(updates ?? {})) fm[k] = v;
+            if (deleteKeys && deleteKeys.length > 0) {
+                for (const k of deleteKeys) delete fm[k];
+            }
+            const nextYaml = String(stringifyYaml(fm) ?? "").trimEnd();
+            return `---\n${nextYaml}\n---\n${body}`;
+        };
+
+        const applyFixPlan = async (plan: FixPlan, options?: { deleteKeys?: boolean }) => {
+            const res: ManagerApplyResult = { applied: 0, failed: 0, errors: [], backups: {} };
+            for (const fu of plan.fileUpdates ?? []) {
+                try {
+                    const af = this.app.vault.getAbstractFileByPath(fu.path);
+                    if (!(af instanceof TFile)) {
+                        res.failed += 1;
+                        res.errors.push({ path: fu.path, message: "File not found" });
+                        continue;
+                    }
+                    const oldText = await this.app.vault.read(af);
+                    res.backups[fu.path] = oldText;
+                    const nextText = applyFrontmatterPatch(oldText, fu.updates ?? {}, options?.deleteKeys ? fu.deleteKeys : undefined);
+                    if (nextText !== oldText) {
+                        await this.app.vault.modify(af, nextText);
+                        res.applied += 1;
+                    }
+                } catch (e) {
+                    res.failed += 1;
+                    res.errors.push({ path: fu.path, message: e instanceof Error ? e.message : String(e) });
+                }
+            }
+            return res;
+        };
+
+        const restoreFiles = async (backups: Record<string, string>) => {
+            const res: ManagerApplyResult = { applied: 0, failed: 0, errors: [], backups: {} };
+            for (const [path, text] of Object.entries(backups ?? {})) {
+                try {
+                    const af = this.app.vault.getAbstractFileByPath(path);
+                    if (!(af instanceof TFile)) {
+                        res.failed += 1;
+                        res.errors.push({ path, message: "File not found" });
+                        continue;
+                    }
+                    const oldText = await this.app.vault.read(af);
+                    res.backups[path] = oldText;
+                    if (text !== oldText) {
+                        await this.app.vault.modify(af, text);
+                        res.applied += 1;
+                    }
+                } catch (e) {
+                    res.failed += 1;
+                    res.errors.push({ path, message: e instanceof Error ? e.message : String(e) });
+                }
+            }
+            return res;
+        };
+
+        const loadStrategyNotes = async (): Promise<StrategyNoteFrontmatter[]> => {
+            const repoPath = "策略仓库 (Strategy Repository)";
+            const prefix = repoPath ? `${repoPath.replace(/^\/+/, "").trim().replace(/\/+$/, "")}/` : "";
+            const out: StrategyNoteFrontmatter[] = [];
+            const STRATEGY_TAG = "PA/Strategy";
+            const files = this.app.vault.getMarkdownFiles().filter((f) => (prefix ? f.path.startsWith(prefix) : true));
+            for (const f of files) {
+                const cache = this.app.metadataCache.getFileCache(f);
+                let fm = cache?.frontmatter as Record<string, unknown> | undefined;
+                const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
+                const fmTagsRaw = (fm as any)?.tags as unknown;
+                const fmTags = Array.isArray(fmTagsRaw)
+                    ? fmTagsRaw.filter((t): t is string => typeof t === "string")
+                    : typeof fmTagsRaw === "string"
+                        ? [fmTagsRaw]
+                        : [];
+                const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
+                const isStrategy = normalized.some((t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase());
+                if (!isStrategy) continue;
+                if (!fm) {
+                    try {
+                        const text = await this.app.vault.read(f);
+                        const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+                        if (m && m[1]) {
+                            const parsed = parseYaml(m[1]);
+                            fm = parsed && typeof parsed === "object" ? (parsed as any) : undefined;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+                if (fm) out.push({ path: f.path, frontmatter: fm });
+            }
+            return out;
+        };
+
         this.contentEl.empty();
         this.mountEl = this.contentEl.createDiv();
         this.root = createRoot(this.mountEl);
@@ -1391,6 +1665,9 @@ export class ConsoleView extends ItemView {
 					resolveLink={resolveLink}
 					getResourceUrl={getResourceUrl}
 					enumPresets={enumPresets}
+					loadStrategyNotes={loadStrategyNotes}
+					applyFixPlan={applyFixPlan}
+					restoreFiles={restoreFiles}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}
