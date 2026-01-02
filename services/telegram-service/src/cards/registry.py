@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
 import pkgutil
 import sys
 from pathlib import Path
@@ -12,6 +13,11 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
+
+
+# 从环境变量读取卡片配置
+CARDS_ENABLED = [c.strip().lower() for c in os.environ.get("CARDS_ENABLED", "").split(",") if c.strip()]
+CARDS_DISABLED = [c.strip().lower() for c in os.environ.get("CARDS_DISABLED", "").split(",") if c.strip()]
 
 
 class RankingRegistry:
@@ -31,6 +37,21 @@ class RankingRegistry:
         self.package_name = package_name
         self._cards: Dict[str, RankingCard] = {}
         self._logger = logging.getLogger(__name__)
+    
+    def _is_card_enabled(self, card_id: str) -> bool:
+        """检查卡片是否启用"""
+        card_id_lower = card_id.lower()
+        # 检查禁用列表
+        for d in CARDS_DISABLED:
+            if d in card_id_lower:
+                return False
+        # 检查启用列表（空=全部启用）
+        if CARDS_ENABLED:
+            for e in CARDS_ENABLED:
+                if e in card_id_lower:
+                    return True
+            return False
+        return True
 
     def load_cards(self) -> None:
         """扫描包目录并载入所有卡片"""
@@ -72,6 +93,9 @@ class RankingRegistry:
                 self._wrap_field_settings(card)
                 if card.card_id in self.BLACKLIST:
                     self._logger.info("⏸️ 已跳过黑名单卡片: %s", card.card_id)
+                    continue
+                if not self._is_card_enabled(card.card_id):
+                    self._logger.info("⏸️ 已跳过禁用卡片: %s", card.card_id)
                     continue
                 self.register_card(card)
             else:

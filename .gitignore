@@ -4,6 +4,8 @@
 .env
 .env.*
 !.env.example
+1
+3
 
 # ====================
 # Python

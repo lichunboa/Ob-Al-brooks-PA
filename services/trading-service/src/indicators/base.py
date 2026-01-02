@@ -86,19 +86,41 @@ def register(cls: type[Indicator]) -> type[Indicator]:
     return cls
 
 
+def _filter_indicators(indicators: dict) -> dict:
+    """根据环境变量过滤指标"""
+    import os
+    enabled = [i.strip().lower() for i in os.environ.get("INDICATORS_ENABLED", "").split(",") if i.strip()]
+    disabled = [i.strip().lower() for i in os.environ.get("INDICATORS_DISABLED", "").split(",") if i.strip()]
+    
+    def match(name: str) -> bool:
+        name_lower = name.lower()
+        # 检查是否匹配（支持部分匹配）
+        for d in disabled:
+            if d in name_lower:
+                return False
+        if enabled:
+            for e in enabled:
+                if e in name_lower:
+                    return True
+            return False
+        return True
+    
+    return {k: v for k, v in indicators.items() if match(k)}
+
+
 def get_indicator(name: str) -> Optional[type[Indicator]]:
     return _registry.get(name)
 
 
 def get_all_indicators() -> dict[str, type[Indicator]]:
-    return _registry.copy()
+    return _filter_indicators(_registry.copy())
 
 
 def get_batch_indicators() -> dict[str, type[Indicator]]:
     """获取批量计算指标 (is_incremental=False)"""
-    return {k: v for k, v in _registry.items() if not v.meta.is_incremental}
+    return _filter_indicators({k: v for k, v in _registry.items() if not v.meta.is_incremental})
 
 
 def get_incremental_indicators() -> dict[str, type[Indicator]]:
     """获取增量计算指标 (is_incremental=True)"""
-    return {k: v for k, v in _registry.items() if v.meta.is_incremental}
+    return _filter_indicators({k: v for k, v in _registry.items() if v.meta.is_incremental})

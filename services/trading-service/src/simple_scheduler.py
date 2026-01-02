@@ -31,7 +31,12 @@ SQLITE_PATH = os.environ.get("INDICATOR_SQLITE_PATH", os.path.join(PROJECT_ROOT,
 # 币种管理配置
 HIGH_PRIORITY_TOP_N = int(os.environ.get("HIGH_PRIORITY_TOP_N", "50"))
 
-INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
+# 周期配置
+INTERVALS = [i.strip() for i in os.environ.get("INTERVALS", "1m,5m,15m,1h,4h,1d,1w").split(",") if i.strip()]
+
+# 指标开关配置
+INDICATORS_ENABLED = [i.strip().lower() for i in os.environ.get("INDICATORS_ENABLED", "").split(",") if i.strip()]
+INDICATORS_DISABLED = [i.strip().lower() for i in os.environ.get("INDICATORS_DISABLED", "").split(",") if i.strip()]
 
 last_computed = {i: None for i in INTERVALS}
 last_priority_update = None
