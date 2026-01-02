@@ -54,3 +54,6 @@ Media/
 Attachments/
 node_modules
 node_modules
+
+# --- Local dashboard/server logs ---
+audit.log
