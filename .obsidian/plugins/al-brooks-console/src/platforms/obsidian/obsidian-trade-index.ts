@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import type { TradeIndex } from "../../core/trade-index";
+import type { TradeIndex, TradeIndexStatus } from "../../core/trade-index";
 import type { TradeRecord } from "../../core/contracts";
 import {
 	FIELD_ALIASES,
@@ -17,18 +17,34 @@ type Listener = () => void;
 export interface ObsidianTradeIndexOptions {
 	enableFileClass?: boolean;
 	tradeFileClasses?: string[];
+	/**
+	 * Optional path prefix allowlist to reduce scanning scope (mobile-friendly).
+	 * Example: ["Daily/Trades/"]
+	 */
+	folderAllowlist?: string[];
+	chunkSize?: number;
+	debounceMs?: number;
+	minEmitIntervalMs?: number;
 }
 
 export class ObsidianTradeIndex implements TradeIndex {
 	private app: App;
 	private listeners: Set<Listener> = new Set();
+	private statusListeners: Set<Listener> = new Set();
 	private db: Map<string, TradeRecord> = new Map();
 	private enableFileClass: boolean;
 	private tradeFileClassesLower: Set<string>;
+	private folderAllowlistNormalized: string[];
 	private pendingPaths: Set<string> = new Set();
 	private flushTimer: ReturnType<typeof setTimeout> | null = null;
 	private dirty = false;
-	private debounceMs = 200;
+	private debounceMs: number;
+	private minEmitIntervalMs: number;
+	private lastEmitAt = 0;
+	private chunkSize: number;
+	private status: TradeIndexStatus = { phase: "idle" };
+	private initialized = false;
+	private rebuildInFlight: Promise<void> | null = null;
 
 	private disposers: Array<() => void> = [];
 
@@ -38,15 +54,86 @@ export class ObsidianTradeIndex implements TradeIndex {
 		const defaults = ["PA_Metadata_Schema"];
 		const configured = options.tradeFileClasses ?? defaults;
 		this.tradeFileClassesLower = new Set(configured.map((s) => s.trim().toLowerCase()).filter(Boolean));
+		this.folderAllowlistNormalized = (options.folderAllowlist ?? [])
+			.map((p) => p.replace(/^\/+/, "").trim())
+			.filter(Boolean)
+			.map((p) => (p.endsWith("/") ? p : `${p}/`));
+		this.chunkSize = Math.max(25, options.chunkSize ?? 250);
+		this.debounceMs = Math.max(50, options.debounceMs ?? 200);
+		this.minEmitIntervalMs = Math.max(0, options.minEmitIntervalMs ?? 200);
 	}
 
 	public async initialize() {
-		const files = this.app.vault.getMarkdownFiles();
-		for (const file of files) {
-			this.indexFile(file);
-		}
+		if (this.initialized) return;
+		this.initialized = true;
 		this.registerListeners();
-		this.emitChanged();
+		await this.rebuild();
+	}
+
+	public getStatus(): TradeIndexStatus {
+		return this.status;
+	}
+
+	public onStatusChanged(handler: Listener) {
+		this.statusListeners.add(handler);
+		return () => {
+			this.statusListeners.delete(handler);
+		};
+	}
+
+	public async rebuild(): Promise<void> {
+		if (this.rebuildInFlight) return this.rebuildInFlight;
+
+		this.rebuildInFlight = (async () => {
+			try {
+				this.pendingPaths.clear();
+				this.dirty = false;
+				this.db.clear();
+				this.setStatus({ phase: "building", processed: 0, total: 0 });
+
+				const start = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+				const files = this.getCandidateFilesForInitialBuild();
+				const total = files.length;
+				this.setStatus({ phase: "building", processed: 0, total });
+
+				let processed = 0;
+				for (const file of files) {
+					try {
+						this.indexFile(file);
+					} catch (e) {
+						console.warn("[al-brooks-console] Failed to index file", file.path, e);
+					}
+					processed++;
+					if (processed % this.chunkSize === 0) {
+						this.setStatus({ phase: "building", processed, total });
+						await new Promise((r) => setTimeout(r, 0));
+					}
+				}
+
+				const end = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+				this.setStatus({
+					phase: "ready",
+					processed: total,
+					total,
+					lastBuildMs: Math.max(0, Math.round(end - start)),
+				});
+				this.emitChanged();
+
+				// 如果构建期间积累了变更事件，构建完成后再 flush 一次。
+				if (this.pendingPaths.size > 0 || this.dirty) {
+					this.ensureFlushScheduled();
+				}
+			} catch (e) {
+				console.warn("[al-brooks-console] TradeIndex rebuild failed", e);
+				this.setStatus({ phase: "error", message: e instanceof Error ? e.message : String(e) });
+			}
+		})();
+
+		try {
+			await this.rebuildInFlight;
+		} finally {
+			this.rebuildInFlight = null;
+		}
 	}
 
 	public getAll(): TradeRecord[] {
@@ -64,16 +151,33 @@ export class ObsidianTradeIndex implements TradeIndex {
 		for (const disposer of this.disposers) disposer();
 		this.disposers = [];
 		this.listeners.clear();
+		this.statusListeners.clear();
 		this.pendingPaths.clear();
 		this.dirty = false;
 		if (this.flushTimer) {
 			clearTimeout(this.flushTimer);
 			this.flushTimer = null;
 		}
+		this.rebuildInFlight = null;
 	}
 
 	private emitChanged() {
+		const now = Date.now();
+		if (this.minEmitIntervalMs > 0 && now - this.lastEmitAt < this.minEmitIntervalMs) {
+			this.markDirty();
+			return;
+		}
+		this.lastEmitAt = now;
 		for (const listener of this.listeners) listener();
+	}
+
+	private emitStatusChanged() {
+		for (const listener of this.statusListeners) listener();
+	}
+
+	private setStatus(next: TradeIndexStatus) {
+		this.status = next;
+		this.emitStatusChanged();
 	}
 
 	private registerListeners() {
@@ -119,6 +223,30 @@ export class ObsidianTradeIndex implements TradeIndex {
 		);
 	}
 
+	private getCandidateFilesForInitialBuild(): TFile[] {
+		const files = this.app.vault.getMarkdownFiles();
+		const filteredByFolder = this.folderAllowlistNormalized.length
+			? files.filter((f) => this.folderAllowlistNormalized.some((p) => f.path.startsWith(p)))
+			: files;
+
+		return filteredByFolder.filter((file) => {
+			const cache = this.app.metadataCache.getFileCache(file);
+			if (!cache) return true;
+
+			const normalizedTags = this.getNormalizedTagsFromCache(cache?.tags ?? [], cache?.frontmatter);
+			const hasTradeTag = normalizedTags.some(isTradeTag);
+			if (hasTradeTag) return true;
+			if (!this.enableFileClass) return false;
+			const fileClassRaw = getFirstFieldValue(cache.frontmatter, FIELD_ALIASES.fileClass);
+			const fileClasses = Array.isArray(fileClassRaw)
+				? fileClassRaw.filter((v): v is string => typeof v === "string")
+				: typeof fileClassRaw === "string"
+					? [fileClassRaw]
+					: [];
+			return fileClasses.some((fc) => this.tradeFileClassesLower.has(fc.trim().toLowerCase()));
+		});
+	}
+
 	private markDirty() {
 		this.dirty = true;
 		this.ensureFlushScheduled();
@@ -145,7 +273,11 @@ export class ObsidianTradeIndex implements TradeIndex {
 		for (const path of paths) {
 			const af = this.app.vault.getAbstractFileByPath(path);
 			if (af instanceof TFile) {
-				changed = this.indexFile(af) || changed;
+				try {
+					changed = this.indexFile(af) || changed;
+				} catch (e) {
+					console.warn("[al-brooks-console] Failed to reindex file", af.path, e);
+				}
 			} else {
 				changed = this.db.delete(path) || changed;
 			}
@@ -159,19 +291,22 @@ export class ObsidianTradeIndex implements TradeIndex {
 		if (changed) this.emitChanged();
 	}
 
-	private indexFile(file: TFile): boolean {
-		const prev = this.db.get(file.path);
-		const cache = this.app.metadataCache.getFileCache(file);
-		const fm = cache?.frontmatter;
-		const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
-		const fmTagsRaw = fm?.tags;
+	private getNormalizedTagsFromCache(cacheTags: Array<{ tag: string }>, fm: Record<string, unknown> | undefined) {
+		const cacheTagStrings = cacheTags.map((t) => t.tag);
+		const fmTagsRaw = fm?.tags as unknown;
 		const fmTags = Array.isArray(fmTagsRaw)
 			? fmTagsRaw.filter((t): t is string => typeof t === "string")
 			: typeof fmTagsRaw === "string"
 				? [fmTagsRaw]
 				: [];
+		return [...cacheTagStrings, ...fmTags].map(normalizeTag);
+	}
 
-		const normalizedTags = [...cacheTags, ...fmTags].map(normalizeTag);
+	private indexFile(file: TFile): boolean {
+		const prev = this.db.get(file.path);
+		const cache = this.app.metadataCache.getFileCache(file);
+		const fm = cache?.frontmatter;
+		const normalizedTags = this.getNormalizedTagsFromCache(cache?.tags ?? [], fm);
 		const hasTradeTag = normalizedTags.some(isTradeTag);
 
 		if (!fm) {

@@ -13,7 +13,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
 
         // 2. Start Scanning (Async)
         this.app.workspace.onLayoutReady(() => {
-            this.index.initialize();
+            void this.index.initialize();
         });
 
         this.registerView(

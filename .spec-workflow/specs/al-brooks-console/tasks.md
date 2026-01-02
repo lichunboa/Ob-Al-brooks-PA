@@ -91,7 +91,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: QA engineer | Task: Create a practical MVP validation checklist. | Restrictions: No automation required. | Success: Clear, repeatable manual validation steps._
 
 
-- [ ] 8. Next：性能与稳定性优化（对比旧 Dataview 控制台的痛点）
+- [x] 8. Next：性能与稳定性优化（对比旧 Dataview 控制台的痛点）
 	- 启动性能：实现索引启动阶段分批（chunked）构建 + 进度状态（UI 可显示“正在建立索引/已就绪”）。
 	- 移动端友好：TradeIndex 扫描范围收敛（只扫描匹配 tag 的文件；必要时支持 folder allowlist）。
 	- 列表性能：交易列表采用虚拟列表（virtualized list），避免大量 DOM 渲染导致卡顿。

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
-import type { TradeIndex } from "../core/trade-index";
+import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
@@ -14,8 +14,65 @@ interface Props {
 	version: string;
 }
 
+class ConsoleErrorBoundary extends React.Component<
+    { children: React.ReactNode },
+    { hasError: boolean; message?: string }
+> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error: unknown) {
+        return {
+            hasError: true,
+            message: error instanceof Error ? error.message : String(error),
+        };
+    }
+
+    componentDidCatch(error: unknown) {
+        console.warn("[al-brooks-console] Dashboard render error", error);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div
+                    style={{
+                        padding: "16px",
+                        fontFamily: "var(--font-interface)",
+                        maxWidth: "1200px",
+                        margin: "0 auto",
+                    }}
+                >
+                    <h2
+                        style={{
+                            borderBottom: "1px solid var(--background-modifier-border)",
+                            paddingBottom: "10px",
+                            marginBottom: "12px",
+                        }}
+                    >
+                        🦁 Trader Dashboard
+                    </h2>
+                    <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
+                        Dashboard crashed: {this.state.message ?? "Unknown error"}
+                    </div>
+                    <div style={{ color: "var(--text-muted)" }}>
+                        Try using “Rebuild Index” in the header after re-opening the view.
+                    </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
 const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
+    const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
+        index.getStatus ? index.getStatus() : { phase: "ready" }
+    );
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -27,6 +84,42 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
 		return unsubscribe;
     }, [index]);
 
+    React.useEffect(() => {
+        if (!index.onStatusChanged) return;
+        const onStatus = () => setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
+        const unsubscribe = index.onStatusChanged(onStatus);
+        onStatus();
+        return unsubscribe;
+    }, [index]);
+
+    const onRebuild = React.useCallback(async () => {
+        if (!index.rebuild) return;
+        try {
+            await index.rebuild();
+        } catch (e) {
+            console.warn("[al-brooks-console] Rebuild failed", e);
+        }
+    }, [index]);
+
+    const statusText = React.useMemo(() => {
+        switch (status.phase) {
+            case "building": {
+                const p = typeof status.processed === "number" ? status.processed : 0;
+                const t = typeof status.total === "number" ? status.total : 0;
+                return t > 0 ? `Index: building… ${p}/${t}` : "Index: building…";
+            }
+            case "ready": {
+                return typeof status.lastBuildMs === "number"
+                    ? `Index: ready (${status.lastBuildMs}ms)`
+                    : "Index: ready";
+            }
+            case "error":
+                return `Index: error${status.message ? ` — ${status.message}` : ""}`;
+            default:
+                return "Index: idle";
+        }
+    }, [status]);
+
     return (
         <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
             <h2 style={{
@@ -35,6 +128,25 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
                 marginBottom: "20px"
             }}>
                 🦁 Trader Dashboard <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>v{version}</span>
+                <span style={{ fontSize: "0.8em", color: "var(--text-muted)", marginLeft: "10px" }}>{statusText}</span>
+                {index.rebuild && (
+                    <button
+                        type="button"
+                        onClick={onRebuild}
+                        style={{
+                            marginLeft: "12px",
+                            padding: "4px 8px",
+                            fontSize: "0.8em",
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "6px",
+                            background: "var(--background-primary)",
+                            color: "var(--text-normal)",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Rebuild Index
+                    </button>
+                )}
             </h2>
 
             {/* Stats Row */}
@@ -136,7 +248,9 @@ export class ConsoleView extends ItemView {
         this.mountEl = this.contentEl.createDiv();
         this.root = createRoot(this.mountEl);
         this.root.render(
-            <ConsoleComponent index={this.index} openFile={openFile} version={this.version} />
+            <ConsoleErrorBoundary>
+                <ConsoleComponent index={this.index} openFile={openFile} version={this.version} />
+            </ConsoleErrorBoundary>
         );
     }
 
