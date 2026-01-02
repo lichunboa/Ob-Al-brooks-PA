@@ -1,6 +1,6 @@
 {
   "filePath": ".spec-workflow/specs/al-brooks-console/tasks.md",
-  "currentVersion": 3,
+  "currentVersion": 4,
   "snapshots": [
     {
       "version": 1,
@@ -25,6 +25,14 @@
       "trigger": "approved",
       "approvalId": "approval_1767318530024_x3v2d1oow",
       "approvalTitle": "Approve updated tasks (parallel-safe) for al-brooks-console"
+    },
+    {
+      "version": 4,
+      "filename": "snapshot-004.json",
+      "timestamp": "2026-01-02T02:08:27.394Z",
+      "trigger": "approved",
+      "approvalId": "approval_1767319666075_r4k6f2izk",
+      "approvalTitle": "Approve updated tasks (priority 3/1/2/4 mapped to 17/18/19)"
     }
   ]
 }

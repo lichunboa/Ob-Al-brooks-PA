@@ -1,6 +1,6 @@
 {
   "filePath": ".spec-workflow/specs/al-brooks-console/requirements.md",
-  "currentVersion": 3,
+  "currentVersion": 4,
   "snapshots": [
     {
       "version": 1,
@@ -25,6 +25,14 @@
       "trigger": "approved",
       "approvalId": "approval_1767316334866_owln0nfoe",
       "approvalTitle": "Approve updated requirements for al-brooks-console"
+    },
+    {
+      "version": 4,
+      "filename": "snapshot-004.json",
+      "timestamp": "2026-01-02T02:09:27.278Z",
+      "trigger": "approved",
+      "approvalId": "approval_1767319656519_gxyybmkt7",
+      "approvalTitle": "Approve updated requirements (Advanced data governance + settings)"
     }
   ]
 }

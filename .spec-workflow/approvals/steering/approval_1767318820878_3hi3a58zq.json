@@ -3,8 +3,10 @@
   "title": "Approve steering product.md",
   "filePath": ".spec-workflow/steering/product.md",
   "type": "document",
-  "status": "pending",
+  "status": "approved",
   "createdAt": "2026-01-02T01:53:40.878Z",
   "category": "steering",
-  "categoryName": "steering"
+  "categoryName": "steering",
+  "response": "通过仪表板批准",
+  "respondedAt": "2026-01-02T02:09:34.012Z"
 }
