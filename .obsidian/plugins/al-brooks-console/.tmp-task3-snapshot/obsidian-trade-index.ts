@@ -1,38 +1,19 @@
 import { App, TFile } from "obsidian";
 import type { TradeIndex } from "../../core/trade-index";
 import type { TradeRecord } from "../../core/contracts";
-import {
-	FIELD_ALIASES,
-	getFirstFieldValue,
-	isTradeTag,
-	normalizeOutcome,
-	normalizeTag,
-	normalizeTicker,
-	parseNumber,
-} from "../../core/field-mapper";
+import { FIELD_ALIASES, getFirstFieldValue, normalizeOutcome, normalizeTag, parseNumber } from "../../core/field-mapper";
 
 type Listener = () => void;
-
-export interface ObsidianTradeIndexOptions {
-	enableFileClass?: boolean;
-	tradeFileClasses?: string[];
-}
 
 export class ObsidianTradeIndex implements TradeIndex {
 	private app: App;
 	private listeners: Set<Listener> = new Set();
 	private db: Map<string, TradeRecord> = new Map();
-	private enableFileClass: boolean;
-	private tradeFileClassesLower: Set<string>;
 
 	private disposers: Array<() => void> = [];
 
-	constructor(app: App, options: ObsidianTradeIndexOptions = {}) {
+	constructor(app: App) {
 		this.app = app;
-		this.enableFileClass = options.enableFileClass ?? true;
-		const defaults = ["PA_Metadata_Schema"];
-		const configured = options.tradeFileClasses ?? defaults;
-		this.tradeFileClassesLower = new Set(configured.map((s) => s.trim().toLowerCase()).filter(Boolean));
 	}
 
 	public async initialize() {
@@ -103,49 +84,27 @@ export class ObsidianTradeIndex implements TradeIndex {
 	private async indexFile(file: TFile, triggerUpdate = false) {
 		const cache = this.app.metadataCache.getFileCache(file);
 		const fm = cache?.frontmatter;
-		const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
-		const fmTagsRaw = fm?.tags;
-		const fmTags = Array.isArray(fmTagsRaw)
-			? fmTagsRaw.filter((t): t is string => typeof t === "string")
-			: typeof fmTagsRaw === "string"
-				? [fmTagsRaw]
-				: [];
-
-		const normalizedTags = [...cacheTags, ...fmTags].map(normalizeTag);
-		const hasTradeTag = normalizedTags.some(isTradeTag);
 
 		if (!fm) {
-			// 允许：仅靠 tag（包含 inline tag）识别的交易笔记，即使没有 frontmatter。
-			if (!hasTradeTag) {
-				if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
-				return;
-			}
-
-			const trade: TradeRecord = {
-				path: file.path,
-				name: file.name,
-				dateIso: file.basename.substring(0, 10),
-				tags: normalizedTags,
-				mtime: file.stat?.mtime,
-			};
-
-			this.db.set(file.path, trade);
-			if (triggerUpdate) this.emitChanged();
+			if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
 			return;
 		}
 
-		const fileClassRaw = getFirstFieldValue(fm, FIELD_ALIASES.fileClass);
-		const fileClasses = Array.isArray(fileClassRaw)
-			? fileClassRaw.filter((v): v is string => typeof v === "string")
-			: typeof fileClassRaw === "string"
-				? [fileClassRaw]
-				: [];
+		// 当前实现先保持“宽松识别”以避免误漏；严格的 #PA/Trade 识别将在 Task 3 落地。
+		const tags = (Array.isArray(fm.tags) ? fm.tags : []) as unknown[];
+		const normalizedTags = tags
+			.filter((t): t is string => typeof t === "string")
+			.map(normalizeTag);
 
-		const hasTradeFileClass =
-			this.enableFileClass &&
-			fileClasses.some((fc) => this.tradeFileClassesLower.has(fc.trim().toLowerCase()));
+		const isTradeTag = normalizedTags.some((t) => t.toLowerCase().includes("trade"));
+		const hasTradeProps = fm.ticker !== undefined && (fm.setup !== undefined || fm.pnl !== undefined);
+		const isInTradeFolder =
+			file.path.includes("Trading") ||
+			file.path.includes("TradeNotes") ||
+			file.path.includes("Start") ||
+			file.path.includes("Daily");
 
-		if (!hasTradeTag && !hasTradeFileClass) {
+		if (!isTradeTag && !hasTradeProps && !isInTradeFolder) {
 			if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
 			return;
 		}
@@ -156,9 +115,15 @@ export class ObsidianTradeIndex implements TradeIndex {
 		const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
 
 		const pnl = parseNumber(pnlRaw);
-		const ticker = normalizeTicker(tickerRaw);
+		const ticker = typeof tickerRaw === "string" ? tickerRaw : undefined;
 		const outcome = normalizeOutcome(outcomeRaw);
 		const dateIso = typeof dateRaw === "string" ? dateRaw : file.basename.substring(0, 10);
+
+		// 进一步放宽：trade folder 内即使缺字段也允许进入索引（后续由 Inspector/Manager 处理）。
+		if (!isTradeTag && !ticker && pnl === undefined && !isInTradeFolder) {
+			if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
+			return;
+		}
 
 		const trade: TradeRecord = {
 			path: file.path,

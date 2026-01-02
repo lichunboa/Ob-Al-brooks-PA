@@ -47,7 +47,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: UI integration engineer | Task: Implement an ItemView that renders a React component. | Restrictions: No routing, no extra panels. | Success: Opening the view consistently renders React._
 
 
-- [ ] 3. MVP：TradeIndex 初始扫描与识别规则（tag 为主 + fileClass 辅助）
+- [x] 3. MVP：TradeIndex 初始扫描与识别规则（tag 为主 + fileClass 辅助）
 	- 实现 TradeIndex 初始扫描：遍历 markdown files，读取 metadataCache tags/frontmatter。
 	- 实现识别规则：tag `#PA/Trade`/`PA/Trade` 归一化后判断（tag 为主）；`fileClass` 命中交易类时也应识别为交易笔记（fileClass 辅助，默认可配置启用/禁用）。
 	- 实现 FieldMapper：pnl/ticker 双语映射 + 安全解析。
