@@ -1,0 +1,77 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "exportedAt": "2026-01-02T06:47:25.379Z",
+    "pluginVersion": "dry-run-from-legacy"
+  },
+  "trades": [
+    {
+      "path": "Daily/SPX/SPX 09.02 周二.md",
+      "name": "SPX 09.02 周二",
+      "dateIso": "2025-12-19",
+      "ticker": "标普",
+      "pnl": 20,
+      "outcome": "win",
+      "accountType": "Demo",
+      "rawFrontmatter": {
+        "setup": "Breakout",
+        "error": "FOMO",
+        "dir": "Long",
+        "tf": "PT5M",
+        "order": "Stop Entry",
+        "signal": "Strong Bull Close",
+        "plan": "Swing",
+        "cover": "SPX"
+      }
+    },
+    {
+      "path": "Daily/Trades/251219_0036_实盘_ES.md",
+      "name": "251219_0036_实盘_ES",
+      "dateIso": "2025-12-19",
+      "ticker": "标普",
+      "pnl": -16.6,
+      "outcome": "loss",
+      "accountType": "Live",
+      "rawFrontmatter": {
+        "setup": "Pullback",
+        "error": "None/Perfect",
+        "dir": "Long",
+        "tf": "PT5M",
+        "order": "Stop Entry",
+        "signal": "Strong Bull Close",
+        "plan": "Swing",
+        "cover": "Trades"
+      }
+    }
+  ],
+  "statsByAccountType": {
+    "All": {
+      "countTotal": 2,
+      "countCompleted": 2,
+      "countWins": 1,
+      "winRatePct": 50,
+      "netProfit": 3.3999999999999986
+    },
+    "Live": {
+      "countTotal": 1,
+      "countCompleted": 1,
+      "countWins": 0,
+      "winRatePct": 0,
+      "netProfit": -16.6
+    },
+    "Demo": {
+      "countTotal": 1,
+      "countCompleted": 1,
+      "countWins": 1,
+      "winRatePct": 100,
+      "netProfit": 20
+    },
+    "Backtest": {
+      "countTotal": 0,
+      "countCompleted": 0,
+      "countWins": 0,
+      "winRatePct": 0,
+      "netProfit": 0
+    }
+  }
+}
