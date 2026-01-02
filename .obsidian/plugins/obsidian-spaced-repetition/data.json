@@ -30,7 +30,8 @@
       "**/*🦁 交易员控制台 (Trader Command)5.0.md",
       "Clippings 简报",
       "Excalidraw",
-      "🦁 交易员控制台 (Trader Command)"
+      "🦁 交易员控制台 (Trader Command)",
+      "node_modules"
     ],
     "openRandomNote": true,
     "autoNextNote": true,

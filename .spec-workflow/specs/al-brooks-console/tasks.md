@@ -26,7 +26,7 @@
 
 
 
-- [ ] 1. MVP：核心契约（SSOT）+ 初始化插件骨架（TS + esbuild）
+- [x] 1. MVP：核心契约（SSOT）+ 初始化插件骨架（TS + esbuild）
 	- 创建 Obsidian 插件工程 `al-brooks-console`（TypeScript + esbuild）。
 	- 配置开发/生产构建脚本，确保打包输出符合 Obsidian 插件规范。
 	- 建立 **SSOT 文件骨架**（先空实现也可，但必须先落位，后续任务只能复用/扩展，不得另起炉灶）：
@@ -39,7 +39,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian plugin scaffolding engineer | Task: Scaffold `al-brooks-console` plugin with TypeScript and esbuild, AND create the SSOT core contract file stubs (contracts/field-mapper/stats/trade-index) that all later tasks must reuse. | Restrictions: Do not alter existing Dataview scripts. Do not introduce duplicate implementations of TradeIndex/FieldMapper/Stats anywhere else. | Success: Plugin builds and loads; SSOT files exist and export the initial types/interfaces used by later tasks._
 
 
-- [ ] 2. MVP：Hello World（ItemView 渲染 React）
+- [x] 2. MVP：Hello World（ItemView 渲染 React）
 	- 注册一个 ItemView + 命令打开视图。
 	- 在 ItemView 内挂载 React root，显示简单文本与版本号。
 	- _Leverage: Obsidian workspace/view APIs._
