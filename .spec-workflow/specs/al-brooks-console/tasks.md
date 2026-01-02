@@ -120,7 +120,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Strategy engine engineer | Task: Implement context-strategy matching that mirrors the Dataview console’s core value. | Restrictions: No extra dashboards; keep it minimal. | Success: Given the same market cycle, recommendations are stable and explainable._
 
 
-- [ ] 11. Next：外部插件集成（Adapter Pattern，确保可随官方升级）
+- [x] 11. Next：外部插件集成（Adapter Pattern，确保可随官方升级）
 	- 集成原则：优先 Commands；仅调用公开稳定 API；禁止私有耦合；缺失/禁用/升级破坏时自动降级且控制台仍可用。
 	- MVP 集成清单：QuickAdd（New Trade）、Spaced Repetition（开始复习）、Tasks（打开视图/跳转）、Templater（仅检测）、Metadata Menu（仅入口）、Dataview/Datacore（仅对照提示）。
 	- 技术实现：`PluginIntegrationRegistry` + 各 `*Adapter`（QuickAddAdapter/SrsAdapter/TasksAdapter/MetadataMenuAdapter），统一接口 `isAvailable()` / `getCapabilities()` / `run(action)`。

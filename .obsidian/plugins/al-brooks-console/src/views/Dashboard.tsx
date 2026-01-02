@@ -5,12 +5,15 @@ import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
+import type { IntegrationCapability } from "../integrations/contracts";
+import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
 interface Props {
     index: TradeIndex;
 	openFile: (path: string) => void;
+    integrations?: PluginIntegrationRegistry;
 	version: string;
 }
 
@@ -68,7 +71,7 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -120,6 +123,40 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
         }
     }, [status]);
 
+    const buttonStyle: React.CSSProperties = {
+        marginLeft: "8px",
+        padding: "4px 8px",
+        fontSize: "0.8em",
+        border: "1px solid var(--background-modifier-border)",
+        borderRadius: "6px",
+        background: "var(--background-primary)",
+        color: "var(--text-normal)",
+        cursor: "pointer",
+    };
+
+    const disabledButtonStyle: React.CSSProperties = {
+        ...buttonStyle,
+        opacity: 0.5,
+        cursor: "not-allowed",
+    };
+
+    const action = React.useCallback(
+        async (capabilityId: IntegrationCapability) => {
+            if (!integrations) return;
+            try {
+                await integrations.run(capabilityId);
+            } catch (e) {
+                console.warn("[al-brooks-console] Integration action failed", capabilityId, e);
+            }
+        },
+        [integrations]
+    );
+
+    const can = React.useCallback(
+        (capabilityId: IntegrationCapability) => Boolean(integrations?.isCapabilityAvailable(capabilityId)),
+        [integrations]
+    );
+
     return (
         <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
             <h2 style={{
@@ -129,20 +166,71 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
             }}>
                 🦁 Trader Dashboard <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>v{version}</span>
                 <span style={{ fontSize: "0.8em", color: "var(--text-muted)", marginLeft: "10px" }}>{statusText}</span>
+                {integrations && (
+                    <span style={{ marginLeft: "10px" }}>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-live-trade")}
+                            onClick={() => action("quickadd:new-live-trade")}
+                            style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Live Trade
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-demo-trade")}
+                            onClick={() => action("quickadd:new-demo-trade")}
+                            style={can("quickadd:new-demo-trade") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Demo Trade
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-backtest")}
+                            onClick={() => action("quickadd:new-backtest")}
+                            style={can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Backtest
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("srs:review-flashcards")}
+                            onClick={() => action("srs:review-flashcards")}
+                            style={can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle}
+                        >
+                            Review
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("dataview:force-refresh")}
+                            onClick={() => action("dataview:force-refresh")}
+                            style={can("dataview:force-refresh") ? buttonStyle : disabledButtonStyle}
+                        >
+                            Refresh DV
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("tasks:open")}
+                            onClick={() => action("tasks:open")}
+                            style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
+                        >
+                            Tasks
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("metadata-menu:open")}
+                            onClick={() => action("metadata-menu:open")}
+                            style={can("metadata-menu:open") ? buttonStyle : disabledButtonStyle}
+                        >
+                            Metadata
+                        </button>
+                    </span>
+                )}
                 {index.rebuild && (
                     <button
                         type="button"
                         onClick={onRebuild}
-                        style={{
-                            marginLeft: "12px",
-                            padding: "4px 8px",
-                            fontSize: "0.8em",
-                            border: "1px solid var(--background-modifier-border)",
-                            borderRadius: "6px",
-                            background: "var(--background-primary)",
-                            color: "var(--text-normal)",
-                            cursor: "pointer",
-                        }}
+                        style={{ ...buttonStyle, marginLeft: "12px" }}
                     >
                         Rebuild Index
                     </button>
@@ -217,13 +305,15 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, version }) => {
 
 export class ConsoleView extends ItemView {
     private index: TradeIndex;
+	private integrations?: PluginIntegrationRegistry;
 	private version: string;
 	private root: Root | null = null;
 	private mountEl: HTMLElement | null = null;
 
-    constructor(leaf: WorkspaceLeaf, index: TradeIndex, version: string) {
+    constructor(leaf: WorkspaceLeaf, index: TradeIndex, integrations: PluginIntegrationRegistry, version: string) {
         super(leaf);
         this.index = index;
+		this.integrations = integrations;
 		this.version = version;
     }
 
@@ -249,7 +339,12 @@ export class ConsoleView extends ItemView {
         this.root = createRoot(this.mountEl);
         this.root.render(
             <ConsoleErrorBoundary>
-                <ConsoleComponent index={this.index} openFile={openFile} version={this.version} />
+                <ConsoleComponent
+                    index={this.index}
+                    integrations={this.integrations}
+                    openFile={openFile}
+                    version={this.version}
+                />
             </ConsoleErrorBoundary>
         );
     }
