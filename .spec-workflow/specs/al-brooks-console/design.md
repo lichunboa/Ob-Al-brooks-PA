@@ -13,11 +13,22 @@
 - `TradeIndex`（发现/解析/缓存/聚合/事件）
 - `FieldMapper`（双语字段映射、类型安全解析）
 
+Advanced（非 MVP，但需为强交互与并行开发预留清晰边界）：
+- `InspectorEngine`（只读诊断：生成 Issue 列表与 FixPlan）
+- `ManagerEngine`（写入治理：预览/执行/回滚/报告）
+
 ### 1.2 Data Flow
 1) `TradeIndex.buildInitialIndex()` 扫描 vault → 生成 `TradeRecord[]` 与聚合 `TradeStats`。
 2) `TradeIndex` 发出 `changed` 事件。
 3) `DashboardView` 订阅事件并刷新 React state。
 4) vault 发生事件（modify/rename/delete）→ `TradeIndex.handleEvent()` → 仅更新受影响文件 → 再次 emit。
+
+Advanced 写入治理数据流（保持“读写分离”）：
+1) `InspectorEngine.scan()` 基于 `TradeIndex`/`metadataCache` 生成 `Issue[]`（只读）。
+2) 用户在 UI 选择问题 → `InspectorEngine.buildFixPlan(selectedIssues)` 生成 `FixPlan`（只读）。
+3) 用户点击“应用修复” → 将 `FixPlan` 交给 `ManagerEngine.preview(plan)` 生成 `WritePreview`（包含 before/after）。
+4) 用户二次确认后 → `ManagerEngine.apply(preview)` 执行写入（逐文件、失败隔离）。
+5) 写入结束 → `ManagerEngine.report()` 返回结果；可在同一会话内 `ManagerEngine.undoLast()` 做最小回滚。
 
 ## 2. Trade Note Discovery (识别策略)
 MVP：
@@ -50,6 +61,12 @@ MVP：
 - `winRatePct`
 - `netProfit`
 
+### 3.3 Data Governance Models (Advanced)
+- `Issue`：描述一个文件的一个问题（path + field + reason + severity）。
+- `FixPlan`：一组“建议变更”（不包含写入副作用）；可由 Inspector 生成，也可由 Manager 手工构造。
+- `WritePreview`：将 FixPlan 具象化为 per-file 的 before/after diff，用于 UI 预览与二次确认。
+- `WriteResult`：每个文件的成功/失败、错误信息、实际写入字段统计。
+
 ## 4. Field Mapping & Parsing
 
 ### 4.1 FieldMapper
@@ -81,6 +98,11 @@ MVP：
 ### 6.2 Interactions
 - 点击列表项：打开对应文件（使用 Obsidian API 打开 leaf）。
 
+### 6.3 UI Design (Advanced, minimal)
+- Inspector：问题列表 + 打开文件 + 生成修复方案 + 进入 Manager 预览。
+- Manager：预览（文件/字段/改前改后）+ 二次确认 + 执行进度 + 汇总报告 + 会话内撤销。
+- 设置：少量 Course/Memory 参数（不引入复杂面板）。
+
 ## 7. Performance & Debounce
 - 初始扫描可能耗时：
   - 允许显示 loading 状态。
@@ -92,6 +114,10 @@ MVP：
   - 总交易数
   - 净利润
   - 胜率（按 pnl 口径）
+
+写入治理兼容性：
+- 写入相关能力默认关闭，避免对现有 Dataview 工作流产生副作用。
+- 所有归一化逻辑必须复用 `FieldMapper`（单一信源），避免“看板口径”与“写入口径”分叉。
 
 ## 9. Testing Strategy (轻量)
 - 单元测试（可选）：FieldMapper 解析 pnl/ticker；winrate 计算。

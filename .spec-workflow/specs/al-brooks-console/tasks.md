@@ -16,6 +16,14 @@
 	- 在 `.spec-workflow/specs/al-brooks-console/Implementation Logs/` 中搜索关键词（至少：`TradeIndex` / `FieldMapper` / `Stats` / `Adapter`），避免重复实现。
 - **收工必须做**：完成任务后必须调用 `log-implementation`，在 artifacts 里写清新增/修改的类型、函数、文件路径，供其他 AI 复用。
 
+## 你当前选择的强交互优先级（用于 Advanced 阶段落地）
+
+你输入的顺序为：**3、1、2、4**。本 tasks 将其映射为：
+- (3) **策略卡片维护/治理**：策略仓库笔记的字段与枚举值归一、缺省字段补齐（落在任务 18）。
+- (1) **交易笔记批量归一**：Trade notes 的字段名/同义值归一（落在任务 18）。
+- (2) **Inspector 一键修复**：Inspector 只读发现问题，但允许“一键生成修复方案 + 交给 Manager 执行”（任务 17 → 18）。
+- (4) **Course / Memory / SRS 参数调整**：通过插件设置调整关键参数并即时影响推荐与入口（落在任务 19）。
+
 
 
 - [ ] 1. MVP：核心契约（SSOT）+ 初始化插件骨架（TS + esbuild）
@@ -170,6 +178,7 @@
 	- 引入“健康度/异常列表”的只读能力（不改写笔记）。
 	- 枚举白名单来源：`Templates/属性值预设.md`（或未来 schema 文件），支持同义值归一化（CN/EN）。
 	- 支持跳转到具体文件与字段定位（至少打开文件）。
+	- 支持对选中问题**生成修复方案（FixPlan）**（只生成、不写入），并可一键进入 Manager 预览/执行（见任务 18）。
 	- _Leverage: Properties inventory/presets as source of enum truth._
 	- _Requirements: parity._
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data quality engineer | Task: Implement read-only Inspector + Schema Monitor checks to surface missing/invalid metadata and consistency issues. | Restrictions: No writing to vault; only navigation. | Success: Users can find data quality issues at least as well as in legacy Inspector/Schema._
@@ -179,6 +188,10 @@
 	- 默认关闭写入能力，仅在明确确认后启用。
 	- 写入白名单/预览/回滚策略（至少提供“预览将改哪些文件/哪些字段”）。
 	- 批处理失败隔离：单文件失败不影响其它文件，并汇总报告。
+	- 必须覆盖你当前的两类高频治理动作：
+		- (1) 交易笔记批量归一：字段名/同义值/枚举值归一（复用 `FieldMapper`；输出预览与报告）。
+		- (3) 策略卡片维护：对“策略仓库 (Strategy Repository)”范围内策略卡执行同义字段归一、枚举值归一、缺省字段补齐（同样先预览后写入）。
+	- 必须支持接收 Inspector 的 FixPlan（任务 17）并在 Manager 内完成预览→二次确认→写入。
 	- _Leverage: Obsidian file modification APIs + FieldMapper normalization rules._
 	- _Requirements: parity, migration safety._
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Safety-first tooling engineer | Task: Implement a guarded bulk edit manager with preview and safe defaults mirroring legacy manager capabilities. | Restrictions: Must be opt-in; must provide preview; no silent writes. | Success: Bulk edits are safe, transparent, and recoverable._
@@ -188,6 +201,7 @@
 	- Course：课程矩阵 + 推荐下一节/建议复习（复用 course.hybridRec 的输出口径）。
 	- Memory：SRS 指标（Total/Due/Mastery/Load）+ 快速复习入口 + 随机抽题。
 	- 外部插件依赖通过 Adapter Pattern；缺失降级不影响交易看板。
+	- (4) 支持在插件设置中调整少量关键参数（例如：推荐窗口、Due 阈值、随机抽题数量），且调整应即时影响 Course/Memory 展示与入口行为。
 	- _Leverage: SrsAdapter + existing course recommendation logic reference._
 	- _Requirements: parity._
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Learning loop engineer | Task: Port Course + Memory (SRS) modules with adapter-based integration and safe degradation. | Restrictions: No hard dependency on SRS plugin; keep UX minimal. | Success: Users regain the learning/review workflows present in the Dataview console._
