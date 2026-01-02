@@ -1,12 +1,34 @@
 # Tasks Document
 
+> 重要：你选择了“B：所有任务都可分发给不同 AI”。因此本 tasks 文档额外包含 **并行开发一致性协议**。
 
-- [ ] 1. MVP：初始化插件骨架（TS + esbuild）
+## 并行开发一致性协议（强制）
+
+- **单一信源（SSOT）**：以下能力只能有一份实现，且必须被后续任务复用：
+	- 类型契约：`src/core/contracts.ts`
+	- 字段归一化：`src/core/field-mapper.ts`
+	- 交易索引：`src/core/trade-index.ts`
+	- 统计口径：`src/core/stats.ts`
+	- 集成适配器：`src/integrations/*Adapter.ts`
+- **禁止重复造轮子**：任何任务不得新建第二套 TradeIndex/FieldMapper/Stats/Adapter；如果发现缺能力，只能扩展 SSOT 文件。
+- **开工前必须做**：
+	- 运行 `spec-workflow-guide`，阅读 `requirements.md` + `design.md`。
+	- 在 `.spec-workflow/specs/al-brooks-console/Implementation Logs/` 中搜索关键词（至少：`TradeIndex` / `FieldMapper` / `Stats` / `Adapter`），避免重复实现。
+- **收工必须做**：完成任务后必须调用 `log-implementation`，在 artifacts 里写清新增/修改的类型、函数、文件路径，供其他 AI 复用。
+
+
+
+- [ ] 1. MVP：核心契约（SSOT）+ 初始化插件骨架（TS + esbuild）
 	- 创建 Obsidian 插件工程 `al-brooks-console`（TypeScript + esbuild）。
 	- 配置开发/生产构建脚本，确保打包输出符合 Obsidian 插件规范。
-	- _Leverage: Follow Obsidian plugin patterns; keep build simple._
-	- _Requirements: FR-1, NFR-stability._
-	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian plugin scaffolding engineer | Task: Scaffold `al-brooks-console` plugin with TypeScript and esbuild, minimal dependencies. | Restrictions: Do not alter existing Dataview scripts. Do not introduce extra features beyond MVP. | Success: Plugin loads, builds, and can be enabled without errors._
+	- 建立 **SSOT 文件骨架**（先空实现也可，但必须先落位，后续任务只能复用/扩展，不得另起炉灶）：
+		- `src/core/contracts.ts`：`AccountType`、`TradeRecord`、`TradeStats`、`NormalizedTag`、`TradeId` 等类型。
+		- `src/core/field-mapper.ts`：字段别名归一化入口（pnl/ticker 双语等）。
+		- `src/core/stats.ts`：统计口径与胜率计算函数签名。
+		- `src/core/trade-index.ts`：TradeIndex 对外接口签名（`getAll()`/`onChanged()`/`dispose()`）。
+	- _Leverage: Follow Obsidian plugin patterns; keep build simple. Create SSOT file stubs for core contracts._
+	- _Requirements: FR-1, FR-2, FR-4, FR-6, NFR-stability._
+	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian plugin scaffolding engineer | Task: Scaffold `al-brooks-console` plugin with TypeScript and esbuild, AND create the SSOT core contract file stubs (contracts/field-mapper/stats/trade-index) that all later tasks must reuse. | Restrictions: Do not alter existing Dataview scripts. Do not introduce duplicate implementations of TradeIndex/FieldMapper/Stats anywhere else. | Success: Plugin builds and loads; SSOT files exist and export the initial types/interfaces used by later tasks._
 
 
 - [ ] 2. MVP：Hello World（ItemView 渲染 React）
@@ -21,18 +43,18 @@
 	- 实现 TradeIndex 初始扫描：遍历 markdown files，读取 metadataCache tags/frontmatter。
 	- 实现识别规则：tag `#PA/Trade`/`PA/Trade` 归一化后判断（tag 为主）；`fileClass` 命中交易类时也应识别为交易笔记（fileClass 辅助，默认可配置启用/禁用）。
 	- 实现 FieldMapper：pnl/ticker 双语映射 + 安全解析。
-	- _Leverage: app.vault, app.metadataCache._
+	- _Leverage: app.vault, app.metadataCache. MUST implement in `src/core/trade-index.ts` and `src/core/field-mapper.ts`, and reuse types from `src/core/contracts.ts`._
 	- _Requirements: FR-2, FR-4, FR-5._
-	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data indexing engineer | Task: Build TradeIndex + FieldMapper MVP. | Restrictions: Read-only; do not write to vault. | Success: TradeIndex returns correct TradeRecord[] for tagged trade notes._
+	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data indexing engineer | Task: Implement initial scan + identification rules (tag primary + fileClass secondary) and field mapping. | Restrictions: Read-only; do not write to vault. Do not create new TradeRecord/TradeStats types elsewhere—reuse `src/core/contracts.ts`. | Success: `TradeIndex.getAll()` returns correct `TradeRecord[]` for tagged trade notes._
 
 
 - [ ] 4. MVP：增量更新（vault 与 metadata 事件监听）
 	- 监听 `modify/rename/delete` + `metadataCache.changed`。
 	- 增量更新索引并 debounce。
 	- 对外发布 `changed` 事件（EventEmitter/Observable）。
-	- _Leverage: Obsidian vault + metadataCache events; pa-core.js as inspiration only._
+	- _Leverage: Implement in `src/core/trade-index.ts` only; publish change notifications from the same TradeIndex instance used by UI._
 	- _Requirements: FR-3, NFR-performance._
-	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian event-driven systems engineer | Task: Add real-time incremental updates. | Restrictions: Avoid full rescans on every event. | Success: Editing/renaming/moving trade notes updates dashboard automatically._
+	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian event-driven systems engineer | Task: Add real-time incremental updates and a debounced change signal on TradeIndex. | Restrictions: Avoid full rescans on every event. Do not introduce a second event bus or a second TradeIndex; UI must subscribe to this one. | Success: Editing/renaming/moving trade notes updates dashboard automatically._
 
 
 - [ ] 5. MVP：仪表盘 UI（统计卡片 + 交易列表）
@@ -40,17 +62,17 @@
 	- 统计必须按 `account_type` 分开计算（Live/Demo/Backtest），并同时提供一个“汇总（All）”。
 	- React UI：三张统计卡片 + 最近交易列表。
 	- 点击交易项打开对应文件。
-	- _Leverage: Obsidian API to open files; TradeIndex change events._
+	- _Leverage: MUST compute stats via `src/core/stats.ts` and read data via `src/core/trade-index.ts`. Use Obsidian API to open files._
 	- _Requirements: FR-1, FR-2._
-	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: React UI engineer for Obsidian | Task: Implement MVP dashboard UI driven by TradeIndex events. | Restrictions: No charts, no strategy logic. | Success: UI updates live; list items open notes._
+	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: React UI engineer for Obsidian | Task: Implement MVP dashboard UI driven by TradeIndex events and Stats SSOT. | Restrictions: No charts, no strategy logic. Must not re-scan vault or compute stats locally in the component; call `src/core/stats.ts`. | Success: UI updates live; list items open notes; per-account_type + All summary shown._
 
 
 - [ ] 6. MVP：口径统一（胜率以 pnl 为主，outcome 为兜底）
 	- 实现统一胜率计算函数。
 	- 在 UI 与统计中只使用该口径。
-	- _Leverage: pa-core.js stats/liveWin and buildCoachFocus behavior as reference only._
+	- _Leverage: Implement in `src/core/stats.ts` only; pa-core.js behavior as reference only._
 	- _Requirements: FR-6._
-	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data correctness engineer | Task: Standardize winrate calculation. | Restrictions: Must not silently change meaning; document behavior. | Success: Consistent winrate across all displays._
+	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data correctness engineer | Task: Standardize winrate calculation in the Stats SSOT (pnl primary, outcome fallback). | Restrictions: Must not silently change meaning; document behavior in code/docs. Must not add alternate winrate calculators elsewhere. | Success: Consistent winrate across all displays via `src/core/stats.ts`._
 
 
 - [ ] 7. MVP：对照与验收（保留 Dataview 版作为基准）
