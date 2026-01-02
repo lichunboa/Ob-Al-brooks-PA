@@ -318,4 +318,3 @@ Object.entries(tagMap)
   });
 panelTag.appendChild(divTags);
 root.appendChild(panelTag);
-

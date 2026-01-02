@@ -29,7 +29,10 @@ if (window.paData) {
     .filter((t) => t && t.date === today)
     .sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
 
-  const todayPnL = todayTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+  const todayPnL = todayTrades.reduce(
+    (acc, t) => acc + (Number(t.pnl) || 0),
+    0
+  );
   const todayCount = todayTrades.length;
 
   leftCol.innerHTML = `
@@ -75,7 +78,9 @@ if (window.paData) {
     const dim = (f.dimLabel || f.kind || "").toString();
     const streak = Number(f?.weekStreak) || 0;
     const streakStr = streak >= 2 ? `，连续${streak}周` : "";
-    return `🧭 复盘焦点：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
+    return `🧭 复盘焦点：${dim} → ${
+      label || "Unknown"
+    }（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
   };
 
   if (todayJournal && todayJournal.market_cycle) {
@@ -84,23 +89,35 @@ if (window.paData) {
     const rCourse = pickRec("course");
     const rSr = pickRec("sr");
     leftCol.innerHTML += `
-      <div style="padding: 12px; background: ${c.hover}; border-left: 4px solid ${c.accent}; border-radius: 10px;">
-        <div style="font-weight:bold; color:${c.accent}; margin-bottom:4px;">🌊 市场环境：${todayJournal.market_cycle}</div>
+      <div style="padding: 12px; background: ${
+        c.hover
+      }; border-left: 4px solid ${c.accent}; border-radius: 10px;">
+        <div style="font-weight:bold; color:${
+          c.accent
+        }; margin-bottom:4px;">🌊 市场环境：${todayJournal.market_cycle}</div>
             <div style="font-size:0.85em; opacity:0.85; line-height:1.55;">
-              <div>${coachLine || "策略建议: 顺势而为，寻找回调入场机会。"}</div>
+              <div>${
+                coachLine || "策略建议: 顺势而为，寻找回调入场机会。"
+              }</div>
               ${
                 rCourse
-                  ? `<div style="margin-top:6px; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                  ? `<div style="margin-top:6px; opacity:0.9;">📚 ${
+                      rCourse.title
+                    } · ${renderActionLink(rCourse.action)}</div>`
                   : ""
               }
               ${
                 rSr
-                  ? `<div style="margin-top:4px; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                  ? `<div style="margin-top:4px; opacity:0.9;">🧠 ${
+                      rSr.title
+                    } · ${renderActionLink(rSr.action)}</div>`
                   : ""
               }
               ${
                 rTrade && rTrade.action
-                  ? `<div style="margin-top:4px; opacity:0.85;">📉 ${renderActionLink(rTrade.action)}</div>`
+                  ? `<div style="margin-top:4px; opacity:0.85;">📉 ${renderActionLink(
+                      rTrade.action
+                    )}</div>`
                   : ""
               }
             </div>
@@ -112,22 +129,32 @@ if (window.paData) {
     leftCol.innerHTML += `
         <div style="padding: 12px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; text-align: center; font-size: 0.9em; opacity: 0.6;">
             <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">📝 创建今日日记</a> 以激活策略推荐
-            ${coachLine ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>` : ""}
+            ${
+              coachLine
+                ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>`
+                : ""
+            }
             ${
               rCourse
-                ? `<div style="margin-top:10px; font-size:0.85em; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                ? `<div style="margin-top:10px; font-size:0.85em; opacity:0.9;">📚 ${
+                    rCourse.title
+                  } · ${renderActionLink(rCourse.action)}</div>`
                 : ""
             }
             ${
               rSr
-                ? `<div style="margin-top:6px; font-size:0.85em; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                ? `<div style="margin-top:6px; font-size:0.85em; opacity:0.9;">🧠 ${
+                    rSr.title
+                  } · ${renderActionLink(rSr.action)}</div>`
                 : ""
             }
         </div>`;
   }
 
   // 1.3 活跃交易 (Active Trade)
-  const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
+  const activeTrade = todayTrades.find(
+    (t) => !(t.outcome || "").toString().trim()
+  );
   if (activeTrade) {
     leftCol.innerHTML += `
         <div style="flex:1; background:rgba(255,255,255,0.03); border-radius:8px; padding:15px; border:1px solid ${
@@ -140,9 +167,15 @@ if (window.paData) {
     }</div>
             <div style="font-size:0.9em; opacity:0.8;">
                 <div>方向: ${activeTrade.dir || "-"}</div>
-                <div>形态: ${(Array.isArray(activeTrade.patterns) && activeTrade.patterns.length > 0)
-                  ? activeTrade.patterns.map((x) => x.toString().trim()).filter(Boolean).join(", ")
-                  : (activeTrade.patterns || "-")}</div>
+                <div>形态: ${
+                  Array.isArray(activeTrade.patterns) &&
+                  activeTrade.patterns.length > 0
+                    ? activeTrade.patterns
+                        .map((x) => x.toString().trim())
+                        .filter(Boolean)
+                        .join(", ")
+                    : activeTrade.patterns || "-"
+                }</div>
             </div>
         </div>`;
   } else {
@@ -205,4 +238,3 @@ if (window.paData) {
 
   root.appendChild(rightCol);
 }
-

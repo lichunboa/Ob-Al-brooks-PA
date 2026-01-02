@@ -2,372 +2,415 @@ import { App, TFile } from "obsidian";
 import type { TradeIndex, TradeIndexStatus } from "../../core/trade-index";
 import type { TradeRecord } from "../../core/contracts";
 import {
-	FIELD_ALIASES,
-	getFirstFieldValue,
-	isTradeTag,
-	normalizeAccountType,
-	normalizeOutcome,
-	normalizeTag,
-	normalizeTicker,
-	parseNumber,
+  FIELD_ALIASES,
+  getFirstFieldValue,
+  isTradeTag,
+  normalizeAccountType,
+  normalizeOutcome,
+  normalizeTag,
+  normalizeTicker,
+  parseNumber,
 } from "../../core/field-mapper";
 
 type Listener = () => void;
 
 export interface ObsidianTradeIndexOptions {
-	enableFileClass?: boolean;
-	tradeFileClasses?: string[];
-	/**
-	 * Optional path prefix allowlist to reduce scanning scope (mobile-friendly).
-	 * Example: ["Daily/Trades/"]
-	 */
-	folderAllowlist?: string[];
-	chunkSize?: number;
-	debounceMs?: number;
-	minEmitIntervalMs?: number;
+  enableFileClass?: boolean;
+  tradeFileClasses?: string[];
+  /**
+   * Optional path prefix allowlist to reduce scanning scope (mobile-friendly).
+   * Example: ["Daily/Trades/"]
+   */
+  folderAllowlist?: string[];
+  chunkSize?: number;
+  debounceMs?: number;
+  minEmitIntervalMs?: number;
 }
 
 export class ObsidianTradeIndex implements TradeIndex {
-	private app: App;
-	private listeners: Set<Listener> = new Set();
-	private statusListeners: Set<Listener> = new Set();
-	private db: Map<string, TradeRecord> = new Map();
-	private enableFileClass: boolean;
-	private tradeFileClassesLower: Set<string>;
-	private folderAllowlistNormalized: string[];
-	private pendingPaths: Set<string> = new Set();
-	private flushTimer: ReturnType<typeof setTimeout> | null = null;
-	private dirty = false;
-	private debounceMs: number;
-	private minEmitIntervalMs: number;
-	private lastEmitAt = 0;
-	private chunkSize: number;
-	private status: TradeIndexStatus = { phase: "idle" };
-	private initialized = false;
-	private rebuildInFlight: Promise<void> | null = null;
+  private app: App;
+  private listeners: Set<Listener> = new Set();
+  private statusListeners: Set<Listener> = new Set();
+  private db: Map<string, TradeRecord> = new Map();
+  private enableFileClass: boolean;
+  private tradeFileClassesLower: Set<string>;
+  private folderAllowlistNormalized: string[];
+  private pendingPaths: Set<string> = new Set();
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private dirty = false;
+  private debounceMs: number;
+  private minEmitIntervalMs: number;
+  private lastEmitAt = 0;
+  private chunkSize: number;
+  private status: TradeIndexStatus = { phase: "idle" };
+  private initialized = false;
+  private rebuildInFlight: Promise<void> | null = null;
 
-	private disposers: Array<() => void> = [];
+  private disposers: Array<() => void> = [];
 
-	constructor(app: App, options: ObsidianTradeIndexOptions = {}) {
-		this.app = app;
-		this.enableFileClass = options.enableFileClass ?? true;
-		const defaults = ["PA_Metadata_Schema"];
-		const configured = options.tradeFileClasses ?? defaults;
-		this.tradeFileClassesLower = new Set(configured.map((s) => s.trim().toLowerCase()).filter(Boolean));
-		this.folderAllowlistNormalized = (options.folderAllowlist ?? [])
-			.map((p) => p.replace(/^\/+/, "").trim())
-			.filter(Boolean)
-			.map((p) => (p.endsWith("/") ? p : `${p}/`));
-		this.chunkSize = Math.max(25, options.chunkSize ?? 250);
-		this.debounceMs = Math.max(50, options.debounceMs ?? 200);
-		this.minEmitIntervalMs = Math.max(0, options.minEmitIntervalMs ?? 200);
-	}
+  constructor(app: App, options: ObsidianTradeIndexOptions = {}) {
+    this.app = app;
+    this.enableFileClass = options.enableFileClass ?? true;
+    const defaults = ["PA_Metadata_Schema"];
+    const configured = options.tradeFileClasses ?? defaults;
+    this.tradeFileClassesLower = new Set(
+      configured.map((s) => s.trim().toLowerCase()).filter(Boolean)
+    );
+    this.folderAllowlistNormalized = (options.folderAllowlist ?? [])
+      .map((p) => p.replace(/^\/+/, "").trim())
+      .filter(Boolean)
+      .map((p) => (p.endsWith("/") ? p : `${p}/`));
+    this.chunkSize = Math.max(25, options.chunkSize ?? 250);
+    this.debounceMs = Math.max(50, options.debounceMs ?? 200);
+    this.minEmitIntervalMs = Math.max(0, options.minEmitIntervalMs ?? 200);
+  }
 
-	public async initialize() {
-		if (this.initialized) return;
-		this.initialized = true;
-		this.registerListeners();
-		await this.rebuild();
-	}
+  public async initialize() {
+    if (this.initialized) return;
+    this.initialized = true;
+    this.registerListeners();
+    await this.rebuild();
+  }
 
-	public getStatus(): TradeIndexStatus {
-		return this.status;
-	}
+  public getStatus(): TradeIndexStatus {
+    return this.status;
+  }
 
-	public onStatusChanged(handler: Listener) {
-		this.statusListeners.add(handler);
-		return () => {
-			this.statusListeners.delete(handler);
-		};
-	}
+  public onStatusChanged(handler: Listener) {
+    this.statusListeners.add(handler);
+    return () => {
+      this.statusListeners.delete(handler);
+    };
+  }
 
-	public async rebuild(): Promise<void> {
-		if (this.rebuildInFlight) return this.rebuildInFlight;
+  public async rebuild(): Promise<void> {
+    if (this.rebuildInFlight) return this.rebuildInFlight;
 
-		this.rebuildInFlight = (async () => {
-			try {
-				this.pendingPaths.clear();
-				this.dirty = false;
-				this.db.clear();
-				this.setStatus({ phase: "building", processed: 0, total: 0 });
+    this.rebuildInFlight = (async () => {
+      try {
+        this.pendingPaths.clear();
+        this.dirty = false;
+        this.db.clear();
+        this.setStatus({ phase: "building", processed: 0, total: 0 });
 
-				const start = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-				const files = this.getCandidateFilesForInitialBuild();
-				const total = files.length;
-				this.setStatus({ phase: "building", processed: 0, total });
+        const start =
+          typeof performance !== "undefined" && performance.now
+            ? performance.now()
+            : Date.now();
+        const files = this.getCandidateFilesForInitialBuild();
+        const total = files.length;
+        this.setStatus({ phase: "building", processed: 0, total });
 
-				let processed = 0;
-				for (const file of files) {
-					try {
-						this.indexFile(file);
-					} catch (e) {
-						console.warn("[al-brooks-console] Failed to index file", file.path, e);
-					}
-					processed++;
-					if (processed % this.chunkSize === 0) {
-						this.setStatus({ phase: "building", processed, total });
-						await new Promise((r) => setTimeout(r, 0));
-					}
-				}
+        let processed = 0;
+        for (const file of files) {
+          try {
+            this.indexFile(file);
+          } catch (e) {
+            console.warn(
+              "[al-brooks-console] Failed to index file",
+              file.path,
+              e
+            );
+          }
+          processed++;
+          if (processed % this.chunkSize === 0) {
+            this.setStatus({ phase: "building", processed, total });
+            await new Promise((r) => setTimeout(r, 0));
+          }
+        }
 
-				const end = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-				this.setStatus({
-					phase: "ready",
-					processed: total,
-					total,
-					lastBuildMs: Math.max(0, Math.round(end - start)),
-				});
-				this.emitChanged();
+        const end =
+          typeof performance !== "undefined" && performance.now
+            ? performance.now()
+            : Date.now();
+        this.setStatus({
+          phase: "ready",
+          processed: total,
+          total,
+          lastBuildMs: Math.max(0, Math.round(end - start)),
+        });
+        this.emitChanged();
 
-				// 如果构建期间积累了变更事件，构建完成后再 flush 一次。
-				if (this.pendingPaths.size > 0 || this.dirty) {
-					this.ensureFlushScheduled();
-				}
-			} catch (e) {
-				console.warn("[al-brooks-console] TradeIndex rebuild failed", e);
-				this.setStatus({ phase: "error", message: e instanceof Error ? e.message : String(e) });
-			}
-		})();
+        // 如果构建期间积累了变更事件，构建完成后再 flush 一次。
+        if (this.pendingPaths.size > 0 || this.dirty) {
+          this.ensureFlushScheduled();
+        }
+      } catch (e) {
+        console.warn("[al-brooks-console] TradeIndex rebuild failed", e);
+        this.setStatus({
+          phase: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    })();
 
-		try {
-			await this.rebuildInFlight;
-		} finally {
-			this.rebuildInFlight = null;
-		}
-	}
+    try {
+      await this.rebuildInFlight;
+    } finally {
+      this.rebuildInFlight = null;
+    }
+  }
 
-	public getAll(): TradeRecord[] {
-		return Array.from(this.db.values()).sort((a, b) => b.dateIso.localeCompare(a.dateIso));
-	}
+  public getAll(): TradeRecord[] {
+    return Array.from(this.db.values()).sort((a, b) =>
+      b.dateIso.localeCompare(a.dateIso)
+    );
+  }
 
-	public onChanged(handler: Listener) {
-		this.listeners.add(handler);
-		return () => {
-			this.listeners.delete(handler);
-		};
-	}
+  public onChanged(handler: Listener) {
+    this.listeners.add(handler);
+    return () => {
+      this.listeners.delete(handler);
+    };
+  }
 
-	public dispose() {
-		for (const disposer of this.disposers) disposer();
-		this.disposers = [];
-		this.listeners.clear();
-		this.statusListeners.clear();
-		this.pendingPaths.clear();
-		this.dirty = false;
-		if (this.flushTimer) {
-			clearTimeout(this.flushTimer);
-			this.flushTimer = null;
-		}
-		this.rebuildInFlight = null;
-	}
+  public dispose() {
+    for (const disposer of this.disposers) disposer();
+    this.disposers = [];
+    this.listeners.clear();
+    this.statusListeners.clear();
+    this.pendingPaths.clear();
+    this.dirty = false;
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    this.rebuildInFlight = null;
+  }
 
-	private emitChanged() {
-		const now = Date.now();
-		if (this.minEmitIntervalMs > 0 && now - this.lastEmitAt < this.minEmitIntervalMs) {
-			this.markDirty();
-			return;
-		}
-		this.lastEmitAt = now;
-		for (const listener of this.listeners) listener();
-	}
+  private emitChanged() {
+    const now = Date.now();
+    if (
+      this.minEmitIntervalMs > 0 &&
+      now - this.lastEmitAt < this.minEmitIntervalMs
+    ) {
+      this.markDirty();
+      return;
+    }
+    this.lastEmitAt = now;
+    for (const listener of this.listeners) listener();
+  }
 
-	private emitStatusChanged() {
-		for (const listener of this.statusListeners) listener();
-	}
+  private emitStatusChanged() {
+    for (const listener of this.statusListeners) listener();
+  }
 
-	private setStatus(next: TradeIndexStatus) {
-		this.status = next;
-		this.emitStatusChanged();
-	}
+  private setStatus(next: TradeIndexStatus) {
+    this.status = next;
+    this.emitStatusChanged();
+  }
 
-	private registerListeners() {
-		// modify (file content changes)
-		this.disposers.push(
-			this.app.vault.on("modify", (file) => {
-				if (!(file instanceof TFile)) return;
-				this.queueReindex(file);
-			}) as unknown as () => void
-		);
+  private registerListeners() {
+    // modify (file content changes)
+    this.disposers.push(
+      this.app.vault.on("modify", (file) => {
+        if (!(file instanceof TFile)) return;
+        this.queueReindex(file);
+      }) as unknown as () => void
+    );
 
-		// rename
-		this.disposers.push(
-			this.app.vault.on("rename", (file, oldPath) => {
-				if (!(file instanceof TFile)) return;
-				const existing = this.db.get(oldPath);
-				if (existing) {
-					existing.path = file.path;
-					existing.name = file.name;
-					this.db.delete(oldPath);
-					this.db.set(file.path, existing);
-					this.markDirty();
-				}
-				// 无论之前是否已入库，都重新评估（可能从非 trade 变为 trade，或反之）。
-				this.queueReindex(file);
-			}) as unknown as () => void
-		);
+    // rename
+    this.disposers.push(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (!(file instanceof TFile)) return;
+        const existing = this.db.get(oldPath);
+        if (existing) {
+          existing.path = file.path;
+          existing.name = file.name;
+          this.db.delete(oldPath);
+          this.db.set(file.path, existing);
+          this.markDirty();
+        }
+        // 无论之前是否已入库，都重新评估（可能从非 trade 变为 trade，或反之）。
+        this.queueReindex(file);
+      }) as unknown as () => void
+    );
 
-		// delete
-		this.disposers.push(
-			this.app.vault.on("delete", (file) => {
-				if (!(file instanceof TFile)) return;
-				if (this.db.delete(file.path)) this.markDirty();
-			}) as unknown as () => void
-		);
+    // delete
+    this.disposers.push(
+      this.app.vault.on("delete", (file) => {
+        if (!(file instanceof TFile)) return;
+        if (this.db.delete(file.path)) this.markDirty();
+      }) as unknown as () => void
+    );
 
-		// metadata changed (covers frontmatter/tag edits)
-		this.disposers.push(
-			this.app.metadataCache.on("changed", (file) => {
-				if (!(file instanceof TFile)) return;
-				this.queueReindex(file);
-			}) as unknown as () => void
-		);
-	}
+    // metadata changed (covers frontmatter/tag edits)
+    this.disposers.push(
+      this.app.metadataCache.on("changed", (file) => {
+        if (!(file instanceof TFile)) return;
+        this.queueReindex(file);
+      }) as unknown as () => void
+    );
+  }
 
-	private getCandidateFilesForInitialBuild(): TFile[] {
-		const files = this.app.vault.getMarkdownFiles();
-		const filteredByFolder = this.folderAllowlistNormalized.length
-			? files.filter((f) => this.folderAllowlistNormalized.some((p) => f.path.startsWith(p)))
-			: files;
+  private getCandidateFilesForInitialBuild(): TFile[] {
+    const files = this.app.vault.getMarkdownFiles();
+    const filteredByFolder = this.folderAllowlistNormalized.length
+      ? files.filter((f) =>
+          this.folderAllowlistNormalized.some((p) => f.path.startsWith(p))
+        )
+      : files;
 
-		return filteredByFolder.filter((file) => {
-			const cache = this.app.metadataCache.getFileCache(file);
-			if (!cache) return true;
+    return filteredByFolder.filter((file) => {
+      const cache = this.app.metadataCache.getFileCache(file);
+      if (!cache) return true;
 
-			const normalizedTags = this.getNormalizedTagsFromCache(cache?.tags ?? [], cache?.frontmatter);
-			const hasTradeTag = normalizedTags.some(isTradeTag);
-			if (hasTradeTag) return true;
-			if (!this.enableFileClass) return false;
-			const fileClassRaw = getFirstFieldValue(cache.frontmatter, FIELD_ALIASES.fileClass);
-			const fileClasses = Array.isArray(fileClassRaw)
-				? fileClassRaw.filter((v): v is string => typeof v === "string")
-				: typeof fileClassRaw === "string"
-					? [fileClassRaw]
-					: [];
-			return fileClasses.some((fc) => this.tradeFileClassesLower.has(fc.trim().toLowerCase()));
-		});
-	}
+      const normalizedTags = this.getNormalizedTagsFromCache(
+        cache?.tags ?? [],
+        cache?.frontmatter
+      );
+      const hasTradeTag = normalizedTags.some(isTradeTag);
+      if (hasTradeTag) return true;
+      if (!this.enableFileClass) return false;
+      const fileClassRaw = getFirstFieldValue(
+        cache.frontmatter,
+        FIELD_ALIASES.fileClass
+      );
+      const fileClasses = Array.isArray(fileClassRaw)
+        ? fileClassRaw.filter((v): v is string => typeof v === "string")
+        : typeof fileClassRaw === "string"
+        ? [fileClassRaw]
+        : [];
+      return fileClasses.some((fc) =>
+        this.tradeFileClassesLower.has(fc.trim().toLowerCase())
+      );
+    });
+  }
 
-	private markDirty() {
-		this.dirty = true;
-		this.ensureFlushScheduled();
-	}
+  private markDirty() {
+    this.dirty = true;
+    this.ensureFlushScheduled();
+  }
 
-	private queueReindex(file: TFile) {
-		this.pendingPaths.add(file.path);
-		this.ensureFlushScheduled();
-	}
+  private queueReindex(file: TFile) {
+    this.pendingPaths.add(file.path);
+    this.ensureFlushScheduled();
+  }
 
-	private ensureFlushScheduled() {
-		if (this.flushTimer) return;
-		this.flushTimer = setTimeout(() => {
-			this.flushTimer = null;
-			this.flushQueued();
-		}, this.debounceMs);
-	}
+  private ensureFlushScheduled() {
+    if (this.flushTimer) return;
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      this.flushQueued();
+    }, this.debounceMs);
+  }
 
-	private flushQueued() {
-		const paths = Array.from(this.pendingPaths);
-		this.pendingPaths.clear();
+  private flushQueued() {
+    const paths = Array.from(this.pendingPaths);
+    this.pendingPaths.clear();
 
-		let changed = false;
-		for (const path of paths) {
-			const af = this.app.vault.getAbstractFileByPath(path);
-			if (af instanceof TFile) {
-				try {
-					changed = this.indexFile(af) || changed;
-				} catch (e) {
-					console.warn("[al-brooks-console] Failed to reindex file", af.path, e);
-				}
-			} else {
-				changed = this.db.delete(path) || changed;
-			}
-		}
+    let changed = false;
+    for (const path of paths) {
+      const af = this.app.vault.getAbstractFileByPath(path);
+      if (af instanceof TFile) {
+        try {
+          changed = this.indexFile(af) || changed;
+        } catch (e) {
+          console.warn(
+            "[al-brooks-console] Failed to reindex file",
+            af.path,
+            e
+          );
+        }
+      } else {
+        changed = this.db.delete(path) || changed;
+      }
+    }
 
-		if (this.dirty) {
-			changed = true;
-			this.dirty = false;
-		}
+    if (this.dirty) {
+      changed = true;
+      this.dirty = false;
+    }
 
-		if (changed) this.emitChanged();
-	}
+    if (changed) this.emitChanged();
+  }
 
-	private getNormalizedTagsFromCache(cacheTags: Array<{ tag: string }>, fm: Record<string, unknown> | undefined) {
-		const cacheTagStrings = cacheTags.map((t) => t.tag);
-		const fmTagsRaw = fm?.tags as unknown;
-		const fmTags = Array.isArray(fmTagsRaw)
-			? fmTagsRaw.filter((t): t is string => typeof t === "string")
-			: typeof fmTagsRaw === "string"
-				? [fmTagsRaw]
-				: [];
-		return [...cacheTagStrings, ...fmTags].map(normalizeTag);
-	}
+  private getNormalizedTagsFromCache(
+    cacheTags: Array<{ tag: string }>,
+    fm: Record<string, unknown> | undefined
+  ) {
+    const cacheTagStrings = cacheTags.map((t) => t.tag);
+    const fmTagsRaw = fm?.tags as unknown;
+    const fmTags = Array.isArray(fmTagsRaw)
+      ? fmTagsRaw.filter((t): t is string => typeof t === "string")
+      : typeof fmTagsRaw === "string"
+      ? [fmTagsRaw]
+      : [];
+    return [...cacheTagStrings, ...fmTags].map(normalizeTag);
+  }
 
-	private indexFile(file: TFile): boolean {
-		const prev = this.db.get(file.path);
-		const cache = this.app.metadataCache.getFileCache(file);
-		const fm = cache?.frontmatter;
-		const normalizedTags = this.getNormalizedTagsFromCache(cache?.tags ?? [], fm);
-		const hasTradeTag = normalizedTags.some(isTradeTag);
+  private indexFile(file: TFile): boolean {
+    const prev = this.db.get(file.path);
+    const cache = this.app.metadataCache.getFileCache(file);
+    const fm = cache?.frontmatter;
+    const normalizedTags = this.getNormalizedTagsFromCache(
+      cache?.tags ?? [],
+      fm
+    );
+    const hasTradeTag = normalizedTags.some(isTradeTag);
 
-		if (!fm) {
-			// 允许：仅靠 tag（包含 inline tag）识别的交易笔记，即使没有 frontmatter。
-			if (!hasTradeTag) {
-				return this.db.delete(file.path);
-			}
+    if (!fm) {
+      // 允许：仅靠 tag（包含 inline tag）识别的交易笔记，即使没有 frontmatter。
+      if (!hasTradeTag) {
+        return this.db.delete(file.path);
+      }
 
-			const trade: TradeRecord = {
-				path: file.path,
-				name: file.name,
-				dateIso: file.basename.substring(0, 10),
-				tags: normalizedTags,
-				mtime: file.stat?.mtime,
-			};
+      const trade: TradeRecord = {
+        path: file.path,
+        name: file.name,
+        dateIso: file.basename.substring(0, 10),
+        tags: normalizedTags,
+        mtime: file.stat?.mtime,
+      };
 
-			this.db.set(file.path, trade);
-			return true;
-		}
+      this.db.set(file.path, trade);
+      return true;
+    }
 
-		const fileClassRaw = getFirstFieldValue(fm, FIELD_ALIASES.fileClass);
-		const fileClasses = Array.isArray(fileClassRaw)
-			? fileClassRaw.filter((v): v is string => typeof v === "string")
-			: typeof fileClassRaw === "string"
-				? [fileClassRaw]
-				: [];
+    const fileClassRaw = getFirstFieldValue(fm, FIELD_ALIASES.fileClass);
+    const fileClasses = Array.isArray(fileClassRaw)
+      ? fileClassRaw.filter((v): v is string => typeof v === "string")
+      : typeof fileClassRaw === "string"
+      ? [fileClassRaw]
+      : [];
 
-		const hasTradeFileClass =
-			this.enableFileClass &&
-			fileClasses.some((fc) => this.tradeFileClassesLower.has(fc.trim().toLowerCase()));
+    const hasTradeFileClass =
+      this.enableFileClass &&
+      fileClasses.some((fc) =>
+        this.tradeFileClassesLower.has(fc.trim().toLowerCase())
+      );
 
-		if (!hasTradeTag && !hasTradeFileClass) {
-			return this.db.delete(file.path);
-		}
+    if (!hasTradeTag && !hasTradeFileClass) {
+      return this.db.delete(file.path);
+    }
 
-		const pnlRaw = getFirstFieldValue(fm, FIELD_ALIASES.pnl);
-		const tickerRaw = getFirstFieldValue(fm, FIELD_ALIASES.ticker);
-		const outcomeRaw = getFirstFieldValue(fm, FIELD_ALIASES.outcome);
-		const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
-		const accountTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.accountType);
+    const pnlRaw = getFirstFieldValue(fm, FIELD_ALIASES.pnl);
+    const tickerRaw = getFirstFieldValue(fm, FIELD_ALIASES.ticker);
+    const outcomeRaw = getFirstFieldValue(fm, FIELD_ALIASES.outcome);
+    const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
+    const accountTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.accountType);
 
-		const pnl = parseNumber(pnlRaw);
-		const ticker = normalizeTicker(tickerRaw);
-		const outcome = normalizeOutcome(outcomeRaw);
-		const dateIso = typeof dateRaw === "string" ? dateRaw : file.basename.substring(0, 10);
-		const accountType = normalizeAccountType(accountTypeRaw);
+    const pnl = parseNumber(pnlRaw);
+    const ticker = normalizeTicker(tickerRaw);
+    const outcome = normalizeOutcome(outcomeRaw);
+    const dateIso =
+      typeof dateRaw === "string" ? dateRaw : file.basename.substring(0, 10);
+    const accountType = normalizeAccountType(accountTypeRaw);
 
-		const trade: TradeRecord = {
-			path: file.path,
-			name: file.name,
-			dateIso: String(dateIso),
-			ticker,
-			pnl,
-			outcome,
-			accountType,
-			mtime: file.stat?.mtime,
-			tags: normalizedTags,
-			rawFrontmatter: fm,
-		};
+    const trade: TradeRecord = {
+      path: file.path,
+      name: file.name,
+      dateIso: String(dateIso),
+      ticker,
+      pnl,
+      outcome,
+      accountType,
+      mtime: file.stat?.mtime,
+      tags: normalizedTags,
+      rawFrontmatter: fm,
+    };
 
-		this.db.set(file.path, trade);
-		return !prev || JSON.stringify(prev) !== JSON.stringify(trade);
-	}
+    this.db.set(file.path, trade);
+    return !prev || JSON.stringify(prev) !== JSON.stringify(trade);
+  }
 }

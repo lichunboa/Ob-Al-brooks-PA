@@ -64,7 +64,9 @@ if (window.paData) {
   } else {
     // 强制单一信源：Inspector 不再自行扫描策略仓库。
     // 若这里为空，说明 pa-core 的策略索引构建失败/尚未加载。
-    console.warn("[PA] strategyIndex missing; Inspector strategy mapping disabled");
+    console.warn(
+      "[PA] strategyIndex missing; Inspector strategy mapping disabled"
+    );
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
@@ -329,8 +331,10 @@ if (window.paData) {
 
       const stableKeyField = keyMap[key];
       let stableKey = stableKeyField ? t?.[stableKeyField] : null;
-      if (Array.isArray(stableKey)) stableKey = stableKey.length ? stableKey[0] : null;
-      if (stableKey && typeof stableKey !== "string") stableKey = stableKey.toString();
+      if (Array.isArray(stableKey))
+        stableKey = stableKey.length ? stableKey[0] : null;
+      if (stableKey && typeof stableKey !== "string")
+        stableKey = stableKey.toString();
       stableKey = (stableKey || "").toString().trim();
 
       // 展示仍优先使用原始字段（带中英），但分组以 stableKey 为准

@@ -1,32 +1,38 @@
 import type { App } from "obsidian";
-import type { IntegrationCapability, IntegrationCapabilityInfo, PluginAdapter } from "./contracts";
+import type {
+  IntegrationCapability,
+  IntegrationCapabilityInfo,
+  PluginAdapter,
+} from "./contracts";
 import { commandExists, runCommand } from "./contracts";
 
 const CMD_REVIEW = "obsidian-spaced-repetition:srs-review-flashcards";
 
 export class SrsAdapter implements PluginAdapter {
-	public id = "obsidian-spaced-repetition";
-	public displayName = "间隔重复（SRS）";
+  public id = "obsidian-spaced-repetition";
+  public displayName = "间隔重复（SRS）";
 
-	private app: App;
+  private app: App;
 
-	constructor(app: App) {
-		this.app = app;
-	}
+  constructor(app: App) {
+    this.app = app;
+  }
 
-	public isAvailable(): boolean {
-		return commandExists(this.app, CMD_REVIEW);
-	}
+  public isAvailable(): boolean {
+    return commandExists(this.app, CMD_REVIEW);
+  }
 
-	public getCapabilities(): IntegrationCapabilityInfo[] {
-		if (!commandExists(this.app, CMD_REVIEW)) return [];
-		return [{ id: "srs:review-flashcards", label: "复习闪卡", commandId: CMD_REVIEW }];
-	}
+  public getCapabilities(): IntegrationCapabilityInfo[] {
+    if (!commandExists(this.app, CMD_REVIEW)) return [];
+    return [
+      { id: "srs:review-flashcards", label: "复习闪卡", commandId: CMD_REVIEW },
+    ];
+  }
 
-	public async run(capabilityId: IntegrationCapability): Promise<void> {
-		if (capabilityId !== "srs:review-flashcards") {
-			throw new Error(`SrsAdapter cannot run: ${capabilityId}`);
-		}
-		return runCommand(this.app, CMD_REVIEW);
-	}
+  public async run(capabilityId: IntegrationCapability): Promise<void> {
+    if (capabilityId !== "srs:review-flashcards") {
+      throw new Error(`SrsAdapter cannot run: ${capabilityId}`);
+    }
+    return runCommand(this.app, CMD_REVIEW);
+  }
 }

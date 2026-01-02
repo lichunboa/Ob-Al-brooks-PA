@@ -16,7 +16,14 @@ function classifyOutcome(pnl, fallbackOutcome) {
     return "scratch";
   }
   const out = (fallbackOutcome || "").toString().toLowerCase();
-  if (out === "win" || out === "loss" || out === "scratch" || out === "open" || out === "unknown") return out;
+  if (
+    out === "win" ||
+    out === "loss" ||
+    out === "scratch" ||
+    out === "open" ||
+    out === "unknown"
+  )
+    return out;
   return "unknown";
 }
 
@@ -28,15 +35,18 @@ function computeTradeStats(trades) {
 
   for (const trade of trades) {
     countTotal += 1;
-    if (typeof trade.pnl === "number" && Number.isFinite(trade.pnl)) netProfit += trade.pnl;
+    if (typeof trade.pnl === "number" && Number.isFinite(trade.pnl))
+      netProfit += trade.pnl;
 
     const outcome = trade.outcome;
-    const isCompleted = outcome === "win" || outcome === "loss" || outcome === "scratch";
+    const isCompleted =
+      outcome === "win" || outcome === "loss" || outcome === "scratch";
     if (isCompleted) countCompleted += 1;
     if (outcome === "win") countWins += 1;
   }
 
-  const winRatePct = countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
+  const winRatePct =
+    countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
   return { countTotal, countCompleted, countWins, winRatePct, netProfit };
 }
 
@@ -56,7 +66,9 @@ function computeTradeStatsByAccountType(trades) {
 
 function toFileTimestamp(d) {
   const pad2 = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(
+    d.getDate()
+  )}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
 }
 
 function main() {
@@ -73,8 +85,21 @@ function main() {
   const trades = legacyTrades.map((t) => {
     const p = (t?.link?.path || t?.id || "").toString();
     const type = (t?.type || "").toString();
-    const accountType = type === "Live" || type === "Demo" || type === "Backtest" ? type : undefined;
+    const accountType =
+      type === "Live" || type === "Demo" || type === "Backtest"
+        ? type
+        : undefined;
     const pnl = typeof t?.pnl === "number" ? t.pnl : undefined;
+
+    const r =
+      typeof t?.r === "number" && Number.isFinite(t.r) ? t.r : undefined;
+    const setup = t?.setup ? String(t.setup) : undefined;
+    const error = t?.error ? String(t.error) : undefined;
+    const dir = t?.dir ? String(t.dir) : undefined;
+    const tf = t?.tf ? String(t.tf) : undefined;
+    const order = t?.order ? String(t.order) : undefined;
+    const signal = t?.signal ? String(t.signal) : undefined;
+    const plan = t?.plan ? String(t.plan) : undefined;
 
     return {
       path: p,
@@ -84,15 +109,23 @@ function main() {
       pnl,
       outcome: classifyOutcome(pnl, t?.outcome),
       accountType,
+      r,
+      setup,
+      error,
+      dir,
+      tf,
+      order,
+      signal,
+      plan,
       // Keep a copy for debugging/compat, but do not promise its schema.
       rawFrontmatter: {
-        setup: t?.setup,
-        error: t?.error,
-        dir: t?.dir,
-        tf: t?.tf,
-        order: t?.order,
-        signal: t?.signal,
-        plan: t?.plan,
+        setup,
+        error,
+        dir,
+        tf,
+        order,
+        signal,
+        plan,
         cover: t?.cover,
       },
     };
@@ -100,7 +133,7 @@ function main() {
 
   const snapshot = {
     meta: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       pluginVersion: "dry-run-from-legacy",
     },
