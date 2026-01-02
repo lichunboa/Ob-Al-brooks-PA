@@ -414,6 +414,66 @@ const ConsoleComponent: React.FC<Props> = ({
     e.currentTarget.style.boxShadow = "none";
   }, []);
 
+  const onMiniCellMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onMiniCellFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const onCoverMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
+    },
+    []
+  );
+
+  const onCoverMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
+    },
+    []
+  );
+
+  const onCoverFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onCoverBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
   const action = React.useCallback(
     async (capabilityId: IntegrationCapability) => {
       if (!integrations) return;
@@ -1665,23 +1725,10 @@ const ConsoleComponent: React.FC<Props> = ({
                             disabled={!c.link}
                             onClick={() => c.link && openFile(c.link.path)}
                             title={title}
-                            onMouseEnter={(e) => {
-                              if (!c.link) return;
-                              e.currentTarget.style.borderColor =
-                                "var(--interactive-accent)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor =
-                                "var(--background-modifier-border)";
-                            }}
-                            onFocus={(e) => {
-                              if (!c.link) return;
-                              e.currentTarget.style.boxShadow =
-                                "0 0 0 2px var(--interactive-accent)";
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.boxShadow = "none";
-                            }}
+                            onMouseEnter={onMiniCellMouseEnter}
+                            onMouseLeave={onMiniCellMouseLeave}
+                            onFocus={onMiniCellFocus}
+                            onBlur={onMiniCellBlur}
                             style={{
                               width: "26px",
                               height: "26px",
@@ -2188,25 +2235,10 @@ const ConsoleComponent: React.FC<Props> = ({
                 type="button"
                 onClick={() => openFile(it.coverPath)}
                 title={it.coverPath}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor =
-                    "var(--interactive-accent)";
-                  e.currentTarget.style.background =
-                    "rgba(var(--mono-rgb-100), 0.06)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor =
-                    "var(--background-modifier-border)";
-                  e.currentTarget.style.background =
-                    "rgba(var(--mono-rgb-100), 0.03)";
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.boxShadow =
-                    "0 0 0 2px var(--interactive-accent)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                onMouseEnter={onCoverMouseEnter}
+                onMouseLeave={onCoverMouseLeave}
+                onFocus={onCoverFocus}
+                onBlur={onCoverBlur}
                 style={{
                   padding: 0,
                   border: "1px solid var(--background-modifier-border)",
