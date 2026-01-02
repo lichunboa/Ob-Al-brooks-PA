@@ -24,10 +24,6 @@ export class ObsidianTradeIndex implements TradeIndex {
 	private db: Map<string, TradeRecord> = new Map();
 	private enableFileClass: boolean;
 	private tradeFileClassesLower: Set<string>;
-	private pendingPaths: Set<string> = new Set();
-	private flushTimer: ReturnType<typeof setTimeout> | null = null;
-	private dirty = false;
-	private debounceMs = 200;
 
 	private disposers: Array<() => void> = [];
 
@@ -42,7 +38,7 @@ export class ObsidianTradeIndex implements TradeIndex {
 	public async initialize() {
 		const files = this.app.vault.getMarkdownFiles();
 		for (const file of files) {
-			this.indexFile(file);
+			await this.indexFile(file);
 		}
 		this.registerListeners();
 		this.emitChanged();
@@ -63,12 +59,6 @@ export class ObsidianTradeIndex implements TradeIndex {
 		for (const disposer of this.disposers) disposer();
 		this.disposers = [];
 		this.listeners.clear();
-		this.pendingPaths.clear();
-		this.dirty = false;
-		if (this.flushTimer) {
-			clearTimeout(this.flushTimer);
-			this.flushTimer = null;
-		}
 	}
 
 	private emitChanged() {
@@ -76,28 +66,18 @@ export class ObsidianTradeIndex implements TradeIndex {
 	}
 
 	private registerListeners() {
-		// modify (file content changes)
-		this.disposers.push(
-			this.app.vault.on("modify", (file) => {
-				if (!(file instanceof TFile)) return;
-				this.queueReindex(file);
-			}) as unknown as () => void
-		);
-
 		// rename
 		this.disposers.push(
 			this.app.vault.on("rename", (file, oldPath) => {
 				if (!(file instanceof TFile)) return;
+				if (!this.db.has(oldPath)) return;
 				const existing = this.db.get(oldPath);
-				if (existing) {
-					existing.path = file.path;
-					existing.name = file.name;
-					this.db.delete(oldPath);
-					this.db.set(file.path, existing);
-					this.markDirty();
-				}
-				// 无论之前是否已入库，都重新评估（可能从非 trade 变为 trade，或反之）。
-				this.queueReindex(file);
+				if (!existing) return;
+				existing.path = file.path;
+				existing.name = file.name;
+				this.db.delete(oldPath);
+				this.db.set(file.path, existing);
+				this.emitChanged();
 			}) as unknown as () => void
 		);
 
@@ -105,7 +85,9 @@ export class ObsidianTradeIndex implements TradeIndex {
 		this.disposers.push(
 			this.app.vault.on("delete", (file) => {
 				if (!(file instanceof TFile)) return;
-				if (this.db.delete(file.path)) this.markDirty();
+				if (!this.db.has(file.path)) return;
+				this.db.delete(file.path);
+				this.emitChanged();
 			}) as unknown as () => void
 		);
 
@@ -113,53 +95,12 @@ export class ObsidianTradeIndex implements TradeIndex {
 		this.disposers.push(
 			this.app.metadataCache.on("changed", (file) => {
 				if (!(file instanceof TFile)) return;
-				this.queueReindex(file);
+				void this.indexFile(file, true);
 			}) as unknown as () => void
 		);
 	}
 
-	private markDirty() {
-		this.dirty = true;
-		this.ensureFlushScheduled();
-	}
-
-	private queueReindex(file: TFile) {
-		this.pendingPaths.add(file.path);
-		this.ensureFlushScheduled();
-	}
-
-	private ensureFlushScheduled() {
-		if (this.flushTimer) return;
-		this.flushTimer = setTimeout(() => {
-			this.flushTimer = null;
-			this.flushQueued();
-		}, this.debounceMs);
-	}
-
-	private flushQueued() {
-		const paths = Array.from(this.pendingPaths);
-		this.pendingPaths.clear();
-
-		let changed = false;
-		for (const path of paths) {
-			const af = this.app.vault.getAbstractFileByPath(path);
-			if (af instanceof TFile) {
-				changed = this.indexFile(af) || changed;
-			} else {
-				changed = this.db.delete(path) || changed;
-			}
-		}
-
-		if (this.dirty) {
-			changed = true;
-			this.dirty = false;
-		}
-
-		if (changed) this.emitChanged();
-	}
-
-	private indexFile(file: TFile): boolean {
-		const prev = this.db.get(file.path);
+	private async indexFile(file: TFile, triggerUpdate = false) {
 		const cache = this.app.metadataCache.getFileCache(file);
 		const fm = cache?.frontmatter;
 		const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
@@ -176,7 +117,8 @@ export class ObsidianTradeIndex implements TradeIndex {
 		if (!fm) {
 			// 允许：仅靠 tag（包含 inline tag）识别的交易笔记，即使没有 frontmatter。
 			if (!hasTradeTag) {
-				return this.db.delete(file.path);
+				if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
+				return;
 			}
 
 			const trade: TradeRecord = {
@@ -188,7 +130,8 @@ export class ObsidianTradeIndex implements TradeIndex {
 			};
 
 			this.db.set(file.path, trade);
-			return true;
+			if (triggerUpdate) this.emitChanged();
+			return;
 		}
 
 		const fileClassRaw = getFirstFieldValue(fm, FIELD_ALIASES.fileClass);
@@ -203,7 +146,8 @@ export class ObsidianTradeIndex implements TradeIndex {
 			fileClasses.some((fc) => this.tradeFileClassesLower.has(fc.trim().toLowerCase()));
 
 		if (!hasTradeTag && !hasTradeFileClass) {
-			return this.db.delete(file.path);
+			if (this.db.delete(file.path) && triggerUpdate) this.emitChanged();
+			return;
 		}
 
 		const pnlRaw = getFirstFieldValue(fm, FIELD_ALIASES.pnl);
@@ -229,6 +173,6 @@ export class ObsidianTradeIndex implements TradeIndex {
 		};
 
 		this.db.set(file.path, trade);
-		return !prev || JSON.stringify(prev) !== JSON.stringify(trade);
+		if (triggerUpdate) this.emitChanged();
 	}
 }

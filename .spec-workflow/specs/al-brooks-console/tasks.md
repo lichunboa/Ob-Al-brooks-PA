@@ -56,7 +56,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data indexing engineer | Task: Implement initial scan + identification rules (tag primary + fileClass secondary) and field mapping. | Restrictions: Read-only; do not write to vault. Do not create new TradeRecord/TradeStats types elsewhere—reuse `src/core/contracts.ts`. | Success: `TradeIndex.getAll()` returns correct `TradeRecord[]` for tagged trade notes._
 
 
-- [ ] 4. MVP：增量更新（vault 与 metadata 事件监听）
+- [x] 4. MVP：增量更新（vault 与 metadata 事件监听）
 	- 监听 `modify/rename/delete` + `metadataCache.changed`。
 	- 增量更新索引并 debounce。
 	- 对外发布 `changed` 事件（EventEmitter/Observable）。
