@@ -9,6 +9,14 @@ import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
+import {
+    computeDailyAgg,
+    computeEquityCurve,
+    computeStrategyAttribution,
+    filterTradesByScope,
+    type AnalyticsScope,
+    type DailyAgg,
+} from "../core/analytics";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
@@ -18,6 +26,22 @@ function toLocalDateIso(d: Date): string {
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+}
+
+function getLastLocalDateIsos(days: number): string[] {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < Math.max(1, days); i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        out.push(toLocalDateIso(d));
+    }
+    return out;
+}
+
+function getDayOfMonth(dateIso: string): string {
+    const parts = dateIso.split("-");
+    const d = parts[2] ?? "";
+    return d.startsWith("0") ? d.slice(1) : d;
 }
 
 function sumPnlR(trades: TradeRecord[]): number {
@@ -123,6 +147,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
         index.getStatus ? index.getStatus() : { phase: "ready" }
     );
 	const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(() => todayContext?.getTodayMarketCycle());
+	const [analyticsScope, setAnalyticsScope] = React.useState<AnalyticsScope>("Live");
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -195,6 +220,15 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
         cursor: "not-allowed",
     };
 
+	const selectStyle: React.CSSProperties = {
+		padding: "4px 8px",
+		fontSize: "0.85em",
+		border: "1px solid var(--background-modifier-border)",
+		borderRadius: "6px",
+		background: "var(--background-primary)",
+		color: "var(--text-normal)",
+	};
+
     const action = React.useCallback(
         async (capabilityId: IntegrationCapability) => {
             if (!integrations) return;
@@ -231,6 +265,35 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
         if (!latestTrade) return [];
         return buildReviewHints(latestTrade);
     }, [latestTrade]);
+
+    const analyticsTrades = React.useMemo(() => filterTradesByScope(trades, analyticsScope), [trades, analyticsScope]);
+    const analyticsDaily = React.useMemo(() => computeDailyAgg(analyticsTrades, 90), [analyticsTrades]);
+    const analyticsDailyByDate = React.useMemo(() => {
+        const m = new Map<string, DailyAgg>();
+        for (const d of analyticsDaily) m.set(d.dateIso, d);
+        return m;
+    }, [analyticsDaily]);
+
+    const calendarDays = 35;
+    const calendarDateIsos = React.useMemo(() => getLastLocalDateIsos(calendarDays), []);
+    const calendarCells = React.useMemo(() => {
+        return calendarDateIsos.map((dateIso) => analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 });
+    }, [calendarDateIsos, analyticsDailyByDate]);
+    const calendarMaxAbs = React.useMemo(() => {
+        let max = 0;
+        for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
+        return max;
+    }, [calendarCells]);
+
+    const equitySeries = React.useMemo(() => {
+        const dateIsosAsc = [...calendarDateIsos].reverse();
+        const filled: DailyAgg[] = dateIsosAsc.map((dateIso) => analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 });
+        return computeEquityCurve(filled);
+    }, [calendarDateIsos, analyticsDailyByDate]);
+
+    const strategyAttribution = React.useMemo(() => {
+        return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
+    }, [analyticsTrades, strategyIndex]);
 
     const openTrade = React.useMemo(() => {
         return trades.find((t) => {
@@ -799,6 +862,210 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                         )}
                     </div>
                 )}
+            </div>
+
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                        marginBottom: "8px",
+                    }}
+                >
+                    <div style={{ fontWeight: 600 }}>Analytics</div>
+                    <label
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                        }}
+                    >
+                        Scope
+                        <select
+                            value={analyticsScope}
+                            onChange={(e) => setAnalyticsScope(e.target.value as AnalyticsScope)}
+                            style={selectStyle}
+                        >
+                            <option value="Live">Live</option>
+                            <option value="Demo">Demo</option>
+                            <option value="Backtest">Backtest</option>
+                            <option value="All">All</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+                    <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
+                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Calendar (Last {calendarDays} days)</div>
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                                gap: "6px",
+                            }}
+                        >
+                            {calendarCells.map((c) => {
+                                const absRatio = calendarMaxAbs > 0 ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs) : 0;
+                                const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
+                                const bg =
+                                    c.netR > 0
+                                        ? `rgba(var(--color-green-rgb), ${alpha})`
+                                        : c.netR < 0
+                                            ? `rgba(var(--color-red-rgb), ${alpha})`
+                                            : `rgba(var(--mono-rgb-100), 0.05)`;
+                                return (
+                                    <div
+                                        key={`cal-${c.dateIso}`}
+                                        title={`${c.dateIso} • ${c.count} trades • ${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`}
+                                        style={{
+                                            border: "1px solid var(--background-modifier-border)",
+                                            borderRadius: "6px",
+                                            padding: "6px",
+                                            background: bg,
+                                            minHeight: "40px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            justifyContent: "space-between",
+                                        }}
+                                    >
+                                        <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>{getDayOfMonth(c.dateIso)}</div>
+                                        <div
+                                            style={{
+                                                fontSize: "0.85em",
+                                                fontWeight: 600,
+                                                color:
+                                                    c.netR > 0
+                                                        ? "var(--text-success)"
+                                                        : c.netR < 0
+                                                            ? "var(--text-error)"
+                                                            : "var(--text-faint)",
+                                                textAlign: "right",
+                                            }}
+                                        >
+                                            {c.count > 0 ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R` : "—"}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
+                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Equity Curve</div>
+                        {equitySeries.length > 1 ? (
+                            (() => {
+                                const w = 520;
+                                const h = 160;
+                                const pad = 14;
+                                const ys = equitySeries.map((p) => p.equityR);
+                                const minY = Math.min(...ys);
+                                const maxY = Math.max(...ys);
+                                const span = Math.max(1e-6, maxY - minY);
+                                const xStep = (w - pad * 2) / Math.max(1, equitySeries.length - 1);
+                                const points = equitySeries
+                                    .map((p, i) => {
+                                        const x = pad + i * xStep;
+                                        const y = pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
+                                        return `${x.toFixed(1)},${y.toFixed(1)}`;
+                                    })
+                                    .join(" ");
+
+                                const last = equitySeries[equitySeries.length - 1];
+                                return (
+                                    <div>
+                                        <svg
+                                            viewBox={`0 0 ${w} ${h}`}
+                                            width="100%"
+                                            height="160"
+                                            style={{
+                                                border: "1px solid var(--background-modifier-border)",
+                                                borderRadius: "8px",
+                                                background: `rgba(var(--mono-rgb-100), 0.03)`,
+                                            }}
+                                        >
+                                            <polyline
+                                                points={points}
+                                                fill="none"
+                                                stroke="var(--text-accent)"
+                                                strokeWidth="2"
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div style={{ marginTop: "6px", color: "var(--text-muted)", fontSize: "0.9em" }}>
+                                            Last:{" "}
+                                            <span
+                                                style={{
+                                                    color: last.equityR >= 0 ? "var(--text-success)" : "var(--text-error)",
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {last.equityR >= 0 ? "+" : ""}
+                                                {last.equityR.toFixed(1)}R
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()
+                        ) : (
+                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>Not enough data.</div>
+                        )}
+
+                        <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>Strategy Attribution (Top)</div>
+                        {strategyAttribution.length > 0 ? (
+                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                {strategyAttribution.map((r) => (
+                                    <li key={`attr-${r.strategyName}`} style={{ marginBottom: "6px" }}>
+                                        {r.strategyPath ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => openFile(r.strategyPath!)}
+                                                style={{
+                                                    padding: 0,
+                                                    border: "none",
+                                                    background: "transparent",
+                                                    color: "var(--text-accent)",
+                                                    cursor: "pointer",
+                                                    textAlign: "left",
+                                                }}
+                                            >
+                                                {r.strategyName}
+                                            </button>
+                                        ) : (
+                                            <span>{r.strategyName}</span>
+                                        )}
+                                        <span style={{ color: "var(--text-muted)", marginLeft: "8px", fontSize: "0.9em" }}>
+                                            {r.count} trades •{" "}
+                                            <span
+                                                style={{
+                                                    color: r.netR >= 0 ? "var(--text-success)" : "var(--text-error)",
+                                                    fontWeight: 600,
+                                                }}
+                                            >
+                                                {r.netR >= 0 ? "+" : ""}
+                                                {r.netR.toFixed(1)}R
+                                            </span>
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No strategy data found.</div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Main Content Area */}

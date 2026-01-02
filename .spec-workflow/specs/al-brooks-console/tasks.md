@@ -156,7 +156,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Product feature engineer | Task: Port Today module behaviors (cycle-driven recommendations + in-progress trade assistant) into native UI. | Restrictions: Match legacy behavior first; avoid adding new assistant logic. | Success: Today view provides equivalent value to legacy Today module._
 
 
-- [ ] 15. Next：迁移 Analytics 核心（账户/日历/资金曲线/归因排行）
+- [x] 15. Next：迁移 Analytics 核心（账户/日历/资金曲线/归因排行）
 	- 账户概览：Live/Demo/Backtest 与汇总 All。
 	- 日历热力图（优先 Live，或可切换/汇总）。
 	- 资金曲线（SVG/轻量实现，避免重型图表库）。
