@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/specs/al-brooks-console/tasks.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-02T01:39:56.507Z",
+      "trigger": "initial",
+      "approvalId": "approval_1767317996390_u6kqw7dno",
+      "approvalTitle": "Approve tasks for al-brooks-console"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2026-01-02T01:41:39.304Z",
+      "trigger": "approved",
+      "approvalId": "approval_1767317996390_u6kqw7dno",
+      "approvalTitle": "Approve tasks for al-brooks-console"
+    }
+  ]
+}
