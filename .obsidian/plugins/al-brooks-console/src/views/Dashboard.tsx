@@ -1515,15 +1515,11 @@ const ConsoleComponent: React.FC<Props> = ({
                             <button
                               type="button"
                               onClick={() => openFile(link.path)}
-                              style={{
-                                padding: 0,
-                                border: "none",
-                                background: "transparent",
-                                color: "var(--text-accent)",
-                                cursor: "pointer",
-                                textAlign: "left",
-                                fontWeight: 600,
-                              }}
+                              style={{ ...textButtonStyle, fontWeight: 600 }}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
                             >
                               {prefix}: {String(rec.data.t ?? rec.data.id)}
                             </button>
@@ -1591,13 +1587,11 @@ const ConsoleComponent: React.FC<Props> = ({
                         <button
                           type="button"
                           onClick={() => openFile(x.link!.path)}
-                          style={{
-                            padding: 0,
-                            border: "none",
-                            background: "transparent",
-                            color: "var(--text-accent)",
-                            cursor: "pointer",
-                          }}
+                          style={textButtonStyle}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
                         >
                           {label}
                         </button>
@@ -1671,6 +1665,23 @@ const ConsoleComponent: React.FC<Props> = ({
                             disabled={!c.link}
                             onClick={() => c.link && openFile(c.link.path)}
                             title={title}
+                            onMouseEnter={(e) => {
+                              if (!c.link) return;
+                              e.currentTarget.style.borderColor =
+                                "var(--interactive-accent)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor =
+                                "var(--background-modifier-border)";
+                            }}
+                            onFocus={(e) => {
+                              if (!c.link) return;
+                              e.currentTarget.style.boxShadow =
+                                "0 0 0 2px var(--interactive-accent)";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.boxShadow = "none";
+                            }}
                             style={{
                               width: "26px",
                               height: "26px",
@@ -1682,6 +1693,9 @@ const ConsoleComponent: React.FC<Props> = ({
                               background: bg,
                               cursor: c.link ? "pointer" : "default",
                               opacity: c.link ? 1 : 0.75,
+                              outline: "none",
+                              transition:
+                                "border-color 180ms ease, box-shadow 180ms ease",
                             }}
                           >
                             <div
@@ -1830,33 +1844,11 @@ const ConsoleComponent: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => openFile(memory.focusFile!.path)}
-                  style={{
-                    padding: "2px 4px",
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text-accent)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontWeight: 600,
-                    borderRadius: "6px",
-                    outline: "none",
-                    transition:
-                      "background-color 180ms ease, box-shadow 180ms ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      "var(--background-modifier-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 2px var(--interactive-accent)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  style={{ ...textButtonStyle, fontWeight: 600 }}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
                 >
                   {memory.focusFile.name.replace(/\.md$/i, "")}
                 </button>
@@ -1887,14 +1879,11 @@ const ConsoleComponent: React.FC<Props> = ({
                       <button
                         type="button"
                         onClick={() => openFile(q.path)}
-                        style={{
-                          padding: 0,
-                          border: "none",
-                          background: "transparent",
-                          color: "var(--text-accent)",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
                       >
                         {q.q || q.file}
                       </button>
@@ -2199,6 +2188,25 @@ const ConsoleComponent: React.FC<Props> = ({
                 type="button"
                 onClick={() => openFile(it.coverPath)}
                 title={it.coverPath}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--interactive-accent)";
+                  e.currentTarget.style.background =
+                    "rgba(var(--mono-rgb-100), 0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--background-modifier-border)";
+                  e.currentTarget.style.background =
+                    "rgba(var(--mono-rgb-100), 0.03)";
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 2px var(--interactive-accent)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 style={{
                   padding: 0,
                   border: "1px solid var(--background-modifier-border)",
@@ -2206,6 +2214,9 @@ const ConsoleComponent: React.FC<Props> = ({
                   overflow: "hidden",
                   background: `rgba(var(--mono-rgb-100), 0.03)`,
                   cursor: "pointer",
+                  outline: "none",
+                  transition:
+                    "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
                 }}
               >
                 {it.url ? (
