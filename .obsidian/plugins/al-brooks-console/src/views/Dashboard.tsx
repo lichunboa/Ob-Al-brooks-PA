@@ -4,12 +4,52 @@ import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
 import { buildReviewHints } from "../core/review-hints";
+import type { AccountType, TradeRecord } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
+
+function toLocalDateIso(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function sumPnlR(trades: TradeRecord[]): number {
+    let sum = 0;
+    for (const t of trades) {
+        if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
+    }
+    return sum;
+}
+
+function getRColorByAccountType(accountType: AccountType): string {
+    switch (accountType) {
+        case "Live":
+            return "var(--text-success)";
+        case "Demo":
+            return "var(--text-warning)";
+        case "Backtest":
+            return "var(--text-accent)";
+    }
+}
+
+function computeWindowRByAccountType(trades: TradeRecord[], windowSize: number): Record<AccountType, number> {
+    const by: Record<AccountType, TradeRecord[]> = { Live: [], Demo: [], Backtest: [] };
+    for (const t of trades.slice(0, windowSize)) {
+        const at = t.accountType;
+        if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
+    }
+    return {
+        Live: sumPnlR(by.Live),
+        Demo: sumPnlR(by.Demo),
+        Backtest: sumPnlR(by.Backtest),
+    };
+}
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -162,6 +202,20 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
     );
 
     const latestTrade = trades.length > 0 ? trades[0] : undefined;
+    const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
+    const todayTrades = React.useMemo(() => trades.filter((t) => t.dateIso === todayIso), [trades, todayIso]);
+    const todaySummary = React.useMemo(() => computeTradeStatsByAccountType(todayTrades), [todayTrades]);
+    const todayLatestTrade = todayTrades.length > 0 ? todayTrades[0] : undefined;
+    const rLast10 = React.useMemo(() => computeWindowRByAccountType(trades, 10), [trades]);
+    const rLast30 = React.useMemo(() => computeWindowRByAccountType(trades, 30), [trades]);
+    const r10MaxAbs = React.useMemo(
+        () => Math.max(Math.abs(rLast10.Live), Math.abs(rLast10.Demo), Math.abs(rLast10.Backtest), 0),
+        [rLast10]
+    );
+    const r30MaxAbs = React.useMemo(
+        () => Math.max(Math.abs(rLast30.Live), Math.abs(rLast30.Demo), Math.abs(rLast30.Backtest), 0),
+        [rLast30]
+    );
     const reviewHints = React.useMemo(() => {
         if (!latestTrade) return [];
         return buildReviewHints(latestTrade);
@@ -187,6 +241,67 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
             limit: 6,
         });
     }, [latestTrade, strategyIndex]);
+
+    const TrendRow: React.FC<{ label: string; value: number; ratio: number; color: string }> = ({
+        label,
+        value,
+        ratio,
+        color,
+    }) => {
+        return (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                <div style={{ width: "70px", color: "var(--text-muted)", fontSize: "0.85em" }}>{label}</div>
+                <div
+                    style={{
+                        flex: "1 1 auto",
+                        display: "flex",
+                        height: "10px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "999px",
+                        overflow: "hidden",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                >
+                    <div style={{ flex: "1 1 0", position: "relative" }}>
+                        {ratio < 0 && (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    right: 0,
+                                    height: "100%",
+                                    width: "100%",
+                                    background: color,
+                                    opacity: 0.55,
+                                    transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                                    transformOrigin: "right",
+                                }}
+                            />
+                        )}
+                    </div>
+                    <div style={{ flex: "1 1 0", position: "relative" }}>
+                        {ratio > 0 && (
+                            <div
+                                style={{
+                                    height: "100%",
+                                    width: "100%",
+                                    background: color,
+                                    opacity: 0.55,
+                                    transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                                    transformOrigin: "left",
+                                }}
+                            />
+                        )}
+                    </div>
+                </div>
+                <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
+                    <span style={{ color: value >= 0 ? "var(--text-success)" : "var(--text-error)", fontWeight: 600 }}>
+                        {value >= 0 ? "+" : ""}
+                        {value.toFixed(1)}R
+                    </span>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
@@ -328,6 +443,132 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, int
                     </ul>
                 </div>
             )}
+
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>Trading Hub</div>
+
+                <div
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "12px",
+                        marginBottom: "12px",
+                    }}
+                >
+                    <StatsCard title="Today Trades" value={todaySummary.All.countTotal} icon="🗓️" />
+                    <StatsCard
+                        title="Today PnL"
+                        value={`${todaySummary.All.netProfit > 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`}
+                        color={todaySummary.All.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
+                        icon="📈"
+                    />
+                    <div
+                        style={{
+                            flex: "1 1 240px",
+                            minWidth: "240px",
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            background: `rgba(var(--mono-rgb-100), 0.05)`,
+                        }}
+                    >
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
+                            Latest Trade
+                            <span style={{ marginLeft: "6px", color: "var(--text-faint)" }}>{todayIso}</span>
+                        </div>
+                        <div style={{ marginTop: "8px", fontWeight: 700, fontSize: "1.1rem" }}>
+                            {todayLatestTrade ? (
+                                <button
+                                    type="button"
+                                    onClick={() => openFile(todayLatestTrade.path)}
+                                    style={{
+                                        padding: 0,
+                                        border: "none",
+                                        background: "transparent",
+                                        color: "var(--text-accent)",
+                                        cursor: "pointer",
+                                        textAlign: "left",
+                                    }}
+                                >
+                                    {todayLatestTrade.ticker ?? "Unknown"} • {todayLatestTrade.name}
+                                </button>
+                            ) : (
+                                <span style={{ color: "var(--text-faint)" }}>—</span>
+                            )}
+                        </div>
+                        <div style={{ marginTop: "6px", color: "var(--text-muted)", fontSize: "0.85em" }}>
+                            {todayTrades.length > 0 ? `${todayTrades.length} trades today` : "No trades today"}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Quick Open</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-live-trade")}
+                            onClick={() => action("quickadd:new-live-trade")}
+                            style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Live Trade
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-demo-trade")}
+                            onClick={() => action("quickadd:new-demo-trade")}
+                            style={can("quickadd:new-demo-trade") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Demo Trade
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!can("quickadd:new-backtest")}
+                            onClick={() => action("quickadd:new-backtest")}
+                            style={can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle}
+                        >
+                            New Backtest
+                        </button>
+                        {!can("quickadd:new-live-trade") && !can("quickadd:new-demo-trade") && !can("quickadd:new-backtest") && (
+                            <span style={{ color: "var(--text-muted)", fontSize: "0.85em", alignSelf: "center" }}>
+                                QuickAdd unavailable
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Recent R Trend</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", marginBottom: "8px" }}>Last 10</div>
+                    {(["Live", "Demo", "Backtest"] as const).map((at) => (
+                        <TrendRow
+                            key={`r10-${at}`}
+                            label={at}
+                            value={rLast10[at]}
+                            ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
+                            color={getRColorByAccountType(at)}
+                        />
+                    ))}
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", margin: "10px 0 8px" }}>Last 30</div>
+                    {(["Live", "Demo", "Backtest"] as const).map((at) => (
+                        <TrendRow
+                            key={`r30-${at}`}
+                            label={at}
+                            value={rLast30[at]}
+                            ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
+                            color={getRColorByAccountType(at)}
+                        />
+                    ))}
+                </div>
+            </div>
 
             {/* Stats Row */}
             <div style={{

@@ -138,7 +138,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Migration QA engineer | Task: Expand the validation checklist using the view dependency matrix, including downgrade behaviors. | Restrictions: Keep it manual; no automation required. | Success: Clear checklist covering data parity + integration downgrade behaviors._
 
 
-- [ ] 13. Next：迁移 Trading Hub（今日汇总 + 快速开仓 + 近期 R 趋势）
+- [x] 13. Next：迁移 Trading Hub（今日汇总 + 快速开仓 + 近期 R 趋势）
 	- 提供“交易中心”等价入口（可在同一 ItemView 内以分区/Tab 呈现）。
 	- 今日汇总：今日 PnL/交易数/最近交易。
 	- 快速开仓：通过 QuickAddAdapter 触发；缺失则降级。
