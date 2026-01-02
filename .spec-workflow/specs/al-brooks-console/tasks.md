@@ -83,7 +83,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data correctness engineer | Task: Standardize winrate calculation in the Stats SSOT (pnl primary, outcome fallback). | Restrictions: Must not silently change meaning; document behavior in code/docs. Must not add alternate winrate calculators elsewhere. | Success: Consistent winrate across all displays via `src/core/stats.ts`._
 
 
-- [ ] 7. MVP：对照与验收（保留 Dataview 版作为基准）
+- [x] 7. MVP：对照与验收（保留 Dataview 版作为基准）
 	- 写一份手工验收清单（基于 requirements AC）。
 	- 在 vault 中选择样本交易，核对 count/netProfit/winRate。
 	- _Leverage: Existing Dataview console as baseline._
