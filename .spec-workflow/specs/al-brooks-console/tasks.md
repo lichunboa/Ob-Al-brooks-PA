@@ -207,7 +207,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Learning loop engineer | Task: Port Course + Memory (SRS) modules with adapter-based integration and safe degradation. | Restrictions: No hard dependency on SRS plugin; keep UX minimal. | Success: Users regain the learning/review workflows present in the Dataview console._
 
 
-- [ ] 20. Advanced：导出与回归（插件索引快照，替代 pa-db-export.json）
+- [x] 20. Advanced：导出与回归（插件索引快照，替代 pa-db-export.json）
 	- 提供“导出索引快照”能力（JSON），用于回归对照与备份。
 	- 导出内容至少包括：trades（归一化字段）、stats（分 account_type + all）、strategyIndex（若已实现）。
 	- _Leverage: TradeIndex/Stats/StrategyIndex single sources of truth._

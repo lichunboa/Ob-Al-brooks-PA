@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
 import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
 import { ObsidianTradeIndex } from "./platforms/obsidian/obsidian-trade-index";
 import { ObsidianStrategyIndex } from "./platforms/obsidian/obsidian-strategy-index";
@@ -6,6 +6,8 @@ import { ObsidianTodayContext } from "./platforms/obsidian/obsidian-today-contex
 import { PluginIntegrationRegistry } from "./integrations/PluginIntegrationRegistry";
 import { DEFAULT_SETTINGS, type AlBrooksConsoleSettings } from "./settings";
 import { AlBrooksConsoleSettingTab } from "./settings-tab";
+import { computeTradeStatsByAccountType } from "./core/stats";
+import { buildConsoleExportSnapshot } from "./core/export-snapshot";
 
 export default class AlBrooksConsolePlugin extends Plugin {
     public index: ObsidianTradeIndex;
@@ -85,6 +87,87 @@ export default class AlBrooksConsolePlugin extends Plugin {
                 this.activateView();
             }
         });
+
+        this.addCommand({
+            id: "export-index-snapshot",
+            name: "Export Index Snapshot (JSON)",
+            callback: () => {
+                void this.exportIndexSnapshot();
+            },
+        });
+    }
+
+    private async exportIndexSnapshot(): Promise<void> {
+        try {
+            const exportedAt = new Date().toISOString();
+            const trades = this.index?.getAll?.() ?? [];
+            const statsByAccountType = computeTradeStatsByAccountType(trades);
+            const strategyCards = this.strategyIndex?.list?.();
+            const snapshot = buildConsoleExportSnapshot({
+                exportedAt,
+                pluginVersion: this.manifest.version,
+                trades,
+                statsByAccountType,
+                strategyCards,
+            });
+
+            const content = JSON.stringify(snapshot, null, 2);
+            const dir = "Exports/al-brooks-console";
+            await this.ensureFolder(dir);
+
+            const stamp = this.toFileTimestamp(new Date());
+            const base = `${dir}/snapshot_${stamp}.json`;
+            const path = await this.pickAvailablePath(base);
+            await this.app.vault.create(path, content);
+            new Notice(`Al Brooks Console: Exported snapshot → ${path}`);
+        } catch (e) {
+            new Notice(`Al Brooks Console: Export failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+    }
+
+    private async ensureFolder(path: string): Promise<void> {
+        const parts = String(path ?? "")
+            .replace(/^\/+/, "")
+            .split("/")
+            .map((p) => p.trim())
+            .filter(Boolean);
+
+        let cur = "";
+        for (const p of parts) {
+            cur = cur ? `${cur}/${p}` : p;
+            const existing = this.app.vault.getAbstractFileByPath(cur);
+            if (!existing) {
+                try {
+                    await this.app.vault.createFolder(cur);
+                } catch {
+                    // ignore if created concurrently
+                }
+            }
+        }
+    }
+
+    private async pickAvailablePath(basePath: string): Promise<string> {
+        const raw = String(basePath ?? "").replace(/^\/+/, "");
+        if (!this.app.vault.getAbstractFileByPath(raw)) return raw;
+
+        const m = raw.match(/^(.*?)(\.[^./]+)$/);
+        const prefix = m ? m[1] : raw;
+        const ext = m ? m[2] : "";
+        for (let i = 2; i <= 9999; i++) {
+            const candidate = `${prefix}_${i}${ext}`;
+            if (!this.app.vault.getAbstractFileByPath(candidate)) return candidate;
+        }
+        return `${prefix}_${Date.now()}${ext}`;
+    }
+
+    private toFileTimestamp(d: Date): string {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        return `${y}${m}${day}_${hh}${mm}${ss}`;
     }
 
     async activateView() {
