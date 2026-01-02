@@ -261,6 +261,10 @@ BINANCE_FUTURES_URL = 'https://fapi.binance.com'
 BINANCE_SPOT_URL = 'https://api.binance.com'
 BINANCE_API_DISABLED = _require_env('BINANCE_API_DISABLED', default='1') == '1'
 
+# 屏蔽币种（从环境变量读取，逗号分隔）
+_blocked_str = _require_env('BLOCKED_SYMBOLS', default='BNXUSDT,ALPACAUSDT')
+BLOCKED_SYMBOLS = set(s.strip().upper() for s in _blocked_str.split(',') if s.strip())
+
 # 🔁 策略扫描脚本路径（用于定时刷新 CSV 榜单）
 
 # 数据文件配置 - 使用项目根目录下的data文件夹
@@ -774,8 +778,8 @@ class UserRequestHandler:
     """专门处理用户请求的轻量级处理器 - 只读取缓存，不进行网络请求"""
     
     def __init__(self, card_registry: Optional[RankingRegistry] = None):
-        # 需要屏蔽的币种列表
-        self.blocked_symbols = {'BNXUSDT', 'ALPACAUSDT'}
+        # 需要屏蔽的币种列表（从全局配置读取）
+        self.blocked_symbols = BLOCKED_SYMBOLS
         # 用户状态管理
         self.user_states = {
             'position_sort': 'desc',
@@ -2120,8 +2124,8 @@ class TradeCatBot:
         self.cache_file_secondary = CACHE_FILE_SECONDARY
         self._current_cache_file = self.cache_file_primary  # 当前使用的缓存文件
         self._is_updating = False  # 是否正在更新缓存
-        # 需要屏蔽的币种列表
-        self.blocked_symbols = {'BNXUSDT', 'ALPACAUSDT'}
+        # 需要屏蔽的币种列表（从全局配置读取）
+        self.blocked_symbols = BLOCKED_SYMBOLS
         self.metric_service = BINANCE_DB_METRIC_SERVICE
         if self.metric_service is None:
             logger.warning("⚠️ 币安数据库指标服务未就绪，部分排行榜将回退至缓存逻辑")
