@@ -553,7 +553,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 paddingBottom: "10px",
                 marginBottom: "20px"
             }}>
-                🦁 Trader Dashboard <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>v{version}</span>
+                🦁 交易员控制台 <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>(Trader Dashboard)</span> <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>v{version}</span>
                 <span style={{ fontSize: "0.8em", color: "var(--text-muted)", marginLeft: "10px" }}>{statusText}</span>
                 {integrations && (
                     <span style={{ marginLeft: "10px" }}>
@@ -563,7 +563,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-live-trade")}
                             style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Live Trade
+                            新建实盘
                         </button>
                         <button
                             type="button"
@@ -571,7 +571,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-demo-trade")}
                             style={can("quickadd:new-demo-trade") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Demo Trade
+                            新建模拟
                         </button>
                         <button
                             type="button"
@@ -579,7 +579,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-backtest")}
                             style={can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Backtest
+                            新建回测
                         </button>
                         <button
                             type="button"
@@ -587,7 +587,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("srs:review-flashcards")}
                             style={can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle}
                         >
-                            Review
+                            复习
                         </button>
                         <button
                             type="button"
@@ -595,7 +595,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("dataview:force-refresh")}
                             style={can("dataview:force-refresh") ? buttonStyle : disabledButtonStyle}
                         >
-                            Refresh DV
+                            刷新 DV
                         </button>
                         <button
                             type="button"
@@ -603,7 +603,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("tasks:open")}
                             style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
                         >
-                            Tasks
+                            任务
                         </button>
                         <button
                             type="button"
@@ -611,7 +611,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("metadata-menu:open")}
                             style={can("metadata-menu:open") ? buttonStyle : disabledButtonStyle}
                         >
-                            Metadata
+                            元数据
                         </button>
                     </span>
                 )}
@@ -621,7 +621,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                         onClick={onRebuild}
                         style={{ ...buttonStyle, marginLeft: "12px" }}
                     >
-                        Rebuild Index
+                        重建索引
                     </button>
                 )}
             </h2>
@@ -637,7 +637,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                     }}
                 >
                     <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                        Review Hints
+                        复盘提示
                         <span style={{ fontWeight: 400, marginLeft: "8px", color: "var(--text-muted)", fontSize: "0.85em" }}>
                             {latestTrade.name}
                         </span>
@@ -663,7 +663,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                         background: "var(--background-primary)",
                     }}
                 >
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Today's Strategy Picks</div>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日策略推荐</div>
                     <ul style={{ margin: 0, paddingLeft: "18px" }}>
                         {strategyPicks.map((s) => (
                             <li key={s.path} style={{ marginBottom: "6px" }}>
@@ -696,7 +696,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                     background: "var(--background-primary)",
                 }}
             >
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>Trading Hub</div>
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>交易中枢</div>
 
                 <div
                     style={{
@@ -706,9 +706,9 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                         marginBottom: "12px",
                     }}
                 >
-                    <StatsCard title="Today Trades" value={todaySummary.All.countTotal} icon="🗓️" />
+                    <StatsCard title="今日笔数" value={todaySummary.All.countTotal} icon="🗓️" />
                     <StatsCard
-                        title="Today PnL"
+                        title="今日盈亏"
                         value={`${todaySummary.All.netProfit > 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`}
                         color={todaySummary.All.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
                         icon="📈"
@@ -724,7 +724,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                         }}
                     >
                         <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", letterSpacing: "0.05em" }}>
-                            Latest Trade
+                            最新交易
                             <span style={{ marginLeft: "6px", color: "var(--text-faint)" }}>{todayIso}</span>
                         </div>
                         <div style={{ marginTop: "8px", fontWeight: 700, fontSize: "1.1rem" }}>
@@ -741,20 +741,20 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                                         textAlign: "left",
                                     }}
                                 >
-                                    {todayLatestTrade.ticker ?? "Unknown"} • {todayLatestTrade.name}
+                                    {todayLatestTrade.ticker ?? "未知"} • {todayLatestTrade.name}
                                 </button>
                             ) : (
                                 <span style={{ color: "var(--text-faint)" }}>—</span>
                             )}
                         </div>
                         <div style={{ marginTop: "6px", color: "var(--text-muted)", fontSize: "0.85em" }}>
-                            {todayTrades.length > 0 ? `${todayTrades.length} trades today` : "No trades today"}
+                            {todayTrades.length > 0 ? `今日 ${todayTrades.length} 笔` : "今日暂无交易"}
                         </div>
                     </div>
                 </div>
 
                 <div style={{ marginBottom: "12px" }}>
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Quick Open</div>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷入口</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                         <button
                             type="button"
@@ -762,7 +762,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-live-trade")}
                             style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Live Trade
+                            新建实盘
                         </button>
                         <button
                             type="button"
@@ -770,7 +770,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-demo-trade")}
                             style={can("quickadd:new-demo-trade") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Demo Trade
+                            新建模拟
                         </button>
                         <button
                             type="button"
@@ -778,33 +778,33 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                             onClick={() => action("quickadd:new-backtest")}
                             style={can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle}
                         >
-                            New Backtest
+                            新建回测
                         </button>
                         {!can("quickadd:new-live-trade") && !can("quickadd:new-demo-trade") && !can("quickadd:new-backtest") && (
                             <span style={{ color: "var(--text-muted)", fontSize: "0.85em", alignSelf: "center" }}>
-                                QuickAdd unavailable
+                                QuickAdd 不可用
                             </span>
                         )}
                     </div>
                 </div>
 
                 <div>
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Recent R Trend</div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", marginBottom: "8px" }}>Last 10</div>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>近期 R 趋势</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", marginBottom: "8px" }}>最近 10 笔</div>
                     {(["Live", "Demo", "Backtest"] as const).map((at) => (
                         <TrendRow
                             key={`r10-${at}`}
-                            label={at}
+                            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
                             value={rLast10[at]}
                             ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
                             color={getRColorByAccountType(at)}
                         />
                     ))}
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", margin: "10px 0 8px" }}>Last 30</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em", margin: "10px 0 8px" }}>最近 30 笔</div>
                     {(["Live", "Demo", "Backtest"] as const).map((at) => (
                         <TrendRow
                             key={`r30-${at}`}
-                            label={at}
+                            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
                             value={rLast30[at]}
                             ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
                             color={getRColorByAccountType(at)}
@@ -821,18 +821,18 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 marginBottom: "24px"
             }}>
                 <StatsCard
-                    title="Total Trades"
+                    title="总笔数"
                     value={all.countTotal}
                     icon="📊"
                 />
                 <StatsCard
-                    title="Net PnL"
+                    title="累计盈亏"
                     value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
                     color={all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
                     icon="💰"
                 />
                 <StatsCard
-                    title="Win Rate"
+                    title="胜率"
                     value={`${all.winRatePct}%`}
                     color={all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"}
                     icon="🎯"
@@ -991,7 +991,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No matched strategy found.</div>
+                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>未找到匹配策略。</div>
                         )}
                     </div>
                 )}
@@ -1007,16 +1007,16 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
-                    <div style={{ fontWeight: 600 }}>Course</div>
+                    <div style={{ fontWeight: 600 }}>课程 <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: "0.85em" }}>(Course)</span></div>
                     <button type="button" onClick={reloadCourse} disabled={!loadCourse || courseBusy} style={{ padding: "6px 10px" }}>
-                        Refresh
+                        刷新
                     </button>
                 </div>
 
                 {courseError ? (
                     <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>{courseError}</div>
                 ) : courseBusy ? (
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>Loading…</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>加载中…</div>
                 ) : course && course.syllabus.length > 0 ? (
                     <div>
                         {course.hybridRec ? (() => {
@@ -1061,7 +1061,7 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
 
                         {course.upNext.length > 0 && (
                             <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "8px" }}>
-                                Up Next (window={settings.courseRecommendationWindow}):{" "}
+                                接下来（window={settings.courseRecommendationWindow}）：{" "}
                                 {course.upNext.map((x, idx) => {
                                     const label = String(x.item.id);
                                     if (x.link) {

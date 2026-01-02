@@ -6,7 +6,7 @@ const CMD_REVIEW = "obsidian-spaced-repetition:srs-review-flashcards";
 
 export class SrsAdapter implements PluginAdapter {
 	public id = "obsidian-spaced-repetition";
-	public displayName = "Spaced Repetition";
+	public displayName = "间隔重复（SRS）";
 
 	private app: App;
 
@@ -20,7 +20,7 @@ export class SrsAdapter implements PluginAdapter {
 
 	public getCapabilities(): IntegrationCapabilityInfo[] {
 		if (!commandExists(this.app, CMD_REVIEW)) return [];
-		return [{ id: "srs:review-flashcards", label: "Review Flashcards", commandId: CMD_REVIEW }];
+		return [{ id: "srs:review-flashcards", label: "复习闪卡", commandId: CMD_REVIEW }];
 	}
 
 	public async run(capabilityId: IntegrationCapability): Promise<void> {

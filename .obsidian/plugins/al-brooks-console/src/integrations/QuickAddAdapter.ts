@@ -28,13 +28,13 @@ export class QuickAddAdapter implements PluginAdapter {
 	public getCapabilities(): IntegrationCapabilityInfo[] {
 		const caps: IntegrationCapabilityInfo[] = [];
 		if (commandExists(this.app, CMD_NEW_LIVE)) {
-			caps.push({ id: "quickadd:new-live-trade", label: "New Live Trade", commandId: CMD_NEW_LIVE });
+			caps.push({ id: "quickadd:new-live-trade", label: "新建实盘交易", commandId: CMD_NEW_LIVE });
 		}
 		if (commandExists(this.app, CMD_NEW_DEMO)) {
-			caps.push({ id: "quickadd:new-demo-trade", label: "New Demo Trade", commandId: CMD_NEW_DEMO });
+			caps.push({ id: "quickadd:new-demo-trade", label: "新建模拟交易", commandId: CMD_NEW_DEMO });
 		}
 		if (commandExists(this.app, CMD_NEW_BACKTEST)) {
-			caps.push({ id: "quickadd:new-backtest", label: "New Backtest", commandId: CMD_NEW_BACKTEST });
+			caps.push({ id: "quickadd:new-backtest", label: "新建回测记录", commandId: CMD_NEW_BACKTEST });
 		}
 		return caps;
 	}

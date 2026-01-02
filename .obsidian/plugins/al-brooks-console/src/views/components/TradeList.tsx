@@ -46,7 +46,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                         >
                             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                                 <div style={{ fontWeight: "600", fontSize: "1rem" }}>
-                                    {t.ticker ?? "Unknown"}
+                                    {t.ticker ?? "未知"}
                                 </div>
                                 <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
                                     {t.dateIso} • {""}
@@ -73,7 +73,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 })}
                 {trades.length === 0 && (
                     <div style={{ padding: "20px", textAlign: "center", color: "var(--text-faint)" }}>
-                        No trades found. Start trading!
+						未找到交易记录。开始记录吧！
                     </div>
                 )}
             </div>
@@ -154,7 +154,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                         onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--background-modifier-border)"}
                     >
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <div style={{ fontWeight: "600", fontSize: "1rem" }}>{t.ticker ?? "Unknown"}</div>
+                            <div style={{ fontWeight: "600", fontSize: "1rem" }}>{t.ticker ?? "未知"}</div>
                             <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
 							{t.dateIso} • {""}
                             </div>
@@ -177,7 +177,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
 				})}
 				{trades.length === 0 && (
 					<div style={{ padding: "20px", textAlign: "center", color: "var(--text-faint)" }}>
-						No trades found. Start trading!
+                        未找到交易记录。开始记录吧！
 					</div>
 				)}
 			</div>

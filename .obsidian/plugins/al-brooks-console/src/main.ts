@@ -43,7 +43,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
     }
 
     async onload() {
-        console.log("🦁 Al Brooks Console: Loading...");
+        console.log("🦁 交易员控制台：加载中…");
 
 		await this.loadSettings();
 		this.addSettingTab(new AlBrooksConsoleSettingTab(this.app, this));
@@ -76,13 +76,13 @@ export default class AlBrooksConsolePlugin extends Plugin {
                 )
         );
 
-        this.addRibbonIcon("bar-chart-2", "Open Trader Console", () => {
+        this.addRibbonIcon("bar-chart-2", "打开交易员控制台", () => {
             this.activateView();
         });
 
         this.addCommand({
             id: "open-console",
-            name: "Open Trader Console",
+            name: "打开交易员控制台",
             callback: () => {
                 this.activateView();
             }
@@ -90,7 +90,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
 
         this.addCommand({
             id: "export-index-snapshot",
-            name: "Export Index Snapshot (JSON)",
+            name: "导出索引快照（JSON）",
             callback: () => {
                 void this.exportIndexSnapshot();
             },
@@ -119,9 +119,9 @@ export default class AlBrooksConsolePlugin extends Plugin {
             const base = `${dir}/snapshot_${stamp}.json`;
             const path = await this.pickAvailablePath(base);
             await this.app.vault.create(path, content);
-            new Notice(`Al Brooks Console: Exported snapshot → ${path}`);
+            new Notice(`交易员控制台：已导出快照 → ${path}`);
         } catch (e) {
-            new Notice(`Al Brooks Console: Export failed: ${e instanceof Error ? e.message : String(e)}`);
+            new Notice(`交易员控制台：导出失败：${e instanceof Error ? e.message : String(e)}`);
         }
     }
 

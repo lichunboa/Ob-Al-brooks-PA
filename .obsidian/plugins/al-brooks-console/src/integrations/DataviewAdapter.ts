@@ -26,7 +26,7 @@ export class DataviewAdapter implements PluginAdapter {
 				? CMD_FALLBACK
 				: undefined;
 		if (!cmd) return [];
-		return [{ id: "dataview:force-refresh", label: "Force Refresh Dataview", commandId: cmd }];
+		return [{ id: "dataview:force-refresh", label: "强制刷新 Dataview", commandId: cmd }];
 	}
 
 	public async run(capabilityId: IntegrationCapability): Promise<void> {
