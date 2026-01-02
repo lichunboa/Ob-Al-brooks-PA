@@ -7,6 +7,18 @@ interface TradeListProps {
 }
 
 export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
+  const activateRow = React.useCallback((el: HTMLDivElement) => {
+    el.style.borderColor = "var(--interactive-accent)";
+    el.style.background = "var(--background-modifier-hover)";
+    el.style.boxShadow = "0 0 0 2px var(--background-modifier-border)";
+  }, []);
+
+  const deactivateRow = React.useCallback((el: HTMLDivElement) => {
+    el.style.borderColor = "var(--background-modifier-border)";
+    el.style.background = "var(--background-primary)";
+    el.style.boxShadow = "none";
+  }, []);
+
   if (trades.length <= 200) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -32,19 +44,25 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                transition: "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+                outline: "none",
               }}
+              role="button"
+              tabIndex={0}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""}）`}
               onClick={() => {
                 onOpenFile(t.path);
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.borderColor =
-                  "var(--interactive-accent)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor =
-                  "var(--background-modifier-border)")
-              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenFile(t.path);
+                }
+              }}
+              onMouseEnter={(e) => activateRow(e.currentTarget)}
+              onMouseLeave={(e) => deactivateRow(e.currentTarget)}
+              onFocus={(e) => activateRow(e.currentTarget)}
+              onBlur={(e) => deactivateRow(e.currentTarget)}
             >
               <div
                 style={{ display: "flex", flexDirection: "column", gap: "2px" }}
@@ -53,7 +71,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                   {t.ticker ?? "未知"}
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                  {t.dateIso} • {""}
+                  {t.dateIso}
                 </div>
               </div>
 
@@ -163,20 +181,26 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                transition: "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+                outline: "none",
               }}
+              role="button"
+              tabIndex={0}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""}）`}
               onClick={() => {
                 // Open file
                 onOpenFile(t.path);
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.borderColor =
-                  "var(--interactive-accent)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor =
-                  "var(--background-modifier-border)")
-              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenFile(t.path);
+                }
+              }}
+              onMouseEnter={(e) => activateRow(e.currentTarget)}
+              onMouseLeave={(e) => deactivateRow(e.currentTarget)}
+              onFocus={(e) => activateRow(e.currentTarget)}
+              onBlur={(e) => deactivateRow(e.currentTarget)}
             >
               <div
                 style={{ display: "flex", flexDirection: "column", gap: "2px" }}
@@ -185,7 +209,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                   {t.ticker ?? "未知"}
                 </div>
                 <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                  {t.dateIso} • {""}
+                  {t.dateIso}
                 </div>
               </div>
 

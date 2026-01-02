@@ -178,13 +178,13 @@ class ConsoleErrorBoundary extends React.Component<
               marginBottom: "12px",
             }}
           >
-            🦁 Trader Dashboard
+            🦁 交易员控制台
           </h2>
           <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
-            Dashboard crashed: {this.state.message ?? "Unknown error"}
+            控制台渲染失败：{this.state.message ?? "未知错误"}
           </div>
           <div style={{ color: "var(--text-muted)" }}>
-            Try using “Rebuild Index” in the header after re-opening the view.
+            建议重新打开视图后，在顶部使用“重建索引”。
           </div>
         </div>
       );
@@ -1689,20 +1689,20 @@ const ConsoleComponent: React.FC<Props> = ({
               }}
             >
               <div>
-                Total: <strong>{memory.total}</strong>
+                总计：<strong>{memory.total}</strong>
               </div>
               <div>
-                Due(≤{settings.srsDueThresholdDays}d):{" "}
+                到期（≤{settings.srsDueThresholdDays}天）：{" "}
                 <strong>{memory.due}</strong>
               </div>
               <div>
-                Mastery: <strong>{memory.masteryPct}%</strong>
+                掌握度：<strong>{memory.masteryPct}%</strong>
               </div>
               <div>
-                Load(7d): <strong>{memory.load7d}</strong>
+                负载（7天）：<strong>{memory.load7d}</strong>
               </div>
               <div>
-                Status: <strong>{memory.status}</strong>
+                状态：<strong>{memory.status}</strong>
               </div>
             </div>
 
@@ -1714,24 +1714,42 @@ const ConsoleComponent: React.FC<Props> = ({
                   fontSize: "0.9em",
                 }}
               >
-                Focus:{" "}
+                焦点：{" "}
                 <button
                   type="button"
                   onClick={() => openFile(memory.focusFile!.path)}
                   style={{
-                    padding: 0,
+                    padding: "2px 4px",
                     border: "none",
                     background: "transparent",
                     color: "var(--text-accent)",
                     cursor: "pointer",
                     textAlign: "left",
                     fontWeight: 600,
+                    borderRadius: "6px",
+                    outline: "none",
+                    transition:
+                      "background-color 180ms ease, box-shadow 180ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "var(--background-modifier-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 2px var(--interactive-accent)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
                   }}
                 >
                   {memory.focusFile.name.replace(/\.md$/i, "")}
                 </button>
                 <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
-                  due {memory.focusFile.due}
+                  到期 {memory.focusFile.due}
                 </span>
               </div>
             ) : (
@@ -1742,7 +1760,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   fontSize: "0.9em",
                 }}
               >
-                No focus file.
+                暂无焦点卡片。
               </div>
             )}
 
@@ -1783,13 +1801,13 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                No quiz pool found in #flashcards notes.
+                在 #flashcards 笔记中未找到可抽取题库。
               </div>
             )}
           </div>
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            Memory data unavailable.
+            记忆数据不可用。
           </div>
         )}
       </div>

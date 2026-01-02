@@ -59,8 +59,8 @@ if (todayJournal && todayJournal.market_cycle) {
     .slice(0, 6);
 
   contextHtml += `
-    <div style="margin-bottom: 15px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-radius: 8px; border-left: 3px solid #3b82f6;">
-        <div style="font-weight: bold; color: #3b82f6; margin-bottom: 5px;">
+    <div style="margin-bottom: 15px; padding: 10px; background: ${c.hover}; border-radius: 8px; border-left: 3px solid ${c.accent};">
+        <div style="font-weight: bold; color: ${c.accent}; margin-bottom: 5px;">
             🌊 今日市场: ${currentCycle}
         </div>
         <div style="font-size: 0.9em; color: var(--text-muted);">

@@ -66,7 +66,7 @@ if (window.paData) {
     const label = (action?.label || "打开").toString();
     if (!p) return "";
     const safeHref = encodeURI(p);
-    return `<a href="${safeHref}" data-href="${p}" class="internal-link" style="text-decoration:none; font-weight:700;">${label}</a>`;
+    return `<a href="${safeHref}" data-href="${p}" class="internal-link" style="text-decoration:none; font-weight:700; cursor:pointer;">${label}</a>`;
   };
   const formatCoachLine = (f) => {
     if (!f) return "";
@@ -195,7 +195,7 @@ if (window.paData) {
   const actionsPanel = document.createElement("div");
   actionsPanel.style.cssText = `${c.cardBg}; padding: 15px;`;
   const btn = (color, text, cmd) =>
-    `<button onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:800; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center; transition: transform 120ms ease, filter 120ms ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.filter='brightness(1.04)';" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none';">
+    `<button type="button" onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:800; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center; transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease; outline:none;" onmouseover="this.style.transform='translateY(-1px)'; this.style.filter='brightness(1.04)';" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none';" onfocus="this.style.boxShadow='0 0 0 2px var(--interactive-accent)';" onblur="this.style.boxShadow='none';">
             <span>${text}</span> <span>+</span>
         </button>`;
 
