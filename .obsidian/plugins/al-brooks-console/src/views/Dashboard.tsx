@@ -1461,7 +1461,15 @@ const ConsoleComponent: React.FC<Props> = ({
             type="button"
             onClick={reloadCourse}
             disabled={!loadCourse || courseBusy}
-            style={{ padding: "6px 10px" }}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={
+              !loadCourse || courseBusy
+                ? { ...disabledButtonStyle, padding: "6px 10px" }
+                : { ...buttonStyle, padding: "6px 10px" }
+            }
           >
             刷新
           </button>
@@ -1702,8 +1710,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            Course data unavailable. Check PA_Syllabus_Data.md and #PA/Course
-            notes.
+            课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course 相关笔记。
           </div>
         )}
       </div>
@@ -1726,25 +1733,37 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>Memory / SRS</div>
+          <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
               disabled={!can("srs:review-flashcards")}
               onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
               }
             >
-              Review
+              复习
             </button>
             <button
               type="button"
               onClick={reloadMemory}
               disabled={!loadMemory || memoryBusy}
-              style={{ padding: "6px 10px" }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                !loadMemory || memoryBusy
+                  ? { ...disabledButtonStyle, padding: "6px 10px" }
+                  : { ...buttonStyle, padding: "6px 10px" }
+              }
             >
-              Refresh
+              刷新
             </button>
           </div>
         </div>
@@ -1757,8 +1776,7 @@ const ConsoleComponent: React.FC<Props> = ({
               marginBottom: "8px",
             }}
           >
-            SRS plugin unavailable (adapter downgraded). Stats still compute
-            from #flashcards notes.
+            SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
           </div>
         )}
 
@@ -1768,7 +1786,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         ) : memoryBusy ? (
           <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-            Loading…
+            加载中…
           </div>
         ) : memory ? (
           <div>
@@ -2220,7 +2238,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            No cover images found.
+            未找到封面图片。
           </div>
         )}
       </div>
