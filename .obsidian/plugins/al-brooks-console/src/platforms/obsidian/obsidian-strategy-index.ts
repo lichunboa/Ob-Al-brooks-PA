@@ -1,0 +1,155 @@
+import { App, TFile } from "obsidian";
+import type { StrategyCard, StrategyIndex } from "../../core/strategy-index";
+import { getFirstFieldValue, normalizeTag } from "../../core/field-mapper";
+
+const STRATEGY_TAG = "PA/Strategy";
+
+const STRATEGY_FIELD_ALIASES = {
+	canonicalName: ["策略名称/strategy_name", "strategy_name", "strategyName", "name"],
+	marketCycle: ["市场周期/market_cycle", "market_cycle", "marketCycle"],
+	setupCategory: ["设置类别/setup_category", "setup_category", "setupCategory"],
+	patternsObserved: ["观察到的形态/patterns_observed", "patterns_observed", "patterns"],
+} as const;
+
+function toStringArray(v: unknown): string[] {
+	if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((s) => s.trim());
+	if (typeof v === "string") return v.split(/[,，;；/|]/g).map((s) => s.trim()).filter(Boolean);
+	return [];
+}
+
+function toString(v: unknown): string | undefined {
+	if (typeof v !== "string") return undefined;
+	const s = v.trim();
+	return s.length ? s : undefined;
+}
+
+function isStrategyFile(app: App, file: TFile): boolean {
+	const cache = app.metadataCache.getFileCache(file);
+	const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+	const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
+	const fmTagsRaw = fm?.tags as unknown;
+	const fmTags = Array.isArray(fmTagsRaw)
+		? fmTagsRaw.filter((t): t is string => typeof t === "string")
+		: typeof fmTagsRaw === "string"
+			? [fmTagsRaw]
+			: [];
+	const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
+	return normalized.some((t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase());
+}
+
+function splitCnEn(name: string): { cn?: string; en?: string } {
+	const m = name.match(/^(.*?)\((.*?)\)\s*$/);
+	if (!m) return {};
+	const cn = m[1]?.trim();
+	const en = m[2]?.trim();
+	return { cn: cn || undefined, en: en || undefined };
+}
+
+export interface ObsidianStrategyIndexOptions {
+	repoPath?: string;
+}
+
+export class ObsidianStrategyIndex implements StrategyIndex {
+	private app: App;
+	private repoPath: string;
+	private cards: StrategyCard[] = [];
+	private byNameMap: Map<string, StrategyCard> = new Map();
+	private lookupMap: Map<string, string> = new Map();
+	private byPatternMap: Map<string, string> = new Map();
+	private initialized = false;
+
+	constructor(app: App, options: ObsidianStrategyIndexOptions = {}) {
+		this.app = app;
+		this.repoPath = (options.repoPath ?? "策略仓库 (Strategy Repository)").replace(/^\/+/, "").trim();
+		if (this.repoPath.endsWith("/")) this.repoPath = this.repoPath.slice(0, -1);
+	}
+
+	public async initialize(): Promise<void> {
+		if (this.initialized) return;
+		this.initialized = true;
+		this.rebuild();
+	}
+
+	public list(): StrategyCard[] {
+		return this.cards;
+	}
+
+	public byName(name: string): StrategyCard | undefined {
+		return this.byNameMap.get(name);
+	}
+
+	public lookup(alias: string): StrategyCard | undefined {
+		const key = alias.trim();
+		if (!key) return undefined;
+		const canonical = this.lookupMap.get(key) ?? this.lookupMap.get(key.toLowerCase());
+		if (!canonical) return undefined;
+		return this.byNameMap.get(canonical);
+	}
+
+	public byPattern(pattern: string): StrategyCard | undefined {
+		const key = pattern.trim();
+		if (!key) return undefined;
+		const canonical = this.byPatternMap.get(key) ?? this.byPatternMap.get(key.toLowerCase());
+		if (!canonical) return undefined;
+		return this.byNameMap.get(canonical);
+	}
+
+	private rebuild() {
+		this.cards = [];
+		this.byNameMap = new Map();
+		this.lookupMap = new Map();
+		this.byPatternMap = new Map();
+
+		const prefix = this.repoPath ? `${this.repoPath}/` : "";
+		const files = this.app.vault.getMarkdownFiles().filter((f) => (prefix ? f.path.startsWith(prefix) : true));
+
+		for (const file of files) {
+			if (!isStrategyFile(this.app, file)) continue;
+			const cache = this.app.metadataCache.getFileCache(file);
+			const fm = cache?.frontmatter as Record<string, unknown> | undefined;
+			if (!fm) continue;
+
+			const canonicalName =
+				toString(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.canonicalName)) ??
+				file.basename;
+
+			const marketCycles = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.marketCycle));
+			const setupCategoriesRaw = getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.setupCategory);
+			const setupCategories = setupCategoriesRaw ? toStringArray(setupCategoriesRaw) : [];
+			const patternsObserved = toStringArray(getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.patternsObserved));
+
+			const card: StrategyCard = {
+				path: file.path,
+				name: file.name,
+				canonicalName,
+				marketCycles,
+				setupCategories,
+				patternsObserved,
+			};
+
+			this.cards.push(card);
+			this.byNameMap.set(canonicalName, card);
+
+			this.addLookup(canonicalName, canonicalName);
+			this.addLookup(file.basename, canonicalName);
+
+			const { cn, en } = splitCnEn(canonicalName);
+			if (cn) this.addLookup(cn, canonicalName);
+			if (en) this.addLookup(en, canonicalName);
+
+			for (const pat of patternsObserved) {
+				this.byPatternMap.set(pat, canonicalName);
+				this.byPatternMap.set(pat.toLowerCase(), canonicalName);
+			}
+		}
+
+		this.cards.sort((a, b) => a.canonicalName.localeCompare(b.canonicalName));
+	}
+
+	private addLookup(alias: string, canonical: string) {
+		const k = alias.trim();
+		if (!k) return;
+		this.lookupMap.set(k, canonical);
+		this.lookupMap.set(k.toLowerCase(), canonical);
+	}
+}

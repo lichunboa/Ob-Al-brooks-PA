@@ -4,6 +4,8 @@ import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
 import { buildReviewHints } from "../core/review-hints";
+import type { StrategyIndex } from "../core/strategy-index";
+import { matchStrategies } from "../core/strategy-matcher";
 import { StatsCard } from "./components/StatsCard";
 import { TradeList } from "./components/TradeList";
 import type { IntegrationCapability } from "../integrations/contracts";
@@ -13,6 +15,7 @@ export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
 interface Props {
     index: TradeIndex;
+    strategyIndex: StrategyIndex;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -72,7 +75,7 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -164,6 +167,27 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
         return buildReviewHints(latestTrade);
     }, [latestTrade]);
 
+    const strategyPicks = React.useMemo(() => {
+        if (!latestTrade) return [];
+        const fm = (latestTrade.rawFrontmatter ?? {}) as Record<string, any>;
+        const patternsRaw = fm["patterns"] ?? fm["形态/patterns"] ?? fm["观察到的形态/patterns_observed"];
+        const patterns = Array.isArray(patternsRaw)
+            ? patternsRaw.filter((x: any) => typeof x === "string").map((s: string) => s.trim()).filter(Boolean)
+            : typeof patternsRaw === "string"
+                ? patternsRaw.split(/[,，;；/|]/g).map((s: string) => s.trim()).filter(Boolean)
+                : [];
+        const marketCycle = (fm["market_cycle"] ?? fm["市场周期/market_cycle"]) as any;
+        const marketCycleStr = typeof marketCycle === "string" ? marketCycle.trim() : undefined;
+        const setupCategory = (fm["setup_category"] ?? fm["设置类别/setup_category"]) as any;
+        const setupCategoryStr = typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+        return matchStrategies(strategyIndex, {
+            marketCycle: marketCycleStr,
+            setupCategory: setupCategoryStr,
+            patterns,
+            limit: 6,
+        });
+    }, [latestTrade, strategyIndex]);
+
     return (
         <div style={{ padding: "16px", fontFamily: "var(--font-interface)", maxWidth: "1200px", margin: "0 auto" }}>
             <h2 style={{
@@ -180,33 +204,6 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
                             disabled={!can("quickadd:new-live-trade")}
                             onClick={() => action("quickadd:new-live-trade")}
                             style={can("quickadd:new-live-trade") ? buttonStyle : disabledButtonStyle}
-
-                                    {latestTrade && reviewHints.length > 0 && (
-                                        <div
-                                            style={{
-                                                border: "1px solid var(--background-modifier-border)",
-                                                borderRadius: "10px",
-                                                padding: "12px",
-                                                marginBottom: "16px",
-                                                background: "var(--background-primary)",
-                                            }}
-                                        >
-                                            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                                                Review Hints
-                                                <span style={{ fontWeight: 400, marginLeft: "8px", color: "var(--text-muted)", fontSize: "0.85em" }}>
-                                                    {latestTrade.name}
-                                                </span>
-                                            </div>
-                                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                                {reviewHints.slice(0, 4).map((h) => (
-                                                    <li key={h.id} style={{ marginBottom: "6px" }}>
-                                                        <div>{h.zh}</div>
-                                                        <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>{h.en}</div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
                         >
                             New Live Trade
                         </button>
@@ -270,6 +267,67 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
                     </button>
                 )}
             </h2>
+
+            {latestTrade && reviewHints.length > 0 && (
+                <div
+                    style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        marginBottom: "16px",
+                        background: "var(--background-primary)",
+                    }}
+                >
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                        Review Hints
+                        <span style={{ fontWeight: 400, marginLeft: "8px", color: "var(--text-muted)", fontSize: "0.85em" }}>
+                            {latestTrade.name}
+                        </span>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {reviewHints.slice(0, 4).map((h) => (
+                            <li key={h.id} style={{ marginBottom: "6px" }}>
+                                <div>{h.zh}</div>
+                                <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>{h.en}</div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {strategyPicks.length > 0 && (
+                <div
+                    style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        marginBottom: "16px",
+                        background: "var(--background-primary)",
+                    }}
+                >
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Today's Strategy Picks</div>
+                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {strategyPicks.map((s) => (
+                            <li key={s.path} style={{ marginBottom: "6px" }}>
+                                <button
+                                    type="button"
+                                    onClick={() => openFile(s.path)}
+                                    style={{
+                                        padding: 0,
+                                        border: "none",
+                                        background: "transparent",
+                                        color: "var(--text-accent)",
+                                        cursor: "pointer",
+                                        textAlign: "left",
+                                    }}
+                                >
+                                    {s.canonicalName}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             {/* Stats Row */}
             <div style={{
@@ -339,14 +397,22 @@ const ConsoleComponent: React.FC<Props> = ({ index, openFile, integrations, vers
 
 export class ConsoleView extends ItemView {
     private index: TradeIndex;
+    private strategyIndex: StrategyIndex;
 	private integrations?: PluginIntegrationRegistry;
 	private version: string;
 	private root: Root | null = null;
 	private mountEl: HTMLElement | null = null;
 
-    constructor(leaf: WorkspaceLeaf, index: TradeIndex, integrations: PluginIntegrationRegistry, version: string) {
+    constructor(
+        leaf: WorkspaceLeaf,
+        index: TradeIndex,
+        strategyIndex: StrategyIndex,
+        integrations: PluginIntegrationRegistry,
+        version: string
+    ) {
         super(leaf);
         this.index = index;
+        this.strategyIndex = strategyIndex;
 		this.integrations = integrations;
 		this.version = version;
     }
@@ -375,6 +441,7 @@ export class ConsoleView extends ItemView {
             <ConsoleErrorBoundary>
                 <ConsoleComponent
                     index={this.index}
+                    strategyIndex={this.strategyIndex}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}

@@ -102,7 +102,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Performance & reliability engineer | Task: Add minimal performance/stability upgrades to eliminate legacy pain points (flicker, full rescans, mobile OOM). | Restrictions: No new UX beyond basic loading/ready/error state and a rebuild action. | Success: Large vault remains responsive; edits do not cause full rescans; UI remains stable._
 
 
-- [ ] 9. Next：迁移 Review Hints（`buildReviewHints`）
+- [x] 9. Next：迁移 Review Hints（`buildReviewHints`）
 	- 迁移 `buildReviewHints` 规则到纯 TS 模块（不依赖 Dataview）。
 	- 定义 `ReviewHint` 类型与生成条件。
 	- 在 UI 中最小化展示（例如：最近交易的复盘提示）。
