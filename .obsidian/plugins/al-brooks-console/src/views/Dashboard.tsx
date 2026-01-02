@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ItemView, WorkspaceLeaf, TFile } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, parseYaml } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
@@ -1181,6 +1181,118 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                 )}
             </div>
 
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                    <div style={{ fontWeight: 600 }}>Inspector / Schema Monitor</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                            type="button"
+                            onClick={() => setShowFixPlan((v) => !v)}
+                            disabled={!enumPresets}
+                            style={{ padding: "6px 10px" }}
+                            title={!enumPresets ? "Enum presets unavailable" : "Toggle FixPlan preview"}
+                        >
+                            {showFixPlan ? "Hide FixPlan" : "Show FixPlan"}
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em", marginBottom: "10px" }}>
+                    Read-only: issues are reported and FixPlan is preview-only (no vault writes).
+                    <span style={{ marginLeft: "8px" }}>
+                        Enum presets: {enumPresets ? "loaded" : "unavailable"}
+                    </span>
+                </div>
+
+                {(() => {
+                    const errorCount = inspectorIssues.filter((i) => i.severity === "error").length;
+                    const warnCount = inspectorIssues.filter((i) => i.severity === "warn").length;
+                    return (
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
+                            <div style={{ color: "var(--text-error)" }}>Errors: {errorCount}</div>
+                            <div style={{ color: "var(--text-warning)" }}>Warnings: {warnCount}</div>
+                            <div style={{ color: "var(--text-muted)" }}>Total: {inspectorIssues.length}</div>
+                        </div>
+                    );
+                })()}
+
+                {inspectorIssues.length === 0 ? (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No issues found.</div>
+                ) : (
+                    <div style={{ maxHeight: "240px", overflow: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: "8px" }}>
+                        {inspectorIssues.slice(0, 50).map((issue) => (
+                            <button
+                                key={issue.id}
+                                type="button"
+                                onClick={() => openFile(issue.path)}
+                                title={issue.path}
+                                style={{
+                                    width: "100%",
+                                    textAlign: "left",
+                                    padding: "8px 10px",
+                                    border: "none",
+                                    borderBottom: "1px solid var(--background-modifier-border)",
+                                    background: "transparent",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <div style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
+                                    <div style={{ width: "60px", color: issue.severity === "error" ? "var(--text-error)" : "var(--text-warning)", fontWeight: 600 }}>
+                                        {issue.severity.toUpperCase()}
+                                    </div>
+                                    <div style={{ flex: "1 1 auto" }}>
+                                        <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                                        <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                                            {issue.path}
+                                            {issue.detail ? ` — ${issue.detail}` : ""}
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                        {inspectorIssues.length > 50 ? (
+                            <div style={{ padding: "8px 10px", color: "var(--text-faint)", fontSize: "0.85em" }}>
+                                Showing first 50 issues.
+                            </div>
+                        ) : null}
+                    </div>
+                )}
+
+                {showFixPlan ? (
+                    enumPresets ? (
+                        <div style={{ marginTop: "10px" }}>
+                            <div style={{ fontWeight: 600, marginBottom: "6px" }}>FixPlan (preview)</div>
+                            <pre
+                                style={{
+                                    margin: 0,
+                                    padding: "10px",
+                                    border: "1px solid var(--background-modifier-border)",
+                                    borderRadius: "8px",
+                                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                                    maxHeight: "220px",
+                                    overflow: "auto",
+                                    whiteSpace: "pre-wrap",
+                                }}
+                            >
+                                {fixPlanText ?? ""}
+                            </pre>
+                        </div>
+                    ) : (
+                        <div style={{ marginTop: "10px", color: "var(--text-faint)", fontSize: "0.9em" }}>
+                            Enum presets unavailable. FixPlan generation is disabled.
+                        </div>
+                    )
+                ) : null}
+            </div>
+
             {/* Main Content Area */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
                 {/* Trade Feed */}
@@ -1248,6 +1360,25 @@ export class ConsoleView extends ItemView {
             return this.app.vault.getResourcePath(af);
         };
 
+        let enumPresets: EnumPresets | undefined = undefined;
+        try {
+            const presetsPath = "Templates/属性值预设.md";
+            const af = this.app.vault.getAbstractFileByPath(presetsPath);
+            if (af instanceof TFile) {
+                let fm = this.app.metadataCache.getFileCache(af)?.frontmatter as any;
+                if (!fm) {
+                    const text = await this.app.vault.read(af);
+                    const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+                    if (m && m[1]) fm = parseYaml(m[1]);
+                }
+                if (fm && typeof fm === "object") {
+                    enumPresets = createEnumPresetsFromFrontmatter(fm as Record<string, unknown>);
+                }
+            }
+        } catch (e) {
+            // best-effort only; dashboard should still render without presets
+        }
+
         this.contentEl.empty();
         this.mountEl = this.contentEl.createDiv();
         this.root = createRoot(this.mountEl);
@@ -1259,6 +1390,7 @@ export class ConsoleView extends ItemView {
 					todayContext={this.todayContext}
 					resolveLink={resolveLink}
 					getResourceUrl={getResourceUrl}
+					enumPresets={enumPresets}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}
