@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/steering/tech.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-02T02:13:53.057Z",
+      "trigger": "initial",
+      "approvalId": "approval_1767320033053_q17jjpooq",
+      "approvalTitle": "Approve steering tech.md"
+    }
+  ]
+}
