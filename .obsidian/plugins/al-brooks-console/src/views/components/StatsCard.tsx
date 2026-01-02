@@ -13,7 +13,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   value,
   subValue,
   icon,
-    color = "var(--interactive-accent)",
+  color = "var(--interactive-accent)",
 }) => {
   return (
     <div

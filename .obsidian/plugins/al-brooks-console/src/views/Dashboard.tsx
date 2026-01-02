@@ -309,17 +309,17 @@ const ConsoleComponent: React.FC<Props> = ({
       case "building": {
         const p = typeof status.processed === "number" ? status.processed : 0;
         const t = typeof status.total === "number" ? status.total : 0;
-        return t > 0 ? `Index: building… ${p}/${t}` : "Index: building…";
+        return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
       }
       case "ready": {
         return typeof status.lastBuildMs === "number"
-          ? `Index: ready (${status.lastBuildMs}ms)`
-          : "Index: ready";
+          ? `索引：就绪（${status.lastBuildMs}ms）`
+          : "索引：就绪";
       }
       case "error":
-        return `Index: error${status.message ? ` — ${status.message}` : ""}`;
+        return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
       default:
-        return "Index: idle";
+        return "索引：空闲";
     }
   }, [status]);
 
@@ -332,6 +332,9 @@ const ConsoleComponent: React.FC<Props> = ({
     background: "var(--background-primary)",
     color: "var(--text-normal)",
     cursor: "pointer",
+    outline: "none",
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
   };
 
   const disabledButtonStyle: React.CSSProperties = {
@@ -348,6 +351,68 @@ const ConsoleComponent: React.FC<Props> = ({
     background: "var(--background-primary)",
     color: "var(--text-normal)",
   };
+
+  const textButtonStyle: React.CSSProperties = {
+    padding: "2px 4px",
+    border: "none",
+    background: "transparent",
+    color: "var(--text-accent)",
+    cursor: "pointer",
+    textAlign: "left",
+    borderRadius: "6px",
+    outline: "none",
+    transition: "background-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const onBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "var(--background-primary)";
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
+
+  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  }, []);
+
+  const onTextBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+    },
+    []
+  );
+
+  const onTextBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "transparent";
+    },
+    []
+  );
+
+  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
+
+  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  }, []);
 
   const action = React.useCallback(
     async (capabilityId: IntegrationCapability) => {
@@ -731,7 +796,7 @@ const ConsoleComponent: React.FC<Props> = ({
       >
         🦁 交易员控制台{" "}
         <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
-          (Trader Dashboard)
+          （Dashboard）
         </span>{" "}
         <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
           v{version}
@@ -751,6 +816,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-live-trade")}
               onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-live-trade")
                   ? buttonStyle
@@ -763,6 +832,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-demo-trade")}
               onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-demo-trade")
                   ? buttonStyle
@@ -775,6 +848,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-backtest")}
               onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
               }
@@ -785,6 +862,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("srs:review-flashcards")}
               onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
               }
@@ -795,6 +876,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("dataview:force-refresh")}
               onClick={() => action("dataview:force-refresh")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("dataview:force-refresh")
                   ? buttonStyle
@@ -807,6 +892,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("tasks:open")}
               onClick={() => action("tasks:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
             >
               任务
@@ -815,6 +904,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("metadata-menu:open")}
               onClick={() => action("metadata-menu:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("metadata-menu:open") ? buttonStyle : disabledButtonStyle
               }
@@ -827,6 +920,10 @@ const ConsoleComponent: React.FC<Props> = ({
           <button
             type="button"
             onClick={onRebuild}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
             style={{ ...buttonStyle, marginLeft: "12px" }}
           >
             重建索引
@@ -889,14 +986,11 @@ const ConsoleComponent: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => openFile(s.path)}
-                  style={{
-                    padding: 0,
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text-accent)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
+                  style={textButtonStyle}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
                 >
                   {s.canonicalName}
                 </button>
@@ -971,14 +1065,11 @@ const ConsoleComponent: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => openFile(todayLatestTrade.path)}
-                  style={{
-                    padding: 0,
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text-accent)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
+                  style={textButtonStyle}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
                 >
                   {todayLatestTrade.ticker ?? "未知"} • {todayLatestTrade.name}
                 </button>
@@ -1007,6 +1098,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-live-trade")}
               onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-live-trade")
                   ? buttonStyle
@@ -1019,6 +1114,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-demo-trade")}
               onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-demo-trade")
                   ? buttonStyle
@@ -1031,6 +1130,10 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={!can("quickadd:new-backtest")}
               onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
               style={
                 can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
               }
@@ -1133,24 +1236,24 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <StatsCard
-          title="Live"
-          value={`${summary.Live.countTotal} trades`}
+          title="实盘"
+          value={`${summary.Live.countTotal} 笔`}
           subValue={`${
             summary.Live.winRatePct
           }% • ${summary.Live.netProfit.toFixed(1)}R`}
           icon="🟢"
         />
         <StatsCard
-          title="Demo"
-          value={`${summary.Demo.countTotal} trades`}
+          title="模拟"
+          value={`${summary.Demo.countTotal} 笔`}
           subValue={`${
             summary.Demo.winRatePct
           }% • ${summary.Demo.netProfit.toFixed(1)}R`}
           icon="🟡"
         />
         <StatsCard
-          title="Backtest"
-          value={`${summary.Backtest.countTotal} trades`}
+          title="回测"
+          value={`${summary.Backtest.countTotal} 笔`}
           subValue={`${
             summary.Backtest.winRatePct
           }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
@@ -1167,7 +1270,7 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Today</div>
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
         <div
           style={{
             color: "var(--text-muted)",
@@ -1175,13 +1278,13 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "10px",
           }}
         >
-          Market Cycle: {todayMarketCycle ?? "—"}
+          市场周期：{todayMarketCycle ?? "—"}
         </div>
 
         {todayStrategyPicks.length > 0 && (
           <div style={{ marginBottom: "12px" }}>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              Cycle → Strategy Picks
+              周期 → 策略推荐
             </div>
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
               {todayStrategyPicks.map((s) => (
@@ -1192,14 +1295,11 @@ const ConsoleComponent: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => openFile(s.path)}
-                    style={{
-                      padding: 0,
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--text-accent)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
+                      style={textButtonStyle}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
                   >
                     {s.canonicalName}
                   </button>
@@ -1212,7 +1312,7 @@ const ConsoleComponent: React.FC<Props> = ({
         {openTrade && (
           <div>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              In-Progress Trade Assistant
+              进行中交易助手
             </div>
             <div
               style={{
@@ -1224,34 +1324,28 @@ const ConsoleComponent: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => openFile(openTrade.path)}
-                style={{
-                  padding: 0,
-                  border: "none",
-                  background: "transparent",
-                  color: "var(--text-accent)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
+                style={textButtonStyle}
+                onMouseEnter={onTextBtnMouseEnter}
+                onMouseLeave={onTextBtnMouseLeave}
+                onFocus={onTextBtnFocus}
+                onBlur={onTextBtnBlur}
               >
-                {openTrade.ticker ?? "Unknown"} • {openTrade.name}
+                {openTrade.ticker ?? "未知"} • {openTrade.name}
               </button>
             </div>
 
             {openTradeStrategy ? (
               <div>
                 <div style={{ marginBottom: "8px" }}>
-                  Strategy:{" "}
+                  策略：{" "}
                   <button
                     type="button"
                     onClick={() => openFile(openTradeStrategy.path)}
-                    style={{
-                      padding: 0,
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--text-accent)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
                   >
                     {openTradeStrategy.canonicalName}
                   </button>
@@ -1267,7 +1361,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                        Entry
+                        入场
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "18px" }}>
                         {openTradeStrategy
@@ -1282,7 +1376,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                        Stop
+                        止损
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "18px" }}>
                         {openTradeStrategy
@@ -1296,7 +1390,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                        Risk
+                        风险
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "18px" }}>
                         {openTradeStrategy
@@ -1311,7 +1405,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                        Target
+                        目标
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "18px" }}>
                         {openTradeStrategy
@@ -1830,7 +1924,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>Analytics</div>
+          <div style={{ fontWeight: 600 }}>数据分析</div>
           <label
             style={{
               display: "flex",
@@ -1840,7 +1934,7 @@ const ConsoleComponent: React.FC<Props> = ({
               fontSize: "0.9em",
             }}
           >
-            Scope
+            范围
             <select
               value={analyticsScope}
               onChange={(e) =>
@@ -1848,10 +1942,10 @@ const ConsoleComponent: React.FC<Props> = ({
               }
               style={selectStyle}
             >
-              <option value="Live">Live</option>
-              <option value="Demo">Demo</option>
-              <option value="Backtest">Backtest</option>
-              <option value="All">All</option>
+              <option value="Live">实盘</option>
+              <option value="Demo">模拟</option>
+              <option value="Backtest">回测</option>
+              <option value="All">全部</option>
             </select>
           </label>
         </div>
@@ -1859,7 +1953,7 @@ const ConsoleComponent: React.FC<Props> = ({
         <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
           <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              Calendar (Last {calendarDays} days)
+              日历（最近 {calendarDays} 天）
             </div>
             <div
               style={{
@@ -1883,7 +1977,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 return (
                   <div
                     key={`cal-${c.dateIso}`}
-                    title={`${c.dateIso} • ${c.count} trades • ${
+                    title={`${c.dateIso} • ${c.count} 笔 • ${
                       c.netR >= 0 ? "+" : ""
                     }${c.netR.toFixed(1)}R`}
                     style={{
@@ -1927,7 +2021,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
           <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              Equity Curve
+              权益曲线
             </div>
             {equitySeries.length > 1 ? (
               (() => {
@@ -1978,7 +2072,7 @@ const ConsoleComponent: React.FC<Props> = ({
                         fontSize: "0.9em",
                       }}
                     >
-                      Last:{" "}
+                      最新：{" "}
                       <span
                         style={{
                           color:
@@ -1997,12 +2091,12 @@ const ConsoleComponent: React.FC<Props> = ({
               })()
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                Not enough data.
+                数据不足。
               </div>
             )}
 
             <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
-              Strategy Attribution (Top)
+              策略归因（Top）
             </div>
             {strategyAttribution.length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -2015,14 +2109,11 @@ const ConsoleComponent: React.FC<Props> = ({
                       <button
                         type="button"
                         onClick={() => openFile(r.strategyPath!)}
-                        style={{
-                          padding: 0,
-                          border: "none",
-                          background: "transparent",
-                          color: "var(--text-accent)",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
                       >
                         {r.strategyName}
                       </button>
@@ -2036,7 +2127,7 @@ const ConsoleComponent: React.FC<Props> = ({
                         fontSize: "0.9em",
                       }}
                     >
-                      {r.count} trades •{" "}
+                      {r.count} 笔 •{" "}
                       <span
                         style={{
                           color:
@@ -2055,7 +2146,7 @@ const ConsoleComponent: React.FC<Props> = ({
               </ul>
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                No strategy data found.
+                未找到策略归因数据。
               </div>
             )}
           </div>
@@ -2152,20 +2243,24 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>Inspector / Schema Monitor</div>
+          <div style={{ fontWeight: 600 }}>检查器 / Schema 监控</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
               onClick={() => setShowFixPlan((v) => !v)}
               disabled={!enumPresets}
-              style={{ padding: "6px 10px" }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
               title={
                 !enumPresets
-                  ? "Enum presets unavailable"
-                  : "Toggle FixPlan preview"
+                  ? "枚举预设不可用"
+                  : "切换 FixPlan 预览"
               }
             >
-              {showFixPlan ? "Hide FixPlan" : "Show FixPlan"}
+              {showFixPlan ? "隐藏 FixPlan" : "显示 FixPlan"}
             </button>
           </div>
         </div>
@@ -2177,10 +2272,9 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "10px",
           }}
         >
-          Read-only: issues are reported and FixPlan is preview-only (no vault
-          writes).
+          只读：仅报告问题；FixPlan 仅预览（不会写入 vault）。
           <span style={{ marginLeft: "8px" }}>
-            Enum presets: {enumPresets ? "loaded" : "unavailable"}
+            枚举预设：{enumPresets ? "已加载" : "不可用"}
           </span>
         </div>
 
@@ -2201,13 +2295,13 @@ const ConsoleComponent: React.FC<Props> = ({
               }}
             >
               <div style={{ color: "var(--text-error)" }}>
-                Errors: {errorCount}
+                错误：{errorCount}
               </div>
               <div style={{ color: "var(--text-warning)" }}>
-                Warnings: {warnCount}
+                警告：{warnCount}
               </div>
               <div style={{ color: "var(--text-muted)" }}>
-                Total: {inspectorIssues.length}
+                总计：{inspectorIssues.length}
               </div>
             </div>
           );
@@ -2215,7 +2309,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
         {inspectorIssues.length === 0 ? (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            No issues found.
+            未发现问题。
           </div>
         ) : (
           <div
@@ -2232,6 +2326,15 @@ const ConsoleComponent: React.FC<Props> = ({
                 type="button"
                 onClick={() => openFile(issue.path)}
                 title={issue.path}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "var(--background-modifier-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+                onFocus={onTextBtnFocus}
+                onBlur={onTextBtnBlur}
                 style={{
                   width: "100%",
                   textAlign: "left",
@@ -2240,6 +2343,9 @@ const ConsoleComponent: React.FC<Props> = ({
                   borderBottom: "1px solid var(--background-modifier-border)",
                   background: "transparent",
                   cursor: "pointer",
+                  outline: "none",
+                  transition:
+                    "background-color 180ms ease, box-shadow 180ms ease",
                 }}
               >
                 <div
@@ -2281,7 +2387,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   fontSize: "0.85em",
                 }}
               >
-                Showing first 50 issues.
+                仅显示前 50 条问题。
               </div>
             ) : null}
           </div>
@@ -2291,7 +2397,7 @@ const ConsoleComponent: React.FC<Props> = ({
           enumPresets ? (
             <div style={{ marginTop: "10px" }}>
               <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                FixPlan (preview)
+                FixPlan（预览）
               </div>
               <pre
                 style={{
@@ -2316,7 +2422,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 fontSize: "0.9em",
               }}
             >
-              Enum presets unavailable. FixPlan generation is disabled.
+              枚举预设不可用，已禁用 FixPlan 生成。
             </div>
           )
         ) : null}
@@ -2340,9 +2446,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>
-            Manager (Preview → Confirm → Write)
-          </div>
+          <div style={{ fontWeight: 600 }}>管理器（预览 → 确认 → 写入）</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
@@ -2356,12 +2460,16 @@ const ConsoleComponent: React.FC<Props> = ({
               }}
               title={
                 !enumPresets
-                  ? "Enum presets unavailable"
-                  : "Use FixPlan generated by Inspector"
+                  ? "枚举预设不可用"
+                  : "使用检查器生成的 FixPlan"
               }
-              style={{ padding: "6px 10px" }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
             >
-              Use Inspector FixPlan
+              使用检查器 FixPlan
             </button>
             <button
               type="button"
@@ -2373,9 +2481,13 @@ const ConsoleComponent: React.FC<Props> = ({
                 setManagerResult(undefined);
                 setManagerArmed(false);
               }}
-              style={{ padding: "6px 10px" }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={{ ...buttonStyle, padding: "6px 10px" }}
             >
-              Generate Trade Plan
+              生成交易计划
             </button>
             <button
               type="button"
@@ -2399,12 +2511,16 @@ const ConsoleComponent: React.FC<Props> = ({
               }}
               title={
                 !loadStrategyNotes
-                  ? "Strategy scan unavailable"
-                  : "Generate strategy maintenance plan"
+                  ? "策略扫描不可用"
+                  : "生成策略维护计划"
               }
-              style={{ padding: "6px 10px" }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={loadStrategyNotes ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
             >
-              Generate Strategy Plan
+              生成策略计划
             </button>
           </div>
         </div>
@@ -2416,8 +2532,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "10px",
           }}
         >
-          Writes are disabled by default. Preview a plan first; then arm
-          confirmation to apply.
+          默认禁用写入：先预览计划，再勾选确认后执行写入。
         </div>
 
         {managerPlan ? (
@@ -2441,7 +2556,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     setManagerDeleteKeys((e.target as HTMLInputElement).checked)
                   }
                 />
-                Delete legacy keys (dangerous)
+                删除 legacy 字段（危险）
               </label>
               <label
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
@@ -2453,7 +2568,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     setManagerArmed((e.target as HTMLInputElement).checked)
                   }
                 />
-                I understand this will write to notes
+                我理解这会写入笔记
               </label>
               <button
                 type="button"
@@ -2471,9 +2586,17 @@ const ConsoleComponent: React.FC<Props> = ({
                     setManagerBusy(false);
                   }
                 }}
-                style={{ padding: "6px 10px" }}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  !applyFixPlan || !managerArmed || managerBusy
+                    ? { ...disabledButtonStyle, padding: "6px 10px" }
+                    : { ...buttonStyle, padding: "6px 10px" }
+                }
               >
-                Apply Plan
+                应用计划
               </button>
               <button
                 type="button"
@@ -2489,9 +2612,17 @@ const ConsoleComponent: React.FC<Props> = ({
                     setManagerBusy(false);
                   }
                 }}
-                style={{ padding: "6px 10px" }}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  !restoreFiles || !managerBackups || managerBusy
+                    ? { ...disabledButtonStyle, padding: "6px 10px" }
+                    : { ...buttonStyle, padding: "6px 10px" }
+                }
               >
-                Undo Last Apply
+                撤销上次应用
               </button>
             </div>
 
@@ -2533,7 +2664,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            No plan loaded. Generate a plan to preview changes.
+            未加载计划。请先生成计划以预览变更。
           </div>
         )}
       </div>
@@ -2542,7 +2673,7 @@ const ConsoleComponent: React.FC<Props> = ({
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
         {/* Trade Feed */}
         <div>
-          <h3 style={{ marginBottom: "12px" }}>Recent Activity</h3>
+          <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
           <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
         </div>
       </div>

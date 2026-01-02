@@ -13,9 +13,12 @@ if (window.paData) {
   // --- 1. 布局容器 (Grid) ---
   // 左侧 (2/3): 今日看板
   // 右侧 (1/3): 快速行动 + 趋势指标
+  const isNarrow = (window?.innerWidth || 1200) < 980;
   const root = dv.el("div", "", {
     attr: {
-      style: "display: grid; grid-template-columns: 2fr 1fr; gap: 20px;",
+      style: `display: grid; grid-template-columns: ${
+        isNarrow ? "1fr" : "2fr 1fr"
+      }; gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; align-items: start;`,
     },
   });
 
