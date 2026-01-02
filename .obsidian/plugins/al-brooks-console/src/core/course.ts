@@ -130,7 +130,7 @@ export function buildCourseSnapshot(args: {
 					hasNote: Boolean(link),
 					link,
 					shortId,
-				} satisfies CourseMatrixItem;
+				} as CourseMatrixItem;
 			});
 		return { phase: p, items };
 	});

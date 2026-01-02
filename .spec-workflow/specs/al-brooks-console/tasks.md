@@ -197,7 +197,7 @@
 	- _Prompt: Implement the task for spec al-brooks-console, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Safety-first tooling engineer | Task: Implement a guarded bulk edit manager with preview and safe defaults mirroring legacy manager capabilities. | Restrictions: Must be opt-in; must provide preview; no silent writes. | Success: Bulk edits are safe, transparent, and recoverable._
 
 
-- [ ] 19. Advanced：迁移学习闭环（Course + Memory / SRS）
+- [x] 19. Advanced：迁移学习闭环（Course + Memory / SRS）
 	- Course：课程矩阵 + 推荐下一节/建议复习（复用 course.hybridRec 的输出口径）。
 	- Memory：SRS 指标（Total/Due/Mastery/Load）+ 快速复习入口 + 随机抽题。
 	- 外部插件依赖通过 Adapter Pattern；缺失降级不影响交易看板。

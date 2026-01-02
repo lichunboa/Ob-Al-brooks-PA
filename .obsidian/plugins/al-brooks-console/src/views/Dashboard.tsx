@@ -26,6 +26,9 @@ import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
 import { normalizeTag } from "../core/field-mapper";
+import type { AlBrooksConsoleSettings } from "../settings";
+import { buildCourseSnapshot, parseSyllabusJsonFromMarkdown, simpleCourseId, type CourseSnapshot } from "../core/course";
+import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 
 function toLocalDateIso(d: Date): string {
     const y = d.getFullYear();
@@ -94,6 +97,10 @@ interface Props {
 	loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
 	applyFixPlan?: (plan: FixPlan, options?: { deleteKeys?: boolean }) => Promise<ManagerApplyResult>;
 	restoreFiles?: (backups: Record<string, string>) => Promise<ManagerApplyResult>;
+    settings: AlBrooksConsoleSettings;
+    subscribeSettings?: (listener: (settings: AlBrooksConsoleSettings) => void) => () => void;
+    loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
+    loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
 	openFile: (path: string) => void;
     integrations?: PluginIntegrationRegistry;
 	version: string;
@@ -153,7 +160,7 @@ class ConsoleErrorBoundary extends React.Component<
     }
 }
 
-const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, enumPresets, loadStrategyNotes, applyFixPlan, restoreFiles, openFile, integrations, version }) => {
+const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext, resolveLink, getResourceUrl, enumPresets, loadStrategyNotes, applyFixPlan, restoreFiles, settings: initialSettings, subscribeSettings, loadCourse, loadMemory, openFile, integrations, version }) => {
     const [trades, setTrades] = React.useState(index.getAll());
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -167,6 +174,26 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
     const [managerArmed, setManagerArmed] = React.useState(false);
     const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
     const [managerBackups, setManagerBackups] = React.useState<Record<string, string> | undefined>(undefined);
+
+    const [settings, setSettings] = React.useState<AlBrooksConsoleSettings>(initialSettings);
+    const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
+
+    React.useEffect(() => {
+        setSettings(initialSettings);
+    }, [initialSettings]);
+
+    React.useEffect(() => {
+        if (!subscribeSettings) return;
+        return subscribeSettings((s) => setSettings(s));
+    }, [subscribeSettings]);
+
+    const [course, setCourse] = React.useState<CourseSnapshot | undefined>(undefined);
+    const [courseBusy, setCourseBusy] = React.useState(false);
+    const [courseError, setCourseError] = React.useState<string | undefined>(undefined);
+
+    const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(undefined);
+    const [memoryBusy, setMemoryBusy] = React.useState(false);
+    const [memoryError, setMemoryError] = React.useState<string | undefined>(undefined);
 
     const summary = React.useMemo(() => computeTradeStatsByAccountType(trades), [trades]);
     const all = summary.All;
@@ -264,6 +291,42 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
         (capabilityId: IntegrationCapability) => Boolean(integrations?.isCapabilityAvailable(capabilityId)),
         [integrations]
     );
+
+    const reloadCourse = React.useCallback(async () => {
+        if (!loadCourse) return;
+        setCourseBusy(true);
+        setCourseError(undefined);
+        try {
+            const next = await loadCourse(settings);
+            setCourse(next);
+        } catch (e) {
+            setCourseError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setCourseBusy(false);
+        }
+    }, [loadCourse, settingsKey]);
+
+    const reloadMemory = React.useCallback(async () => {
+        if (!loadMemory) return;
+        setMemoryBusy(true);
+        setMemoryError(undefined);
+        try {
+            const next = await loadMemory(settings);
+            setMemory(next);
+        } catch (e) {
+            setMemoryError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setMemoryBusy(false);
+        }
+    }, [loadMemory, settingsKey]);
+
+    React.useEffect(() => {
+        void reloadCourse();
+    }, [reloadCourse]);
+
+    React.useEffect(() => {
+        void reloadMemory();
+    }, [reloadMemory]);
 
     const latestTrade = trades.length > 0 ? trades[0] : undefined;
     const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
@@ -943,6 +1006,227 @@ const ConsoleComponent: React.FC<Props> = ({ index, strategyIndex, todayContext,
                     background: "var(--background-primary)",
                 }}
             >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                    <div style={{ fontWeight: 600 }}>Course</div>
+                    <button type="button" onClick={reloadCourse} disabled={!loadCourse || courseBusy} style={{ padding: "6px 10px" }}>
+                        Refresh
+                    </button>
+                </div>
+
+                {courseError ? (
+                    <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>{courseError}</div>
+                ) : courseBusy ? (
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>Loading…</div>
+                ) : course && course.syllabus.length > 0 ? (
+                    <div>
+                        {course.hybridRec ? (() => {
+                            const rec = course.hybridRec;
+                            const sid = simpleCourseId(rec.data.id);
+                            const link = course.linksById[rec.data.id] || course.linksById[sid];
+                            const prefix = rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                            return (
+                                <div
+                                    style={{
+                                        border: "1px solid var(--background-modifier-border)",
+                                        borderRadius: "8px",
+                                        padding: "10px",
+                                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                                        marginBottom: "10px",
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
+                                        <div>
+                                            {link ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openFile(link.path)}
+                                                    style={{ padding: 0, border: "none", background: "transparent", color: "var(--text-accent)", cursor: "pointer", textAlign: "left", fontWeight: 600 }}
+                                                >
+                                                    {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                                </button>
+                                            ) : (
+                                                <span style={{ color: "var(--text-faint)" }}>{prefix}: {String(rec.data.t ?? rec.data.id)}（笔记未创建）</span>
+                                            )}
+                                        </div>
+                                        <div style={{ color: "var(--text-muted)", fontFamily: "var(--font-monospace)", whiteSpace: "nowrap" }}>{rec.data.id}</div>
+                                    </div>
+                                    <div style={{ marginTop: "6px", color: "var(--text-muted)", fontSize: "0.85em", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                                        <span>章节: <strong>{String(rec.data.p ?? "—")}</strong></span>
+                                        <span>进度: <strong>{course.progress.doneCount}/{course.progress.totalCount}</strong></span>
+                                        <span>笔记: <strong>{link ? "已创建" : "未创建"}</strong></span>
+                                    </div>
+                                </div>
+                            );
+                        })() : null}
+
+                        {course.upNext.length > 0 && (
+                            <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "8px" }}>
+                                Up Next (window={settings.courseRecommendationWindow}):{" "}
+                                {course.upNext.map((x, idx) => {
+                                    const label = String(x.item.id);
+                                    if (x.link) {
+                                        return (
+                                            <React.Fragment key={`up-${x.item.id}`}>
+                                                {idx > 0 ? ", " : ""}
+                                                <button type="button" onClick={() => openFile(x.link!.path)} style={{ padding: 0, border: "none", background: "transparent", color: "var(--text-accent)", cursor: "pointer" }}>
+                                                    {label}
+                                                </button>
+                                            </React.Fragment>
+                                        );
+                                    }
+                                    return (
+                                        <React.Fragment key={`up-${x.item.id}`}>
+                                            {idx > 0 ? ", " : ""}
+                                            <span style={{ color: "var(--text-faint)" }}>{label}</span>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <details>
+                            <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.9em", userSelect: "none" }}>
+                                展开课程矩阵
+                            </summary>
+                            <div style={{ marginTop: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                                {course.phases.map((ph) => (
+                                    <div key={`ph-${ph.phase}`} style={{ marginBottom: "12px" }}>
+                                        <div style={{ fontSize: "0.85em", color: "var(--text-muted)", marginBottom: "6px", borderBottom: "1px solid var(--background-modifier-border)", paddingBottom: "4px" }}>
+                                            {ph.phase}
+                                        </div>
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                            {ph.items.map((c) => {
+                                                const bg = c.isDone
+                                                    ? "var(--text-success)"
+                                                    : c.hasNote
+                                                        ? "var(--text-accent)"
+                                                        : "rgba(var(--mono-rgb-100), 0.06)";
+                                                const fg = c.isDone ? "var(--background-primary)" : c.hasNote ? "var(--background-primary)" : "var(--text-faint)";
+                                                const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
+                                                return (
+                                                    <button
+                                                        key={`c-${ph.phase}-${c.item.id}`}
+                                                        type="button"
+                                                        disabled={!c.link}
+                                                        onClick={() => c.link && openFile(c.link.path)}
+                                                        title={title}
+                                                        style={{
+                                                            width: "26px",
+                                                            height: "26px",
+                                                            borderRadius: "6px",
+                                                            flexShrink: 0,
+                                                            padding: 0,
+                                                            border: "1px solid var(--background-modifier-border)",
+                                                            background: bg,
+                                                            cursor: c.link ? "pointer" : "default",
+                                                            opacity: c.link ? 1 : 0.75,
+                                                        }}
+                                                    >
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", color: fg, fontSize: "0.65em", fontWeight: 700, letterSpacing: "-0.3px" }}>
+                                                            {c.shortId}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                ) : (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>Course data unavailable. Check PA_Syllabus_Data.md and #PA/Course notes.</div>
+                )}
+            </div>
+
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                    <div style={{ fontWeight: 600 }}>Memory / SRS</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                            type="button"
+                            disabled={!can("srs:review-flashcards")}
+                            onClick={() => action("srs:review-flashcards")}
+                            style={can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle}
+                        >
+                            Review
+                        </button>
+                        <button type="button" onClick={reloadMemory} disabled={!loadMemory || memoryBusy} style={{ padding: "6px 10px" }}>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                {!can("srs:review-flashcards") && (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em", marginBottom: "8px" }}>SRS plugin unavailable (adapter downgraded). Stats still compute from #flashcards notes.</div>
+                )}
+
+                {memoryError ? (
+                    <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>{memoryError}</div>
+                ) : memoryBusy ? (
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>Loading…</div>
+                ) : memory ? (
+                    <div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "10px" }}>
+                            <div>Total: <strong>{memory.total}</strong></div>
+                            <div>Due(≤{settings.srsDueThresholdDays}d): <strong>{memory.due}</strong></div>
+                            <div>Mastery: <strong>{memory.masteryPct}%</strong></div>
+                            <div>Load(7d): <strong>{memory.load7d}</strong></div>
+                            <div>Status: <strong>{memory.status}</strong></div>
+                        </div>
+
+                        {memory.focusFile ? (
+                            <div style={{ marginBottom: "10px", color: "var(--text-muted)", fontSize: "0.9em" }}>
+                                Focus:{" "}
+                                <button type="button" onClick={() => openFile(memory.focusFile!.path)} style={{ padding: 0, border: "none", background: "transparent", color: "var(--text-accent)", cursor: "pointer", textAlign: "left", fontWeight: 600 }}>
+                                    {memory.focusFile.name.replace(/\.md$/i, "")}
+                                </button>
+                                <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>due {memory.focusFile.due}</span>
+                            </div>
+                        ) : (
+                            <div style={{ marginBottom: "10px", color: "var(--text-faint)", fontSize: "0.9em" }}>No focus file.</div>
+                        )}
+
+                        {memory.quizPool.length > 0 ? (
+                            <div>
+                                <div style={{ fontWeight: 600, marginBottom: "6px" }}>随机抽题（{settings.srsRandomQuizCount}）</div>
+                                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                    {memory.quizPool.map((q, idx) => (
+                                        <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
+                                            <button type="button" onClick={() => openFile(q.path)} style={{ padding: 0, border: "none", background: "transparent", color: "var(--text-accent)", cursor: "pointer", textAlign: "left" }}>
+                                                {q.q || q.file}
+                                            </button>
+                                            <span style={{ marginLeft: "8px", color: "var(--text-faint)", fontSize: "0.85em" }}>{q.file}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>No quiz pool found in #flashcards notes.</div>
+                        )}
+                    </div>
+                ) : (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>Memory data unavailable.</div>
+                )}
+            </div>
+
+            <div
+                style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    marginBottom: "16px",
+                    background: "var(--background-primary)",
+                }}
+            >
                 <div
                     style={{
                         display: "flex",
@@ -1488,6 +1772,8 @@ export class ConsoleView extends ItemView {
 	private version: string;
 	private root: Root | null = null;
 	private mountEl: HTMLElement | null = null;
+    private getSettings: () => AlBrooksConsoleSettings;
+    private subscribeSettings: (listener: (settings: AlBrooksConsoleSettings) => void) => () => void;
 
     constructor(
         leaf: WorkspaceLeaf,
@@ -1496,6 +1782,9 @@ export class ConsoleView extends ItemView {
 		todayContext: TodayContext,
         integrations: PluginIntegrationRegistry,
         version: string
+        ,
+        getSettings: () => AlBrooksConsoleSettings,
+        subscribeSettings: (listener: (settings: AlBrooksConsoleSettings) => void) => () => void
     ) {
         super(leaf);
         this.index = index;
@@ -1503,6 +1792,8 @@ export class ConsoleView extends ItemView {
 		this.todayContext = todayContext;
 		this.integrations = integrations;
 		this.version = version;
+        this.getSettings = getSettings;
+        this.subscribeSettings = subscribeSettings;
     }
 
     getViewType() {
@@ -1653,6 +1944,86 @@ export class ConsoleView extends ItemView {
             return out;
         };
 
+        const loadCourse = async (settings: AlBrooksConsoleSettings): Promise<CourseSnapshot> => {
+            const syllabusName = "PA_Syllabus_Data.md";
+            const syFile = this.app.vault.getMarkdownFiles().find((f) => f.name === syllabusName);
+            const syllabus = syFile ? parseSyllabusJsonFromMarkdown(await this.app.vault.read(syFile)) : [];
+
+            const COURSE_TAG = "PA/Course";
+            const doneIds = new Set<string>();
+            const linksById: Record<string, { path: string; name: string }> = {};
+
+            const files = this.app.vault.getMarkdownFiles();
+            for (const f of files) {
+                const cache = this.app.metadataCache.getFileCache(f);
+                const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
+                const fm = cache?.frontmatter as any;
+                const fmTagsRaw = fm?.tags as unknown;
+                const fmTags = Array.isArray(fmTagsRaw)
+                    ? fmTagsRaw.filter((t): t is string => typeof t === "string")
+                    : typeof fmTagsRaw === "string"
+                        ? [fmTagsRaw]
+                        : [];
+                const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
+                const isCourse = normalized.some((t) => t.toLowerCase() === COURSE_TAG.toLowerCase());
+                if (!isCourse) continue;
+
+                let ids = fm?.module_id as unknown;
+                if (!ids) continue;
+                if (!Array.isArray(ids)) ids = [ids];
+                const studied = Boolean(fm?.studied);
+                for (const id of ids as any[]) {
+                    const strId = String(id ?? "").trim();
+                    if (!strId) continue;
+                    linksById[strId] = { path: f.path, name: f.name };
+                    if (studied) doneIds.add(strId);
+                }
+            }
+
+            return buildCourseSnapshot({
+                syllabus,
+                doneIds,
+                linksById,
+                courseRecommendationWindow: settings.courseRecommendationWindow,
+            });
+        };
+
+        const loadMemory = async (settings: AlBrooksConsoleSettings): Promise<MemorySnapshot> => {
+            const FLASH_TAG = "flashcards";
+            const files = this.app.vault
+                .getMarkdownFiles()
+                .filter((f) => !f.path.startsWith("Templates/"));
+            const picked = files.filter((f) => {
+                const cache = this.app.metadataCache.getFileCache(f);
+                const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
+                const fm = cache?.frontmatter as any;
+                const fmTagsRaw = fm?.tags as unknown;
+                const fmTags = Array.isArray(fmTagsRaw)
+                    ? fmTagsRaw.filter((t): t is string => typeof t === "string")
+                    : typeof fmTagsRaw === "string"
+                        ? [fmTagsRaw]
+                        : [];
+                const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
+                return normalized.some((t) => t.toLowerCase() === FLASH_TAG.toLowerCase());
+            });
+
+            const fileInputs: Array<{ path: string; name: string; folder: string; content: string }> = [];
+            for (let i = 0; i < picked.length; i++) {
+                const f = picked[i];
+                const content = await this.app.vault.read(f);
+                const folder = f.path.split("/").slice(0, -1).pop() || "Root";
+                fileInputs.push({ path: f.path, name: f.name, folder, content });
+                if (i % 12 === 0) await new Promise((r) => window.setTimeout(r, 0));
+            }
+
+            return buildMemorySnapshot({
+                files: fileInputs,
+                today: new Date(),
+                dueThresholdDays: settings.srsDueThresholdDays,
+                randomQuizCount: settings.srsRandomQuizCount,
+            });
+        };
+
         this.contentEl.empty();
         this.mountEl = this.contentEl.createDiv();
         this.root = createRoot(this.mountEl);
@@ -1668,6 +2039,10 @@ export class ConsoleView extends ItemView {
 					loadStrategyNotes={loadStrategyNotes}
 					applyFixPlan={applyFixPlan}
 					restoreFiles={restoreFiles}
+                    settings={this.getSettings()}
+                    subscribeSettings={this.subscribeSettings}
+                    loadCourse={loadCourse}
+                    loadMemory={loadMemory}
                     integrations={this.integrations}
                     openFile={openFile}
                     version={this.version}
