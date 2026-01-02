@@ -28,6 +28,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(TRADING_SERVICE_DIR))  # tradecat
 DB_URL = os.environ.get("DATABASE_URL", "postgresql://opentd:OpenTD_pass@localhost:5433/market_data")
 SQLITE_PATH = os.environ.get("INDICATOR_SQLITE_PATH", os.path.join(PROJECT_ROOT, "libs/database/services/telegram-service/market_data.db"))
 
+# 币种管理配置
+SYMBOLS_MODE = os.environ.get("SYMBOLS_MODE", "auto").lower()
+SYMBOLS_LIST = [s.strip().upper() for s in os.environ.get("SYMBOLS", "").split(",") if s.strip()]
+HIGH_PRIORITY_TOP_N = int(os.environ.get("HIGH_PRIORITY_TOP_N", "50"))
+
 INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
 
 last_computed = {i: None for i in INTERVALS}
@@ -37,6 +42,15 @@ high_priority_symbols = []
 
 def log(msg: str):
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}", flush=True)
+
+
+def _filter_symbols(symbols: list) -> list:
+    """根据配置过滤币种"""
+    if SYMBOLS_MODE == "whitelist" and SYMBOLS_LIST:
+        return [s for s in symbols if s in SYMBOLS_LIST]
+    elif SYMBOLS_MODE == "blacklist" and SYMBOLS_LIST:
+        return [s for s in symbols if s not in SYMBOLS_LIST]
+    return symbols
 
 
 # ============ 高优先级币种识别（复用 async_full_engine 完整逻辑）============
@@ -242,12 +256,26 @@ def update_priority():
     """更新高优先级币种列表"""
     global high_priority_symbols, last_priority_update
     
-    log("更新高优先级币种...")
+    log(f"更新币种列表 (模式={SYMBOLS_MODE})...")
     t0 = time.time()
-    symbols = list(get_high_priority_symbols_fast(top_n=15))  # 文档要求 top_n=15，约 150 币种
+    
+    if SYMBOLS_MODE == "whitelist" and SYMBOLS_LIST:
+        # 白名单模式：直接使用配置的币种
+        symbols = SYMBOLS_LIST
+        log(f"白名单模式: {len(symbols)} 币种")
+    elif SYMBOLS_MODE == "blacklist" and SYMBOLS_LIST:
+        # 黑名单模式：高优先级排除黑名单
+        symbols = list(get_high_priority_symbols_fast(top_n=HIGH_PRIORITY_TOP_N))
+        symbols = _filter_symbols(symbols)
+        log(f"黑名单模式: {len(symbols)} 币种 (排除 {len(SYMBOLS_LIST)} 个)")
+    else:
+        # auto模式：自动计算高优先级
+        symbols = list(get_high_priority_symbols_fast(top_n=HIGH_PRIORITY_TOP_N))
+        log(f"自动模式: {len(symbols)} 高优先级币种")
+    
     high_priority_symbols = symbols
     last_priority_update = time.time()
-    log(f"高优先级: {len(high_priority_symbols)} 币种, 耗时 {time.time()-t0:.1f}s")
+    log(f"币种更新完成, 耗时 {time.time()-t0:.1f}s")
     
     if high_priority_symbols:
         log(f"前10: {high_priority_symbols[:10]}")

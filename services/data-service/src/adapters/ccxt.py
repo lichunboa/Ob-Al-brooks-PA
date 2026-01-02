@@ -33,6 +33,20 @@ def get_client(exchange: str = "binance") -> ccxt.Exchange:
     return _clients[exchange]
 
 
+# 币种过滤配置
+SYMBOLS_MODE = os.getenv("SYMBOLS_MODE", "all").lower()
+SYMBOLS_LIST = [s.strip().upper() for s in os.getenv("SYMBOLS", "").split(",") if s.strip()]
+
+
+def _filter_symbols(symbols: List[str]) -> List[str]:
+    """根据配置过滤币种"""
+    if SYMBOLS_MODE == "whitelist" and SYMBOLS_LIST:
+        return [s for s in symbols if s in SYMBOLS_LIST]
+    elif SYMBOLS_MODE == "blacklist" and SYMBOLS_LIST:
+        return [s for s in symbols if s not in SYMBOLS_LIST]
+    return symbols
+
+
 def load_symbols(exchange: str = "binance") -> List[str]:
     key = f"{exchange}_usdt"
     if key not in _symbols:
@@ -40,11 +54,12 @@ def load_symbols(exchange: str = "binance") -> List[str]:
         try:
             client = get_client(exchange)
             client.load_markets()
-            _symbols[key] = sorted({
+            all_symbols = sorted({
                 f"{m['base']}USDT" for m in client.markets.values()
                 if m.get("swap") and m.get("settle") == "USDT" and m.get("linear")
             })
-            logger.info("加载 %s USDT永续 %d 个", exchange, len(_symbols[key]))
+            _symbols[key] = _filter_symbols(all_symbols)
+            logger.info("加载 %s USDT永续 %d 个 (模式=%s)", exchange, len(_symbols[key]), SYMBOLS_MODE)
         finally:
             release()
     return _symbols[key]
