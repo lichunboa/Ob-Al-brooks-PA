@@ -2669,6 +2669,49 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           );
         })()}
+      </div>
+    );
+  };
+
+export class ConsoleView extends ItemView {
+  private root: Root | null = null;
+  private mountEl: HTMLDivElement | null = null;
+
+  public readonly index: TradeIndex;
+  public readonly strategyIndex: StrategyIndex;
+  public readonly todayContext: TodayContext;
+  public readonly integrations: PluginIntegrationRegistry;
+  public readonly version: string;
+
+  private readonly getSettingsFn: () => AlBrooksConsoleSettings;
+  public readonly subscribeSettings?: (
+    listener: (settings: AlBrooksConsoleSettings) => void
+  ) => () => void;
+
+  constructor(
+    leaf: WorkspaceLeaf,
+    index: TradeIndex,
+    strategyIndex: StrategyIndex,
+    todayContext: TodayContext,
+    integrations: PluginIntegrationRegistry,
+    version: string,
+    getSettings: () => AlBrooksConsoleSettings,
+    subscribeSettings?: (
+      listener: (settings: AlBrooksConsoleSettings) => void
+    ) => () => void
+  ) {
+    super(leaf);
+    this.index = index;
+    this.strategyIndex = strategyIndex;
+    this.todayContext = todayContext;
+    this.integrations = integrations;
+    this.version = version;
+    this.getSettingsFn = getSettings;
+    this.subscribeSettings = subscribeSettings;
+  }
+
+  private getSettings(): AlBrooksConsoleSettings {
+    return this.getSettingsFn();
   }
 
   getViewType() {
