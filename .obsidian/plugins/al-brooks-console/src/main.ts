@@ -100,6 +100,14 @@ export default class AlBrooksConsolePlugin extends Plugin {
         void this.exportLegacySnapshot();
       },
     });
+
+    this.addCommand({
+      id: "export-index-snapshot",
+      name: "导出索引快照 (Index Snapshot)",
+      callback: () => {
+        void this.exportIndexSnapshot();
+      },
+    });
   }
 
   private async exportIndexSnapshot(): Promise<void> {

@@ -30,7 +30,7 @@
   - _Requirements: Requirement 2_
   - _Prompt: Implement the task for spec al-brooks-console-stabilization, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Data correctness engineer | Task: Guarantee TradeRecord.dateIso is always valid YYYY-MM-DD by normalizing from frontmatter date, then filename patterns (YYYY-MM-DD, YYYYMMDD, YYMMDD), else fallback to ctime/mtime. | Restrictions: Do not change analytics/today logic; fix at source (TradeIndex). No heavy date libraries. | Success: YYMMDD-named trades sort correctly; no invalid dateIso strings in snapshot/trade list._
 
-- [ ] 3. 导出：注册“导出索引快照”命令并区分来源
+- [x] 3. 导出：注册“导出索引快照”命令并区分来源
   - Files:
     - `.obsidian/plugins/al-brooks-console/src/main.ts`
     - `.obsidian/plugins/al-brooks-console/src/core/export-snapshot.ts`（仅当需要补充字段或文档）
@@ -43,7 +43,7 @@
   - _Requirements: Requirement 3_
   - _Prompt: Implement the task for spec al-brooks-console-stabilization, first run spec-workflow-guide to get the workflow guide then implement the task: | Role: Obsidian plugin engineer | Task: Wire up an export-index-snapshot command to the existing exportIndexSnapshot() method, ensuring stable output location and minimal fields for regression. | Restrictions: No new UI beyond command palette; must not modify notes; keep file name stable/predictable. | Success: Command appears and creates a snapshot JSON under Exports/al-brooks-console with correct metadata and content._
 
-- [ ] 4. 回归：最小手工对照清单（P0 专用）
+- [x] 4. 回归：最小手工对照清单（P0 专用）
   - Files:
     - `.spec-workflow/specs/al-brooks-console-stabilization/requirements.md`（可附加一段“Manual Regression Checklist”）
     - 或新建：`.spec-workflow/specs/al-brooks-console-stabilization/regression-checklist.md`
