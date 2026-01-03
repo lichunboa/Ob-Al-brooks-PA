@@ -978,7 +978,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
               }
             >
-              复习
+              ⚡️ 开始复习
             </button>
             <button
               type="button"
@@ -2541,10 +2541,10 @@ const ConsoleComponent: React.FC<Props> = ({
                   : null;
               const randomRec = quiz
                 ? {
-                    type: "Random" as const,
+                    type: "Shake" as const,
                     title: String(quiz.q || quiz.file),
                     path: String(quiz.path),
-                    desc: String(`来自: ${quiz.file}`),
+                    desc: "🎲 随机抽取",
                   }
                 : null;
 
@@ -2650,7 +2650,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   {memory.focusFile.name.replace(/\.md$/i, "")}
                 </button>
                 <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
-                  到期 {memory.focusFile.due}
+                  到期: {memory.focusFile.due} | 易度: {memory.focusFile.avgEase}
                 </span>
               </div>
             ) : (
