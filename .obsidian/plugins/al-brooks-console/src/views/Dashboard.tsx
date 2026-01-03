@@ -1546,20 +1546,6 @@ const ConsoleComponent: React.FC<Props> = ({
         />
       </div>
 
-      {/* Strategy Repository Stats */}
-      <div style={{ marginBottom: "18px" }}>
-        <StrategyStats
-          total={strategyStats.total}
-          activeCount={strategyStats.activeCount}
-          learningCount={strategyStats.learningCount}
-          totalUses={strategyStats.totalUses}
-          onFilter={(f: string) => {
-            // TODO: wire filtering state to StrategyList (future task)
-            console.log("策略过滤：", f);
-          }}
-        />
-      </div>
-
       <div
         style={{
           display: "flex",
@@ -1592,6 +1578,454 @@ const ConsoleComponent: React.FC<Props> = ({
           }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
           icon="🔵"
         />
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>数据分析</div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "var(--text-muted)",
+              fontSize: "0.9em",
+            }}
+          >
+            范围
+            <select
+              value={analyticsScope}
+              onChange={(e) =>
+                setAnalyticsScope(e.target.value as AnalyticsScope)
+              }
+              style={selectStyle}
+            >
+              <option value="Live">实盘</option>
+              <option value="Demo">模拟</option>
+              <option value="Backtest">回测</option>
+              <option value="All">全部</option>
+            </select>
+          </label>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+          <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              日历（最近 {calendarDays} 天）
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                gap: "6px",
+              }}
+            >
+              {calendarCells.map((c) => {
+                const absRatio =
+                  calendarMaxAbs > 0
+                    ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
+                    : 0;
+                const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
+                const bg =
+                  c.netR > 0
+                    ? `rgba(var(--color-green-rgb), ${alpha})`
+                    : c.netR < 0
+                    ? `rgba(var(--color-red-rgb), ${alpha})`
+                    : `rgba(var(--mono-rgb-100), 0.05)`;
+                return (
+                  <div
+                    key={`cal-${c.dateIso}`}
+                    title={`${c.dateIso} • ${c.count} 笔 • ${
+                      c.netR >= 0 ? "+" : ""
+                    }${c.netR.toFixed(1)}R`}
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "6px",
+                      padding: "6px",
+                      background: bg,
+                      minHeight: "40px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div
+                      style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
+                    >
+                      {getDayOfMonth(c.dateIso)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        fontWeight: 600,
+                        color:
+                          c.netR > 0
+                            ? "var(--text-success)"
+                            : c.netR < 0
+                            ? "var(--text-error)"
+                            : "var(--text-faint)",
+                        textAlign: "right",
+                      }}
+                    >
+                      {c.count > 0
+                        ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`
+                        : "—"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              权益曲线
+            </div>
+            {equitySeries.length > 1 ? (
+              (() => {
+                const w = 520;
+                const h = 160;
+                const pad = 14;
+                const ys = equitySeries.map((p) => p.equityR);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+                const span = Math.max(1e-6, maxY - minY);
+                const xStep =
+                  (w - pad * 2) / Math.max(1, equitySeries.length - 1);
+                const points = equitySeries
+                  .map((p, i) => {
+                    const x = pad + i * xStep;
+                    const y =
+                      pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
+                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+                  })
+                  .join(" ");
+
+                const last = equitySeries[equitySeries.length - 1];
+                return (
+                  <div>
+                    <svg
+                      viewBox={`0 0 ${w} ${h}`}
+                      width="100%"
+                      height="160"
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        background: `rgba(var(--mono-rgb-100), 0.03)`,
+                      }}
+                    >
+                      <polyline
+                        points={points}
+                        fill="none"
+                        stroke="var(--text-accent)"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      最新：{" "}
+                      <span
+                        style={{
+                          color:
+                            last.equityR >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {last.equityR >= 0 ? "+" : ""}
+                        {last.equityR.toFixed(1)}R
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                数据不足。
+              </div>
+            )}
+
+            <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
+              策略归因（Top）
+            </div>
+            {strategyAttribution.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                {strategyAttribution.map((r) => (
+                  <li
+                    key={`attr-${r.strategyName}`}
+                    style={{ marginBottom: "6px" }}
+                  >
+                    {r.strategyPath ? (
+                      <button
+                        type="button"
+                        onClick={() => openFile(r.strategyPath!)}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {r.strategyName}
+                      </button>
+                    ) : (
+                      <span>{r.strategyName}</span>
+                    )}
+                    <span
+                      style={{
+                        color: "var(--text-muted)",
+                        marginLeft: "8px",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      {r.count} 笔 •{" "}
+                      <span
+                        style={{
+                          color:
+                            r.netR >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {r.netR >= 0 ? "+" : ""}
+                        {r.netR.toFixed(1)}R
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                未找到策略归因数据。
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>📚 学习模块</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Learning
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!can("srs:review-flashcards")}
+              onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              复习
+            </button>
+            <button
+              type="button"
+              onClick={reloadMemory}
+              disabled={!loadMemory || memoryBusy}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                !loadMemory || memoryBusy
+                  ? { ...disabledButtonStyle, padding: "6px 10px" }
+                  : { ...buttonStyle, padding: "6px 10px" }
+              }
+            >
+              刷新
+            </button>
+          </div>
+        </div>
+
+        {!can("srs:review-flashcards") && (
+          <div
+            style={{
+              color: "var(--text-faint)",
+              fontSize: "0.9em",
+              marginBottom: "8px",
+            }}
+          >
+            SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
+          </div>
+        )}
+
+        {memoryError ? (
+          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+            {memoryError}
+          </div>
+        ) : memoryBusy ? (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            加载中…
+          </div>
+        ) : memory ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
+              <div>
+                总计：<strong>{memory.total}</strong>
+              </div>
+              <div>
+                到期（≤{settings.srsDueThresholdDays}天）：{" "}
+                <strong>{memory.due}</strong>
+              </div>
+              <div>
+                掌握度：<strong>{memory.masteryPct}%</strong>
+              </div>
+              <div>
+                负载（7天）：<strong>{memory.load7d}</strong>
+              </div>
+              <div>
+                状态：<strong>{memory.status}</strong>
+              </div>
+            </div>
+
+            {memory.focusFile ? (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                }}
+              >
+                焦点：{" "}
+                <button
+                  type="button"
+                  onClick={() => openFile(memory.focusFile!.path)}
+                  style={{ ...textButtonStyle, fontWeight: 600 }}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
+                >
+                  {memory.focusFile.name.replace(/\.md$/i, "")}
+                </button>
+                <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
+                  到期 {memory.focusFile.due}
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-faint)",
+                  fontSize: "0.9em",
+                }}
+              >
+                暂无焦点卡片。
+              </div>
+            )}
+
+            {memory.quizPool.length > 0 ? (
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  随机抽题（{settings.srsRandomQuizCount}）
+                </div>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {memory.quizPool.map((q, idx) => (
+                    <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openFile(q.path)}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {q.q || q.file}
+                      </button>
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        {q.file}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                在 #flashcards 笔记中未找到可抽取题库。
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            记忆数据不可用。
+          </div>
+        )}
       </div>
 
       <div
@@ -1892,425 +2326,28 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px",
-            marginBottom: "8px",
-          }}
-        >
-          <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              disabled={!can("srs:review-flashcards")}
-              onClick={() => action("srs:review-flashcards")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              复习
-            </button>
-            <button
-              type="button"
-              onClick={reloadMemory}
-              disabled={!loadMemory || memoryBusy}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                !loadMemory || memoryBusy
-                  ? { ...disabledButtonStyle, padding: "6px 10px" }
-                  : { ...buttonStyle, padding: "6px 10px" }
-              }
-            >
-              刷新
-            </button>
-          </div>
+        <div style={{ fontWeight: 600, marginBottom: "10px" }}>
+          策略仓库
+          <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            {" "}(Playbook)
+          </span>
         </div>
 
-        {!can("srs:review-flashcards") && (
-          <div
-            style={{
-              color: "var(--text-faint)",
-              fontSize: "0.9em",
-              marginBottom: "8px",
+        <div style={{ marginBottom: "10px" }}>
+          <StrategyStats
+            total={strategyStats.total}
+            activeCount={strategyStats.activeCount}
+            learningCount={strategyStats.learningCount}
+            totalUses={strategyStats.totalUses}
+            onFilter={(f: string) => {
+              // TODO: wire filtering state to StrategyList (future task)
+              console.log("策略过滤：", f);
             }}
-          >
-            SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
-          </div>
-        )}
-
-        {memoryError ? (
-          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-            {memoryError}
-          </div>
-        ) : memoryBusy ? (
-          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-            加载中…
-          </div>
-        ) : memory ? (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "12px",
-                color: "var(--text-muted)",
-                fontSize: "0.9em",
-                marginBottom: "10px",
-              }}
-            >
-              <div>
-                总计：<strong>{memory.total}</strong>
-              </div>
-              <div>
-                到期（≤{settings.srsDueThresholdDays}天）：{" "}
-                <strong>{memory.due}</strong>
-              </div>
-              <div>
-                掌握度：<strong>{memory.masteryPct}%</strong>
-              </div>
-              <div>
-                负载（7天）：<strong>{memory.load7d}</strong>
-              </div>
-              <div>
-                状态：<strong>{memory.status}</strong>
-              </div>
-            </div>
-
-            {memory.focusFile ? (
-              <div
-                style={{
-                  marginBottom: "10px",
-                  color: "var(--text-muted)",
-                  fontSize: "0.9em",
-                }}
-              >
-                焦点：{" "}
-                <button
-                  type="button"
-                  onClick={() => openFile(memory.focusFile!.path)}
-                  style={{ ...textButtonStyle, fontWeight: 600 }}
-                  onMouseEnter={onTextBtnMouseEnter}
-                  onMouseLeave={onTextBtnMouseLeave}
-                  onFocus={onTextBtnFocus}
-                  onBlur={onTextBtnBlur}
-                >
-                  {memory.focusFile.name.replace(/\.md$/i, "")}
-                </button>
-                <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
-                  到期 {memory.focusFile.due}
-                </span>
-              </div>
-            ) : (
-              <div
-                style={{
-                  marginBottom: "10px",
-                  color: "var(--text-faint)",
-                  fontSize: "0.9em",
-                }}
-              >
-                暂无焦点卡片。
-              </div>
-            )}
-
-            {memory.quizPool.length > 0 ? (
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                  随机抽题（{settings.srsRandomQuizCount}）
-                </div>
-                <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                  {memory.quizPool.map((q, idx) => (
-                    <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={() => openFile(q.path)}
-                        style={textButtonStyle}
-                        onMouseEnter={onTextBtnMouseEnter}
-                        onMouseLeave={onTextBtnMouseLeave}
-                        onFocus={onTextBtnFocus}
-                        onBlur={onTextBtnBlur}
-                      >
-                        {q.q || q.file}
-                      </button>
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          color: "var(--text-faint)",
-                          fontSize: "0.85em",
-                        }}
-                      >
-                        {q.file}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                在 #flashcards 笔记中未找到可抽取题库。
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            记忆数据不可用。
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "10px",
-            marginBottom: "8px",
-          }}
-        >
-          <div style={{ fontWeight: 600 }}>数据分析</div>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "var(--text-muted)",
-              fontSize: "0.9em",
-            }}
-          >
-            范围
-            <select
-              value={analyticsScope}
-              onChange={(e) =>
-                setAnalyticsScope(e.target.value as AnalyticsScope)
-              }
-              style={selectStyle}
-            >
-              <option value="Live">实盘</option>
-              <option value="Demo">模拟</option>
-              <option value="Backtest">回测</option>
-              <option value="All">全部</option>
-            </select>
-          </label>
+          />
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
-          <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              日历（最近 {calendarDays} 天）
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                gap: "6px",
-              }}
-            >
-              {calendarCells.map((c) => {
-                const absRatio =
-                  calendarMaxAbs > 0
-                    ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
-                    : 0;
-                const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
-                const bg =
-                  c.netR > 0
-                    ? `rgba(var(--color-green-rgb), ${alpha})`
-                    : c.netR < 0
-                    ? `rgba(var(--color-red-rgb), ${alpha})`
-                    : `rgba(var(--mono-rgb-100), 0.05)`;
-                return (
-                  <div
-                    key={`cal-${c.dateIso}`}
-                    title={`${c.dateIso} • ${c.count} 笔 • ${
-                      c.netR >= 0 ? "+" : ""
-                    }${c.netR.toFixed(1)}R`}
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "6px",
-                      padding: "6px",
-                      background: bg,
-                      minHeight: "40px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div
-                      style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
-                    >
-                      {getDayOfMonth(c.dateIso)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.85em",
-                        fontWeight: 600,
-                        color:
-                          c.netR > 0
-                            ? "var(--text-success)"
-                            : c.netR < 0
-                            ? "var(--text-error)"
-                            : "var(--text-faint)",
-                        textAlign: "right",
-                      }}
-                    >
-                      {c.count > 0
-                        ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`
-                        : "—"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              权益曲线
-            </div>
-            {equitySeries.length > 1 ? (
-              (() => {
-                const w = 520;
-                const h = 160;
-                const pad = 14;
-                const ys = equitySeries.map((p) => p.equityR);
-                const minY = Math.min(...ys);
-                const maxY = Math.max(...ys);
-                const span = Math.max(1e-6, maxY - minY);
-                const xStep =
-                  (w - pad * 2) / Math.max(1, equitySeries.length - 1);
-                const points = equitySeries
-                  .map((p, i) => {
-                    const x = pad + i * xStep;
-                    const y =
-                      pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
-                    return `${x.toFixed(1)},${y.toFixed(1)}`;
-                  })
-                  .join(" ");
-
-                const last = equitySeries[equitySeries.length - 1];
-                return (
-                  <div>
-                    <svg
-                      viewBox={`0 0 ${w} ${h}`}
-                      width="100%"
-                      height="160"
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        background: `rgba(var(--mono-rgb-100), 0.03)`,
-                      }}
-                    >
-                      <polyline
-                        points={points}
-                        fill="none"
-                        stroke="var(--text-accent)"
-                        strokeWidth="2"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                      }}
-                    >
-                      最新：{" "}
-                      <span
-                        style={{
-                          color:
-                            last.equityR >= 0
-                              ? "var(--text-success)"
-                              : "var(--text-error)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {last.equityR >= 0 ? "+" : ""}
-                        {last.equityR.toFixed(1)}R
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                数据不足。
-              </div>
-            )}
-
-            <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
-              策略归因（Top）
-            </div>
-            {strategyAttribution.length > 0 ? (
-              <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                {strategyAttribution.map((r) => (
-                  <li
-                    key={`attr-${r.strategyName}`}
-                    style={{ marginBottom: "6px" }}
-                  >
-                    {r.strategyPath ? (
-                      <button
-                        type="button"
-                        onClick={() => openFile(r.strategyPath!)}
-                        style={textButtonStyle}
-                        onMouseEnter={onTextBtnMouseEnter}
-                        onMouseLeave={onTextBtnMouseLeave}
-                        onFocus={onTextBtnFocus}
-                        onBlur={onTextBtnBlur}
-                      >
-                        {r.strategyName}
-                      </button>
-                    ) : (
-                      <span>{r.strategyName}</span>
-                    )}
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        marginLeft: "8px",
-                        fontSize: "0.9em",
-                      }}
-                    >
-                      {r.count} 笔 •{" "}
-                      <span
-                        style={{
-                          color:
-                            r.netR >= 0
-                              ? "var(--text-success)"
-                              : "var(--text-error)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {r.netR >= 0 ? "+" : ""}
-                        {r.netR.toFixed(1)}R
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                未找到策略归因数据。
-              </div>
-            )}
-          </div>
+        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+          （占位符）v5.0 的“策略仓库浏览/检索面板”在插件版尚未提供；当前仅展示策略统计，并在“今日/数据分析/管理器”中复用策略索引能力。
         </div>
       </div>
 
@@ -2391,6 +2428,37 @@ const ConsoleComponent: React.FC<Props> = ({
             未找到封面图片。
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Actions
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+          （占位符）v5.0 在控制台内联展示 Tasks 查询块；插件版当前只提供顶部“任务”按钮跳转到 Tasks 插件。
+        </div>
       </div>
 
       <div
