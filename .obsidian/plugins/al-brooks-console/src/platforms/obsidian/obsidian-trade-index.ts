@@ -357,8 +357,7 @@ export class ObsidianTradeIndex implements TradeIndex {
       const cache = this.app.metadataCache.getFileCache(file);
       if (!cache) return true;
 
-      const normalizedTags = this.getNormalizedTagsFromCache(
-        cache?.tags ?? [],
+      const normalizedTags = this.getNormalizedTagsFromFrontmatter(
         cache?.frontmatter
       );
       const hasTradeTag = normalizedTags.some(isTradeTag);
@@ -427,18 +426,16 @@ export class ObsidianTradeIndex implements TradeIndex {
     if (changed) this.emitChanged();
   }
 
-  private getNormalizedTagsFromCache(
-    cacheTags: Array<{ tag: string }>,
+  private getNormalizedTagsFromFrontmatter(
     fm: Record<string, unknown> | undefined
-  ) {
-    const cacheTagStrings = cacheTags.map((t) => t.tag);
+  ): string[] {
     const fmTagsRaw = fm?.tags as unknown;
     const fmTags = Array.isArray(fmTagsRaw)
       ? fmTagsRaw.filter((t): t is string => typeof t === "string")
       : typeof fmTagsRaw === "string"
       ? [fmTagsRaw]
       : [];
-    return [...cacheTagStrings, ...fmTags].map(normalizeTag);
+    return fmTags.map(normalizeTag);
   }
 
   private indexFile(file: TFile): boolean {
@@ -449,28 +446,13 @@ export class ObsidianTradeIndex implements TradeIndex {
     const prev = this.db.get(file.path);
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
-    const normalizedTags = this.getNormalizedTagsFromCache(
-      cache?.tags ?? [],
-      fm
-    );
+    const normalizedTags = this.getNormalizedTagsFromFrontmatter(fm);
     const hasTradeTag = normalizedTags.some(isTradeTag);
 
     if (!fm) {
-      // 允许：仅靠 tag（包含 inline tag）识别的交易笔记，即使没有 frontmatter。
-      if (!hasTradeTag) {
-        return this.db.delete(file.path);
-      }
-
-      const trade: TradeRecord = {
-        path: file.path,
-        name: file.name,
-        dateIso: this.normalizeDateIso(undefined, file),
-        tags: normalizedTags,
-        mtime: file.stat?.mtime,
-      };
-
-      this.db.set(file.path, trade);
-      return true;
+      // 为避免文档/报告中的“#PA/Trade”文字（尤其在代码块/示例中）造成误入库，
+      // 交易识别默认只信任 frontmatter tags 或 fileClass（需要 frontmatter）。
+      return this.db.delete(file.path);
     }
 
     const fileClassRaw = getFirstFieldValue(fm, FIELD_ALIASES.fileClass);
