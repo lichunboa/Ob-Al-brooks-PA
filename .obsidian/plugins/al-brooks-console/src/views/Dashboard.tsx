@@ -734,121 +734,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
 
 
 
-      <div>
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-          近期 R 趋势
-        </div>
-        <div
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "0.85em",
-            marginBottom: "8px",
-          }}
-        >
-          最近 10 笔
-        </div>
-        {(["Live", "Demo", "Backtest"] as const).map((at) => (
-          <TrendRow
-            key={`r10-${at}`}
-            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
-            value={rLast10[at]}
-            ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
-            color={getRColorByAccountType(at)}
-          />
-        ))}
-        <div
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "0.85em",
-            margin: "10px 0 8px",
-          }}
-        >
-          最近 30 笔
-        </div>
-        {(["Live", "Demo", "Backtest"] as const).map((at) => (
-          <TrendRow
-            key={`r30-${at}`}
-            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
-            value={rLast30[at]}
-            ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
-            color={getRColorByAccountType(at)}
-          />
-        ))}
-      </div>
-    </div>
 
-      {/* Stats Row */ }
-  <div
-    style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "12px",
-      marginBottom: "24px",
-    }}
-  >
-    <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
-    <StatsCard
-      title="累计盈亏"
-      value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
-      color={
-        all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
-      }
-      icon="💰"
-    />
-    <StatsCard
-      title="胜率"
-      value={`${all.winRatePct}%`}
-      color={
-        all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
-      }
-      icon="🎯"
-    />
-  </div>
-
-  {/* Strategy Repository Stats */ }
-      <div style={{ marginBottom: "18px" }}>
-        <StrategyStats
-          total={strategyStats.total}
-          activeCount={strategyStats.activeCount}
-          learningCount={strategyStats.learningCount}
-          totalUses={strategyStats.totalUses}
-          onFilter={(f: any) => {
-            // TODO: wire filtering state to StrategyList (future task)
-            console.log("策略过滤：", f);
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          marginBottom: "24px",
-        }}
-      >
-        <StatsCard
-          title="实盘"
-          value={`${summary.Live.countTotal} 笔`}
-          subValue={`${summary.Live.winRatePct
-            }% • ${summary.Live.netProfit.toFixed(1)}R`}
-          icon="🟢"
-        />
-        <StatsCard
-          title="模拟"
-          value={`${summary.Demo.countTotal} 笔`}
-          subValue={`${summary.Demo.winRatePct
-            }% • ${summary.Demo.netProfit.toFixed(1)}R`}
-          icon="🟡"
-        />
-        <StatsCard
-          title="回测"
-          value={`${summary.Backtest.countTotal} 笔`}
-          subValue={`${summary.Backtest.winRatePct
-            }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
-          icon="🔵"
-        />
-      </div>
 
       <div
         style={{
@@ -2184,26 +2070,26 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         )}
       </div>
 
-  {/* Main Content Area */ }
-  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+      {/* Main Content Area */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
 
-    {/* Strategy Repository (Gap Restoration) */}
-    <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
+        {/* Strategy Repository (Gap Restoration) */}
+        <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
 
-    {/* Analytics Gap Restoration */}
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-      <ContextWidget data={contextAnalysis} />
-      <ErrorWidget data={errorAnalysis} />
-    </div>
+        {/* Analytics Gap Restoration */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <ContextWidget data={contextAnalysis} />
+          <ErrorWidget data={errorAnalysis} />
+        </div>
 
-    {/* Trade Feed */}
-    <div>
-      <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
-      <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
-    </div>
-  </div>
-  </div >
-);
+        {/* Trade Feed */}
+        <div>
+          <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
+          <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
+        </div>
+      </div>
+    </div >
+  );
 };
 
 export class ConsoleView extends ItemView {
