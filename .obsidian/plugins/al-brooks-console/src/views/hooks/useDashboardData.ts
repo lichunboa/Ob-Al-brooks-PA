@@ -259,111 +259,112 @@ export function useDashboardData(
                 fm["patterns"] ??
                 fm["形态/patterns"] ??
                 fm["观察到的形态/patterns_observed"];
+            const patterns = Array.isArray(patternsRaw)
                 ? patternsRaw
-            .filter((x: any) => typeof x === "string")
-            .map((s: string) => s.trim())
-            .filter(Boolean)
-        : typeof patternsRaw === "string"
-            ? patternsRaw
-                .split(/[,，;；/|]/g)
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-            : [];
-    const setupCategory = (fm["setup_category"] ??
-        fm["设置类别/setup_category"]) as any;
-    const setupCategoryStr =
-        typeof setupCategory === "string" ? setupCategory.trim() : undefined;
-    return { patterns, setupCategory: setupCategoryStr };
-},
-[]
+                    .filter((x: any) => typeof x === "string")
+                    .map((s: string) => s.trim())
+                    .filter(Boolean)
+                : typeof patternsRaw === "string"
+                    ? patternsRaw
+                        .split(/[,，;；/|]/g)
+                        .map((s: string) => s.trim())
+                        .filter(Boolean)
+                    : [];
+            const setupCategory = (fm["setup_category"] ??
+                fm["设置类别/setup_category"]) as any;
+            const setupCategoryStr =
+                typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+            return { patterns, setupCategory: setupCategoryStr };
+        },
+        []
     );
 
-const strategyPicks = React.useMemo(() => {
-    return []; // Disabling auto-picks based on recent trades for now as logic was ambiguous.
-    // Use openTradeStrategy or todayStrategyPicks instead.
-    // If we want picks based on latest trade (review mode):
-    /*
-    const params = getTradeStrategyParams(latestTrade);
-    if (!params) return [];
-    return matchStrategies(strategyIndex, {
-        marketCycle: todayMarketCycle,
-        setupCategory: params.setupCategory,
-        patterns: params.patterns,
-        limit: 6
-    });
-    */
-}, []);
+    const strategyPicks = React.useMemo(() => {
+        return []; // Disabling auto-picks based on recent trades for now as logic was ambiguous.
+        // Use openTradeStrategy or todayStrategyPicks instead.
+        // If we want picks based on latest trade (review mode):
+        /*
+        const params = getTradeStrategyParams(latestTrade);
+        if (!params) return [];
+        return matchStrategies(strategyIndex, {
+            marketCycle: todayMarketCycle,
+            setupCategory: params.setupCategory,
+            patterns: params.patterns,
+            limit: 6
+        });
+        */
+    }, []);
 
-const inspectorIssues = React.useMemo(() => {
-    return buildInspectorIssues(trades, enumPresets);
-}, [trades, enumPresets]);
+    const inspectorIssues = React.useMemo(() => {
+        return buildInspectorIssues(trades, enumPresets);
+    }, [trades, enumPresets]);
 
-const fixPlan = React.useMemo(() => {
-    if (!enumPresets) return undefined;
-    return buildFixPlan(trades, enumPresets);
-}, [trades, enumPresets]);
+    const fixPlan = React.useMemo(() => {
+        if (!enumPresets) return undefined;
+        return buildFixPlan(trades, enumPresets);
+    }, [trades, enumPresets]);
 
-const openTrade = React.useMemo(() => {
-    return trades.find((t) => {
-        const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-        if (!pnlMissing) return false;
-        return (
-            t.outcome === "open" ||
-            t.outcome === undefined ||
-            t.outcome === "unknown"
-        );
-    });
-}, [trades]);
+    const openTrade = React.useMemo(() => {
+        return trades.find((t) => {
+            const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+            if (!pnlMissing) return false;
+            return (
+                t.outcome === "open" ||
+                t.outcome === undefined ||
+                t.outcome === "unknown"
+            );
+        });
+    }, [trades]);
 
-const todayStrategyPicks = React.useMemo(() => {
-    if (!todayMarketCycle) return [];
-    return matchStrategies(strategyIndex, {
-        marketCycle: todayMarketCycle,
-        limit: 6,
-    });
-}, [strategyIndex, todayMarketCycle]);
+    const todayStrategyPicks = React.useMemo(() => {
+        if (!todayMarketCycle) return [];
+        return matchStrategies(strategyIndex, {
+            marketCycle: todayMarketCycle,
+            limit: 6,
+        });
+    }, [strategyIndex, todayMarketCycle]);
 
-const openTradeStrategy = React.useMemo(() => {
-    const params = getTradeStrategyParams(openTrade);
-    if (!params) return undefined;
-    const picks = matchStrategies(strategyIndex, {
-        marketCycle: todayMarketCycle,
-        setupCategory: params.setupCategory,
-        patterns: params.patterns,
-        limit: 3,
-    });
-    return picks[0];
-}, [openTrade, strategyIndex, todayMarketCycle, getTradeStrategyParams]);
+    const openTradeStrategy = React.useMemo(() => {
+        const params = getTradeStrategyParams(openTrade);
+        if (!params) return undefined;
+        const picks = matchStrategies(strategyIndex, {
+            marketCycle: todayMarketCycle,
+            setupCategory: params.setupCategory,
+            patterns: params.patterns,
+            limit: 3,
+        });
+        return picks[0];
+    }, [openTrade, strategyIndex, todayMarketCycle, getTradeStrategyParams]);
 
-return {
-    trades,
-    strategies,
-    status,
-    todayMarketCycle,
-    analyticsScope,
-    setAnalyticsScope,
-    onRebuild,
-    summary,
-    all,
-    strategyStats,
-    latestTrade,
-    todayIso,
-    todayTrades,
-    todaySummary,
-    todayLatestTrade,
-    rLast10,
-    rLast30,
-    r10MaxAbs,
-    r30MaxAbs,
-    reviewHints,
-    calendarCells,
-    equitySeries,
-    strategyAttribution,
-    strategyPicks,
-    inspectorIssues,
-    fixPlan,
-    openTrade,
-    todayStrategyPicks,
-    openTradeStrategy,
-};
+    return {
+        trades,
+        strategies,
+        status,
+        todayMarketCycle,
+        analyticsScope,
+        setAnalyticsScope,
+        onRebuild,
+        summary,
+        all,
+        strategyStats,
+        latestTrade,
+        todayIso,
+        todayTrades,
+        todaySummary,
+        todayLatestTrade,
+        rLast10,
+        rLast30,
+        r10MaxAbs,
+        r30MaxAbs,
+        reviewHints,
+        calendarCells,
+        equitySeries,
+        strategyAttribution,
+        strategyPicks,
+        inspectorIssues,
+        fixPlan,
+        openTrade,
+        todayStrategyPicks,
+        openTradeStrategy,
+    };
 }
