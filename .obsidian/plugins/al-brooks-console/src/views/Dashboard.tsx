@@ -830,7 +830,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
           activeCount={strategyStats.activeCount}
           learningCount={strategyStats.learningCount}
           totalUses={strategyStats.totalUses}
-          onFilter={(f) => {
+          onFilter={(f: any) => {
             // TODO: wire filtering state to StrategyList (future task)
             console.log("策略过滤：", f);
           }}
@@ -2406,7 +2406,7 @@ export class ConsoleView extends ItemView {
       const STRATEGY_TAG = "PA/Strategy";
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f) => (prefix ? f.path.startsWith(prefix) : true));
+        .filter((f: TFile) => (prefix ? f.path.startsWith(prefix) : true));
       for (const f of files) {
         const cache = this.app.metadataCache.getFileCache(f);
         let fm = cache?.frontmatter as Record<string, unknown> | undefined;
@@ -2448,7 +2448,7 @@ export class ConsoleView extends ItemView {
       const syllabusName = "PA_Syllabus_Data.md";
       const syFile = this.app.vault
         .getMarkdownFiles()
-        .find((f) => f.name === syllabusName);
+        .find((f: TFile) => f.name === syllabusName);
       const syllabus = syFile
         ? parseSyllabusJsonFromMarkdown(await this.app.vault.read(syFile))
         : [];
@@ -2500,8 +2500,8 @@ export class ConsoleView extends ItemView {
       const FLASH_TAG = "flashcards";
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f) => !f.path.startsWith("Templates/"));
-      const picked = files.filter((f) => {
+        .filter((f: TFile) => !f.path.startsWith("Templates/"));
+      const picked = files.filter((f: TFile) => {
         const cache = this.app.metadataCache.getFileCache(f);
         const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
         const fm = cache?.frontmatter as any;
