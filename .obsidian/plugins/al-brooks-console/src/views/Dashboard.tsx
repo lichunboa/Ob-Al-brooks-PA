@@ -999,52 +999,174 @@ const ConsoleComponent: React.FC<Props> = ({
                     </span>
                   </div>
 
-        {!todayMarketCycle && (
-          <div
-            style={{
-              border: "1px dashed var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              marginBottom: "12px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
-              创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-            </div>
-            <button
-              type="button"
-              disabled={!canOpenTodayNote}
-              onClick={onOpenTodayNote}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-            >
-              打开/创建今日日记（设置市场周期）
-            </button>
-          </div>
-        )}
+                  {!todayMarketCycle && (
+                    <div
+                      style={{
+                        border: "1px dashed var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "10px",
+                        marginBottom: "12px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                      }}
+                    >
+                      <div
+                        style={{ color: "var(--text-muted)", marginBottom: "8px" }}
+                      >
+                        创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!canOpenTodayNote}
+                        onClick={onOpenTodayNote}
+                        onMouseEnter={onBtnMouseEnter}
+                        onMouseLeave={onBtnMouseLeave}
+                        onFocus={onBtnFocus}
+                        onBlur={onBtnBlur}
+                        style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+                      >
+                        打开/创建今日日记（设置市场周期）
+                      </button>
+                    </div>
+                  )}
 
-        <div
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "0.9em",
-            marginBottom: "12px",
-          }}
-        >
-          市场周期：{todayMarketCycle ?? "—"}
-        </div>
-
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "12px",
-            marginBottom: "12px",
-            background: "rgba(var(--mono-rgb-100), 0.05)",
+                  <div
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "0.9em",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    市场周期：{todayMarketCycle ?? "—"}
                   </div>
+
+                  <div
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      marginBottom: "12px",
+                      background: "rgba(var(--mono-rgb-100), 0.05)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                      🎯 策略推荐
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ flex: "1 1 320px" }}>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          按市场周期（{todayMarketCycle ?? "—"}）
+                        </div>
+                        {todayStrategyPicks.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                            {todayStrategyPicks.map((s) => (
+                              <li key={s.path} style={{ marginBottom: "6px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openFile(s.path)}
+                                  onMouseEnter={onBtnMouseEnter}
+                                  onMouseLeave={onBtnMouseLeave}
+                                  onFocus={onBtnFocus}
+                                  onBlur={onBtnBlur}
+                                  style={{
+                                    padding: 0,
+                                    border: "none",
+                                    background: "transparent",
+                                    color: "var(--text-accent)",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {s.name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div style={{ color: "var(--text-muted)" }}>—</div>
+                        )}
+                      </div>
+
+                      <div style={{ flex: "1 1 320px" }}>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          按最近一笔交易/形态
+                        </div>
+                        {strategyPicks.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                            {strategyPicks.map((s) => (
+                              <li key={s.path} style={{ marginBottom: "6px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openFile(s.path)}
+                                  onMouseEnter={onBtnMouseEnter}
+                                  onMouseLeave={onBtnMouseLeave}
+                                  onFocus={onBtnFocus}
+                                  onBlur={onBtnBlur}
+                                  style={{
+                                    padding: 0,
+                                    border: "none",
+                                    background: "transparent",
+                                    color: "var(--text-accent)",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {s.name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div style={{ color: "var(--text-muted)" }}>—</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {openTradeStrategy && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        当前未平仓主策略：
+                        <button
+                          type="button"
+                          onClick={() => openFile(openTradeStrategy.path)}
+                          onMouseEnter={onBtnMouseEnter}
+                          onMouseLeave={onBtnMouseLeave}
+                          onFocus={onBtnFocus}
+                          onBlur={onBtnBlur}
+                          style={{
+                            padding: 0,
+                            border: "none",
+                            background: "transparent",
+                            color: "var(--text-accent)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {openTradeStrategy.name}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                   <details style={{ marginBottom: "16px" }}>
                     <summary
