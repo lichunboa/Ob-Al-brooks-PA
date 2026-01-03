@@ -996,6 +996,9 @@ class UserRequestHandler:
                 InlineKeyboardButton("🔍 币种查询", callback_data="coin_query"),
                 InlineKeyboardButton("ℹ️ 帮助", callback_data="help"),
             ],
+            [
+                InlineKeyboardButton("🤖 AI深度分析", callback_data="start_ai_analysis"),
+            ],
         ]
         return InlineKeyboardMarkup(keyboard)
 
@@ -3583,8 +3586,52 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     button_data = query.data
     chat_type = query.message.chat.type
 
-    # AI/信号功能占位
-    if button_data in {"start_ai_analysis", "start_coin_analysis", "signal_menu", "aggregated_alerts"}:
+    # AI深度分析入口
+    if button_data == "start_ai_analysis":
+        try:
+            from bot.ai_integration import get_ai_handler
+            ai_handler = get_ai_handler(symbols_provider=lambda: user_handler.get_active_symbols() if user_handler else None)
+            await ai_handler.start_ai_analysis(update, context)
+            return
+        except ImportError as e:
+            logger.warning(f"AI模块未安装: {e}")
+            await query.edit_message_text(
+                "🤖 AI分析模块未安装\n\n请联系管理员配置 ai-service",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")]])
+            )
+            return
+        except Exception as e:
+            logger.error(f"AI分析启动失败: {e}")
+            await query.edit_message_text(
+                f"❌ AI分析启动失败: {e}",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")]])
+            )
+            return
+
+    # AI 分析相关回调（币种选择、周期选择、提示词选择）
+    if button_data.startswith("ai_"):
+        try:
+            from bot.ai_integration import get_ai_handler, SELECTING_COIN, SELECTING_INTERVAL
+            ai_handler = get_ai_handler(symbols_provider=lambda: user_handler.get_active_symbols() if user_handler else None)
+            
+            # 根据当前状态分发到对应处理器
+            ai_state = context.user_data.get("ai_state", SELECTING_COIN)
+            if ai_state == SELECTING_INTERVAL or button_data.startswith("ai_interval_") or button_data == "ai_back_to_coin":
+                await ai_handler.handle_interval_selection(update, context)
+            else:
+                await ai_handler.handle_coin_selection(update, context)
+            return
+        except ImportError as e:
+            logger.warning(f"AI模块未安装: {e}")
+            await query.answer("AI模块未安装")
+            return
+        except Exception as e:
+            logger.error(f"AI回调处理失败: {e}")
+            await query.answer(f"处理失败: {e}")
+            return
+
+    # 其他AI/信号功能占位
+    if button_data in {"start_coin_analysis", "signal_menu", "aggregated_alerts"}:
         await query.answer("功能暂未开放")
         return
 
@@ -5004,13 +5051,22 @@ async def ai_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """AI分析指令 /ai"""
     if not _is_command_allowed(update):
         return
-    await update.message.reply_text(
-        AI_FEATURE_NOTICE,
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")
-        ]]),
-        parse_mode='Markdown'
-    )
+    try:
+        from bot.ai_integration import get_ai_handler
+        ai_handler = get_ai_handler(symbols_provider=lambda: user_handler.get_active_symbols() if user_handler else None)
+        await ai_handler.start_ai_analysis(update, context)
+    except ImportError as e:
+        logger.warning(f"AI模块未安装: {e}")
+        await update.message.reply_text(
+            "🤖 AI分析模块未安装\n\n请联系管理员配置 ai-service",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")]])
+        )
+    except Exception as e:
+        logger.error(f"AI分析启动失败: {e}")
+        await update.message.reply_text(
+            f"❌ AI分析启动失败: {e}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")]])
+        )
 
 
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
