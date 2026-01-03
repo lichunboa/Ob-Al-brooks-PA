@@ -14,6 +14,7 @@ import {
 } from "../../core/analytics";
 import { computeTradeStatsByAccountType } from "../../core/stats";
 import { buildReviewHints } from "../../core/review-hints";
+import { computeTodayStrategyPicks } from "../../core/console-state";
 import { matchStrategies } from "../../core/strategy-matcher";
 import {
     buildFixPlan,
@@ -302,9 +303,9 @@ export function useDashboardData(
     }, [trades]);
 
     const todayStrategyPicks = React.useMemo(() => {
-        if (!todayMarketCycle) return [];
-        return matchStrategies(strategyIndex, {
-            marketCycle: todayMarketCycle,
+        return computeTodayStrategyPicks({
+            todayMarketCycle,
+            strategyIndex,
             limit: 6,
         });
     }, [strategyIndex, todayMarketCycle]);

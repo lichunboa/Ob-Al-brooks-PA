@@ -25,6 +25,7 @@ import {
   type DailyAgg,
 } from "../core/analytics";
 import { parseCoverRef } from "../core/cover-parser";
+import { computeTodayStrategyPicks } from "../core/console-state";
 import type { EnumPresets } from "../core/enum-presets";
 import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
 import {
@@ -715,9 +716,9 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [trades]);
 
   const todayStrategyPicks = React.useMemo(() => {
-    if (!todayMarketCycle) return [];
-    return matchStrategies(strategyIndex, {
-      marketCycle: todayMarketCycle,
+    return computeTodayStrategyPicks({
+      todayMarketCycle,
+      strategyIndex,
       limit: 6,
     });
   }, [strategyIndex, todayMarketCycle]);
