@@ -238,6 +238,15 @@ const ConsoleComponent: React.FC<Props> = ({
     ManagerApplyResult | undefined
   >(undefined);
   const [managerBusy, setManagerBusy] = React.useState(false);
+
+  const canOpenTodayNote = Boolean(todayContext?.openTodayNote);
+  const onOpenTodayNote = React.useCallback(async () => {
+    try {
+      await todayContext?.openTodayNote?.();
+    } catch (e) {
+      console.warn("[al-brooks-console] openTodayNote failed", e);
+    }
+  }, [todayContext]);
   const [managerArmed, setManagerArmed] = React.useState(false);
   const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
   const [managerBackups, setManagerBackups] = React.useState<
@@ -1047,6 +1056,47 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
       )}
 
+      {!todayMarketCycle && (
+        <div
+          style={{
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
+            padding: "12px",
+            marginBottom: "16px",
+            background: "var(--background-primary)",
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            📊 今日实时监控 (Today's Dashboard)
+            <span
+              style={{
+                fontWeight: 400,
+                marginLeft: "8px",
+                color: "var(--text-muted)",
+                fontSize: "0.85em",
+              }}
+            >
+              {todayIso}
+            </span>
+          </div>
+          <div style={{ color: "var(--text-muted)", marginBottom: "10px" }}>
+            创建今日日记，并设置市场周期以获取策略推荐。
+          </div>
+          <button
+            type="button"
+            disabled={!canOpenTodayNote}
+            onClick={onOpenTodayNote}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+          >
+            打开/创建今日日记（设置市场周期）
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           border: "1px solid var(--background-modifier-border)",
@@ -1136,6 +1186,35 @@ const ConsoleComponent: React.FC<Props> = ({
                 : "今日暂无交易"}
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: "6px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            最近交易记录
+          </div>
+          {todayTrades.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {todayTrades.slice(0, 5).map((t) => (
+                <li key={t.path} style={{ marginBottom: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => openFile(t.path)}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
+                  >
+                    {t.ticker ?? "未知"} • {t.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ color: "var(--text-faint)", padding: "4px 0" }}>
+              今日暂无交易记录
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: "12px" }}>
