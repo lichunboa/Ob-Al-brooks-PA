@@ -3,6 +3,8 @@ import {
   ItemView,
   WorkspaceLeaf,
   TFile,
+  MarkdownRenderer,
+  Component,
   parseYaml,
   stringifyYaml,
 } from "obsidian";
@@ -204,6 +206,25 @@ class ConsoleErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
+const MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }> = ({
+  markdown,
+  sourcePath = "",
+}) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = "";
+
+    const component = new Component();
+    void MarkdownRenderer.renderMarkdown(markdown, el, sourcePath, component);
+    return () => component.unload();
+  }, [markdown, sourcePath]);
+
+  return <div ref={ref} />;
+};
 
 const ConsoleComponent: React.FC<Props> = ({
   index,
@@ -3004,9 +3025,12 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
-        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          （占位符）v5.0 在控制台内联展示 Tasks 查询块；插件版当前只提供顶部“任务”按钮跳转到 Tasks 插件。
-        </div>
+        {!can("tasks:open") ? (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
+            集成可用（请安装/启用 Tasks 插件）。
+          </div>
+        ) : null}
 
         <div
           style={{
@@ -3027,10 +3051,32 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🔥 必须解决 (Inbox & Urgent)
             </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              - ❓ 疑难杂症 (Questions)
-              <br />- 🚨 紧急事项 (Urgent)
-            </div>
+            {can("tasks:open") ? (
+              <MarkdownBlock
+                markdown={`**❓ 疑难杂症 (Questions)**\n\n\
+\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/question\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+\
+**🚨 紧急事项 (Urgent)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/urgent\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+              />
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                请先启用 Tasks 插件。
+              </div>
+            )}
           </div>
 
           <div
@@ -3044,12 +3090,47 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🛠️ 持续改进 (Improvement)
             </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              - 🧪 回测任务 (Backtest)
-              <br />- 📝 复盘任务 (Review)
-              <br />- 📖 待学习/阅读 (Study)
-              <br />- 🔬 待验证想法 (Verify)
-            </div>
+            {can("tasks:open") ? (
+              <MarkdownBlock
+                markdown={`**🧪 回测任务 (Backtest)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/backtest\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📝 复盘任务 (Review)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/review\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📖 待学习/阅读 (Study)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\n\
+path does not include Templates\n\
+limit 5\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**🔬 待验证想法 (Verify)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/verify\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+              />
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                请先启用 Tasks 插件。
+              </div>
+            )}
           </div>
 
           <div
@@ -3063,12 +3144,27 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               📅 每日例行 (Routine)
             </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                - ☀️ 盘前：阅读新闻，标记关键位 (S/R Levels)
-                <br />- 🧘 盘中：每小时检查一次情绪 (FOMO Check)
-                <br />- 🌙 盘后：填写当日复盘日记
-                <br />- 🧹 杂项待办 (To-Do)
-            </div>
+            {can("tasks:open") ? (
+              <MarkdownBlock
+                markdown={`**📝 手动打卡 (Checklist)**\n\n\
+- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
+- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
+- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
+**🧹 杂项待办 (To-Do)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/todo\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+limit 5\n\
+\`\`\`\n`}
+              />
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                请先启用 Tasks 插件。
+              </div>
+            )}
           </div>
 
           <div
@@ -3082,10 +3178,30 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🛠️ 等待任务 (Maintenance)
             </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              - 🖨️ 待打印 (Print Queue)
-              <br />- 📂 待整理 (Organize)
-            </div>
+            {can("tasks:open") ? (
+              <MarkdownBlock
+                markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/print\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📂 待整理 (Organize)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/organize\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+              />
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                请先启用 Tasks 插件。
+              </div>
+            )}
           </div>
         </div>
       </div>
