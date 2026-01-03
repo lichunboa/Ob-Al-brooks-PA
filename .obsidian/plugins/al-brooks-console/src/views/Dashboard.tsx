@@ -652,8 +652,8 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         {todayMarketCycle && (
           <div style={{ marginBottom: "20px", padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
             {/* DEBUG INFO */}
-            <div style={{ display: 'none' }}>
-              Debug: Index Size {strategies.length} | Cycle: {todayMarketCycle} | Matches: {todayStrategyPicks.length}
+            <div style={{ display: 'block', color: 'red', fontSize: '11px', marginBottom: '8px' }}>
+              Debug: Index {strategies.length} | Cycle "{todayMarketCycle}" | Matches {todayStrategyPicks.length}
             </div>
             <div style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: "10px" }}>
               💡 基于当前市场周期 <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[{todayMarketCycle}]</span> 的策略建议：
