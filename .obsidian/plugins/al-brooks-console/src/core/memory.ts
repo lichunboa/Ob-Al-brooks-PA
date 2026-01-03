@@ -19,6 +19,7 @@ export type MemorySnapshot = {
   due: number;
   masteryPct: number;
   load7d: number;
+  loadNext7: Array<{ dateIso: string; count: number }>;
   status: string;
   quizPool: QuizItem[];
   focusFile: MemoryFileStat | null;
@@ -55,7 +56,20 @@ export function buildMemorySnapshot(args: {
   let due = 0;
   let reviewed = 0;
   let easeSum = 0;
-  let load7d = 0;
+
+  const todayStripped = stripTime(today);
+  const loadNext7: Array<{ dateIso: string; count: number }> = Array.from(
+    { length: 7 },
+    (_, idx) => {
+      const offset = idx + 1;
+      const d = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + offset
+      );
+      return { dateIso: toDateIso(d), count: 0 };
+    }
+  );
 
   const quizAll: QuizItem[] = [];
   const fileStats: MemoryFileStat[] = [];
@@ -103,18 +117,22 @@ export function buildMemorySnapshot(args: {
         fEaseCount += 1;
       }
 
+      // loadNext7: count scheduled reviews within next 7 days from today (independent of dueThresholdDays)
+      const dDateForLoad = parseIsoDate(d);
+      if (dDateForLoad) {
+        const diffDays = Math.floor(
+          (stripTime(dDateForLoad).getTime() - todayStripped.getTime()) /
+            86400000
+        );
+        if (diffDays >= 1 && diffDays <= 7) {
+          const i = diffDays - 1;
+          if (loadNext7[i]) loadNext7[i].count += 1;
+        }
+      }
+
       if (d <= thresholdIso) {
         due += 1;
         fDue += 1;
-      } else {
-        // load7d: count reviews within next 7 days from today
-        const dDate = parseIsoDate(d);
-        if (dDate) {
-          const diffDays = Math.floor(
-            (stripTime(dDate).getTime() - stripTime(today).getTime()) / 86400000
-          );
-          if (diffDays >= 1 && diffDays <= 7) load7d += 1;
-        }
       }
     }
 
@@ -159,11 +177,14 @@ export function buildMemorySnapshot(args: {
     Math.max(1, Math.min(50, Math.floor(args.randomQuizCount || 5)))
   );
 
+  const load7d = loadNext7.reduce((sum, x) => sum + (x.count || 0), 0);
+
   return {
     total,
     due,
     masteryPct,
     load7d,
+    loadNext7,
     status,
     quizPool,
     focusFile,
