@@ -25,7 +25,11 @@ import {
   type DailyAgg,
 } from "../core/analytics";
 import { parseCoverRef } from "../core/cover-parser";
-import { computeTodayStrategyPicks } from "../core/console-state";
+import {
+  computeOpenTradePrimaryStrategy,
+  computeTodayStrategyPicks,
+  computeTradeBasedStrategyPicks,
+} from "../core/console-state";
 import type { EnumPresets } from "../core/enum-presets";
 import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
 import {
@@ -724,27 +728,18 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [strategyIndex, todayMarketCycle]);
 
   const openTradeStrategy = React.useMemo(() => {
-    if (!openTrade) return undefined;
-    const patterns = openTrade.patternsObserved ?? [];
-    const setupCategoryStr = openTrade.setupCategory;
-    const picks = matchStrategies(strategyIndex, {
-      marketCycle: todayMarketCycle,
-      setupCategory: setupCategoryStr,
-      patterns,
-      limit: 3,
+    return computeOpenTradePrimaryStrategy({
+      openTrade,
+      todayMarketCycle,
+      strategyIndex,
     });
-    return picks[0];
   }, [openTrade, strategyIndex, todayMarketCycle]);
 
   const strategyPicks = React.useMemo(() => {
-    if (!latestTrade) return [];
-    const patterns = latestTrade.patternsObserved ?? [];
-    const marketCycleStr = todayMarketCycle ?? latestTrade.marketCycle;
-    const setupCategoryStr = latestTrade.setupCategory;
-    return matchStrategies(strategyIndex, {
-      marketCycle: marketCycleStr,
-      setupCategory: setupCategoryStr,
-      patterns,
+    return computeTradeBasedStrategyPicks({
+      trade: latestTrade,
+      todayMarketCycle,
+      strategyIndex,
       limit: 6,
     });
   }, [latestTrade, strategyIndex, todayMarketCycle]);

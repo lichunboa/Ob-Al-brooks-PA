@@ -14,7 +14,10 @@ import {
 } from "../../core/analytics";
 import { computeTradeStatsByAccountType } from "../../core/stats";
 import { buildReviewHints } from "../../core/review-hints";
-import { computeTodayStrategyPicks } from "../../core/console-state";
+import {
+    computeOpenTradePrimaryStrategy,
+    computeTodayStrategyPicks,
+} from "../../core/console-state";
 import { matchStrategies } from "../../core/strategy-matcher";
 import {
     buildFixPlan,
@@ -311,16 +314,12 @@ export function useDashboardData(
     }, [strategyIndex, todayMarketCycle]);
 
     const openTradeStrategy = React.useMemo(() => {
-        const params = getTradeStrategyParams(openTrade);
-        if (!params) return undefined;
-        const picks = matchStrategies(strategyIndex, {
-            marketCycle: todayMarketCycle,
-            setupCategory: params.setupCategory,
-            patterns: params.patterns,
-            limit: 3,
+        return computeOpenTradePrimaryStrategy({
+            openTrade,
+            todayMarketCycle,
+            strategyIndex,
         });
-        return picks[0];
-    }, [openTrade, strategyIndex, todayMarketCycle, getTradeStrategyParams]);
+    }, [openTrade, strategyIndex, todayMarketCycle]);
 
     const contextAnalysis = React.useMemo(() => {
         const filtered = filterTradesByScope(trades, analyticsScope);
