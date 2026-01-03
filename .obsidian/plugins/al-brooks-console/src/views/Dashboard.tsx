@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   ItemView,
   WorkspaceLeaf,
+  Notice,
   TFile,
   parseYaml,
   stringifyYaml,
@@ -600,235 +601,211 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         </div>
       )}
 
-      <Strategies picks={strategyPicks} onOpenFile={openFile} />
-
       <div
         style={{
+          background: "var(--background-secondary)",
           border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>交易中枢</div>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "12px",
-            marginBottom: "12px",
-          }}
-        >
-          <StatsCard
-            title="今日笔数"
-            value={todaySummary.All.countTotal}
-            icon="🗓️"
-          />
-          <StatsCard
-            title="今日盈亏"
-            value={`${todaySummary.All.netProfit > 0 ? "+" : ""
-              }${todaySummary.All.netProfit.toFixed(1)}R`}
-            color={
-              todaySummary.All.netProfit >= 0
-                ? "var(--text-success)"
-                : "var(--text-error)"
-            }
-            icon="📈"
-          />
-          <div
-            style={{
-              flex: "1 1 240px",
-              minWidth: "240px",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "12px",
-              padding: "16px",
-              background: `rgba(var(--mono-rgb-100), 0.05)`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--text-muted)",
-                letterSpacing: "0.05em",
-              }}
-            >
-              最新交易
-              <span style={{ marginLeft: "6px", color: "var(--text-faint)" }}>
-                {todayIso}
-              </span>
-            </div>
-            <div
-              style={{ marginTop: "8px", fontWeight: 700, fontSize: "1.1rem" }}
-            >
-              {todayLatestTrade ? (
-                <button
-                  type="button"
-                  onClick={() => openFile(todayLatestTrade.path)}
-                  style={textButtonStyle}
-                  onMouseEnter={onTextBtnMouseEnter}
-                  onMouseLeave={onTextBtnMouseLeave}
-                  onFocus={onTextBtnFocus}
-                  onBlur={onTextBtnBlur}
-                >
-                  {todayLatestTrade.ticker ?? "未知"} • {todayLatestTrade.name}
-                </button>
-              ) : (
-                <span style={{ color: "var(--text-faint)" }}>—</span>
-              )}
-            </div>
-            <div
-              style={{
-                marginTop: "6px",
-                color: "var(--text-muted)",
-                fontSize: "0.85em",
-              }}
-            >
-              {todayTrades.length > 0
-                ? `今日 ${todayTrades.length} 笔`
-                : "今日暂无交易"}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷入口</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-live-trade")}
-              onClick={() => action("quickadd:new-live-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-live-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建实盘
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-demo-trade")}
-              onClick={() => action("quickadd:new-demo-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-demo-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建模拟
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-backtest")}
-              onClick={() => action("quickadd:new-backtest")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              新建回测
-            </button>
-            {!can("quickadd:new-live-trade") &&
-              !can("quickadd:new-demo-trade") &&
-              !can("quickadd:new-backtest") && (
-                <span
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.85em",
-                    alignSelf: "center",
-                  }}
-                >
-                  QuickAdd 不可用
-                </span>
-              )}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-            近期 R 趋势
-          </div>
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "0.85em",
-              marginBottom: "8px",
-            }}
-          >
-            最近 10 笔
-          </div>
-          {(["Live", "Demo", "Backtest"] as const).map((at) => (
-            <TrendRow
-              key={`r10-${at}`}
-              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
-              value={rLast10[at]}
-              ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
-              color={getRColorByAccountType(at)}
-            />
-          ))}
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "0.85em",
-              margin: "10px 0 8px",
-            }}
-          >
-            最近 30 笔
-          </div>
-          {(["Live", "Demo", "Backtest"] as const).map((at) => (
-            <TrendRow
-              key={`r30-${at}`}
-              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
-              value={rLast30[at]}
-              ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
-              color={getRColorByAccountType(at)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Stats Row */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
+          borderRadius: "12px",
+          padding: "20px",
           marginBottom: "24px",
         }}
       >
-        <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
-        <StatsCard
-          title="累计盈亏"
-          value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
-          color={
-            all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
-          }
-          icon="💰"
-        />
-        <StatsCard
-          title="胜率"
-          value={`${all.winRatePct}%`}
-          color={
-            all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
-          }
-          icon="🎯"
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+          <span style={{ fontSize: "1.4em" }}>📊</span>
+          <div style={{ fontSize: "1.2em", fontWeight: 700, color: "var(--text-normal)" }}>
+            今日实时监控 (Today's Dashboard) - {todayIso}
+          </div>
+        </div>
+
+        {/* Create Journal Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (todayContext && todayContext.openTodayNote) {
+              todayContext.openTodayNote();
+            } else {
+              // Fallback: simple implementation or notice
+              new Notice("正在打开今日笔记...");
+              // Ideally trigger command or use app.workspace.openLinkText
+            }
+          }}
+          style={{
+            width: "100%",
+            border: "1px dashed var(--text-muted)",
+            background: "rgba(var(--mono-rgb-100), 0.05)",
+            color: "var(--text-muted)",
+            padding: "12px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            marginBottom: "20px",
+            fontSize: "0.95em",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          📝 创建今日日记 并设置市场周期以获取策略推荐
+        </button>
+
+        {/* Stats Grid (5 Cards) */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px", marginBottom: "20px" }}>
+          <StatsCard
+            title="总交易"
+            value={todaySummary.All.countTotal}
+            color="var(--text-accent)"
+          />
+          <StatsCard
+            title="获胜"
+            value={todaySummary.All.countWins}
+            color="var(--text-success)"
+          />
+          <StatsCard
+            title="亏损"
+            value={todaySummary.All.countLosses}
+            color="var(--text-error)"
+          />
+          <StatsCard
+            title="胜率"
+            value={`${todaySummary.All.winRatePct}%`}
+            color="var(--text-warning)"
+          />
+          <StatsCard
+            title="净利润"
+            value={`${todaySummary.All.netProfit > 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`}
+            color={todaySummary.All.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
+          />
+        </div>
+
+        {/* Recent Trades Header */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "12px",
+          color: "var(--text-muted)",
+          fontSize: "0.9em"
+        }}>
+          <span>🕒 最近交易记录</span>
+        </div>
+
+        {/* Create Trade Button - Bottom */}
+        {todayTrades.length === 0 && (
+          <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-faint)", fontSize: "0.9em" }}>
+            🦅 今日暂无交易记录
+          </div>
+        )}
+
+        <div style={{ borderTop: "1px solid var(--background-modifier-border)", paddingTop: "16px", marginTop: "16px" }}>
+          <button
+            type="button"
+            disabled={!can("quickadd:new-live-trade")}
+            onClick={() => action("quickadd:new-live-trade")}
+            style={{
+              width: "100%",
+              background: "rgba(var(--color-green-rgb), 0.2)",
+              border: "1px solid rgba(var(--color-green-rgb), 0.4)",
+              color: "var(--text-success)",
+              padding: "12px",
+              borderRadius: "6px",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontSize: "1em",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(var(--color-green-rgb), 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(var(--color-green-rgb), 0.2)";
+            }}
+          >
+            📝 创建新交易笔记 (图表分析 → 形态识别 → 策略匹配)
+          </button>
+        </div>
+
       </div>
 
-      {/* Strategy Repository Stats */}
+      <Strategies picks={strategyPicks} onOpenFile={openFile} />
+
+
+
+      <div>
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+          近期 R 趋势
+        </div>
+        <div
+          style={{
+            color: "var(--text-muted)",
+            fontSize: "0.85em",
+            marginBottom: "8px",
+          }}
+        >
+          最近 10 笔
+        </div>
+        {(["Live", "Demo", "Backtest"] as const).map((at) => (
+          <TrendRow
+            key={`r10-${at}`}
+            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+            value={rLast10[at]}
+            ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
+            color={getRColorByAccountType(at)}
+          />
+        ))}
+        <div
+          style={{
+            color: "var(--text-muted)",
+            fontSize: "0.85em",
+            margin: "10px 0 8px",
+          }}
+        >
+          最近 30 笔
+        </div>
+        {(["Live", "Demo", "Backtest"] as const).map((at) => (
+          <TrendRow
+            key={`r30-${at}`}
+            label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+            value={rLast30[at]}
+            ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
+            color={getRColorByAccountType(at)}
+          />
+        ))}
+      </div>
+    </div>
+
+      {/* Stats Row */ }
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "12px",
+      marginBottom: "24px",
+    }}
+  >
+    <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
+    <StatsCard
+      title="累计盈亏"
+      value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
+      color={
+        all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
+      }
+      icon="💰"
+    />
+    <StatsCard
+      title="胜率"
+      value={`${all.winRatePct}%`}
+      color={
+        all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
+      }
+      icon="🎯"
+    />
+  </div>
+
+  {/* Strategy Repository Stats */ }
       <div style={{ marginBottom: "18px" }}>
         <StrategyStats
           total={strategyStats.total}
@@ -2207,26 +2184,26 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         )}
       </div>
 
-      {/* Main Content Area */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+  {/* Main Content Area */ }
+  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
 
-        {/* Strategy Repository (Gap Restoration) */}
-        <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
+    {/* Strategy Repository (Gap Restoration) */}
+    <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
 
-        {/* Analytics Gap Restoration */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-          <ContextWidget data={contextAnalysis} />
-          <ErrorWidget data={errorAnalysis} />
-        </div>
-
-        {/* Trade Feed */}
-        <div>
-          <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
-          <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
-        </div>
-      </div>
+    {/* Analytics Gap Restoration */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+      <ContextWidget data={contextAnalysis} />
+      <ErrorWidget data={errorAnalysis} />
     </div>
-  );
+
+    {/* Trade Feed */}
+    <div>
+      <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
+      <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
+    </div>
+  </div>
+  </div >
+);
 };
 
 export class ConsoleView extends ItemView {

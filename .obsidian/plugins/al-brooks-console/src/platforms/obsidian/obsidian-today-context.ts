@@ -80,6 +80,21 @@ export class ObsidianTodayContext implements TodayContext {
     return this.marketCycle;
   }
 
+  public async openTodayNote(): Promise<void> {
+    if (this.todayFile) {
+      await this.app.workspace.getLeaf(false).openFile(this.todayFile);
+      return;
+    }
+    // Fallback: try to execute Daily Notes command
+    // This handles creation if it doesn't exist.
+    const ran = (this.app as any).commands?.executeCommandById("daily-notes");
+    if (ran === false) {
+      console.warn("Daily Notes command not found or failed.");
+      // Try 'periodic-notes:open-daily-note' if Periodic Notes is used
+      (this.app as any).commands?.executeCommandById("periodic-notes:open-daily-note");
+    }
+  }
+
   public onChanged(handler: () => void): Unsubscribe {
     this.listeners.add(handler);
     return () => this.listeners.delete(handler);

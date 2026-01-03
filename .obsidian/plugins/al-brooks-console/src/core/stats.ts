@@ -18,6 +18,8 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
   let countTotal = 0;
   let countCompleted = 0;
   let countWins = 0;
+  let countLosses = 0;
+  let countScratch = 0;
   let netProfit = 0;
 
   for (const trade of trades) {
@@ -29,11 +31,13 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
       outcome === "win" || outcome === "loss" || outcome === "scratch";
     if (isCompleted) countCompleted += 1;
     if (outcome === "win") countWins += 1;
+    if (outcome === "loss") countLosses += 1;
+    if (outcome === "scratch") countScratch += 1;
   }
 
   const winRatePct =
     countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
-  return { countTotal, countCompleted, countWins, winRatePct, netProfit };
+  return { countTotal, countCompleted, countWins, countLosses, countScratch, winRatePct, netProfit };
 }
 
 export type StatsByAccountType = Record<AccountType | "All", TradeStats>;

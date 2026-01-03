@@ -29,6 +29,8 @@ export interface TradeStats {
   countTotal: number;
   countCompleted: number;
   countWins: number;
+  countLosses: number;
+  countScratch: number;
   winRatePct: number;
   netProfit: number;
 }
