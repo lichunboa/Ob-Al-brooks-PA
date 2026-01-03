@@ -1023,80 +1023,6 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
       )}
 
-      {strategyPicks.length > 0 && (
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "12px",
-            marginBottom: "16px",
-            background: "var(--background-primary)",
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-            今日策略推荐
-          </div>
-          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-            {strategyPicks.map((s) => (
-              <li key={s.path} style={{ marginBottom: "6px" }}>
-                <button
-                  type="button"
-                  onClick={() => openFile(s.path)}
-                  style={textButtonStyle}
-                  onMouseEnter={onTextBtnMouseEnter}
-                  onMouseLeave={onTextBtnMouseLeave}
-                  onFocus={onTextBtnFocus}
-                  onBlur={onTextBtnBlur}
-                >
-                  {s.canonicalName}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {!todayMarketCycle && (
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "12px",
-            marginBottom: "16px",
-            background: "var(--background-primary)",
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-            📊 今日实时监控 (Today's Dashboard)
-            <span
-              style={{
-                fontWeight: 400,
-                marginLeft: "8px",
-                color: "var(--text-muted)",
-                fontSize: "0.85em",
-              }}
-            >
-              {todayIso}
-            </span>
-          </div>
-          <div style={{ color: "var(--text-muted)", marginBottom: "10px" }}>
-            创建今日日记，并设置市场周期以获取策略推荐。
-          </div>
-          <button
-            type="button"
-            disabled={!canOpenTodayNote}
-            onClick={onOpenTodayNote}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-          >
-            打开/创建今日日记（设置市场周期）
-          </button>
-        </div>
-      )}
-
       <div
         style={{
           border: "1px solid var(--background-modifier-border)",
@@ -1325,82 +1251,6 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          marginBottom: "24px",
-        }}
-      >
-        <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
-        <StatsCard
-          title="累计盈亏"
-          value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
-          color={
-            all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
-          }
-          icon="💰"
-        />
-        <StatsCard
-          title="胜率"
-          value={`${all.winRatePct}%`}
-          color={
-            all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
-          }
-          icon="🎯"
-        />
-      </div>
-
-      {/* Strategy Repository Stats */}
-      <div style={{ marginBottom: "18px" }}>
-        <StrategyStats
-          total={strategyStats.total}
-          activeCount={strategyStats.activeCount}
-          learningCount={strategyStats.learningCount}
-          totalUses={strategyStats.totalUses}
-          onFilter={(f: string) => {
-            // TODO: wire filtering state to StrategyList (future task)
-            console.log("策略过滤：", f);
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          marginBottom: "24px",
-        }}
-      >
-        <StatsCard
-          title="实盘"
-          value={`${summary.Live.countTotal} 笔`}
-          subValue={`${
-            summary.Live.winRatePct
-          }% • ${summary.Live.netProfit.toFixed(1)}R`}
-          icon="🟢"
-        />
-        <StatsCard
-          title="模拟"
-          value={`${summary.Demo.countTotal} 笔`}
-          subValue={`${
-            summary.Demo.winRatePct
-          }% • ${summary.Demo.netProfit.toFixed(1)}R`}
-          icon="🟡"
-        />
-        <StatsCard
-          title="回测"
-          value={`${summary.Backtest.countTotal} 笔`}
-          subValue={`${
-            summary.Backtest.winRatePct
-          }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
-          icon="🔵"
-        />
-      </div>
-
       <div
         style={{
           border: "1px solid var(--background-modifier-border)",
@@ -1411,6 +1261,33 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
+
+        {!todayMarketCycle && (
+          <div style={{ marginBottom: "12px" }}>
+            <div
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
+              创建今日日记，并设置市场周期以获取策略推荐。
+            </div>
+            <button
+              type="button"
+              disabled={!canOpenTodayNote}
+              onClick={onOpenTodayNote}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+            >
+              打开/创建今日日记（设置市场周期）
+            </button>
+          </div>
+        )}
+
         <div
           style={{
             color: "var(--text-muted)",
@@ -1435,11 +1312,11 @@ const ConsoleComponent: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => openFile(s.path)}
-                      style={textButtonStyle}
-                      onMouseEnter={onTextBtnMouseEnter}
-                      onMouseLeave={onTextBtnMouseLeave}
-                      onFocus={onTextBtnFocus}
-                      onBlur={onTextBtnBlur}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
                   >
                     {s.canonicalName}
                   </button>
@@ -1565,6 +1442,82 @@ const ConsoleComponent: React.FC<Props> = ({
             )}
           </div>
         )}
+      </div>
+
+      {/* Stats Row */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
+        <StatsCard
+          title="累计盈亏"
+          value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
+          color={
+            all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
+          }
+          icon="💰"
+        />
+        <StatsCard
+          title="胜率"
+          value={`${all.winRatePct}%`}
+          color={
+            all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
+          }
+          icon="🎯"
+        />
+      </div>
+
+      {/* Strategy Repository Stats */}
+      <div style={{ marginBottom: "18px" }}>
+        <StrategyStats
+          total={strategyStats.total}
+          activeCount={strategyStats.activeCount}
+          learningCount={strategyStats.learningCount}
+          totalUses={strategyStats.totalUses}
+          onFilter={(f: string) => {
+            // TODO: wire filtering state to StrategyList (future task)
+            console.log("策略过滤：", f);
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard
+          title="实盘"
+          value={`${summary.Live.countTotal} 笔`}
+          subValue={`${
+            summary.Live.winRatePct
+          }% • ${summary.Live.netProfit.toFixed(1)}R`}
+          icon="🟢"
+        />
+        <StatsCard
+          title="模拟"
+          value={`${summary.Demo.countTotal} 笔`}
+          subValue={`${
+            summary.Demo.winRatePct
+          }% • ${summary.Demo.netProfit.toFixed(1)}R`}
+          icon="🟡"
+        />
+        <StatsCard
+          title="回测"
+          value={`${summary.Backtest.countTotal} 笔`}
+          subValue={`${
+            summary.Backtest.winRatePct
+          }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
+          icon="🔵"
+        />
       </div>
 
       <div
