@@ -42,12 +42,13 @@
 
 1. 打开最新 `snapshot_*.json`。
 2. 确认存在字段：
-   - `schemaVersion`
-   - `exportedAt`
-   - `pluginVersion`
+   - `meta.schemaVersion`
+   - `meta.exportedAt`
+   - `meta.pluginVersion`
    - `trades`
-   - `stats`
-3. 确认 `pluginVersion` 为插件版本号（不是 `dry-run-from-legacy`）。
+   - `statsByAccountType`
+   - （可选）`strategyIndex`
+3. 确认 `meta.pluginVersion` 为插件版本号（例如当前 `1.0.0`），而不是 `dry-run-from-legacy`。
 
 **Pass 条件**：快照字段齐全，且能与离线脚本快照来源区分。
 
