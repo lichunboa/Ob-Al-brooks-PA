@@ -691,6 +691,68 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
           </div>
         )}
 
+        {/* Strategy Assistant (Active Trade Context) */}
+        {openTradeStrategy && (
+          <div style={{
+            marginBottom: "20px",
+            background: "rgba(40, 50, 80, 0.6)",
+            border: "1px solid rgba(100, 149, 237, 0.3)",
+            borderRadius: "8px",
+            padding: "16px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "8px" }}>
+              <div style={{ color: "#6495ED", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>💡 策略助手:</span>
+                <button
+                  type="button"
+                  onClick={() => openFile(openTradeStrategy.path)}
+                  style={{ background: "none", border: "none", color: "inherit", fontWeight: "inherit", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                  {openTradeStrategy.canonicalName}
+                </button>
+              </div>
+              <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>查看详情 →</div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "0.9em" }}>
+              {/* Left Column: Entry & Setup */}
+              <div>
+                {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ color: "var(--text-success)", fontWeight: 600, marginBottom: "4px" }}>✅ 入场标准</div>
+                    <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--text-normal)" }}>
+                      {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => <li key={`e-${i}`}>{x}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <div style={{ marginBottom: "12px" }}>
+                  <div style={{ color: "var(--text-muted)", fontWeight: 600, marginBottom: "4px" }}>⚙️ 关键属性</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {openTradeStrategy.setupCategories.map((c, i) => (
+                      <span key={`c-${i}`} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px", fontSize: "0.85em" }}>{c}</span>
+                    ))}
+                    {openTradeStrategy.signalBarQuality.slice(0, 2).map((s, i) => (
+                      <span key={`s-${i}`} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px", fontSize: "0.85em" }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Risk & Alerts */}
+              <div>
+                {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ color: "var(--text-warning)", fontWeight: 600, marginBottom: "4px" }}>⚠️ 风险提示</div>
+                    <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--text-normal)" }}>
+                      {openTradeStrategy.riskAlerts!.slice(0, 2).map((x, i) => <li key={`r-${i}`}>{x}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid (5 Cards) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px", marginBottom: "20px" }}>
           <StatsCard
