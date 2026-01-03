@@ -4,7 +4,7 @@ categories:
 tags:
   - PA/Trade
 date:
-账户类型/account_type: 实盘 (Live)
+账户类型/account_type:
 品种/ticker:
 时间周期/timeframe: 5m
 市场周期/market_cycle:

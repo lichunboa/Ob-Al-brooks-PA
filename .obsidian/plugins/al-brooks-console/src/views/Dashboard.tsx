@@ -648,6 +648,45 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
           📝 创建今日日记 并设置市场周期以获取策略推荐
         </button>
 
+        {/* Market Cycle Strategy Recommendations */}
+        {todayMarketCycle && todayStrategyPicks.length > 0 && (
+          <div style={{ marginBottom: "20px", padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
+            <div style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: "10px" }}>
+              💡 基于当前市场周期 <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[{todayMarketCycle}]</span> 的策略建议：
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {todayStrategyPicks.map((s) => (
+                <button
+                  key={`rec-${s.path}`}
+                  type="button"
+                  onClick={() => openFile(s.path)}
+                  style={{
+                    border: "1px solid var(--interactive-accent)",
+                    background: "rgba(var(--interactive-accent-rgb), 0.1)",
+                    color: "var(--text-on-accent)",
+                    padding: "4px 10px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "0.85em",
+                    // @ts-ignore
+                    "--text-on-accent": "var(--text-normal)", // Fallback if var not defined
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--interactive-accent)";
+                    e.currentTarget.style.color = "var(--text-on-accent-inverted)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                    e.currentTarget.style.color = "var(--text-normal)";
+                  }}
+                >
+                  {s.canonicalName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid (5 Cards) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px", marginBottom: "20px" }}>
           <StatsCard
@@ -755,34 +794,6 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         >
           市场周期：{todayMarketCycle ?? "—"}
         </div>
-
-        {todayStrategyPicks.length > 0 && (
-          <div style={{ marginBottom: "12px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              周期 → 策略推荐
-            </div>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {todayStrategyPicks.map((s) => (
-                <li
-                  key={`today-pick-${s.path}`}
-                  style={{ marginBottom: "6px" }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => openFile(s.path)}
-                    style={textButtonStyle}
-                    onMouseEnter={onTextBtnMouseEnter}
-                    onMouseLeave={onTextBtnMouseLeave}
-                    onFocus={onTextBtnFocus}
-                    onBlur={onTextBtnBlur}
-                  >
-                    {s.canonicalName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         {openTrade && (
           <div>
