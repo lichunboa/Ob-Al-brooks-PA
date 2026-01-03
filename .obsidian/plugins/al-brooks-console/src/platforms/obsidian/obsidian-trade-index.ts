@@ -7,6 +7,8 @@ import {
   isTradeTag,
   normalizeAccountType,
   normalizeOutcome,
+  normalizeString,
+  normalizeStringArray,
   normalizeTag,
   normalizeTicker,
   parseNumber,
@@ -478,11 +480,48 @@ export class ObsidianTradeIndex implements TradeIndex {
     const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
     const accountTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.accountType);
 
+    const marketCycleRaw = getFirstFieldValue(fm, FIELD_ALIASES.marketCycle);
+    const setupCategoryRaw = getFirstFieldValue(
+      fm,
+      FIELD_ALIASES.setupCategory
+    );
+    const patternsObservedRaw = getFirstFieldValue(
+      fm,
+      FIELD_ALIASES.patternsObserved
+    );
+    const signalBarQualityRaw = getFirstFieldValue(
+      fm,
+      FIELD_ALIASES.signalBarQuality
+    );
+    const timeframeRaw = getFirstFieldValue(fm, FIELD_ALIASES.timeframe);
+    const directionRaw = getFirstFieldValue(fm, FIELD_ALIASES.direction);
+    const strategyNameRaw = getFirstFieldValue(fm, FIELD_ALIASES.strategyName);
+    const managementPlanRaw = getFirstFieldValue(
+      fm,
+      FIELD_ALIASES.managementPlan
+    );
+    const executionQualityRaw = getFirstFieldValue(
+      fm,
+      FIELD_ALIASES.executionQuality
+    );
+    const coverRaw = getFirstFieldValue(fm, FIELD_ALIASES.cover);
+
     const pnl = parseNumber(pnlRaw);
     const ticker = normalizeTicker(tickerRaw);
     const outcome = normalizeOutcome(outcomeRaw);
     const dateIso = this.normalizeDateIso(dateRaw, file);
     const accountType = normalizeAccountType(accountTypeRaw);
+
+    const marketCycle = normalizeString(marketCycleRaw);
+    const setupCategory = normalizeString(setupCategoryRaw);
+    const patternsObserved = normalizeStringArray(patternsObservedRaw);
+    const signalBarQuality = normalizeStringArray(signalBarQualityRaw);
+    const timeframe = normalizeString(timeframeRaw);
+    const direction = normalizeString(directionRaw);
+    const strategyName = normalizeString(strategyNameRaw);
+    const managementPlan = normalizeStringArray(managementPlanRaw);
+    const executionQuality = normalizeString(executionQualityRaw);
+    const cover = normalizeString(coverRaw);
 
     const trade: TradeRecord = {
       path: file.path,
@@ -492,6 +531,16 @@ export class ObsidianTradeIndex implements TradeIndex {
       pnl,
       outcome,
       accountType,
+      marketCycle,
+      setupCategory,
+      patternsObserved,
+      signalBarQuality,
+      timeframe,
+      direction,
+      strategyName,
+      managementPlan,
+      executionQuality,
+      cover,
       mtime: file.stat?.mtime,
       tags: normalizedTags,
       rawFrontmatter: fm,

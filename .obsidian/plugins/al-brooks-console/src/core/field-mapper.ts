@@ -13,6 +13,64 @@ export const FIELD_ALIASES = {
     "账户/account_type",
     "账户",
   ],
+  marketCycle: [
+    "market_cycle",
+    "marketCycle",
+    "市场周期/market_cycle",
+    "市场周期",
+  ],
+  setupCategory: [
+    "setup_category",
+    "setupCategory",
+    "设置类别/setup_category",
+    "设置类别",
+  ],
+  patternsObserved: [
+    "patterns_observed",
+    "patterns",
+    "pattern",
+    "观察到的形态/patterns_observed",
+    "形态/patterns",
+    "形态",
+  ],
+  signalBarQuality: [
+    "signal_bar_quality",
+    "signalBarQuality",
+    "信号K/signal_bar_quality",
+    "信号K",
+    "信号K质量",
+  ],
+  timeframe: [
+    "tf",
+    "timeframe",
+    "时间周期/timeframe",
+    "时间周期",
+    "周期/tf",
+    "周期",
+  ],
+  direction: ["dir", "direction", "方向/direction", "方向/dir", "方向"],
+  strategyName: [
+    "strategy_name",
+    "strategyName",
+    "策略名称/strategy_name",
+    "策略名称/strategyName",
+    "策略名称",
+    "策略/strategyName",
+    "策略",
+  ],
+  managementPlan: [
+    "management_plan",
+    "managementPlan",
+    "管理计划/management_plan",
+    "管理计划",
+  ],
+  executionQuality: [
+    "execution_quality",
+    "executionQuality",
+    "执行评价/execution_quality",
+    "执行评价",
+  ],
+  cover: ["cover", "封面/cover", "封面", "banner"],
   tags: ["tags"],
   fileClass: ["fileClass", "FileClass"],
 } as const;
@@ -63,6 +121,37 @@ export function normalizeTicker(value: unknown): string | undefined {
     return typeof first === "string" ? normalizeTicker(first) : undefined;
   }
   return undefined;
+}
+
+export function normalizeString(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const v = value.trim();
+    return v.length ? v : undefined;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    const first = value.find((v) => typeof v === "string" || typeof v === "number");
+    return normalizeString(first);
+  }
+  return undefined;
+}
+
+export function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((x): x is string => typeof x === "string")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,，;；/|]/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 export function normalizeAccountType(value: unknown): AccountType | undefined {
