@@ -308,6 +308,8 @@ const ConsoleComponent: React.FC<Props> = ({
   const [memoryError, setMemoryError] = React.useState<string | undefined>(
     undefined
   );
+  const [memoryIgnoreFocus, setMemoryIgnoreFocus] = React.useState(false);
+  const [memoryShakeIndex, setMemoryShakeIndex] = React.useState(0);
 
   const summary = React.useMemo(
     () => computeTradeStatsByAccountType(trades),
@@ -587,6 +589,8 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const reloadMemory = React.useCallback(async () => {
     if (!loadMemory) return;
+    setMemoryIgnoreFocus(false);
+    setMemoryShakeIndex(0);
     setMemoryBusy(true);
     setMemoryError(undefined);
     try {
@@ -1537,21 +1541,100 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
           {todayTrades.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {todayTrades.slice(0, 5).map((t) => (
-                <li key={t.path} style={{ marginBottom: "6px" }}>
-                  <button
-                    type="button"
-                    onClick={() => openFile(t.path)}
-                    style={textButtonStyle}
-                    onMouseEnter={onTextBtnMouseEnter}
-                    onMouseLeave={onTextBtnMouseLeave}
-                    onFocus={onTextBtnFocus}
-                    onBlur={onTextBtnBlur}
-                  >
-                    {t.ticker ?? "未知"} • {t.name}
-                  </button>
-                </li>
-              ))}
+              {todayTrades.slice(0, 5).map((t) => {
+                const dir = (t.direction ?? "").toString().trim();
+                const dirIcon =
+                  dir === "多" || dir.toLowerCase() === "long"
+                    ? "📈"
+                    : dir === "空" || dir.toLowerCase() === "short"
+                      ? "📉"
+                      : "➡️";
+                const tf = (t.timeframe ?? "").toString().trim();
+                const strategy = (t.strategyName ?? "").toString().trim();
+
+                const outcome = t.outcome;
+                const outcomeLabel =
+                  outcome === "win"
+                    ? "Win"
+                    : outcome === "loss"
+                      ? "Loss"
+                      : outcome === "scratch"
+                        ? "Scratch"
+                        : outcome === "open" || outcome === "unknown" || outcome === undefined
+                          ? "进行中"
+                          : String(outcome);
+                const outcomeColor =
+                  outcome === "win"
+                    ? "var(--text-success)"
+                    : outcome === "loss"
+                      ? "var(--text-error)"
+                      : outcome === "scratch"
+                        ? "var(--text-warning)"
+                        : "var(--text-muted)";
+
+                const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : undefined;
+                const pnlColor =
+                  pnl === undefined
+                    ? "var(--text-muted)"
+                    : pnl >= 0
+                      ? "var(--text-success)"
+                      : "var(--text-error)";
+
+                const entry =
+                  (t.rawFrontmatter?.["entry"] as unknown as string | undefined) ??
+                  (t.rawFrontmatter?.["入场"] as unknown as string | undefined);
+                const stop =
+                  (t.rawFrontmatter?.["stop"] as unknown as string | undefined) ??
+                  (t.rawFrontmatter?.["止损"] as unknown as string | undefined);
+
+                return (
+                  <li key={t.path} style={{ marginBottom: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => openFile(t.path)}
+                      style={textButtonStyle}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
+                    >
+                      {dirIcon} {t.ticker ?? "未知"}
+                      {tf ? ` ${tf}` : ""}
+                      {strategy ? ` - ${strategy}` : ""}
+                    </button>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        marginTop: "4px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      <span
+                        style={{
+                          padding: "1px 6px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--background-modifier-border)",
+                          color: outcomeColor,
+                        }}
+                      >
+                        {outcomeLabel}
+                      </span>
+                      {entry ? <span>入场: {String(entry)}</span> : null}
+                      {stop ? <span>止损: {String(stop)}</span> : null}
+                      {pnl !== undefined ? (
+                        <span style={{ color: pnlColor, fontWeight: 700 }}>
+                          PnL: {pnl >= 0 ? "+" : ""}
+                          {pnl.toFixed(1)}R
+                        </span>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div style={{ color: "var(--text-faint)", padding: "4px 0" }}>
@@ -2181,6 +2264,126 @@ const ConsoleComponent: React.FC<Props> = ({
                 状态：<strong>{memory.status}</strong>
               </div>
             </div>
+
+            {(() => {
+              const canRecommendFocus =
+                !memoryIgnoreFocus && memory.due > 0 && Boolean(memory.focusFile);
+
+              const focusRec =
+                canRecommendFocus && memory.focusFile
+                  ? {
+                      type: "Focus" as const,
+                      title: memory.focusFile.name.replace(/\.md$/i, ""),
+                      path: memory.focusFile.path,
+                      desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
+                    }
+                  : null;
+
+              const courseRec = course?.hybridRec
+                ? (() => {
+                    const rec = course.hybridRec;
+                    const title = String(rec.data.t || rec.data.q || "推荐");
+                    const path = String((rec.data as any).path || "");
+                    const desc = rec.type === "New" ? "新主题" : "闪卡测验";
+                    return { type: rec.type, title, path, desc } as const;
+                  })()
+                : null;
+
+              const quiz =
+                memory.quizPool.length > 0
+                  ? memory.quizPool[
+                      Math.max(0, memoryShakeIndex) % memory.quizPool.length
+                    ]
+                  : null;
+              const randomRec = quiz
+                ? {
+                    type: "Random" as const,
+                    title: String(quiz.q || quiz.file),
+                    path: String(quiz.path),
+                    desc: String(`来自: ${quiz.file}`),
+                  }
+                : null;
+
+              const rec = focusRec ?? courseRec ?? randomRec;
+              if (!rec) return null;
+
+              const label =
+                rec.type === "Focus"
+                  ? "🔥 优先复习"
+                  : rec.type === "New"
+                    ? "🚀 推荐"
+                    : rec.type === "Review"
+                      ? "🔄 推荐"
+                      : "🎲 随机抽取";
+
+              const onShake = () => {
+                setMemoryIgnoreFocus(true);
+                if (memory.quizPool.length > 0) {
+                  const next = Math.floor(Math.random() * memory.quizPool.length);
+                  setMemoryShakeIndex(next);
+                } else {
+                  setMemoryShakeIndex((x) => x + 1);
+                }
+              };
+
+              return (
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                    marginBottom: "10px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ flex: "1 1 auto" }}>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        fontWeight: 700,
+                        color: "var(--text-muted)",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div style={{ marginBottom: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openFile(String(rec.path))}
+                        style={{ ...textButtonStyle, fontWeight: 700 }}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {String(rec.title)}
+                      </button>
+                    </div>
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                      {rec.desc}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onShake}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={{ ...buttonStyle, padding: "6px 10px" }}
+                    title="摇一摇换题（跳过优先）"
+                  >
+                    🎲
+                  </button>
+                </div>
+              );
+            })()}
 
             {memory.focusFile ? (
               <div
