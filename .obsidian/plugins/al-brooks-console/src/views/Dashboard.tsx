@@ -43,11 +43,7 @@ import {
   type ManagerApplyResult,
   type StrategyNoteFrontmatter,
 } from "../core/manager";
-import {
-  listCommands,
-  runCommand,
-  type IntegrationCapability,
-} from "../integrations/contracts";
+import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
 import { normalizeTag } from "../core/field-mapper";
@@ -212,8 +208,6 @@ const ConsoleComponent: React.FC<Props> = ({
   getResourceUrl,
   enumPresets,
   loadStrategyNotes,
-  exportLegacySnapshot,
-  exportIndexSnapshot,
   applyFixPlan,
   restoreFiles,
   settings: initialSettings,
@@ -1515,6 +1509,293 @@ const ConsoleComponent: React.FC<Props> = ({
         <StrategyStats
           total={strategyStats.total}
           activeCount={strategyStats.activeCount}
+          learningCount={strategyStats.learningCount}
+          totalUses={strategyStats.totalUses}
+          onFilter={(f: string) => {
+            // TODO: wire filtering state to StrategyList (future task)
+            console.log("策略过滤：", f);
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard
+          title="实盘"
+          value={`${summary.Live.countTotal} 笔`}
+          subValue={`${
+            summary.Live.winRatePct
+          }% • ${summary.Live.netProfit.toFixed(1)}R`}
+          icon="🟢"
+        />
+        <StatsCard
+          title="模拟"
+          value={`${summary.Demo.countTotal} 笔`}
+          subValue={`${
+            summary.Demo.winRatePct
+          }% • ${summary.Demo.netProfit.toFixed(1)}R`}
+          icon="🟡"
+        />
+        <StatsCard
+          title="回测"
+          value={`${summary.Backtest.countTotal} 笔`}
+          subValue={`${
+            summary.Backtest.winRatePct
+          }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
+          icon="🔵"
+        />
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>
+            课程{" "}
+            <span
+              style={{
+                fontWeight: 500,
+                color: "var(--text-muted)",
+                fontSize: "0.85em",
+              }}
+            >
+              (Course)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={reloadCourse}
+            disabled={!loadCourse || courseBusy}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={
+              !loadCourse || courseBusy
+                ? { ...disabledButtonStyle, padding: "6px 10px" }
+                : { ...buttonStyle, padding: "6px 10px" }
+            }
+          >
+            刷新
+          </button>
+        </div>
+
+        {courseError ? (
+          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+            {courseError}
+          </div>
+        ) : courseBusy ? (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            加载中…
+          </div>
+        ) : course && course.syllabus.length > 0 ? (
+          <div>
+            {course.hybridRec
+              ? (() => {
+                  const rec = course.hybridRec;
+                  const sid = simpleCourseId(rec.data.id);
+                  const link =
+                    course.linksById[rec.data.id] || course.linksById[sid];
+                  const prefix =
+                    rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                  return (
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                        }}
+                      >
+                        <div>
+                          {link ? (
+                            <button
+                              type="button"
+                              onClick={() => openFile(link.path)}
+                              style={{ ...textButtonStyle, fontWeight: 600 }}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
+                            >
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
+                            </button>
+                          ) : (
+                            <span style={{ color: "var(--text-faint)" }}>
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
+                              （笔记未创建）
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontFamily: "var(--font-monospace)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {rec.data.id}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span>
+                          章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                        </span>
+                        <span>
+                          进度:{" "}
+                          <strong>
+                            {course.progress.doneCount}/
+                            {course.progress.totalCount}
+                          </strong>
+                        </span>
+                        <span>
+                          笔记: <strong>{link ? "已创建" : "未创建"}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              : null}
+
+            {course.upNext.length > 0 && (
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  marginBottom: "8px",
+                }}
+              >
+                接下来（窗口={settings.courseRecommendationWindow}）：{" "}
+                {course.upNext.map((x, idx) => {
+                  const label = String(x.item.id);
+                  if (x.link) {
+                    return (
+                      <React.Fragment key={`up-${x.item.id}`}>
+                        {idx > 0 ? ", " : ""}
+                        <button
+                          type="button"
+                          onClick={() => openFile(x.link!.path)}
+                          style={textButtonStyle}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                        >
+                          {label}
+                        </button>
+                      </React.Fragment>
+                    );
+                  }
+                  return (
+                    <React.Fragment key={`up-${x.item.id}`}>
+                      {idx > 0 ? ", " : ""}
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {label}
+                      </span>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+
+            <details>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  userSelect: "none",
+                }}
+              >
+                展开课程矩阵
+              </summary>
+              <div
+                style={{
+                  marginTop: "12px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "20px",
+                }}
+              >
+                {course.phases.map((ph) => (
+                  <div key={`ph-${ph.phase}`} style={{ marginBottom: "12px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        color: "var(--text-muted)",
+                        marginBottom: "6px",
+                        borderBottom:
+                          "1px solid var(--background-modifier-border)",
+                        paddingBottom: "4px",
+                      }}
+                    >
+                      {ph.phase}
+                    </div>
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
+                    >
+                      {ph.items.map((c) => {
+                        const bg = c.isDone
+                          ? "var(--text-success)"
+                          : c.hasNote
+                          ? "var(--text-accent)"
+                          : "rgba(var(--mono-rgb-100), 0.06)";
+                        const fg = c.isDone
+                          ? "var(--background-primary)"
+                          : c.hasNote
+                          ? "var(--background-primary)"
+                          : "var(--text-faint)";
+                        const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
+                        return (
+                          <button
+                            key={`c-${ph.phase}-${c.item.id}`}
+                            type="button"
+                            disabled={!c.link}
+                            onClick={() => c.link && openFile(c.link.path)}
+                            title={title}
+                            onMouseEnter={onMiniCellMouseEnter}
+                            onMouseLeave={onMiniCellMouseLeave}
+                            onFocus={onMiniCellFocus}
+                            onBlur={onMiniCellBlur}
+                            style={{
+                              width: "26px",
                               height: "26px",
                               borderRadius: "6px",
                               flexShrink: 0,
@@ -1556,6 +1837,190 @@ const ConsoleComponent: React.FC<Props> = ({
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course 相关笔记。
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!can("srs:review-flashcards")}
+              onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              复习
+            </button>
+            <button
+              type="button"
+              onClick={reloadMemory}
+              disabled={!loadMemory || memoryBusy}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                !loadMemory || memoryBusy
+                  ? { ...disabledButtonStyle, padding: "6px 10px" }
+                  : { ...buttonStyle, padding: "6px 10px" }
+              }
+            >
+              刷新
+            </button>
+          </div>
+        </div>
+
+        {!can("srs:review-flashcards") && (
+          <div
+            style={{
+              color: "var(--text-faint)",
+              fontSize: "0.9em",
+              marginBottom: "8px",
+            }}
+          >
+            SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
+          </div>
+        )}
+
+        {memoryError ? (
+          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+            {memoryError}
+          </div>
+        ) : memoryBusy ? (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            加载中…
+          </div>
+        ) : memory ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
+              <div>
+                总计：<strong>{memory.total}</strong>
+              </div>
+              <div>
+                到期（≤{settings.srsDueThresholdDays}天）：{" "}
+                <strong>{memory.due}</strong>
+              </div>
+              <div>
+                掌握度：<strong>{memory.masteryPct}%</strong>
+              </div>
+              <div>
+                负载（7天）：<strong>{memory.load7d}</strong>
+              </div>
+              <div>
+                状态：<strong>{memory.status}</strong>
+              </div>
+            </div>
+
+            {memory.focusFile ? (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                }}
+              >
+                焦点：{" "}
+                <button
+                  type="button"
+                  onClick={() => openFile(memory.focusFile!.path)}
+                  style={{ ...textButtonStyle, fontWeight: 600 }}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
+                >
+                  {memory.focusFile.name.replace(/\.md$/i, "")}
+                </button>
+                <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
+                  到期 {memory.focusFile.due}
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-faint)",
+                  fontSize: "0.9em",
+                }}
+              >
+                暂无焦点卡片。
+              </div>
+            )}
+
+            {memory.quizPool.length > 0 ? (
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  随机抽题（{settings.srsRandomQuizCount}）
+                </div>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {memory.quizPool.map((q, idx) => (
+                    <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openFile(q.path)}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {q.q || q.file}
+                      </button>
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        {q.file}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                在 #flashcards 笔记中未找到可抽取题库。
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            记忆数据不可用。
           </div>
         )}
       </div>
