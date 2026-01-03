@@ -115,3 +115,111 @@ export function computeStrategyAttribution(
   rows.sort((a, b) => Math.abs(b.netR) - Math.abs(a.netR));
   return rows.slice(0, Math.min(20, Math.max(1, limit)));
 }
+
+// --- New Analytics for Gap Restoration ---
+
+export interface ContextAnalysisRow {
+  context: string;
+  count: number;
+  netR: number;
+  winRate: number;
+}
+
+export interface ErrorAnalysisRow {
+  errorTag: string;
+  count: number;
+  netR: number;
+}
+
+const CONTEXT_FIELD_ALIASES = [
+  "market_cycle",
+  "市场周期/market_cycle",
+  "daily_market_cycle",
+  "context",
+] as const;
+
+const ERROR_FIELD_ALIASES = [
+  "mistake_tags",
+  "错误/mistake_tags",
+  "mistakes",
+  "errors",
+] as const;
+
+export function computeContextAnalysis(trades: TradeRecord[]): ContextAnalysisRow[] {
+  const by = new Map<string, { netR: number; count: number; wins: number }>();
+
+  for (const t of trades) {
+    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+    let ctx: string | undefined;
+    for (const key of CONTEXT_FIELD_ALIASES) {
+      // Support both direct string or reading from standard field
+      const v = (fm as any)[key];
+      if (typeof v === 'string' && v.trim()) {
+        ctx = v.trim();
+        break;
+      }
+    }
+    if (!ctx) continue;
+
+    const prev = by.get(ctx) ?? { netR: 0, count: 0, wins: 0 };
+    const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    prev.netR += pnl;
+    prev.count += 1;
+    if (pnl > 0) prev.wins += 1;
+    by.set(ctx, prev);
+  }
+
+  const rows: ContextAnalysisRow[] = [];
+  for (const [context, v] of by.entries()) {
+    rows.push({
+      context,
+      count: v.count,
+      netR: v.netR,
+      winRate: v.count > 0 ? (v.wins / v.count) * 100 : 0,
+    });
+  }
+  // Sort by count desc
+  return rows.sort((a, b) => b.count - a.count);
+}
+
+export function computeErrorAnalysis(trades: TradeRecord[]): ErrorAnalysisRow[] {
+  const by = new Map<string, { netR: number; count: number }>();
+
+  for (const t of trades) {
+    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+    let tags: string[] = [];
+
+    for (const key of ERROR_FIELD_ALIASES) {
+      const v = (fm as any)[key];
+      if (Array.isArray(v)) {
+        tags = v.filter(x => typeof x === 'string').map(x => x.trim());
+        if (tags.length > 0) break;
+      } else if (typeof v === 'string' && v.trim()) {
+        tags = [v.trim()];
+        break;
+      }
+    }
+
+    if (tags.length === 0) continue;
+
+    const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+    for (const tag of tags) {
+      const prev = by.get(tag) ?? { netR: 0, count: 0 };
+      prev.netR += pnl;
+      prev.count += 1;
+      by.set(tag, prev);
+    }
+  }
+
+  const rows: ErrorAnalysisRow[] = [];
+  for (const [errorTag, v] of by.entries()) {
+    rows.push({
+      errorTag,
+      count: v.count,
+      netR: v.netR,
+    });
+  }
+  // Sort by netR ascending (biggest losses first)
+  return rows.sort((a, b) => a.netR - b.netR);
+}

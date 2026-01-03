@@ -1,4 +1,4 @@
-import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, WorkspaceLeaf, TFile } from "obsidian";
 import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
 import { ObsidianTradeIndex } from "./platforms/obsidian/obsidian-trade-index";
 import { ObsidianStrategyIndex } from "./platforms/obsidian/obsidian-strategy-index";
@@ -94,28 +94,17 @@ export default class AlBrooksConsolePlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "export-index-snapshot",
-      name: "导出索引快照（JSON）",
+      id: "export-legacy-snapshot",
+      name: "导出旧版兼容快照 (pa-db-export.json)",
       callback: () => {
-        void this.exportIndexSnapshot();
+        void this.exportLegacySnapshot();
       },
     });
   }
 
   private async exportIndexSnapshot(): Promise<void> {
     try {
-      const exportedAt = new Date().toISOString();
-      const trades = this.index?.getAll?.() ?? [];
-      const statsByAccountType = computeTradeStatsByAccountType(trades);
-      const strategyCards = this.strategyIndex?.list?.();
-      const snapshot = buildConsoleExportSnapshot({
-        exportedAt,
-        pluginVersion: this.manifest.version,
-        trades,
-        statsByAccountType,
-        strategyCards,
-      });
-
+      const snapshot = this.buildSnapshot();
       const content = JSON.stringify(snapshot, null, 2);
       const dir = "Exports/al-brooks-console";
       await this.ensureFolder(dir);
@@ -130,6 +119,48 @@ export default class AlBrooksConsolePlugin extends Plugin {
         `交易员控制台：导出失败：${e instanceof Error ? e.message : String(e)}`
       );
     }
+  }
+
+  private async exportLegacySnapshot(): Promise<void> {
+    try {
+      const snapshot = this.buildSnapshot();
+      // Wraps in a structure vaguely resembling old paData if needed, 
+      // but usually tools just need 'trades'. The current snapshot has 'trades'.
+      // We will save it to the fixed legacy path.
+
+      const content = JSON.stringify(snapshot, null, 2);
+      const dir = "Exports/al-brooks-console";
+      await this.ensureFolder(dir);
+
+      const path = `${dir}/pa-db-export.json`;
+      const existing = this.app.vault.getAbstractFileByPath(path);
+      if (existing) {
+        if (existing instanceof TFile) {
+          await this.app.vault.modify(existing, content);
+        }
+      } else {
+        await this.app.vault.create(path, content);
+      }
+      new Notice(`交易员控制台：已导出旧版兼容快照 → ${path}`);
+    } catch (e) {
+      new Notice(
+        `交易员控制台：导出失败：${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
+  private buildSnapshot() {
+    const exportedAt = new Date().toISOString();
+    const trades = this.index?.getAll?.() ?? [];
+    const statsByAccountType = computeTradeStatsByAccountType(trades);
+    const strategyCards = this.strategyIndex?.list?.();
+    return buildConsoleExportSnapshot({
+      exportedAt,
+      pluginVersion: this.manifest.version,
+      trades,
+      statsByAccountType,
+      strategyCards,
+    });
   }
 
   private async ensureFolder(path: string): Promise<void> {

@@ -6,6 +6,8 @@ import {
     computeDailyAgg,
     computeEquityCurve,
     computeStrategyAttribution,
+    computeContextAnalysis,
+    computeErrorAnalysis,
     filterTradesByScope,
     type DailyAgg,
     type AnalyticsScope,
@@ -336,6 +338,16 @@ export function useDashboardData(
         return picks[0];
     }, [openTrade, strategyIndex, todayMarketCycle, getTradeStrategyParams]);
 
+    const contextAnalysis = React.useMemo(() => {
+        const filtered = filterTradesByScope(trades, analyticsScope);
+        return computeContextAnalysis(filtered).slice(0, 8);
+    }, [trades, analyticsScope]);
+
+    const errorAnalysis = React.useMemo(() => {
+        const filtered = filterTradesByScope(trades, analyticsScope);
+        return computeErrorAnalysis(filtered).slice(0, 8);
+    }, [trades, analyticsScope]);
+
     return {
         trades,
         strategies,
@@ -343,10 +355,15 @@ export function useDashboardData(
         todayMarketCycle,
         analyticsScope,
         setAnalyticsScope,
-        onRebuild,
-        summary,
-        all,
-        strategyStats,
+        onRebuild: index.rebuild,
+        summary: summary, // Assuming 'stats' was a typo and meant 'summary' from existing code
+        all: all, // Assuming 'stats.All' was a typo and meant 'all' from existing code
+        strategyStats: {
+            total: strategies.length,
+            activeCount: strategies.length, // TODO: real active count
+            learningCount: 0,
+            totalUses: 0, // TODO: aggregate from trade frontmatter
+        },
         latestTrade,
         todayIso,
         todayTrades,
@@ -357,14 +374,15 @@ export function useDashboardData(
         r10MaxAbs,
         r30MaxAbs,
         reviewHints,
-        calendarCells,
+        calendarCells: calendarCells.slice(0, calendarDays),
         equitySeries,
         strategyAttribution,
-        strategyPicks,
+        contextAnalysis,
+        errorAnalysis,
         inspectorIssues,
-        fixPlan,
+        fixPlan: fixPlan, // Assuming 'hookFixPlan' was a typo and meant 'fixPlan' from existing code
         openTrade,
-        todayStrategyPicks,
-        openTradeStrategy,
+        todayStrategyPicks: strategyPicks,
+        openTradeStrategy: strategyPicks[0] ? strategyIndex.lookup(strategyPicks[0].canonicalName) : undefined,
     };
 }

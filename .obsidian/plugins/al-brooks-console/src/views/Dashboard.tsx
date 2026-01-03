@@ -11,6 +11,8 @@ import type { TradeIndex } from "../core/trade-index";
 import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
 import { Strategies } from "./components/Strategies";
+import { StrategyList } from "./components/StrategyList";
+import { ContextWidget, ErrorWidget } from "./components/AnalyticsWidgets";
 import { StatsCard } from "./components/StatsCard";
 import { StrategyStats } from "./components";
 import { Gallery } from "./components/Gallery";
@@ -41,7 +43,7 @@ import {
   buildStrategyMaintenancePlan
 } from "../core/manager";
 
-const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
+export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 const normalizeTag = (t: unknown) => String(t ?? "").trim();
 const calendarDays = 35;
 const parseCoverRef = (val: unknown): string | undefined => {
@@ -148,6 +150,8 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     openTrade,
     todayStrategyPicks,
     openTradeStrategy,
+    contextAnalysis,
+    errorAnalysis,
   } = useDashboardData(index, strategyIndex, todayContext, enumPresets);
 
   const statusText = React.useMemo(() => {
@@ -2204,6 +2208,16 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
 
       {/* Main Content Area */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+
+        {/* Strategy Repository (Gap Restoration) */}
+        <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
+
+        {/* Analytics Gap Restoration */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <ContextWidget data={contextAnalysis} />
+          <ErrorWidget data={errorAnalysis} />
+        </div>
+
         {/* Trade Feed */}
         <div>
           <h3 style={{ marginBottom: "12px" }}>最近活动</h3>

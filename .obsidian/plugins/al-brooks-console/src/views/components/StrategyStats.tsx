@@ -1,14 +1,14 @@
-import React from 'react';
+import * as React from 'react';
 import type { StrategyStatsProps } from './types';
 
-const StatCard: React.FC<{label: string; value: number | string; onClick?: ()=>void}> = ({label, value, onClick}) => (
+const StatCard: React.FC<{ label: string; value: number | string; onClick?: () => void }> = ({ label, value, onClick }) => (
   <button className="pa-stat-card" onClick={onClick} aria-label={label}>
     <div className="pa-stat-value">{value}</div>
     <div className="pa-stat-label">{label}</div>
   </button>
 );
 
-const StrategyStats: React.FC<StrategyStatsProps> = ({ total, activeCount, learningCount, totalUses, onFilter }) => {
+export const StrategyStats: React.FC<StrategyStatsProps> = ({ total, activeCount, learningCount, totalUses, onFilter }) => {
   return (
     <div className="pa-strategy-stats" role="region" aria-label="策略统计">
       <StatCard label="总策略" value={total} onClick={() => onFilter?.('all')} />
@@ -18,5 +18,3 @@ const StrategyStats: React.FC<StrategyStatsProps> = ({ total, activeCount, learn
     </div>
   );
 };
-
-export default StrategyStats;
