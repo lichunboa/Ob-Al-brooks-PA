@@ -20,6 +20,10 @@ function toLocalDateIso(d: Date): string {
 }
 
 function toString(v: unknown): string | undefined {
+  if (Array.isArray(v)) {
+    if (v.length > 0 && typeof v[0] === "string") return v[0].trim();
+    return undefined;
+  }
   if (typeof v !== "string") return undefined;
   const s = v.trim();
   return s.length ? s : undefined;
