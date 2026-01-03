@@ -16,10 +16,14 @@ import { matchStrategies } from "../core/strategy-matcher";
 import { StatsCard } from "./components/StatsCard";
 import { StrategyStats } from "./components";
 import { TradeList } from "./components/TradeList";
+import { StrategyList } from "./components/StrategyList";
+import { ContextWidget, ErrorWidget } from "./components/AnalyticsWidgets";
 import {
   computeDailyAgg,
   computeEquityCurve,
   computeStrategyAttribution,
+  computeContextAnalysis,
+  computeErrorAnalysis,
   filterTradesByScope,
   type AnalyticsScope,
   type DailyAgg,
@@ -142,6 +146,7 @@ interface Props {
   loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
   loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
   openFile: (path: string) => void;
+  runCommand?: (commandId: string) => void;
   integrations?: PluginIntegrationRegistry;
   version: string;
 }
@@ -215,6 +220,7 @@ const ConsoleComponent: React.FC<Props> = ({
   loadCourse,
   loadMemory,
   openFile,
+  runCommand,
   integrations,
   version,
 }) => {
@@ -628,6 +634,14 @@ const ConsoleComponent: React.FC<Props> = ({
     () => filterTradesByScope(trades, analyticsScope),
     [trades, analyticsScope]
   );
+
+  const contextAnalysis = React.useMemo(() => {
+    return computeContextAnalysis(analyticsTrades).slice(0, 8);
+  }, [analyticsTrades]);
+
+  const errorAnalysis = React.useMemo(() => {
+    return computeErrorAnalysis(analyticsTrades).slice(0, 8);
+  }, [analyticsTrades]);
   const analyticsDaily = React.useMemo(
     () => computeDailyAgg(analyticsTrades, 90),
     [analyticsTrades]
@@ -1834,37 +1848,8 @@ const ConsoleComponent: React.FC<Props> = ({
             gap: "12px",
           }}
         >
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🌀 环境分析 (Context)
-            </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              （占位符）v5.0 的“环境/周期/市场状态分析”在插件版的 Dashboard 未内联展示。
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              ⚠️ 错误归因 (Errors)
-            </div>
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              （占位符）v5.0 的“错误/复盘问题归因”在插件版的 Dashboard 未内联展示。
-            </div>
-          </div>
+          <ContextWidget data={contextAnalysis} />
+          <ErrorWidget data={errorAnalysis} />
         </div>
       </div>
 
@@ -2388,8 +2373,12 @@ const ConsoleComponent: React.FC<Props> = ({
           />
         </div>
 
-        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          （占位符）v5.0 的“策略仓库浏览/检索面板”在插件版尚未提供；当前仅展示策略统计，并在“今日/数据分析/管理器”中复用策略索引能力。
+        <div style={{ marginTop: "10px" }}>
+          <StrategyList
+            strategies={strategies}
+            onOpenFile={openFile}
+            showTitle={false}
+          />
         </div>
       </div>
 
@@ -3127,8 +3116,41 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            flexWrap: "wrap",
+            marginBottom: "10px",
+          }}
+        >
+          <button
+            type="button"
+            disabled={!runCommand}
+            onClick={() =>
+              runCommand?.("al-brooks-console:export-legacy-snapshot")
+            }
+            style={runCommand ? buttonStyle : disabledButtonStyle}
+          >
+            导出旧版兼容快照 (pa-db-export.json)
+          </button>
+          <button
+            type="button"
+            disabled={!runCommand}
+            onClick={() =>
+              runCommand?.("al-brooks-console:export-index-snapshot")
+            }
+            style={runCommand ? buttonStyle : disabledButtonStyle}
+          >
+            导出索引快照 (Index Snapshot)
+          </button>
+        </div>
+
         <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          （占位符）v5.0 在页面底部提供“一键备份数据库”按钮（写入 `pa-db-export.json`）。插件版目前以“命令/导出快照”的形式提供导出能力（不在 Dashboard 内联按钮）。
+          v5.0 在页面底部提供“一键备份数据库”按钮（写入 pa-db-export.json）。插件版
+          目前提供两类导出：旧版兼容快照与索引快照（默认导出到
+          Exports/al-brooks-console/）。
         </div>
       </div>
 
@@ -3490,6 +3512,7 @@ export class ConsoleView extends ItemView {
           loadMemory={loadMemory}
           integrations={this.integrations}
           openFile={openFile}
+          runCommand={(commandId) => this.app.commands.executeCommandById(commandId)}
           version={this.version}
         />
       </ConsoleErrorBoundary>

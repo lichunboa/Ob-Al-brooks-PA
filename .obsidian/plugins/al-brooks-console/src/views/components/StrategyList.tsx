@@ -4,9 +4,14 @@ import type { StrategyCard } from "../../core/strategy-index";
 interface Props {
     strategies: StrategyCard[];
     onOpenFile: (path: string) => void;
+    showTitle?: boolean;
 }
 
-export const StrategyList: React.FC<Props> = ({ strategies, onOpenFile }) => {
+export const StrategyList: React.FC<Props> = ({
+    strategies,
+    onOpenFile,
+    showTitle = true,
+}) => {
     const [searchTerm, setSearchTerm] = React.useState("");
     const [cycleFilter, setCycleFilter] = React.useState("All");
 
@@ -36,7 +41,9 @@ export const StrategyList: React.FC<Props> = ({ strategies, onOpenFile }) => {
     return (
         <div className="pa-dashboard" >
             <div className="pa-card-header" style={{ marginBottom: "20px", borderBottom: "none" }}>
-                <h3 className="pa-card-title">策略仓库 (Strategy Repository)</h3>
+                {showTitle ? (
+                    <h3 className="pa-card-title">策略仓库 (Strategy Repository)</h3>
+                ) : null}
                 <div style={{ display: "flex", gap: "8px" }}>
                     <select
                         value={cycleFilter}
