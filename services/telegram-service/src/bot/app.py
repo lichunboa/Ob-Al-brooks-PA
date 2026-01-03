@@ -5286,15 +5286,21 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                 sym = m.group(1).upper()
                 try:
                     from bot.single_token_txt import export_single_token_txt
+                    import io
+                    from datetime import datetime
+                    
                     txt_content = export_single_token_txt(sym)
-                    # 发送为文本（如果太长会自动分段）
-                    if len(txt_content) > 4000:
-                        # 分段发送
-                        parts = [txt_content[i:i+4000] for i in range(0, len(txt_content), 4000)]
-                        for i, part in enumerate(parts):
-                            await update.message.reply_text(f"```\n{part}\n```", parse_mode='Markdown')
-                    else:
-                        await update.message.reply_text(f"```\n{txt_content}\n```", parse_mode='Markdown')
+                    
+                    # 创建文件对象
+                    file_obj = io.BytesIO(txt_content.encode('utf-8'))
+                    file_obj.name = f"{sym}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                    
+                    # 发送文件
+                    await update.message.reply_document(
+                        document=file_obj,
+                        filename=file_obj.name,
+                        caption=f"📊 {sym} 完整数据报告"
+                    )
                 except Exception as e:
                     logger.error(f"完整TXT导出失败: {e}")
                     await update.message.reply_text(f"❌ 导出失败: {e}")
