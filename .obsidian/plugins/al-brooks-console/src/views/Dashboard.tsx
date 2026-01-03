@@ -987,6 +987,23 @@ const ConsoleComponent: React.FC<Props> = ({
         )}
       </h2>
 
+      <div
+        style={{
+          margin: "12px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Trading Hub
+        </div>
+      </div>
+
       {latestTrade && reviewHints.length > 0 && (
         <div
           style={{
@@ -1442,6 +1459,23 @@ const ConsoleComponent: React.FC<Props> = ({
             )}
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>📊 数据中心</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Analytics Hub
+        </div>
       </div>
 
       {/* Stats Row */}
