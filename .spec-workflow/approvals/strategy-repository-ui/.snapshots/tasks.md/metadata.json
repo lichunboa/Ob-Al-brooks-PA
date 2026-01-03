@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/strategy-repository-ui/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-03T02:11:19.141Z",
+      "trigger": "initial",
+      "approvalId": "approval_1767406279134_vm7ndtr9o",
+      "approvalTitle": "Spec: strategy-repository-ui - Tasks"
+    }
+  ]
+}

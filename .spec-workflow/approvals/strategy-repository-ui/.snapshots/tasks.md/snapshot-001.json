@@ -1,0 +1,16 @@
+{
+  "id": "snapshot_1767406279141_h4lxsgx2m",
+  "approvalId": "approval_1767406279134_vm7ndtr9o",
+  "approvalTitle": "Spec: strategy-repository-ui - Tasks",
+  "version": 1,
+  "timestamp": "2026-01-03T02:11:19.141Z",
+  "trigger": "initial",
+  "status": "pending",
+  "content": "# Spec Tasks: strategy-repository-ui — Atomic Tasks\n\n## 概览\n将 `Strategy Repository` 从设计到实现拆成可执行的小任务，便于逐步实现与回退。\n\n## 原子任务\n- T1: 初始化组件目录 `views/components` 与类型文件 `types.ts`。\n- T2: 实现 `StrategyStats.tsx`（顶部统计卡，含过滤回调）。\n- T3: 实现 `StrategyCard.tsx`（单卡，支持展开/收起与打开笔记）。\n- T4: 实现 `StrategyList.tsx`（按分组渲染，含组折叠/展开）。\n- T5: 实现 `StrategyPerformanceTable.tsx`（表现表，支持排序与复制列）。\n- T6: 将组件导入 `Dashboard.tsx` 并添加容器 `StrategyRepository`，实现数据加载与首次渲染。\n- T7: 移植或复用 perf 计算逻辑（`scripts/pa-view-playbook.js` 中的聚合），在 `core/analytics` 或 `views/helpers/analytics.ts` 中实现辅助函数。\n- T8: 本地化：将文本放入现有翻译结构或在组件中使用中文默认文案。\n- T9: 样式与主题：使用现有 CSS 变量完成 UI 样式，并做暗/亮主题测试。\n- T10: 性能与缓存：实现第一次聚合后的内存缓存，并在索引更新时刷新。\n- T11: 测试：`npm run build`，在 dev 环境验证 Dashboard 中无 runtime 错误并通过验收测试用例。\n- T12: 文档：记录 implementation log 并提交审批。\n\n## 优先级\n- 优先级 P0: T1–T6（UI 与数据绑定）\n- 优先级 P1: T7–T9（计算、样式、i18n）\n- 优先级 P2: T10–T12（优化、测试、文档）\n\n---\n\n下一步：实现 `T1` 与 `T2`（创建类型文件并实现 `StrategyStats.tsx`）。",
+  "fileStats": {
+    "size": 1602,
+    "lines": 27,
+    "lastModified": "2026-01-03T01:54:22.077Z"
+  },
+  "comments": []
+}
