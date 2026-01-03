@@ -13,813 +13,146 @@ import { buildReviewHints } from "../core/review-hints";
 import type { AccountType, TradeRecord } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
+import { Strategies } from "./components/Strategies";
 import { StatsCard } from "./components/StatsCard";
 import { StrategyStats } from "./components";
-import { TradeList } from "./components/TradeList";
-import { TrendRow } from "./components/TrendRow";
-import {
-  computeDailyAgg,
-  computeEquityCurve,
-  computeStrategyAttribution,
-  filterTradesByScope,
-  type AnalyticsScope,
-  type DailyAgg,
-} from "../core/analytics";
-import { parseCoverRef } from "../core/cover-parser";
-import type { EnumPresets } from "../core/enum-presets";
-import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
-import {
-  buildFixPlan,
-  buildInspectorIssues,
-  type FixPlan,
-} from "../core/inspector";
-import {
-  buildStrategyMaintenancePlan,
-  buildTradeNormalizationPlan,
-  type ManagerApplyResult,
-  type StrategyNoteFrontmatter,
-} from "../core/manager";
-import type { IntegrationCapability } from "../integrations/contracts";
-import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
-import type { TodayContext } from "../core/today-context";
-import { normalizeTag } from "../core/field-mapper";
-import type { AlBrooksConsoleSettings } from "../settings";
-import {
-  buildCourseSnapshot,
-  parseSyllabusJsonFromMarkdown,
-  simpleCourseId,
-  type CourseSnapshot,
-} from "../core/course";
-import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
+import { Gallery } from "./components/Gallery";
+import type { GalleryItem } from "./components/types";
 
-function toLocalDateIso(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+// ... existing code ...
 
-function getLastLocalDateIsos(days: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < Math.max(1, days); i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(toLocalDateIso(d));
-  }
-  return out;
-}
+const galleryItems = React.useMemo((): GalleryItem[] => {
+  if (!getResourceUrl) return [];
+  const out: GalleryItem[] = [];
+  const seen = new Set<string>();
+  const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
-function getDayOfMonth(dateIso: string): string {
-  const parts = dateIso.split("-");
-  const d = parts[2] ?? "";
-  return d.startsWith("0") ? d.slice(1) : d;
-}
-
-function sumPnlR(trades: TradeRecord[]): number {
-  let sum = 0;
   for (const t of trades) {
-    if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
-  }
-  return sum;
-}
+    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+    const rawCover = (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+    const ref = parseCoverRef(rawCover);
+    if (!ref) continue;
 
-function getRColorByAccountType(accountType: AccountType): string {
-  switch (accountType) {
-    case "Live":
-      return "var(--text-success)";
-    case "Demo":
-      return "var(--text-warning)";
-    case "Backtest":
-      return "var(--text-accent)";
-  }
-}
+    let target = ref.target;
+    // 解析 markdown link 的 target 可能带引号/空格
+    target = String(target).trim();
+    if (!target) continue;
 
-function computeWindowRByAccountType(
-  trades: TradeRecord[],
-  windowSize: number
-): Record<AccountType, number> {
-  const by: Record<AccountType, TradeRecord[]> = {
-    Live: [],
-    Demo: [],
-    Backtest: [],
-  };
-  for (const t of trades.slice(0, windowSize)) {
-    const at = t.accountType;
-    if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
-  }
-  return {
-    Live: sumPnlR(by.Live),
-    Demo: sumPnlR(by.Demo),
-    Backtest: sumPnlR(by.Backtest),
-  };
-}
+    const resolved = resolveLink ? resolveLink(target, t.path) : target;
+    if (!resolved || !isImage(resolved)) continue;
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
 
-export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
-
-interface Props {
-  index: TradeIndex;
-  strategyIndex: StrategyIndex;
-  todayContext?: TodayContext;
-  resolveLink?: (linkText: string, fromPath: string) => string | undefined;
-  getResourceUrl?: (path: string) => string | undefined;
-  enumPresets?: EnumPresets;
-  loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
-  applyFixPlan?: (
-    plan: FixPlan,
-    options?: { deleteKeys?: boolean }
-  ) => Promise<ManagerApplyResult>;
-  restoreFiles?: (
-    backups: Record<string, string>
-  ) => Promise<ManagerApplyResult>;
-  settings: AlBrooksConsoleSettings;
-  subscribeSettings?: (
-    listener: (settings: AlBrooksConsoleSettings) => void
-  ) => () => void;
-  loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
-  loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
-  openFile: (path: string) => void;
-  integrations?: PluginIntegrationRegistry;
-  version: string;
-}
-
-class ConsoleErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; message?: string }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
+    const url = getResourceUrl(resolved);
+    out.push({ tradePath: t.path, coverPath: resolved, url });
+    if (out.length >= 48) break;
   }
 
-  static getDerivedStateFromError(error: unknown) {
-    return {
-      hasError: true,
-      message: error instanceof Error ? error.message : String(error),
-    };
-  }
+  return out;
+}, [trades, resolveLink, getResourceUrl]);
 
-  componentDidCatch(error: unknown) {
-    console.warn("[al-brooks-console] Dashboard render error", error);
-  }
+const inspectorIssues = React.useMemo(() => {
+  return buildInspectorIssues(trades, enumPresets);
+}, [trades, enumPresets]);
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div
-          style={{
-            padding: "16px",
-            fontFamily: "var(--font-interface)",
-            maxWidth: "1200px",
-            margin: "0 auto",
-          }}
-        >
-          <h2
-            style={{
-              borderBottom: "1px solid var(--background-modifier-border)",
-              paddingBottom: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            🦁 交易员控制台
-          </h2>
-          <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
-            控制台渲染失败：{this.state.message ?? "未知错误"}
-          </div>
-          <div style={{ color: "var(--text-muted)" }}>
-            建议重新打开视图后，在顶部使用“重建索引”。
-          </div>
-        </div>
-      );
-    }
+const fixPlanText = React.useMemo(() => {
+  if (!showFixPlan || !enumPresets) return undefined;
+  const plan = buildFixPlan(trades, enumPresets);
+  return JSON.stringify(plan, null, 2);
+}, [showFixPlan, trades, enumPresets]);
 
-    return this.props.children;
-  }
-}
+const managerPlanText = React.useMemo(() => {
+  if (!managerPlan) return undefined;
+  return JSON.stringify(managerPlan, null, 2);
+}, [managerPlan]);
 
-const ConsoleComponent: React.FC<Props> = ({
-  index,
-  strategyIndex,
-  todayContext,
-  resolveLink,
-  getResourceUrl,
-  enumPresets,
-  loadStrategyNotes,
-  applyFixPlan,
-  restoreFiles,
-  settings: initialSettings,
-  subscribeSettings,
-  loadCourse,
-  loadMemory,
-  openFile,
-  integrations,
-  version,
-}) => {
-  const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(() =>
-    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
-  );
-  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
-    index.getStatus ? index.getStatus() : { phase: "ready" }
-  );
-  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
-    string | undefined
-  >(() => todayContext?.getTodayMarketCycle());
-  const [analyticsScope, setAnalyticsScope] =
-    React.useState<AnalyticsScope>("Live");
-  const [showFixPlan, setShowFixPlan] = React.useState(false);
-  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
-    undefined
-  );
-  const [managerResult, setManagerResult] = React.useState<
-    ManagerApplyResult | undefined
-  >(undefined);
-  const [managerBusy, setManagerBusy] = React.useState(false);
-  const [managerArmed, setManagerArmed] = React.useState(false);
-  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
-  const [managerBackups, setManagerBackups] = React.useState<
-    Record<string, string> | undefined
-  >(undefined);
-
-  const [settings, setSettings] =
-    React.useState<AlBrooksConsoleSettings>(initialSettings);
-  const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
-
-  React.useEffect(() => {
-    setSettings(initialSettings);
-  }, [initialSettings]);
-
-  React.useEffect(() => {
-    if (!subscribeSettings) return;
-    return subscribeSettings((s) => setSettings(s));
-  }, [subscribeSettings]);
-
-  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
-    undefined
-  );
-  const [courseBusy, setCourseBusy] = React.useState(false);
-  const [courseError, setCourseError] = React.useState<string | undefined>(
-    undefined
-  );
-
-  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(
-    undefined
-  );
-  const [memoryBusy, setMemoryBusy] = React.useState(false);
-  const [memoryError, setMemoryError] = React.useState<string | undefined>(
-    undefined
-  );
-
-  const summary = React.useMemo(
-    () => computeTradeStatsByAccountType(trades),
-    [trades]
-  );
-  const all = summary.All;
-
-  React.useEffect(() => {
-    const onUpdate = () => setTrades(index.getAll());
-    const unsubscribe = index.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [index]);
-
-  React.useEffect(() => {
-    if (!strategyIndex) return;
-    const update = () => {
-      try {
-        const list = strategyIndex.list ? strategyIndex.list() : [];
-        setStrategies(list);
-      } catch (e) {
-        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
-        setStrategies([]);
-      }
-    };
-    update();
-    if (strategyIndex.onChanged) return strategyIndex.onChanged(update);
-    return () => { };
-  }, [strategyIndex]);
-
-  const strategyStats = React.useMemo(() => {
-    const total = strategies.length;
-    const activeCount = strategies.filter((s) => s.status === "active")
-      .length;
-    const learningCount = strategies.filter((s) => s.status === "learning")
-      .length;
-    const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
-    return { total, activeCount, learningCount, totalUses };
-  }, [strategies]);
-
-  React.useEffect(() => {
-    if (!todayContext?.onChanged) return;
-    const onUpdate = () =>
-      setTodayMarketCycle(todayContext.getTodayMarketCycle());
-    const unsubscribe = todayContext.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [todayContext]);
-
-  React.useEffect(() => {
-    if (!index.onStatusChanged) return;
-    const onStatus = () =>
-      setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
-    const unsubscribe = index.onStatusChanged(onStatus);
-    onStatus();
-    return unsubscribe;
-  }, [index]);
-
-  const onRebuild = React.useCallback(async () => {
-    if (!index.rebuild) return;
-    try {
-      await index.rebuild();
-    } catch (e) {
-      console.warn("[al-brooks-console] Rebuild failed", e);
-    }
-  }, [index]);
-
-  const statusText = React.useMemo(() => {
-    switch (status.phase) {
-      case "building": {
-        const p = typeof status.processed === "number" ? status.processed : 0;
-        const t = typeof status.total === "number" ? status.total : 0;
-        return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
-      }
-      case "ready": {
-        return typeof status.lastBuildMs === "number"
-          ? `索引：就绪（${status.lastBuildMs}ms）`
-          : "索引：就绪";
-      }
-      case "error":
-        return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
-      default:
-        return "索引：空闲";
-    }
-  }, [status]);
-
-  const buttonStyle: React.CSSProperties = {
-    marginLeft: "8px",
-    padding: "4px 8px",
-    fontSize: "0.8em",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "6px",
-    background: "var(--background-primary)",
-    color: "var(--text-normal)",
-    cursor: "pointer",
-    outline: "none",
-    transition:
-      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
-  };
-
-  const disabledButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
-
-  const selectStyle: React.CSSProperties = {
-    padding: "4px 8px",
-    fontSize: "0.85em",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "6px",
-    background: "var(--background-primary)",
-    color: "var(--text-normal)",
-  };
-
-  const textButtonStyle: React.CSSProperties = {
-    padding: "2px 4px",
-    border: "none",
-    background: "transparent",
-    color: "var(--text-accent)",
-    cursor: "pointer",
-    textAlign: "left",
-    borderRadius: "6px",
-    outline: "none",
-    transition: "background-color 180ms ease, box-shadow 180ms ease",
-  };
-
-  const onBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onBtnMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "var(--background-primary)";
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-    },
-    []
-  );
-
-  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
-
-  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
-
-  const onTextBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
-    },
-    []
-  );
-
-  const onTextBtnMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "transparent";
-    },
-    []
-  );
-
-  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
-
-  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
-
-  const onMiniCellMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onMiniCellMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-    },
-    []
-  );
-
-  const onMiniCellFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onMiniCellBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onCoverMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
-    },
-    []
-  );
-
-  const onCoverMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
-    },
-    []
-  );
-
-  const onCoverFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onCoverBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const action = React.useCallback(
-    async (capabilityId: IntegrationCapability) => {
-      if (!integrations) return;
-      try {
-        await integrations.run(capabilityId);
-      } catch (e) {
-        console.warn(
-          "[al-brooks-console] Integration action failed",
-          capabilityId,
-          e
-        );
-      }
-    },
-    [integrations]
-  );
-
-  const can = React.useCallback(
-    (capabilityId: IntegrationCapability) =>
-      Boolean(integrations?.isCapabilityAvailable(capabilityId)),
-    [integrations]
-  );
-
-  const reloadCourse = React.useCallback(async () => {
-    if (!loadCourse) return;
-    setCourseBusy(true);
-    setCourseError(undefined);
-    try {
-      const next = await loadCourse(settings);
-      setCourse(next);
-    } catch (e) {
-      setCourseError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCourseBusy(false);
-    }
-  }, [loadCourse, settingsKey]);
-
-  const reloadMemory = React.useCallback(async () => {
-    if (!loadMemory) return;
-    setMemoryBusy(true);
-    setMemoryError(undefined);
-    try {
-      const next = await loadMemory(settings);
-      setMemory(next);
-    } catch (e) {
-      setMemoryError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setMemoryBusy(false);
-    }
-  }, [loadMemory, settingsKey]);
-
-  React.useEffect(() => {
-    void reloadCourse();
-  }, [reloadCourse]);
-
-  React.useEffect(() => {
-    void reloadMemory();
-  }, [reloadMemory]);
-
-  const latestTrade = trades.length > 0 ? trades[0] : undefined;
-  const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
-  const todayTrades = React.useMemo(
-    () => trades.filter((t) => t.dateIso === todayIso),
-    [trades, todayIso]
-  );
-  const todaySummary = React.useMemo(
-    () => computeTradeStatsByAccountType(todayTrades),
-    [todayTrades]
-  );
-  const todayLatestTrade = todayTrades.length > 0 ? todayTrades[0] : undefined;
-  const rLast10 = React.useMemo(
-    () => computeWindowRByAccountType(trades, 10),
-    [trades]
-  );
-  const rLast30 = React.useMemo(
-    () => computeWindowRByAccountType(trades, 30),
-    [trades]
-  );
-  const r10MaxAbs = React.useMemo(
-    () =>
-      Math.max(
-        Math.abs(rLast10.Live),
-        Math.abs(rLast10.Demo),
-        Math.abs(rLast10.Backtest),
-        0
-      ),
-    [rLast10]
-  );
-  const r30MaxAbs = React.useMemo(
-    () =>
-      Math.max(
-        Math.abs(rLast30.Live),
-        Math.abs(rLast30.Demo),
-        Math.abs(rLast30.Backtest),
-        0
-      ),
-    [rLast30]
-  );
-  const reviewHints = React.useMemo(() => {
-    if (!latestTrade) return [];
-    return buildReviewHints(latestTrade);
-  }, [latestTrade]);
-
-  const analyticsTrades = React.useMemo(
-    () => filterTradesByScope(trades, analyticsScope),
-    [trades, analyticsScope]
-  );
-  const analyticsDaily = React.useMemo(
-    () => computeDailyAgg(analyticsTrades, 90),
-    [analyticsTrades]
-  );
-  const analyticsDailyByDate = React.useMemo(() => {
-    const m = new Map<string, DailyAgg>();
-    for (const d of analyticsDaily) m.set(d.dateIso, d);
-    return m;
-  }, [analyticsDaily]);
-
-  const calendarDays = 35;
-  const calendarDateIsos = React.useMemo(
-    () => getLastLocalDateIsos(calendarDays),
-    []
-  );
-  const calendarCells = React.useMemo(() => {
-    return calendarDateIsos.map(
-      (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+const openTrade = React.useMemo(() => {
+  return trades.find((t) => {
+    const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+    if (!pnlMissing) return false;
+    return (
+      t.outcome === "open" ||
+      t.outcome === undefined ||
+      t.outcome === "unknown"
     );
-  }, [calendarDateIsos, analyticsDailyByDate]);
-  const calendarMaxAbs = React.useMemo(() => {
-    let max = 0;
-    for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
-    return max;
-  }, [calendarCells]);
+  });
+}, [trades]);
 
-  const equitySeries = React.useMemo(() => {
-    const dateIsosAsc = [...calendarDateIsos].reverse();
-    const filled: DailyAgg[] = dateIsosAsc.map(
-      (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
-    );
-    return computeEquityCurve(filled);
-  }, [calendarDateIsos, analyticsDailyByDate]);
+const todayStrategyPicks = React.useMemo(() => {
+  if (!todayMarketCycle) return [];
+  return matchStrategies(strategyIndex, {
+    marketCycle: todayMarketCycle,
+    limit: 6,
+  });
+}, [strategyIndex, todayMarketCycle]);
 
-  const strategyAttribution = React.useMemo(() => {
-    return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
-  }, [analyticsTrades, strategyIndex]);
-
-  type GalleryItem = {
-    tradePath: string;
-    coverPath: string;
-    url?: string;
-  };
-
-  const galleryItems = React.useMemo((): GalleryItem[] => {
-    if (!getResourceUrl) return [];
-    const out: GalleryItem[] = [];
-    const seen = new Set<string>();
-    const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
-
-    for (const t of trades) {
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      const rawCover = (fm as any)["cover"] ?? (fm as any)["封面/cover"];
-      const ref = parseCoverRef(rawCover);
-      if (!ref) continue;
-
-      let target = ref.target;
-      // 解析 markdown link 的 target 可能带引号/空格
-      target = String(target).trim();
-      if (!target) continue;
-
-      const resolved = resolveLink ? resolveLink(target, t.path) : target;
-      if (!resolved || !isImage(resolved)) continue;
-      if (seen.has(resolved)) continue;
-      seen.add(resolved);
-
-      const url = getResourceUrl(resolved);
-      out.push({ tradePath: t.path, coverPath: resolved, url });
-      if (out.length >= 48) break;
-    }
-
-    return out;
-  }, [trades, resolveLink, getResourceUrl]);
-
-  const inspectorIssues = React.useMemo(() => {
-    return buildInspectorIssues(trades, enumPresets);
-  }, [trades, enumPresets]);
-
-  const fixPlanText = React.useMemo(() => {
-    if (!showFixPlan || !enumPresets) return undefined;
-    const plan = buildFixPlan(trades, enumPresets);
-    return JSON.stringify(plan, null, 2);
-  }, [showFixPlan, trades, enumPresets]);
-
-  const managerPlanText = React.useMemo(() => {
-    if (!managerPlan) return undefined;
-    return JSON.stringify(managerPlan, null, 2);
-  }, [managerPlan]);
-
-  const openTrade = React.useMemo(() => {
-    return trades.find((t) => {
-      const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-      if (!pnlMissing) return false;
-      return (
-        t.outcome === "open" ||
-        t.outcome === undefined ||
-        t.outcome === "unknown"
-      );
-    });
-  }, [trades]);
-
-  const todayStrategyPicks = React.useMemo(() => {
-    if (!todayMarketCycle) return [];
-    return matchStrategies(strategyIndex, {
-      marketCycle: todayMarketCycle,
-      limit: 6,
-    });
-  }, [strategyIndex, todayMarketCycle]);
-
-  const openTradeStrategy = React.useMemo(() => {
-    if (!openTrade) return undefined;
-    const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
-    const patternsRaw =
-      fm["patterns"] ??
-      fm["形态/patterns"] ??
-      fm["观察到的形态/patterns_observed"];
-    const patterns = Array.isArray(patternsRaw)
+const openTradeStrategy = React.useMemo(() => {
+  if (!openTrade) return undefined;
+  const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
+  const patternsRaw =
+    fm["patterns"] ??
+    fm["形态/patterns"] ??
+    fm["观察到的形态/patterns_observed"];
+  const patterns = Array.isArray(patternsRaw)
+    ? patternsRaw
+      .filter((x: any) => typeof x === "string")
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+    : typeof patternsRaw === "string"
       ? patternsRaw
-        .filter((x: any) => typeof x === "string")
+        .split(/[,，;；/|]/g)
         .map((s: string) => s.trim())
         .filter(Boolean)
-      : typeof patternsRaw === "string"
-        ? patternsRaw
-          .split(/[,，;；/|]/g)
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-        : [];
-    const setupCategory = (fm["setup_category"] ??
-      fm["设置类别/setup_category"]) as any;
-    const setupCategoryStr =
-      typeof setupCategory === "string" ? setupCategory.trim() : undefined;
-    const picks = matchStrategies(strategyIndex, {
-      marketCycle: todayMarketCycle,
-      setupCategory: setupCategoryStr,
-      patterns,
-      limit: 3,
-    });
-    return picks[0];
-  }, [openTrade, strategyIndex, todayMarketCycle]);
+      : [];
+  const setupCategory = (fm["setup_category"] ??
+    fm["设置类别/setup_category"]) as any;
+  const setupCategoryStr =
+    typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+  const picks = matchStrategies(strategyIndex, {
+    marketCycle: todayMarketCycle,
+    setupCategory: setupCategoryStr,
+    patterns,
+    limit: 3,
+  });
+  return picks[0];
+}, [openTrade, strategyIndex, todayMarketCycle]);
 
-  const strategyPicks = React.useMemo(() => {
-    if (!latestTrade) return [];
-    const fm = (latestTrade.rawFrontmatter ?? {}) as Record<string, any>;
-    const patternsRaw =
-      fm["patterns"] ??
-      fm["形态/patterns"] ??
-      fm["观察到的形态/patterns_observed"];
-    const patterns = Array.isArray(patternsRaw)
+const strategyPicks = React.useMemo(() => {
+  if (!latestTrade) return [];
+  const fm = (latestTrade.rawFrontmatter ?? {}) as Record<string, any>;
+  const patternsRaw =
+    fm["patterns"] ??
+    fm["形态/patterns"] ??
+    fm["观察到的形态/patterns_observed"];
+  const patterns = Array.isArray(patternsRaw)
+    ? patternsRaw
+      .filter((x: any) => typeof x === "string")
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+    : typeof patternsRaw === "string"
       ? patternsRaw
-        .filter((x: any) => typeof x === "string")
+        .split(/[,，;；/|]/g)
         .map((s: string) => s.trim())
         .filter(Boolean)
-      : typeof patternsRaw === "string"
-        ? patternsRaw
-          .split(/[,，;；/|]/g)
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-        : [];
-    const marketCycle = (fm["market_cycle"] ??
-      fm["市场周期/market_cycle"]) as any;
-    const marketCycleStr =
-      todayMarketCycle ??
-      (typeof marketCycle === "string" ? marketCycle.trim() : undefined);
-    const setupCategory = (fm["setup_category"] ??
-      fm["设置类别/setup_category"]) as any;
-    const setupCategoryStr =
-      typeof setupCategory === "string" ? setupCategory.trim() : undefined;
-    return matchStrategies(strategyIndex, {
-      marketCycle: marketCycleStr,
-      setupCategory: setupCategoryStr,
-      patterns,
-      limit: 6,
-    });
-  }, [latestTrade, strategyIndex, todayMarketCycle]);
+      : [];
+  const marketCycle = (fm["market_cycle"] ??
+    fm["市场周期/market_cycle"]) as any;
+  const marketCycleStr =
+    todayMarketCycle ??
+    (typeof marketCycle === "string" ? marketCycle.trim() : undefined);
+  const setupCategory = (fm["setup_category"] ??
+    fm["设置类别/setup_category"]) as any;
+  const setupCategoryStr =
+    typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+  return matchStrategies(strategyIndex, {
+    marketCycle: marketCycleStr,
+    setupCategory: setupCategoryStr,
+    patterns,
+    limit: 6,
+  });
+}, [latestTrade, strategyIndex, todayMarketCycle]);
 
-              />
-            )}
-          </div >
-  <div style={{ flex: "1 1 0", position: "relative" }}>
-    {ratio > 0 && (
-      <div
-        style={{
-          height: "100%",
-          width: "100%",
-          background: color,
-          opacity: 0.55,
-          transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
-          transformOrigin: "left",
-        }}
-      />
-    )}
-  </div>
-        </div >
-  <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
-    <span
-      style={{
-        color: value >= 0 ? "var(--text-success)" : "var(--text-error)",
-        fontWeight: 600,
-      }}
-    >
-      {value >= 0 ? "+" : ""}
-      {value.toFixed(1)}R
-    </span>
-  </div>
-      </div >
-    );
-  };
+
 
 return (
   <div
@@ -1010,38 +343,7 @@ return (
       </div>
     )}
 
-    {strategyPicks.length > 0 && (
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-          今日策略推荐
-        </div>
-        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-          {strategyPicks.map((s) => (
-            <li key={s.path} style={{ marginBottom: "6px" }}>
-              <button
-                type="button"
-                onClick={() => openFile(s.path)}
-                style={textButtonStyle}
-                onMouseEnter={onTextBtnMouseEnter}
-                onMouseLeave={onTextBtnMouseLeave}
-                onFocus={onTextBtnFocus}
-                onBlur={onTextBtnBlur}
-              >
-                {s.canonicalName}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
+    <Strategies picks={strategyPicks} onOpenFile={openFile} />
 
     <div
       style={{
@@ -2199,84 +1501,11 @@ return (
       </div>
     </div>
 
-    <div
-      style={{
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "10px",
-        padding: "12px",
-        marginBottom: "16px",
-        background: "var(--background-primary)",
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
-      {!getResourceUrl ? (
-        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          Gallery unavailable.
-        </div>
-      ) : galleryItems.length > 0 ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-            gap: "8px",
-          }}
-        >
-          {galleryItems.map((it) => (
-            <button
-              key={`gal-${it.coverPath}`}
-              type="button"
-              onClick={() => openFile(it.coverPath)}
-              title={it.coverPath}
-              onMouseEnter={onCoverMouseEnter}
-              onMouseLeave={onCoverMouseLeave}
-              onFocus={onCoverFocus}
-              onBlur={onCoverBlur}
-              style={{
-                padding: 0,
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                background: `rgba(var(--mono-rgb-100), 0.03)`,
-                cursor: "pointer",
-                outline: "none",
-                transition:
-                  "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
-              }}
-            >
-              {it.url ? (
-                <img
-                  src={it.url}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "120px",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    height: "120px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-faint)",
-                    fontSize: "0.85em",
-                  }}
-                >
-                  —
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          未找到封面图片。
-        </div>
-      )}
-    </div>
+    <Gallery
+      items={galleryItems}
+      available={!!getResourceUrl}
+      onOpenFile={openFile}
+    />
 
     <div
       style={{
