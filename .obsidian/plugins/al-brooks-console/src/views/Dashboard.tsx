@@ -3051,10 +3051,8 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🔥 必须解决 (Inbox & Urgent)
             </div>
-            {can("tasks:open") ? (
-              <MarkdownBlock
-                markdown={`**❓ 疑难杂症 (Questions)**\n\n\
-\
+            <MarkdownBlock
+              markdown={`**❓ 疑难杂症 (Questions)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/question\n\
@@ -3062,7 +3060,6 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n\n\
-\
 **🚨 紧急事项 (Urgent)**\n\n\
 \`\`\`tasks\n\
 not done\n\
@@ -3071,12 +3068,7 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-              />
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                请先启用 Tasks 插件。
-              </div>
-            )}
+            />
           </div>
 
           <div
@@ -3090,9 +3082,8 @@ short mode\n\
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🛠️ 持续改进 (Improvement)
             </div>
-            {can("tasks:open") ? (
-              <MarkdownBlock
-                markdown={`**🧪 回测任务 (Backtest)**\n\n\
+            <MarkdownBlock
+              markdown={`**🧪 回测任务 (Backtest)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/backtest\n\
@@ -3125,12 +3116,7 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-              />
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                请先启用 Tasks 插件。
-              </div>
-            )}
+            />
           </div>
 
           <div
@@ -3144,9 +3130,8 @@ short mode\n\
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               📅 每日例行 (Routine)
             </div>
-            {can("tasks:open") ? (
-              <MarkdownBlock
-                markdown={`**📝 手动打卡 (Checklist)**\n\n\
+            <MarkdownBlock
+              markdown={`**📝 手动打卡 (Checklist)**\n\n\
 - [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
 - [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
 - [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
@@ -3159,12 +3144,7 @@ hide backlink\n\
 short mode\n\
 limit 5\n\
 \`\`\`\n`}
-              />
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                请先启用 Tasks 插件。
-              </div>
-            )}
+            />
           </div>
 
           <div
@@ -3178,9 +3158,8 @@ limit 5\n\
             <div style={{ fontWeight: 700, marginBottom: "6px" }}>
               🛠️ 等待任务 (Maintenance)
             </div>
-            {can("tasks:open") ? (
-              <MarkdownBlock
-                markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
+            <MarkdownBlock
+              markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/print\n\
@@ -3196,12 +3175,7 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-              />
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                请先启用 Tasks 插件。
-              </div>
-            )}
+            />
           </div>
         </div>
       </div>
