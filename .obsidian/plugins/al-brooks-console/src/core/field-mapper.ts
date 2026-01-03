@@ -21,6 +21,7 @@ export const FIELD_ALIASES = {
   ],
   setupCategory: [
     "setup_category",
+    "setup",
     "setupCategory",
     "设置类别/setup_category",
     "设置类别",
@@ -35,6 +36,7 @@ export const FIELD_ALIASES = {
   ],
   signalBarQuality: [
     "signal_bar_quality",
+    "signal",
     "signalBarQuality",
     "信号K/signal_bar_quality",
     "信号K",

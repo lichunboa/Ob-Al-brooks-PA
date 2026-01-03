@@ -722,7 +722,7 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [managerPlan]);
 
   const openTrade = React.useMemo(() => {
-    return trades.find((t) => {
+    const isOpen = (t: (typeof trades)[number]) => {
       const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
       if (!pnlMissing) return false;
       return (
@@ -730,8 +730,21 @@ const ConsoleComponent: React.FC<Props> = ({
         t.outcome === undefined ||
         t.outcome === "unknown"
       );
-    });
-  }, [trades]);
+    };
+
+    const sortByMtimeDesc = (a: (typeof trades)[number], b: (typeof trades)[number]) =>
+      (b.mtime ?? 0) - (a.mtime ?? 0);
+
+    const todayOpen = trades
+      .filter((t) => t.dateIso === todayIso)
+      .filter(isOpen)
+      .sort(sortByMtimeDesc);
+
+    if (todayOpen.length > 0) return todayOpen[0];
+
+    const anyOpen = trades.filter(isOpen).sort(sortByMtimeDesc);
+    return anyOpen[0];
+  }, [trades, todayIso]);
 
   const todayStrategyPicks = React.useMemo(() => {
     return computeTodayStrategyPicks({
@@ -1190,6 +1203,103 @@ const ConsoleComponent: React.FC<Props> = ({
 
               {openTradeStrategy ? (
                 <div>
+                  <div
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      marginBottom: "10px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                      实时匹配输入（来自交易属性）
+                    </div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                      形态：
+                      {(openTrade.patternsObserved?.length ?? 0) > 0
+                        ? openTrade.patternsObserved!.join(" / ")
+                        : "—"}
+                    </div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                      设置类别：{openTrade.setupCategory ?? "—"}
+                    </div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                      信号K：
+                      {(openTrade.signalBarQuality?.length ?? 0) > 0
+                        ? openTrade.signalBarQuality!.join(" / ")
+                        : "—"}
+                    </div>
+
+                    {(() => {
+                      const tradeSignals = (openTrade.signalBarQuality ?? [])
+                        .map((s) => String(s).trim())
+                        .filter(Boolean);
+                      const strategySignals = (openTradeStrategy.signalBarQuality ?? [])
+                        .map((s) => String(s).trim())
+                        .filter(Boolean);
+
+                      if (strategySignals.length === 0) {
+                        return (
+                          <div
+                            style={{
+                              marginTop: "8px",
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            信号K校验：策略卡未配置（跳过）
+                          </div>
+                        );
+                      }
+
+                      if (tradeSignals.length === 0) {
+                        return (
+                          <div
+                            style={{
+                              marginTop: "8px",
+                              color: "var(--text-warning)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            信号K校验：请在交易中填写
+                            <span style={{ fontFamily: "var(--font-monospace)" }}>
+                              {" "}
+                              signal / 信号K
+                            </span>
+                            （用于旧版同口径的“信号K验证”）
+                          </div>
+                        );
+                      }
+
+                      const matched = tradeSignals.some((s) =>
+                        strategySignals.some((req) => req === s || req.includes(s) || s.includes(req))
+                      );
+
+                      return matched ? (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            color: "var(--text-success)",
+                            fontSize: "0.9em",
+                          }}
+                        >
+                          信号K校验：匹配（策略偏好：{strategySignals.join(" / ")})
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            color: "var(--text-warning)",
+                            fontSize: "0.9em",
+                          }}
+                        >
+                          信号K校验：不匹配（策略偏好：{strategySignals.join(" / ")})
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   <div style={{ marginBottom: "8px" }}>
                     策略：{" "}
                     <button
