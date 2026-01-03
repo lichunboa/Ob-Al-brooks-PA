@@ -18,6 +18,7 @@ import { StrategyStats } from "./components";
 import { Gallery } from "./components/Gallery";
 import type { GalleryItem } from "./components/types";
 import { useDashboardData, getRColorByAccountType } from "./hooks/useDashboardData";
+import { GlobalStyles } from "./GlobalStyles";
 import { TrendRow } from "./components/TrendRow";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";

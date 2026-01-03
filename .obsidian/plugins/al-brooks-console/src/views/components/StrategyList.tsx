@@ -33,48 +33,15 @@ export const StrategyList: React.FC<Props> = ({ strategies, onOpenFile }) => {
         return out;
     }, [strategies, cycleFilter, searchTerm]);
 
-    // Styles (Temporary inline styles until CSS is properly integrated)
-    const cardStyle: React.CSSProperties = {
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "8px",
-        padding: "12px",
-        background: "var(--background-secondary)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        cursor: "pointer",
-        transition: "transform 0.1s ease, box-shadow 0.1s ease",
-    };
-
-    const tagStyle: React.CSSProperties = {
-        fontSize: "0.75em",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        background: "var(--background-modifier-form-field)",
-        color: "var(--text-muted)",
-    };
-
     return (
-        <div style={{ marginTop: "24px" }}>
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                }}
-            >
-                <h3 style={{ margin: 0 }}>策略仓库 (Strategy Repository)</h3>
+        <div className="pa-dashboard" >
+            <div className="pa-card-header" style={{ marginBottom: "20px", borderBottom: "none" }}>
+                <h3 className="pa-card-title">策略仓库 (Strategy Repository)</h3>
                 <div style={{ display: "flex", gap: "8px" }}>
                     <select
                         value={cycleFilter}
                         onChange={(e) => setCycleFilter(e.target.value)}
-                        style={{
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            border: "1px solid var(--background-modifier-border)",
-                            background: "var(--background-primary)",
-                        }}
+                        className="pa-input"
                     >
                         <option value="All">所有周期</option>
                         {cycles.map((c) => (
@@ -88,59 +55,34 @@ export const StrategyList: React.FC<Props> = ({ strategies, onOpenFile }) => {
                         placeholder="搜索策略..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            border: "1px solid var(--background-modifier-border)",
-                            background: "var(--background-primary)",
-                        }}
+                        className="pa-input"
                     />
                 </div>
             </div>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                    gap: "12px",
-                }}
-            >
+            <div className="pa-strategy-grid">
                 {filtered.map((s) => (
                     <div
                         key={s.path}
-                        style={cardStyle}
+                        className="pa-card pa-strategy-item"
                         onClick={() => onOpenFile(s.path)}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                            e.currentTarget.style.boxShadow =
-                                "0 4px 12px rgba(0,0,0,0.1)";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "none";
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
                     >
-                        <div
-                            style={{
-                                fontWeight: 600,
-                                color: "var(--text-accent)",
-                                fontSize: "1.05em",
-                            }}
-                        >
+                        <div className="pa-strategy-title">
                             {s.canonicalName || s.name}
                         </div>
 
                         {(s.marketCycles.length > 0 || s.setupCategories.length > 0) && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", marginBottom: "4px" }}>
                                 {s.marketCycles.map((c) => (
-                                    <span key={c} style={tagStyle}>
+                                    <span key={c} className="pa-tag">
                                         {c}
                                     </span>
                                 ))}
                                 {s.setupCategories.map((c) => (
                                     <span
                                         key={c}
-                                        style={{ ...tagStyle, color: "var(--text-normal)" }}
+                                        className="pa-tag"
+                                        style={{ color: "var(--text-normal)" }}
                                     >
                                         {c}
                                     </span>
@@ -149,18 +91,18 @@ export const StrategyList: React.FC<Props> = ({ strategies, onOpenFile }) => {
                         )}
 
                         {s.patternsObserved.length > 0 && (
-                            <div style={{ fontSize: "0.85em", color: "var(--text-faint)" }}>
+                            <div className="pa-text-faint" style={{ fontSize: "0.85em" }}>
                                 {s.patternsObserved.length} 个关联形态
                             </div>
                         )}
                     </div>
                 ))}
                 {filtered.length === 0 && (
-                    <div style={{ color: "var(--text-muted)", gridColumn: "1/-1" }}>
+                    <div className="pa-text-muted" style={{ gridColumn: "1/-1" }}>
                         未找到匹配的策略。
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

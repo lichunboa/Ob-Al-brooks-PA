@@ -7,36 +7,23 @@ interface ContextWidgetProps {
 
 export const ContextWidget: React.FC<ContextWidgetProps> = ({ data }) => {
     return (
-        <div style={{
-            background: "var(--background-secondary)",
-            borderRadius: "8px",
-            padding: "12px",
-            border: "1px solid var(--background-modifier-border)"
-        }}>
-            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9em", color: "var(--text-muted)" }}>
+        <div className="pa-card">
+            <h4 className="pa-card-subtitle" style={{ margin: "0 0 10px 0" }}>
                 环境周期分析 (Top 8)
             </h4>
-            <div style={{ display: "grid", gap: "8px" }}>
+            <div style={{ display: "grid", gap: "0" }}>
                 {data.map((row) => (
-                    <div key={row.context} style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "0.85em",
-                        alignItems: "center"
-                    }}>
+                    <div key={row.context} className="pa-analytics-row">
                         <span style={{ fontWeight: 600 }}>{row.context}</span>
-                        <span style={{ color: "var(--text-faint)" }}>
+                        <span className="pa-text-faint">
                             {row.count}笔, WR: {row.winRate.toFixed(0)}%,
-                            <span style={{
-                                marginLeft: "6px",
-                                color: row.netR > 0 ? "var(--text-success)" : "var(--text-error)"
-                            }}>
+                            <span className={`pa-stat-value ${row.netR > 0 ? "pos" : "neg"}`} style={{ marginLeft: "6px" }}>
                                 {row.netR > 0 ? "+" : ""}{row.netR.toFixed(1)}R
                             </span>
                         </span>
                     </div>
                 ))}
-                {data.length === 0 && <div style={{ color: "var(--text-faint)", fontSize: "0.8em" }}>暂无数据</div>}
+                {data.length === 0 && <div className="pa-text-muted" style={{ fontSize: "0.8em" }}>暂无数据</div>}
             </div>
         </div>
     );
@@ -48,36 +35,23 @@ interface ErrorWidgetProps {
 
 export const ErrorWidget: React.FC<ErrorWidgetProps> = ({ data }) => {
     return (
-        <div style={{
-            background: "var(--background-secondary)",
-            borderRadius: "8px",
-            padding: "12px",
-            border: "1px solid var(--background-modifier-border)"
-        }}>
-            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9em", color: "var(--text-muted)" }}>
+        <div className="pa-card">
+            <h4 className="pa-card-subtitle" style={{ margin: "0 0 10px 0" }}>
                 错误分布 (Top 8)
             </h4>
-            <div style={{ display: "grid", gap: "8px" }}>
+            <div style={{ display: "grid", gap: "0" }}>
                 {data.map((row) => (
-                    <div key={row.errorTag} style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "0.85em",
-                        alignItems: "center"
-                    }}>
+                    <div key={row.errorTag} className="pa-analytics-row">
                         <span style={{ color: "var(--text-error)" }}>{row.errorTag}</span>
-                        <span style={{ color: "var(--text-faint)" }}>
+                        <span className="pa-text-faint">
                             {row.count}笔,
-                            <span style={{
-                                marginLeft: "6px",
-                                color: "var(--text-error)"
-                            }}>
+                            <span className="pa-stat-value neg" style={{ marginLeft: "6px" }}>
                                 {row.netR.toFixed(1)}R
                             </span>
                         </span>
                     </div>
                 ))}
-                {data.length === 0 && <div style={{ color: "var(--text-faint)", fontSize: "0.8em" }}>暂无错误记录</div>}
+                {data.length === 0 && <div className="pa-text-muted" style={{ fontSize: "0.8em" }}>暂无错误记录</div>}
             </div>
         </div>
     );

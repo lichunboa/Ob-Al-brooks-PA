@@ -56,16 +56,8 @@ export const Strategies: React.FC<Props> = ({ picks, onOpenFile }) => {
     if (picks.length === 0) return null;
 
     return (
-        <div
-            style={{
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "10px",
-                padding: "12px",
-                marginBottom: "16px",
-                background: "var(--background-primary)",
-            }}
-        >
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日策略推荐</div>
+        <div className="pa-card">
+            <h4 className="pa-card-title" style={{ marginBottom: "8px", fontSize: "1em" }}>今日策略推荐</h4>
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
                 {picks.map((s) => (
                     <li key={s.path} style={{ marginBottom: "6px" }}>
