@@ -380,9 +380,9 @@ export function useDashboardData(
         contextAnalysis,
         errorAnalysis,
         inspectorIssues,
-        fixPlan: fixPlan, // Assuming 'hookFixPlan' was a typo and meant 'fixPlan' from existing code
+        fixPlan,
         openTrade,
-        todayStrategyPicks: strategyPicks,
-        openTradeStrategy: strategyPicks[0] ? strategyIndex.lookup(strategyPicks[0].canonicalName) : undefined,
+        todayStrategyPicks,
+        openTradeStrategy,
     };
 }
