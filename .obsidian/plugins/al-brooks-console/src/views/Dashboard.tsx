@@ -247,10 +247,6 @@ const ConsoleComponent: React.FC<Props> = ({
       console.warn("[al-brooks-console] openTodayNote failed", e);
     }
   }, [todayContext]);
-  const canCreateTrade =
-    can("quickadd:new-live-trade") ||
-    can("quickadd:new-demo-trade") ||
-    can("quickadd:new-backtest");
   const [managerArmed, setManagerArmed] = React.useState(false);
   const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
   const [managerBackups, setManagerBackups] = React.useState<
@@ -542,6 +538,11 @@ const ConsoleComponent: React.FC<Props> = ({
       Boolean(integrations?.isCapabilityAvailable(capabilityId)),
     [integrations]
   );
+
+  const canCreateTrade =
+    can("quickadd:new-live-trade") ||
+    can("quickadd:new-demo-trade") ||
+    can("quickadd:new-backtest");
 
   const reloadCourse = React.useCallback(async () => {
     if (!loadCourse) return;
