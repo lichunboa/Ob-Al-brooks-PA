@@ -132,7 +132,9 @@ export function normalizeString(value: unknown): string | undefined {
     return String(value);
   }
   if (Array.isArray(value)) {
-    const first = value.find((v) => typeof v === "string" || typeof v === "number");
+    const first = value.find(
+      (v) => typeof v === "string" || typeof v === "number"
+    );
     return normalizeString(first);
   }
   return undefined;

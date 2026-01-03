@@ -147,7 +147,9 @@ const ERROR_FIELD_ALIASES = [
   "errors",
 ] as const;
 
-export function computeContextAnalysis(trades: TradeRecord[]): ContextAnalysisRow[] {
+export function computeContextAnalysis(
+  trades: TradeRecord[]
+): ContextAnalysisRow[] {
   const by = new Map<string, { netR: number; count: number; wins: number }>();
 
   for (const t of trades) {
@@ -186,7 +188,9 @@ export function computeContextAnalysis(trades: TradeRecord[]): ContextAnalysisRo
   return rows.sort((a, b) => b.count - a.count);
 }
 
-export function computeErrorAnalysis(trades: TradeRecord[]): ErrorAnalysisRow[] {
+export function computeErrorAnalysis(
+  trades: TradeRecord[]
+): ErrorAnalysisRow[] {
   const by = new Map<string, { netR: number; count: number }>();
 
   for (const t of trades) {
@@ -196,9 +200,9 @@ export function computeErrorAnalysis(trades: TradeRecord[]): ErrorAnalysisRow[] 
     for (const key of ERROR_FIELD_ALIASES) {
       const v = (fm as any)[key];
       if (Array.isArray(v)) {
-        tags = v.filter(x => typeof x === 'string').map(x => x.trim());
+        tags = v.filter((x) => typeof x === "string").map((x) => x.trim());
         if (tags.length > 0) break;
-      } else if (typeof v === 'string' && v.trim()) {
+      } else if (typeof v === "string" && v.trim()) {
         tags = [v.trim()];
         break;
       }

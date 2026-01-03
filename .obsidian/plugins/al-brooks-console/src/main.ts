@@ -133,7 +133,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
   private async exportLegacySnapshot(): Promise<void> {
     try {
       const snapshot = this.buildSnapshot();
-      // Wraps in a structure vaguely resembling old paData if needed, 
+      // Wraps in a structure vaguely resembling old paData if needed,
       // but usually tools just need 'trades'. The current snapshot has 'trades'.
       // We will save it to the fixed legacy path.
 

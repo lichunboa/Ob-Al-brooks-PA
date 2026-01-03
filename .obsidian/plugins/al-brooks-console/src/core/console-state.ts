@@ -29,7 +29,9 @@ export function computeTradeBasedStrategyPicks(args: {
   const t = args.trade;
   if (!t) return [];
 
-  const patterns = (t.patternsObserved ?? []).map((p) => String(p).trim()).filter(Boolean);
+  const patterns = (t.patternsObserved ?? [])
+    .map((p) => String(p).trim())
+    .filter(Boolean);
   const setupCategory = t.setupCategory?.trim();
   const marketCycle = (args.todayMarketCycle ?? t.marketCycle)?.trim();
 

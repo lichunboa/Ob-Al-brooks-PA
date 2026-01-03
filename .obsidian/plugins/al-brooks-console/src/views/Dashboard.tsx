@@ -219,8 +219,8 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
 }) => {
   const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(() =>
-    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  const [strategies, setStrategies] = React.useState<any[]>(
+    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
   );
   const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
     index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -312,10 +312,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const strategyStats = React.useMemo(() => {
     const total = strategies.length;
-    const activeCount = strategies.filter((s) => s.status === "active")
-      .length;
-    const learningCount = strategies.filter((s) => s.status === "learning")
-      .length;
+    const activeCount = strategies.filter((s) => s.status === "active").length;
+    const learningCount = strategies.filter(
+      (s) => s.status === "learning"
+    ).length;
     const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
     return { total, activeCount, learningCount, totalUses };
   }, [strategies]);
@@ -424,14 +424,20 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
+  const onBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
 
-  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
+  const onBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
 
   const onTextBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -448,14 +454,20 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
+  const onTextBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
 
-  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
+  const onTextBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
 
   const onMiniCellMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -1070,7 +1082,14 @@ const ConsoleComponent: React.FC<Props> = ({
       >
         <div style={{ fontWeight: 700, marginBottom: "8px" }}>
           🗓️ 今日实时监控 (Today's Dashboard)
-          <span style={{ marginLeft: "8px", color: "var(--text-muted)", fontWeight: 500, fontSize: "0.9em" }}>
+          <span
+            style={{
+              marginLeft: "8px",
+              color: "var(--text-muted)",
+              fontWeight: 500,
+              fontSize: "0.9em",
+            }}
+          >
             {todayIso}
           </span>
         </div>
@@ -1141,9 +1160,14 @@ const ConsoleComponent: React.FC<Props> = ({
               type="button"
               disabled={todayStrategyPicks.length === 0}
               onClick={() =>
-                todayStrategyPicks.length > 0 && openFile(todayStrategyPicks[0].path)
+                todayStrategyPicks.length > 0 &&
+                openFile(todayStrategyPicks[0].path)
               }
-              style={todayStrategyPicks.length > 0 ? buttonStyle : disabledButtonStyle}
+              style={
+                todayStrategyPicks.length > 0
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
@@ -1320,7 +1344,9 @@ const ConsoleComponent: React.FC<Props> = ({
               },
               {
                 t: "净利润",
-                v: `${todaySummary.All.netProfit >= 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`,
+                v: `${
+                  todaySummary.All.netProfit >= 0 ? "+" : ""
+                }${todaySummary.All.netProfit.toFixed(1)}R`,
                 c:
                   todaySummary.All.netProfit >= 0
                     ? "var(--text-success)"
@@ -1342,7 +1368,14 @@ const ConsoleComponent: React.FC<Props> = ({
               <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
                 {x.t}
               </div>
-              <div style={{ marginTop: "6px", fontWeight: 800, fontSize: "1.2rem", color: x.c }}>
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontWeight: 800,
+                  fontSize: "1.2rem",
+                  color: x.c,
+                }}
+              >
                 {x.v}
               </div>
             </div>
@@ -1490,9 +1523,12 @@ const ConsoleComponent: React.FC<Props> = ({
             type="button"
             disabled={!canCreateTrade}
             onClick={() => {
-              if (can("quickadd:new-live-trade")) return action("quickadd:new-live-trade");
-              if (can("quickadd:new-demo-trade")) return action("quickadd:new-demo-trade");
-              if (can("quickadd:new-backtest")) return action("quickadd:new-backtest");
+              if (can("quickadd:new-live-trade"))
+                return action("quickadd:new-live-trade");
+              if (can("quickadd:new-demo-trade"))
+                return action("quickadd:new-demo-trade");
+              if (can("quickadd:new-backtest"))
+                return action("quickadd:new-backtest");
             }}
             onMouseEnter={(e) => {
               if (e.currentTarget.disabled) return;
@@ -2222,9 +2258,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
 
           <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              权益曲线
-            </div>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>权益曲线</div>
             {equitySeries.length > 1 ? (
               (() => {
                 const w = 520;
@@ -2462,12 +2496,12 @@ const ConsoleComponent: React.FC<Props> = ({
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
-              title={
-                !enumPresets
-                  ? "枚举预设不可用"
-                  : "切换修复方案预览"
+              style={
+                enumPresets
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
               }
+              title={!enumPresets ? "枚举预设不可用" : "切换修复方案预览"}
             >
               {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
             </button>
@@ -2667,15 +2701,17 @@ const ConsoleComponent: React.FC<Props> = ({
                 setManagerArmed(false);
               }}
               title={
-                !enumPresets
-                  ? "枚举预设不可用"
-                  : "使用检查器生成的修复方案"
+                !enumPresets ? "枚举预设不可用" : "使用检查器生成的修复方案"
               }
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+              style={
+                enumPresets
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
+              }
             >
               使用检查器修复方案
             </button>
@@ -2717,16 +2753,16 @@ const ConsoleComponent: React.FC<Props> = ({
                   setManagerBusy(false);
                 }
               }}
-              title={
-                !loadStrategyNotes
-                  ? "策略扫描不可用"
-                  : "生成策略维护计划"
-              }
+              title={!loadStrategyNotes ? "策略扫描不可用" : "生成策略维护计划"}
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={loadStrategyNotes ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+              style={
+                loadStrategyNotes
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
+              }
             >
               生成策略计划
             </button>

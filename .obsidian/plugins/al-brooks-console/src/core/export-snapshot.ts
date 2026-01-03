@@ -86,16 +86,24 @@ function extractCompatFields(trade: TradeRecord): ExportTradeCompat {
   // rawFrontmatter 仅用于回退/历史数据。
   const setup =
     asNonEmptyString(trade.setupCategory) ??
-    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup));
+    asNonEmptyString(
+      getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup)
+    );
   const error =
     asNonEmptyString(trade.executionQuality) ??
-    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.error));
+    asNonEmptyString(
+      getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.error)
+    );
   const dir =
     asNonEmptyString(trade.direction) ??
-    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.dir));
+    asNonEmptyString(
+      getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.dir)
+    );
   const tf =
     asNonEmptyString(trade.timeframe) ??
-    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.tf));
+    asNonEmptyString(
+      getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.tf)
+    );
   const order = asNonEmptyString(
     getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.order)
   );

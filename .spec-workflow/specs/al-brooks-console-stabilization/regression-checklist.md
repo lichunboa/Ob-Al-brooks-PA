@@ -21,6 +21,7 @@
 **Pass 条件**：模板文件不在 trades 列表、也不影响统计。
 
 补充（防误入库）：
+
 - 打开任意包含“`#PA/Trade`”示例文字的文档（例如迁移报告）。
 - 确认它不会因为正文里出现 `#PA/Trade` 字样而被 TradeIndex 当成交易。
 
@@ -58,6 +59,7 @@
 **Pass 条件**：快照字段齐全，且能与离线脚本快照来源区分。
 
 补充（Today 联动最小回归）：
+
 - 若当天已填写 market cycle（TodayContext 可读到）：确认 `today.marketCycle` 存在。
 - 确认 `today.strategyPicks` 为非空数组，且元素包含 `strategyName`（用于验证“今日市场周期 → 策略推荐”链路稳定）。
 

@@ -1,7 +1,7 @@
 # 📋 Al Brooks Console 插件深度分析（问题画像）
 
 > 目的：先把插件实现“长什么样、接口是什么、最可能的根因是什么”说清楚。
-> 
+>
 > - 仅基于当前仓库内插件源码与导出快照/日志做分析
 > - 不在本文直接改代码；修复方案与对比报告另文输出
 > - 日期：2026-01-03
@@ -85,8 +85,8 @@
 
 - 候选文件：全库 Markdown（除非你传了 folderAllowlist）
 - 认定为 trade 的条件（满足其一）：
-  1) tag 包含 `PA/Trade`
-  2) （可选）frontmatter `fileClass/FileClass` 命中配置列表
+  1. tag 包含 `PA/Trade`
+  2. （可选）frontmatter `fileClass/FileClass` 命中配置列表
 
 当前插件在 `main.ts` 中创建 TradeIndex 时没有传 options，因此：
 
@@ -191,13 +191,13 @@ TradeIndex 的 dateIso：
 
 我建议下一步先做两件事（不用你先给太多信息）：
 
-1) 我会生成一份对比报告：
+1. 我会生成一份对比报告：
 
 - legacy（DataviewJS / pa-core）输出字段与规则
 - plugin（TradeIndex + Dashboard）输出字段与规则
 - 逐项列出“不一致”的点，并标注影响面（Today/Analytics/Manager/Export）
 
-2) 你告诉我“插件的具体问题表现”用一句话列表（最多 5 条），例如：
+2. 你告诉我“插件的具体问题表现”用一句话列表（最多 5 条），例如：
 
 - 今日看板没有交易/日期不对
 - 交易统计数量多了 1
