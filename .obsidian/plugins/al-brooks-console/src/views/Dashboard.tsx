@@ -1270,11 +1270,199 @@ const ConsoleComponent: React.FC<Props> = ({
                     </div>
                   )}
                 </div>
+
+                {(() => {
+                  const curSignals = (openTrade.signalBarQuality ?? [])
+                    .map((s) => String(s).trim())
+                    .filter(Boolean);
+                  const reqSignals = (openTradeStrategy.signalBarQuality ?? [])
+                    .map((s) => String(s).trim())
+                    .filter(Boolean);
+
+                  const hasSignalInfo = curSignals.length > 0 || reqSignals.length > 0;
+                  if (!hasSignalInfo) return null;
+
+                  const norm = (s: string) => s.toLowerCase();
+                  const signalMatch =
+                    curSignals.length > 0 && reqSignals.length > 0
+                      ? reqSignals.some((r) =>
+                          curSignals.some((c) => {
+                            const rn = norm(r);
+                            const cn = norm(c);
+                            return rn.includes(cn) || cn.includes(rn);
+                          })
+                        )
+                      : null;
+
+                  return (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "10px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                        🔍 信号K验证
+                      </div>
+
+                      {curSignals.length > 0 ? (
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          当前：<span style={{ color: "var(--text-accent)" }}>{curSignals.join(" / ")}</span>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          当前：—
+                        </div>
+                      )}
+
+                      {reqSignals.length > 0 ? (
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          建议：{reqSignals.join(" / ")}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                            marginBottom: "6px",
+                          }}
+                        >
+                          建议：未在策略卡中定义
+                        </div>
+                      )}
+
+                      {signalMatch === null ? null : (
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                          匹配：
+                          <span
+                            style={{
+                              marginLeft: "6px",
+                              color: signalMatch
+                                ? "var(--text-success)"
+                                : "var(--text-warning)",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {signalMatch ? "✅" : "⚠️"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                未找到匹配策略。
-              </div>
+              (() => {
+                const marketCycle = (openTrade.marketCycle ?? todayMarketCycle)
+                  ?.toString()
+                  .trim();
+                const setupCategory = openTrade.setupCategory
+                  ?.toString()
+                  .trim();
+                const hasHints = Boolean(marketCycle || setupCategory);
+
+                if (!hasHints) {
+                  return (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                      未找到匹配策略。
+                    </div>
+                  );
+                }
+
+                const norm = (s: string) => s.toLowerCase();
+                const wantCycleKey = marketCycle ? norm(marketCycle) : undefined;
+                const wantSetupKey = setupCategory
+                  ? norm(setupCategory)
+                  : undefined;
+
+                const scored = strategyIndex
+                  .list()
+                  .map((card) => {
+                    let score = 0;
+                    if (
+                      wantCycleKey &&
+                      card.marketCycles.some((c) => {
+                        const ck = norm(String(c));
+                        return ck.includes(wantCycleKey) || wantCycleKey.includes(ck);
+                      })
+                    ) {
+                      score += 2;
+                    }
+                    if (
+                      wantSetupKey &&
+                      card.setupCategories.some((c) => {
+                        const ck = norm(String(c));
+                        return ck.includes(wantSetupKey) || wantSetupKey.includes(ck);
+                      })
+                    ) {
+                      score += 1;
+                    }
+                    return { card, score };
+                  })
+                  .filter((x) => x.score > 0)
+                  .sort((a, b) => b.score - a.score)
+                  .slice(0, 3)
+                  .map((x) => x.card);
+
+                if (scored.length === 0) {
+                  return (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                      未找到匹配策略。
+                    </div>
+                  );
+                }
+
+                return (
+                  <div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      💡 基于当前市场背景（{marketCycle ?? "未知"}）的策略建议：
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {scored.map((s) => (
+                        <button
+                          key={`today-fallback-${s.path}`}
+                          type="button"
+                          onClick={() => openFile(s.path)}
+                          style={buttonStyle}
+                          onMouseEnter={onBtnMouseEnter}
+                          onMouseLeave={onBtnMouseLeave}
+                          onFocus={onBtnFocus}
+                          onBlur={onBtnBlur}
+                        >
+                          {s.canonicalName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
             )}
           </div>
         )}
