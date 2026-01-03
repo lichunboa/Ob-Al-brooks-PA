@@ -3512,7 +3512,9 @@ export class ConsoleView extends ItemView {
           loadMemory={loadMemory}
           integrations={this.integrations}
           openFile={openFile}
-          runCommand={(commandId) => this.app.commands.executeCommandById(commandId)}
+          runCommand={(commandId) =>
+            (this.app as any).commands?.executeCommandById?.(commandId)
+          }
           version={this.version}
         />
       </ConsoleErrorBoundary>
