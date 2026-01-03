@@ -662,8 +662,10 @@ const ConsoleComponent: React.FC<Props> = ({
     const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
     for (const t of trades) {
+      // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      const rawCover = (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+      const rawCover =
+        (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
       const ref = parseCoverRef(rawCover);
       if (!ref) continue;
 

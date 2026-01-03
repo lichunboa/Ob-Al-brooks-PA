@@ -79,18 +79,21 @@ function extractCompatFields(trade: TradeRecord): ExportTradeCompat {
   const r = parseNumber(
     getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.r)
   );
-  const setup = asNonEmptyString(
-    getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup)
-  );
-  const error = asNonEmptyString(
-    getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.error)
-  );
-  const dir = asNonEmptyString(
-    getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.dir)
-  );
-  const tf = asNonEmptyString(
-    getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.tf)
-  );
+
+  // Compat 字段优先使用索引层规范字段（SSOT），保持与 legacy 导出一致。
+  // rawFrontmatter 仅用于回退/历史数据。
+  const setup =
+    asNonEmptyString(trade.setupCategory) ??
+    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup));
+  const error =
+    asNonEmptyString(trade.executionQuality) ??
+    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.error));
+  const dir =
+    asNonEmptyString(trade.direction) ??
+    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.dir));
+  const tf =
+    asNonEmptyString(trade.timeframe) ??
+    asNonEmptyString(getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.tf));
   const order = asNonEmptyString(
     getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.order)
   );

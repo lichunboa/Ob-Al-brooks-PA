@@ -85,11 +85,13 @@ export function computeStrategyAttribution(
   const by = new Map<string, { netR: number; count: number }>();
 
   for (const t of trades) {
-    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-    let name: string | undefined;
-    for (const key of STRATEGY_FIELD_ALIASES) {
-      name = toString((fm as any)[key]);
-      if (name) break;
+    let name: string | undefined = toString(t.strategyName);
+    if (!name) {
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      for (const key of STRATEGY_FIELD_ALIASES) {
+        name = toString((fm as any)[key]);
+        if (name) break;
+      }
     }
     if (!name) continue;
 
@@ -149,14 +151,16 @@ export function computeContextAnalysis(trades: TradeRecord[]): ContextAnalysisRo
   const by = new Map<string, { netR: number; count: number; wins: number }>();
 
   for (const t of trades) {
-    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-    let ctx: string | undefined;
-    for (const key of CONTEXT_FIELD_ALIASES) {
-      // Support both direct string or reading from standard field
-      const v = (fm as any)[key];
-      if (typeof v === 'string' && v.trim()) {
-        ctx = v.trim();
-        break;
+    // 优先使用索引层规范字段（SSOT），rawFrontmatter 仅作回退。
+    let ctx: string | undefined = toString(t.marketCycle);
+    if (!ctx) {
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      for (const key of CONTEXT_FIELD_ALIASES) {
+        const v = (fm as any)[key];
+        if (typeof v === "string" && v.trim()) {
+          ctx = v.trim();
+          break;
+        }
       }
     }
     if (!ctx) continue;
