@@ -26,10 +26,28 @@ function toString(v: unknown): string | undefined {
 }
 
 function pickTodayJournalFile(app: App, todayIso: string): TFile | undefined {
+  // todayIso is YYYY-MM-DD
+  const yyyy = todayIso.slice(0, 4);
+  const yy = todayIso.slice(2, 4);
+  const mm = todayIso.slice(5, 7);
+  const dd = todayIso.slice(8, 10);
+
+  const candidatesSet = new Set<string>();
+  candidatesSet.add(`${yyyy}-${mm}-${dd}`); // 2026-01-03
+  candidatesSet.add(`${yyyy}${mm}${dd}`);   // 20260103
+  candidatesSet.add(`${yy}${mm}${dd}`);     // 260103
+
   const files = app.vault.getMarkdownFiles();
-  const candidates = files.filter(
-    (f) => f.basename === todayIso || f.basename.startsWith(todayIso)
-  );
+  const candidates = files.filter((f) => {
+    // Check if basename starts with any of the candidate date strings
+    for (const pattern of candidatesSet) {
+      if (f.basename === pattern || f.basename.startsWith(pattern + "_") || f.basename.startsWith(pattern + " ")) {
+        return true;
+      }
+    }
+    return false;
+  });
+
   if (candidates.length === 0) return undefined;
 
   // Prefer Daily folder if present.
