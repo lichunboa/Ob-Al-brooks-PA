@@ -51,71 +51,7 @@ const galleryItems = React.useMemo((): GalleryItem[] => {
   return out;
 }, [trades, resolveLink, getResourceUrl]);
 
-const inspectorIssues = React.useMemo(() => {
-  return buildInspectorIssues(trades, enumPresets);
-}, [trades, enumPresets]);
-
-const fixPlanText = React.useMemo(() => {
-  if (!showFixPlan || !enumPresets) return undefined;
-  const plan = buildFixPlan(trades, enumPresets);
-  return JSON.stringify(plan, null, 2);
-}, [showFixPlan, trades, enumPresets]);
-
-const managerPlanText = React.useMemo(() => {
-  if (!managerPlan) return undefined;
-  return JSON.stringify(managerPlan, null, 2);
-}, [managerPlan]);
-
-const openTrade = React.useMemo(() => {
-  return trades.find((t) => {
-    const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-    if (!pnlMissing) return false;
-    return (
-      t.outcome === "open" ||
-      t.outcome === undefined ||
-      t.outcome === "unknown"
-    );
-  });
-}, [trades]);
-
-const todayStrategyPicks = React.useMemo(() => {
-  if (!todayMarketCycle) return [];
-  return matchStrategies(strategyIndex, {
-    marketCycle: todayMarketCycle,
-    limit: 6,
-  });
-}, [strategyIndex, todayMarketCycle]);
-
-const openTradeStrategy = React.useMemo(() => {
-  if (!openTrade) return undefined;
-  const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
-  const patternsRaw =
-    fm["patterns"] ??
-    fm["形态/patterns"] ??
-    fm["观察到的形态/patterns_observed"];
-  const patterns = Array.isArray(patternsRaw)
-    ? patternsRaw
-      .filter((x: any) => typeof x === "string")
-      .map((s: string) => s.trim())
-      .filter(Boolean)
-    : typeof patternsRaw === "string"
-      ? patternsRaw
-        .split(/[,，;；/|]/g)
-        .map((s: string) => s.trim())
-        .filter(Boolean)
-      : [];
-  const setupCategory = (fm["setup_category"] ??
-    fm["设置类别/setup_category"]) as any;
-  const setupCategoryStr =
-    typeof setupCategory === "string" ? setupCategory.trim() : undefined;
-  const picks = matchStrategies(strategyIndex, {
-    marketCycle: todayMarketCycle,
-    setupCategory: setupCategoryStr,
-    patterns,
-    limit: 3,
-  });
-  return picks[0];
-}, [openTrade, strategyIndex, todayMarketCycle]);
+// Computations now handled by useDashboardData hook
 
 const strategyPicks = React.useMemo(() => {
   if (!latestTrade) return [];

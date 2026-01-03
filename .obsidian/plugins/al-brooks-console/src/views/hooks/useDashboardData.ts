@@ -13,6 +13,11 @@ import {
 import { computeTradeStatsByAccountType } from "../../core/stats";
 import { buildReviewHints } from "../../core/review-hints";
 import { matchStrategies } from "../../core/strategy-matcher";
+import {
+    buildFixPlan,
+    buildInspectorIssues,
+} from "../../core/inspector";
+import type { EnumPresets } from "../../core/enum-presets";
 
 function toLocalDateIso(d: Date): string {
     const y = d.getFullYear();
@@ -79,7 +84,8 @@ export function useDashboardData(
         rebuild?: () => Promise<void>;
     },
     strategyIndex: StrategyIndex,
-    todayContext?: TodayContext
+    todayContext?: TodayContext,
+    enumPresets?: EnumPresets
 ) {
     const [trades, setTrades] = React.useState(index.getAll());
     const [strategies, setStrategies] = React.useState<any[]>(() =>
@@ -112,7 +118,7 @@ export function useDashboardData(
             }
         };
         update();
-        if (strategyIndex.onChanged) return strategyIndex.onChanged(update);
+        // strategyIndex interface does not support onChanged
         return () => { };
     }, [strategyIndex]);
 
@@ -243,38 +249,121 @@ export function useDashboardData(
         return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
     }, [analyticsTrades, strategyIndex]);
 
-    const strategyPicks = React.useMemo(() => {
-        return matchStrategies({
-            todayContext,
-            recentTrades: trades.slice(0, 5),
-            strategyIndex,
-        });
-    }, [todayContext, trades, strategyIndex]);
+    const getTradeStrategyParams = React.useCallback(
+        (
+            trade: TradeRecord | undefined
+        ): { patterns: string[]; setupCategory: string | undefined } | undefined => {
+            if (!trade) return undefined;
+            const fm = (trade.rawFrontmatter ?? {}) as Record<string, any>;
+            const patternsRaw =
+                fm["patterns"] ??
+                fm["形态/patterns"] ??
+                fm["观察到的形态/patterns_observed"];
+                ? patternsRaw
+            .filter((x: any) => typeof x === "string")
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+        : typeof patternsRaw === "string"
+            ? patternsRaw
+                .split(/[,，;；/|]/g)
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : [];
+    const setupCategory = (fm["setup_category"] ??
+        fm["设置类别/setup_category"]) as any;
+    const setupCategoryStr =
+        typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+    return { patterns, setupCategory: setupCategoryStr };
+},
+[]
+    );
 
-    return {
-        trades,
-        strategies,
-        status,
-        todayMarketCycle,
-        analyticsScope,
-        setAnalyticsScope,
-        onRebuild,
-        summary,
-        all,
-        strategyStats,
-        latestTrade,
-        todayIso,
-        todayTrades,
-        todaySummary,
-        todayLatestTrade,
-        rLast10,
-        rLast30,
-        r10MaxAbs,
-        r30MaxAbs,
-        reviewHints,
-        calendarCells,
-        equitySeries,
-        strategyAttribution,
-        strategyPicks,
-    };
+const strategyPicks = React.useMemo(() => {
+    return []; // Disabling auto-picks based on recent trades for now as logic was ambiguous.
+    // Use openTradeStrategy or todayStrategyPicks instead.
+    // If we want picks based on latest trade (review mode):
+    /*
+    const params = getTradeStrategyParams(latestTrade);
+    if (!params) return [];
+    return matchStrategies(strategyIndex, {
+        marketCycle: todayMarketCycle,
+        setupCategory: params.setupCategory,
+        patterns: params.patterns,
+        limit: 6
+    });
+    */
+}, []);
+
+const inspectorIssues = React.useMemo(() => {
+    return buildInspectorIssues(trades, enumPresets);
+}, [trades, enumPresets]);
+
+const fixPlan = React.useMemo(() => {
+    if (!enumPresets) return undefined;
+    return buildFixPlan(trades, enumPresets);
+}, [trades, enumPresets]);
+
+const openTrade = React.useMemo(() => {
+    return trades.find((t) => {
+        const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+        if (!pnlMissing) return false;
+        return (
+            t.outcome === "open" ||
+            t.outcome === undefined ||
+            t.outcome === "unknown"
+        );
+    });
+}, [trades]);
+
+const todayStrategyPicks = React.useMemo(() => {
+    if (!todayMarketCycle) return [];
+    return matchStrategies(strategyIndex, {
+        marketCycle: todayMarketCycle,
+        limit: 6,
+    });
+}, [strategyIndex, todayMarketCycle]);
+
+const openTradeStrategy = React.useMemo(() => {
+    const params = getTradeStrategyParams(openTrade);
+    if (!params) return undefined;
+    const picks = matchStrategies(strategyIndex, {
+        marketCycle: todayMarketCycle,
+        setupCategory: params.setupCategory,
+        patterns: params.patterns,
+        limit: 3,
+    });
+    return picks[0];
+}, [openTrade, strategyIndex, todayMarketCycle, getTradeStrategyParams]);
+
+return {
+    trades,
+    strategies,
+    status,
+    todayMarketCycle,
+    analyticsScope,
+    setAnalyticsScope,
+    onRebuild,
+    summary,
+    all,
+    strategyStats,
+    latestTrade,
+    todayIso,
+    todayTrades,
+    todaySummary,
+    todayLatestTrade,
+    rLast10,
+    rLast30,
+    r10MaxAbs,
+    r30MaxAbs,
+    reviewHints,
+    calendarCells,
+    equitySeries,
+    strategyAttribution,
+    strategyPicks,
+    inspectorIssues,
+    fixPlan,
+    openTrade,
+    todayStrategyPicks,
+    openTradeStrategy,
+};
 }
