@@ -2,10 +2,11 @@ import type { StatsByAccountType } from "./stats";
 import type { TradeRecord } from "./contracts";
 import type { StrategyCard } from "./strategy-index";
 import { getFirstFieldValue, parseNumber } from "./field-mapper";
+import type { TodaySnapshot } from "./console-state";
 
 export type ConsoleExportMeta = {
   /** Schema version for forward compatibility. */
-  schemaVersion: 2;
+  schemaVersion: 3;
   /** ISO timestamp of export. */
   exportedAt: string;
   /** Plugin version at time of export. */
@@ -37,6 +38,7 @@ export type ConsoleExportSnapshot = {
   meta: ConsoleExportMeta;
   trades: ExportTradeRecord[];
   statsByAccountType: StatsByAccountType;
+  today?: TodaySnapshot;
   strategyIndex?: {
     count: number;
     cards: StrategyCard[];
@@ -122,6 +124,7 @@ export function buildConsoleExportSnapshot(args: {
   trades: TradeRecord[];
   statsByAccountType: StatsByAccountType;
   strategyCards?: StrategyCard[];
+  today?: TodaySnapshot;
 }): ConsoleExportSnapshot {
   const trades = args.trades ?? [];
   const statsByAccountType = args.statsByAccountType;
@@ -133,12 +136,13 @@ export function buildConsoleExportSnapshot(args: {
 
   return {
     meta: {
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: args.exportedAt,
       pluginVersion: args.pluginVersion,
     },
     trades: exportTrades,
     statsByAccountType,
+    today: args.today,
     strategyIndex: cards
       ? {
           count: cards.length,

@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS, type AlBrooksConsoleSettings } from "./settings";
 import { AlBrooksConsoleSettingTab } from "./settings-tab";
 import { computeTradeStatsByAccountType } from "./core/stats";
 import { buildConsoleExportSnapshot } from "./core/export-snapshot";
+import { buildTodaySnapshot } from "./core/console-state";
 
 export default class AlBrooksConsolePlugin extends Plugin {
   public index: ObsidianTradeIndex;
@@ -162,12 +163,21 @@ export default class AlBrooksConsolePlugin extends Plugin {
     const trades = this.index?.getAll?.() ?? [];
     const statsByAccountType = computeTradeStatsByAccountType(trades);
     const strategyCards = this.strategyIndex?.list?.();
+
+    const todayMarketCycle = this.todayContext?.getTodayMarketCycle?.();
+    const today = buildTodaySnapshot({
+      todayMarketCycle,
+      strategyIndex: this.strategyIndex,
+      limit: 6,
+    });
+
     return buildConsoleExportSnapshot({
       exportedAt,
       pluginVersion: this.manifest.version,
       trades,
       statsByAccountType,
       strategyCards,
+      today,
     });
   }
 

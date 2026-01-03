@@ -51,10 +51,15 @@
    - `meta.pluginVersion`
    - `trades`
    - `statsByAccountType`
+   - （可选）`today`
    - （可选）`strategyIndex`
 3. 确认 `meta.pluginVersion` 为插件版本号（例如当前 `1.0.0`），而不是 `dry-run-from-legacy`。
 
 **Pass 条件**：快照字段齐全，且能与离线脚本快照来源区分。
+
+补充（Today 联动最小回归）：
+- 若当天已填写 market cycle（TodayContext 可读到）：确认 `today.marketCycle` 存在。
+- 确认 `today.strategyPicks` 为非空数组，且元素包含 `strategyName`（用于验证“今日市场周期 → 策略推荐”链路稳定）。
 
 ### 5) 最小数值对照（建议抽样）
 
