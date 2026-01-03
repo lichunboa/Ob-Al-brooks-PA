@@ -4,7 +4,7 @@
 >
 > 说明：全量功能迁移的主任务列表在 `.spec-workflow/specs/al-brooks-console/tasks.md`（任务 9-20）。本 spec 只做前置的稳定化与回归链路。
 
-- [ ] 1. TradeIndex：默认目录 denylist（排除 Templates/.obsidian/Exports）
+- [x] 1. TradeIndex：默认目录 denylist（排除 Templates/.obsidian/Exports）
   - Files:
     - `.obsidian/plugins/al-brooks-console/src/platforms/obsidian/obsidian-trade-index.ts`
   - Implement:
@@ -17,7 +17,7 @@
     - Before coding: search existing implementation logs for similar filters.
     - Mark this task `[-]` when starting; after finishing, log implementation with `log-implementation`; then mark `[x]`.
 
-- [ ] 2. TradeIndex：dateIso 归一化（frontmatter → filename → ctime/mtime）
+- [x] 2. TradeIndex：dateIso 归一化（frontmatter → filename → ctime/mtime）
   - Files:
     - `.obsidian/plugins/al-brooks-console/src/platforms/obsidian/obsidian-trade-index.ts`
     - (Optional) `.obsidian/plugins/al-brooks-console/src/core/contracts.ts`（仅当需要强化类型/注释）

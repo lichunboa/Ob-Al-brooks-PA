@@ -35,6 +35,7 @@ export class ObsidianTradeIndex implements TradeIndex {
   private enableFileClass: boolean;
   private tradeFileClassesLower: Set<string>;
   private folderAllowlistNormalized: string[];
+  private folderDenylistNormalized: string[];
   private pendingPaths: Set<string> = new Set();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private dirty = false;
@@ -60,9 +61,106 @@ export class ObsidianTradeIndex implements TradeIndex {
       .map((p) => p.replace(/^\/+/, "").trim())
       .filter(Boolean)
       .map((p) => (p.endsWith("/") ? p : `${p}/`));
+    // Default denylist to prevent templates/exports/plugin internals from polluting indices.
+    this.folderDenylistNormalized = ["Templates/", "Exports/", ".obsidian/"]
+      .map((p) => p.replace(/^\/+/, "").trim())
+      .filter(Boolean)
+      .map((p) => (p.endsWith("/") ? p : `${p}/`));
     this.chunkSize = Math.max(25, options.chunkSize ?? 250);
     this.debounceMs = Math.max(50, options.debounceMs ?? 200);
     this.minEmitIntervalMs = Math.max(0, options.minEmitIntervalMs ?? 200);
+  }
+
+  private shouldIndexFile(path: string): boolean {
+    const normalized = String(path ?? "").replace(/^\/+/, "");
+    if (!normalized) return false;
+    for (const p of this.folderDenylistNormalized) {
+      if (normalized.startsWith(p)) return false;
+    }
+    return true;
+  }
+
+  private toLocalDateIso(d: Date): string {
+    if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
+      return this.toLocalDateIso(new Date());
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  private isValidDateIso(iso: string): boolean {
+    const m = String(iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return false;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) {
+      return false;
+    }
+    if (mo < 1 || mo > 12) return false;
+    if (d < 1 || d > 31) return false;
+
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    return (
+      dt.getUTCFullYear() === y &&
+      dt.getUTCMonth() === mo - 1 &&
+      dt.getUTCDate() === d
+    );
+  }
+
+  private parseDateIsoFromBasename(basename: string): string | null {
+    const raw = String(basename ?? "");
+
+    const m1 = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m1) {
+      const iso = `${m1[1]}-${m1[2]}-${m1[3]}`;
+      return this.isValidDateIso(iso) ? iso : null;
+    }
+
+    const m2 = raw.match(/^(\d{4})(\d{2})(\d{2})/);
+    if (m2) {
+      const iso = `${m2[1]}-${m2[2]}-${m2[3]}`;
+      return this.isValidDateIso(iso) ? iso : null;
+    }
+
+    const m3 = raw.match(/^(\d{2})(\d{2})(\d{2})/);
+    if (m3) {
+      const yy = Number(m3[1]);
+      const y = yy >= 70 ? 1900 + yy : 2000 + yy;
+      const iso = `${y}-${m3[2]}-${m3[3]}`;
+      return this.isValidDateIso(iso) ? iso : null;
+    }
+
+    return null;
+  }
+
+  private normalizeDateIso(dateRaw: unknown, file: TFile): string {
+    // 1) frontmatter date
+    if (typeof dateRaw === "string") {
+      const s = dateRaw.trim();
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m && this.isValidDateIso(m[1])) return m[1];
+      const dt = new Date(s);
+      if (!Number.isNaN(dt.getTime())) return this.toLocalDateIso(dt);
+    } else if (dateRaw instanceof Date) {
+      return this.toLocalDateIso(dateRaw);
+    } else if (typeof dateRaw === "number" && Number.isFinite(dateRaw)) {
+      const dt = new Date(dateRaw);
+      if (!Number.isNaN(dt.getTime())) return this.toLocalDateIso(dt);
+    }
+
+    // 2) filename
+    const fromName = this.parseDateIsoFromBasename(file.basename);
+    if (fromName) return fromName;
+
+    // 3) fallback to ctime/mtime
+    const stampMs =
+      (file.stat?.ctime as number | undefined) ??
+      (file.stat?.mtime as number | undefined) ??
+      Date.now();
+    return this.toLocalDateIso(new Date(stampMs));
   }
 
   public async initialize() {
@@ -251,7 +349,11 @@ export class ObsidianTradeIndex implements TradeIndex {
         )
       : files;
 
-    return filteredByFolder.filter((file) => {
+    const filteredByPath = filteredByFolder.filter((f) =>
+      this.shouldIndexFile(f.path)
+    );
+
+    return filteredByPath.filter((file) => {
       const cache = this.app.metadataCache.getFileCache(file);
       if (!cache) return true;
 
@@ -340,6 +442,10 @@ export class ObsidianTradeIndex implements TradeIndex {
   }
 
   private indexFile(file: TFile): boolean {
+    if (!this.shouldIndexFile(file.path)) {
+      return this.db.delete(file.path);
+    }
+
     const prev = this.db.get(file.path);
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter;
@@ -358,7 +464,7 @@ export class ObsidianTradeIndex implements TradeIndex {
       const trade: TradeRecord = {
         path: file.path,
         name: file.name,
-        dateIso: file.basename.substring(0, 10),
+        dateIso: this.normalizeDateIso(undefined, file),
         tags: normalizedTags,
         mtime: file.stat?.mtime,
       };
@@ -393,14 +499,13 @@ export class ObsidianTradeIndex implements TradeIndex {
     const pnl = parseNumber(pnlRaw);
     const ticker = normalizeTicker(tickerRaw);
     const outcome = normalizeOutcome(outcomeRaw);
-    const dateIso =
-      typeof dateRaw === "string" ? dateRaw : file.basename.substring(0, 10);
+    const dateIso = this.normalizeDateIso(dateRaw, file);
     const accountType = normalizeAccountType(accountTypeRaw);
 
     const trade: TradeRecord = {
       path: file.path,
       name: file.name,
-      dateIso: String(dateIso),
+      dateIso,
       ticker,
       pnl,
       outcome,
