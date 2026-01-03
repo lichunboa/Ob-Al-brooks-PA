@@ -280,7 +280,7 @@ export function useDashboardData(
     );
 
     const strategyPicks = React.useMemo(() => {
-        return []; // Disabling auto-picks based on recent trades for now as logic was ambiguous.
+        return [] as any[]; // Disabling auto-picks based on recent trades for now as logic was ambiguous.
         // Use openTradeStrategy or todayStrategyPicks instead.
         // If we want picks based on latest trade (review mode):
         /*

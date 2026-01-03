@@ -21,15 +21,34 @@ import type { PluginIntegrationRegistry } from "../integrations/PluginIntegratio
 import type { TodayContext } from "../core/today-context";
 import type { AlBrooksConsoleSettings } from "../settings";
 import type { CourseSnapshot } from "../core/course";
-import { parseSyllabusJsonFromMarkdown } from "../core/course";
+import {
+  buildCourseSnapshot,
+  parseSyllabusJsonFromMarkdown,
+  simpleCourseId
+} from "../core/course";
 import type { MemorySnapshot } from "../core/memory";
+import { buildMemorySnapshot } from "../core/memory";
 import type { FixPlan, FixPlanFileUpdate } from "../core/inspector";
-import type { ManagerApplyResult, StrategyNoteFrontmatter } from "../core/manager";
+import { buildFixPlan } from "../core/inspector";
 import { type EnumPresets, createEnumPresetsFromFrontmatter } from "../core/enum-presets";
 import { TradeList } from "./components/TradeList";
 
+import type { AnalyticsScope } from "../core/analytics";
+import {
+  type ManagerApplyResult,
+  type StrategyNoteFrontmatter,
+  buildTradeNormalizationPlan,
+  buildStrategyMaintenancePlan
+} from "../core/manager";
+
 const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 const normalizeTag = (t: unknown) => String(t ?? "").trim();
+const calendarDays = 35;
+const parseCoverRef = (val: unknown): string | undefined => {
+  if (typeof val === "string") return val.trim();
+  if (Array.isArray(val) && val.length > 0 && typeof val[0] === "string") return val[0].trim();
+  return undefined;
+};
 
 class ConsoleErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -105,6 +124,10 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     strategies,
     status,
     todayMarketCycle,
+    analyticsScope,
+    setAnalyticsScope,
+    onRebuild,
+    summary,
     all,
     strategyStats,
     latestTrade,
@@ -117,29 +140,29 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     r10MaxAbs,
     r30MaxAbs,
     reviewHints,
+    calendarCells,
+    equitySeries,
+    strategyAttribution,
+    inspectorIssues,
+    fixPlan: hookFixPlan, // From hook (based on presets, mostly for linting)
     openTrade,
     todayStrategyPicks,
     openTradeStrategy,
-    fixPlan,
-    onRebuild,
   } = useDashboardData(index, strategyIndex, todayContext, enumPresets);
 
   const statusText = React.useMemo(() => {
     switch (status) {
-      case "idle":
-        return "";
-      case "loading":
-        return "⚡️";
-      case "ready":
-        return "🟢";
-      case "error":
-        return "🔴";
-      default:
-        return "";
+      case "idle": return "";
+      case "loading": return "⚡️";
+      case "ready": return "🟢";
+      case "error": return "🔴";
+      default: return "";
     }
   }, [status]);
 
-  // UI Helper States
+  // --- UI Helper States ---
+
+  // Course State
   const [course, setCourse] = React.useState<CourseSnapshot | undefined>(undefined);
   const [courseBusy, setCourseBusy] = React.useState(false);
   const [courseError, setCourseError] = React.useState<string | undefined>(undefined);
@@ -158,31 +181,77 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     }
   }, [loadCourse, settings]);
 
+  // Memory State
+  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(undefined);
+  const [memoryBusy, setMemoryBusy] = React.useState(false);
+  const [memoryError, setMemoryError] = React.useState<string | undefined>(undefined);
+
+  const reloadMemory = React.useCallback(async () => {
+    if (!loadMemory || !settings) return;
+    setMemoryBusy(true);
+    setMemoryError(undefined);
+    try {
+      const res = await loadMemory(settings);
+      setMemory(res);
+    } catch (e) {
+      setMemoryError(String(e));
+    } finally {
+      setMemoryBusy(false);
+    }
+  }, [loadMemory, settings]);
+
   React.useEffect(() => {
     reloadCourse();
-  }, [reloadCourse]);
+    reloadMemory();
+  }, [reloadCourse, reloadMemory]);
 
-  // Auto-reload course on settings change
   React.useEffect(() => {
     if (!subscribeSettings) return;
     return subscribeSettings(() => {
       reloadCourse();
+      reloadMemory();
     });
-  }, [subscribeSettings, reloadCourse]);
+  }, [subscribeSettings, reloadCourse, reloadMemory]);
 
-  // Manager State
+  // Manager/Fix Plan State
+  const [showFixPlan, setShowFixPlan] = React.useState(false);
+  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(undefined);
+  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
   const [managerBusy, setManagerBusy] = React.useState(false);
   const [managerResult, setManagerResult] = React.useState<ManagerApplyResult | undefined>(undefined);
   const [managerBackups, setManagerBackups] = React.useState<Record<string, string> | undefined>(undefined);
 
+  // If no manual plan is set, we might show the hook's auto-generated lint fix plan in some UI, 
+  // but usually Manager UI works on `managerPlan` state.
+  // We can initialize managerPlan from hookFixPlan if desired, but usually it's triggered by button.
+
   const managerPlanText = React.useMemo(() => {
-    if (!fixPlan) return undefined;
-    return JSON.stringify(fixPlan, null, 2);
-  }, [fixPlan]);
+    const p = managerPlan ?? hookFixPlan;
+    if (!p) return undefined;
+    return JSON.stringify(p, null, 2);
+  }, [managerPlan, hookFixPlan]);
 
   const managerArmed = React.useMemo(() => {
-    return fixPlan && (fixPlan.fileUpdates?.length ?? 0) > 0;
-  }, [fixPlan]);
+    // Armed if there is a plan with updates
+    return (managerPlan?.fileUpdates?.length ?? 0) > 0;
+  }, [managerPlan]);
+
+  // Just a setter wrapper to match usage if code calls setManagerArmed
+  const setManagerArmed = (armed: boolean) => {
+    // No-op if derived, or clear plan if false?
+    if (!armed) setManagerPlan(undefined);
+  };
+
+  // --- Styles & Helpers ---
+
+  const selectStyle = {
+    background: "var(--background-modifier-form-field)",
+    color: "var(--text-normal)",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "4px",
+    padding: "4px 8px",
+    fontSize: "0.9em",
+  };
 
   const buttonStyle = {
     cursor: "pointer",
@@ -235,8 +304,38 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     e.currentTarget.style.textDecoration = "underline";
   };
 
-  const can = (actionId: string) => integrations?.canExecute(actionId) ?? false;
-  const action = (actionId: string) => integrations?.execute(actionId);
+  // Mini Cell Interaction (Heatmap)
+  const onMiniCellMouseEnter = (e: any) => {
+    e.currentTarget.style.transform = "scale(1.2)";
+    e.currentTarget.style.zIndex = "1";
+  };
+  const onMiniCellMouseLeave = (e: any) => {
+    e.currentTarget.style.transform = "scale(1)";
+    e.currentTarget.style.zIndex = "0";
+  };
+  const onMiniCellFocus = (e: any) => {
+    e.currentTarget.style.outline = "2px solid var(--interactive-accent)";
+  };
+  const onMiniCellBlur = (e: any) => {
+    e.currentTarget.style.outline = "none";
+  };
+
+  const getDayOfMonth = (iso: string) => {
+    if (!iso) return 1;
+    return parseInt(iso.slice(8, 10), 10) || 1;
+  };
+
+  const calendarMaxAbs = React.useMemo(() => {
+    if (!calendarCells) return 1;
+    let max = 0;
+    for (const c of calendarCells) {
+      if (Math.abs(c.netR) > max) max = Math.abs(c.netR);
+    }
+    return max > 0 ? max : 1;
+  }, [calendarCells]);
+
+  const can = (actionId: string) => integrations?.isCapabilityAvailable(actionId as any) ?? false;
+  const action = (actionId: string) => integrations?.run(actionId as any);
 
   const galleryItems = React.useMemo((): GalleryItem[] => {
     if (!getResourceUrl) return [];
@@ -250,7 +349,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
       const ref = parseCoverRef(rawCover);
       if (!ref) continue;
 
-      let target = ref.target;
+      let target = ref;
       // 解析 markdown link 的 target 可能带引号/空格
       target = String(target).trim();
       if (!target) continue;
@@ -1845,7 +1944,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                   whiteSpace: "pre-wrap",
                 }}
               >
-                {fixPlanText ?? ""}
+                {managerPlanText ?? ""}
               </pre>
             </div>
           ) : (
