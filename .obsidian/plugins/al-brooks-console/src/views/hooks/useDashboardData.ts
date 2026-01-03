@@ -256,27 +256,10 @@ export function useDashboardData(
             trade: TradeRecord | undefined
         ): { patterns: string[]; setupCategory: string | undefined } | undefined => {
             if (!trade) return undefined;
-            const fm = (trade.rawFrontmatter ?? {}) as Record<string, any>;
-            const patternsRaw =
-                fm["patterns"] ??
-                fm["形态/patterns"] ??
-                fm["观察到的形态/patterns_observed"];
-            const patterns = Array.isArray(patternsRaw)
-                ? patternsRaw
-                    .filter((x: any) => typeof x === "string")
-                    .map((s: string) => s.trim())
-                    .filter(Boolean)
-                : typeof patternsRaw === "string"
-                    ? patternsRaw
-                        .split(/[,，;；/|]/g)
-                        .map((s: string) => s.trim())
-                        .filter(Boolean)
-                    : [];
-            const setupCategory = (fm["setup_category"] ??
-                fm["设置类别/setup_category"]) as any;
-            const setupCategoryStr =
-                typeof setupCategory === "string" ? setupCategory.trim() : undefined;
-            return { patterns, setupCategory: setupCategoryStr };
+            return {
+                patterns: trade.patternsObserved ?? [],
+                setupCategory: trade.setupCategory
+            };
         },
         []
     );

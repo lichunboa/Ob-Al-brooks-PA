@@ -722,26 +722,8 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const openTradeStrategy = React.useMemo(() => {
     if (!openTrade) return undefined;
-    const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
-    const patternsRaw =
-      fm["patterns"] ??
-      fm["形态/patterns"] ??
-      fm["观察到的形态/patterns_observed"];
-    const patterns = Array.isArray(patternsRaw)
-      ? patternsRaw
-          .filter((x: any) => typeof x === "string")
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-      : typeof patternsRaw === "string"
-      ? patternsRaw
-          .split(/[,，;；/|]/g)
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-      : [];
-    const setupCategory = (fm["setup_category"] ??
-      fm["设置类别/setup_category"]) as any;
-    const setupCategoryStr =
-      typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+    const patterns = openTrade.patternsObserved ?? [];
+    const setupCategoryStr = openTrade.setupCategory;
     const picks = matchStrategies(strategyIndex, {
       marketCycle: todayMarketCycle,
       setupCategory: setupCategoryStr,
@@ -753,31 +735,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const strategyPicks = React.useMemo(() => {
     if (!latestTrade) return [];
-    const fm = (latestTrade.rawFrontmatter ?? {}) as Record<string, any>;
-    const patternsRaw =
-      fm["patterns"] ??
-      fm["形态/patterns"] ??
-      fm["观察到的形态/patterns_observed"];
-    const patterns = Array.isArray(patternsRaw)
-      ? patternsRaw
-          .filter((x: any) => typeof x === "string")
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-      : typeof patternsRaw === "string"
-      ? patternsRaw
-          .split(/[,，;；/|]/g)
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-      : [];
-    const marketCycle = (fm["market_cycle"] ??
-      fm["市场周期/market_cycle"]) as any;
-    const marketCycleStr =
-      todayMarketCycle ??
-      (typeof marketCycle === "string" ? marketCycle.trim() : undefined);
-    const setupCategory = (fm["setup_category"] ??
-      fm["设置类别/setup_category"]) as any;
-    const setupCategoryStr =
-      typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+    const patterns = latestTrade.patternsObserved ?? [];
+    const marketCycleStr = todayMarketCycle ?? latestTrade.marketCycle;
+    const setupCategoryStr = latestTrade.setupCategory;
     return matchStrategies(strategyIndex, {
       marketCycle: marketCycleStr,
       setupCategory: setupCategoryStr,
