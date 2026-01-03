@@ -27,6 +27,7 @@
     "TQ_show_tree": "checkbox",
     "TQ_show_urgency": "checkbox",
     "设置类别/setup_category": "multitext",
-    "date": "date"
+    "date": "date",
+    "概率/probability": "multitext"
   }
 }

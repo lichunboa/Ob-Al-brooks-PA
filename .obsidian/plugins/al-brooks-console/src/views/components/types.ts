@@ -29,9 +29,3 @@ export type PerformanceRow = {
   trades: number;
   winRate: number;
 };
-
-export type GalleryItem = {
-  tradePath: string;
-  coverPath: string;
-  url?: string;
-};

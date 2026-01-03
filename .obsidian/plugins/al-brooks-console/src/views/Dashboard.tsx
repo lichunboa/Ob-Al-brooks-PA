@@ -2,346 +2,659 @@ import * as React from "react";
 import {
   ItemView,
   WorkspaceLeaf,
-  Notice,
   TFile,
   parseYaml,
   stringifyYaml,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
-import type { TradeIndex } from "../core/trade-index";
+import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
+import { computeTradeStatsByAccountType } from "../core/stats";
+import { buildReviewHints } from "../core/review-hints";
+import type { AccountType, TradeRecord } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
-import { Strategies } from "./components/Strategies";
-import { StrategyList } from "./components/StrategyList";
-import { ContextWidget, ErrorWidget } from "./components/AnalyticsWidgets";
 import { StatsCard } from "./components/StatsCard";
 import { StrategyStats } from "./components";
-import { Gallery } from "./components/Gallery";
-import type { GalleryItem } from "./components/types";
-import { useDashboardData, getRColorByAccountType } from "./hooks/useDashboardData";
-import { GlobalStyles } from "./GlobalStyles";
-import { TrendRow } from "./components/TrendRow";
+import { TradeList } from "./components/TradeList";
+import {
+  computeDailyAgg,
+  computeEquityCurve,
+  computeStrategyAttribution,
+  filterTradesByScope,
+  type AnalyticsScope,
+  type DailyAgg,
+} from "../core/analytics";
+import { parseCoverRef } from "../core/cover-parser";
+import type { EnumPresets } from "../core/enum-presets";
+import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
+import {
+  buildFixPlan,
+  buildInspectorIssues,
+  type FixPlan,
+} from "../core/inspector";
+import {
+  buildStrategyMaintenancePlan,
+  buildTradeNormalizationPlan,
+  type ManagerApplyResult,
+  type StrategyNoteFrontmatter,
+} from "../core/manager";
+import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
+import { normalizeTag } from "../core/field-mapper";
 import type { AlBrooksConsoleSettings } from "../settings";
-import type { CourseSnapshot } from "../core/course";
 import {
   buildCourseSnapshot,
   parseSyllabusJsonFromMarkdown,
-  simpleCourseId
+  simpleCourseId,
+  type CourseSnapshot,
 } from "../core/course";
-import type { MemorySnapshot } from "../core/memory";
-import { buildMemorySnapshot } from "../core/memory";
-import type { FixPlan, FixPlanFileUpdate } from "../core/inspector";
-import { buildFixPlan } from "../core/inspector";
-import { type EnumPresets, createEnumPresetsFromFrontmatter } from "../core/enum-presets";
-import { TradeList } from "./components/TradeList";
+import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 
-import type { AnalyticsScope } from "../core/analytics";
-import {
-  type ManagerApplyResult,
-  type StrategyNoteFrontmatter,
-  buildTradeNormalizationPlan,
-  buildStrategyMaintenancePlan
-} from "../core/manager";
+function toLocalDateIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function getLastLocalDateIsos(days: number): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < Math.max(1, days); i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    out.push(toLocalDateIso(d));
+  }
+  return out;
+}
+
+function getDayOfMonth(dateIso: string): string {
+  const parts = dateIso.split("-");
+  const d = parts[2] ?? "";
+  return d.startsWith("0") ? d.slice(1) : d;
+}
+
+function sumPnlR(trades: TradeRecord[]): number {
+  let sum = 0;
+  for (const t of trades) {
+    if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
+  }
+  return sum;
+}
+
+function getRColorByAccountType(accountType: AccountType): string {
+  switch (accountType) {
+    case "Live":
+      return "var(--text-success)";
+    case "Demo":
+      return "var(--text-warning)";
+    case "Backtest":
+      return "var(--text-accent)";
+  }
+}
+
+function computeWindowRByAccountType(
+  trades: TradeRecord[],
+  windowSize: number
+): Record<AccountType, number> {
+  const by: Record<AccountType, TradeRecord[]> = {
+    Live: [],
+    Demo: [],
+    Backtest: [],
+  };
+  for (const t of trades.slice(0, windowSize)) {
+    const at = t.accountType;
+    if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
+  }
+  return {
+    Live: sumPnlR(by.Live),
+    Demo: sumPnlR(by.Demo),
+    Backtest: sumPnlR(by.Backtest),
+  };
+}
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
-const normalizeTag = (t: unknown) => String(t ?? "").trim();
-const calendarDays = 35;
-const parseCoverRef = (val: unknown): string | undefined => {
-  if (typeof val === "string") return val.trim();
-  if (Array.isArray(val) && val.length > 0 && typeof val[0] === "string") return val[0].trim();
-  return undefined;
-};
+
+interface Props {
+  index: TradeIndex;
+  strategyIndex: StrategyIndex;
+  todayContext?: TodayContext;
+  resolveLink?: (linkText: string, fromPath: string) => string | undefined;
+  getResourceUrl?: (path: string) => string | undefined;
+  enumPresets?: EnumPresets;
+  loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
+  applyFixPlan?: (
+    plan: FixPlan,
+    options?: { deleteKeys?: boolean }
+  ) => Promise<ManagerApplyResult>;
+  restoreFiles?: (
+    backups: Record<string, string>
+  ) => Promise<ManagerApplyResult>;
+  settings: AlBrooksConsoleSettings;
+  subscribeSettings?: (
+    listener: (settings: AlBrooksConsoleSettings) => void
+  ) => () => void;
+  loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
+  loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
+  openFile: (path: string) => void;
+  integrations?: PluginIntegrationRegistry;
+  version: string;
+}
 
 class ConsoleErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
+  { hasError: boolean; message?: string }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ConsoleErrorBoundary caught error:", error, errorInfo);
+  componentDidCatch(error: unknown) {
+    console.warn("[al-brooks-console] Dashboard render error", error);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: "1rem", color: "var(--text-error)" }}>
-          <h3>控制台渲染出错</h3>
-          <pre>{String(this.state.error)}</pre>
+        <div
+          style={{
+            padding: "16px",
+            fontFamily: "var(--font-interface)",
+            maxWidth: "1200px",
+            margin: "0 auto",
+          }}
+        >
+          <h2
+            style={{
+              borderBottom: "1px solid var(--background-modifier-border)",
+              paddingBottom: "10px",
+              marginBottom: "12px",
+            }}
+          >
+            🦁 交易员控制台
+          </h2>
+          <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
+            控制台渲染失败：{this.state.message ?? "未知错误"}
+          </div>
+          <div style={{ color: "var(--text-muted)" }}>
+            建议重新打开视图后，在顶部使用“重建索引”。
+          </div>
         </div>
       );
     }
+
     return this.props.children;
   }
 }
 
-interface ConsoleComponentProps {
-  index: TradeIndex;
-  strategyIndex: StrategyIndex;
-  todayContext?: TodayContext;
-  resolveLink: (linkText: string, fromPath: string) => string | undefined;
-  getResourceUrl: (path: string) => string | undefined;
-  enumPresets?: EnumPresets;
-  loadStrategyNotes: () => Promise<StrategyNoteFrontmatter[]>;
-  applyFixPlan: (plan: FixPlan, options?: { deleteKeys?: boolean }) => Promise<ManagerApplyResult>;
-  restoreFiles: (backups: Record<string, string>) => Promise<ManagerApplyResult>;
-  settings: AlBrooksConsoleSettings;
-  subscribeSettings: (listener: (settings: AlBrooksConsoleSettings) => void) => () => void;
-  loadCourse: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
-  loadMemory: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
-  integrations?: PluginIntegrationRegistry;
-  openFile: (path: string) => void;
-  version: string;
-}
+const ConsoleComponent: React.FC<Props> = ({
+  index,
+  strategyIndex,
+  todayContext,
+  resolveLink,
+  getResourceUrl,
+  enumPresets,
+  loadStrategyNotes,
+  applyFixPlan,
+  restoreFiles,
+  settings: initialSettings,
+  subscribeSettings,
+  loadCourse,
+  loadMemory,
+  openFile,
+  integrations,
+  version,
+}) => {
+  const [trades, setTrades] = React.useState(index.getAll());
+  const [strategies, setStrategies] = React.useState<any[]>(() =>
+    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  );
+  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
+    index.getStatus ? index.getStatus() : { phase: "ready" }
+  );
+  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
+    string | undefined
+  >(() => todayContext?.getTodayMarketCycle());
+  const [analyticsScope, setAnalyticsScope] =
+    React.useState<AnalyticsScope>("Live");
+  const [showFixPlan, setShowFixPlan] = React.useState(false);
+  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
+    undefined
+  );
+  const [managerResult, setManagerResult] = React.useState<
+    ManagerApplyResult | undefined
+  >(undefined);
+  const [managerBusy, setManagerBusy] = React.useState(false);
+  const [managerArmed, setManagerArmed] = React.useState(false);
+  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
+  const [managerBackups, setManagerBackups] = React.useState<
+    Record<string, string> | undefined
+  >(undefined);
 
-export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
-  const {
-    index,
-    strategyIndex,
-    todayContext,
-    resolveLink,
-    getResourceUrl,
-    enumPresets,
-    loadStrategyNotes,
-    applyFixPlan,
-    restoreFiles,
-    settings,
-    subscribeSettings,
-    loadCourse,
-    loadMemory,
-    integrations,
-    openFile,
-    version,
-  } = props;
-
-  const {
-    trades,
-    strategies,
-    status,
-    todayMarketCycle,
-    analyticsScope,
-    setAnalyticsScope,
-    onRebuild,
-    summary,
-    all,
-    strategyStats,
-    latestTrade,
-    todayIso,
-    todayTrades,
-    todaySummary,
-    todayLatestTrade,
-    rLast10,
-    rLast30,
-    r10MaxAbs,
-    r30MaxAbs,
-    reviewHints,
-    calendarCells,
-    equitySeries,
-    strategyAttribution,
-    inspectorIssues,
-    fixPlan: hookFixPlan, // From hook (based on presets, mostly for linting)
-    openTrade,
-    todayStrategyPicks,
-    openTradeStrategy,
-    contextAnalysis,
-    errorAnalysis,
-  } = useDashboardData(index, strategyIndex, todayContext, enumPresets);
-
-  const statusText = React.useMemo(() => {
-    switch (status) {
-      case "idle": return "";
-      case "loading": return "⚡️";
-      case "ready": return "🟢";
-      case "error": return "🔴";
-      default: return "";
-    }
-  }, [status]);
-
-  // --- UI Helper States ---
-
-  // Course State
-  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(undefined);
-  const [courseBusy, setCourseBusy] = React.useState(false);
-  const [courseError, setCourseError] = React.useState<string | undefined>(undefined);
-
-  const reloadCourse = React.useCallback(async () => {
-    if (!loadCourse || !settings) return;
-    setCourseBusy(true);
-    setCourseError(undefined);
-    try {
-      const res = await loadCourse(settings);
-      setCourse(res);
-    } catch (e) {
-      setCourseError(String(e));
-    } finally {
-      setCourseBusy(false);
-    }
-  }, [loadCourse, settings]);
-
-  // Memory State
-  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(undefined);
-  const [memoryBusy, setMemoryBusy] = React.useState(false);
-  const [memoryError, setMemoryError] = React.useState<string | undefined>(undefined);
-
-  const reloadMemory = React.useCallback(async () => {
-    if (!loadMemory || !settings) return;
-    setMemoryBusy(true);
-    setMemoryError(undefined);
-    try {
-      const res = await loadMemory(settings);
-      setMemory(res);
-    } catch (e) {
-      setMemoryError(String(e));
-    } finally {
-      setMemoryBusy(false);
-    }
-  }, [loadMemory, settings]);
+  const [settings, setSettings] =
+    React.useState<AlBrooksConsoleSettings>(initialSettings);
+  const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
 
   React.useEffect(() => {
-    reloadCourse();
-    reloadMemory();
-  }, [reloadCourse, reloadMemory]);
+    setSettings(initialSettings);
+  }, [initialSettings]);
 
   React.useEffect(() => {
     if (!subscribeSettings) return;
-    return subscribeSettings(() => {
-      reloadCourse();
-      reloadMemory();
-    });
-  }, [subscribeSettings, reloadCourse, reloadMemory]);
+    return subscribeSettings((s) => setSettings(s));
+  }, [subscribeSettings]);
 
-  // Manager/Fix Plan State
-  const [showFixPlan, setShowFixPlan] = React.useState(false);
-  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(undefined);
-  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
-  const [managerBusy, setManagerBusy] = React.useState(false);
-  const [managerResult, setManagerResult] = React.useState<ManagerApplyResult | undefined>(undefined);
-  const [managerBackups, setManagerBackups] = React.useState<Record<string, string> | undefined>(undefined);
+  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
+    undefined
+  );
+  const [courseBusy, setCourseBusy] = React.useState(false);
+  const [courseError, setCourseError] = React.useState<string | undefined>(
+    undefined
+  );
 
-  // If no manual plan is set, we might show the hook's auto-generated lint fix plan in some UI, 
-  // but usually Manager UI works on `managerPlan` state.
-  // We can initialize managerPlan from hookFixPlan if desired, but usually it's triggered by button.
+  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(
+    undefined
+  );
+  const [memoryBusy, setMemoryBusy] = React.useState(false);
+  const [memoryError, setMemoryError] = React.useState<string | undefined>(
+    undefined
+  );
 
-  const managerPlanText = React.useMemo(() => {
-    const p = managerPlan ?? hookFixPlan;
-    if (!p) return undefined;
-    return JSON.stringify(p, null, 2);
-  }, [managerPlan, hookFixPlan]);
+  const summary = React.useMemo(
+    () => computeTradeStatsByAccountType(trades),
+    [trades]
+  );
+  const all = summary.All;
 
-  const managerArmed = React.useMemo(() => {
-    // Armed if there is a plan with updates
-    return (managerPlan?.fileUpdates?.length ?? 0) > 0;
-  }, [managerPlan]);
+  React.useEffect(() => {
+    const onUpdate = () => setTrades(index.getAll());
+    const unsubscribe = index.onChanged(onUpdate);
+    onUpdate();
+    return unsubscribe;
+  }, [index]);
 
-  // Just a setter wrapper to match usage if code calls setManagerArmed
-  const setManagerArmed = (armed: boolean) => {
-    // No-op if derived, or clear plan if false?
-    if (!armed) setManagerPlan(undefined);
-  };
+  React.useEffect(() => {
+    if (!strategyIndex) return;
+    const update = () => {
+      try {
+        const list = strategyIndex.list ? strategyIndex.list() : [];
+        setStrategies(list);
+      } catch (e) {
+        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
+        setStrategies([]);
+      }
+    };
+    update();
+    if (strategyIndex.onChanged) return strategyIndex.onChanged(update);
+    return () => {};
+  }, [strategyIndex]);
 
-  // --- Styles & Helpers ---
+  const strategyStats = React.useMemo(() => {
+    const total = strategies.length;
+    const activeCount = strategies.filter((s) => s.status === "active")
+      .length;
+    const learningCount = strategies.filter((s) => s.status === "learning")
+      .length;
+    const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
+    return { total, activeCount, learningCount, totalUses };
+  }, [strategies]);
 
-  const selectStyle = {
-    background: "var(--background-modifier-form-field)",
-    color: "var(--text-normal)",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "4px",
-    padding: "4px 8px",
-    fontSize: "0.9em",
-  };
+  React.useEffect(() => {
+    if (!todayContext?.onChanged) return;
+    const onUpdate = () =>
+      setTodayMarketCycle(todayContext.getTodayMarketCycle());
+    const unsubscribe = todayContext.onChanged(onUpdate);
+    onUpdate();
+    return unsubscribe;
+  }, [todayContext]);
 
-  const buttonStyle = {
-    cursor: "pointer",
-    background: "var(--interactive-accent)",
-    color: "var(--text-on-accent)",
-    border: "none",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    fontSize: "0.9em",
+  React.useEffect(() => {
+    if (!index.onStatusChanged) return;
+    const onStatus = () =>
+      setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
+    const unsubscribe = index.onStatusChanged(onStatus);
+    onStatus();
+    return unsubscribe;
+  }, [index]);
+
+  const onRebuild = React.useCallback(async () => {
+    if (!index.rebuild) return;
+    try {
+      await index.rebuild();
+    } catch (e) {
+      console.warn("[al-brooks-console] Rebuild failed", e);
+    }
+  }, [index]);
+
+  const statusText = React.useMemo(() => {
+    switch (status.phase) {
+      case "building": {
+        const p = typeof status.processed === "number" ? status.processed : 0;
+        const t = typeof status.total === "number" ? status.total : 0;
+        return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
+      }
+      case "ready": {
+        return typeof status.lastBuildMs === "number"
+          ? `索引：就绪（${status.lastBuildMs}ms）`
+          : "索引：就绪";
+      }
+      case "error":
+        return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
+      default:
+        return "索引：空闲";
+    }
+  }, [status]);
+
+  const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
+    padding: "4px 8px",
+    fontSize: "0.8em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "6px",
+    background: "var(--background-primary)",
+    color: "var(--text-normal)",
+    cursor: "pointer",
+    outline: "none",
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
   };
-  const disabledButtonStyle = {
+
+  const disabledButtonStyle: React.CSSProperties = {
     ...buttonStyle,
-    background: "var(--background-modifier-border)",
-    color: "var(--text-muted)",
+    opacity: 0.5,
     cursor: "not-allowed",
   };
-  const textButtonStyle = {
-    background: "none",
+
+  const selectStyle: React.CSSProperties = {
+    padding: "4px 8px",
+    fontSize: "0.85em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "6px",
+    background: "var(--background-primary)",
+    color: "var(--text-normal)",
+  };
+
+  const textButtonStyle: React.CSSProperties = {
+    padding: "2px 4px",
     border: "none",
-    padding: 0,
+    background: "transparent",
     color: "var(--text-accent)",
     cursor: "pointer",
-    textDecoration: "underline",
-    fontSize: "inherit",
+    textAlign: "left",
+    borderRadius: "6px",
+    outline: "none",
+    transition: "background-color 180ms ease, box-shadow 180ms ease",
   };
 
-  const onBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!e.currentTarget.disabled) e.currentTarget.style.opacity = "0.9";
-  };
-  const onBtnMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.opacity = "1";
-  };
-  const onBtnFocus = (e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--background-modifier-border)";
-  };
-  const onBtnBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
+  const onBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "var(--background-primary)";
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
+
+  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
     e.currentTarget.style.boxShadow = "none";
-  };
-  const onTextBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.color = "var(--text-accent-hover)";
-  };
-  const onTextBtnMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.color = "var(--text-accent)";
-  };
-  const onTextBtnFocus = (e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.textDecoration = "none";
-  };
-  const onTextBtnBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.textDecoration = "underline";
-  };
+  }, []);
 
-  // Mini Cell Interaction (Heatmap)
-  const onMiniCellMouseEnter = (e: any) => {
-    e.currentTarget.style.transform = "scale(1.2)";
-    e.currentTarget.style.zIndex = "1";
-  };
-  const onMiniCellMouseLeave = (e: any) => {
-    e.currentTarget.style.transform = "scale(1)";
-    e.currentTarget.style.zIndex = "0";
-  };
-  const onMiniCellFocus = (e: any) => {
-    e.currentTarget.style.outline = "2px solid var(--interactive-accent)";
-  };
-  const onMiniCellBlur = (e: any) => {
-    e.currentTarget.style.outline = "none";
-  };
+  const onTextBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+    },
+    []
+  );
 
-  const getDayOfMonth = (iso: string) => {
-    if (!iso) return 1;
-    return parseInt(iso.slice(8, 10), 10) || 1;
-  };
+  const onTextBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "transparent";
+    },
+    []
+  );
 
-  const calendarMaxAbs = React.useMemo(() => {
-    if (!calendarCells) return 1;
-    let max = 0;
-    for (const c of calendarCells) {
-      if (Math.abs(c.netR) > max) max = Math.abs(c.netR);
+  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
+
+  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  }, []);
+
+  const onMiniCellMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onMiniCellFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const onCoverMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
+    },
+    []
+  );
+
+  const onCoverMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
+    },
+    []
+  );
+
+  const onCoverFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onCoverBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const action = React.useCallback(
+    async (capabilityId: IntegrationCapability) => {
+      if (!integrations) return;
+      try {
+        await integrations.run(capabilityId);
+      } catch (e) {
+        console.warn(
+          "[al-brooks-console] Integration action failed",
+          capabilityId,
+          e
+        );
+      }
+    },
+    [integrations]
+  );
+
+  const can = React.useCallback(
+    (capabilityId: IntegrationCapability) =>
+      Boolean(integrations?.isCapabilityAvailable(capabilityId)),
+    [integrations]
+  );
+
+  const reloadCourse = React.useCallback(async () => {
+    if (!loadCourse) return;
+    setCourseBusy(true);
+    setCourseError(undefined);
+    try {
+      const next = await loadCourse(settings);
+      setCourse(next);
+    } catch (e) {
+      setCourseError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCourseBusy(false);
     }
-    return max > 0 ? max : 1;
+  }, [loadCourse, settingsKey]);
+
+  const reloadMemory = React.useCallback(async () => {
+    if (!loadMemory) return;
+    setMemoryBusy(true);
+    setMemoryError(undefined);
+    try {
+      const next = await loadMemory(settings);
+      setMemory(next);
+    } catch (e) {
+      setMemoryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMemoryBusy(false);
+    }
+  }, [loadMemory, settingsKey]);
+
+  React.useEffect(() => {
+    void reloadCourse();
+  }, [reloadCourse]);
+
+  React.useEffect(() => {
+    void reloadMemory();
+  }, [reloadMemory]);
+
+  const latestTrade = trades.length > 0 ? trades[0] : undefined;
+  const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
+  const todayTrades = React.useMemo(
+    () => trades.filter((t) => t.dateIso === todayIso),
+    [trades, todayIso]
+  );
+  const todaySummary = React.useMemo(
+    () => computeTradeStatsByAccountType(todayTrades),
+    [todayTrades]
+  );
+  const todayLatestTrade = todayTrades.length > 0 ? todayTrades[0] : undefined;
+  const rLast10 = React.useMemo(
+    () => computeWindowRByAccountType(trades, 10),
+    [trades]
+  );
+  const rLast30 = React.useMemo(
+    () => computeWindowRByAccountType(trades, 30),
+    [trades]
+  );
+  const r10MaxAbs = React.useMemo(
+    () =>
+      Math.max(
+        Math.abs(rLast10.Live),
+        Math.abs(rLast10.Demo),
+        Math.abs(rLast10.Backtest),
+        0
+      ),
+    [rLast10]
+  );
+  const r30MaxAbs = React.useMemo(
+    () =>
+      Math.max(
+        Math.abs(rLast30.Live),
+        Math.abs(rLast30.Demo),
+        Math.abs(rLast30.Backtest),
+        0
+      ),
+    [rLast30]
+  );
+  const reviewHints = React.useMemo(() => {
+    if (!latestTrade) return [];
+    return buildReviewHints(latestTrade);
+  }, [latestTrade]);
+
+  const analyticsTrades = React.useMemo(
+    () => filterTradesByScope(trades, analyticsScope),
+    [trades, analyticsScope]
+  );
+  const analyticsDaily = React.useMemo(
+    () => computeDailyAgg(analyticsTrades, 90),
+    [analyticsTrades]
+  );
+  const analyticsDailyByDate = React.useMemo(() => {
+    const m = new Map<string, DailyAgg>();
+    for (const d of analyticsDaily) m.set(d.dateIso, d);
+    return m;
+  }, [analyticsDaily]);
+
+  const calendarDays = 35;
+  const calendarDateIsos = React.useMemo(
+    () => getLastLocalDateIsos(calendarDays),
+    []
+  );
+  const calendarCells = React.useMemo(() => {
+    return calendarDateIsos.map(
+      (dateIso) =>
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+    );
+  }, [calendarDateIsos, analyticsDailyByDate]);
+  const calendarMaxAbs = React.useMemo(() => {
+    let max = 0;
+    for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
+    return max;
   }, [calendarCells]);
 
-  const can = (actionId: string) => integrations?.isCapabilityAvailable(actionId as any) ?? false;
-  const action = (actionId: string) => integrations?.run(actionId as any);
+  const equitySeries = React.useMemo(() => {
+    const dateIsosAsc = [...calendarDateIsos].reverse();
+    const filled: DailyAgg[] = dateIsosAsc.map(
+      (dateIso) =>
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+    );
+    return computeEquityCurve(filled);
+  }, [calendarDateIsos, analyticsDailyByDate]);
+
+  const strategyAttribution = React.useMemo(() => {
+    return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
+  }, [analyticsTrades, strategyIndex]);
+
+  type GalleryItem = {
+    tradePath: string;
+    coverPath: string;
+    url?: string;
+  };
 
   const galleryItems = React.useMemo((): GalleryItem[] => {
     if (!getResourceUrl) return [];
@@ -355,7 +668,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
       const ref = parseCoverRef(rawCover);
       if (!ref) continue;
 
-      let target = ref;
+      let target = ref.target;
       // 解析 markdown link 的 target 可能带引号/空格
       target = String(target).trim();
       if (!target) continue;
@@ -373,7 +686,71 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     return out;
   }, [trades, resolveLink, getResourceUrl]);
 
-  // Computations now handled by useDashboardData hook
+  const inspectorIssues = React.useMemo(() => {
+    return buildInspectorIssues(trades, enumPresets);
+  }, [trades, enumPresets]);
+
+  const fixPlanText = React.useMemo(() => {
+    if (!showFixPlan || !enumPresets) return undefined;
+    const plan = buildFixPlan(trades, enumPresets);
+    return JSON.stringify(plan, null, 2);
+  }, [showFixPlan, trades, enumPresets]);
+
+  const managerPlanText = React.useMemo(() => {
+    if (!managerPlan) return undefined;
+    return JSON.stringify(managerPlan, null, 2);
+  }, [managerPlan]);
+
+  const openTrade = React.useMemo(() => {
+    return trades.find((t) => {
+      const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+      if (!pnlMissing) return false;
+      return (
+        t.outcome === "open" ||
+        t.outcome === undefined ||
+        t.outcome === "unknown"
+      );
+    });
+  }, [trades]);
+
+  const todayStrategyPicks = React.useMemo(() => {
+    if (!todayMarketCycle) return [];
+    return matchStrategies(strategyIndex, {
+      marketCycle: todayMarketCycle,
+      limit: 6,
+    });
+  }, [strategyIndex, todayMarketCycle]);
+
+  const openTradeStrategy = React.useMemo(() => {
+    if (!openTrade) return undefined;
+    const fm = (openTrade.rawFrontmatter ?? {}) as Record<string, any>;
+    const patternsRaw =
+      fm["patterns"] ??
+      fm["形态/patterns"] ??
+      fm["观察到的形态/patterns_observed"];
+    const patterns = Array.isArray(patternsRaw)
+      ? patternsRaw
+          .filter((x: any) => typeof x === "string")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : typeof patternsRaw === "string"
+      ? patternsRaw
+          .split(/[,，;；/|]/g)
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
+    const setupCategory = (fm["setup_category"] ??
+      fm["设置类别/setup_category"]) as any;
+    const setupCategoryStr =
+      typeof setupCategory === "string" ? setupCategory.trim() : undefined;
+    const picks = matchStrategies(strategyIndex, {
+      marketCycle: todayMarketCycle,
+      setupCategory: setupCategoryStr,
+      patterns,
+      limit: 3,
+    });
+    return picks[0];
+  }, [openTrade, strategyIndex, todayMarketCycle]);
 
   const strategyPicks = React.useMemo(() => {
     if (!latestTrade) return [];
@@ -384,15 +761,15 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
       fm["观察到的形态/patterns_observed"];
     const patterns = Array.isArray(patternsRaw)
       ? patternsRaw
-        .filter((x: any) => typeof x === "string")
-        .map((s: string) => s.trim())
-        .filter(Boolean)
+          .filter((x: any) => typeof x === "string")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
       : typeof patternsRaw === "string"
-        ? patternsRaw
+      ? patternsRaw
           .split(/[,，;；/|]/g)
           .map((s: string) => s.trim())
           .filter(Boolean)
-        : [];
+      : [];
     const marketCycle = (fm["market_cycle"] ??
       fm["市场周期/market_cycle"]) as any;
     const marketCycleStr =
@@ -410,7 +787,86 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
     });
   }, [latestTrade, strategyIndex, todayMarketCycle]);
 
-
+  const TrendRow: React.FC<{
+    label: string;
+    value: number;
+    ratio: number;
+    color: string;
+  }> = ({ label, value, ratio, color }) => {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "8px",
+        }}
+      >
+        <div
+          style={{
+            width: "70px",
+            color: "var(--text-muted)",
+            fontSize: "0.85em",
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            flex: "1 1 auto",
+            display: "flex",
+            height: "10px",
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "999px",
+            overflow: "hidden",
+            background: "rgba(var(--mono-rgb-100), 0.03)",
+          }}
+        >
+          <div style={{ flex: "1 1 0", position: "relative" }}>
+            {ratio < 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  height: "100%",
+                  width: "100%",
+                  background: color,
+                  opacity: 0.55,
+                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                  transformOrigin: "right",
+                }}
+              />
+            )}
+          </div>
+          <div style={{ flex: "1 1 0", position: "relative" }}>
+            {ratio > 0 && (
+              <div
+                style={{
+                  height: "100%",
+                  width: "100%",
+                  background: color,
+                  opacity: 0.55,
+                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                  transformOrigin: "left",
+                }}
+              />
+            )}
+          </div>
+        </div>
+        <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
+          <span
+            style={{
+              color: value >= 0 ? "var(--text-success)" : "var(--text-error)",
+              fontWeight: 600,
+            }}
+          >
+            {value >= 0 ? "+" : ""}
+            {value.toFixed(1)}R
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -601,245 +1057,313 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         </div>
       )}
 
-      <div
-        style={{
-          background: "var(--background-secondary)",
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "12px",
-          padding: "20px",
-          marginBottom: "24px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-          <span style={{ fontSize: "1.4em" }}>📊</span>
-          <div style={{ fontSize: "1.2em", fontWeight: 700, color: "var(--text-normal)" }}>
-            今日实时监控 (Today's Dashboard) - {todayIso}
-          </div>
-        </div>
-
-        {/* Create Journal Button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (todayContext && todayContext.openTodayNote) {
-              todayContext.openTodayNote();
-            } else {
-              // Fallback: simple implementation or notice
-              new Notice("正在打开今日笔记...");
-              // Ideally trigger command or use app.workspace.openLinkText
-            }
-          }}
+      {strategyPicks.length > 0 && (
+        <div
           style={{
-            width: "100%",
-            border: "1px dashed var(--text-muted)",
-            background: "rgba(var(--mono-rgb-100), 0.05)",
-            color: "var(--text-muted)",
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
             padding: "12px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            marginBottom: "20px",
-            fontSize: "0.95em",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "8px"
+            marginBottom: "16px",
+            background: "var(--background-primary)",
           }}
         >
-          📝 创建今日日记 并设置市场周期以获取策略推荐
-        </button>
-
-        {/* Market Cycle Strategy Recommendations */}
-        {todayMarketCycle && (
-          <div style={{ marginBottom: "20px", padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
-            {/* DEBUG INFO */}
-            <div style={{ display: 'block', color: 'red', fontSize: '11px', marginBottom: '8px' }}>
-              Debug: Index {strategies.length} | Cycle "{todayMarketCycle}" | Matches {todayStrategyPicks.length}
-            </div>
-            <div style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: "10px" }}>
-              💡 基于当前市场周期 <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[{todayMarketCycle}]</span> 的策略建议：
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {todayStrategyPicks.map((s) => (
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            今日策略推荐
+          </div>
+          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+            {strategyPicks.map((s) => (
+              <li key={s.path} style={{ marginBottom: "6px" }}>
                 <button
-                  key={`rec-${s.path}`}
                   type="button"
                   onClick={() => openFile(s.path)}
-                  style={{
-                    border: "1px solid var(--interactive-accent)",
-                    background: "rgba(var(--interactive-accent-rgb), 0.1)",
-                    color: "var(--text-on-accent)",
-                    padding: "4px 10px",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "0.85em",
-                    // @ts-ignore
-                    "--text-on-accent": "var(--text-normal)", // Fallback if var not defined
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--interactive-accent)";
-                    e.currentTarget.style.color = "var(--text-on-accent-inverted)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                    e.currentTarget.style.color = "var(--text-normal)";
-                  }}
+                  style={textButtonStyle}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
                 >
                   {s.canonicalName}
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {/* Strategy Assistant (Active Trade Context) */}
-        {openTradeStrategy && (
-          <div style={{
-            marginBottom: "20px",
-            background: "rgba(40, 50, 80, 0.6)",
-            border: "1px solid rgba(100, 149, 237, 0.3)",
-            borderRadius: "8px",
-            padding: "16px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "8px" }}>
-              <div style={{ color: "#6495ED", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>💡 策略助手:</span>
-                <button
-                  type="button"
-                  onClick={() => openFile(openTradeStrategy.path)}
-                  style={{ background: "none", border: "none", color: "inherit", fontWeight: "inherit", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                  {openTradeStrategy.canonicalName}
-                </button>
-              </div>
-              <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>查看详情 →</div>
-            </div>
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>交易中枢</div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "0.9em" }}>
-              {/* Left Column: Entry & Setup */}
-              <div>
-                {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                  <div style={{ marginBottom: "12px" }}>
-                    <div style={{ color: "var(--text-success)", fontWeight: 600, marginBottom: "4px" }}>✅ 入场标准</div>
-                    <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--text-normal)" }}>
-                      {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => <li key={`e-${i}`}>{x}</li>)}
-                    </ul>
-                  </div>
-                )}
-                <div style={{ marginBottom: "12px" }}>
-                  <div style={{ color: "var(--text-muted)", fontWeight: 600, marginBottom: "4px" }}>⚙️ 关键属性</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                    {openTradeStrategy.setupCategories.map((c, i) => (
-                      <span key={`c-${i}`} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px", fontSize: "0.85em" }}>{c}</span>
-                    ))}
-                    {openTradeStrategy.signalBarQuality.slice(0, 2).map((s, i) => (
-                      <span key={`s-${i}`} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px", fontSize: "0.85em" }}>{s}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Risk & Alerts */}
-              <div>
-                {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                  <div style={{ marginBottom: "12px" }}>
-                    <div style={{ color: "var(--text-warning)", fontWeight: 600, marginBottom: "4px" }}>⚠️ 风险提示</div>
-                    <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--text-normal)" }}>
-                      {openTradeStrategy.riskAlerts!.slice(0, 2).map((x, i) => <li key={`r-${i}`}>{x}</li>)}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Grid (5 Cards) */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px", marginBottom: "20px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+            marginBottom: "12px",
+          }}
+        >
           <StatsCard
-            title="总交易"
+            title="今日笔数"
             value={todaySummary.All.countTotal}
-            color="var(--text-accent)"
+            icon="🗓️"
           />
           <StatsCard
-            title="获胜"
-            value={todaySummary.All.countWins}
-            color="var(--text-success)"
+            title="今日盈亏"
+            value={`${
+              todaySummary.All.netProfit > 0 ? "+" : ""
+            }${todaySummary.All.netProfit.toFixed(1)}R`}
+            color={
+              todaySummary.All.netProfit >= 0
+                ? "var(--text-success)"
+                : "var(--text-error)"
+            }
+            icon="📈"
           />
-          <StatsCard
-            title="亏损"
-            value={todaySummary.All.countLosses}
-            color="var(--text-error)"
-          />
-          <StatsCard
-            title="胜率"
-            value={`${todaySummary.All.winRatePct}%`}
-            color="var(--text-warning)"
-          />
-          <StatsCard
-            title="净利润"
-            value={`${todaySummary.All.netProfit > 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`}
-            color={todaySummary.All.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"}
-          />
-        </div>
-
-        {/* Recent Trades Header */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "12px",
-          color: "var(--text-muted)",
-          fontSize: "0.9em"
-        }}>
-          <span>🕒 最近交易记录</span>
-        </div>
-
-        {/* Create Trade Button - Bottom */}
-        {todayTrades.length === 0 && (
-          <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-faint)", fontSize: "0.9em" }}>
-            🦅 今日暂无交易记录
-          </div>
-        )}
-
-        <div style={{ borderTop: "1px solid var(--background-modifier-border)", paddingTop: "16px", marginTop: "16px" }}>
-          <button
-            type="button"
-            disabled={!can("quickadd:new-live-trade")}
-            onClick={() => action("quickadd:new-live-trade")}
+          <div
             style={{
-              width: "100%",
-              background: "rgba(var(--color-green-rgb), 0.2)",
-              border: "1px solid rgba(var(--color-green-rgb), 0.4)",
-              color: "var(--text-success)",
-              padding: "12px",
-              borderRadius: "6px",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "1em",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.2s ease"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(var(--color-green-rgb), 0.3)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(var(--color-green-rgb), 0.2)";
+              flex: "1 1 240px",
+              minWidth: "240px",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "12px",
+              padding: "16px",
+              background: `rgba(var(--mono-rgb-100), 0.05)`,
             }}
           >
-            📝 创建新交易笔记 (图表分析 → 形态识别 → 策略匹配)
-          </button>
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--text-muted)",
+                letterSpacing: "0.05em",
+              }}
+            >
+              最新交易
+              <span style={{ marginLeft: "6px", color: "var(--text-faint)" }}>
+                {todayIso}
+              </span>
+            </div>
+            <div
+              style={{ marginTop: "8px", fontWeight: 700, fontSize: "1.1rem" }}
+            >
+              {todayLatestTrade ? (
+                <button
+                  type="button"
+                  onClick={() => openFile(todayLatestTrade.path)}
+                  style={textButtonStyle}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
+                >
+                  {todayLatestTrade.ticker ?? "未知"} • {todayLatestTrade.name}
+                </button>
+              ) : (
+                <span style={{ color: "var(--text-faint)" }}>—</span>
+              )}
+            </div>
+            <div
+              style={{
+                marginTop: "6px",
+                color: "var(--text-muted)",
+                fontSize: "0.85em",
+              }}
+            >
+              {todayTrades.length > 0
+                ? `今日 ${todayTrades.length} 笔`
+                : "今日暂无交易"}
+            </div>
+          </div>
         </div>
 
+        <div style={{ marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷入口</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-live-trade")}
+              onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-live-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建实盘
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-demo-trade")}
+              onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-demo-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建模拟
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-backtest")}
+              onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              新建回测
+            </button>
+            {!can("quickadd:new-live-trade") &&
+              !can("quickadd:new-demo-trade") &&
+              !can("quickadd:new-backtest") && (
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.85em",
+                    alignSelf: "center",
+                  }}
+                >
+                  QuickAdd 不可用
+                </span>
+              )}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            近期 R 趋势
+          </div>
+          <div
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.85em",
+              marginBottom: "8px",
+            }}
+          >
+            最近 10 笔
+          </div>
+          {(["Live", "Demo", "Backtest"] as const).map((at) => (
+            <TrendRow
+              key={`r10-${at}`}
+              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+              value={rLast10[at]}
+              ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
+              color={getRColorByAccountType(at)}
+            />
+          ))}
+          <div
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.85em",
+              margin: "10px 0 8px",
+            }}
+          >
+            最近 30 笔
+          </div>
+          {(["Live", "Demo", "Backtest"] as const).map((at) => (
+            <TrendRow
+              key={`r30-${at}`}
+              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+              value={rLast30[at]}
+              ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
+              color={getRColorByAccountType(at)}
+            />
+          ))}
+        </div>
       </div>
 
-      <Strategies picks={strategyPicks} onOpenFile={openFile} />
+      {/* Stats Row */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
+        <StatsCard
+          title="累计盈亏"
+          value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
+          color={
+            all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
+          }
+          icon="💰"
+        />
+        <StatsCard
+          title="胜率"
+          value={`${all.winRatePct}%`}
+          color={
+            all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
+          }
+          icon="🎯"
+        />
+      </div>
 
+      {/* Strategy Repository Stats */}
+      <div style={{ marginBottom: "18px" }}>
+        <StrategyStats
+          total={strategyStats.total}
+          activeCount={strategyStats.activeCount}
+          learningCount={strategyStats.learningCount}
+          totalUses={strategyStats.totalUses}
+          onFilter={(f) => {
+            // TODO: wire filtering state to StrategyList (future task)
+            console.log("策略过滤：", f);
+          }}
+        />
+      </div>
 
-
-
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard
+          title="实盘"
+          value={`${summary.Live.countTotal} 笔`}
+          subValue={`${
+            summary.Live.winRatePct
+          }% • ${summary.Live.netProfit.toFixed(1)}R`}
+          icon="🟢"
+        />
+        <StatsCard
+          title="模拟"
+          value={`${summary.Demo.countTotal} 笔`}
+          subValue={`${
+            summary.Demo.winRatePct
+          }% • ${summary.Demo.netProfit.toFixed(1)}R`}
+          icon="🟡"
+        />
+        <StatsCard
+          title="回测"
+          value={`${summary.Backtest.countTotal} 笔`}
+          subValue={`${
+            summary.Backtest.winRatePct
+          }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
+          icon="🔵"
+        />
+      </div>
 
       <div
         style={{
@@ -860,6 +1384,34 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         >
           市场周期：{todayMarketCycle ?? "—"}
         </div>
+
+        {todayStrategyPicks.length > 0 && (
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              周期 → 策略推荐
+            </div>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {todayStrategyPicks.map((s) => (
+                <li
+                  key={`today-pick-${s.path}`}
+                  style={{ marginBottom: "6px" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => openFile(s.path)}
+                      style={textButtonStyle}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
+                  >
+                    {s.canonicalName}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {openTrade && (
           <div>
@@ -926,19 +1478,19 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                   )}
                   {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
                     0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          止损
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .stopLossRecommendation!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`stop-${i}`}>{x}</li>
-                            ))}
-                        </ul>
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        止损
                       </div>
-                    )}
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy
+                          .stopLossRecommendation!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`stop-${i}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                   {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
@@ -955,19 +1507,19 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                   )}
                   {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) >
                     0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          目标
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .takeProfitRecommendation!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`tp-${i}`}>{x}</li>
-                            ))}
-                        </ul>
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        目标
                       </div>
-                    )}
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy
+                          .takeProfitRecommendation!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`tp-${i}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1039,86 +1591,86 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
           <div>
             {course.hybridRec
               ? (() => {
-                const rec = course.hybridRec;
-                const sid = simpleCourseId(rec.data.id);
-                const link =
-                  course.linksById[rec.data.id] || course.linksById[sid];
-                const prefix =
-                  rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                return (
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      padding: "10px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                      marginBottom: "10px",
-                    }}
-                  >
+                  const rec = course.hybridRec;
+                  const sid = simpleCourseId(rec.data.id);
+                  const link =
+                    course.linksById[rec.data.id] || course.linksById[sid];
+                  const prefix =
+                    rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                  return (
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "10px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        marginBottom: "10px",
                       }}
                     >
-                      <div>
-                        {link ? (
-                          <button
-                            type="button"
-                            onClick={() => openFile(link.path)}
-                            style={{ ...textButtonStyle, fontWeight: 600 }}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
-                          >
-                            {prefix}: {String(rec.data.t ?? rec.data.id)}
-                          </button>
-                        ) : (
-                          <span style={{ color: "var(--text-faint)" }}>
-                            {prefix}: {String(rec.data.t ?? rec.data.id)}
-                            （笔记未创建）
-                          </span>
-                        )}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                        }}
+                      >
+                        <div>
+                          {link ? (
+                            <button
+                              type="button"
+                              onClick={() => openFile(link.path)}
+                              style={{ ...textButtonStyle, fontWeight: 600 }}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
+                            >
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
+                            </button>
+                          ) : (
+                            <span style={{ color: "var(--text-faint)" }}>
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
+                              （笔记未创建）
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontFamily: "var(--font-monospace)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {rec.data.id}
+                        </div>
                       </div>
                       <div
                         style={{
+                          marginTop: "6px",
                           color: "var(--text-muted)",
-                          fontFamily: "var(--font-monospace)",
-                          whiteSpace: "nowrap",
+                          fontSize: "0.85em",
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {rec.data.id}
+                        <span>
+                          章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                        </span>
+                        <span>
+                          进度:{" "}
+                          <strong>
+                            {course.progress.doneCount}/
+                            {course.progress.totalCount}
+                          </strong>
+                        </span>
+                        <span>
+                          笔记: <strong>{link ? "已创建" : "未创建"}</strong>
+                        </span>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        color: "var(--text-muted)",
-                        fontSize: "0.85em",
-                        display: "flex",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span>
-                        章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                      </span>
-                      <span>
-                        进度:{" "}
-                        <strong>
-                          {course.progress.doneCount}/
-                          {course.progress.totalCount}
-                        </strong>
-                      </span>
-                      <span>
-                        笔记: <strong>{link ? "已创建" : "未创建"}</strong>
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()
+                  );
+                })()
               : null}
 
             {course.upNext.length > 0 && (
@@ -1202,13 +1754,13 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                         const bg = c.isDone
                           ? "var(--text-success)"
                           : c.hasNote
-                            ? "var(--text-accent)"
-                            : "rgba(var(--mono-rgb-100), 0.06)";
+                          ? "var(--text-accent)"
+                          : "rgba(var(--mono-rgb-100), 0.06)";
                         const fg = c.isDone
                           ? "var(--background-primary)"
                           : c.hasNote
-                            ? "var(--background-primary)"
-                            : "var(--text-faint)";
+                          ? "var(--background-primary)"
+                          : "var(--text-faint)";
                         const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
                         return (
                           <button
@@ -1518,13 +2070,14 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                   c.netR > 0
                     ? `rgba(var(--color-green-rgb), ${alpha})`
                     : c.netR < 0
-                      ? `rgba(var(--color-red-rgb), ${alpha})`
-                      : `rgba(var(--mono-rgb-100), 0.05)`;
+                    ? `rgba(var(--color-red-rgb), ${alpha})`
+                    : `rgba(var(--mono-rgb-100), 0.05)`;
                 return (
                   <div
                     key={`cal-${c.dateIso}`}
-                    title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
-                      }${c.netR.toFixed(1)}R`}
+                    title={`${c.dateIso} • ${c.count} 笔 • ${
+                      c.netR >= 0 ? "+" : ""
+                    }${c.netR.toFixed(1)}R`}
                     style={{
                       border: "1px solid var(--background-modifier-border)",
                       borderRadius: "6px",
@@ -1549,8 +2102,8 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                           c.netR > 0
                             ? "var(--text-success)"
                             : c.netR < 0
-                              ? "var(--text-error)"
-                              : "var(--text-faint)",
+                            ? "var(--text-error)"
+                            : "var(--text-faint)",
                         textAlign: "right",
                       }}
                     >
@@ -1698,11 +2251,84 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         </div>
       </div>
 
-      <Gallery
-        items={galleryItems}
-        available={!!getResourceUrl}
-        onOpenFile={openFile}
-      />
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
+        {!getResourceUrl ? (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            Gallery unavailable.
+          </div>
+        ) : galleryItems.length > 0 ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              gap: "8px",
+            }}
+          >
+            {galleryItems.map((it) => (
+              <button
+                key={`gal-${it.coverPath}`}
+                type="button"
+                onClick={() => openFile(it.coverPath)}
+                title={it.coverPath}
+                onMouseEnter={onCoverMouseEnter}
+                onMouseLeave={onCoverMouseLeave}
+                onFocus={onCoverFocus}
+                onBlur={onCoverBlur}
+                style={{
+                  padding: 0,
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  background: `rgba(var(--mono-rgb-100), 0.03)`,
+                  cursor: "pointer",
+                  outline: "none",
+                  transition:
+                    "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+                }}
+              >
+                {it.url ? (
+                  <img
+                    src={it.url}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "120px",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: "120px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--text-faint)",
+                      fontSize: "0.85em",
+                    }}
+                  >
+                    —
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            未找到封面图片。
+          </div>
+        )}
+      </div>
 
       <div
         style={{
@@ -1842,8 +2468,8 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                     {issue.severity === "error"
                       ? "错误"
                       : issue.severity === "warn"
-                        ? "警告"
-                        : "—"}
+                      ? "警告"
+                      : "—"}
                   </div>
                   <div style={{ flex: "1 1 auto" }}>
                     <div style={{ fontWeight: 600 }}>{issue.title}</div>
@@ -1889,7 +2515,7 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
                   whiteSpace: "pre-wrap",
                 }}
               >
-                {managerPlanText ?? ""}
+                {fixPlanText ?? ""}
               </pre>
             </div>
           ) : (
@@ -2149,23 +2775,13 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
 
       {/* Main Content Area */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-
-        {/* Strategy Repository (Gap Restoration) */}
-        <StrategyList strategies={strategies as any[]} onOpenFile={openFile} />
-
-        {/* Analytics Gap Restoration */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-          <ContextWidget data={contextAnalysis} />
-          <ErrorWidget data={errorAnalysis} />
-        </div>
-
         {/* Trade Feed */}
         <div>
           <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
           <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 
@@ -2361,7 +2977,7 @@ export class ConsoleView extends ItemView {
       const STRATEGY_TAG = "PA/Strategy";
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f: TFile) => (prefix ? f.path.startsWith(prefix) : true));
+        .filter((f) => (prefix ? f.path.startsWith(prefix) : true));
       for (const f of files) {
         const cache = this.app.metadataCache.getFileCache(f);
         let fm = cache?.frontmatter as Record<string, unknown> | undefined;
@@ -2370,8 +2986,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-            ? [fmTagsRaw]
-            : [];
+          ? [fmTagsRaw]
+          : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isStrategy = normalized.some(
           (t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase()
@@ -2403,7 +3019,7 @@ export class ConsoleView extends ItemView {
       const syllabusName = "PA_Syllabus_Data.md";
       const syFile = this.app.vault
         .getMarkdownFiles()
-        .find((f: TFile) => f.name === syllabusName);
+        .find((f) => f.name === syllabusName);
       const syllabus = syFile
         ? parseSyllabusJsonFromMarkdown(await this.app.vault.read(syFile))
         : [];
@@ -2421,8 +3037,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-            ? [fmTagsRaw]
-            : [];
+          ? [fmTagsRaw]
+          : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isCourse = normalized.some(
           (t) => t.toLowerCase() === COURSE_TAG.toLowerCase()
@@ -2455,8 +3071,8 @@ export class ConsoleView extends ItemView {
       const FLASH_TAG = "flashcards";
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f: TFile) => !f.path.startsWith("Templates/"));
-      const picked = files.filter((f: TFile) => {
+        .filter((f) => !f.path.startsWith("Templates/"));
+      const picked = files.filter((f) => {
         const cache = this.app.metadataCache.getFileCache(f);
         const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
         const fm = cache?.frontmatter as any;
@@ -2464,8 +3080,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-            ? [fmTagsRaw]
-            : [];
+          ? [fmTagsRaw]
+          : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         return normalized.some(
           (t) => t.toLowerCase() === FLASH_TAG.toLowerCase()
