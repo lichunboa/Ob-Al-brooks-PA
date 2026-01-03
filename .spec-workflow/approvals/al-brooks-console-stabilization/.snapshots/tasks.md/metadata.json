@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/al-brooks-console-stabilization/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-01-03T07:09:23.588Z",
+      "trigger": "initial",
+      "approvalId": "approval_1767424163578_jnk516kdy",
+      "approvalTitle": "Approve P0 Stabilization Tasks"
+    }
+  ]
+}
