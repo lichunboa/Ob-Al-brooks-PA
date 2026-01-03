@@ -14,6 +14,7 @@ import type { AccountType, TradeRecord } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
 import { matchStrategies } from "../core/strategy-matcher";
 import { StatsCard } from "./components/StatsCard";
+import { StrategyStats } from "./components";
 import { TradeList } from "./components/TradeList";
 import {
   computeDailyAgg,
@@ -213,6 +214,9 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
 }) => {
   const [trades, setTrades] = React.useState(index.getAll());
+  const [strategies, setStrategies] = React.useState<any[]>(() =>
+    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  );
   const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
     index.getStatus ? index.getStatus() : { phase: "ready" }
   );
@@ -276,6 +280,32 @@ const ConsoleComponent: React.FC<Props> = ({
     onUpdate();
     return unsubscribe;
   }, [index]);
+
+  React.useEffect(() => {
+    if (!strategyIndex) return;
+    const update = () => {
+      try {
+        const list = strategyIndex.list ? strategyIndex.list() : [];
+        setStrategies(list);
+      } catch (e) {
+        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
+        setStrategies([]);
+      }
+    };
+    update();
+    if (strategyIndex.onChanged) return strategyIndex.onChanged(update);
+    return () => {};
+  }, [strategyIndex]);
+
+  const strategyStats = React.useMemo(() => {
+    const total = strategies.length;
+    const activeCount = strategies.filter((s) => s.status === "active")
+      .length;
+    const learningCount = strategies.filter((s) => s.status === "learning")
+      .length;
+    const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
+    return { total, activeCount, learningCount, totalUses };
+  }, [strategies]);
 
   React.useEffect(() => {
     if (!todayContext?.onChanged) return;
@@ -1284,6 +1314,20 @@ const ConsoleComponent: React.FC<Props> = ({
             all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
           }
           icon="🎯"
+        />
+      </div>
+
+      {/* Strategy Repository Stats */}
+      <div style={{ marginBottom: "18px" }}>
+        <StrategyStats
+          total={strategyStats.total}
+          activeCount={strategyStats.activeCount}
+          learningCount={strategyStats.learningCount}
+          totalUses={strategyStats.totalUses}
+          onFilter={(f) => {
+            // TODO: wire filtering state to StrategyList (future task)
+            console.log("策略过滤：", f);
+          }}
         />
       </div>
 
