@@ -293,7 +293,6 @@ const ConsoleComponent: React.FC<Props> = ({
       }
     };
     update();
-    if (strategyIndex.onChanged) return strategyIndex.onChanged(update);
     return () => {};
   }, [strategyIndex]);
 
@@ -1324,7 +1323,7 @@ const ConsoleComponent: React.FC<Props> = ({
           activeCount={strategyStats.activeCount}
           learningCount={strategyStats.learningCount}
           totalUses={strategyStats.totalUses}
-          onFilter={(f) => {
+          onFilter={(f: string) => {
             // TODO: wire filtering state to StrategyList (future task)
             console.log("策略过滤：", f);
           }}

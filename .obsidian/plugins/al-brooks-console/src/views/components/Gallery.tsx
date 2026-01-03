@@ -1,5 +1,10 @@
 import * as React from "react";
-import { type GalleryItem } from "./types";
+
+export type GalleryItem = {
+    tradePath?: string;
+    coverPath: string;
+    url?: string;
+};
 
 interface Props {
     items: GalleryItem[];

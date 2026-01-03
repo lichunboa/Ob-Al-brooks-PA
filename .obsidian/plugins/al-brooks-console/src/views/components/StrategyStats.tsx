@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from "react";
 import type { StrategyStatsProps } from './types';
 
 const StatCard: React.FC<{label: string; value: number | string; onClick?: ()=>void}> = ({label, value, onClick}) => (
