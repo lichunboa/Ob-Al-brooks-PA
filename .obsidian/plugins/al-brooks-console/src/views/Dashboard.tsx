@@ -722,7 +722,7 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [managerPlan]);
 
   const openTrade = React.useMemo(() => {
-    const isOpen = (t: (typeof trades)[number]) => {
+    return trades.find((t) => {
       const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
       if (!pnlMissing) return false;
       return (
@@ -730,21 +730,8 @@ const ConsoleComponent: React.FC<Props> = ({
         t.outcome === undefined ||
         t.outcome === "unknown"
       );
-    };
-
-    const sortByMtimeDesc = (a: (typeof trades)[number], b: (typeof trades)[number]) =>
-      (b.mtime ?? 0) - (a.mtime ?? 0);
-
-    const todayOpen = trades
-      .filter((t) => t.dateIso === todayIso)
-      .filter(isOpen)
-      .sort(sortByMtimeDesc);
-
-    if (todayOpen.length > 0) return todayOpen[0];
-
-    const anyOpen = trades.filter(isOpen).sort(sortByMtimeDesc);
-    return anyOpen[0];
-  }, [trades, todayIso]);
+    });
+  }, [trades]);
 
   const todayStrategyPicks = React.useMemo(() => {
     return computeTodayStrategyPicks({
@@ -1081,24 +1068,17 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-          🗓️ 今日实时监控 (Today's Dashboard)
-          <span style={{ marginLeft: "8px", color: "var(--text-muted)", fontWeight: 500, fontSize: "0.9em" }}>
-            {todayIso}
-          </span>
-        </div>
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
 
         {!todayMarketCycle && (
-          <div
-            style={{
-              border: "1px dashed var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              marginBottom: "12px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
+          <div style={{ marginBottom: "12px" }}>
+            <div
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
               创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
             </div>
             <button
@@ -1120,280 +1100,149 @@ const ConsoleComponent: React.FC<Props> = ({
           style={{
             color: "var(--text-muted)",
             fontSize: "0.9em",
-            marginBottom: "12px",
+            marginBottom: "10px",
           }}
         >
           市场周期：{todayMarketCycle ?? "—"}
         </div>
 
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "12px",
-            marginBottom: "12px",
-            background: "rgba(var(--mono-rgb-100), 0.05)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "12px",
-              alignItems: "baseline",
-              marginBottom: "8px",
-            }}
-          >
-            <div style={{ fontWeight: 600 }}>
-              根据昨日：{" "}
-              {todayStrategyPicks.length > 0
-                ? todayStrategyPicks[0].canonicalName
-                : "（占位符：暂无推荐）"}
+        {todayStrategyPicks.length > 0 && (
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              周期 → 策略推荐
             </div>
-            <button
-              type="button"
-              disabled={todayStrategyPicks.length === 0}
-              onClick={() =>
-                todayStrategyPicks.length > 0 && openFile(todayStrategyPicks[0].path)
-              }
-              style={todayStrategyPicks.length > 0 ? buttonStyle : disabledButtonStyle}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {todayStrategyPicks.map((s) => (
+                <li key={`today-pick-${s.path}`} style={{ marginBottom: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => openFile(s.path)}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
+                  >
+                    {s.canonicalName}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {openTrade && (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              进行中交易助手
+            </div>
+            <div
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "8px",
+              }}
             >
-              查看策略
-            </button>
-          </div>
-
-          <div
-            style={{
-              color: "var(--text-faint)",
-              fontSize: "0.9em",
-              marginBottom: "10px",
-            }}
-          >
-            （占位符）策略卡片内容（入场/止损/风险/目标）将对齐旧版面板。
-          </div>
-
-          {openTrade ? (
-            <div>
-              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                进行中交易助手
-              </div>
-              <div
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: "0.9em",
-                  marginBottom: "8px",
-                }}
+              <button
+                type="button"
+                onClick={() => openFile(openTrade.path)}
+                style={textButtonStyle}
+                onMouseEnter={onTextBtnMouseEnter}
+                onMouseLeave={onTextBtnMouseLeave}
+                onFocus={onTextBtnFocus}
+                onBlur={onTextBtnBlur}
               >
-                <button
-                  type="button"
-                  onClick={() => openFile(openTrade.path)}
-                  style={textButtonStyle}
-                  onMouseEnter={onTextBtnMouseEnter}
-                  onMouseLeave={onTextBtnMouseLeave}
-                  onFocus={onTextBtnFocus}
-                  onBlur={onTextBtnBlur}
+                {openTrade.ticker ?? "未知"} • {openTrade.name}
+              </button>
+            </div>
+
+            {openTradeStrategy ? (
+              <div>
+                <div style={{ marginBottom: "8px" }}>
+                  策略:{" "}
+                  <button
+                    type="button"
+                    onClick={() => openFile(openTradeStrategy.path)}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
+                  >
+                    {openTradeStrategy.canonicalName}
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: "8px",
+                  }}
                 >
-                  {openTrade.ticker ?? "未知"} • {openTrade.name}
-                </button>
+                  {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        入场
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy
+                          .entryCriteria!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`entry-${i}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        止损
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy
+                          .stopLossRecommendation!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`stop-${i}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        风险
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
+                          <li key={`risk-${i}`}>{x}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                        目标
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {openTradeStrategy
+                          .takeProfitRecommendation!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`tp-${i}`}>{x}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {openTradeStrategy ? (
-                <div>
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "10px",
-                      marginBottom: "10px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                      实时匹配输入（来自交易属性）
-                    </div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                      形态：
-                      {(openTrade.patternsObserved?.length ?? 0) > 0
-                        ? openTrade.patternsObserved!.join(" / ")
-                        : "—"}
-                    </div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                      设置类别：{openTrade.setupCategory ?? "—"}
-                    </div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                      信号K：
-                      {(openTrade.signalBarQuality?.length ?? 0) > 0
-                        ? openTrade.signalBarQuality!.join(" / ")
-                        : "—"}
-                    </div>
-
-                    {(() => {
-                      const tradeSignals = (openTrade.signalBarQuality ?? [])
-                        .map((s) => String(s).trim())
-                        .filter(Boolean);
-                      const strategySignals = (openTradeStrategy.signalBarQuality ?? [])
-                        .map((s) => String(s).trim())
-                        .filter(Boolean);
-
-                      if (strategySignals.length === 0) {
-                        return (
-                          <div
-                            style={{
-                              marginTop: "8px",
-                              color: "var(--text-faint)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            信号K校验：策略卡未配置（跳过）
-                          </div>
-                        );
-                      }
-
-                      if (tradeSignals.length === 0) {
-                        return (
-                          <div
-                            style={{
-                              marginTop: "8px",
-                              color: "var(--text-warning)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            信号K校验：请在交易中填写
-                            <span style={{ fontFamily: "var(--font-monospace)" }}>
-                              {" "}
-                              signal / 信号K
-                            </span>
-                            （用于旧版同口径的“信号K验证”）
-                          </div>
-                        );
-                      }
-
-                      const matched = tradeSignals.some((s) =>
-                        strategySignals.some((req) => req === s || req.includes(s) || s.includes(req))
-                      );
-
-                      return matched ? (
-                        <div
-                          style={{
-                            marginTop: "8px",
-                            color: "var(--text-success)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          信号K校验：匹配（策略偏好：{strategySignals.join(" / ")})
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            marginTop: "8px",
-                            color: "var(--text-warning)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          信号K校验：不匹配（策略偏好：{strategySignals.join(" / ")})
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  <div style={{ marginBottom: "8px" }}>
-                    策略：{" "}
-                    <button
-                      type="button"
-                      onClick={() => openFile(openTradeStrategy.path)}
-                      style={textButtonStyle}
-                      onMouseEnter={onTextBtnMouseEnter}
-                      onMouseLeave={onTextBtnMouseLeave}
-                      onFocus={onTextBtnFocus}
-                      onBlur={onTextBtnBlur}
-                    >
-                      {openTradeStrategy.canonicalName}
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr",
-                      gap: "8px",
-                    }}
-                  >
-                    {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          入场
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .entryCriteria!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`entry-${i}`}>{x}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
-                      0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          止损
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .stopLossRecommendation!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`stop-${i}`}>{x}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          风险
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .riskAlerts!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`risk-${i}`}>{x}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) >
-                      0 && (
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-                          目标
-                        </div>
-                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                          {openTradeStrategy
-                            .takeProfitRecommendation!.slice(0, 3)
-                            .map((x, i) => (
-                              <li key={`tp-${i}`}>{x}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                  未找到匹配策略。
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              （占位符）进行中交易助手：暂无进行中交易。
-            </div>
-          )}
-        </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                未找到匹配策略。
+              </div>
+            )}
+          </div>
+        )}
 
         <div
           style={{
