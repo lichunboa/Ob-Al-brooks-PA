@@ -603,6 +603,14 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [loadMemory, settingsKey]);
 
+  const hardRefreshMemory = React.useCallback(async () => {
+    // Align with legacy semantics: reset local state + best-effort trigger DV refresh + reload snapshot.
+    if (can("dataview:force-refresh")) {
+      void action("dataview:force-refresh");
+    }
+    await reloadMemory();
+  }, [action, can, reloadMemory]);
+
   React.useEffect(() => {
     void reloadCourse();
   }, [reloadCourse]);
@@ -2212,6 +2220,22 @@ const ConsoleComponent: React.FC<Props> = ({
             >
               刷新
             </button>
+            <button
+              type="button"
+              onClick={hardRefreshMemory}
+              disabled={!loadMemory || memoryBusy}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                !loadMemory || memoryBusy
+                  ? { ...disabledButtonStyle, padding: "6px 10px" }
+                  : { ...buttonStyle, padding: "6px 10px" }
+              }
+            >
+              强制刷新
+            </button>
           </div>
         </div>
 
@@ -2264,6 +2288,226 @@ const ConsoleComponent: React.FC<Props> = ({
                 状态：<strong>{memory.status}</strong>
               </div>
             </div>
+
+            {(() => {
+              const pTotal = Math.max(1, memory.total);
+              const sBase = (memory.cnt?.sNorm ?? 0) + (memory.cnt?.sRev ?? 0) * 2;
+              const mMulti = (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
+              const cloze = memory.cnt?.cloze ?? 0;
+
+              const seg = (n: number) => `${Math.max(0, (n / pTotal) * 100)}%`;
+
+              return (
+                <>
+                  <div
+                    style={{
+                      height: "8px",
+                      width: "100%",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      background: "var(--background-modifier-border)",
+                      display: "flex",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: seg(memory.cnt?.sNorm ?? 0),
+                        background: "var(--text-muted)",
+                        opacity: 0.5,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: seg((memory.cnt?.sRev ?? 0) * 2),
+                        background: "var(--text-muted)",
+                        opacity: 0.35,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: seg(memory.cnt?.mNorm ?? 0),
+                        background: "var(--text-accent)",
+                        opacity: 0.55,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: seg((memory.cnt?.mRev ?? 0) * 2),
+                        background: "var(--text-accent)",
+                        opacity: 0.35,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: seg(memory.cnt?.cloze ?? 0),
+                        background: "var(--text-accent)",
+                        opacity: 0.85,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: "10px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        textAlign: "center",
+                        background: "rgba(var(--mono-rgb-100), 0.02)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.75em",
+                          fontWeight: 700,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        基础
+                      </div>
+                      <div style={{ fontWeight: 800 }}>{sBase}</div>
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        textAlign: "center",
+                        background: "rgba(var(--mono-rgb-100), 0.02)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.75em",
+                          fontWeight: 700,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        多选
+                      </div>
+                      <div style={{ fontWeight: 800 }}>{mMulti}</div>
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        textAlign: "center",
+                        background: "rgba(var(--mono-rgb-100), 0.02)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.75em",
+                          fontWeight: 700,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        填空
+                      </div>
+                      <div style={{ fontWeight: 800 }}>{cloze}</div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+
+            {(() => {
+              const series = memory.loadNext7;
+              const max = Math.max(3, ...series.map((x) => x.count || 0));
+              return (
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.02)",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: "0.9em" }}>
+                      未来 7 天负载
+                    </div>
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                      +1…+7
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-end",
+                      gap: "10px",
+                      height: "120px",
+                    }}
+                  >
+                    {series.map((x, idx) => {
+                      const h = Math.max(
+                        4,
+                        Math.round((Math.max(0, x.count || 0) / max) * 100)
+                      );
+                      const has = (x.count || 0) > 0;
+                      return (
+                        <div
+                          key={`mem-load-${x.dateIso}-${idx}`}
+                          style={{
+                            flex: "1 1 0",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "8px",
+                              height: `${h}%`,
+                              minHeight: "4px",
+                              borderRadius: "4px",
+                              background: has
+                                ? "var(--text-accent)"
+                                : "var(--background-modifier-border)",
+                              opacity: has ? 0.85 : 0.6,
+                            }}
+                          />
+                          <div
+                            style={{
+                              fontSize: "0.75em",
+                              color: "var(--text-faint)",
+                              lineHeight: 1,
+                            }}
+                          >
+                            +{idx + 1}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {(() => {
               const canRecommendFocus =

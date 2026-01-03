@@ -20,6 +20,13 @@ export type MemorySnapshot = {
   masteryPct: number;
   load7d: number;
   loadNext7: Array<{ dateIso: string; count: number }>;
+  cnt: {
+    sNorm: number;
+    sRev: number;
+    mNorm: number;
+    mRev: number;
+    cloze: number;
+  };
   status: string;
   quizPool: QuizItem[];
   focusFile: MemoryFileStat | null;
@@ -57,6 +64,12 @@ export function buildMemorySnapshot(args: {
   let reviewed = 0;
   let easeSum = 0;
 
+  let cnt_sNorm = 0;
+  let cnt_sRev = 0;
+  let cnt_mNorm = 0;
+  let cnt_mRev = 0;
+  let cnt_cloze = 0;
+
   const todayStripped = stripTime(today);
   const loadNext7: Array<{ dateIso: string; count: number }> = Array.from(
     { length: 7 },
@@ -87,6 +100,12 @@ export function buildMemorySnapshot(args: {
     const c_sNorm = (clean.match(/(?<!:):{2}(?!:)/g) || []).length;
     const c_mRev = (clean.match(/^(?:\>)?\s*\?{2}\s*$/gm) || []).length;
     const c_mNorm = (clean.match(/^(?:\>)?\s*\?{1}\s*$/gm) || []).length;
+
+    cnt_cloze += c_cloze;
+    cnt_sRev += c_sRev;
+    cnt_sNorm += c_sNorm;
+    cnt_mRev += c_mRev;
+    cnt_mNorm += c_mNorm;
 
     const fileCards = c_cloze + c_sNorm + c_mNorm + c_sRev * 2 + c_mRev * 2;
     total += fileCards;
@@ -185,6 +204,13 @@ export function buildMemorySnapshot(args: {
     masteryPct,
     load7d,
     loadNext7,
+    cnt: {
+      sNorm: cnt_sNorm,
+      sRev: cnt_sRev,
+      mNorm: cnt_mNorm,
+      mRev: cnt_mRev,
+      cloze: cnt_cloze,
+    },
     status,
     quizPool,
     focusFile,
