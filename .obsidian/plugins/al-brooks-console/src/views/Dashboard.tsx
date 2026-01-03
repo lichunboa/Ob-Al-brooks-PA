@@ -1825,6 +1825,47 @@ const ConsoleComponent: React.FC<Props> = ({
             )}
           </div>
         </div>
+
+        <div
+          style={{
+            marginTop: "12px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              🌀 环境分析 (Context)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              （占位符）v5.0 的“环境/周期/市场状态分析”在插件版的 Dashboard 未内联展示。
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              ⚠️ 错误归因 (Errors)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              （占位符）v5.0 的“错误/复盘问题归因”在插件版的 Dashboard 未内联展示。
+            </div>
+          </div>
+        </div>
       </div>
 
       <div
@@ -2072,6 +2113,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 : { ...buttonStyle, padding: "6px 10px" }
             }
           >
+
             刷新
           </button>
         </div>
@@ -2441,23 +2483,9 @@ const ConsoleComponent: React.FC<Props> = ({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+        <div style={{ fontWeight: 700 }}>📉 管理模块</div>
         <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Actions
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          （占位符）v5.0 在控制台内联展示 Tasks 查询块；插件版当前只提供顶部“任务”按钮跳转到 Tasks 插件。
+          Management
         </div>
       </div>
 
@@ -2902,6 +2930,118 @@ const ConsoleComponent: React.FC<Props> = ({
             未加载计划。请先生成计划以预览变更。
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Actions
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+          （占位符）v5.0 在控制台内联展示 Tasks 查询块；插件版当前只提供顶部“任务”按钮跳转到 Tasks 插件。
+        </div>
+
+        <div
+          style={{
+            marginTop: "12px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              🔥 必须解决 (Inbox & Urgent)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              - ❓ 疑难杂症 (Questions)
+              <br />- 🚨 紧急事项 (Urgent)
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              🛠️ 持续改进 (Improvement)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              - 🧪 回测任务 (Backtest)
+              <br />- 📝 复盘任务 (Review)
+              <br />- 📖 待学习/阅读 (Study)
+              <br />- 🔬 待验证想法 (Verify)
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              📅 每日例行 (Routine)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              - ☀️ 盘前 (Checklist)
+              <br />- 🧘 盘中 (FOMO Check)
+              <br />- 🌙 盘后 (复盘日记)
+              <br />- 🧹 杂项待办 (To-Do)
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+              🛠️ 等待任务 (Maintenance)
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              - 🖨️ 待打印 (Print Queue)
+              <br />- 📂 待整理 (Organize)
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Area */}
