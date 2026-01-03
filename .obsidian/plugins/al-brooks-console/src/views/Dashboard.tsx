@@ -2491,6 +2491,63 @@ const ConsoleComponent: React.FC<Props> = ({
 
       <div
         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: "12px",
+          marginBottom: "16px",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
+            padding: "10px",
+            background: "rgba(var(--mono-rgb-100), 0.03)",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+            🔎 Inspector
+          </div>
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            数据治理与巡检（已在下方区块实现）
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
+            padding: "10px",
+            background: "rgba(var(--mono-rgb-100), 0.03)",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+            🧩 Schema
+          </div>
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            （占位符）v5.0 的 `pa-view-schema` 在插件版已并入 Inspector 区块（同一处展示）。
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
+            padding: "10px",
+            background: "rgba(var(--mono-rgb-100), 0.03)",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+            🛡️ Manager
+          </div>
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            属性管理（已在下方“管理器”区块实现）
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
           border: "1px solid var(--background-modifier-border)",
           borderRadius: "10px",
           padding: "12px",
@@ -3018,10 +3075,10 @@ const ConsoleComponent: React.FC<Props> = ({
               📅 每日例行 (Routine)
             </div>
             <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              - ☀️ 盘前 (Checklist)
-              <br />- 🧘 盘中 (FOMO Check)
-              <br />- 🌙 盘后 (复盘日记)
-              <br />- 🧹 杂项待办 (To-Do)
+                - ☀️ 盘前：阅读新闻，标记关键位 (S/R Levels)
+                <br />- 🧘 盘中：每小时检查一次情绪 (FOMO Check)
+                <br />- 🌙 盘后：填写当日复盘日记
+                <br />- 🧹 杂项待办 (To-Do)
             </div>
           </div>
 
@@ -3041,6 +3098,37 @@ const ConsoleComponent: React.FC<Props> = ({
               <br />- 📂 待整理 (Organize)
             </div>
           </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>📥 导出</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Export
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+          （占位符）v5.0 在页面底部提供“一键备份数据库”按钮（写入 `pa-db-export.json`）。插件版目前以“命令/导出快照”的形式提供导出能力（不在 Dashboard 内联按钮）。
         </div>
       </div>
 
