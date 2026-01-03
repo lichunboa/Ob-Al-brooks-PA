@@ -18,15 +18,12 @@ import { StrategyStats } from "./components";
 import { TradeList } from "./components/TradeList";
 import {
   computeDailyAgg,
-  computeContextAnalysis,
-  computeErrorAnalysis,
   computeEquityCurve,
   computeStrategyAttribution,
   filterTradesByScope,
   type AnalyticsScope,
   type DailyAgg,
 } from "../core/analytics";
-import { ContextWidget, ErrorWidget } from "./components/AnalyticsWidgets";
 import { parseCoverRef } from "../core/cover-parser";
 import {
   computeOpenTradePrimaryStrategy,
@@ -222,8 +219,8 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
 }) => {
   const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(
-    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  const [strategies, setStrategies] = React.useState<any[]>(() =>
+    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
   );
   const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
     index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -315,10 +312,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const strategyStats = React.useMemo(() => {
     const total = strategies.length;
-    const activeCount = strategies.filter((s) => s.status === "active").length;
-    const learningCount = strategies.filter(
-      (s) => s.status === "learning"
-    ).length;
+    const activeCount = strategies.filter((s) => s.status === "active")
+      .length;
+    const learningCount = strategies.filter((s) => s.status === "learning")
+      .length;
     const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
     return { total, activeCount, learningCount, totalUses };
   }, [strategies]);
@@ -427,20 +424,14 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onBtnFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
+  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
 
-  const onBtnBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
+  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  }, []);
 
   const onTextBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -457,20 +448,14 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onTextBtnFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
+  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    if (e.currentTarget.disabled) return;
+    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+  }, []);
 
-  const onTextBtnBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
+  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.boxShadow = "none";
+  }, []);
 
   const onMiniCellMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -683,14 +668,6 @@ const ConsoleComponent: React.FC<Props> = ({
     return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
   }, [analyticsTrades, strategyIndex]);
 
-  const contextAnalysis = React.useMemo(() => {
-    return computeContextAnalysis(analyticsTrades).slice(0, 8);
-  }, [analyticsTrades]);
-
-  const errorAnalysis = React.useMemo(() => {
-    return computeErrorAnalysis(analyticsTrades).slice(0, 8);
-  }, [analyticsTrades]);
-
   type GalleryItem = {
     tradePath: string;
     coverPath: string;
@@ -894,1797 +871,2034 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           {statusText}
         </span>
+        {integrations && (
+          <span style={{ marginLeft: "10px" }}>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-live-trade")}
+              onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-live-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建实盘
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-demo-trade")}
+              onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-demo-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建模拟
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-backtest")}
+              onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              新建回测
+            </button>
+            <button
+              type="button"
+              disabled={!can("srs:review-flashcards")}
+              onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              复习
+            </button>
+            <button
+              type="button"
+              disabled={!can("dataview:force-refresh")}
+              onClick={() => action("dataview:force-refresh")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("dataview:force-refresh")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              刷新 DV
+            </button>
+            <button
+              type="button"
+              disabled={!can("tasks:open")}
+              onClick={() => action("tasks:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
+            >
+              任务
+            </button>
+            <button
+              type="button"
+              disabled={!can("metadata-menu:open")}
+              onClick={() => action("metadata-menu:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("metadata-menu:open") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              元数据
+            </button>
+          </span>
+        )}
+        {index.rebuild && (
+          <button
+            type="button"
+            onClick={onRebuild}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={{ ...buttonStyle, marginLeft: "12px" }}
+          >
+            重建索引
+          </button>
+        )}
       </h2>
 
-      {(() => {
-        const groupSummaryStyle: React.CSSProperties = {
-          cursor: "pointer",
-          userSelect: "none",
-          listStyle: "none",
-          padding: "10px 0",
+      <div
+        style={{
+          margin: "12px 0 10px",
+          paddingBottom: "8px",
           borderBottom: "1px solid var(--background-modifier-border)",
           display: "flex",
           alignItems: "baseline",
           gap: "10px",
           flexWrap: "wrap",
-        };
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Trading Hub
+        </div>
+      </div>
 
-        const groupBodyStyle: React.CSSProperties = {
-          paddingTop: "12px",
-        };
+      {latestTrade && reviewHints.length > 0 && (
+        <details style={{ marginBottom: "16px" }}>
+          <summary
+            style={{
+              cursor: "pointer",
+              color: "var(--text-muted)",
+              fontSize: "0.95em",
+              userSelect: "none",
+              marginBottom: "8px",
+            }}
+          >
+            扩展（不参与旧版对照）：复盘提示
+          </summary>
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "12px",
+              background: "var(--background-primary)",
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              复盘提示
+              <span
+                style={{
+                  fontWeight: 400,
+                  marginLeft: "8px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.85em",
+                }}
+              >
+                {latestTrade.name}
+              </span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {reviewHints.slice(0, 4).map((h) => (
+                <li key={h.id} style={{ marginBottom: "6px" }}>
+                  <div>{h.zh}</div>
+                  <div
+                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                  >
+                    {h.en}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      )}
 
-        return (
-          <div>
-            <details open style={{ marginBottom: "14px" }}>
-              <summary style={groupSummaryStyle}>
-                <div style={{ fontWeight: 800 }}>⚔️ 交易中心</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                  Trading Hub
-                </div>
-              </summary>
-              <div style={groupBodyStyle}>
-                {latestTrade && reviewHints.length > 0 && (
-                  <details style={{ marginBottom: "16px" }}>
-                    <summary
-                      style={{
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        fontSize: "0.95em",
-                        userSelect: "none",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      扩展（不参与旧版对照）：复盘提示
-                    </summary>
-                    <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        background: "var(--background-primary)",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                        复盘提示
-                        <span
-                          style={{
-                            fontWeight: 400,
-                            marginLeft: "8px",
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
-                          }}
-                        >
-                          {latestTrade.name}
-                        </span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                        {reviewHints.slice(0, 4).map((h) => (
-                          <li key={h.id} style={{ marginBottom: "6px" }}>
-                            <div>{h.zh}</div>
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.85em",
-                              }}
-                            >
-                              {h.en}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </details>
-                )}
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+          🗓️ 今日实时监控 (Today's Dashboard)
+          <span style={{ marginLeft: "8px", color: "var(--text-muted)", fontWeight: 500, fontSize: "0.9em" }}>
+            {todayIso}
+          </span>
+        </div>
 
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "12px",
-                    marginBottom: "16px",
-                    background: "var(--background-primary)",
-                  }}
+        {!todayMarketCycle && (
+          <div
+            style={{
+              border: "1px dashed var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              marginBottom: "12px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ color: "var(--text-muted)", marginBottom: "8px" }}>
+              创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
+            </div>
+            <button
+              type="button"
+              disabled={!canOpenTodayNote}
+              onClick={onOpenTodayNote}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+            >
+              打开/创建今日日记（设置市场周期）
+            </button>
+          </div>
+        )}
+
+        <div
+          style={{
+            color: "var(--text-muted)",
+            fontSize: "0.9em",
+            marginBottom: "12px",
+          }}
+        >
+          市场周期：{todayMarketCycle ?? "—"}
+        </div>
+
+        <div
+          style={{
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "10px",
+            padding: "12px",
+            marginBottom: "12px",
+            background: "rgba(var(--mono-rgb-100), 0.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+              alignItems: "baseline",
+              marginBottom: "8px",
+            }}
+          >
+            <div style={{ fontWeight: 600 }}>
+              根据昨日：{" "}
+              {todayStrategyPicks.length > 0
+                ? todayStrategyPicks[0].canonicalName
+                : "（占位符：暂无推荐）"}
+            </div>
+            <button
+              type="button"
+              disabled={todayStrategyPicks.length === 0}
+              onClick={() =>
+                todayStrategyPicks.length > 0 && openFile(todayStrategyPicks[0].path)
+              }
+              style={todayStrategyPicks.length > 0 ? buttonStyle : disabledButtonStyle}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+            >
+              查看策略
+            </button>
+          </div>
+
+          <div
+            style={{
+              color: "var(--text-faint)",
+              fontSize: "0.9em",
+              marginBottom: "10px",
+            }}
+          >
+            （占位符）策略卡片内容（入场/止损/风险/目标）将对齐旧版面板。
+          </div>
+
+          {openTrade ? (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                进行中交易助手
+              </div>
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  marginBottom: "8px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => openFile(openTrade.path)}
+                  style={textButtonStyle}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
                 >
-                  <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-                    🗓️ 今日实时监控 (Today's Dashboard)
-                    <span
-                      style={{
-                        marginLeft: "8px",
-                        color: "var(--text-muted)",
-                        fontWeight: 500,
-                        fontSize: "0.9em",
-                      }}
+                  {openTrade.ticker ?? "未知"} • {openTrade.name}
+                </button>
+              </div>
+
+              {openTradeStrategy ? (
+                <div>
+                  <div style={{ marginBottom: "8px" }}>
+                    策略：{" "}
+                    <button
+                      type="button"
+                      onClick={() => openFile(openTradeStrategy.path)}
+                      style={textButtonStyle}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
                     >
-                      {todayIso}
-                    </span>
-                  </div>
-
-                  {!todayMarketCycle && (
-                    <div
-                      style={{
-                        border: "1px dashed var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "10px",
-                        marginBottom: "12px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                      }}
-                    >
-                      <div
-                        style={{ color: "var(--text-muted)", marginBottom: "8px" }}
-                      >
-                        创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-                      </div>
-                      <button
-                        type="button"
-                        disabled={!canOpenTodayNote}
-                        onClick={onOpenTodayNote}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-                      >
-                        打开/创建今日日记（设置市场周期）
-                      </button>
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    市场周期：{todayMarketCycle ?? "—"}
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "12px",
-                      background: "rgba(var(--mono-rgb-100), 0.05)",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                      🎯 策略推荐
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "12px",
-                      }}
-                    >
-                      <div style={{ flex: "1 1 320px" }}>
-                        <div
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
-                            marginBottom: "6px",
-                          }}
-                        >
-                          按市场周期（{todayMarketCycle ?? "—"}）
-                        </div>
-                        {todayStrategyPicks.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {todayStrategyPicks.map((s) => (
-                              <li key={s.path} style={{ marginBottom: "6px" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => openFile(s.path)}
-                                  onMouseEnter={onBtnMouseEnter}
-                                  onMouseLeave={onBtnMouseLeave}
-                                  onFocus={onBtnFocus}
-                                  onBlur={onBtnBlur}
-                                  style={{
-                                    padding: 0,
-                                    border: "none",
-                                    background: "transparent",
-                                    color: "var(--text-accent)",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {s.name}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div style={{ color: "var(--text-muted)" }}>—</div>
-                        )}
-                      </div>
-
-                      <div style={{ flex: "1 1 320px" }}>
-                        <div
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
-                            marginBottom: "6px",
-                          }}
-                        >
-                          按最近一笔交易/形态
-                        </div>
-                        {strategyPicks.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {strategyPicks.map((s) => (
-                              <li key={s.path} style={{ marginBottom: "6px" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => openFile(s.path)}
-                                  onMouseEnter={onBtnMouseEnter}
-                                  onMouseLeave={onBtnMouseLeave}
-                                  onFocus={onBtnFocus}
-                                  onBlur={onBtnBlur}
-                                  style={{
-                                    padding: 0,
-                                    border: "none",
-                                    background: "transparent",
-                                    color: "var(--text-accent)",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {s.name}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div style={{ color: "var(--text-muted)" }}>—</div>
-                        )}
-                      </div>
-                    </div>
-
-                    {openTradeStrategy && (
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          color: "var(--text-muted)",
-                          fontSize: "0.85em",
-                        }}
-                      >
-                        当前未平仓主策略：
-                        <button
-                          type="button"
-                          onClick={() => openFile(openTradeStrategy.path)}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={{
-                            padding: 0,
-                            border: "none",
-                            background: "transparent",
-                            color: "var(--text-accent)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {openTradeStrategy.name}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                  <details style={{ marginBottom: "16px" }}>
-                    <summary
-                      style={{
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        fontSize: "0.95em",
-                        userSelect: "none",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      扩展（不参与旧版对照）：近期 R 趋势
-                    </summary>
-                    <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        background: "var(--background-primary)",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                        近期 R 趋势
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          fontSize: "0.85em",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        最近 10 笔
-                      </div>
-                      {(["Live", "Demo", "Backtest"] as const).map((at) => (
-                        <TrendRow
-                          key={`r10-${at}`}
-                          label={
-                            at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"
-                          }
-                          value={rLast10[at]}
-                          ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
-                          color={getRColorByAccountType(at)}
-                        />
-                      ))}
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          fontSize: "0.85em",
-                          margin: "10px 0 8px",
-                        }}
-                      >
-                        最近 30 笔
-                      </div>
-                      {(["Live", "Demo", "Backtest"] as const).map((at) => (
-                        <TrendRow
-                          key={`r30-${at}`}
-                          label={
-                            at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"
-                          }
-                          value={rLast30[at]}
-                          ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
-                          color={getRColorByAccountType(at)}
-                        />
-                      ))}
-                    </div>
-                  </details>
-                </div>
-              </details>
-
-              <details open style={{ marginBottom: "14px" }}>
-                <summary style={groupSummaryStyle}>
-                  <div style={{ fontWeight: 800 }}>📊 数据中心</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                    Analytics Hub
-                  </div>
-                </summary>
-                <div style={groupBodyStyle}>
-                  {/* Stats Row */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "12px",
-                      marginBottom: "24px",
-                    }}
-                  >
-                    <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
-                    <StatsCard
-                      title="累计盈亏"
-                      value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(
-                        1
-                      )}R`}
-                      color={
-                        all.netProfit >= 0
-                          ? "var(--text-success)"
-                          : "var(--text-error)"
-                      }
-                      icon="💰"
-                    />
-                    <StatsCard
-                      title="胜率"
-                      value={`${all.winRatePct}%`}
-                      color={
-                        all.winRatePct > 50
-                          ? "var(--text-success)"
-                          : "var(--text-warning)"
-                      }
-                      icon="🎯"
-                    />
-                  </div>
-
-                  {/* Strategy Repository Stats */}
-                  <div style={{ marginBottom: "18px" }}>
-                    <StrategyStats
-                      total={strategyStats.total}
-                      activeCount={strategyStats.activeCount}
-                      learningCount={strategyStats.learningCount}
-                      totalUses={strategyStats.totalUses}
-                      onFilter={(f: string) => {
-                        // TODO: wire filtering state to StrategyList (future task)
-                        console.log("策略过滤：", f);
-                      }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "12px",
-                      marginBottom: "24px",
-                    }}
-                  >
-                    <StatsCard
-                      title="实盘"
-                      value={`${summary.Live.countTotal} 笔`}
-                      subValue={`${summary.Live.winRatePct}% • ${summary.Live.netProfit.toFixed(
-                        1
-                      )}R`}
-                      icon="🟢"
-                    />
-                    <StatsCard
-                      title="模拟"
-                      value={`${summary.Demo.countTotal} 笔`}
-                      subValue={`${summary.Demo.winRatePct}% • ${summary.Demo.netProfit.toFixed(
-                        1
-                      )}R`}
-                      icon="🟡"
-                    />
-                    <StatsCard
-                      title="回测"
-                      value={`${summary.Backtest.countTotal} 笔`}
-                      subValue={`${summary.Backtest.winRatePct}% • ${summary.Backtest.netProfit.toFixed(
-                        1
-                      )}R`}
-                      icon="🔵"
-                    />
+                      {openTradeStrategy.canonicalName}
+                    </button>
                   </div>
 
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                      gap: "12px",
-                      marginBottom: "16px",
+                      gridTemplateColumns: "1fr",
+                      gap: "8px",
                     }}
                   >
-                    <ContextWidget data={contextAnalysis} />
-                    <ErrorWidget data={errorAnalysis} />
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "10px",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>数据分析</div>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          color: "var(--text-muted)",
-                          fontSize: "0.9em",
-                        }}
-                      >
-                        范围
-                        <select
-                          value={analyticsScope}
-                          onChange={(e) =>
-                            setAnalyticsScope(e.target.value as AnalyticsScope)
-                          }
-                          style={selectStyle}
-                        >
-                          <option value="Live">实盘</option>
-                          <option value="Demo">模拟</option>
-                          <option value="Backtest">回测</option>
-                          <option value="All">全部</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
-                      <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
-                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                          日历（最近 {calendarDays} 天）
+                    {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          入场
                         </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                            gap: "6px",
-                          }}
-                        >
-                          {calendarCells.map((c) => {
-                            const absRatio =
-                              calendarMaxAbs > 0
-                                ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
-                                : 0;
-                            const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
-                            const bg =
-                              c.netR > 0
-                                ? `rgba(var(--color-green-rgb), ${alpha})`
-                                : c.netR < 0
-                                ? `rgba(var(--color-red-rgb), ${alpha})`
-                                : `rgba(var(--mono-rgb-100), 0.05)`;
-                            return (
-                              <div
-                                key={`cal-${c.dateIso}`}
-                                title={`${c.dateIso} • ${c.count} 笔 • ${
-                                  c.netR >= 0 ? "+" : ""
-                                }${c.netR.toFixed(1)}R`}
-                                style={{
-                                  border: "1px solid var(--background-modifier-border)",
-                                  borderRadius: "6px",
-                                  padding: "6px",
-                                  background: bg,
-                                  minHeight: "40px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <div
-                                  style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
-                                >
-                                  {getDayOfMonth(c.dateIso)}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: "0.85em",
-                                    fontWeight: 600,
-                                    color:
-                                      c.netR > 0
-                                        ? "var(--text-success)"
-                                        : c.netR < 0
-                                        ? "var(--text-error)"
-                                        : "var(--text-faint)",
-                                    textAlign: "right",
-                                  }}
-                                >
-                                  {c.count > 0
-                                    ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`
-                                    : "—"}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-                        <div style={{ fontWeight: 600, marginBottom: "8px" }}>权益曲线</div>
-                        {equitySeries.length > 1 ? (
-                          (() => {
-                            const w = 520;
-                            const h = 160;
-                            const pad = 14;
-                            const ys = equitySeries.map((p) => p.equityR);
-                            const minY = Math.min(...ys);
-                            const maxY = Math.max(...ys);
-                            const span = Math.max(1e-6, maxY - minY);
-                            const xStep =
-                              (w - pad * 2) / Math.max(1, equitySeries.length - 1);
-                            const points = equitySeries
-                              .map((p, i) => {
-                                const x = pad + i * xStep;
-                                const y =
-                                  pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
-                                return `${x.toFixed(1)},${y.toFixed(1)}`;
-                              })
-                              .join(" ");
-
-                            const last = equitySeries[equitySeries.length - 1];
-                            return (
-                              <div>
-                                <svg
-                                  viewBox={`0 0 ${w} ${h}`}
-                                  width="100%"
-                                  height="160"
-                                  style={{
-                                    border: "1px solid var(--background-modifier-border)",
-                                    borderRadius: "8px",
-                                    background: `rgba(var(--mono-rgb-100), 0.03)`,
-                                  }}
-                                >
-                                  <polyline
-                                    points={points}
-                                    fill="none"
-                                    stroke="var(--text-accent)"
-                                    strokeWidth="2"
-                                    strokeLinejoin="round"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                                <div
-                                  style={{
-                                    marginTop: "6px",
-                                    color: "var(--text-muted)",
-                                    fontSize: "0.9em",
-                                  }}
-                                >
-                                  最新：{" "}
-                                  <span
-                                    style={{
-                                      color:
-                                        last.equityR >= 0
-                                          ? "var(--text-success)"
-                                          : "var(--text-error)",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {last.equityR >= 0 ? "+" : ""}
-                                    {last.equityR.toFixed(1)}R
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                            数据不足。
-                          </div>
-                        )}
-
-                        <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
-                          策略归因（Top）
-                        </div>
-                        {strategyAttribution.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {strategyAttribution.map((r) => (
-                              <li
-                                key={`attr-${r.strategyName}`}
-                                style={{ marginBottom: "6px" }}
-                              >
-                                {r.strategyPath ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openFile(r.strategyPath!)}
-                                    style={textButtonStyle}
-                                    onMouseEnter={onTextBtnMouseEnter}
-                                    onMouseLeave={onTextBtnMouseLeave}
-                                    onFocus={onTextBtnFocus}
-                                    onBlur={onTextBtnBlur}
-                                  >
-                                    {r.strategyName}
-                                  </button>
-                                ) : (
-                                  <span>{r.strategyName}</span>
-                                )}
-                                <span
-                                  style={{
-                                    color: "var(--text-muted)",
-                                    marginLeft: "8px",
-                                    fontSize: "0.9em",
-                                  }}
-                                >
-                                  {r.count} 笔 •{" "}
-                                  <span
-                                    style={{
-                                      color:
-                                        r.netR >= 0
-                                          ? "var(--text-success)"
-                                          : "var(--text-error)",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {r.netR >= 0 ? "+" : ""}
-                                    {r.netR.toFixed(1)}R
-                                  </span>
-                                </span>
-                              </li>
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                          {openTradeStrategy
+                            .entryCriteria!.slice(0, 3)
+                            .map((x, i) => (
+                              <li key={`entry-${i}`}>{x}</li>
                             ))}
-                          </ul>
-                        ) : (
-                          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                            未找到策略归因数据。
-                          </div>
-                        )}
+                        </ul>
                       </div>
-                    </div>
+                    )}
+                    {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
+                      0 && (
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          止损
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                          {openTradeStrategy
+                            .stopLossRecommendation!.slice(0, 3)
+                            .map((x, i) => (
+                              <li key={`stop-${i}`}>{x}</li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          风险
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                          {openTradeStrategy
+                            .riskAlerts!.slice(0, 3)
+                            .map((x, i) => (
+                              <li key={`risk-${i}`}>{x}</li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) >
+                      0 && (
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          目标
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                          {openTradeStrategy
+                            .takeProfitRecommendation!.slice(0, 3)
+                            .map((x, i) => (
+                              <li key={`tp-${i}`}>{x}</li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </details>
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  未找到匹配策略。
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              （占位符）进行中交易助手：暂无进行中交易。
+            </div>
+          )}
+        </div>
 
-              <details style={{ marginBottom: "14px" }}>
-                <summary style={groupSummaryStyle}>
-                  <div style={{ fontWeight: 800 }}>📚 学习模块</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                    Memory / Course / Playbook / Gallery
-                  </div>
-                </summary>
-                <div style={groupBodyStyle}>
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            marginBottom: "12px",
+          }}
+        >
+          {(
+            [
+              {
+                t: "总交易",
+                v: String(todaySummary.All.countTotal),
+                c: "var(--text-normal)",
+              },
+              {
+                t: "获胜",
+                v: String(todaySummary.All.countWins),
+                c: "var(--text-success)",
+              },
+              {
+                t: "亏损",
+                v: String(todaySummary.All.countLosses),
+                c: "var(--text-error)",
+              },
+              {
+                t: "胜率",
+                v: `${todaySummary.All.winRatePct}%`,
+                c:
+                  todaySummary.All.winRatePct >= 50
+                    ? "var(--text-success)"
+                    : "var(--text-warning)",
+              },
+              {
+                t: "净利润",
+                v: `${todaySummary.All.netProfit >= 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`,
+                c:
+                  todaySummary.All.netProfit >= 0
+                    ? "var(--text-success)"
+                    : "var(--text-error)",
+              },
+            ] as const
+          ).map((x) => (
+            <div
+              key={`today-m-${x.t}`}
+              style={{
+                flex: "1 1 160px",
+                minWidth: "160px",
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "12px",
+                padding: "12px",
+                background: "rgba(var(--mono-rgb-100), 0.03)",
+              }}
+            >
+              <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+                {x.t}
+              </div>
+              <div style={{ marginTop: "6px", fontWeight: 800, fontSize: "1.2rem", color: x.c }}>
+                {x.v}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: "6px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            最近交易记录
+          </div>
+          {todayTrades.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {todayTrades.slice(0, 5).map((t) => (
+                <li key={t.path} style={{ marginBottom: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => openFile(t.path)}
+                    style={textButtonStyle}
+                    onMouseEnter={onTextBtnMouseEnter}
+                    onMouseLeave={onTextBtnMouseLeave}
+                    onFocus={onTextBtnFocus}
+                    onBlur={onTextBtnBlur}
                   >
+                    {t.ticker ?? "未知"} • {t.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ color: "var(--text-faint)", padding: "4px 0" }}>
+              今日暂无交易记录
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: "12px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷入口</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-live-trade")}
+              onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-live-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建实盘
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-demo-trade")}
+              onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-demo-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建模拟
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-backtest")}
+              onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              新建回测
+            </button>
+            {!can("quickadd:new-live-trade") &&
+              !can("quickadd:new-demo-trade") &&
+              !can("quickadd:new-backtest") && (
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.85em",
+                    alignSelf: "center",
+                  }}
+                >
+                  QuickAdd 不可用
+                </span>
+              )}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            近期 R 趋势
+          </div>
+          <div
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.85em",
+              marginBottom: "8px",
+            }}
+          >
+            最近 10 笔
+          </div>
+          {(["Live", "Demo", "Backtest"] as const).map((at) => (
+            <TrendRow
+              key={`r10-${at}`}
+              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+              value={rLast10[at]}
+              ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
+              color={getRColorByAccountType(at)}
+            />
+          ))}
+          <div
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.85em",
+              margin: "10px 0 8px",
+            }}
+          >
+            最近 30 笔
+          </div>
+          {(["Live", "Demo", "Backtest"] as const).map((at) => (
+            <TrendRow
+              key={`r30-${at}`}
+              label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+              value={rLast30[at]}
+              ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
+              color={getRColorByAccountType(at)}
+            />
+          ))}
+        </div>
+
+        <div style={{ marginTop: "14px" }}>
+          <button
+            type="button"
+            disabled={!canCreateTrade}
+            onClick={() => {
+              if (can("quickadd:new-live-trade")) return action("quickadd:new-live-trade");
+              if (can("quickadd:new-demo-trade")) return action("quickadd:new-demo-trade");
+              if (can("quickadd:new-backtest")) return action("quickadd:new-backtest");
+            }}
+            onMouseEnter={(e) => {
+              if (e.currentTarget.disabled) return;
+              e.currentTarget.style.filter = "brightness(1.02)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = "none";
+            }}
+            style={
+              canCreateTrade
+                ? {
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid var(--background-modifier-border)",
+                    background: "var(--interactive-accent)",
+                    color: "var(--text-on-accent)",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }
+                : {
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid var(--background-modifier-border)",
+                    background: "var(--background-primary)",
+                    color: "var(--text-faint)",
+                    fontWeight: 800,
+                    opacity: 0.6,
+                    cursor: "not-allowed",
+                  }
+            }
+          >
+            创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
+          </button>
+          {!canCreateTrade && (
+            <div
+              style={{
+                marginTop: "6px",
+                color: "var(--text-faint)",
+                fontSize: "0.9em",
+              }}
+            >
+              （占位符）需要 QuickAdd 适配才能一键创建。
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        style={{
+          margin: "18px 0 10px",
+          paddingBottom: "8px",
+          borderBottom: "1px solid var(--background-modifier-border)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>📊 数据中心</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+          Analytics Hub
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard title="总笔数" value={all.countTotal} icon="📊" />
+        <StatsCard
+          title="累计盈亏"
+          value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(1)}R`}
+          color={
+            all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
+          }
+          icon="💰"
+        />
+        <StatsCard
+          title="胜率"
+          value={`${all.winRatePct}%`}
+          color={
+            all.winRatePct > 50 ? "var(--text-success)" : "var(--text-warning)"
+          }
+          icon="🎯"
+        />
+      </div>
+
+      {/* Strategy Repository Stats */}
+      <div style={{ marginBottom: "18px" }}>
+        <StrategyStats
+          total={strategyStats.total}
+          activeCount={strategyStats.activeCount}
+          learningCount={strategyStats.learningCount}
+          totalUses={strategyStats.totalUses}
+          onFilter={(f: string) => {
+            // TODO: wire filtering state to StrategyList (future task)
+            console.log("策略过滤：", f);
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        <StatsCard
+          title="实盘"
+          value={`${summary.Live.countTotal} 笔`}
+          subValue={`${
+            summary.Live.winRatePct
+          }% • ${summary.Live.netProfit.toFixed(1)}R`}
+          icon="🟢"
+        />
+        <StatsCard
+          title="模拟"
+          value={`${summary.Demo.countTotal} 笔`}
+          subValue={`${
+            summary.Demo.winRatePct
+          }% • ${summary.Demo.netProfit.toFixed(1)}R`}
+          icon="🟡"
+        />
+        <StatsCard
+          title="回测"
+          value={`${summary.Backtest.countTotal} 笔`}
+          subValue={`${
+            summary.Backtest.winRatePct
+          }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
+          icon="🔵"
+        />
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>
+            课程{" "}
+            <span
+              style={{
+                fontWeight: 500,
+                color: "var(--text-muted)",
+                fontSize: "0.85em",
+              }}
+            >
+              (Course)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={reloadCourse}
+            disabled={!loadCourse || courseBusy}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={
+              !loadCourse || courseBusy
+                ? { ...disabledButtonStyle, padding: "6px 10px" }
+                : { ...buttonStyle, padding: "6px 10px" }
+            }
+          >
+            刷新
+          </button>
+        </div>
+
+        {courseError ? (
+          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+            {courseError}
+          </div>
+        ) : courseBusy ? (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            加载中…
+          </div>
+        ) : course && course.syllabus.length > 0 ? (
+          <div>
+            {course.hybridRec
+              ? (() => {
+                  const rec = course.hybridRec;
+                  const sid = simpleCourseId(rec.data.id);
+                  const link =
+                    course.linksById[rec.data.id] || course.linksById[sid];
+                  const prefix =
+                    rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                  return (
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        marginBottom: "8px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        marginBottom: "10px",
                       }}
                     >
-                      <div style={{ fontWeight: 600 }}>
-                        课程{" "}
-                        <span
-                          style={{
-                            fontWeight: 500,
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
-                          }}
-                        >
-                          (Course)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={reloadCourse}
-                        disabled={!loadCourse || courseBusy}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={
-                          !loadCourse || courseBusy
-                            ? { ...disabledButtonStyle, padding: "6px 10px" }
-                            : { ...buttonStyle, padding: "6px 10px" }
-                        }
-                      >
-                        刷新
-                      </button>
-                    </div>
-
-                    {courseError ? (
-                      <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-                        {courseError}
-                      </div>
-                    ) : courseBusy ? (
-                      <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                        加载中…
-                      </div>
-                    ) : course && course.syllabus.length > 0 ? (
-                      <div>
-                        {course.hybridRec
-                          ? (() => {
-                              const rec = course.hybridRec;
-                              const sid = simpleCourseId(rec.data.id);
-                              const link =
-                                course.linksById[rec.data.id] || course.linksById[sid];
-                              const prefix =
-                                rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                              return (
-                                <div
-                                  style={{
-                                    border: "1px solid var(--background-modifier-border)",
-                                    borderRadius: "8px",
-                                    padding: "10px",
-                                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                                    marginBottom: "10px",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      gap: "10px",
-                                    }}
-                                  >
-                                    <div>
-                                      {link ? (
-                                        <button
-                                          type="button"
-                                          onClick={() => openFile(link.path)}
-                                          style={{ ...textButtonStyle, fontWeight: 600 }}
-                                          onMouseEnter={onTextBtnMouseEnter}
-                                          onMouseLeave={onTextBtnMouseLeave}
-                                          onFocus={onTextBtnFocus}
-                                          onBlur={onTextBtnBlur}
-                                        >
-                                          {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                        </button>
-                                      ) : (
-                                        <span style={{ color: "var(--text-faint)" }}>
-                                          {prefix}: {String(rec.data.t ?? rec.data.id)}（笔记未创建）
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div
-                                      style={{
-                                        color: "var(--text-muted)",
-                                        fontFamily: "var(--font-monospace)",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {rec.data.id}
-                                    </div>
-                                  </div>
-                                  <div
-                                    style={{
-                                      marginTop: "6px",
-                                      color: "var(--text-muted)",
-                                      fontSize: "0.85em",
-                                      display: "flex",
-                                      gap: "12px",
-                                      flexWrap: "wrap",
-                                    }}
-                                  >
-                                    <span>
-                                      章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                                    </span>
-                                    <span>
-                                      进度:{" "}
-                                      <strong>
-                                        {course.progress.doneCount}/{course.progress.totalCount}
-                                      </strong>
-                                    </span>
-                                    <span>
-                                      笔记: <strong>{link ? "已创建" : "未创建"}</strong>
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })()
-                          : null}
-
-                        {course.upNext.length > 0 && (
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontSize: "0.9em",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            接下来（窗口={settings.courseRecommendationWindow}）：{" "}
-                            {course.upNext.map((x, idx) => {
-                              const label = String(x.item.id);
-                              if (x.link) {
-                                return (
-                                  <React.Fragment key={`up-${x.item.id}`}>
-                                    {idx > 0 ? ", " : ""}
-                                    <button
-                                      type="button"
-                                      onClick={() => openFile(x.link!.path)}
-                                      style={textButtonStyle}
-                                      onMouseEnter={onTextBtnMouseEnter}
-                                      onMouseLeave={onTextBtnMouseLeave}
-                                      onFocus={onTextBtnFocus}
-                                      onBlur={onTextBtnBlur}
-                                    >
-                                      {label}
-                                    </button>
-                                  </React.Fragment>
-                                );
-                              }
-                              return (
-                                <React.Fragment key={`up-${x.item.id}`}>
-                                  {idx > 0 ? ", " : ""}
-                                  <span style={{ color: "var(--text-faint)" }}>{label}</span>
-                                </React.Fragment>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <details>
-                          <summary
-                            style={{
-                              cursor: "pointer",
-                              color: "var(--text-muted)",
-                              fontSize: "0.9em",
-                              userSelect: "none",
-                            }}
-                          >
-                            展开课程矩阵
-                          </summary>
-                          <div
-                            style={{
-                              marginTop: "12px",
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: "20px",
-                            }}
-                          >
-                            {course.phases.map((ph) => (
-                              <div key={`ph-${ph.phase}`} style={{ marginBottom: "12px" }}>
-                                <div
-                                  style={{
-                                    fontSize: "0.85em",
-                                    color: "var(--text-muted)",
-                                    marginBottom: "6px",
-                                    borderBottom: "1px solid var(--background-modifier-border)",
-                                    paddingBottom: "4px",
-                                  }}
-                                >
-                                  {ph.phase}
-                                </div>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                  {ph.items.map((c) => {
-                                    const bg = c.isDone
-                                      ? "var(--text-success)"
-                                      : c.hasNote
-                                      ? "var(--text-accent)"
-                                      : "rgba(var(--mono-rgb-100), 0.06)";
-                                    const fg = c.isDone
-                                      ? "var(--background-primary)"
-                                      : c.hasNote
-                                      ? "var(--background-primary)"
-                                      : "var(--text-faint)";
-                                    const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
-                                    return (
-                                      <button
-                                        key={`c-${ph.phase}-${c.item.id}`}
-                                        type="button"
-                                        disabled={!c.link}
-                                        onClick={() => c.link && openFile(c.link.path)}
-                                        title={title}
-                                        onMouseEnter={onMiniCellMouseEnter}
-                                        onMouseLeave={onMiniCellMouseLeave}
-                                        onFocus={onMiniCellFocus}
-                                        onBlur={onMiniCellBlur}
-                                        style={{
-                                          width: "26px",
-                                          height: "26px",
-                                          borderRadius: "6px",
-                                          flexShrink: 0,
-                                          padding: 0,
-                                          border: "1px solid var(--background-modifier-border)",
-                                          background: bg,
-                                          cursor: c.link ? "pointer" : "default",
-                                          opacity: c.link ? 1 : 0.75,
-                                          outline: "none",
-                                          transition: "border-color 180ms ease, box-shadow 180ms ease",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            width: "100%",
-                                            height: "100%",
-                                            color: fg,
-                                            fontSize: "0.65em",
-                                            fontWeight: 700,
-                                            letterSpacing: "-0.3px",
-                                          }}
-                                        >
-                                          {c.shortId}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      </div>
-                    ) : (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course 相关笔记。
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <button
-                          type="button"
-                          disabled={!can("srs:review-flashcards")}
-                          onClick={() => action("srs:review-flashcards")}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
-                          }
-                        >
-                          复习
-                        </button>
-                        <button
-                          type="button"
-                          onClick={reloadMemory}
-                          disabled={!loadMemory || memoryBusy}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            !loadMemory || memoryBusy
-                              ? { ...disabledButtonStyle, padding: "6px 10px" }
-                              : { ...buttonStyle, padding: "6px 10px" }
-                          }
-                        >
-                          刷新
-                        </button>
-                      </div>
-                    </div>
-
-                    {!can("srs:review-flashcards") && (
                       <div
                         style={{
-                          color: "var(--text-faint)",
-                          fontSize: "0.9em",
-                          marginBottom: "8px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "10px",
                         }}
                       >
-                        SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
-                      </div>
-                    )}
-
-                    {memoryError ? (
-                      <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-                        {memoryError}
-                      </div>
-                    ) : memoryBusy ? (
-                      <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                        加载中…
-                      </div>
-                    ) : memory ? (
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "12px",
-                            color: "var(--text-muted)",
-                            fontSize: "0.9em",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          <div>
-                            总计：<strong>{memory.total}</strong>
-                          </div>
-                          <div>
-                            到期（≤{settings.srsDueThresholdDays}天）：{" "}
-                            <strong>{memory.due}</strong>
-                          </div>
-                          <div>
-                            掌握度：<strong>{memory.masteryPct}%</strong>
-                          </div>
-                          <div>
-                            负载（7天）：<strong>{memory.load7d}</strong>
-                          </div>
-                          <div>
-                            状态：<strong>{memory.status}</strong>
-                          </div>
-                        </div>
-
-                        {memory.focusFile ? (
-                          <div
-                            style={{
-                              marginBottom: "10px",
-                              color: "var(--text-muted)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            焦点：{" "}
+                        <div>
+                          {link ? (
                             <button
                               type="button"
-                              onClick={() => openFile(memory.focusFile!.path)}
+                              onClick={() => openFile(link.path)}
                               style={{ ...textButtonStyle, fontWeight: 600 }}
                               onMouseEnter={onTextBtnMouseEnter}
                               onMouseLeave={onTextBtnMouseLeave}
                               onFocus={onTextBtnFocus}
                               onBlur={onTextBtnBlur}
                             >
-                              {memory.focusFile.name.replace(/\.md$/i, "")}
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
                             </button>
-                            <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
-                              到期 {memory.focusFile.due}
+                          ) : (
+                            <span style={{ color: "var(--text-faint)" }}>
+                              {prefix}: {String(rec.data.t ?? rec.data.id)}
+                              （笔记未创建）
                             </span>
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              marginBottom: "10px",
-                              color: "var(--text-faint)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            暂无焦点卡片。
-                          </div>
-                        )}
-
-                        {memory.quizPool.length > 0 ? (
-                          <div>
-                            <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                              随机抽题（{settings.srsRandomQuizCount}）
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                              {memory.quizPool.map((q, idx) => (
-                                <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => openFile(q.path)}
-                                    style={textButtonStyle}
-                                    onMouseEnter={onTextBtnMouseEnter}
-                                    onMouseLeave={onTextBtnMouseLeave}
-                                    onFocus={onTextBtnFocus}
-                                    onBlur={onTextBtnBlur}
-                                  >
-                                    {q.q || q.file}
-                                  </button>
-                                  <span
-                                    style={{
-                                      marginLeft: "8px",
-                                      color: "var(--text-faint)",
-                                      fontSize: "0.85em",
-                                    }}
-                                  >
-                                    {q.file}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : (
-                          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                            在 #flashcards 笔记中未找到可抽取题库。
-                          </div>
-                        )}
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontFamily: "var(--font-monospace)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {rec.data.id}
+                        </div>
                       </div>
-                    ) : (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        记忆数据不可用。
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
-                    {!getResourceUrl ? (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        Gallery unavailable.
-                      </div>
-                    ) : galleryItems.length > 0 ? (
                       <div
                         style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                          gap: "8px",
+                          marginTop: "6px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {galleryItems.map((it) => (
+                        <span>
+                          章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                        </span>
+                        <span>
+                          进度:{" "}
+                          <strong>
+                            {course.progress.doneCount}/
+                            {course.progress.totalCount}
+                          </strong>
+                        </span>
+                        <span>
+                          笔记: <strong>{link ? "已创建" : "未创建"}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              : null}
+
+            {course.upNext.length > 0 && (
+              <div
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  marginBottom: "8px",
+                }}
+              >
+                接下来（窗口={settings.courseRecommendationWindow}）：{" "}
+                {course.upNext.map((x, idx) => {
+                  const label = String(x.item.id);
+                  if (x.link) {
+                    return (
+                      <React.Fragment key={`up-${x.item.id}`}>
+                        {idx > 0 ? ", " : ""}
+                        <button
+                          type="button"
+                          onClick={() => openFile(x.link!.path)}
+                          style={textButtonStyle}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                        >
+                          {label}
+                        </button>
+                      </React.Fragment>
+                    );
+                  }
+                  return (
+                    <React.Fragment key={`up-${x.item.id}`}>
+                      {idx > 0 ? ", " : ""}
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {label}
+                      </span>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+
+            <details>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  userSelect: "none",
+                }}
+              >
+                展开课程矩阵
+              </summary>
+              <div
+                style={{
+                  marginTop: "12px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "20px",
+                }}
+              >
+                {course.phases.map((ph) => (
+                  <div key={`ph-${ph.phase}`} style={{ marginBottom: "12px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        color: "var(--text-muted)",
+                        marginBottom: "6px",
+                        borderBottom:
+                          "1px solid var(--background-modifier-border)",
+                        paddingBottom: "4px",
+                      }}
+                    >
+                      {ph.phase}
+                    </div>
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
+                    >
+                      {ph.items.map((c) => {
+                        const bg = c.isDone
+                          ? "var(--text-success)"
+                          : c.hasNote
+                          ? "var(--text-accent)"
+                          : "rgba(var(--mono-rgb-100), 0.06)";
+                        const fg = c.isDone
+                          ? "var(--background-primary)"
+                          : c.hasNote
+                          ? "var(--background-primary)"
+                          : "var(--text-faint)";
+                        const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
+                        return (
                           <button
-                            key={`gal-${it.coverPath}`}
+                            key={`c-${ph.phase}-${c.item.id}`}
                             type="button"
-                            onClick={() => openFile(it.coverPath)}
-                            title={it.coverPath}
-                            onMouseEnter={onCoverMouseEnter}
-                            onMouseLeave={onCoverMouseLeave}
-                            onFocus={onCoverFocus}
-                            onBlur={onCoverBlur}
+                            disabled={!c.link}
+                            onClick={() => c.link && openFile(c.link.path)}
+                            title={title}
+                            onMouseEnter={onMiniCellMouseEnter}
+                            onMouseLeave={onMiniCellMouseLeave}
+                            onFocus={onMiniCellFocus}
+                            onBlur={onMiniCellBlur}
                             style={{
+                              width: "26px",
+                              height: "26px",
+                              borderRadius: "6px",
+                              flexShrink: 0,
                               padding: 0,
-                              border: "1px solid var(--background-modifier-border)",
-                              borderRadius: "8px",
-                              overflow: "hidden",
-                              background: `rgba(var(--mono-rgb-100), 0.03)`,
-                              cursor: "pointer",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              background: bg,
+                              cursor: c.link ? "pointer" : "default",
+                              opacity: c.link ? 1 : 0.75,
                               outline: "none",
                               transition:
-                                "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+                                "border-color 180ms ease, box-shadow 180ms ease",
                             }}
                           >
-                            {it.url ? (
-                              <img
-                                src={it.url}
-                                alt=""
-                                style={{
-                                  width: "100%",
-                                  height: "120px",
-                                  objectFit: "cover",
-                                  display: "block",
-                                }}
-                              />
-                            ) : (
-                              <div
-                                style={{
-                                  height: "120px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "var(--text-faint)",
-                                  fontSize: "0.85em",
-                                }}
-                              >
-                                —
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        未找到封面图片。
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px dashed var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                      Playbook（占位符）
-                    </div>
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                      旧版：pa-view-playbook。插件侧后续会补齐“策略手册/执行清单/复盘要点”面板。
-                    </div>
-                  </div>
-                </div>
-              </details>
-
-              <details style={{ marginBottom: "14px" }}>
-                <summary style={groupSummaryStyle}>
-                  <div style={{ fontWeight: 800 }}>📉 管理模块</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                    Inspector / Schema / Manager
-                  </div>
-                </summary>
-                <div style={groupBodyStyle}>
-                  {/* Inspector */}
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>检查器 / 字段规则（Schema）监控</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <button
-                          type="button"
-                          onClick={() => setShowFixPlan((v) => !v)}
-                          disabled={!enumPresets}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            enumPresets
-                              ? { ...buttonStyle, padding: "6px 10px" }
-                              : { ...disabledButtonStyle, padding: "6px 10px" }
-                          }
-                          title={!enumPresets ? "枚举预设不可用" : "切换修复方案预览"}
-                        >
-                          {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        color: "var(--text-faint)",
-                        fontSize: "0.9em",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入 vault）。
-                      <span style={{ marginLeft: "8px" }}>
-                        枚举预设：{enumPresets ? "已加载" : "不可用"}
-                      </span>
-                    </div>
-
-                    {(() => {
-                      const errorCount = inspectorIssues.filter(
-                        (i) => i.severity === "error"
-                      ).length;
-                      const warnCount = inspectorIssues.filter(
-                        (i) => i.severity === "warn"
-                      ).length;
-                      return (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "12px",
-                            flexWrap: "wrap",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          <div style={{ color: "var(--text-error)" }}>错误：{errorCount}</div>
-                          <div style={{ color: "var(--text-warning)" }}>警告：{warnCount}</div>
-                          <div style={{ color: "var(--text-muted)" }}>总计：{inspectorIssues.length}</div>
-                        </div>
-                      );
-                    })()}
-
-                    {inspectorIssues.length === 0 ? (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        未发现问题。
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          maxHeight: "240px",
-                          overflow: "auto",
-                          border: "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                        }}
-                      >
-                        {inspectorIssues.slice(0, 50).map((issue) => (
-                          <button
-                            key={issue.id}
-                            type="button"
-                            onClick={() => openFile(issue.path)}
-                            title={issue.path}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
-                            style={{
-                              width: "100%",
-                              textAlign: "left",
-                              padding: "8px 10px",
-                              border: "none",
-                              borderBottom: "1px solid var(--background-modifier-border)",
-                              background: "transparent",
-                              cursor: "pointer",
-                              outline: "none",
-                              transition: "background-color 180ms ease, box-shadow 180ms ease",
-                            }}
-                          >
-                            <div style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
-                              <div
-                                style={{
-                                  width: "60px",
-                                  color:
-                                    issue.severity === "error"
-                                      ? "var(--text-error)"
-                                      : "var(--text-warning)",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {issue.severity === "error"
-                                  ? "错误"
-                                  : issue.severity === "warn"
-                                  ? "警告"
-                                  : "—"}
-                              </div>
-                              <div style={{ flex: "1 1 auto" }}>
-                                <div style={{ fontWeight: 600 }}>{issue.title}</div>
-                                <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
-                                  {issue.path}
-                                  {issue.detail ? ` — ${issue.detail}` : ""}
-                                </div>
-                              </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: "100%",
+                                height: "100%",
+                                color: fg,
+                                fontSize: "0.65em",
+                                fontWeight: 700,
+                                letterSpacing: "-0.3px",
+                              }}
+                            >
+                              {c.shortId}
                             </div>
                           </button>
-                        ))}
-                        {inspectorIssues.length > 50 ? (
-                          <div
-                            style={{
-                              padding: "8px 10px",
-                              color: "var(--text-faint)",
-                              fontSize: "0.85em",
-                            }}
-                          >
-                            仅显示前 50 条问题。
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-
-                    {showFixPlan ?
-                      enumPresets ? (
-                        <div style={{ marginTop: "10px" }}>
-                          <div style={{ fontWeight: 600, marginBottom: "6px" }}>修复方案（预览）</div>
-                          <pre
-                            style={{
-                              margin: 0,
-                              padding: "10px",
-                              border: "1px solid var(--background-modifier-border)",
-                              borderRadius: "8px",
-                              background: "rgba(var(--mono-rgb-100), 0.03)",
-                              maxHeight: "220px",
-                              overflow: "auto",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {fixPlanText ?? ""}
-                          </pre>
-                        </div>
-                      ) : (
-                        <div style={{ marginTop: "10px", color: "var(--text-faint)", fontSize: "0.9em" }}>
-                          枚举预设不可用，已禁用修复方案生成。
-                        </div>
-                      )
-                    : null}
-                  </div>
-
-                  {/* Manager */}
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>管理器（预览 → 确认 → 写入）</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <button
-                          type="button"
-                          disabled={!enumPresets}
-                          onClick={() => {
-                            if (!enumPresets) return;
-                            const plan = buildFixPlan(trades, enumPresets);
-                            setManagerPlan(plan);
-                            setManagerResult(undefined);
-                            setManagerArmed(false);
-                          }}
-                          title={!enumPresets ? "枚举预设不可用" : "使用检查器生成的修复方案"}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            enumPresets
-                              ? { ...buttonStyle, padding: "6px 10px" }
-                              : { ...disabledButtonStyle, padding: "6px 10px" }
-                          }
-                        >
-                          使用检查器修复方案
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const plan = buildTradeNormalizationPlan(trades, enumPresets, {
-                              includeDeleteKeys: true,
-                            });
-                            setManagerPlan(plan);
-                            setManagerResult(undefined);
-                            setManagerArmed(false);
-                          }}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={{ ...buttonStyle, padding: "6px 10px" }}
-                        >
-                          生成交易计划
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!loadStrategyNotes}
-                          onClick={async () => {
-                            if (!loadStrategyNotes) return;
-                            setManagerBusy(true);
-                            try {
-                              const notes = await loadStrategyNotes();
-                              const plan = buildStrategyMaintenancePlan(notes, enumPresets, {
-                                includeDeleteKeys: true,
-                              });
-                              setManagerPlan(plan);
-                              setManagerResult(undefined);
-                              setManagerArmed(false);
-                            } finally {
-                              setManagerBusy(false);
-                            }
-                          }}
-                          title={!loadStrategyNotes ? "策略扫描不可用" : "生成策略维护计划"}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            loadStrategyNotes
-                              ? { ...buttonStyle, padding: "6px 10px" }
-                              : { ...disabledButtonStyle, padding: "6px 10px" }
-                          }
-                        >
-                          生成策略计划
-                        </button>
-                      </div>
+                        );
+                      })}
                     </div>
-
-                    <div
-                      style={{
-                        color: "var(--text-faint)",
-                        fontSize: "0.9em",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      默认禁用写入：先预览计划，再勾选确认后执行写入。
-                    </div>
-
-                    {managerPlan ? (
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: "8px",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <input
-                              type="checkbox"
-                              checked={managerDeleteKeys}
-                              onChange={(e) =>
-                                setManagerDeleteKeys((e.target as HTMLInputElement).checked)
-                              }
-                            />
-                            删除 legacy 字段（危险）
-                          </label>
-                          <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <input
-                              type="checkbox"
-                              checked={managerArmed}
-                              onChange={(e) =>
-                                setManagerArmed((e.target as HTMLInputElement).checked)
-                              }
-                            />
-                            我理解这会写入笔记
-                          </label>
-                          <button
-                            type="button"
-                            disabled={!applyFixPlan || !managerArmed || managerBusy}
-                            onClick={async () => {
-                              if (!applyFixPlan) return;
-                              setManagerBusy(true);
-                              try {
-                                const res = await applyFixPlan(managerPlan, {
-                                  deleteKeys: managerDeleteKeys,
-                                });
-                                setManagerResult(res);
-                                setManagerBackups(res.backups);
-                              } finally {
-                                setManagerBusy(false);
-                              }
-                            }}
-                            onMouseEnter={onBtnMouseEnter}
-                            onMouseLeave={onBtnMouseLeave}
-                            onFocus={onBtnFocus}
-                            onBlur={onBtnBlur}
-                            style={
-                              !applyFixPlan || !managerArmed || managerBusy
-                                ? { ...disabledButtonStyle, padding: "6px 10px" }
-                                : { ...buttonStyle, padding: "6px 10px" }
-                            }
-                          >
-                            应用计划
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!restoreFiles || !managerBackups || managerBusy}
-                            onClick={async () => {
-                              if (!restoreFiles || !managerBackups) return;
-                              setManagerBusy(true);
-                              try {
-                                const res = await restoreFiles(managerBackups);
-                                setManagerResult(res);
-                                setManagerBackups(undefined);
-                              } finally {
-                                setManagerBusy(false);
-                              }
-                            }}
-                            onMouseEnter={onBtnMouseEnter}
-                            onMouseLeave={onBtnMouseLeave}
-                            onFocus={onBtnFocus}
-                            onBlur={onBtnBlur}
-                            style={
-                              !restoreFiles || !managerBackups || managerBusy
-                                ? { ...disabledButtonStyle, padding: "6px 10px" }
-                                : { ...buttonStyle, padding: "6px 10px" }
-                            }
-                          >
-                            撤销上次应用
-                          </button>
-                        </div>
-
-                        <pre
-                          style={{
-                            margin: 0,
-                            padding: "10px",
-                            border: "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            maxHeight: "260px",
-                            overflow: "auto",
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {managerPlanText ?? ""}
-                        </pre>
-
-                        {managerResult ? (
-                          <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>
-                            Applied: {managerResult.applied}, Failed: {managerResult.failed}
-                            {managerResult.errors.length > 0 ? (
-                              <div
-                                style={{
-                                  marginTop: "6px",
-                                  color: "var(--text-faint)",
-                                  fontSize: "0.9em",
-                                }}
-                              >
-                                {managerResult.errors.slice(0, 5).map((e, idx) => (
-                                  <div key={`mgr-err-${idx}`}>
-                                    {e.path}: {e.message}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        未加载计划。请先生成计划以预览变更。
-                      </div>
-                    )}
                   </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course 相关笔记。
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!can("srs:review-flashcards")}
+              onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              复习
+            </button>
+            <button
+              type="button"
+              onClick={reloadMemory}
+              disabled={!loadMemory || memoryBusy}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                !loadMemory || memoryBusy
+                  ? { ...disabledButtonStyle, padding: "6px 10px" }
+                  : { ...buttonStyle, padding: "6px 10px" }
+              }
+            >
+              刷新
+            </button>
+          </div>
+        </div>
+
+        {!can("srs:review-flashcards") && (
+          <div
+            style={{
+              color: "var(--text-faint)",
+              fontSize: "0.9em",
+              marginBottom: "8px",
+            }}
+          >
+            SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards 笔记计算。
+          </div>
+        )}
+
+        {memoryError ? (
+          <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+            {memoryError}
+          </div>
+        ) : memoryBusy ? (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+            加载中…
+          </div>
+        ) : memory ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
+              <div>
+                总计：<strong>{memory.total}</strong>
+              </div>
+              <div>
+                到期（≤{settings.srsDueThresholdDays}天）：{" "}
+                <strong>{memory.due}</strong>
+              </div>
+              <div>
+                掌握度：<strong>{memory.masteryPct}%</strong>
+              </div>
+              <div>
+                负载（7天）：<strong>{memory.load7d}</strong>
+              </div>
+              <div>
+                状态：<strong>{memory.status}</strong>
+              </div>
+            </div>
+
+            {memory.focusFile ? (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                }}
+              >
+                焦点：{" "}
+                <button
+                  type="button"
+                  onClick={() => openFile(memory.focusFile!.path)}
+                  style={{ ...textButtonStyle, fontWeight: 600 }}
+                  onMouseEnter={onTextBtnMouseEnter}
+                  onMouseLeave={onTextBtnMouseLeave}
+                  onFocus={onTextBtnFocus}
+                  onBlur={onTextBtnBlur}
+                >
+                  {memory.focusFile.name.replace(/\.md$/i, "")}
+                </button>
+                <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
+                  到期 {memory.focusFile.due}
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginBottom: "10px",
+                  color: "var(--text-faint)",
+                  fontSize: "0.9em",
+                }}
+              >
+                暂无焦点卡片。
+              </div>
+            )}
+
+            {memory.quizPool.length > 0 ? (
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  随机抽题（{settings.srsRandomQuizCount}）
                 </div>
-              </details>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {memory.quizPool.map((q, idx) => (
+                    <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openFile(q.path)}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {q.q || q.file}
+                      </button>
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        {q.file}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                在 #flashcards 笔记中未找到可抽取题库。
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            记忆数据不可用。
+          </div>
+        )}
+      </div>
 
-              <details style={{ marginBottom: "14px" }}>
-                <summary style={groupSummaryStyle}>
-                  <div style={{ fontWeight: 800 }}>✅ 每日行动</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                    Tasks / Backup / Quick Actions
-                  </div>
-                </summary>
-                <div style={groupBodyStyle}>
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>数据分析</div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "var(--text-muted)",
+              fontSize: "0.9em",
+            }}
+          >
+            范围
+            <select
+              value={analyticsScope}
+              onChange={(e) =>
+                setAnalyticsScope(e.target.value as AnalyticsScope)
+              }
+              style={selectStyle}
+            >
+              <option value="Live">实盘</option>
+              <option value="Demo">模拟</option>
+              <option value="Backtest">回测</option>
+              <option value="All">全部</option>
+            </select>
+          </label>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+          <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              日历（最近 {calendarDays} 天）
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                gap: "6px",
+              }}
+            >
+              {calendarCells.map((c) => {
+                const absRatio =
+                  calendarMaxAbs > 0
+                    ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
+                    : 0;
+                const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
+                const bg =
+                  c.netR > 0
+                    ? `rgba(var(--color-green-rgb), ${alpha})`
+                    : c.netR < 0
+                    ? `rgba(var(--color-red-rgb), ${alpha})`
+                    : `rgba(var(--mono-rgb-100), 0.05)`;
+                return (
                   <div
+                    key={`cal-${c.dateIso}`}
+                    title={`${c.dateIso} • ${c.count} 笔 • ${
+                      c.netR >= 0 ? "+" : ""
+                    }${c.netR.toFixed(1)}R`}
                     style={{
                       border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      background: "var(--background-primary)",
+                      borderRadius: "6px",
+                      padding: "6px",
+                      background: bg,
+                      minHeight: "40px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
                     }}
                   >
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷动作</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      <button
-                        type="button"
-                        disabled={!can("dataview:force-refresh")}
-                        onClick={() => action("dataview:force-refresh")}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={
-                          can("dataview:force-refresh") ? buttonStyle : disabledButtonStyle
-                        }
-                      >
-                        Dataview 刷新
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!can("tasks:open")}
-                        onClick={() => action("tasks:open")}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
-                      >
-                        打开 Tasks
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!can("metadata-menu:open")}
-                        onClick={() => action("metadata-menu:open")}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={
-                          can("metadata-menu:open") ? buttonStyle : disabledButtonStyle
-                        }
-                      >
-                        元数据菜单
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!index.rebuild}
-                        onClick={onRebuild}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={index.rebuild ? buttonStyle : disabledButtonStyle}
-                      >
-                        重建索引
-                      </button>
+                    <div
+                      style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
+                    >
+                      {getDayOfMonth(c.dateIso)}
                     </div>
-                    <div style={{ marginTop: "10px", color: "var(--text-faint)", fontSize: "0.9em" }}>
-                      （占位符）旧版“备份数据库/导出快照”按钮：插件目前通过命令面板提供导出命令（后续会把按钮接线到这里）。
-                    </div>
-                    <div style={{ marginTop: "6px", color: "var(--text-faint)", fontSize: "0.9em" }}>
-                      （占位符）旧版 Tasks 分组查询（P0/P1 等）后续补齐。
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        fontWeight: 600,
+                        color:
+                          c.netR > 0
+                            ? "var(--text-success)"
+                            : c.netR < 0
+                            ? "var(--text-error)"
+                            : "var(--text-faint)",
+                        textAlign: "right",
+                      }}
+                    >
+                      {c.count > 0
+                        ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`
+                        : "—"}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
+          <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+              权益曲线
+            </div>
+            {equitySeries.length > 1 ? (
+              (() => {
+                const w = 520;
+                const h = 160;
+                const pad = 14;
+                const ys = equitySeries.map((p) => p.equityR);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+                const span = Math.max(1e-6, maxY - minY);
+                const xStep =
+                  (w - pad * 2) / Math.max(1, equitySeries.length - 1);
+                const points = equitySeries
+                  .map((p, i) => {
+                    const x = pad + i * xStep;
+                    const y =
+                      pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
+                    return `${x.toFixed(1)},${y.toFixed(1)}`;
+                  })
+                  .join(" ");
+
+                const last = equitySeries[equitySeries.length - 1];
+                return (
                   <div>
-                    <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
-                    <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
+                    <svg
+                      viewBox={`0 0 ${w} ${h}`}
+                      width="100%"
+                      height="160"
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        background: `rgba(var(--mono-rgb-100), 0.03)`,
+                      }}
+                    >
+                      <polyline
+                        points={points}
+                        fill="none"
+                        stroke="var(--text-accent)"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      最新：{" "}
+                      <span
+                        style={{
+                          color:
+                            last.equityR >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {last.equityR >= 0 ? "+" : ""}
+                        {last.equityR.toFixed(1)}R
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </details>
+                );
+              })()
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                数据不足。
+              </div>
+            )}
+
+            <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
+              策略归因（Top）
+            </div>
+            {strategyAttribution.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                {strategyAttribution.map((r) => (
+                  <li
+                    key={`attr-${r.strategyName}`}
+                    style={{ marginBottom: "6px" }}
+                  >
+                    {r.strategyPath ? (
+                      <button
+                        type="button"
+                        onClick={() => openFile(r.strategyPath!)}
+                        style={textButtonStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {r.strategyName}
+                      </button>
+                    ) : (
+                      <span>{r.strategyName}</span>
+                    )}
+                    <span
+                      style={{
+                        color: "var(--text-muted)",
+                        marginLeft: "8px",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      {r.count} 笔 •{" "}
+                      <span
+                        style={{
+                          color:
+                            r.netR >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {r.netR >= 0 ? "+" : ""}
+                        {r.netR.toFixed(1)}R
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                未找到策略归因数据。
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
+        {!getResourceUrl ? (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            Gallery unavailable.
+          </div>
+        ) : galleryItems.length > 0 ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              gap: "8px",
+            }}
+          >
+            {galleryItems.map((it) => (
+              <button
+                key={`gal-${it.coverPath}`}
+                type="button"
+                onClick={() => openFile(it.coverPath)}
+                title={it.coverPath}
+                onMouseEnter={onCoverMouseEnter}
+                onMouseLeave={onCoverMouseLeave}
+                onFocus={onCoverFocus}
+                onBlur={onCoverBlur}
+                style={{
+                  padding: 0,
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  background: `rgba(var(--mono-rgb-100), 0.03)`,
+                  cursor: "pointer",
+                  outline: "none",
+                  transition:
+                    "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+                }}
+              >
+                {it.url ? (
+                  <img
+                    src={it.url}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "120px",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: "120px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--text-faint)",
+                      fontSize: "0.85em",
+                    }}
+                  >
+                    —
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            未找到封面图片。
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>检查器 / 字段规则（Schema）监控</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => setShowFixPlan((v) => !v)}
+              disabled={!enumPresets}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+              title={
+                !enumPresets
+                  ? "枚举预设不可用"
+                  : "切换修复方案预览"
+              }
+            >
+              {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            color: "var(--text-faint)",
+            fontSize: "0.9em",
+            marginBottom: "10px",
+          }}
+        >
+          只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入 vault）。
+          <span style={{ marginLeft: "8px" }}>
+            枚举预设：{enumPresets ? "已加载" : "不可用"}
+          </span>
+        </div>
+
+        {(() => {
+          const errorCount = inspectorIssues.filter(
+            (i) => i.severity === "error"
+          ).length;
+          const warnCount = inspectorIssues.filter(
+            (i) => i.severity === "warn"
+          ).length;
+          return (
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+                marginBottom: "10px",
+              }}
+            >
+              <div style={{ color: "var(--text-error)" }}>
+                错误：{errorCount}
+              </div>
+              <div style={{ color: "var(--text-warning)" }}>
+                警告：{warnCount}
+              </div>
+              <div style={{ color: "var(--text-muted)" }}>
+                总计：{inspectorIssues.length}
+              </div>
             </div>
           );
         })()}
+
+        {inspectorIssues.length === 0 ? (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            未发现问题。
+          </div>
+        ) : (
+          <div
+            style={{
+              maxHeight: "240px",
+              overflow: "auto",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "8px",
+            }}
+          >
+            {inspectorIssues.slice(0, 50).map((issue) => (
+              <button
+                key={issue.id}
+                type="button"
+                onClick={() => openFile(issue.path)}
+                title={issue.path}
+                onMouseEnter={onTextBtnMouseEnter}
+                onMouseLeave={onTextBtnMouseLeave}
+                onFocus={onTextBtnFocus}
+                onBlur={onTextBtnBlur}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  border: "none",
+                  borderBottom: "1px solid var(--background-modifier-border)",
+                  background: "transparent",
+                  cursor: "pointer",
+                  outline: "none",
+                  transition:
+                    "background-color 180ms ease, box-shadow 180ms ease",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    alignItems: "baseline",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "60px",
+                      color:
+                        issue.severity === "error"
+                          ? "var(--text-error)"
+                          : "var(--text-warning)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {issue.severity === "error"
+                      ? "错误"
+                      : issue.severity === "warn"
+                      ? "警告"
+                      : "—"}
+                  </div>
+                  <div style={{ flex: "1 1 auto" }}>
+                    <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.85em" }}
+                    >
+                      {issue.path}
+                      {issue.detail ? ` — ${issue.detail}` : ""}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+            {inspectorIssues.length > 50 ? (
+              <div
+                style={{
+                  padding: "8px 10px",
+                  color: "var(--text-faint)",
+                  fontSize: "0.85em",
+                }}
+              >
+                仅显示前 50 条问题。
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {showFixPlan ? (
+          enumPresets ? (
+            <div style={{ marginTop: "10px" }}>
+              <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                修复方案（预览）
+              </div>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: "10px",
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  maxHeight: "220px",
+                  overflow: "auto",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {fixPlanText ?? ""}
+              </pre>
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: "10px",
+                color: "var(--text-faint)",
+                fontSize: "0.9em",
+              }}
+            >
+              枚举预设不可用，已禁用修复方案生成。
+            </div>
+          )
+        ) : null}
       </div>
-    );
-  };
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>管理器（预览 → 确认 → 写入）</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              disabled={!enumPresets}
+              onClick={() => {
+                if (!enumPresets) return;
+                const plan = buildFixPlan(trades, enumPresets);
+                setManagerPlan(plan);
+                setManagerResult(undefined);
+                setManagerArmed(false);
+              }}
+              title={
+                !enumPresets
+                  ? "枚举预设不可用"
+                  : "使用检查器生成的修复方案"
+              }
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+            >
+              使用检查器修复方案
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const plan = buildTradeNormalizationPlan(trades, enumPresets, {
+                  includeDeleteKeys: true,
+                });
+                setManagerPlan(plan);
+                setManagerResult(undefined);
+                setManagerArmed(false);
+              }}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={{ ...buttonStyle, padding: "6px 10px" }}
+            >
+              生成交易计划
+            </button>
+            <button
+              type="button"
+              disabled={!loadStrategyNotes}
+              onClick={async () => {
+                if (!loadStrategyNotes) return;
+                setManagerBusy(true);
+                try {
+                  const notes = await loadStrategyNotes();
+                  const plan = buildStrategyMaintenancePlan(
+                    notes,
+                    enumPresets,
+                    { includeDeleteKeys: true }
+                  );
+                  setManagerPlan(plan);
+                  setManagerResult(undefined);
+                  setManagerArmed(false);
+                } finally {
+                  setManagerBusy(false);
+                }
+              }}
+              title={
+                !loadStrategyNotes
+                  ? "策略扫描不可用"
+                  : "生成策略维护计划"
+              }
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={loadStrategyNotes ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+            >
+              生成策略计划
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            color: "var(--text-faint)",
+            fontSize: "0.9em",
+            marginBottom: "10px",
+          }}
+        >
+          默认禁用写入：先预览计划，再勾选确认后执行写入。
+        </div>
+
+        {managerPlan ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={managerDeleteKeys}
+                  onChange={(e) =>
+                    setManagerDeleteKeys((e.target as HTMLInputElement).checked)
+                  }
+                />
+                删除 legacy 字段（危险）
+              </label>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={managerArmed}
+                  onChange={(e) =>
+                    setManagerArmed((e.target as HTMLInputElement).checked)
+                  }
+                />
+                我理解这会写入笔记
+              </label>
+              <button
+                type="button"
+                disabled={!applyFixPlan || !managerArmed || managerBusy}
+                onClick={async () => {
+                  if (!applyFixPlan) return;
+                  setManagerBusy(true);
+                  try {
+                    const res = await applyFixPlan(managerPlan, {
+                      deleteKeys: managerDeleteKeys,
+                    });
+                    setManagerResult(res);
+                    setManagerBackups(res.backups);
+                  } finally {
+                    setManagerBusy(false);
+                  }
+                }}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  !applyFixPlan || !managerArmed || managerBusy
+                    ? { ...disabledButtonStyle, padding: "6px 10px" }
+                    : { ...buttonStyle, padding: "6px 10px" }
+                }
+              >
+                应用计划
+              </button>
+              <button
+                type="button"
+                disabled={!restoreFiles || !managerBackups || managerBusy}
+                onClick={async () => {
+                  if (!restoreFiles || !managerBackups) return;
+                  setManagerBusy(true);
+                  try {
+                    const res = await restoreFiles(managerBackups);
+                    setManagerResult(res);
+                    setManagerBackups(undefined);
+                  } finally {
+                    setManagerBusy(false);
+                  }
+                }}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  !restoreFiles || !managerBackups || managerBusy
+                    ? { ...disabledButtonStyle, padding: "6px 10px" }
+                    : { ...buttonStyle, padding: "6px 10px" }
+                }
+              >
+                撤销上次应用
+              </button>
+            </div>
+
+            <pre
+              style={{
+                margin: 0,
+                padding: "10px",
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "8px",
+                background: "rgba(var(--mono-rgb-100), 0.03)",
+                maxHeight: "260px",
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {managerPlanText ?? ""}
+            </pre>
+
+            {managerResult ? (
+              <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>
+                Applied: {managerResult.applied}, Failed: {managerResult.failed}
+                {managerResult.errors.length > 0 ? (
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      color: "var(--text-faint)",
+                      fontSize: "0.9em",
+                    }}
+                  >
+                    {managerResult.errors.slice(0, 5).map((e, idx) => (
+                      <div key={`mgr-err-${idx}`}>
+                        {e.path}: {e.message}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            未加载计划。请先生成计划以预览变更。
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+        {/* Trade Feed */}
+        <div>
+          <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
+          <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export class ConsoleView extends ItemView {
+  private index: TradeIndex;
+  private strategyIndex: StrategyIndex;
+  private todayContext?: TodayContext;
+  private integrations?: PluginIntegrationRegistry;
+  private version: string;
   private root: Root | null = null;
-  private mountEl: HTMLDivElement | null = null;
-
-  public readonly index: TradeIndex;
-  public readonly strategyIndex: StrategyIndex;
-  public readonly todayContext: TodayContext;
-  public readonly integrations: PluginIntegrationRegistry;
-  public readonly version: string;
-
-  private readonly getSettingsFn: () => AlBrooksConsoleSettings;
-  public readonly subscribeSettings?: (
+  private mountEl: HTMLElement | null = null;
+  private getSettings: () => AlBrooksConsoleSettings;
+  private subscribeSettings: (
     listener: (settings: AlBrooksConsoleSettings) => void
   ) => () => void;
 
@@ -2696,7 +2910,7 @@ export class ConsoleView extends ItemView {
     integrations: PluginIntegrationRegistry,
     version: string,
     getSettings: () => AlBrooksConsoleSettings,
-    subscribeSettings?: (
+    subscribeSettings: (
       listener: (settings: AlBrooksConsoleSettings) => void
     ) => () => void
   ) {
@@ -2706,12 +2920,8 @@ export class ConsoleView extends ItemView {
     this.todayContext = todayContext;
     this.integrations = integrations;
     this.version = version;
-    this.getSettingsFn = getSettings;
+    this.getSettings = getSettings;
     this.subscribeSettings = subscribeSettings;
-  }
-
-  private getSettings(): AlBrooksConsoleSettings {
-    return this.getSettingsFn();
   }
 
   getViewType() {
