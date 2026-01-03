@@ -649,42 +649,45 @@ export const ConsoleComponent: React.FC<ConsoleComponentProps> = (props) => {
         </button>
 
         {/* Market Cycle Strategy Recommendations */}
-        {todayMarketCycle && todayStrategyPicks.length > 0 && (
-          <div style={{ marginBottom: "20px", padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
-            <div style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: "10px" }}>
-              💡 基于当前市场周期 <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[{todayMarketCycle}]</span> 的策略建议：
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {todayStrategyPicks.map((s) => (
-                <button
-                  key={`rec-${s.path}`}
-                  type="button"
-                  onClick={() => openFile(s.path)}
-                  style={{
-                    border: "1px solid var(--interactive-accent)",
-                    background: "rgba(var(--interactive-accent-rgb), 0.1)",
-                    color: "var(--text-on-accent)",
-                    padding: "4px 10px",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "0.85em",
-                    // @ts-ignore
-                    "--text-on-accent": "var(--text-normal)", // Fallback if var not defined
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--interactive-accent)";
-                    e.currentTarget.style.color = "var(--text-on-accent-inverted)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                    e.currentTarget.style.color = "var(--text-normal)";
-                  }}
-                >
-                  {s.canonicalName}
-                </button>
-              ))}
-            </div>
+        <div style={{ marginBottom: "20px", padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
+          {/* DEBUG INFO */}
+          <div style={{ display: 'none' }}>
+            Debug: Index Size {strategies.length} | Cycle: {todayMarketCycle} | Matches: {todayStrategyPicks.length}
           </div>
+          <div style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: "10px" }}>
+            💡 基于当前市场周期 <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[{todayMarketCycle}]</span> 的策略建议：
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {todayStrategyPicks.map((s) => (
+              <button
+                key={`rec-${s.path}`}
+                type="button"
+                onClick={() => openFile(s.path)}
+                style={{
+                  border: "1px solid var(--interactive-accent)",
+                  background: "rgba(var(--interactive-accent-rgb), 0.1)",
+                  color: "var(--text-on-accent)",
+                  padding: "4px 10px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "0.85em",
+                  // @ts-ignore
+                  "--text-on-accent": "var(--text-normal)", // Fallback if var not defined
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--interactive-accent)";
+                  e.currentTarget.style.color = "var(--text-on-accent-inverted)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                  e.currentTarget.style.color = "var(--text-normal)";
+                }}
+              >
+                {s.canonicalName}
+              </button>
+            ))}
+          </div>
+        </div>
         )}
 
         {/* Stats Grid (5 Cards) */}
