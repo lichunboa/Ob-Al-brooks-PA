@@ -177,6 +177,8 @@ interface Props {
   enumPresets?: EnumPresets;
   loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
   loadPaTagSnapshot?: () => Promise<PaTagSnapshot>;
+  /** v5 属性管理器：扫描全库 frontmatter（不依赖 Dataview） */
+  loadAllFrontmatterFiles?: () => Promise<FrontmatterFile[]>;
   applyFixPlan?: (
     plan: FixPlan,
     options?: { deleteKeys?: boolean }
@@ -280,6 +282,7 @@ const ConsoleComponent: React.FC<Props> = ({
   enumPresets,
   loadStrategyNotes,
   loadPaTagSnapshot,
+  loadAllFrontmatterFiles,
   applyFixPlan,
   restoreFiles,
   createTradeNote,
@@ -504,6 +507,20 @@ const ConsoleComponent: React.FC<Props> = ({
     React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
 
   const scanManagerInventory = React.useCallback(async () => {
+    // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
+    if (loadAllFrontmatterFiles) {
+      const files = await loadAllFrontmatterFiles();
+      const inv = buildFrontmatterInventory(files);
+      setManagerTradeInventoryFiles(files);
+      setManagerTradeInventory(inv);
+
+      // 仅保留一个“全库”入口；策略区块不再单独展示。
+      setManagerStrategyInventoryFiles(undefined);
+      setManagerStrategyInventory(undefined);
+      return;
+    }
+
+    // 回退：若宿主未提供全库扫描，则维持旧逻辑（trade index + strategy notes）。
     const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
       path: t.path,
       frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
@@ -525,7 +542,7 @@ const ConsoleComponent: React.FC<Props> = ({
     const strategyInv = buildFrontmatterInventory(strategyFiles);
     setManagerStrategyInventoryFiles(strategyFiles);
     setManagerStrategyInventory(strategyInv);
-  }, [trades, loadStrategyNotes]);
+  }, [loadAllFrontmatterFiles, loadStrategyNotes, trades]);
 
   const managerTradeFilesByPath = React.useMemo(() => {
     const map = new Map<string, FrontmatterFile>();
@@ -560,18 +577,12 @@ const ConsoleComponent: React.FC<Props> = ({
       plan: FixPlan,
       options: {
         closeInspector?: boolean;
-        requiresDeleteKeys?: boolean;
         forceDeleteKeys?: boolean;
         refreshInventory?: boolean;
       } = {}
     ) => {
       setManagerPlan(plan);
       setManagerResult(undefined);
-
-      if (options.requiresDeleteKeys && !managerDeleteKeys) {
-        window.alert("危险操作：请先勾选『允许删除字段（危险）』。");
-        return;
-      }
 
       if (!applyFixPlan) return;
 
@@ -6368,86 +6379,8 @@ short mode\n\
             marginBottom: "8px",
           }}
         >
-          <div style={{ fontWeight: 600 }}>管理器（预览 → 确认 → 写入）</div>
+          <div style={{ fontWeight: 600 }}>💎 上帝模式（属性管理器）</div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              disabled={!enumPresets}
-              onClick={() => {
-                if (!enumPresets) return;
-                const plan = buildFixPlan(trades, enumPresets);
-                setManagerPlan(plan);
-                setManagerResult(undefined);
-              }}
-              title={
-                !enumPresets ? "枚举预设不可用" : "使用检查器生成的修复方案"
-              }
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                enumPresets
-                  ? { ...buttonStyle, padding: "6px 10px" }
-                  : { ...disabledButtonStyle, padding: "6px 10px" }
-              }
-            >
-              使用检查器修复方案
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const plan = buildTradeNormalizationPlan(trades, enumPresets, {
-                  includeDeleteKeys: true,
-                });
-                setManagerPlan(plan);
-                setManagerResult(undefined);
-              }}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={{ ...buttonStyle, padding: "6px 10px" }}
-            >
-              生成交易计划
-            </button>
-            <button
-              type="button"
-              disabled={!loadStrategyNotes}
-              onClick={async () => {
-                if (!loadStrategyNotes) return;
-                setManagerBusy(true);
-                try {
-                  const notes = await loadStrategyNotes();
-                  const plan = buildStrategyMaintenancePlan(
-                    notes,
-                    enumPresets,
-                    { includeDeleteKeys: true }
-                  );
-                  setManagerPlan(plan);
-                  setManagerResult(undefined);
-                  setManagerTradeInventory(undefined);
-                  setManagerTradeInventoryFiles(undefined);
-                  setManagerStrategyInventory(undefined);
-                  setManagerStrategyInventoryFiles(undefined);
-                } finally {
-                  setManagerBusy(false);
-                }
-              }}
-              title={!loadStrategyNotes ? "策略扫描不可用" : "生成策略维护计划"}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                loadStrategyNotes
-                  ? { ...buttonStyle, padding: "6px 10px" }
-                  : { ...disabledButtonStyle, padding: "6px 10px" }
-              }
-            >
-              生成策略计划
-            </button>
-
             <button
               type="button"
               onClick={async () => {
@@ -6472,139 +6405,6 @@ short mode\n\
             </button>
           </div>
         </div>
-
-        <div
-          style={{
-            color: "var(--text-faint)",
-            fontSize: "0.9em",
-            marginBottom: "10px",
-          }}
-        >
-          读写模式：生成计划后可直接“应用计划”写入；支持“撤销上次应用”。
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "8px",
-            flexWrap: "wrap",
-          }}
-        >
-          <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <input
-              type="checkbox"
-              checked={managerDeleteKeys}
-              onChange={(e) =>
-                setManagerDeleteKeys((e.target as HTMLInputElement).checked)
-              }
-            />
-            允许删除字段（危险）
-          </label>
-          <button
-            type="button"
-            disabled={!applyFixPlan || !managerPlan || managerBusy}
-            onClick={async () => {
-              if (!applyFixPlan || !managerPlan) return;
-              setManagerBusy(true);
-              try {
-                const res = await applyFixPlan(managerPlan, {
-                  deleteKeys: managerDeleteKeys,
-                });
-                setManagerResult(res);
-                setManagerBackups(res.backups);
-              } finally {
-                setManagerBusy(false);
-              }
-            }}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={
-              !applyFixPlan || !managerPlan || managerBusy
-                ? { ...disabledButtonStyle, padding: "6px 10px" }
-                : { ...buttonStyle, padding: "6px 10px" }
-            }
-          >
-            应用计划
-          </button>
-          <button
-            type="button"
-            disabled={!restoreFiles || !managerBackups || managerBusy}
-            onClick={async () => {
-              if (!restoreFiles || !managerBackups) return;
-              setManagerBusy(true);
-              try {
-                const res = await restoreFiles(managerBackups);
-                setManagerResult(res);
-                setManagerBackups(undefined);
-                setManagerTradeInventory(undefined);
-                setManagerTradeInventoryFiles(undefined);
-                setManagerStrategyInventory(undefined);
-                setManagerStrategyInventoryFiles(undefined);
-              } finally {
-                setManagerBusy(false);
-              }
-            }}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={
-              !restoreFiles || !managerBackups || managerBusy
-                ? { ...disabledButtonStyle, padding: "6px 10px" }
-                : { ...buttonStyle, padding: "6px 10px" }
-            }
-          >
-            撤销上次应用
-          </button>
-        </div>
-
-        {managerPlan ? (
-          <pre
-            style={{
-              margin: 0,
-              padding: "10px",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "8px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-              maxHeight: "140px",
-              overflow: "auto",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {managerPlanText ?? ""}
-          </pre>
-        ) : (
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            未加载计划（v5.0
-            的单步操作会自动生成并应用计划；也可用上面的按钮生成计划）。
-          </div>
-        )}
-
-        {managerResult ? (
-          <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>
-            已应用：{managerResult.applied}，失败：{managerResult.failed}
-            {managerResult.errors.length > 0 ? (
-              <div
-                style={{
-                  marginTop: "6px",
-                  color: "var(--text-faint)",
-                  fontSize: "0.9em",
-                }}
-              >
-                {managerResult.errors.slice(0, 5).map((e, idx) => (
-                  <div key={`mgr-err-${idx}`}>
-                    {e.path}: {e.message}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
         <div style={{ marginTop: "12px" }}>
           <div
             style={{
@@ -6614,9 +6414,6 @@ short mode\n\
               background: "rgba(var(--mono-rgb-100), 0.03)",
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-              💎 上帝模式 (God Mode)
-            </div>
 
             {managerTradeInventory || managerStrategyInventory ? (
               <>
@@ -6884,12 +6681,7 @@ short mode\n\
                       {renderInventoryGrid(
                         managerTradeInventory,
                         "trade",
-                        "🧾 交易属性 (Trades)"
-                      )}
-                      {renderInventoryGrid(
-                        managerStrategyInventory,
-                        "strategy",
-                        "📚 策略属性 (Strategies)"
+                        "📂 属性列表"
                       )}
                     </>
                   );
@@ -6962,7 +6754,7 @@ short mode\n\
                         );
                         await runManagerPlan(plan, {
                           closeInspector: true,
-                          requiresDeleteKeys: true,
+                          forceDeleteKeys: true,
                           refreshInventory: true,
                         });
                       };
@@ -7037,6 +6829,7 @@ short mode\n\
                         );
                         await runManagerPlan(plan, {
                           closeInspector: true,
+                          forceDeleteKeys: true,
                           refreshInventory: true,
                         });
                       };
@@ -7843,6 +7636,40 @@ export class ConsoleView extends ItemView {
       return out;
     };
 
+    const loadAllFrontmatterFiles = async (): Promise<FrontmatterFile[]> => {
+      const files = this.app.vault
+        .getMarkdownFiles()
+        .filter((f) => !f.path.startsWith("Templates/"));
+
+      const out: FrontmatterFile[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const cache = this.app.metadataCache.getFileCache(f);
+        let fm = cache?.frontmatter as Record<string, unknown> | undefined;
+
+        if (!fm) {
+          try {
+            const text = await this.app.vault.read(f);
+            const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+            if (m && m[1]) {
+              const parsed = parseYaml(m[1]);
+              fm =
+                parsed && typeof parsed === "object"
+                  ? (parsed as any)
+                  : undefined;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        if (fm) out.push({ path: f.path, frontmatter: fm });
+        if (i % 250 === 0) await new Promise((r) => window.setTimeout(r, 0));
+      }
+
+      return out;
+    };
+
     const loadPaTagSnapshot = async (): Promise<PaTagSnapshot> => {
       const files = this.app.vault
         .getMarkdownFiles()
@@ -7992,6 +7819,7 @@ export class ConsoleView extends ItemView {
           enumPresets={enumPresets}
           loadStrategyNotes={loadStrategyNotes}
           loadPaTagSnapshot={loadPaTagSnapshot}
+          loadAllFrontmatterFiles={loadAllFrontmatterFiles}
           applyFixPlan={applyFixPlan}
           restoreFiles={restoreFiles}
           createTradeNote={createTradeNote}
