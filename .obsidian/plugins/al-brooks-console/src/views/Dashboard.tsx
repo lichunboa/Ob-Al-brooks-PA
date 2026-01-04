@@ -66,6 +66,7 @@ import {
   type ManagerApplyResult,
   type StrategyNoteFrontmatter,
 } from "../core/manager";
+import { MANAGER_GROUPS, managerKeyTokens } from "../core/manager-groups";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
@@ -6125,92 +6126,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
                   const qCanon = canonicalizeSearch(q);
 
-                  const groups = [
-                    {
-                      title: "⭐ 核心要素 (Core)",
-                      keywords: [
-                        "status",
-                        "状态",
-                        "date",
-                        "日期",
-                        "ticker",
-                        "品种",
-                        "profit",
-                        "pnl",
-                        "net_profit",
-                        "利润",
-                        "净利润",
-                        "outcome",
-                        "结果",
-                        "strategy",
-                        "策略",
-                        "setup",
-                        "设置",
-                        "设置类别",
-                        "setup_category",
-                        "patterns",
-                        "形态",
-                        "观察到的形态",
-                        "patterns_observed",
-                      ],
-                    },
-                    {
-                      title: "📊 量化数据 (Data)",
-                      keywords: [
-                        "price",
-                        "价格",
-                        "entry",
-                        "入场",
-                        "exit",
-                        "出场",
-                        "risk",
-                        "风险",
-                        "amount",
-                        "数量",
-                        "仓位",
-                        "r_",
-                        "rr",
-                        "r/r",
-                        "cycle",
-                        "周期",
-                        "market_cycle",
-                        "市场周期",
-                        "timeframe",
-                        "时间周期",
-                        "direction",
-                        "方向",
-                        "stop",
-                        "止损",
-                        "target",
-                        "目标",
-                        "size",
-                        "qty",
-                        "quantity",
-                      ],
-                    },
-                    {
-                      title: "🏷️ 归档信息 (Meta)",
-                      keywords: [
-                        "tag",
-                        "标签",
-                        "source",
-                        "来源",
-                        "alias",
-                        "别名",
-                        "type",
-                        "类型",
-                        "class",
-                        "分类",
-                        "time",
-                        "时间",
-                        "week",
-                        "周",
-                        "note",
-                        "笔记",
-                        "id",
-                      ],
-                    },
-                  ] as const;
+                  const groups = MANAGER_GROUPS;
 
                   const othersTitle = "📂 其他属性 (Other)";
 
@@ -6219,9 +6135,15 @@ const ConsoleComponent: React.FC<Props> = ({
                   bucketed.set(othersTitle, []);
 
                   const matchKeyToGroup = (key: string) => {
-                    const kl = key.toLowerCase();
+                    const tokens = managerKeyTokens(key);
                     for (const g of groups) {
-                      if (g.keywords.some((kw) => kl.includes(kw))) return g.title;
+                      for (const kw of g.keywords) {
+                        const needle = String(kw ?? "").trim().toLowerCase();
+                        if (!needle) continue;
+                        if (tokens.some((t) => t === needle || t.includes(needle))) {
+                          return g.title;
+                        }
+                      }
                     }
                     return othersTitle;
                   };
