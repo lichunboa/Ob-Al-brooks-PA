@@ -12,6 +12,12 @@
 
 [简体中文](README.md) | English
 
+[![GitHub stars](https://img.shields.io/github/stars/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/network/members)
+[![GitHub release](https://img.shields.io/github/v/release/tukuaiai/tradecat)](https://github.com/tukuaiai/tradecat/releases)
+[![CI](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml/badge.svg)](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/tukuaiai/tradecat)](LICENSE)
+
 ---
 
 <p>
