@@ -5207,19 +5207,76 @@ const ConsoleComponent: React.FC<Props> = ({
                 .slice(0, 60)
             : [];
 
-          const topN = (getter: (t: TradeRecord) => string | undefined) => {
+          const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
+
+          const prettySchemaVal = (val?: string) => {
+            let s = (val ?? "").toString().trim();
+            if (!s) return "";
+            const low = s.toLowerCase();
+            if (s === "Unknown" || low === "unknown") return "未知/Unknown";
+            if (s === "Empty" || low === "empty") return "空/Empty";
+            if (low === "null") return "空/null";
+
+            // 中文(English) -> 中文/English
+            if (s.includes("(") && s.endsWith(")")) {
+              const parts = s.split("(");
+              const cn = (parts[0] || "").trim();
+              const en = parts
+                .slice(1)
+                .join("(")
+                .replace(/\)\s*$/, "")
+                .trim();
+              if (cn && en) return `${cn}/${en}`;
+              if (cn) return cn;
+              if (en) return `待补充/${en}`;
+            }
+
+            // 已是 pair，尽量保证中文在左
+            if (s.includes("/")) {
+              const parts = s.split("/");
+              const left = (parts[0] || "").trim();
+              const right = parts.slice(1).join("/").trim();
+              if (hasCJK(left)) return s;
+              if (hasCJK(right)) return `${right}/${left}`;
+              return `待补充/${s}`;
+            }
+
+            if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
+            return s;
+          };
+
+          const prettyExecVal = (val?: string) => {
+            const s0 = (val ?? "").toString().trim();
+            if (!s0) return "未知/Unknown";
+            const low = s0.toLowerCase();
+            if (low.includes("unknown") || low === "null") return "未知/Unknown";
+            if (low.includes("perfect") || s0.includes("完美")) return "🟢 完美";
+            if (low.includes("fomo") || s0.includes("FOMO")) return "🔴 FOMO";
+            if (low.includes("tight") || s0.includes("止损太紧")) return "🔴 止损太紧";
+            if (low.includes("scratch") || s0.includes("主动")) return "🟡 主动离场";
+            if (low.includes("normal") || low.includes("none") || s0.includes("正常"))
+              return "🟢 正常";
+            return prettySchemaVal(s0) || "未知/Unknown";
+          };
+
+          const topN = (
+            getter: (t: TradeRecord) => string | undefined,
+            pretty?: (v?: string) => string
+          ) => {
             const map = new Map<string, number>();
             for (const t of trades) {
-              const v = (getter(t) ?? "Unknown").trim();
+              const raw = getter(t);
+              const base = (raw ?? "").toString().trim();
+              const v = (pretty ? pretty(base) : base) || "Unknown";
               if (!v) continue;
               map.set(v, (map.get(v) ?? 0) + 1);
             }
             return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
           };
 
-          const distTicker = topN((t) => t.ticker);
-          const distSetup = topN((t) => t.setupCategory);
-          const distExec = topN((t) => t.executionQuality);
+          const distTicker = topN((t) => t.ticker, prettySchemaVal);
+          const distSetup = topN((t) => t.setupCategory, prettySchemaVal);
+          const distExec = topN((t) => t.executionQuality, prettyExecVal);
 
           return (
             <div style={{ marginBottom: "12px" }}>
