@@ -3,6 +3,8 @@ import {
   ItemView,
   WorkspaceLeaf,
   TFile,
+  Notice,
+  Modal,
   MarkdownRenderer,
   Component,
   parseYaml,
@@ -193,6 +195,19 @@ interface Props {
   ) => () => void;
   loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
   loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
+  promptText?: (options: {
+    title: string;
+    defaultValue?: string;
+    placeholder?: string;
+    okText?: string;
+    cancelText?: string;
+  }) => Promise<string | null>;
+  confirmDialog?: (options: {
+    title: string;
+    message: string;
+    okText?: string;
+    cancelText?: string;
+  }) => Promise<boolean>;
   openFile: (path: string) => void;
   openGlobalSearch?: (query: string) => void;
   runCommand?: (commandId: string) => void;
@@ -290,6 +305,8 @@ const ConsoleComponent: React.FC<Props> = ({
   subscribeSettings,
   loadCourse,
   loadMemory,
+  promptText,
+  confirmDialog,
   openFile,
   openGlobalSearch,
   runCommand,
@@ -6746,6 +6763,10 @@ short mode\n\
                       };
 
                       const doRenameKey = async () => {
+                        new Notice(`Manager: 重命名属性 ${key}`);
+                        console.log("[al-brooks-console][manager] rename key", {
+                          key,
+                        });
                         const n = window.prompt(`重命名 ${key}`, key) ?? "";
                         const nextKey = n.trim();
                         if (!nextKey || nextKey === key) return;
@@ -6764,6 +6785,10 @@ short mode\n\
                       };
 
                       const doDeleteKey = async () => {
+                        new Notice(`Manager: 删除属性 ${key}`);
+                        console.log("[al-brooks-console][manager] delete key", {
+                          key,
+                        });
                         if (!window.confirm(`⚠️ 确认删除属性 [${key}]?`))
                           return;
                         const plan = buildDeleteKeyPlan(
@@ -6778,6 +6803,10 @@ short mode\n\
                       };
 
                       const doAppendVal = async () => {
+                        new Notice(`Manager: 追加值 → ${key}`);
+                        console.log("[al-brooks-console][manager] append val", {
+                          key,
+                        });
                         const v = window.prompt("追加新值") ?? "";
                         const val = v.trim();
                         if (!val) return;
@@ -6794,6 +6823,11 @@ short mode\n\
                       };
 
                       const doInjectProp = async () => {
+                        new Notice(`Manager: 注入属性（files） → ${key}`);
+                        console.log("[al-brooks-console][manager] inject prop", {
+                          key,
+                          currentPathsCount: currentPaths.length,
+                        });
                         const k = window.prompt("属性名") ?? "";
                         const newKey = k.trim();
                         if (!newKey) return;
@@ -6816,6 +6850,12 @@ short mode\n\
                         val: string,
                         paths: string[]
                       ) => {
+                        new Notice(`Manager: 修改值 ${key}`);
+                        console.log("[al-brooks-console][manager] update val", {
+                          key,
+                          val,
+                          pathsCount: paths.length,
+                        });
                         const n = window.prompt("修改值", val) ?? "";
                         const next = n.trim();
                         if (!next || next === val) return;
@@ -6836,6 +6876,12 @@ short mode\n\
                         val: string,
                         paths: string[]
                       ) => {
+                        new Notice(`Manager: 删除值 ${key}`);
+                        console.log("[al-brooks-console][manager] delete val", {
+                          key,
+                          val,
+                          pathsCount: paths.length,
+                        });
                         if (!window.confirm(`确认移除值 "${val}"?`)) return;
                         const plan = buildDeleteValPlan(
                           selectManagerFiles(paths),
