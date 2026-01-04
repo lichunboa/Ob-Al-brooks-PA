@@ -1011,6 +1011,22 @@ const ConsoleComponent: React.FC<Props> = ({
     transition: "background-color 180ms ease, box-shadow 180ms ease",
   };
 
+  const v5Colors = {
+    live: "#10B981",
+    demo: "#3B82F6",
+    back: "#F59E0B",
+    loss: "#EF4444",
+    win: "#10B981",
+    text: "#F3F4F6",
+    textSub: "rgba(243,244,246,0.6)",
+    textDim: "rgba(243,244,246,0.4)",
+    accent: "#60A5FA",
+    accentPurple: "#A78BFA",
+    border: "rgba(148, 163, 184, 0.1)",
+    borderLight: "rgba(148, 163, 184, 0.2)",
+    borderAccent: "rgba(96, 165, 250, 0.3)",
+  } as const;
+
   const onBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       if (e.currentTarget.disabled) return;
@@ -5758,10 +5774,10 @@ short mode\n\
           const healthScore = Math.max(0, 100 - issueCount * 5);
           const healthColor =
             healthScore > 90
-              ? "var(--text-accent)"
+              ? v5Colors.win
               : healthScore > 60
-              ? "var(--text-warning)"
-              : "var(--text-error)";
+              ? v5Colors.back
+              : v5Colors.loss;
           const files = paTagSnapshot?.files ?? 0;
           const tags = paTagSnapshot
             ? Object.keys(paTagSnapshot.tagMap).length
@@ -6490,18 +6506,18 @@ short mode\n\
                     value: String(issueCount),
                     color:
                       issueCount > 0
-                        ? "var(--text-error)"
+                        ? v5Colors.loss
                         : "var(--text-muted)",
                   },
                   {
                     title: "标签总数",
                     value: String(tags),
-                    color: "var(--text-accent)",
+                    color: v5Colors.accent,
                   },
                   {
                     title: "笔记档案",
                     value: String(files),
-                    color: "var(--text-accent)",
+                    color: v5Colors.accent,
                   },
                 ].map((c) => (
                   <div
