@@ -182,6 +182,7 @@ interface Props {
   restoreFiles?: (
     backups: Record<string, string>
   ) => Promise<ManagerApplyResult>;
+  createTradeNote?: () => Promise<void>;
   settings: AlBrooksConsoleSettings;
   subscribeSettings?: (
     listener: (settings: AlBrooksConsoleSettings) => void
@@ -279,6 +280,7 @@ const ConsoleComponent: React.FC<Props> = ({
   loadPaTagSnapshot,
   applyFixPlan,
   restoreFiles,
+  createTradeNote,
   settings: initialSettings,
   subscribeSettings,
   loadCourse,
