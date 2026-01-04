@@ -475,6 +475,7 @@ export class ObsidianTradeIndex implements TradeIndex {
     }
 
     const pnlRaw = getFirstFieldValue(fm, FIELD_ALIASES.pnl);
+    const rRaw = getFirstFieldValue(fm, FIELD_ALIASES.r);
     const tickerRaw = getFirstFieldValue(fm, FIELD_ALIASES.ticker);
     const outcomeRaw = getFirstFieldValue(fm, FIELD_ALIASES.outcome);
     const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
@@ -506,7 +507,8 @@ export class ObsidianTradeIndex implements TradeIndex {
     );
     const coverRaw = getFirstFieldValue(fm, FIELD_ALIASES.cover);
 
-    const pnl = parseNumber(pnlRaw);
+    // v5 对齐：旧数据可能只填 r；当 pnl/net_profit 缺失时，用 r 兜底。
+    const pnl = parseNumber(pnlRaw) ?? parseNumber(rRaw);
     const ticker = normalizeTicker(tickerRaw);
     const outcome = normalizeOutcome(outcomeRaw);
     const dateIso = this.normalizeDateIso(dateRaw, file);

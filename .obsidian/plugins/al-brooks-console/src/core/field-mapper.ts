@@ -2,6 +2,7 @@ import type { AccountType, NormalizedTag, TradeOutcome } from "./contracts";
 
 export const FIELD_ALIASES = {
   pnl: ["pnl", "net_profit", "净利润/net_profit", "净利润", "盈亏", "收益"],
+  r: ["r", "R", "r_value", "r值", "R值"],
   ticker: ["ticker", "symbol", "品种/ticker", "品种", "标的", "代码", "合约"],
   outcome: ["outcome", "result", "结果/outcome", "结果"],
   date: ["date", "日期"],
