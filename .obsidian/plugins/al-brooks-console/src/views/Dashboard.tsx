@@ -6589,9 +6589,21 @@ const ConsoleComponent: React.FC<Props> = ({
                     ))}
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            未加载计划。请先生成计划以预览变更。
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
           margin: "18px 0 10px",
           paddingBottom: "8px",
-                        disabled={!applyFixPlan || managerBusy}
+          borderBottom: "1px solid var(--background-modifier-border)",
           display: "flex",
           alignItems: "baseline",
           gap: "10px",
@@ -6610,7 +6622,7 @@ const ConsoleComponent: React.FC<Props> = ({
           borderRadius: "10px",
           padding: "12px",
           marginBottom: "16px",
-                          !applyFixPlan || managerBusy
+          background: "var(--background-primary)",
         }}
       >
         {!can("tasks:open") ? (
