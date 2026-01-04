@@ -231,3 +231,82 @@ export function computeErrorAnalysis(
   // Sort by netR ascending (biggest losses first)
   return rows.sort((a, b) => a.netR - b.netR);
 }
+
+export interface TuitionAnalysisRow {
+  error: string;
+  costR: number;
+}
+
+export interface TuitionAnalysis {
+  tuitionR: number;
+  rows: TuitionAnalysisRow[];
+}
+
+const EXECUTION_QUALITY_FIELD_ALIASES = [
+  "execution_quality",
+  "执行评价/execution_quality",
+  "执行评价",
+  "management_error",
+  "管理错误/management_error",
+  "管理错误",
+] as const;
+
+function getExecutionQualityFromTrade(t: TradeRecord): string {
+  const direct = typeof t.executionQuality === "string" ? t.executionQuality : "";
+  if (direct.trim()) return direct.trim();
+
+  const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+  for (const key of EXECUTION_QUALITY_FIELD_ALIASES) {
+    const v = (fm as any)[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+
+  return "None";
+}
+
+function isBadExecutionQuality(errStr: string): boolean {
+  const s = String(errStr ?? "");
+  return !(
+    s.includes("Perfect") ||
+    s.includes("Valid") ||
+    s.includes("None") ||
+    s.includes("完美") ||
+    s.includes("主动")
+  );
+}
+
+/**
+ * v5.0 对齐：学费(错误的代价)
+ * - 仅统计 Live
+ * - 仅统计亏损 (pnl < 0)
+ * - executionQuality/management_error 非 Perfect/Valid/None/完美/主动 时计入
+ * - key 使用括号前文本："XXX (.. )" -> "XXX"
+ * - tuitionR = abs(pnl) 累加；errors 按 key 聚合 abs(pnl)
+ */
+export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
+  let tuitionR = 0;
+  const by = new Map<string, number>();
+
+  for (const t of trades) {
+    if (t.accountType !== "Live") continue;
+
+    const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    if (pnl >= 0) continue;
+
+    const errStr = getExecutionQualityFromTrade(t);
+    if (!isBadExecutionQuality(errStr)) continue;
+
+    const keyRaw = errStr.includes("(") ? errStr.split("(")[0].trim() : errStr.trim();
+    const key = keyRaw.length ? keyRaw : "Unknown";
+
+    const cost = Math.abs(pnl);
+    tuitionR += cost;
+    by.set(key, (by.get(key) ?? 0) + cost);
+  }
+
+  const rows = [...by.entries()]
+    .map(([error, costR]) => ({ error, costR }))
+    .sort((a, b) => b.costR - a.costR);
+
+  return { tuitionR, rows };
+}

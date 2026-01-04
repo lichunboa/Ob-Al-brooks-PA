@@ -26,6 +26,7 @@ import {
   computeStrategyAttribution,
   computeContextAnalysis,
   computeErrorAnalysis,
+  computeTuitionAnalysis,
   filterTradesByScope,
   type AnalyticsScope,
   type DailyAgg,
@@ -767,53 +768,11 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [last30TradesDesc]);
 
   const tuition = React.useMemo(() => {
-    const ERROR_FIELD_ALIASES = [
-      "mistake_tags",
-      "错误/mistake_tags",
-      "mistakes",
-      "errors",
-    ] as const;
-
-    const getMistakeTags = (t: TradeRecord): string[] => {
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      for (const key of ERROR_FIELD_ALIASES) {
-        const v = (fm as any)[key];
-        if (Array.isArray(v)) {
-          const tags = v
-            .filter((x) => typeof x === "string")
-            .map((x) => (x as string).trim())
-            .filter(Boolean);
-          if (tags.length > 0) return tags;
-        } else if (typeof v === "string" && v.trim()) {
-          return [v.trim()];
-        }
-      }
-      return [];
+    const res = computeTuitionAnalysis(trades);
+    return {
+      tuitionR: res.tuitionR,
+      rows: res.rows.map((r) => ({ tag: r.error, costR: r.costR })),
     };
-
-    let tuitionR = 0;
-    const by = new Map<string, number>();
-
-    for (const t of trades) {
-      if (t.accountType !== "Live") continue;
-      const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      if (r >= 0) continue;
-      const tags = getMistakeTags(t);
-      if (tags.length === 0) continue;
-
-      const cost = Math.abs(r);
-      tuitionR += cost;
-      const share = cost / tags.length;
-      for (const tag of tags) {
-        by.set(tag, (by.get(tag) ?? 0) + share);
-      }
-    }
-
-    const rows = [...by.entries()]
-      .map(([tag, costR]) => ({ tag, costR }))
-      .sort((a, b) => b.costR - a.costR);
-
-    return { tuitionR, rows };
   }, [trades]);
 
   React.useEffect(() => {
@@ -3189,7 +3148,7 @@ const ConsoleComponent: React.FC<Props> = ({
             <div
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}
             >
-              {tuition.rows.slice(0, 12).map((row) => {
+              {tuition.rows.slice(0, 5).map((row) => {
                 const pct = Math.round((row.costR / tuition.tuitionR) * 100);
                 return (
                   <div
