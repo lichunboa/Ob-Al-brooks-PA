@@ -197,32 +197,84 @@ export function computeHubSuggestion(args: {
       ? args.topTuitionError?.pct
       : undefined;
 
-  const deriveActionRule = (name: string | undefined): string => {
+  type ActionRuleKey =
+    | "Tilt"
+    | "FOMO"
+    | "Hesitation"
+    | "PanicExit"
+    | "NoStop"
+    | "Overtrading"
+    | "EarlyExit"
+    | "Other";
+
+  // 优先按官方 execution_quality 枚举进行精确归一化（括号内英文值），再做少量别名兜底。
+  // Official (from Templates/PA_Metadata_Schema.md):
+  // - 🟢 完美执行 (Perfect)
+  // - 🟡 主动离场/避险 (Valid Scratch)
+  // - 🔴 恐慌平仓 (Panic Exit)
+  // - 🔴 追涨杀跌 (FOMO)
+  // - 🔴 扛单/不止损 (No Stop)
+  // - 🔴 过度交易 (Overtrading)
+  const normalizeActionRuleKey = (name: string | undefined): ActionRuleKey => {
     const raw = String(name ?? "").trim();
-    const s = raw.toLowerCase();
-    if (!raw) return "行动规则：下一笔只允许 A+ 级别机会，严格按计划执行。";
+    if (!raw) return "Other";
 
-    // <= 8 条：用“包含匹配”覆盖中英文常见写法。
-    if (s.includes("tilt") || raw.includes("上头") || s.includes("revenge") || raw.includes("报复")) {
-      return "行动规则：出现情绪波动/报复倾向时立刻停止交易（至少 24 小时），并写复盘结论再恢复实盘。";
+    const withoutLeadingEmoji = raw.replace(/^[\s🟢🟡🔴]+/g, "").trim();
+    const parenMatch = withoutLeadingEmoji.match(/\(([^)]+)\)\s*$/);
+    const paren = parenMatch?.[1]?.trim().toLowerCase();
+
+    // 1) execution_quality：严格按括号内英文枚举值判断
+    if (paren === "panic exit") return "PanicExit";
+    if (paren === "fomo") return "FOMO";
+    if (paren === "no stop") return "NoStop";
+    if (paren === "overtrading") return "Overtrading";
+
+    // 2) management_error / 自由文本：少量别名兜底（用于兼容旧数据/手填）
+    const s = withoutLeadingEmoji.toLowerCase();
+    if (s === "tilt" || raw.includes("上头") || raw.includes("报复")) return "Tilt";
+    if (s === "fomo" || raw.includes("追单") || raw.includes("追涨") || raw.includes("冲动")) return "FOMO";
+    if (s === "hesitation" || raw.includes("犹豫") || raw.includes("不敢") || raw.includes("拖延")) {
+      return "Hesitation";
     }
-    if (s.includes("fomo") || raw.includes("追单") || raw.includes("追涨") || raw.includes("冲动")) {
-      return "行动规则：只在信号K收盘确认后下单；错过就错过，不追单。";
+    if (s === "panic exit" || raw.includes("恐慌平仓") || raw.includes("恐慌")) return "PanicExit";
+    if (s === "no stop" || s === "nostop" || raw.includes("扛单") || raw.includes("不止损") || raw.includes("无止损")) {
+      return "NoStop";
     }
-    if (s.includes("hesitation") || raw.includes("犹豫") || raw.includes("不敢") || raw.includes("拖延")) {
-      return "行动规则：满足入场条件就执行；若不能执行则视为计划不清，回到模拟盘重练规则。";
-    }
-    if (raw.includes("过早") || raw.includes("早退") || s.includes("early") || raw.includes("提前止盈")) {
-      return "行动规则：按计划持仓管理（至少到下一个关键位/二次入场失败/明确反向信号），不要因为波动提前退出。";
-    }
-    if (raw.includes("无止损") || raw.includes("不设止损") || s.includes("no stop") || s.includes("nostop")) {
-      return "行动规则：下单前必须先放好止损并确认初始风险；任何不设止损的交易一律禁止。";
-    }
-    if (raw.includes("加仓") || raw.includes("过度") || raw.includes("频繁") || s.includes("overtrade") || s.includes("over trade")) {
-      return "行动规则：限制当日交易次数与加仓次数；不在波动中加仓，只在计划点位加仓。";
+    if (s === "overtrading" || s === "overtrade" || raw.includes("过度交易")) return "Overtrading";
+
+    // 3) 非枚举：保留 v5 风格的少量识别
+    if (raw.includes("过早") || raw.includes("早退") || raw.includes("提前止盈") || s === "early exit") {
+      return "EarlyExit";
     }
 
-    return "行动规则：把这类错误写成 1 条禁止/必须规则，下次交易前先检查。";
+    return "Other";
+  };
+
+  const deriveActionRule = (name: string | undefined): string => {
+    if (!String(name ?? "").trim()) {
+      return "行动规则：下一笔只允许 A+ 级别机会，严格按计划执行。";
+    }
+
+    // <= 8 条：优先走枚举精确匹配，再少量别名兜底。
+    const key = normalizeActionRuleKey(name);
+    switch (key) {
+      case "Tilt":
+        return "行动规则：出现情绪波动/报复倾向时立刻停止交易（至少 24 小时），并写复盘结论再恢复实盘。";
+      case "FOMO":
+        return "行动规则：只在信号K收盘确认后下单；错过就错过，不追单。";
+      case "Hesitation":
+        return "行动规则：满足入场条件就执行；若不能执行则视为计划不清，回到模拟盘重练规则。";
+      case "PanicExit":
+        return "行动规则：下单前写清‘止损触发条件/目标位/持仓管理步骤’，交易中只按计划执行，避免恐慌平仓。";
+      case "NoStop":
+        return "行动规则：下单前必须先放好止损并确认初始风险；任何不设止损的交易一律禁止。";
+      case "Overtrading":
+        return "行动规则：限制当日交易次数与加仓次数；不在波动中加仓，只在计划点位加仓。";
+      case "EarlyExit":
+        return "行动规则：按计划持仓管理（至少到下一个关键位/二次入场失败/明确反向信号），不要因为波动提前退出。";
+      default:
+        return "行动规则：把这类错误写成 1 条禁止/必须规则，下次交易前先检查。";
+    }
   };
   const topErrHint = topErrName
     ? `最贵错误：${topErrName}${
