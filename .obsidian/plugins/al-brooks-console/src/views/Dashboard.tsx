@@ -2528,20 +2528,20 @@ short mode\n\
                       {
                         t: "获胜",
                         v: String(todaySummary.All.countWins),
-                        c: "var(--text-success)",
+                        c: V5_COLORS.win,
                       },
                       {
                         t: "亏损",
                         v: String(todaySummary.All.countLosses),
-                        c: "var(--text-error)",
+                        c: V5_COLORS.loss,
                       },
                       {
                         t: "胜率",
                         v: `${todaySummary.All.winRatePct}%`,
                         c:
                           todaySummary.All.winRatePct >= 50
-                            ? "var(--text-success)"
-                            : "var(--text-warning)",
+                            ? V5_COLORS.win
+                            : V5_COLORS.back,
                       },
                       {
                         t: "净利润",
@@ -2550,8 +2550,8 @@ short mode\n\
                         }${todaySummary.All.netProfit.toFixed(1)}R`,
                         c:
                           todaySummary.All.netProfit >= 0
-                            ? "var(--text-success)"
-                            : "var(--text-error)",
+                            ? V5_COLORS.win
+                            : V5_COLORS.loss,
                       },
                     ] as const
                   ).map((x) => (
@@ -2627,11 +2627,11 @@ short mode\n\
                             : String(outcome);
                         const outcomeColor =
                           outcome === "win"
-                            ? "var(--text-success)"
+                            ? V5_COLORS.win
                             : outcome === "loss"
-                            ? "var(--text-error)"
+                            ? V5_COLORS.loss
                             : outcome === "scratch"
-                            ? "var(--text-warning)"
+                            ? V5_COLORS.back
                             : "var(--text-muted)";
 
                         const pnl =
@@ -2642,8 +2642,8 @@ short mode\n\
                           pnl === undefined
                             ? "var(--text-muted)"
                             : pnl >= 0
-                            ? "var(--text-success)"
-                            : "var(--text-error)";
+                            ? V5_COLORS.win
+                            : V5_COLORS.loss;
 
                         const entry =
                           (t.rawFrontmatter?.["entry"] as unknown as
@@ -3089,7 +3089,7 @@ short mode\n\
                 1
               )}R`}
               color={
-                all.netProfit >= 0 ? "var(--text-success)" : "var(--text-error)"
+                all.netProfit >= 0 ? V5_COLORS.win : V5_COLORS.loss
               }
               icon="💰"
             />
@@ -3098,8 +3098,8 @@ short mode\n\
               value={`${all.winRatePct}%`}
               color={
                 all.winRatePct > 50
-                  ? "var(--text-success)"
-                  : "var(--text-warning)"
+                  ? V5_COLORS.win
+                  : V5_COLORS.back
               }
               icon="🎯"
             />
@@ -3189,7 +3189,7 @@ short mode\n\
                     style={{
                       fontWeight: 900,
                       fontSize: "1.1em",
-                      color: "var(--text-success)",
+                      color: V5_COLORS.live,
                     }}
                   >
                     🟢 实盘账户
@@ -3222,8 +3222,8 @@ short mode\n\
                       lineHeight: 1,
                       color:
                         summary.Live.netProfit >= 0
-                          ? "var(--text-success)"
-                          : "var(--text-error)",
+                          ? V5_COLORS.win
+                          : V5_COLORS.loss,
                     }}
                   >
                     {summary.Live.netProfit > 0 ? "+" : ""}
@@ -3318,8 +3318,8 @@ short mode\n\
                           fontWeight: 900,
                           color:
                             card.stats.netProfit >= 0
-                              ? "var(--text-success)"
-                              : "var(--text-error)",
+                              ? V5_COLORS.win
+                              : V5_COLORS.loss,
                         }}
                       >
                         {card.stats.netProfit > 0 ? "+" : ""}
@@ -3389,16 +3389,16 @@ short mode\n\
                   const color = !hasTrade
                     ? "var(--text-faint)"
                     : pnl! > 0
-                    ? "var(--text-success)"
+                    ? V5_COLORS.win
                     : pnl! < 0
-                    ? "var(--text-error)"
+                    ? V5_COLORS.loss
                     : "var(--text-muted)";
                   const bg = !hasTrade
                     ? "rgba(var(--mono-rgb-100), 0.02)"
                     : pnl! > 0
-                    ? "rgba(var(--color-green-rgb), 0.12)"
+                    ? withHexAlpha(V5_COLORS.win, "1F")
                     : pnl! < 0
-                    ? "rgba(var(--color-red-rgb), 0.12)"
+                    ? withHexAlpha(V5_COLORS.loss, "1F")
                     : "rgba(var(--mono-rgb-100), 0.06)";
 
                   return (
@@ -3528,9 +3528,9 @@ short mode\n\
                 {liveCyclePerf.map((cy) => {
                   const color =
                     cy.pnl > 0
-                      ? "var(--text-success)"
+                      ? V5_COLORS.win
                       : cy.pnl < 0
-                      ? "var(--text-error)"
+                      ? V5_COLORS.loss
                       : "var(--text-muted)";
                   return (
                     <div
@@ -3591,7 +3591,7 @@ short mode\n\
               </span>
             </div>
             {tuition.tuitionR <= 0 ? (
-              <div style={{ color: "var(--text-success)", fontWeight: 700 }}>
+              <div style={{ color: V5_COLORS.win, fontWeight: 700 }}>
                 🎉 完美！近期实盘没有因纪律问题亏损。
               </div>
             ) : (
@@ -3606,7 +3606,7 @@ short mode\n\
                   因执行错误共计亏损：
                   <span
                     style={{
-                      color: "var(--text-error)",
+                      color: V5_COLORS.loss,
                       fontWeight: 900,
                       marginLeft: "6px",
                     }}
@@ -3712,17 +3712,17 @@ short mode\n\
                 borderRadius: "10px",
                 background:
                   analyticsSuggestion.tone === "danger"
-                    ? "rgba(var(--color-red-rgb), 0.12)"
+                    ? withHexAlpha(V5_COLORS.loss, "1F")
                     : analyticsSuggestion.tone === "warn"
-                    ? "rgba(var(--color-yellow-rgb), 0.12)"
-                    : "rgba(var(--color-green-rgb), 0.10)",
+                    ? withHexAlpha(V5_COLORS.back, "1F")
+                    : withHexAlpha(V5_COLORS.win, "1A"),
                 border: "1px solid var(--background-modifier-border)",
                 color:
                   analyticsSuggestion.tone === "danger"
-                    ? "var(--text-error)"
+                    ? V5_COLORS.loss
                     : analyticsSuggestion.tone === "warn"
-                    ? "var(--text-warning)"
-                    : "var(--text-success)",
+                    ? V5_COLORS.back
+                    : V5_COLORS.win,
                 fontWeight: 700,
               }}
             >
@@ -3794,9 +3794,9 @@ short mode\n\
                     const alpha = c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
                     const bg =
                       c.netR > 0
-                        ? `rgba(var(--color-green-rgb), ${alpha})`
+                        ? withHexAlpha(V5_COLORS.win, "1A")
                         : c.netR < 0
-                        ? `rgba(var(--color-red-rgb), ${alpha})`
+                        ? withHexAlpha(V5_COLORS.loss, "1A")
                         : `rgba(var(--mono-rgb-100), 0.05)`;
                     return (
                       <div
@@ -3829,9 +3829,9 @@ short mode\n\
                             fontWeight: 600,
                             color:
                               c.netR > 0
-                                ? "var(--text-success)"
+                                ? V5_COLORS.win
                                 : c.netR < 0
-                                ? "var(--text-error)"
+                                ? V5_COLORS.loss
                                 : "var(--text-faint)",
                             textAlign: "right",
                           }}
@@ -3978,8 +3978,8 @@ short mode\n\
                             style={{
                               color:
                                 r.netR >= 0
-                                  ? "var(--text-success)"
-                                  : "var(--text-error)",
+                                  ? V5_COLORS.win
+                                  : V5_COLORS.loss,
                               fontWeight: 600,
                             }}
                           >
@@ -4132,9 +4132,9 @@ short mode\n\
                             if (h < 3) h = 3;
                             const color =
                               r > 0
-                                ? "var(--text-success)"
+                                ? V5_COLORS.win
                                 : r < 0
-                                ? "var(--text-error)"
+                                ? V5_COLORS.loss
                                 : "var(--text-muted)";
                             const top = r >= 0 ? rZeroY - h : rZeroY;
                             return (
@@ -4215,10 +4215,10 @@ short mode\n\
                   {analyticsTopStrats.map((s) => {
                     const color =
                       s.wr >= 50
-                        ? "var(--text-success)"
+                        ? V5_COLORS.win
                         : s.wr >= 40
-                        ? "var(--text-warning)"
-                        : "var(--text-error)";
+                        ? V5_COLORS.back
+                        : V5_COLORS.loss;
                     let displayName = s.name;
                     if (displayName.length > 12 && displayName.includes("(")) {
                       displayName = displayName.split("(")[0].trim();
@@ -4506,8 +4506,8 @@ short mode\n\
                             style={{
                               color:
                                 s.wr > 50
-                                  ? "var(--text-success)"
-                                  : "var(--text-warning)",
+                                  ? V5_COLORS.win
+                                  : V5_COLORS.back,
                               fontWeight: 800,
                             }}
                           >
@@ -4900,7 +4900,7 @@ short mode\n\
                                   minHeight: "4px",
                                   borderRadius: "4px",
                                   background: has
-                                    ? "var(--text-accent)"
+                                    ? V5_COLORS.accent
                                     : "var(--background-modifier-border)",
                                   opacity: has ? 0.85 : 0.6,
                                 }}
@@ -5372,9 +5372,9 @@ short mode\n\
                         >
                           {ph.items.map((c) => {
                             const bg = c.isDone
-                              ? "var(--text-success)"
+                              ? V5_COLORS.win
                               : c.hasNote
-                              ? "var(--text-accent)"
+                              ? V5_COLORS.accent
                               : "rgba(var(--mono-rgb-100), 0.06)";
                             const fg = c.isDone
                               ? "var(--background-primary)"
@@ -5662,9 +5662,9 @@ short mode\n\
                   {playbookPerfRows.map((r) => {
                     const pnlColor =
                       r.pnl > 0
-                        ? "var(--text-success)"
+                        ? V5_COLORS.win
                         : r.pnl < 0
-                        ? "var(--text-error)"
+                        ? V5_COLORS.loss
                         : "var(--text-muted)";
 
                     return (
@@ -5804,10 +5804,10 @@ short mode\n\
                               "1px solid var(--background-modifier-border)",
                             color:
                               it.accountType === "Live"
-                                ? "var(--text-success)"
+                                ? V5_COLORS.live
                                 : it.accountType === "Backtest"
-                                ? "var(--text-warning)"
-                                : "var(--text-accent)",
+                                ? V5_COLORS.back
+                                : V5_COLORS.demo,
                             fontSize: "0.72em",
                             fontWeight: 900,
                             padding: "2px 8px",
@@ -5855,8 +5855,8 @@ short mode\n\
                             style={{
                               color:
                                 it.pnl >= 0
-                                  ? "var(--text-success)"
-                                  : "var(--text-error)",
+                                  ? V5_COLORS.win
+                                  : V5_COLORS.loss,
                               fontWeight: 900,
                               fontSize: "0.95em",
                               flex: "0 0 auto",
@@ -6140,7 +6140,7 @@ short mode\n\
                           ))}
                         </div>
                       ) : (
-                        <div style={{ color: "var(--text-accent)" }}>
+                        <div style={{ color: V5_COLORS.win }}>
                           ✅ 系统非常健康（All Clear）
                         </div>
                       )}
@@ -6274,7 +6274,7 @@ short mode\n\
                     {schemaIssues.length === 0 ? (
                       <div
                         style={{
-                          color: "var(--text-accent)",
+                          color: V5_COLORS.win,
                           fontSize: "0.9em",
                         }}
                       >
@@ -6861,10 +6861,10 @@ short mode\n\
                               marginBottom: "10px",
                             }}
                           >
-                            <div style={{ color: "var(--text-error)" }}>
+                            <div style={{ color: V5_COLORS.loss }}>
                               错误：{errorCount}
                             </div>
-                            <div style={{ color: "var(--text-warning)" }}>
+                            <div style={{ color: V5_COLORS.back }}>
                               警告：{warnCount}
                             </div>
                             <div style={{ color: "var(--text-muted)" }}>
@@ -6929,8 +6929,8 @@ short mode\n\
                                     width: "60px",
                                     color:
                                       issue.severity === "error"
-                                        ? "var(--text-error)"
-                                        : "var(--text-warning)",
+                                        ? V5_COLORS.loss
+                                        : V5_COLORS.back,
                                     fontWeight: 600,
                                   }}
                                 >
@@ -7025,10 +7025,10 @@ short mode\n\
                     marginBottom: "10px",
                   }}
                 >
-                  <div style={{ color: "var(--text-error)" }}>
+                  <div style={{ color: V5_COLORS.loss }}>
                     错误：{errorCount}
                   </div>
-                  <div style={{ color: "var(--text-warning)" }}>
+                  <div style={{ color: V5_COLORS.back }}>
                     警告：{warnCount}
                   </div>
                   <div style={{ color: "var(--text-muted)" }}>
@@ -7087,8 +7087,8 @@ short mode\n\
                           width: "60px",
                           color:
                             issue.severity === "error"
-                              ? "var(--text-error)"
-                              : "var(--text-warning)",
+                              ? V5_COLORS.loss
+                              : V5_COLORS.back,
                           fontWeight: 600,
                         }}
                       >
@@ -8017,7 +8017,7 @@ short mode\n\
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            color: "var(--text-accent)",
+                                            color: V5_COLORS.accent,
                                             fontWeight: 700,
                                             padding: "8px 10px",
                                             border:
