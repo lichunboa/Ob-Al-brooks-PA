@@ -263,6 +263,27 @@ export interface FrontmatterKeyStat {
   topValues: Array<{ value: string; count: number }>;
 }
 
+export interface FrontmatterInventoryKey {
+  key: string;
+  /** Number of files that contain this key. */
+  files: number;
+  /** Unique value count for this key. */
+  uniqueValues: number;
+}
+
+/**
+ * Legacy-compatible (v5.0) manager inventory:
+ * - keyPaths mirrors keyMap (key -> affected file paths)
+ * - valPaths mirrors valMap (key -> (normalizedVal -> affected file paths))
+ */
+export interface FrontmatterInventory {
+  generatedAtIso: string;
+  totalFiles: number;
+  keys: FrontmatterInventoryKey[];
+  keyPaths: Record<string, string[]>;
+  valPaths: Record<string, Record<string, string[]>>;
+}
+
 export interface FrontmatterStats {
   generatedAtIso: string;
   totalFiles: number;
@@ -368,6 +389,64 @@ export function buildFrontmatterStats(
 }
 
 /**
+ * Full legacy inventory scan for Manager (v5.0):
+ * returns the complete key->paths and key+val->paths maps.
+ */
+export function buildFrontmatterInventory(
+  files: FrontmatterFile[]
+): FrontmatterInventory {
+  const keyMap = new Map<string, Set<string>>();
+  const valMap = new Map<string, Map<string, Set<string>>>();
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, unknown>;
+    for (const k of Object.keys(fm)) {
+      const kp = keyMap.get(k) ?? new Set<string>();
+      kp.add(f.path);
+      keyMap.set(k, kp);
+
+      const vals = extractValues((fm as any)[k]);
+      if (!valMap.has(k)) valMap.set(k, new Map());
+      const perVal = valMap.get(k)!;
+      for (const val of vals) {
+        const vp = perVal.get(val) ?? new Set<string>();
+        vp.add(f.path);
+        perVal.set(val, vp);
+      }
+    }
+  }
+
+  const keyPaths: Record<string, string[]> = {};
+  const valPaths: Record<string, Record<string, string[]>> = {};
+
+  for (const [k, paths] of keyMap.entries()) {
+    keyPaths[k] = [...paths.values()].sort();
+  }
+  for (const [k, perVal] of valMap.entries()) {
+    const out: Record<string, string[]> = {};
+    for (const [val, paths] of perVal.entries()) {
+      out[val] = [...paths.values()].sort();
+    }
+    valPaths[k] = out;
+  }
+
+  const keys: FrontmatterInventoryKey[] = [...keyMap.entries()]
+    .map(([key, paths]) => {
+      const uniqueValues = Object.keys(valPaths[key] ?? {}).length;
+      return { key, files: paths.size, uniqueValues };
+    })
+    .sort((a, b) => b.files - a.files);
+
+  return {
+    generatedAtIso: new Date().toISOString(),
+    totalFiles: files.length,
+    keys,
+    keyPaths,
+    valPaths,
+  };
+}
+
+/**
  * Build a FixPlan that renames a frontmatter key across a set of files.
  *
  * Behavior mirrors legacy Manager semantics:
@@ -437,6 +516,8 @@ export function buildDeleteValPlan(
   const target = (valueToDelete ?? "").trim();
   if (!k || !target) return buildFixPlan([]);
 
+  const targetNorm = normalizeVal(target);
+
   const deleteKeyIfEmpty = options.deleteKeyIfEmpty ?? true;
   const fileUpdates: FixPlanFileUpdate[] = [];
 
@@ -451,33 +532,158 @@ export function buildDeleteValPlan(
     const raw = fm[k];
     if (raw === undefined) continue;
 
-    const asList: string[] = Array.isArray(raw)
-      ? raw
-          .filter((x): x is string => typeof x === "string")
-          .map((x) => x.trim())
-          .filter(Boolean)
-      : typeof raw === "string"
-        ? splitList(raw)
-        : [];
+    if (Array.isArray(raw)) {
+      if (raw.length === 0) continue;
+      const next = raw.filter((v) => normalizeVal(v) !== targetNorm);
+      if (next.length === raw.length) continue;
 
-    if (asList.length === 0) continue;
-
-    const next = asList.filter((v) => v !== target);
-    if (next.length === asList.length) continue;
-
-    const updates: Record<string, unknown> = {};
-    let deleteKeys: string[] | undefined = undefined;
-    if (next.length === 0) {
-      if (deleteKeyIfEmpty) {
-        deleteKeys = [k];
+      const updates: Record<string, unknown> = {};
+      let deleteKeys: string[] | undefined = undefined;
+      if (next.length === 0) {
+        if (deleteKeyIfEmpty) deleteKeys = [k];
+        else updates[k] = [];
       } else {
-        updates[k] = [];
+        updates[k] = next;
       }
-    } else {
-      updates[k] = next;
+      fileUpdates.push({ path: f.path, updates, deleteKeys });
+      continue;
     }
 
-    fileUpdates.push({ path: f.path, updates, deleteKeys });
+    if (typeof raw === "string") {
+      const asList = splitList(raw);
+      if (asList.length === 0) continue;
+      const next = asList.filter((v) => normalizeVal(v) !== targetNorm);
+      if (next.length === asList.length) continue;
+
+      const updates: Record<string, unknown> = {};
+      let deleteKeys: string[] | undefined = undefined;
+      if (next.length === 0) {
+        if (deleteKeyIfEmpty) deleteKeys = [k];
+        else updates[k] = [];
+      } else {
+        updates[k] = next;
+      }
+      fileUpdates.push({ path: f.path, updates, deleteKeys });
+      continue;
+    }
+
+    // Other shapes are ignored (legacy keeps them unless normalized match in array/object list)
+    continue;
+  }
+
+  return buildFixPlan(fileUpdates);
+}
+
+/**
+ * Build a FixPlan that updates a single value for a given key across a set of files.
+ * Matches legacy semantics: compare via normalizeVal; for arrays only replace the first match.
+ */
+export function buildUpdateValPlan(
+  files: FrontmatterFile[],
+  key: string,
+  oldVal: string,
+  newVal: string
+): FixPlan {
+  const k = (key ?? "").trim();
+  const from = (oldVal ?? "").trim();
+  const to = (newVal ?? "").trim();
+  if (!k || !from || !to) return buildFixPlan([]);
+
+  const fromNorm = normalizeVal(from);
+  const fileUpdates: FixPlanFileUpdate[] = [];
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    const raw = fm[k];
+    if (raw === undefined) continue;
+
+    if (Array.isArray(raw)) {
+      const idx = raw.findIndex((v) => normalizeVal(v) === fromNorm);
+      if (idx < 0) continue;
+      const next = [...raw];
+      next[idx] = to;
+      fileUpdates.push({ path: f.path, updates: { [k]: next } });
+      continue;
+    }
+
+    if (normalizeVal(raw) !== fromNorm) continue;
+    fileUpdates.push({ path: f.path, updates: { [k]: to } });
+  }
+
+  return buildFixPlan(fileUpdates);
+}
+
+/**
+ * Build a FixPlan that appends a value to a key across files.
+ * Matches legacy semantics: avoid duplicates by normalizeVal.
+ */
+export function buildAppendValPlan(
+  files: FrontmatterFile[],
+  key: string,
+  valueToAppend: string
+): FixPlan {
+  const k = (key ?? "").trim();
+  const v = (valueToAppend ?? "").trim();
+  if (!k || !v) return buildFixPlan([]);
+
+  const vNorm = normalizeVal(v);
+  const fileUpdates: FixPlanFileUpdate[] = [];
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    const raw = fm[k];
+
+    if (raw === undefined) {
+      fileUpdates.push({ path: f.path, updates: { [k]: v } });
+      continue;
+    }
+
+    if (Array.isArray(raw)) {
+      if (raw.some((x) => normalizeVal(x) === vNorm)) continue;
+      fileUpdates.push({ path: f.path, updates: { [k]: [...raw, v] } });
+      continue;
+    }
+
+    if (normalizeVal(raw) === vNorm) continue;
+    fileUpdates.push({ path: f.path, updates: { [k]: [raw, v] } });
+  }
+
+  return buildFixPlan(fileUpdates);
+}
+
+/**
+ * Build a FixPlan that injects a property (newKey/newVal) into a set of files.
+ * Matches legacy semantics: create key when missing; otherwise append (dedup by normalizeVal).
+ */
+export function buildInjectPropPlan(
+  files: FrontmatterFile[],
+  newKey: string,
+  newVal: string
+): FixPlan {
+  const k = (newKey ?? "").trim();
+  const v = (newVal ?? "").trim();
+  if (!k || !v) return buildFixPlan([]);
+
+  const vNorm = normalizeVal(v);
+  const fileUpdates: FixPlanFileUpdate[] = [];
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    const raw = fm[k];
+
+    if (raw === undefined) {
+      fileUpdates.push({ path: f.path, updates: { [k]: v } });
+      continue;
+    }
+
+    if (Array.isArray(raw)) {
+      if (raw.some((x) => normalizeVal(x) === vNorm)) continue;
+      fileUpdates.push({ path: f.path, updates: { [k]: [...raw, v] } });
+      continue;
+    }
+
+    if (normalizeVal(raw) === vNorm) continue;
+    fileUpdates.push({ path: f.path, updates: { [k]: [raw, v] } });
   }
 
   return buildFixPlan(fileUpdates);
