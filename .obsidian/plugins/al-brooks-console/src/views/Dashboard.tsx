@@ -2564,7 +2564,7 @@ const ConsoleComponent: React.FC<Props> = ({
         <div style={{ marginTop: "14px" }}>
           <button
             type="button"
-            disabled={!canCreateTrade}
+            disabled={!canCreateTrade && !createTradeNote}
             onClick={() => {
               if (can("quickadd:new-live-trade"))
                 return action("quickadd:new-live-trade");
@@ -2572,6 +2572,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 return action("quickadd:new-demo-trade");
               if (can("quickadd:new-backtest"))
                 return action("quickadd:new-backtest");
+              void createTradeNote?.();
             }}
             onMouseEnter={(e) => {
               if (e.currentTarget.disabled) return;
@@ -2581,7 +2582,7 @@ const ConsoleComponent: React.FC<Props> = ({
               e.currentTarget.style.filter = "none";
             }}
             style={
-              canCreateTrade
+              canCreateTrade || createTradeNote
                 ? {
                     width: "100%",
                     padding: "10px 12px",
@@ -2607,17 +2608,6 @@ const ConsoleComponent: React.FC<Props> = ({
           >
             创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
           </button>
-          {!canCreateTrade && (
-            <div
-              style={{
-                marginTop: "6px",
-                color: "var(--text-faint)",
-                fontSize: "0.9em",
-              }}
-            >
-              （占位符）点击一下用单笔交易模版
-            </div>
-          )}
         </div>
       </div>
 
@@ -7435,6 +7425,69 @@ export class ConsoleView extends ItemView {
       return this.app.vault.getResourcePath(af);
     };
 
+    const createTradeNote = async (): Promise<void> => {
+      const TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
+      const DEST_DIR = "Daily/Trades";
+
+      const ensureFolder = async (path: string): Promise<void> => {
+        const parts = String(path ?? "")
+          .replace(/^\/+/, "")
+          .split("/")
+          .map((p) => p.trim())
+          .filter(Boolean);
+
+        let cur = "";
+        for (const p of parts) {
+          cur = cur ? `${cur}/${p}` : p;
+          const existing = this.app.vault.getAbstractFileByPath(cur);
+          if (!existing) {
+            try {
+              await this.app.vault.createFolder(cur);
+            } catch {
+              // ignore if created concurrently
+            }
+          }
+        }
+      };
+
+      const pickAvailablePath = async (basePath: string): Promise<string> => {
+        const raw = String(basePath ?? "").replace(/^\/+/, "");
+        if (!this.app.vault.getAbstractFileByPath(raw)) return raw;
+
+        const m = raw.match(/^(.*?)(\.[^./]+)$/);
+        const prefix = m ? m[1] : raw;
+        const ext = m ? m[2] : "";
+        for (let i = 2; i <= 9999; i++) {
+          const candidate = `${prefix}_${i}${ext}`;
+          if (!this.app.vault.getAbstractFileByPath(candidate)) return candidate;
+        }
+        return `${prefix}_${Date.now()}${ext}`;
+      };
+
+      const today = toLocalDateIso(new Date());
+      await ensureFolder(DEST_DIR);
+
+      let content = "";
+      try {
+        const af = this.app.vault.getAbstractFileByPath(TEMPLATE_PATH);
+        if (af instanceof TFile) content = await this.app.vault.read(af);
+      } catch {
+        // best-effort only
+      }
+
+      if (!content.trim()) {
+        content = `---\n${stringifyYaml({
+          tags: [TRADE_TAG],
+          date: today,
+        }).trimEnd()}\n---\n\n`;
+      }
+
+      const base = `${DEST_DIR}/${today}_Trade.md`;
+      const path = await pickAvailablePath(base);
+      await this.app.vault.create(path, content);
+      openFile(path);
+    };
+
     let enumPresets: EnumPresets | undefined = undefined;
     try {
       const presetsPath = "Templates/属性值预设.md";
@@ -7743,6 +7796,7 @@ export class ConsoleView extends ItemView {
           loadPaTagSnapshot={loadPaTagSnapshot}
           applyFixPlan={applyFixPlan}
           restoreFiles={restoreFiles}
+          createTradeNote={createTradeNote}
           settings={this.getSettings()}
           subscribeSettings={this.subscribeSettings}
           loadCourse={loadCourse}
