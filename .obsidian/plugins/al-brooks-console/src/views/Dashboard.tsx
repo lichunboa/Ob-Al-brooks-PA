@@ -1086,8 +1086,7 @@ const ConsoleComponent: React.FC<Props> = ({
     [integrations]
   );
 
-  const TRADE_NOTE_TEMPLATE_PATH =
-    "Templates/单笔交易模版 (Trade Note).md";
+  const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
 
   const reloadCourse = React.useCallback(async () => {
     if (!loadCourse) return;
@@ -1585,7 +1584,6 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           {statusText}
         </span>
-
         <span style={{ marginLeft: "10px" }}>
           <button
             type="button"
@@ -1600,7 +1598,6 @@ const ConsoleComponent: React.FC<Props> = ({
             新建交易
           </button>
         </span>
-
         {integrations && (
           <span style={{ marginLeft: "10px" }}>
             <button
@@ -1895,7 +1892,8 @@ const ConsoleComponent: React.FC<Props> = ({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(220px, 1fr))",
                         gap: "8px",
                       }}
                     >
@@ -2898,7 +2896,6 @@ short mode\n\
                     />
                   ))}
                 </div>
-
               </div>
             </div>
           </div>
@@ -2939,19 +2936,13 @@ short mode\n\
               value={`${all.netProfit > 0 ? "+" : ""}${all.netProfit.toFixed(
                 1
               )}R`}
-              color={
-                all.netProfit >= 0 ? V5_COLORS.win : V5_COLORS.loss
-              }
+              color={all.netProfit >= 0 ? V5_COLORS.win : V5_COLORS.loss}
               icon="💰"
             />
             <StatsCard
               title="胜率"
               value={`${all.winRatePct}%`}
-              color={
-                all.winRatePct > 50
-                  ? V5_COLORS.win
-                  : V5_COLORS.back
-              }
+              color={all.winRatePct > 50 ? V5_COLORS.win : V5_COLORS.back}
               icon="🎯"
             />
           </div>
@@ -3677,9 +3668,7 @@ short mode\n\
                           <span
                             style={{
                               color:
-                                r.netR >= 0
-                                  ? V5_COLORS.win
-                                  : V5_COLORS.loss,
+                                r.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
                               fontWeight: 600,
                             }}
                           >
@@ -4204,10 +4193,7 @@ short mode\n\
                         >
                           <span
                             style={{
-                              color:
-                                s.wr > 50
-                                  ? V5_COLORS.win
-                                  : V5_COLORS.back,
+                              color: s.wr > 50 ? V5_COLORS.win : V5_COLORS.back,
                               fontWeight: 800,
                             }}
                           >
@@ -5548,9 +5534,7 @@ short mode\n\
                           <div
                             style={{
                               color:
-                                it.pnl >= 0
-                                  ? V5_COLORS.win
-                                  : V5_COLORS.loss,
+                                it.pnl >= 0 ? V5_COLORS.win : V5_COLORS.loss,
                               fontWeight: 900,
                               fontSize: "0.95em",
                               flex: "0 0 auto",
@@ -5761,9 +5745,7 @@ short mode\n\
                       marginBottom: SPACE.md,
                     }}
                   >
-                    <div
-                      style={cardSubtleTightStyle}
-                    >
+                    <div style={cardSubtleTightStyle}>
                       <div
                         style={{
                           display: "flex",
@@ -5827,9 +5809,7 @@ short mode\n\
                       )}
                     </div>
 
-                    <div
-                      style={cardSubtleTightStyle}
-                    >
+                    <div style={cardSubtleTightStyle}>
                       <div
                         style={{
                           display: "flex",
@@ -5918,9 +5898,7 @@ short mode\n\
                     </div>
                   </div>
 
-                  <div
-                    style={{ ...cardTightStyle, marginBottom: "10px" }}
-                  >
+                  <div style={{ ...cardTightStyle, marginBottom: "10px" }}>
                     <div
                       style={{
                         display: "flex",
@@ -5965,7 +5943,7 @@ short mode\n\
                             display: "grid",
                             gridTemplateColumns: "2fr 1fr 1fr",
                             gap: "10px",
-                              padding: "8px",
+                            padding: "8px",
                             borderBottom:
                               "1px solid var(--background-modifier-border)",
                             color: "var(--text-faint)",
@@ -6477,9 +6455,7 @@ short mode\n\
                           onFocus={onBtnFocus}
                           onBlur={onBtnBlur}
                           style={
-                            enumPresets
-                              ? buttonSmStyle
-                              : buttonSmDisabledStyle
+                            enumPresets ? buttonSmStyle : buttonSmDisabledStyle
                           }
                           title={
                             !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
@@ -6698,9 +6674,7 @@ short mode\n\
                   <div style={{ color: V5_COLORS.loss }}>
                     错误：{errorCount}
                   </div>
-                  <div style={{ color: V5_COLORS.back }}>
-                    警告：{warnCount}
-                  </div>
+                  <div style={{ color: V5_COLORS.back }}>警告：{warnCount}</div>
                   <div style={{ color: "var(--text-muted)" }}>
                     总计：{inspectorIssues.length}
                   </div>
@@ -6868,11 +6842,7 @@ short mode\n\
                   onMouseLeave={onBtnMouseLeave}
                   onFocus={onBtnFocus}
                   onBlur={onBtnBlur}
-                  style={
-                    managerBusy
-                      ? buttonSmDisabledStyle
-                      : buttonSmStyle
-                  }
+                  style={managerBusy ? buttonSmDisabledStyle : buttonSmStyle}
                 >
                   扫描属性（v5.0）
                 </button>
