@@ -665,6 +665,17 @@ const ConsoleComponent: React.FC<Props> = ({
     });
   }, [trades, accountTargetMonth]);
 
+  const cycleMap: Record<string, string> = {
+    "Strong Trend": "强趋势",
+    "Weak Trend": "弱趋势",
+    "Trading Range": "交易区间",
+    "Breakout Mode": "突破模式",
+    Breakout: "突破",
+    Channel: "通道",
+    "Broad Channel": "宽通道",
+    "Tight Channel": "窄通道",
+  };
+
   const liveCyclePerf = React.useMemo(() => {
     const normalizeCycle = (raw: string): string => {
       const s = String(raw ?? "").trim();
@@ -1126,6 +1137,18 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [reloadMemory]);
 
   const latestTrade = trades.length > 0 ? trades[0] : undefined;
+
+  const allTradesDateRange = React.useMemo(() => {
+    let min: string | undefined;
+    let max: string | undefined;
+    for (const t of trades) {
+      const d = (t.dateIso ?? "").toString().trim();
+      if (!d) continue;
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    }
+    return { min, max };
+  }, [trades]);
   const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
   const todayTrades = React.useMemo(
     () => trades.filter((t) => t.dateIso === todayIso),
@@ -3107,7 +3130,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   <div
                     style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
                   >
-                    {cy.name}
+                    {cycleMap[cy.name] ?? cy.name}
                   </div>
                   <div
                     style={{
@@ -3867,6 +3890,11 @@ const ConsoleComponent: React.FC<Props> = ({
             <span style={{ color: getRColorByAccountType("Backtest") }}>
               ● 回测 {strategyLab.cum.Backtest >= 0 ? "+" : ""}
               {strategyLab.cum.Backtest.toFixed(1)}R
+            </span>
+            <span style={{ color: "var(--text-faint)" }}>
+              {allTradesDateRange.min && allTradesDateRange.max
+                ? `范围：${allTradesDateRange.min} → ${allTradesDateRange.max}`
+                : "范围：—"}
             </span>
           </div>
         </div>
