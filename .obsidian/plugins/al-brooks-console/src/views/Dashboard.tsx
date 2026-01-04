@@ -311,6 +311,7 @@ const ConsoleComponent: React.FC<Props> = ({
       const s = String(v).trim();
       if (!s) return true;
       if (s === "Empty") return true;
+      if (s.toLowerCase() === "null") return true;
       if (s.toLowerCase().includes("unknown")) return true;
       return false;
     };
@@ -334,7 +335,7 @@ const ConsoleComponent: React.FC<Props> = ({
           t.outcome === "scratch";
         if (!isCompleted) continue;
 
-        if (!t.ticker) {
+        if (isEmpty(t.ticker)) {
           tradeIssues.push({
             path: t.path,
             name: t.name,
@@ -342,7 +343,7 @@ const ConsoleComponent: React.FC<Props> = ({
             type: "❌ 缺少必填",
           });
         }
-        if (!t.timeframe) {
+        if (isEmpty(t.timeframe)) {
           tradeIssues.push({
             path: t.path,
             name: t.name,
@@ -350,7 +351,7 @@ const ConsoleComponent: React.FC<Props> = ({
             type: "❌ 缺少必填",
           });
         }
-        if (!t.direction) {
+        if (isEmpty(t.direction)) {
           tradeIssues.push({
             path: t.path,
             name: t.name,
@@ -361,10 +362,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
         // “形态/策略”二选一：至少有一个即可
         const hasPatterns =
-          Array.isArray(t.patternsObserved) && t.patternsObserved.length > 0;
-        const hasStrategy =
-          typeof t.strategyName === "string" &&
-          t.strategyName.trim().length > 0;
+          Array.isArray(t.patternsObserved) &&
+          t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
+        const hasStrategy = !isEmpty(t.strategyName);
         if (!hasPatterns && !hasStrategy) {
           tradeIssues.push({
             path: t.path,
