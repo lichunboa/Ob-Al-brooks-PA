@@ -1113,39 +1113,8 @@ const ConsoleComponent: React.FC<Props> = ({
     [integrations]
   );
 
-  const canCreateTrade =
-    can("quickadd:new-live-trade") ||
-    can("quickadd:new-demo-trade") ||
-    can("quickadd:new-backtest");
-
-  type NewTradeType = "Live" | "Demo" | "Backtest";
-
-  const getCapabilityIdForNewTradeType = React.useCallback(
-    (t: NewTradeType): IntegrationCapability => {
-      if (t === "Live") return "quickadd:new-live-trade";
-      if (t === "Demo") return "quickadd:new-demo-trade";
-      return "quickadd:new-backtest";
-    },
-    []
-  );
-
-  const getDefaultNewTradeType = React.useCallback((): NewTradeType => {
-    if (can("quickadd:new-live-trade")) return "Live";
-    if (can("quickadd:new-demo-trade")) return "Demo";
-    if (can("quickadd:new-backtest")) return "Backtest";
-    return "Live";
-  }, [can]);
-
-  const [newTradeType, setNewTradeType] = React.useState<NewTradeType>(() =>
-    getDefaultNewTradeType()
-  );
-
-  React.useEffect(() => {
-    // Ensure selected type stays valid as capabilities change.
-    const cap = getCapabilityIdForNewTradeType(newTradeType);
-    if (can(cap)) return;
-    setNewTradeType(getDefaultNewTradeType());
-  }, [can, getCapabilityIdForNewTradeType, getDefaultNewTradeType, newTradeType]);
+  const TRADE_NOTE_TEMPLATE_PATH =
+    "Templates/单笔交易模版 (Trade Note).md";
 
   const reloadCourse = React.useCallback(async () => {
     if (!loadCourse) return;
@@ -1643,63 +1612,24 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           {statusText}
         </span>
+
+        <span style={{ marginLeft: "10px" }}>
+          <button
+            type="button"
+            onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={buttonStyle}
+            title={TRADE_NOTE_TEMPLATE_PATH}
+          >
+            新建交易
+          </button>
+        </span>
+
         {integrations && (
           <span style={{ marginLeft: "10px" }}>
-            {(() => {
-              const cap = getCapabilityIdForNewTradeType(newTradeType);
-              const canSelected = can(cap);
-              return (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button
-                    type="button"
-                    disabled={!canSelected}
-                    onClick={() => action(cap)}
-                    onMouseEnter={onBtnMouseEnter}
-                    onMouseLeave={onBtnMouseLeave}
-                    onFocus={onBtnFocus}
-                    onBlur={onBtnBlur}
-                    style={canSelected ? buttonStyle : disabledButtonStyle}
-                    title="创建新交易（实盘/模拟/回测）"
-                  >
-                    新建交易
-                  </button>
-                  <select
-                    value={newTradeType}
-                    onChange={(e) =>
-                      setNewTradeType(e.currentTarget.value as NewTradeType)
-                    }
-                    style={selectStyle}
-                    title="选择交易类型"
-                  >
-                    <option
-                      value="Live"
-                      disabled={!can("quickadd:new-live-trade")}
-                    >
-                      实盘
-                    </option>
-                    <option
-                      value="Demo"
-                      disabled={!can("quickadd:new-demo-trade")}
-                    >
-                      模拟
-                    </option>
-                    <option
-                      value="Backtest"
-                      disabled={!can("quickadd:new-backtest")}
-                    >
-                      回测
-                    </option>
-                  </select>
-                </span>
-              );
-            })()}
             <button
               type="button"
               disabled={!can("srs:review-flashcards")}
