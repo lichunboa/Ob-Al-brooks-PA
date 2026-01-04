@@ -54,6 +54,9 @@ import {
 import {
   buildStrategyMaintenancePlan,
   buildTradeNormalizationPlan,
+  buildRenameKeyPlan,
+  buildDeleteKeyPlan,
+  type FrontmatterFile,
   type ManagerApplyResult,
   type StrategyNoteFrontmatter,
 } from "../core/manager";
@@ -465,6 +468,10 @@ const ConsoleComponent: React.FC<Props> = ({
   const [managerBackups, setManagerBackups] = React.useState<
     Record<string, string> | undefined
   >(undefined);
+  const [renameOldKey, setRenameOldKey] = React.useState("");
+  const [renameNewKey, setRenameNewKey] = React.useState("");
+  const [renameOverwrite, setRenameOverwrite] = React.useState(false);
+  const [deleteKeyName, setDeleteKeyName] = React.useState("");
 
   const [settings, setSettings] =
     React.useState<AlBrooksConsoleSettings>(initialSettings);
@@ -5852,7 +5859,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     setManagerDeleteKeys((e.target as HTMLInputElement).checked)
                   }
                 />
-                删除 legacy 字段（危险）
+                允许删除字段（危险）
               </label>
               <label
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
@@ -5936,6 +5943,198 @@ const ConsoleComponent: React.FC<Props> = ({
             >
               {managerPlanText ?? ""}
             </pre>
+
+            <div
+              style={{
+                marginTop: "10px",
+                borderTop: "1px solid var(--background-modifier-border)",
+                paddingTop: "10px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  🔁 重命名字段（Trade + Strategy）
+                </div>
+                <div
+                  style={{
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  生成计划：把旧字段的值复制到新字段；如需删除旧字段，请勾选“允许删除字段”。
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    value={renameOldKey}
+                    onChange={(e) => setRenameOldKey(e.target.value)}
+                    placeholder="旧字段名 (oldKey)"
+                    style={{
+                      flex: "1 1 0",
+                      padding: "6px 8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "var(--background-primary)",
+                      color: "var(--text-normal)",
+                    }}
+                  />
+                  <input
+                    value={renameNewKey}
+                    onChange={(e) => setRenameNewKey(e.target.value)}
+                    placeholder="新字段名 (newKey)"
+                    style={{
+                      flex: "1 1 0",
+                      padding: "6px 8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "var(--background-primary)",
+                      color: "var(--text-normal)",
+                    }}
+                  />
+                </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "8px",
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={renameOverwrite}
+                    onChange={(e) =>
+                      setRenameOverwrite((e.target as HTMLInputElement).checked)
+                    }
+                  />
+                  若新字段已存在则覆盖
+                </label>
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    disabled={managerBusy}
+                    onClick={async () => {
+                      setManagerBusy(true);
+                      try {
+                        const files: FrontmatterFile[] = trades.map((t) => ({
+                          path: t.path,
+                          frontmatter:
+                            (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+                        }));
+                        if (loadStrategyNotes) {
+                          const notes = await loadStrategyNotes();
+                          for (const n of notes) {
+                            files.push({
+                              path: n.path,
+                              frontmatter:
+                                (n.frontmatter ?? {}) as Record<string, unknown>,
+                            });
+                          }
+                        }
+                        const plan = buildRenameKeyPlan(
+                          files,
+                          renameOldKey,
+                          renameNewKey,
+                          { overwrite: renameOverwrite }
+                        );
+                        setManagerPlan(plan);
+                        setManagerResult(undefined);
+                        setManagerArmed(false);
+                      } finally {
+                        setManagerBusy(false);
+                      }
+                    }}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      managerBusy
+                        ? { ...disabledButtonStyle, padding: "6px 10px" }
+                        : { ...buttonStyle, padding: "6px 10px" }
+                    }
+                  >
+                    生成重命名计划
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  🗑️ 删除字段（Trade + Strategy）
+                </div>
+                <div
+                  style={{
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  仅生成计划；执行删除需要勾选“允许删除字段”并点击“应用计划”。
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    value={deleteKeyName}
+                    onChange={(e) => setDeleteKeyName(e.target.value)}
+                    placeholder="字段名 (key)"
+                    style={{
+                      flex: "1 1 auto",
+                      padding: "6px 8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "var(--background-primary)",
+                      color: "var(--text-normal)",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={managerBusy}
+                    onClick={async () => {
+                      setManagerBusy(true);
+                      try {
+                        const files: FrontmatterFile[] = trades.map((t) => ({
+                          path: t.path,
+                          frontmatter:
+                            (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+                        }));
+                        if (loadStrategyNotes) {
+                          const notes = await loadStrategyNotes();
+                          for (const n of notes) {
+                            files.push({
+                              path: n.path,
+                              frontmatter:
+                                (n.frontmatter ?? {}) as Record<string, unknown>,
+                            });
+                          }
+                        }
+                        const plan = buildDeleteKeyPlan(files, deleteKeyName);
+                        setManagerPlan(plan);
+                        setManagerResult(undefined);
+                        setManagerArmed(false);
+                      } finally {
+                        setManagerBusy(false);
+                      }
+                    }}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      managerBusy
+                        ? { ...disabledButtonStyle, padding: "6px 10px" }
+                        : { ...buttonStyle, padding: "6px 10px" }
+                    }
+                  >
+                    生成删除计划
+                  </button>
+                </div>
+              </div>
+            </div>
 
             {managerResult ? (
               <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>

@@ -247,3 +247,58 @@ export function buildStrategyMaintenancePlan(
 
   return buildFixPlan(fileUpdates);
 }
+
+export interface FrontmatterFile {
+  path: string;
+  frontmatter: Record<string, unknown>;
+}
+
+/**
+ * Build a FixPlan that renames a frontmatter key across a set of files.
+ *
+ * Behavior mirrors legacy Manager semantics:
+ * - If target key already exists and overwrite=false, skip.
+ * - Copy old value to new key.
+ * - List old key in deleteKeys when oldKey!=newKey (deletion is applied only when Manager enables deleteKeys).
+ */
+export function buildRenameKeyPlan(
+  files: FrontmatterFile[],
+  oldKey: string,
+  newKey: string,
+  options: { overwrite?: boolean } = {}
+): FixPlan {
+  const from = (oldKey ?? "").trim();
+  const to = (newKey ?? "").trim();
+  if (!from || !to) return buildFixPlan([]);
+
+  const fileUpdates: FixPlanFileUpdate[] = [];
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    if (fm[from] === undefined) continue;
+    if (!options.overwrite && fm[to] !== undefined && to !== from) continue;
+
+    const updates: Record<string, unknown> = { [to]: fm[from] };
+    const deleteKeys = to !== from ? [from] : undefined;
+    fileUpdates.push({ path: f.path, updates, deleteKeys });
+  }
+
+  return buildFixPlan(fileUpdates);
+}
+
+/** Build a FixPlan that deletes a frontmatter key across a set of files. */
+export function buildDeleteKeyPlan(
+  files: FrontmatterFile[],
+  key: string
+): FixPlan {
+  const k = (key ?? "").trim();
+  if (!k) return buildFixPlan([]);
+
+  const fileUpdates: FixPlanFileUpdate[] = [];
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    if (fm[k] === undefined) continue;
+    fileUpdates.push({ path: f.path, updates: {}, deleteKeys: [k] });
+  }
+
+  return buildFixPlan(fileUpdates);
+}
