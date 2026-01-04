@@ -1,5 +1,5 @@
-# 阶段一：市场背景判断 (Context)
-<span style="color:rgb(255, 0, 0)"><span style="color:rgb(255, 0, 0)"></span></span># <span style="color:rgb(0, 176, 80)">阶段一：市场背景判断 (Context)</span>
+# <font color="#00b050">阶段一：市场背景判断 (Context)</font>
+<span style="color:rgb(255, 0, 0)"><span style="color:rgb(255, 0, 0)"></span></span># 阶段一：市场背景判断 (Context)
    * **目标：** 确定今天玩什么“游戏”。
 
    * **这是一个决策分支模块：**

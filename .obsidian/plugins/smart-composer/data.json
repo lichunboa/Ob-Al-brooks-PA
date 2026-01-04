@@ -1,0 +1,432 @@
+{
+  "version": 12,
+  "providers": [
+    {
+      "type": "openai",
+      "id": "openai"
+    },
+    {
+      "type": "anthropic",
+      "id": "anthropic"
+    },
+    {
+      "type": "gemini",
+      "id": "gemini",
+      "apiKey": "AIzaSyDpvNdXSQcr2e70NVajALwHZdrzXokiBXQ"
+    },
+    {
+      "type": "deepseek",
+      "id": "deepseek"
+    },
+    {
+      "type": "perplexity",
+      "id": "perplexity"
+    },
+    {
+      "type": "groq",
+      "id": "groq"
+    },
+    {
+      "type": "mistral",
+      "id": "mistral"
+    },
+    {
+      "type": "openrouter",
+      "id": "openrouter"
+    },
+    {
+      "type": "ollama",
+      "id": "ollama"
+    },
+    {
+      "type": "lm-studio",
+      "id": "lm-studio"
+    },
+    {
+      "type": "morph",
+      "id": "morph"
+    },
+    {
+      "type": "gemini",
+      "id": "gen-lang-client-0316297494",
+      "baseUrl": "",
+      "apiKey": "AIzaSyDpvNdXSQcr2e70NVajALwHZdrzXokiBXQ",
+      "additionalSettings": {}
+    }
+  ],
+  "chatModels": [
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-opus-4.1",
+      "model": "claude-opus-4-1"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-sonnet-4.5",
+      "model": "claude-sonnet-4-5"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-haiku-4.5",
+      "model": "claude-haiku-4-5"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-5",
+      "model": "gpt-5"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-5-mini",
+      "model": "gpt-5-mini"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-5-nano",
+      "model": "gpt-5-nano"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-4.1",
+      "model": "gpt-4.1"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-4.1-mini",
+      "model": "gpt-4.1-mini"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-4.1-nano",
+      "model": "gpt-4.1-nano"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-4o",
+      "model": "gpt-4o"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "gpt-4o-mini",
+      "model": "gpt-4o-mini"
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "o4-mini",
+      "model": "o4-mini",
+      "reasoning": {
+        "enabled": true,
+        "reasoning_effort": "medium"
+      }
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "o3",
+      "model": "o3",
+      "reasoning": {
+        "enabled": true,
+        "reasoning_effort": "medium"
+      }
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini-2.5-pro",
+      "model": "gemini-2.5-pro",
+      "enable": true
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini-2.5-flash",
+      "model": "gemini-2.5-flash"
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini-2.5-flash-lite",
+      "model": "gemini-2.5-flash-lite"
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini-2.0-flash",
+      "model": "gemini-2.0-flash"
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini-2.0-flash-lite",
+      "model": "gemini-2.0-flash-lite"
+    },
+    {
+      "providerType": "deepseek",
+      "providerId": "deepseek",
+      "id": "deepseek-chat",
+      "model": "deepseek-chat"
+    },
+    {
+      "providerType": "deepseek",
+      "providerId": "deepseek",
+      "id": "deepseek-reasoner",
+      "model": "deepseek-reasoner"
+    },
+    {
+      "providerType": "perplexity",
+      "providerId": "perplexity",
+      "id": "sonar",
+      "model": "sonar",
+      "web_search_options": {
+        "search_context_size": "low"
+      }
+    },
+    {
+      "providerType": "perplexity",
+      "providerId": "perplexity",
+      "id": "sonar-pro",
+      "model": "sonar",
+      "web_search_options": {
+        "search_context_size": "low"
+      }
+    },
+    {
+      "providerType": "perplexity",
+      "providerId": "perplexity",
+      "id": "sonar-deep-research",
+      "model": "sonar-deep-research",
+      "web_search_options": {
+        "search_context_size": "low"
+      }
+    },
+    {
+      "providerType": "perplexity",
+      "providerId": "perplexity",
+      "id": "sonar-reasoning",
+      "model": "sonar",
+      "web_search_options": {
+        "search_context_size": "low"
+      }
+    },
+    {
+      "providerType": "perplexity",
+      "providerId": "perplexity",
+      "id": "sonar-reasoning-pro",
+      "model": "sonar",
+      "web_search_options": {
+        "search_context_size": "low"
+      }
+    },
+    {
+      "providerType": "morph",
+      "providerId": "morph",
+      "id": "morph-v0",
+      "model": "morph-v0"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-sonnet-4.0",
+      "model": "claude-sonnet-4-0"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-3.7-sonnet",
+      "model": "claude-3-7-sonnet-latest"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-3.5-sonnet",
+      "model": "claude-3-5-sonnet-latest"
+    },
+    {
+      "providerType": "anthropic",
+      "providerId": "anthropic",
+      "id": "claude-3.5-haiku",
+      "model": "claude-3-5-haiku-latest"
+    }
+  ],
+  "embeddingModels": [
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "openai/text-embedding-3-small",
+      "model": "text-embedding-3-small",
+      "dimension": 1536
+    },
+    {
+      "providerType": "openai",
+      "providerId": "openai",
+      "id": "openai/text-embedding-3-large",
+      "model": "text-embedding-3-large",
+      "dimension": 3072
+    },
+    {
+      "providerType": "gemini",
+      "providerId": "gemini",
+      "id": "gemini/text-embedding-004",
+      "model": "text-embedding-004",
+      "dimension": 768
+    },
+    {
+      "providerType": "ollama",
+      "providerId": "ollama",
+      "id": "ollama/nomic-embed-text",
+      "model": "nomic-embed-text",
+      "dimension": 768
+    },
+    {
+      "providerType": "ollama",
+      "providerId": "ollama",
+      "id": "ollama/mxbai-embed-large",
+      "model": "mxbai-embed-large",
+      "dimension": 1024
+    },
+    {
+      "providerType": "ollama",
+      "providerId": "ollama",
+      "id": "ollama/bge-m3",
+      "model": "bge-m3",
+      "dimension": 1024
+    }
+  ],
+  "chatModelId": "gemini-2.5-flash",
+  "applyModelId": "gemini-2.5-pro",
+  "embeddingModelId": "openai/text-embedding-3-small",
+  "systemPrompt": "",
+  "ragOptions": {
+    "chunkSize": 1000,
+    "thresholdTokens": 8192,
+    "minSimilarity": 0,
+    "limit": 10,
+    "excludePatterns": [],
+    "includePatterns": []
+  },
+  "mcp": {
+    "servers": [
+      {
+        "id": "spec-workflow",
+        "parameters": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@pimzino/spec-workflow-mcp@latest",
+            "/Users/mitchellcb/LianYiOS"
+          ]
+        },
+        "enabled": true,
+        "toolOptions": {}
+      },
+      {
+        "id": "mcp-neo4j-cypher",
+        "parameters": {
+          "command": "/Users/mitchellcb/MyProject/MCP服务器/neo4j-memory/venv/bin/mcp-neo4j-cypher",
+          "args": [
+            "--db-url",
+            "bolt://localhost:7687",
+            "--username",
+            "neo4j",
+            "--password",
+            "password",
+            "--database",
+            "neo4j"
+          ]
+        },
+        "enabled": true,
+        "toolOptions": {}
+      },
+      {
+        "id": "serena",
+        "parameters": {
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena-mcp-server"
+          ]
+        },
+        "enabled": true,
+        "toolOptions": {
+          "read_file": {
+            "disabled": false,
+            "allowAutoExecution": true
+          },
+          "list_dir": {
+            "disabled": false,
+            "allowAutoExecution": true
+          }
+        }
+      },
+      {
+        "id": "context7",
+        "parameters": {
+          "command": "npx",
+          "args": [
+            "-y",
+            "@upstash/context7-mcp"
+          ],
+          "env": {
+            "CONTEXT7_API_KEY": "ctx7sk-b4e462e1-7f21-4303-99fe-a215075e86bf"
+          }
+        },
+        "enabled": true,
+        "toolOptions": {}
+      },
+      {
+        "id": "sequential-thinking",
+        "parameters": {
+          "command": "npx",
+          "args": [
+            "@modelcontextprotocol/server-sequential-thinking"
+          ]
+        },
+        "enabled": true,
+        "toolOptions": {}
+      },
+      {
+        "id": "chrome-devtools-mcp",
+        "parameters": {
+          "command": "npx",
+          "args": [
+            "chrome-devtools-mcp@latest"
+          ]
+        },
+        "enabled": false,
+        "toolOptions": {}
+      },
+      {
+        "id": "git",
+        "parameters": {
+          "command": "/Users/mitchellcb/.local/bin/uv",
+          "args": [
+            "run",
+            "--directory",
+            "/Users/mitchellcb/MyProject/MCP服务器/git-server",
+            "mcp-server-git"
+          ]
+        },
+        "enabled": true,
+        "toolOptions": {}
+      }
+    ]
+  },
+  "chatOptions": {
+    "includeCurrentFileContent": true,
+    "enableTools": true,
+    "maxAutoIterations": 1
+  }
+}

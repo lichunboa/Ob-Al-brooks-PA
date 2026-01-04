@@ -10,6 +10,13 @@ if (window.paData) {
   // 取最近 30 笔交易，倒序排列（最新的在最右边/最后）
   const trades = window.paData.trades.slice(0, 30);
 
+  const typeLabel = (type) => {
+    if (type === "Live") return "实盘";
+    if (type === "Demo") return "模拟";
+    if (type === "Backtest") return "回测";
+    return type || "未知";
+  };
+
   // 1. R值柱状图
   let bars = "";
   if (trades.length > 0) {
@@ -31,7 +38,7 @@ if (window.paData) {
         else color = c.back;
       }
 
-      let title = `${t.name}\n${t.type}\nR: ${r.toFixed(2)}`;
+      let title = `${t.name}\n${typeLabel(t.type)}\nR: ${r.toFixed(2)}`;
       bars += `<div style="width:6px; height:${h}px; background:${color}; border-radius:2px; opacity:${
         r >= 0 ? 1 : 0.7
       };" title="${title}"></div>`;
@@ -66,7 +73,7 @@ if (window.paData) {
   });
   root.innerHTML = `
     <div style="flex:2;">
-        <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">📈 综合趋势 (R-Multiples)</div>
+      <div style="font-weight:700; opacity:0.7; margin-bottom:10px;">📈 综合趋势 <span style="font-weight:600; opacity:0.5; font-size:0.85em;">(R-Multiples)</span></div>
         <div style="display:flex; gap:10px; font-size:0.6em; margin-bottom:4px; opacity:0.6;">
             <span style="color:${c.live}">● 实盘</span>
             <span style="color:${c.demo}">● 模拟</span>

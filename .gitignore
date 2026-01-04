@@ -52,3 +52,14 @@ Thumbs.db
 Assets/
 Media/
 Attachments/
+node_modules
+node_modules
+
+# --- Local dashboard/server logs ---
+audit.log
+
+# --- 导出快照/生成物（回归测试产物，不纳入版本控制） ---
+Exports/al-brooks-console/snapshot_*.json
+
+# --- 本地索引数据库（例如 Space/Dataview 等产生的 .mdb） ---
+Tags/**/.space/*.mdb

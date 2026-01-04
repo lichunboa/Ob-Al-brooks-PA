@@ -13,9 +13,12 @@ if (window.paData) {
   // --- 1. 布局容器 (Grid) ---
   // 左侧 (2/3): 今日看板
   // 右侧 (1/3): 快速行动 + 趋势指标
+  const isNarrow = (window?.innerWidth || 1200) < 980;
   const root = dv.el("div", "", {
     attr: {
-      style: "display: grid; grid-template-columns: 2fr 1fr; gap: 20px;",
+      style: `display: grid; grid-template-columns: ${
+        isNarrow ? "1fr" : "2fr 1fr"
+      }; gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; align-items: start;`,
     },
   });
 
@@ -29,20 +32,23 @@ if (window.paData) {
     .filter((t) => t && t.date === today)
     .sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
 
-  const todayPnL = todayTrades.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
+  const todayPnL = todayTrades.reduce(
+    (acc, t) => acc + (Number(t.pnl) || 0),
+    0
+  );
   const todayCount = todayTrades.length;
 
   leftCol.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px;">
         <div>
             <div style="font-size:1.2em; font-weight:bold; opacity:0.9;">📅 今日交易 (${today})</div>
-            <div style="font-size:0.8em; opacity:0.6;">Focus on Execution Quality</div>
+            <div style="font-size:0.8em; opacity:0.6;">专注执行质量（Execution Quality）</div>
         </div>
         <div style="text-align:right;">
             <div style="font-size:1.8em; font-weight:900; color:${
               todayPnL >= 0 ? c.live : c.loss
             };">${todayPnL > 0 ? "+" : ""}${todayPnL}</div>
-            <div style="font-size:0.8em; opacity:0.6;">${todayCount} Trades</div>
+            <div style="font-size:0.8em; opacity:0.6;">今日 ${todayCount} 笔</div>
         </div>
     </div>`;
 
@@ -63,7 +69,7 @@ if (window.paData) {
     const label = (action?.label || "打开").toString();
     if (!p) return "";
     const safeHref = encodeURI(p);
-    return `<a href="${safeHref}" data-href="${p}" class="internal-link" style="text-decoration:none; font-weight:700;">${label}</a>`;
+    return `<a href="${safeHref}" data-href="${p}" class="internal-link" style="text-decoration:none; font-weight:700; cursor:pointer;">${label}</a>`;
   };
   const formatCoachLine = (f) => {
     if (!f) return "";
@@ -75,7 +81,9 @@ if (window.paData) {
     const dim = (f.dimLabel || f.kind || "").toString();
     const streak = Number(f?.weekStreak) || 0;
     const streakStr = streak >= 2 ? `，连续${streak}周` : "";
-    return `🧭 复盘焦点：${dim} → ${label || "Unknown"}（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
+    return `🧭 复盘焦点：${dim} → ${
+      label || "Unknown"
+    }（样本${completed}，期望R ${expStr}，胜率 ${winRate}%${streakStr}）`;
   };
 
   if (todayJournal && todayJournal.market_cycle) {
@@ -84,23 +92,35 @@ if (window.paData) {
     const rCourse = pickRec("course");
     const rSr = pickRec("sr");
     leftCol.innerHTML += `
-        <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
-            <div style="font-weight:bold; color:#3b82f6; margin-bottom:4px;">🌊 市场环境: ${todayJournal.market_cycle}</div>
+      <div style="padding: 12px; background: ${
+        c.hover
+      }; border-left: 4px solid ${c.accent}; border-radius: 10px;">
+        <div style="font-weight:bold; color:${
+          c.accent
+        }; margin-bottom:4px;">🌊 市场环境：${todayJournal.market_cycle}</div>
             <div style="font-size:0.85em; opacity:0.85; line-height:1.55;">
-              <div>${coachLine || "策略建议: 顺势而为，寻找回调入场机会。"}</div>
+              <div>${
+                coachLine || "策略建议: 顺势而为，寻找回调入场机会。"
+              }</div>
               ${
                 rCourse
-                  ? `<div style="margin-top:6px; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                  ? `<div style="margin-top:6px; opacity:0.9;">📚 ${
+                      rCourse.title
+                    } · ${renderActionLink(rCourse.action)}</div>`
                   : ""
               }
               ${
                 rSr
-                  ? `<div style="margin-top:4px; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                  ? `<div style="margin-top:4px; opacity:0.9;">🧠 ${
+                      rSr.title
+                    } · ${renderActionLink(rSr.action)}</div>`
                   : ""
               }
               ${
                 rTrade && rTrade.action
-                  ? `<div style="margin-top:4px; opacity:0.85;">📉 ${renderActionLink(rTrade.action)}</div>`
+                  ? `<div style="margin-top:4px; opacity:0.85;">📉 ${renderActionLink(
+                      rTrade.action
+                    )}</div>`
                   : ""
               }
             </div>
@@ -112,22 +132,32 @@ if (window.paData) {
     leftCol.innerHTML += `
         <div style="padding: 12px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; text-align: center; font-size: 0.9em; opacity: 0.6;">
             <a href="obsidian://new?file=Daily/${today}_Journal&content=Templates/每日复盘模版 (Daily Journal).md">📝 创建今日日记</a> 以激活策略推荐
-            ${coachLine ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>` : ""}
+            ${
+              coachLine
+                ? `<div style="margin-top:8px; font-size:0.85em; opacity:0.85;">${coachLine}</div>`
+                : ""
+            }
             ${
               rCourse
-                ? `<div style="margin-top:10px; font-size:0.85em; opacity:0.9;">📚 ${rCourse.title} · ${renderActionLink(rCourse.action)}</div>`
+                ? `<div style="margin-top:10px; font-size:0.85em; opacity:0.9;">📚 ${
+                    rCourse.title
+                  } · ${renderActionLink(rCourse.action)}</div>`
                 : ""
             }
             ${
               rSr
-                ? `<div style="margin-top:6px; font-size:0.85em; opacity:0.9;">🧠 ${rSr.title} · ${renderActionLink(rSr.action)}</div>`
+                ? `<div style="margin-top:6px; font-size:0.85em; opacity:0.9;">🧠 ${
+                    rSr.title
+                  } · ${renderActionLink(rSr.action)}</div>`
                 : ""
             }
         </div>`;
   }
 
   // 1.3 活跃交易 (Active Trade)
-  const activeTrade = todayTrades.find((t) => !(t.outcome || "").toString().trim());
+  const activeTrade = todayTrades.find(
+    (t) => !(t.outcome || "").toString().trim()
+  );
   if (activeTrade) {
     leftCol.innerHTML += `
         <div style="flex:1; background:rgba(255,255,255,0.03); border-radius:8px; padding:15px; border:1px solid ${
@@ -140,9 +170,15 @@ if (window.paData) {
     }</div>
             <div style="font-size:0.9em; opacity:0.8;">
                 <div>方向: ${activeTrade.dir || "-"}</div>
-                <div>形态: ${(Array.isArray(activeTrade.patterns) && activeTrade.patterns.length > 0)
-                  ? activeTrade.patterns.map((x) => x.toString().trim()).filter(Boolean).join(", ")
-                  : (activeTrade.patterns || "-")}</div>
+                <div>形态: ${
+                  Array.isArray(activeTrade.patterns) &&
+                  activeTrade.patterns.length > 0
+                    ? activeTrade.patterns
+                        .map((x) => x.toString().trim())
+                        .filter(Boolean)
+                        .join(", ")
+                    : activeTrade.patterns || "-"
+                }</div>
             </div>
         </div>`;
   } else {
@@ -162,7 +198,7 @@ if (window.paData) {
   const actionsPanel = document.createElement("div");
   actionsPanel.style.cssText = `${c.cardBg}; padding: 15px;`;
   const btn = (color, text, cmd) =>
-    `<button onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+    `<button type="button" onclick="app.commands.executeCommandById('${cmd}')" style="width:100%; background:${color}; color:white; border:none; padding:12px; border-radius:10px; cursor:pointer; font-weight:800; margin-bottom:8px; text-align:left; display:flex; justify-content:space-between; align-items:center; transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease; outline:none;" onmouseover="this.style.transform='translateY(-1px)'; this.style.filter='brightness(1.04)';" onmouseout="this.style.transform='translateY(0)'; this.style.filter='none';" onfocus="this.style.boxShadow='0 0 0 2px var(--interactive-accent)';" onblur="this.style.boxShadow='none';">
             <span>${text}</span> <span>+</span>
         </button>`;
 
@@ -198,7 +234,7 @@ if (window.paData) {
   bars += `</div>`;
 
   trendPanel.innerHTML = `
-        <div style="font-weight:700; opacity:0.7; margin-bottom:5px;">📈 近期趋势 (Last 10)</div>
+      <div style="font-weight:700; opacity:0.7; margin-bottom:5px;">📈 近期趋势（最近 10 笔）</div>
         ${bars}
     `;
   rightCol.appendChild(trendPanel);

@@ -926,6 +926,28 @@ if (useCache) {
       planKey: utils.normalizeEnumKey(
         utils.getRawStr(t, ["交易方程/trader_equation", "trader_equation"], "")
       ),
+      managementPlan: utils.getRawStr(t, [
+        "管理计划/management_plan",
+        "management_plan",
+      ]),
+      managementPlanKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["管理计划/management_plan", "management_plan"], "")
+      ),
+      managementActions: utils.getArr(t, [
+        "管理动作/management_actions",
+        "management_actions",
+      ]),
+      exitReason: utils.getRawStr(t, ["出场原因/exit_reason", "exit_reason"]),
+      exitReasonKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["出场原因/exit_reason", "exit_reason"], "")
+      ),
+      planAdherence: utils.getRawStr(t, [
+        "计划遵守/plan_adherence",
+        "plan_adherence",
+      ]),
+      planAdherenceKey: utils.normalizeEnumKey(
+        utils.getRawStr(t, ["计划遵守/plan_adherence", "plan_adherence"], "")
+      ),
       // 新增原始字段用于合规性检查
       cycle: t["市场周期/market_cycle"] || t["market_cycle"],
       rawSetup: t["设置类别/setup_category"] || t["setup_category"],
@@ -934,16 +956,16 @@ if (useCache) {
       exit: utils.getVal(t, ["离场/exit_price", "exit_price", "exit"]),
       stop: utils.getVal(t, ["止损/stop_loss", "stop_loss", "stop"]),
       tags: t.file.tags || [],
-      patterns: utils.getArr(t, [
-        "观察到的形态/patterns_observed",
-        "patterns_observed",
-      ]),
-      strategyName: utils.getRawStr(t, [
-        "策略名称/strategy_name",
-        "strategy_name",
-      ]),
-      strategyKey: utils.normalizeEnumKey(
+      patterns: utils
+        .getArr(t, ["观察到的形态/patterns_observed", "patterns_observed"])
+        .map((x) => utils.normalizeBrooksValue(x)),
+      strategyName: utils.normalizeBrooksValue(
         utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"], "")
+      ),
+      strategyKey: utils.normalizeEnumKey(
+        utils.normalizeBrooksValue(
+          utils.getRawStr(t, ["策略名称/strategy_name", "strategy_name"], "")
+        )
       ),
     };
 
@@ -1213,7 +1235,9 @@ if (useCache) {
         tags.some((t) => t === "PA/Strategy" || t.endsWith("/Strategy"));
       if (!isStrategyCard) continue;
 
-      const canonicalName = rawStrategyName || p.file.name;
+      const canonicalName = rawStrategyName
+        ? utils.normalizeBrooksValue(rawStrategyName)
+        : p.file.name;
 
       const statusRaw = getRawStr(
         p,
@@ -1238,6 +1262,10 @@ if (useCache) {
       )
         .map(normStr)
         .filter(Boolean);
+
+      const patternsCanonical = patterns.map((x) =>
+        utils.normalizeBrooksValue(x)
+      );
       const source = getRawStr(p, ["来源/source", "source", "来源"], "");
 
       let displayName = canonicalName;
@@ -1251,7 +1279,7 @@ if (useCache) {
         statusRaw,
         marketCycles,
         setupCategories,
-        patterns,
+        patterns: patternsCanonical,
         source,
         // 策略助手/Playbook 需要的扩展字段（仍保持单一信源）
         riskReward:
@@ -1271,9 +1299,18 @@ if (useCache) {
           p["stop_loss_recommendation"] ||
           p["止损建议"] ||
           [],
+        takeProfitRecommendation:
+          p["目标建议/take_profit_recommendation"] ||
+          p["take_profit_recommendation"] ||
+          p["目标建议"] ||
+          [],
         signalBarRequirements:
           p["信号K要求/signal_bar_requirements"] ||
           p["signal_bar_requirements"] ||
+          // 兼容：策略卡多数使用 `信号K/signal_bar_quality`
+          p["信号K/signal_bar_quality"] ||
+          p["signal_bar_quality"] ||
+          p["信号K"] ||
           p["信号K要求"] ||
           [],
         file: p.file,
@@ -1291,7 +1328,7 @@ if (useCache) {
         if (en) addLookup(en, canonicalName);
       }
 
-      for (const pat of patterns) {
+      for (const pat of patternsCanonical) {
         strategyIndex.byPattern[pat] = canonicalName;
         if (pat.includes("(") && pat.includes(")")) {
           const m = pat.match(/\(([^)]+)\)/);

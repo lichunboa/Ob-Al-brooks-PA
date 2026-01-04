@@ -64,7 +64,9 @@ if (window.paData) {
   } else {
     // 强制单一信源：Inspector 不再自行扫描策略仓库。
     // 若这里为空，说明 pa-core 的策略索引构建失败/尚未加载。
-    console.warn("[PA] strategyIndex missing; Inspector strategy mapping disabled");
+    console.warn(
+      "[PA] strategyIndex missing; Inspector strategy mapping disabled"
+    );
   }
 
   // --- 1. 健康度体检逻辑 (Health Check) ---
@@ -329,8 +331,10 @@ if (window.paData) {
 
       const stableKeyField = keyMap[key];
       let stableKey = stableKeyField ? t?.[stableKeyField] : null;
-      if (Array.isArray(stableKey)) stableKey = stableKey.length ? stableKey[0] : null;
-      if (stableKey && typeof stableKey !== "string") stableKey = stableKey.toString();
+      if (Array.isArray(stableKey))
+        stableKey = stableKey.length ? stableKey[0] : null;
+      if (stableKey && typeof stableKey !== "string")
+        stableKey = stableKey.toString();
       stableKey = (stableKey || "").toString().trim();
 
       // 展示仍优先使用原始字段（带中英），但分组以 stableKey 为准
@@ -497,7 +501,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失设置</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -506,7 +510,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失品种</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -515,7 +519,7 @@ if (window.paData) {
       detailsHTML += `<tr>
               <td>${t.link}</td>
               <td><span class="insp-tag" style="background:rgba(255, 165, 0, 0.1); color:${c.loss}">缺失周期</span></td>
-          <td style="opacity:0.7">空/Empty</td>
+          <td style="opacity:0.7">空</td>
           </tr>`;
     });
 
@@ -639,7 +643,7 @@ if (window.paData) {
 
         <div class="insp-card">
             <div class="insp-title" style="border:none;">
-                <span>📄 原始数据明细 (Raw Data)</span>
+              <span>📄 原始数据明细 <span style="font-size:0.85em; opacity:0.55; font-weight:600;">(Raw Data)</span></span>
                 <span style="font-size:0.8em; opacity:0.5; font-weight:normal;">最近 15 笔</span>
             </div>
             <div style="overflow-x:auto;">

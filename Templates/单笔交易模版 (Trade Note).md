@@ -1,29 +1,22 @@
 ---
 categories:
-  - 模版
   - 交易日记
 tags:
   - PA/Trade
 date:
-  "{ date }":
-账户类型/account_type: 实盘 (Live)
+账户类型/account_type:
 品种/ticker:
-  - ES (标普)
 时间周期/timeframe: 5m
 市场周期/market_cycle:
-  - 交易区间 (Trading Range)
+总是方向/always_in:
+日内类型/day_type:
+概率/probability:
+信心/confidence:
+管理计划/management_plan:
 方向/direction:
-  - 做多 (Long)
 设置类别/setup_category:
-  - 趋势回调 (Trend Pullback)
 观察到的形态/patterns_observed:
-  - 20均线缺口 (20 EMA Gap)
 信号K/signal_bar_quality:
-  - 内包线 (ii or ioi)
-  - 强阳收盘 (Strong Bull Close)
-  - 强阴收盘 (Strong Bear Close)
-  - 弱势/长影线 (Weak Tail)
-  - 十字星 (Doji)
 订单类型/order_type:
 入场/entry_price:
 止损/stop_loss:
@@ -41,7 +34,6 @@ date:
 # ✅ 交易快照（Al Brooks PA / 项目联动）
 
 ## 📸 图表/封面预览
-
 
 ## 🧭 1) 市场背景（Context）
 

@@ -66,6 +66,16 @@ excluded_tools: []
 
 # initial prompt for the project. It will always be given to the LLM upon activating the project
 # (contrary to the memories, which are loaded on demand).
-initial_prompt: ""
+initial_prompt: |
+  你正在协助管理 "交易员控制台 (Trader Console)" 项目。
+  
+  ⚠️ **核心指令 (PRIME DIRECTIVES)**:
+  1.  **激活技能 (ACTIVATE SKILLS)**: 系统启动后的第一件事，**必须**执行 `read_file` 读取 `.claude/skills/trading-console/SKILL.md`。根据该文件定义初始化你的角色 (Maintainer/Analyst)。不要等待用户指令。
+  2.  **加载核心记忆**: 
+      - **架构地图**: `.serena/memories/Trader_Console_Architecture_Map.md` (定位文件)
+      - **逻辑白皮书**: `.serena/memories/Technical_Implementation_Manifesto.md` (理解逻辑 - 修改前必读)
+  3.  **策略优先**: 进行任何市场分析或策略建议时，参考 `.serena/memories/L_Chunbo_Strategy_Concept_Index.md`。
+
+  请始终保持对项目架构和业务逻辑的清晰认知。若修改了代码逻辑，**必须**同步更新白皮书。
 
 project_name: "Documents"

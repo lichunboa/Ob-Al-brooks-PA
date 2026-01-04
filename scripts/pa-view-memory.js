@@ -30,7 +30,7 @@ if (!document.getElementById(styleId)) {
         .mem-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .mem-title { font-size: 1.1em; font-weight: 800; color: ${c.text}; display: flex; align-items: center; gap: 8px; }
         .mem-stat-big { font-size: 1.8em; font-weight: 900; line-height: 1; }
-        .mem-stat-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+        .mem-stat-label { font-size: 0.7em; letter-spacing: 0.5px; opacity: 0.6; }
         
         .mem-bar-container { display: flex; height: 8px; width: 100%; border-radius: 4px; overflow: hidden; background: rgba(255,255,255,0.05); margin: 12px 0; }
         .mem-bar-seg { height: 100%; transition: width 0.5s ease; }
@@ -38,9 +38,9 @@ if (!document.getElementById(styleId)) {
         .mem-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .mem-mini-stat { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         
-        .mem-chart-row { display: flex; gap: 12px; height: 140px; }
+        .mem-chart-row { display: flex; gap: 12px; height: 180px; }
         .mem-chart-box { flex: 1; display: flex; align-items: flex-end; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; }
-        .mem-rec-box { flex: 1.2; display: flex; flex-direction: column; justify-content: center; padding: 16px; position: relative; overflow: hidden; }
+        .mem-rec-box { flex: 1.2; display: flex; flex-direction: column; justify-content: center; padding: 12px; position: relative; overflow: hidden; }
         
         .mem-btn { 
             width: 100%; padding: 12px; border-radius: 10px; border: none; cursor: pointer; 
@@ -110,11 +110,11 @@ if (window.paData && window.paData.sr) {
                 <span style="font-size:1.4em">🧠</span>
                 <div>
             <div>记忆核心</div>
-                    <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.0 Quantum</div>
+                <div style="font-size:0.7em; opacity:0.5; font-weight:normal;">v3.1 旁路</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-          <div class="mem-icon-btn" title="强制刷新" onclick="this.innerHTML='⏳'; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
+          <div class="mem-icon-btn" title="强制刷新 (重置状态)" onclick="this.innerHTML='⏳'; window.paIgnoreFocus=false; setTimeout(()=> (window.paRefreshViews ? window.paRefreshViews({hard:true}) : app.commands.executeCommandById('dataview:force-refresh-views')), 200);">🔄</div>
             </div>
         </div>
     `;
@@ -211,6 +211,41 @@ if (window.paData && window.paData.sr) {
 
   // Rec Logic
   let recColor = recType === "Focus" ? c.loss : c.accent;
+  // 逻辑修正: 允许 Bypass
+  // 原始逻辑: if (sr.due > 0 && sr.focusFile)
+  // 新逻辑: 增加 !window.paIgnoreFocus
+  const ignoreFocus = window.paIgnoreFocus === true;
+
+  // Re-evaluate Rec Logic here to reflect bypass immediately
+  recType = "Random"; // Reset default
+  recItem = null;
+
+  if (sr.due > 0 && sr.focusFile && !ignoreFocus) {
+    recType = "Focus";
+    recItem = {
+      title: sr.focusFile.name.replace(".md", ""),
+      path: sr.focusFile.path,
+      desc: `到期: ${sr.focusFile.due} | 易度: ${sr.focusFile.avgEase}`,
+    };
+  } else if (course.hybridRec) {
+    recType = course.hybridRec.type;
+    recItem = {
+      title: course.hybridRec.data.t || course.hybridRec.data.q,
+      path: course.hybridRec.data.path,
+      desc: recType === "New" ? "新主题" : "闪卡测验",
+    };
+  } else {
+    // Random fallback
+    const rnd = randomCard();
+    if (rnd) {
+      recType = "Shake";
+      recItem = { title: rnd.q, path: rnd.path, desc: "🎲 随机抽取" };
+    }
+  }
+
+  // 更新颜色
+  recColor = recType === "Focus" ? c.loss : c.accent;
+
   let recContent = recItem
     ? `
         <div style="color:${recColor}; font-size:0.7em; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">${
@@ -220,7 +255,7 @@ if (window.paData && window.paData.sr) {
           ? "🎲 随机抽取"
           : "🚀 推荐"
       }</div>
-        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${
+        <div style="font-weight:bold; font-size:0.95em; line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${
           recItem.title
         }</div>
         <div style="font-size:0.8em; opacity:0.6; margin-bottom:12px;">${
@@ -239,7 +274,7 @@ if (window.paData && window.paData.sr) {
             </div>
             <div class="mem-rec-box mem-card" style="border-color:${recColor}44; background: linear-gradient(135deg, ${recColor}11 0%, rgba(0,0,0,0) 100%);">
                 ${recContent}
-              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="摇一摇换卡片">🎲</div>
+              <div style="position:absolute; top:10px; right:10px; cursor:pointer; opacity:0.5;" onclick="this.classList.add('shake-anim'); setTimeout(()=>this.classList.remove('shake-anim'), 500); window.paIgnoreFocus = true; (window.paRefreshViews ? window.paRefreshViews({hard:false}) : app.commands.executeCommandById('dataview:force-refresh-views'));" title="摇一摇换卡片 (跳过优先)">🎲</div>
             </div>
         </div>
     `;
@@ -262,7 +297,7 @@ if (window.paData && window.paData.sr) {
         ${btn}
     `;
 } else {
-  dv.el("div", "🦁 Engine Loading...", {
+  dv.el("div", "🦁 引擎加载中…", {
     attr: { style: "opacity:0.5; padding:20px; text-align:center;" },
   });
 }

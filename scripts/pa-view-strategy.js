@@ -111,7 +111,7 @@ if (window.paData) {
   const root = dv.el("div", "", { attr: { style: c.cardBg } });
   root.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <div style="font-weight:700; font-size:1.1em;">🧬 资金增长曲线 (Capital Growth)</div>
+      <div style="font-weight:700; font-size:1.1em;">🧬 资金增长曲线 <span style="font-weight:600; opacity:0.5; font-size:0.85em;">(Capital Growth)</span></div>
         <div style="font-size:0.8em; display:flex; gap:12px;">
             <span style="color:${c.live}">● 实盘 $${cum.live.toFixed(0)}</span>
             <span style="color:${c.demo}">● 模拟 $${cum.demo.toFixed(0)}</span>
@@ -147,7 +147,7 @@ if (window.paData) {
             <div style="display:flex; flex-direction:column; gap:6px;">
                 ${topStrats
                   .map(
-                    (s) => `
+                      <div style="font-size:0.8em; opacity:0.6; margin-bottom:8px;">📊 热门策略表现 <span style="font-weight:600; opacity:0.5; font-size:0.9em;">(Top Setups)</span></div>
                     <div style="display:flex; justify-content:space-between; font-size:0.85em; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
                         <span>${s.name}</span>
                         <span><span style="color:${

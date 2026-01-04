@@ -99,11 +99,31 @@ function normalizeEnumKey(raw) {
     return right || left || s;
   }
   if (s.includes("/")) {
-    const parts = s.split("/").map((x) => x.trim()).filter(Boolean);
+    const parts = s
+      .split("/")
+      .map((x) => x.trim())
+      .filter(Boolean);
     // 默认取右侧作为 key（常见为 中文/English）
     if (parts.length >= 2) return parts.slice(1).join("/");
   }
   return s;
+}
+
+// 0.3 Brooks 规范化：将历史/非规范值映射到 canonical
+// 说明：只做最小必要映射，避免“到处替换”导致索引断裂
+function normalizeBrooksValue(raw) {
+  if (raw === undefined || raw === null) return raw;
+  const s = raw.toString().trim();
+  if (!s) return raw;
+
+  const map = {
+    逆1顺1: "高1/低1 (High 1/Low 1)",
+    "逆1顺1 (High 1/Low 1)": "高1/低1 (High 1/Low 1)",
+    "急赴磁体 (Spike to Magnet)": "急赴磁体 (Rush to Magnet)",
+    "双重顶底 (Double Top/Bottom)": "双顶双底 (Double Top/Bottom)",
+  };
+
+  return map[s] || raw;
 }
 
 // 1. 安全获取数值属性 (支持多键名)
@@ -194,4 +214,5 @@ module.exports = {
   normalizeTimeframeKey,
   normalizeDirectionKey,
   normalizeEnumKey,
+  normalizeBrooksValue,
 };

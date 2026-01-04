@@ -57,30 +57,81 @@ for (let p of dvPages) {
     });
   }
 
-  // B. 扫描异常 (空值/Unknown)
+  // B. 扫描异常 (按“交易员最小负担”策略：只检查少数必填字段)
+  // 目标：避免因为模板里预留了大量字段（大多留空）而制造噪音。
   if (cache.frontmatter) {
-    const ignore = ["position", "aliases", "cssclasses"];
-    for (let key in cache.frontmatter) {
-      if (ignore.includes(key)) continue;
+    const tags = (cache.tags || []).map((x) => x.tag);
+    const isTrade = tags.includes("#PA/Trade");
+    const isStrategy = tags.includes("#PA/Strategy");
+    if (!isTrade && !isStrategy) continue;
 
-      let val = cache.frontmatter[key];
-      let valStr =
-        val === undefined || val === null ? "null" : val.toString().trim();
-
-      let issueType = null;
-      if (valStr === "" || valStr === "Empty") issueType = "❌ 空值";
-      else if (valStr.toLowerCase().includes("unknown")) issueType = "❓ 未知";
-
-      if (issueType) {
-        issueList.push({
-          path: p.file.path,
-          name: p.file.name,
-          key: key,
-          val: valStr,
-          type: issueType,
-        });
-        scanStats.issues++;
+    const fm = cache.frontmatter;
+    const isEmpty = (v) => {
+      if (v === undefined || v === null) return true;
+      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
+      const s = v.toString().trim();
+      if (!s) return true;
+      if (s === "Empty") return true;
+      if (s.toLowerCase().includes("unknown")) return true;
+      return false;
+    };
+    const pickVal = (keys) => {
+      for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
       }
+      return undefined;
+    };
+    const addIssue = (key, type, val) => {
+      const valStr =
+        val === undefined || val === null ? "" : val.toString().trim();
+      issueList.push({
+        path: p.file.path,
+        name: p.file.name,
+        key,
+        val: valStr,
+        type,
+      });
+      scanStats.issues++;
+    };
+
+    if (isTrade) {
+      const ticker = pickVal(["品种/ticker", "ticker"]);
+      const tf = pickVal(["时间周期/timeframe", "timeframe"]);
+      const dir = pickVal(["方向/direction", "direction"]);
+      const outcome = pickVal(["结果/outcome", "outcome"]);
+      const patterns = pickVal([
+        "观察到的形态/patterns_observed",
+        "patterns_observed",
+      ]);
+      const strategy = pickVal(["策略名称/strategy_name", "strategy_name"]);
+
+      // ✅ 减负规则：仅当交易已“完结”才检查必填。
+      // 约定：填写了 结果/outcome（且不是 Unknown/Empty）= 交易完结。
+      const finished = !isEmpty(outcome);
+      if (!finished) continue;
+
+      if (isEmpty(ticker)) addIssue("品种/ticker", "❌ 缺少必填", ticker);
+      if (isEmpty(tf)) addIssue("时间周期/timeframe", "❌ 缺少必填", tf);
+      if (isEmpty(dir)) addIssue("方向/direction", "❌ 缺少必填", dir);
+
+      // “形态/策略”二选一：至少有一个即可，避免强迫你每笔都填两份
+      const hasPatterns = !isEmpty(patterns);
+      const hasStrategy = !isEmpty(strategy);
+      if (!hasPatterns && !hasStrategy) {
+        addIssue("观察到的形态/patterns_observed", "❌ 缺少必填(二选一)", "");
+      }
+    }
+
+    if (isStrategy) {
+      const strategy = pickVal(["策略名称/strategy_name", "strategy_name"]);
+      const patterns = pickVal([
+        "观察到的形态/patterns_observed",
+        "patterns_observed",
+      ]);
+      if (isEmpty(strategy))
+        addIssue("策略名称/strategy_name", "❌ 缺少必填", strategy);
+      if (isEmpty(patterns))
+        addIssue("观察到的形态/patterns_observed", "❌ 缺少必填", patterns);
     }
   }
 }
@@ -205,7 +256,7 @@ panelFix.className = "sch-panel";
 
 if (scanStats.issues > 0) {
   panelFix.style.borderLeft = `3px solid ${c.loss}`;
-  panelFix.innerHTML = `<div class="sch-header" style="color:${c.loss}">🚑 异常修复台 (Fix Station)</div>`;
+  panelFix.innerHTML = `<div class="sch-header" style="color:${c.loss}">🚑 异常修复台 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(Fix Station)</span></div>`;
 
   const divList = document.createElement("div");
   divList.style.maxHeight = "200px";
@@ -237,7 +288,7 @@ if (scanStats.issues > 0) {
   panelFix.style.borderLeft = `3px solid ${c.live}`;
   panelFix.innerHTML = `
         <div class="sch-header" style="color:${c.live}; margin-bottom:0; border:none;">
-            ✅ 系统非常健康 (All Clear)
+            ✅ 系统非常健康 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(All Clear)</span>
             <span style="font-size:0.7em; opacity:0.6; font-weight:normal;">所有属性均已规范填写</span>
         </div>`;
 }
@@ -246,7 +297,7 @@ root.appendChild(panelFix);
 // === 模块 4: 🏷️ 标签全景 (Tag Cloud) ===
 const panelTag = document.createElement("div");
 panelTag.className = "sch-panel";
-panelTag.innerHTML = `<div class="sch-header" style="color:${c.demo}">🏷️ 标签全景 (Tag System)</div>`;
+panelTag.innerHTML = `<div class="sch-header" style="color:${c.demo}">🏷️ 标签全景 <span style="font-size:0.8em; opacity:0.5; font-weight:600;">(Tag System)</span></div>`;
 
 const divTags = document.createElement("div");
 divTags.style.display = "flex";

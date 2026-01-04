@@ -1,0 +1,16 @@
+{
+  "id": "snapshot_1767318820886_xlokg7byw",
+  "approvalId": "approval_1767318820878_3hi3a58zq",
+  "approvalTitle": "Approve steering product.md",
+  "version": 1,
+  "timestamp": "2026-01-02T01:53:40.886Z",
+  "trigger": "initial",
+  "status": "pending",
+  "content": "# Product Overview\n\n## Product Purpose\n将现有 Obsidian + DataviewJS 的“交易员控制台（Trader Command）”迁移为原生 Obsidian 插件 `al-brooks-console`，提供更稳定的实时刷新、更一致的统计口径，并在迁移期保留 Dataview 版作为对照基准。\n\n核心价值：把分散在多个 DataviewJS 视图与脚本中的交易数据索引、统计、推荐与治理能力，收敛为可维护、可扩展、可并行协作的插件架构。\n\n## Target Users\n- 主要用户：使用该 vault 进行价格行为（Al Brooks）学习与交易复盘的交易者（同一人跨 PC/移动端使用）。\n- 需求与痛点：\n  - DataviewJS 控制台在移动端/大库下容易卡顿或刷新抖动\n  - 统计口径可能随脚本演进分叉（winrate、账户口径、字段同义）\n  - 视图模块多、依赖多，升级/维护成本高\n  - 希望“最终不缺功能”，但允许分阶段迁移\n\n## Key Features\n1. **TradeIndex（单一信源）**：扫描与识别交易笔记（tag 为主 + fileClass 辅助），实时更新索引。\n2. **统一统计口径**：按 `account_type` 分组（Live/Demo/Backtest）+ All 汇总；胜率以 pnl 为主、outcome 兜底。\n3. **原生控制台视图**：仪表盘 +（后续）Trading Hub / Today / Analytics / Gallery / Playbook / Course / Memory。\n4. **外部插件可升级集成**：通过 Adapter Pattern 对 QuickAdd / SRS / Tasks / Metadata Menu 等做“可用则启用、不可用则降级”。\n5. **对照与回归**：迁移期保留 Dataview 版；提供导出索引快照用于回归。\n\n## Business Objectives\n- 将控制台的稳定性与可维护性提升到“可长期演进”的工程状态。\n- 确保统计与识别口径一致，避免多处重复实现导致数据不一致。\n- 支持多 AI 并行开发而不引入架构分叉（通过 SSOT + 日志化协作）。\n\n## Success Metrics\n- **功能对齐**：旧控制台模块能力最终 100% 具备等价实现（入口/UI 可不同，功能不丢）。\n- **一致性**：同一批样本交易下，关键指标（count/netProfit/winRate，按 account_type + All）与 Dataview 基线一致或可解释。\n- **实时性**：交易笔记修改/重命名/删除后，控制台在可接受延迟内自动刷新，无需手动重载。\n- **移动端可用**：移动端打开控制台不因全库扫描导致明显卡顿或崩溃。\n\n## Product Principles\n1. **Parity First（先对齐，后优化）**：先搬运与对齐旧系统能力，后续再做优化/重构。\n2. **Single Source of Truth**：TradeIndex/FieldMapper/Stats/Adapters 必须收敛到唯一实现，杜绝口径分叉。\n3. **Safe Migration**：迁移期不破坏现有 Dataview 控制台；写入型功能默认关闭并有明确安全防护。\n\n## Monitoring & Visibility (if applicable)\n- **Dashboard Type**：Obsidian 原生插件视图（ItemView + React）。\n- **Real-time Updates**：监听 vault/metadataCache 事件 + 去抖增量更新。\n- **Key Metrics Displayed**：交易数、净利润、胜率；按 account_type（Live/Demo/Backtest）与 All 汇总。\n- **Sharing Capabilities**：导出索引快照（JSON）用于回归与备份。\n\n## Future Vision\n- 将“策略推荐/复盘提示/学习闭环”从视图脚本迁移为可复用的业务引擎（StrategyIndex/Matcher、ReviewHints、Course/SRS）。\n- 引入更强的跨模块联动：从市场周期/形态输入到策略卡、再到交易管理与复盘提示。\n- 工程化协作：允许多个 AI/开发者并行推进模块迁移，仍保持统一口径与统一接口。\n\n### Potential Enhancements\n- **Analytics**：更轻量的资金曲线/日历热力图实现，适配移动端。\n- **Collaboration**：通过 Implementation Logs + SSOT 合约实现“多人/多 AI 并行不分叉”的工作流。\n",
+  "fileStats": {
+    "size": 3817,
+    "lines": 53,
+    "lastModified": "2026-01-02T01:53:29.370Z"
+  },
+  "comments": []
+}
