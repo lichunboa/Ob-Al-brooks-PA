@@ -173,7 +173,7 @@ export function computeTopStrategiesFromTrades(
 
 export function computeHubSuggestion(args: {
   topStrategies: Array<{ name: string }>;
-  mindset: { tilt: number };
+  mindset: { tilt: number; fomo?: number; hesitation?: number };
   live: TradeStats;
   backtest: TradeStats;
 }): { tone: "danger" | "warn" | "ok"; text: string } {
@@ -182,17 +182,31 @@ export function computeHubSuggestion(args: {
   const cumLive = args.live.netProfit;
   const cumBack = args.backtest.netProfit;
 
-  if (args.mindset.tilt > 0) {
+  const fomo = typeof args.mindset.fomo === "number" ? args.mindset.fomo : 0;
+  const hesitation =
+    typeof args.mindset.hesitation === "number" ? args.mindset.hesitation : 0;
+
+  // v5 主规则：Tilt 一票否决；增强：若 FOMO 过高/出现犹豫，也优先给出风控建议。
+  if (args.mindset.tilt > 0 || fomo > 1) {
     return {
       tone: "danger",
-      text: "检测到情绪化交易 (Tilt) 迹象。建议立即停止实盘，强制休息 24 小时。",
+      text:
+        "检测到情绪化交易风险（Tilt/FOMO）。建议立即停止实盘，强制休息 24 小时。",
+    };
+  }
+
+  if (fomo > 0 || hesitation > 0) {
+    return {
+      tone: "warn",
+      text:
+        "检测到冲动/犹豫迹象（FOMO/犹豫）。建议降低仓位、严格等待信号，优先在模拟盘恢复稳定执行。",
     };
   }
 
   if (liveWr < 40 && args.live.countTotal > 5) {
     return {
       tone: "warn",
-      text: `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到模拟盘练习 ${bestStrat}，直到连续盈利。`,
+      text: `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到模拟盘练习 ${bestStrat} 策略，直到连续盈利。`,
     };
   }
 
