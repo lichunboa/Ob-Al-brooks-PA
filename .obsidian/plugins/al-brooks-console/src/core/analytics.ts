@@ -140,13 +140,6 @@ const CONTEXT_FIELD_ALIASES = [
   "context",
 ] as const;
 
-const ERROR_FIELD_ALIASES = [
-  "mistake_tags",
-  "错误/mistake_tags",
-  "mistakes",
-  "errors",
-] as const;
-
 export function computeContextAnalysis(
   trades: TradeRecord[]
 ): ContextAnalysisRow[] {
@@ -191,43 +184,35 @@ export function computeContextAnalysis(
 export function computeErrorAnalysis(
   trades: TradeRecord[]
 ): ErrorAnalysisRow[] {
-  const by = new Map<string, { netR: number; count: number }>();
+  // v5 对齐：错误分布与“学费统计”同一口径（Live + 亏损 + 执行评价非 Perfect/Valid/None/完美/主动）
+  // 这里 netR 表示错误造成的亏损（负值），用于与现有 UI 兼容。
+  const by = new Map<string, { costR: number; count: number }>();
 
   for (const t of trades) {
-    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-    let tags: string[] = [];
-
-    for (const key of ERROR_FIELD_ALIASES) {
-      const v = (fm as any)[key];
-      if (Array.isArray(v)) {
-        tags = v.filter((x) => typeof x === "string").map((x) => x.trim());
-        if (tags.length > 0) break;
-      } else if (typeof v === "string" && v.trim()) {
-        tags = [v.trim()];
-        break;
-      }
-    }
-
-    if (tags.length === 0) continue;
+    if (t.accountType !== "Live") continue;
 
     const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    if (pnl >= 0) continue;
 
-    for (const tag of tags) {
-      const prev = by.get(tag) ?? { netR: 0, count: 0 };
-      prev.netR += pnl;
-      prev.count += 1;
-      by.set(tag, prev);
-    }
+    const errStr = getExecutionQualityFromTrade(t);
+    if (!isBadExecutionQuality(errStr)) continue;
+
+    const keyRaw = errStr.includes("(") ? errStr.split("(")[0].trim() : errStr.trim();
+    const key = keyRaw.length ? keyRaw : "Unknown";
+
+    const cost = Math.abs(pnl);
+    const prev = by.get(key) ?? { costR: 0, count: 0 };
+    prev.costR += cost;
+    prev.count += 1;
+    by.set(key, prev);
   }
 
-  const rows: ErrorAnalysisRow[] = [];
-  for (const [errorTag, v] of by.entries()) {
-    rows.push({
-      errorTag,
-      count: v.count,
-      netR: v.netR,
-    });
-  }
+  const rows: ErrorAnalysisRow[] = [...by.entries()].map(([errorTag, v]) => ({
+    errorTag,
+    count: v.count,
+    netR: -v.costR,
+  }));
+
   // Sort by netR ascending (biggest losses first)
   return rows.sort((a, b) => a.netR - b.netR);
 }

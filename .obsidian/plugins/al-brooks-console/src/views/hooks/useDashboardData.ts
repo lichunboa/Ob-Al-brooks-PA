@@ -328,7 +328,7 @@ export function useDashboardData(
 
   const errorAnalysis = React.useMemo(() => {
     const filtered = filterTradesByScope(trades, analyticsScope);
-    return computeErrorAnalysis(filtered).slice(0, 8);
+    return computeErrorAnalysis(filtered).slice(0, 5);
   }, [trades, analyticsScope]);
 
   return {

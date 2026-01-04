@@ -56,7 +56,7 @@ export const ErrorWidget: React.FC<ErrorWidgetProps> = ({ data }) => {
     return (
         <div className="pa-card">
             <h4 className="pa-card-subtitle" style={{ margin: "0 0 10px 0" }}>
-                错误分布 (Top 8)
+                错误分布 (Top 5)
             </h4>
             <div style={{ display: "grid", gap: "0" }}>
                 {data.map((row) => (

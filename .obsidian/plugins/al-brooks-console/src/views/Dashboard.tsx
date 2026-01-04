@@ -717,54 +717,11 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [last30TradesDesc]);
 
   const liveMind = React.useMemo(() => {
-    const ERROR_FIELD_ALIASES = [
-      "mistake_tags",
-      "错误/mistake_tags",
-      "mistakes",
-      "errors",
-    ] as const;
-
-    const getMistakeTags = (t: TradeRecord): string[] => {
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      for (const key of ERROR_FIELD_ALIASES) {
-        const v = (fm as any)[key];
-        if (Array.isArray(v)) {
-          const tags = v
-            .filter((x) => typeof x === "string")
-            .map((x) => (x as string).trim())
-            .filter(Boolean);
-          if (tags.length > 0) return tags;
-        } else if (typeof v === "string" && v.trim()) {
-          return [v.trim()];
-        }
-      }
-      return [];
-    };
-
-    const recentLive = last30TradesDesc
-      .filter((t) => t.accountType === "Live")
-      .slice(0, 7);
-
-    let tilt = 0;
-    let fomo = 0;
-    for (const t of recentLive) {
-      const tags = getMistakeTags(t);
-      const s = tags.join(" ");
-      if (s.includes("Tilt") || s.includes("上头")) tilt += 1;
-      if (s.includes("FOMO") || s.includes("追单")) fomo += 1;
-    }
-
-    const risk = tilt + fomo;
-    const status =
-      risk === 0 ? "🛡️ 状态极佳" : risk < 3 ? "⚠️ 有点起伏" : "🔥 极度危险";
-    const color =
-      risk === 0
-        ? "var(--text-success)"
-        : risk < 3
-        ? "var(--text-warning)"
-        : "var(--text-error)";
-
-    return { tilt, fomo, risk, status, color };
+    // 复用 Analytics Hub 的单一信源口径（v5 对齐：从执行评价文本匹配 Tilt/FOMO/Hesitation）
+    const recentAsc = [...last30TradesDesc]
+      .reverse()
+      .filter((t) => (t.accountType ?? "Live") === "Live");
+    return computeMindsetFromRecentLive(recentAsc, 10);
   }, [last30TradesDesc]);
 
   const tuition = React.useMemo(() => {
@@ -1192,7 +1149,7 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [analyticsTrades]);
 
   const errorAnalysis = React.useMemo(() => {
-    return computeErrorAnalysis(analyticsTrades).slice(0, 8);
+    return computeErrorAnalysis(analyticsTrades).slice(0, 5);
   }, [analyticsTrades]);
   const analyticsDaily = React.useMemo(
     () => computeDailyAgg(analyticsTrades, 90),

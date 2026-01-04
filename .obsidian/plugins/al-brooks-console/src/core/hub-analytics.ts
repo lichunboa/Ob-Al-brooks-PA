@@ -92,12 +92,34 @@ export function computeMindsetFromRecentLive(
   let fomo = 0;
   let hesitation = 0;
 
+  // v5 对齐：心态分析来自执行评价字段（error/execution_quality/management_error），而不是 mistake_tags。
+  const EXECUTION_TEXT_FIELD_ALIASES = [
+    "execution_quality",
+    "执行评价/execution_quality",
+    "执行评价",
+    "management_error",
+    "管理错误/management_error",
+    "管理错误",
+  ] as const;
+
+  const getExecutionText = (t: TradeRecord): string => {
+    const direct = typeof t.executionQuality === "string" ? t.executionQuality : "";
+    if (direct.trim()) return direct.trim();
+
+    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+    for (const key of EXECUTION_TEXT_FIELD_ALIASES) {
+      const v = (fm as any)[key];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+
+    return "";
+  };
+
   for (const t of recent) {
-    const tags = getMistakeTagsFromTrade(t);
-    const s = tags.join(" ");
-    if (s.includes("Tilt") || s.includes("上头")) tilt += 1;
-    if (s.includes("FOMO") || s.includes("追单")) fomo += 1;
-    if (s.includes("Hesitation") || s.includes("犹豫")) hesitation += 1;
+    const err = getExecutionText(t).toLowerCase();
+    if (err.includes("tilt") || err.includes("上头")) tilt += 1;
+    if (err.includes("fomo") || err.includes("追单")) fomo += 1;
+    if (err.includes("hesitation") || err.includes("犹豫")) hesitation += 1;
   }
 
   let status = "🛡️ 状态极佳";
