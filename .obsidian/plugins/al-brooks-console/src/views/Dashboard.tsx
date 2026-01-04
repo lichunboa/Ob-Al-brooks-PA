@@ -6006,7 +6006,15 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
 
         {managerFieldInventory ? (
-          <div style={{ marginBottom: "12px" }}>
+          <div
+            style={{
+              marginBottom: "12px",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "10px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -6132,7 +6140,7 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                无匹配字段。
+                无匹配字段（0/{managerFieldInventory.keys.length}）。
               </div>
             )}
           </div>
@@ -6236,7 +6244,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 border: "1px solid var(--background-modifier-border)",
                 borderRadius: "8px",
                 background: "rgba(var(--mono-rgb-100), 0.03)",
-                maxHeight: "260px",
+                maxHeight: "140px",
                 overflow: "auto",
                 whiteSpace: "pre-wrap",
               }}
