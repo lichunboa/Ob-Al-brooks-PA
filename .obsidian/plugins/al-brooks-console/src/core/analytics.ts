@@ -133,6 +133,20 @@ export interface ErrorAnalysisRow {
   netR: number;
 }
 
+export interface TuitionAnalysisRow {
+  errorTag: string;
+  /** Total "tuition" cost attributed to this error tag (positive number). */
+  cost: number;
+  /** Number of losing trades contributing to this tag. */
+  count: number;
+}
+
+export interface TuitionAnalysis {
+  /** Sum of absolute losses from trades that have mistake tags (positive number). */
+  tuitionTotal: number;
+  rows: TuitionAnalysisRow[];
+}
+
 const CONTEXT_FIELD_ALIASES = [
   "market_cycle",
   "市场周期/market_cycle",
@@ -230,4 +244,59 @@ export function computeErrorAnalysis(
   }
   // Sort by netR ascending (biggest losses first)
   return rows.sort((a, b) => a.netR - b.netR);
+}
+
+/**
+ * Legacy Analytics Hub compatibility: "错误归因/学费".
+ *
+ * Rule (v5.0 semantics): tuition is only counted for losing trades that have mistake tags.
+ * If a trade has multiple tags, its loss is split evenly to avoid >100% totals.
+ */
+export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
+  let tuitionTotal = 0;
+  const by = new Map<string, { cost: number; count: number }>();
+
+  for (const t of trades ?? []) {
+    const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    if (!(pnl < 0)) continue;
+
+    const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+    let tags: string[] = [];
+
+    for (const key of ERROR_FIELD_ALIASES) {
+      const v = (fm as any)[key];
+      if (Array.isArray(v)) {
+        tags = v
+          .filter((x) => typeof x === "string")
+          .map((x) => (x as string).trim())
+          .filter(Boolean);
+        if (tags.length > 0) break;
+      } else if (typeof v === "string" && v.trim()) {
+        tags = [v.trim()];
+        break;
+      }
+    }
+
+    if (tags.length === 0) continue;
+
+    const loss = Math.abs(pnl);
+    tuitionTotal += loss;
+    const portion = loss / Math.max(1, tags.length);
+
+    for (const tag of tags) {
+      const prev = by.get(tag) ?? { cost: 0, count: 0 };
+      prev.cost += portion;
+      prev.count += 1;
+      by.set(tag, prev);
+    }
+  }
+
+  const rows: TuitionAnalysisRow[] = [...by.entries()].map(([errorTag, v]) => ({
+    errorTag,
+    cost: v.cost,
+    count: v.count,
+  }));
+  rows.sort((a, b) => b.cost - a.cost);
+
+  return { tuitionTotal, rows };
 }

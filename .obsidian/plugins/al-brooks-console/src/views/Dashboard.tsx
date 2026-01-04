@@ -26,6 +26,7 @@ import {
   computeStrategyAttribution,
   computeContextAnalysis,
   computeErrorAnalysis,
+  computeTuitionAnalysis,
   filterTradesByScope,
   type AnalyticsScope,
   type DailyAgg,
@@ -1234,6 +1235,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const errorAnalysis = React.useMemo(() => {
     return computeErrorAnalysis(analyticsTrades).slice(0, 8);
+  }, [analyticsTrades]);
+
+  const tuitionAnalysis = React.useMemo(() => {
+    return computeTuitionAnalysis(analyticsTrades);
   }, [analyticsTrades]);
   const analyticsDaily = React.useMemo(
     () => computeDailyAgg(analyticsTrades, 90),
@@ -3544,7 +3549,7 @@ const ConsoleComponent: React.FC<Props> = ({
           }}
         >
           <ContextWidget data={contextAnalysis} />
-          <ErrorWidget data={errorAnalysis} />
+          <ErrorWidget analysis={tuitionAnalysis} />
         </div>
       </div>
 
