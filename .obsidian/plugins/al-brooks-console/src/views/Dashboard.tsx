@@ -708,33 +708,6 @@ const ConsoleComponent: React.FC<Props> = ({
   );
   const all = summary.All;
 
-  const accountTargetMonth = React.useMemo(() => {
-    const liveDesc = [...trades]
-      .filter((t) => t.accountType === "Live")
-      .sort((a, b) =>
-        a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
-      );
-    const ym = getYearMonth(liveDesc[0]?.dateIso);
-    if (ym) return ym;
-    return toLocalDateIso(new Date()).slice(0, 7);
-  }, [trades]);
-
-  const accountDaysInMonth = React.useMemo(() => {
-    const m = accountTargetMonth.match(/^(\d{4})-(\d{2})$/);
-    if (!m) return 30;
-    const year = Number(m[1]);
-    const monthIdx = Number(m[2]) - 1;
-    const days = new Date(year, monthIdx + 1, 0).getDate();
-    return Number.isFinite(days) && days > 0 ? days : 30;
-  }, [accountTargetMonth]);
-
-  const accountDailyMap = React.useMemo(() => {
-    return computeMonthDailyAggAllAccounts({
-      trades,
-      yearMonth: accountTargetMonth,
-    });
-  }, [trades, accountTargetMonth]);
-
   const cycleMap: Record<string, string> = {
     "Strong Trend": "强趋势",
     "Weak Trend": "弱趋势",
@@ -1922,7 +1895,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                         gap: "8px",
                       }}
                     >
@@ -2719,14 +2692,29 @@ short mode\n\
                         <div
                           style={{
                             display: "flex",
-                            alignItems: "flex-end",
+                            alignItems: "stretch",
                             gap: "4px",
                             height: "70px",
-                            borderBottom:
+                            position: "relative",
+                            border:
                               "1px solid var(--background-modifier-border)",
-                            paddingBottom: "6px",
+                            borderRadius: "8px",
+                            padding: "6px",
+                            background: "rgba(var(--mono-rgb-100), 0.02)",
                           }}
                         >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              right: 0,
+                              top: "50%",
+                              height: "1px",
+                              background: "var(--background-modifier-border)",
+                              opacity: 0.9,
+                              pointerEvents: "none",
+                            }}
+                          />
                           {last30TradesDesc
                             .slice()
                             .reverse()
@@ -2736,16 +2724,17 @@ short mode\n\
                                 Number.isFinite(t.pnl)
                                   ? t.pnl
                                   : 0;
+                              const half = 28;
                               const h = Math.max(
-                                4,
-                                Math.round((Math.abs(r) / last30MaxAbsR) * 56)
+                                2,
+                                Math.round((Math.abs(r) / last30MaxAbsR) * half)
                               );
                               const color =
                                 r >= 0
                                   ? getRColorByAccountType(
                                       t.accountType ?? "Live"
                                     )
-                                  : "var(--text-error)";
+                                  : V5_COLORS.loss;
                               const title = `${t.name}\n${
                                 t.accountType ?? "—"
                               }\nR: ${r.toFixed(2)}`;
@@ -2755,12 +2744,24 @@ short mode\n\
                                   title={title}
                                   style={{
                                     width: "6px",
-                                    height: `${h}px`,
-                                    background: color,
-                                    borderRadius: "2px",
-                                    opacity: r >= 0 ? 1 : 0.7,
+                                    position: "relative",
+                                    flex: "0 0 auto",
                                   }}
-                                />
+                                >
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      left: 0,
+                                      right: 0,
+                                      height: `${h}px`,
+                                      background: color,
+                                      borderRadius: "2px",
+                                      opacity: r >= 0 ? 0.95 : 0.75,
+                                      bottom: r >= 0 ? "50%" : undefined,
+                                      top: r < 0 ? "50%" : undefined,
+                                    }}
+                                  />
+                                </div>
                               );
                             })}
                         </div>
@@ -2850,56 +2851,6 @@ short mode\n\
                   ))}
                 </div>
 
-                <div style={{ marginTop: "14px" }}>
-                  <button
-                    type="button"
-                    disabled={!canCreateTrade && !createTradeNote}
-                    onClick={() => {
-                      if (can("quickadd:new-live-trade"))
-                        return action("quickadd:new-live-trade");
-                      if (can("quickadd:new-demo-trade"))
-                        return action("quickadd:new-demo-trade");
-                      if (can("quickadd:new-backtest"))
-                        return action("quickadd:new-backtest");
-                      void createTradeNote?.();
-                    }}
-                    onMouseEnter={(e) => {
-                      if (e.currentTarget.disabled) return;
-                      e.currentTarget.style.filter = "brightness(1.02)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = "none";
-                    }}
-                    style={
-                      canCreateTrade || createTradeNote
-                        ? {
-                            width: "100%",
-                            padding: "10px 12px",
-                            borderRadius: "10px",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            background: "var(--interactive-accent)",
-                            color: "var(--text-on-accent)",
-                            fontWeight: 800,
-                            cursor: "pointer",
-                          }
-                        : {
-                            width: "100%",
-                            padding: "10px 12px",
-                            borderRadius: "10px",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            background: "var(--background-primary)",
-                            color: "var(--text-faint)",
-                            fontWeight: 800,
-                            opacity: 0.6,
-                            cursor: "not-allowed",
-                          }
-                    }
-                  >
-                    创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -3197,157 +3148,6 @@ short mode\n\
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div
-              style={{
-                paddingTop: "12px",
-                borderTop: "1px solid var(--background-modifier-border)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  gap: "10px",
-                  marginBottom: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ fontWeight: 700, color: "var(--text-muted)" }}>
-                  📅 盈亏日历 ({accountTargetMonth})
-                </div>
-                <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>
-                  All Accounts
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, 1fr)",
-                  gap: "6px",
-                }}
-              >
-                {Array.from(
-                  { length: accountDaysInMonth },
-                  (_, i) => i + 1
-                ).map((day) => {
-                  const data = accountDailyMap.get(day);
-                  const pnl = data?.total;
-                  const hasTrade = pnl !== undefined;
-                  const color = !hasTrade
-                    ? "var(--text-faint)"
-                    : pnl! > 0
-                    ? V5_COLORS.win
-                    : pnl! < 0
-                    ? V5_COLORS.loss
-                    : "var(--text-muted)";
-                  const bg = !hasTrade
-                    ? "rgba(var(--mono-rgb-100), 0.02)"
-                    : pnl! > 0
-                    ? withHexAlpha(V5_COLORS.win, "1F")
-                    : pnl! < 0
-                    ? withHexAlpha(V5_COLORS.loss, "1F")
-                    : "rgba(var(--mono-rgb-100), 0.06)";
-
-                  return (
-                    <div
-                      key={`${accountTargetMonth}-${day}`}
-                      title={`${accountTargetMonth}-${String(day).padStart(
-                        2,
-                        "0"
-                      )} PnL: ${hasTrade ? pnl!.toFixed(2) : "0"}`}
-                      style={{
-                        aspectRatio: "1",
-                        background: bg,
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "2px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "0.75em",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        {day}
-                      </div>
-                      {hasTrade ? (
-                        <div
-                          style={{
-                            fontSize: "0.85em",
-                            fontWeight: 800,
-                            color,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {pnl! > 0 ? "+" : ""}
-                          {pnl!.toFixed(0)}
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            fontSize: "0.85em",
-                            fontWeight: 700,
-                            color: "var(--text-faint)",
-                            opacity: 0.4,
-                          }}
-                        >
-                          —
-                        </div>
-                      )}
-
-                      {hasTrade ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "2px",
-                            height: "5px",
-                            width: "80%",
-                            marginTop: "2px",
-                            opacity: 0.95,
-                          }}
-                        >
-                          {data?.types.has("Live") && (
-                            <div
-                              style={{
-                                flex: 1,
-                                background: getRColorByAccountType("Live"),
-                                borderRadius: "2px",
-                              }}
-                            />
-                          )}
-                          {data?.types.has("Demo") && (
-                            <div
-                              style={{
-                                flex: 1,
-                                background: getRColorByAccountType("Demo"),
-                                borderRadius: "2px",
-                              }}
-                            />
-                          )}
-                          {data?.types.has("Backtest") && (
-                            <div
-                              style={{
-                                flex: 1,
-                                background: getRColorByAccountType("Backtest"),
-                                borderRadius: "2px",
-                              }}
-                            />
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>
