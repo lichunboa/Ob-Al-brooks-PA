@@ -1,4 +1,6 @@
 import type { AccountType, TradeRecord, TradeStats } from "./contracts";
+import type { StrategyIndex } from "./strategy-index";
+import { identifyStrategyForAnalytics } from "./analytics";
 
 export type DayAggWithAccounts = {
   total: number;
@@ -138,7 +140,8 @@ export function computeMindsetFromRecentLive(
 
 export function computeTopStrategiesFromTrades(
   trades: TradeRecord[],
-  limit: number
+  limit: number,
+  strategyIndex?: StrategyIndex
 ) {
   const tradesAsc = [...(trades ?? [])].sort((a, b) =>
     a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
@@ -149,12 +152,7 @@ export function computeTopStrategiesFromTrades(
   for (const t of tradesAsc) {
     const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
 
-    let key = (t.strategyName ?? "").toString().trim();
-    if (!key || key.toLowerCase() === "unknown") {
-      const rawSetup = (t.setupCategory ?? "").toString().trim();
-      key = rawSetup ? rawSetup.split("(")[0].trim() : "Unknown";
-    }
-    if (!key) key = "Unknown";
+    const key = identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
 
     const prev = stats.get(key) ?? { win: 0, total: 0 };
     prev.total += 1;

@@ -28,10 +28,116 @@ const STRATEGY_FIELD_ALIASES = [
   "strategy",
 ] as const;
 
+const PATTERNS_FIELD_ALIASES = [
+  "patterns_observed",
+  "patterns",
+  "pattern",
+  "观察到的形态/patterns_observed",
+  "形态/patterns",
+  "形态",
+] as const;
+
+const SETUP_KEY_FIELD_ALIASES = ["setupKey", "setup_key"] as const;
+
+const SETUP_CATEGORY_FALLBACK_MAP: Record<string, string> = {
+  "Trend Pullback": "趋势回调",
+  "Trend Breakout": "趋势突破",
+  Reversal: "反转",
+  Wedge: "楔形",
+  "Double Top/Bottom": "双顶/底",
+  MTR: "主要趋势反转",
+  "Final Flag": "末端旗形",
+  "Opening Reversal": "开盘反转",
+};
+
 function toString(v: unknown): string | undefined {
   if (typeof v !== "string") return undefined;
   const s = v.trim();
   return s.length ? s : undefined;
+}
+
+function isUnknownName(name: string | undefined): boolean {
+  const s = String(name ?? "").trim();
+  if (!s) return true;
+  return s.toLowerCase() === "unknown";
+}
+
+function getStrings(v: unknown): string[] {
+  if (Array.isArray(v)) {
+    return v
+      .filter((x) => typeof x === "string")
+      .map((x) => (x as string).trim())
+      .filter(Boolean);
+  }
+  if (typeof v === "string" && v.trim()) return [v.trim()];
+  return [];
+}
+
+export function identifyStrategyForAnalytics(
+  trade: TradeRecord,
+  strategyIndex?: StrategyIndex
+): { name?: string; path?: string } {
+  // v5 对齐：策略识别优先级
+  // 0) strategyName (explicit)
+  const direct = toString(trade.strategyName);
+  if (!isUnknownName(direct)) {
+    const card =
+      strategyIndex?.lookup(direct!) ?? strategyIndex?.byName(direct!);
+    return { name: card?.canonicalName ?? direct!, path: card?.path };
+  }
+
+  const fm = (trade.rawFrontmatter ?? {}) as Record<string, unknown>;
+
+  // 0.5) strategyName from frontmatter aliases
+  for (const key of STRATEGY_FIELD_ALIASES) {
+    const v = toString((fm as any)[key]);
+    if (!isUnknownName(v)) {
+      const card = strategyIndex?.lookup(v!) ?? strategyIndex?.byName(v!);
+      return { name: card?.canonicalName ?? v!, path: card?.path };
+    }
+  }
+
+  // 1) patternsObserved -> pattern mapping
+  const patsDirect = (trade.patternsObserved ?? [])
+    .map((p) => String(p).trim())
+    .filter(Boolean);
+  const pats = patsDirect.length
+    ? patsDirect
+    : (() => {
+        for (const key of PATTERNS_FIELD_ALIASES) {
+          const got = getStrings((fm as any)[key]);
+          if (got.length) return got;
+        }
+        return [] as string[];
+      })();
+
+  for (const p of pats) {
+    const card = strategyIndex?.byPattern(p);
+    if (card) return { name: card.canonicalName, path: card.path };
+  }
+
+  // 2) setupKey / setupCategory fallback (display mapping aligned to v5)
+  let cat: string | undefined;
+  for (const key of SETUP_KEY_FIELD_ALIASES) {
+    cat = toString((fm as any)[key]);
+    if (cat) break;
+  }
+  if (!cat) cat = toString(trade.setupCategory);
+  if (!cat) {
+    const v = toString((fm as any)["setup_category"]) ??
+      toString((fm as any)["setup"]) ??
+      toString((fm as any)["setupCategory"]);
+    cat = v;
+  }
+
+  if (cat) {
+    const base = cat.includes("(") ? cat.split("(")[0].trim() : cat;
+    const mapped = SETUP_CATEGORY_FALLBACK_MAP[base] ?? base;
+    const card = strategyIndex?.lookup(mapped) ?? strategyIndex?.byName(mapped);
+    return { name: card?.canonicalName ?? mapped, path: card?.path };
+  }
+
+  return {};
 }
 
 export function filterTradesByScope(
@@ -85,14 +191,8 @@ export function computeStrategyAttribution(
   const by = new Map<string, { netR: number; count: number }>();
 
   for (const t of trades) {
-    let name: string | undefined = toString(t.strategyName);
-    if (!name) {
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      for (const key of STRATEGY_FIELD_ALIASES) {
-        name = toString((fm as any)[key]);
-        if (name) break;
-      }
-    }
+    const ident = identifyStrategyForAnalytics(t, strategyIndex);
+    const name = ident.name;
     if (!name) continue;
 
     const prev = by.get(name) ?? { netR: 0, count: 0 };

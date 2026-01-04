@@ -1269,8 +1269,8 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [analyticsRecentLiveTradesAsc]);
 
   const analyticsTopStrats = React.useMemo(() => {
-    return computeTopStrategiesFromTrades(trades, 5);
-  }, [trades]);
+    return computeTopStrategiesFromTrades(trades, 5, strategyIndex);
+  }, [trades, strategyIndex]);
 
   const analyticsSuggestion = React.useMemo(() => {
     const top = tuition.rows[0];
