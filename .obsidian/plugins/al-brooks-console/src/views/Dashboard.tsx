@@ -954,7 +954,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
-    padding: "5px 10px",
+    padding: "4px 9px",
     fontSize: "0.8em",
     border: "1px solid var(--background-modifier-border)",
     borderRadius: "6px",
@@ -974,16 +974,16 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const buttonSmStyle: React.CSSProperties = {
     ...buttonStyle,
-    padding: "6px 10px",
+    padding: "5px 9px",
   };
 
   const buttonSmDisabledStyle: React.CSSProperties = {
     ...disabledButtonStyle,
-    padding: "6px 10px",
+    padding: "5px 9px",
   };
 
   const tabButtonStyle: React.CSSProperties = {
-    padding: "6px 10px",
+    padding: "5px 9px",
     fontSize: "0.85em",
     border: "1px solid var(--background-modifier-border)",
     borderRadius: "999px",
@@ -1022,6 +1022,43 @@ const ConsoleComponent: React.FC<Props> = ({
     borderRadius: "6px",
     outline: "none",
     transition: "background-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const textButtonSemiboldStyle: React.CSSProperties = {
+    ...textButtonStyle,
+    fontWeight: 600,
+  };
+
+  const textButtonStrongStyle: React.CSSProperties = {
+    ...textButtonStyle,
+    fontWeight: 700,
+  };
+
+  const textButtonNoWrapStyle: React.CSSProperties = {
+    ...textButtonStyle,
+    whiteSpace: "nowrap",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "10px",
+    padding: "12px",
+    background: "var(--background-primary)",
+  };
+
+  const cardTightStyle: React.CSSProperties = {
+    ...cardStyle,
+    padding: "10px",
+  };
+
+  const cardSubtleStyle: React.CSSProperties = {
+    ...cardStyle,
+    background: "rgba(var(--mono-rgb-100), 0.03)",
+  };
+
+  const cardSubtleTightStyle: React.CSSProperties = {
+    ...cardSubtleStyle,
+    padding: "10px",
   };
 
   const onBtnMouseEnter = React.useCallback(
@@ -5028,7 +5065,7 @@ short mode\n\
                           <button
                             type="button"
                             onClick={() => openFile(String(rec.path))}
-                            style={{ ...textButtonStyle, fontWeight: 700 }}
+                            style={textButtonStrongStyle}
                             onMouseEnter={onTextBtnMouseEnter}
                             onMouseLeave={onTextBtnMouseLeave}
                             onFocus={onTextBtnFocus}
@@ -5075,7 +5112,7 @@ short mode\n\
                     <button
                       type="button"
                       onClick={() => openFile(memory.focusFile!.path)}
-                      style={{ ...textButtonStyle, fontWeight: 600 }}
+                      style={textButtonSemiboldStyle}
                       onMouseEnter={onTextBtnMouseEnter}
                       onMouseLeave={onTextBtnMouseLeave}
                       onFocus={onTextBtnFocus}
@@ -5238,10 +5275,7 @@ short mode\n\
                                 <button
                                   type="button"
                                   onClick={() => openFile(link.path)}
-                                  style={{
-                                    ...textButtonStyle,
-                                    fontWeight: 600,
-                                  }}
+                                  style={textButtonSemiboldStyle}
                                   onMouseEnter={onTextBtnMouseEnter}
                                   onMouseLeave={onTextBtnMouseLeave}
                                   onFocus={onTextBtnFocus}
@@ -5546,10 +5580,7 @@ short mode\n\
                             <button
                               type="button"
                               onClick={() => openFile(s.path)}
-                              style={{
-                                ...textButtonStyle,
-                                whiteSpace: "nowrap",
-                              }}
+                              style={textButtonNoWrapStyle}
                               onMouseEnter={onTextBtnMouseEnter}
                               onMouseLeave={onTextBtnMouseLeave}
                               onFocus={onTextBtnFocus}
@@ -5930,12 +5961,12 @@ short mode\n\
         <>
           <div
             style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
+              margin: "16px 0 8px",
+              paddingBottom: "6px",
               borderBottom: "1px solid var(--background-modifier-border)",
               display: "flex",
               alignItems: "baseline",
-              gap: "10px",
+              gap: "8px",
               flexWrap: "wrap",
             }}
           >
@@ -5946,13 +5977,7 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: "14px" }}
           >
             {(() => {
               const issueCount = schemaIssues.length;
@@ -6076,22 +6101,17 @@ short mode\n\
                 .slice(0, 15);
 
               return (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ marginBottom: "10px" }}>
                   <div
                     style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr",
-                      gap: "12px",
-                      marginBottom: "12px",
+                      gap: "10px",
+                      marginBottom: "10px",
                     }}
                   >
                     <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                      }}
+                      style={cardSubtleTightStyle}
                     >
                       <div
                         style={{
@@ -6157,12 +6177,7 @@ short mode\n\
                     </div>
 
                     <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                      }}
+                      style={cardSubtleTightStyle}
                     >
                       <div
                         style={{
@@ -6253,13 +6268,7 @@ short mode\n\
                   </div>
 
                   <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      background: "var(--background-primary)",
-                      marginBottom: "12px",
-                    }}
+                    style={{ ...cardTightStyle, marginBottom: "10px" }}
                   >
                     <div
                       style={{
@@ -6267,7 +6276,7 @@ short mode\n\
                         justifyContent: "space-between",
                         alignItems: "baseline",
                         gap: "10px",
-                        marginBottom: "10px",
+                        marginBottom: "8px",
                       }}
                     >
                       <div style={{ fontWeight: 800 }}>⚠️ 异常详情</div>
@@ -6305,7 +6314,7 @@ short mode\n\
                             display: "grid",
                             gridTemplateColumns: "2fr 1fr 1fr",
                             gap: "10px",
-                            padding: "10px",
+                              padding: "8px",
                             borderBottom:
                               "1px solid var(--background-modifier-border)",
                             color: "var(--text-faint)",
