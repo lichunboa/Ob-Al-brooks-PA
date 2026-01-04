@@ -25,6 +25,7 @@ import {
   computeEquityCurve,
   computeStrategyAttribution,
   identifyStrategyForAnalytics,
+  normalizeMarketCycleForAnalytics,
   computeContextAnalysis,
   computeErrorAnalysis,
   computeTuitionAnalysis,
@@ -678,20 +679,16 @@ const ConsoleComponent: React.FC<Props> = ({
   };
 
   const liveCyclePerf = React.useMemo(() => {
-    const normalizeCycle = (raw: string): string => {
-      const s = String(raw ?? "").trim();
+    const normalizeCycle = (raw: unknown): string => {
+      let s = String(raw ?? "").trim();
       if (!s) return "Unknown";
+      // 保留现有 dashboard 的 "/" 兼容行为（不影响 core 口径，只是先做一次拆分）
       if (s.includes("/")) {
         const parts = s.split("/");
-        const cand = String(parts[1] ?? parts[0] ?? "Unknown").trim();
-        return cand.length > 0 ? cand : "Unknown";
+        const cand = String(parts[1] ?? parts[0] ?? "").trim();
+        if (cand) s = cand;
       }
-      if (s.includes("(")) {
-        const rawLeft = s.split("(")[0];
-        const cand = String(rawLeft ?? "Unknown").trim();
-        return cand.length > 0 ? cand : "Unknown";
-      }
-      return s;
+      return normalizeMarketCycleForAnalytics(s) ?? "Unknown";
     };
 
     const byCycle = new Map<string, number>();
