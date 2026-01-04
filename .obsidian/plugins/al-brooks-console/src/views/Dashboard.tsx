@@ -1901,7 +1901,19 @@ const ConsoleComponent: React.FC<Props> = ({
                     >
                       {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
                         <div>
-                          <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              marginBottom: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              color: V5_COLORS.accent,
+                            }}
+                          >
+                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                              🚪
+                            </span>
                             入场
                           </div>
                           <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -1916,7 +1928,19 @@ const ConsoleComponent: React.FC<Props> = ({
                       {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
                         0 && (
                         <div>
-                          <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              marginBottom: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              color: V5_COLORS.loss,
+                            }}
+                          >
+                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                              🛑
+                            </span>
                             止损
                           </div>
                           <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -1930,7 +1954,19 @@ const ConsoleComponent: React.FC<Props> = ({
                       )}
                       {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
                         <div>
-                          <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              marginBottom: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              color: V5_COLORS.back,
+                            }}
+                          >
+                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                              ⚠️
+                            </span>
                             风险
                           </div>
                           <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -1945,7 +1981,19 @@ const ConsoleComponent: React.FC<Props> = ({
                       {(openTradeStrategy.takeProfitRecommendation?.length ??
                         0) > 0 && (
                         <div>
-                          <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              marginBottom: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              color: V5_COLORS.accent,
+                            }}
+                          >
+                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                              🎯
+                            </span>
                             目标
                           </div>
                           <ul style={{ margin: 0, paddingLeft: "18px" }}>
