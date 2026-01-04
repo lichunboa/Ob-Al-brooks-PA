@@ -253,6 +253,120 @@ export interface FrontmatterFile {
   frontmatter: Record<string, unknown>;
 }
 
+export interface FrontmatterKeyStat {
+  key: string;
+  /** Number of files that contain this key. */
+  files: number;
+  /** Total number of values observed (arrays contribute multiple). */
+  values: number;
+  /** Top values for this key (value -> count), descending by count. */
+  topValues: Array<{ value: string; count: number }>;
+}
+
+export interface FrontmatterStats {
+  generatedAtIso: string;
+  totalFiles: number;
+  keys: FrontmatterKeyStat[];
+}
+
+function normalizeVal(v: unknown): string {
+  if (v === undefined || v === null) return "null";
+  if (typeof v === "string") {
+    const s = v.trim();
+    return s.length ? s : "Empty";
+  }
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+
+  if (typeof v === "object") {
+    const o = v as any;
+    if (typeof o?.path === "string") return o.path;
+    if (typeof o?.link?.path === "string") return o.link.path;
+    if (typeof o?.file?.path === "string") return o.file.path;
+
+    try {
+      const s = o?.toString ? String(o.toString()).trim() : "";
+      if (s && s !== "[object Object]") return s;
+    } catch {
+      // ignore
+    }
+    try {
+      const s = JSON.stringify(o);
+      return s && s !== "{}" ? s : "Object";
+    } catch {
+      return "Object";
+    }
+  }
+
+  try {
+    return String(v);
+  } catch {
+    return "Unknown";
+  }
+}
+
+function extractValues(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => normalizeVal(x));
+  return [normalizeVal(v)];
+}
+
+/**
+ * Read-only inventory of frontmatter keys/values.
+ * Useful for aligning legacy Manager's keyMap/valMap scan in a safe incremental step.
+ */
+export function buildFrontmatterStats(
+  files: FrontmatterFile[],
+  options: { topKeys?: number; topValuesPerKey?: number } = {}
+): FrontmatterStats {
+  const topKeys = options.topKeys ?? 30;
+  const topValuesPerKey = options.topValuesPerKey ?? 3;
+
+  const perKey = new Map<
+    string,
+    { files: number; values: number; valueCounts: Map<string, number> }
+  >();
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, unknown>;
+    const keys = Object.keys(fm);
+    for (const k of keys) {
+      const entry = perKey.get(k) ?? {
+        files: 0,
+        values: 0,
+        valueCounts: new Map<string, number>(),
+      };
+      entry.files += 1;
+      const vals = extractValues((fm as any)[k]);
+      for (const val of vals) {
+        entry.values += 1;
+        entry.valueCounts.set(val, (entry.valueCounts.get(val) ?? 0) + 1);
+      }
+      perKey.set(k, entry);
+    }
+  }
+
+  const keys: FrontmatterKeyStat[] = [...perKey.entries()]
+    .map(([key, v]) => {
+      const topValues = [...v.valueCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topValuesPerKey)
+        .map(([value, count]) => ({ value, count }));
+      return {
+        key,
+        files: v.files,
+        values: v.values,
+        topValues,
+      };
+    })
+    .sort((a, b) => b.files - a.files)
+    .slice(0, topKeys);
+
+  return {
+    generatedAtIso: new Date().toISOString(),
+    totalFiles: files.length,
+    keys,
+  };
+}
+
 /**
  * Build a FixPlan that renames a frontmatter key across a set of files.
  *

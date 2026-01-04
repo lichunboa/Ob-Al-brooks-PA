@@ -54,9 +54,11 @@ import {
 import {
   buildStrategyMaintenancePlan,
   buildTradeNormalizationPlan,
+  buildFrontmatterStats,
   buildRenameKeyPlan,
   buildDeleteKeyPlan,
   type FrontmatterFile,
+  type FrontmatterStats,
   type ManagerApplyResult,
   type StrategyNoteFrontmatter,
 } from "../core/manager";
@@ -472,6 +474,9 @@ const ConsoleComponent: React.FC<Props> = ({
   const [renameNewKey, setRenameNewKey] = React.useState("");
   const [renameOverwrite, setRenameOverwrite] = React.useState(false);
   const [deleteKeyName, setDeleteKeyName] = React.useState("");
+  const [managerFieldInventory, setManagerFieldInventory] = React.useState<
+    FrontmatterStats | undefined
+  >(undefined);
 
   const [settings, setSettings] =
     React.useState<AlBrooksConsoleSettings>(initialSettings);
@@ -5808,6 +5813,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   setManagerPlan(plan);
                   setManagerResult(undefined);
                   setManagerArmed(false);
+                    setManagerFieldInventory(undefined);
                 } finally {
                   setManagerBusy(false);
                 }
@@ -5825,6 +5831,48 @@ const ConsoleComponent: React.FC<Props> = ({
             >
               生成策略计划
             </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setManagerBusy(true);
+                  try {
+                    const files: FrontmatterFile[] = trades.map((t) => ({
+                      path: t.path,
+                      frontmatter:
+                        (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+                    }));
+                    if (loadStrategyNotes) {
+                      const notes = await loadStrategyNotes();
+                      for (const n of notes) {
+                        files.push({
+                          path: n.path,
+                          frontmatter:
+                            (n.frontmatter ?? {}) as Record<string, unknown>,
+                        });
+                      }
+                    }
+                    const stats = buildFrontmatterStats(files, {
+                      topKeys: 30,
+                      topValuesPerKey: 3,
+                    });
+                    setManagerFieldInventory(stats);
+                  } finally {
+                    setManagerBusy(false);
+                  }
+                }}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  managerBusy
+                    ? { ...disabledButtonStyle, padding: "6px 10px" }
+                    : { ...buttonStyle, padding: "6px 10px" }
+                }
+              >
+                扫描字段分布
+              </button>
           </div>
         </div>
 
@@ -5943,6 +5991,28 @@ const ConsoleComponent: React.FC<Props> = ({
             >
               {managerPlanText ?? ""}
             </pre>
+
+            {managerFieldInventory ? (
+              <div style={{ marginTop: "10px" }}>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  🔎 字段分布（只读）
+                </div>
+                <pre
+                  style={{
+                    margin: 0,
+                    padding: "10px",
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "8px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                    maxHeight: "220px",
+                    overflow: "auto",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {JSON.stringify(managerFieldInventory, null, 2)}
+                </pre>
+              </div>
+            ) : null}
 
             <div
               style={{
