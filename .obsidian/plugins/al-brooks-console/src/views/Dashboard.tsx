@@ -1109,6 +1109,30 @@ const ConsoleComponent: React.FC<Props> = ({
     () => trades.filter((t) => t.dateIso === todayIso),
     [trades, todayIso]
   );
+  const todayKpi = React.useMemo(() => {
+    const total = todayTrades.length;
+    let wins = 0;
+    let losses = 0;
+    let netR = 0;
+
+    for (const t of todayTrades) {
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      netR += pnl;
+      if (pnl > 0) wins += 1;
+      else if (pnl < 0) losses += 1;
+    }
+
+    const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+    return {
+      total,
+      wins,
+      losses,
+      winRatePct,
+      netR,
+    };
+  }, [todayTrades]);
   const reviewHints = React.useMemo(() => {
     if (!latestTrade) return [];
     return buildReviewHints(latestTrade);
@@ -1606,6 +1630,122 @@ const ConsoleComponent: React.FC<Props> = ({
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
+
+            <div style={{ marginBottom: "14px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                {(
+                  [
+                    {
+                      label: "总交易",
+                      value: String(todayKpi.total),
+                      color: "var(--text-normal)",
+                    },
+                    {
+                      label: "获胜",
+                      value: String(todayKpi.wins),
+                      color: V5_COLORS.win,
+                    },
+                    {
+                      label: "亏损",
+                      value: String(todayKpi.losses),
+                      color: V5_COLORS.loss,
+                    },
+                  ] as const
+                ).map((c) => (
+                  <div
+                    key={c.label}
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                  >
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+                      {c.label}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontWeight: 900,
+                        fontSize: "1.8em",
+                        lineHeight: 1,
+                        color: c.color,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {c.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+                    胜率
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      fontWeight: 900,
+                      fontSize: "1.6em",
+                      lineHeight: 1,
+                      color: V5_COLORS.back,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {todayKpi.winRatePct}%
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+                    净利润
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      fontWeight: 900,
+                      fontSize: "1.6em",
+                      lineHeight: 1,
+                      color: todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {todayKpi.netR >= 0 ? "+" : ""}
+                    {todayKpi.netR.toFixed(1)}R
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {!todayMarketCycle && (
               <div style={{ marginBottom: "12px" }}>
@@ -3344,6 +3484,18 @@ short mode\n\
             })()}
 
             {/* Removed embedded strategy/suggestion duplicates; keep only primary modules elsewhere. */}
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "12px",
+              marginBottom: "16px",
+              background: "var(--background-primary)",
+            }}
+          >
+            {/* Gallery moved to Analytics (Data Center). */}
           </div>
         </>
       ) : null}
