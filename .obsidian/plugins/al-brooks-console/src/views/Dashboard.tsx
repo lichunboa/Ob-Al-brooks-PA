@@ -95,6 +95,7 @@ import {
   cardSubtleTightStyle,
   cardTightStyle,
   disabledButtonStyle,
+  SPACE,
   selectStyle,
   tabButtonStyle,
   textButtonNoWrapStyle,
@@ -5868,12 +5869,12 @@ short mode\n\
         <>
           <div
             style={{
-              margin: "16px 0 8px",
-              paddingBottom: "6px",
+              margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
+              paddingBottom: SPACE.xs,
               borderBottom: "1px solid var(--background-modifier-border)",
               display: "flex",
               alignItems: "baseline",
-              gap: "8px",
+              gap: SPACE.sm,
               flexWrap: "wrap",
             }}
           >
@@ -5883,9 +5884,7 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{ ...cardTightStyle, marginBottom: "14px" }}
-          >
+          <div style={{ ...cardTightStyle, marginBottom: SPACE.xl }}>
             {(() => {
               const issueCount = schemaIssues.length;
               const healthScore = Math.max(0, 100 - issueCount * 5);
@@ -6008,13 +6007,13 @@ short mode\n\
                 .slice(0, 15);
 
               return (
-                <div style={{ marginBottom: "10px" }}>
+                <div style={{ marginBottom: SPACE.md }}>
                   <div
                     style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr",
-                      gap: "10px",
-                      marginBottom: "10px",
+                      gap: SPACE.md,
+                      marginBottom: SPACE.md,
                     }}
                   >
                     <div
@@ -6025,8 +6024,8 @@ short mode\n\
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "baseline",
-                          gap: "10px",
-                          marginBottom: "8px",
+                          gap: SPACE.md,
+                          marginBottom: SPACE.sm,
                         }}
                       >
                         <div style={{ fontWeight: 800, color: healthColor }}>
@@ -6042,7 +6041,7 @@ short mode\n\
                           style={{
                             display: "grid",
                             gridTemplateColumns: "1fr 1fr",
-                            gap: "6px 14px",
+                            gap: `${SPACE.xs} ${SPACE.xl}`,
                             fontSize: "0.9em",
                           }}
                         >
@@ -6052,7 +6051,7 @@ short mode\n\
                               style={{
                                 display: "flex",
                                 justifyContent: "space-between",
-                                gap: "10px",
+                                gap: SPACE.md,
                                 color: "var(--text-muted)",
                               }}
                             >
@@ -6091,8 +6090,8 @@ short mode\n\
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "baseline",
-                          gap: "10px",
-                          marginBottom: "8px",
+                          gap: SPACE.md,
+                          marginBottom: SPACE.sm,
                         }}
                       >
                         <div style={{ fontWeight: 800 }}>🧠 系统诊断</div>
@@ -6105,7 +6104,7 @@ short mode\n\
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
-                          gap: "6px 14px",
+                          gap: `${SPACE.xs} ${SPACE.xl}`,
                           fontSize: "0.9em",
                           color: "var(--text-muted)",
                         }}
@@ -6114,7 +6113,7 @@ short mode\n\
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            gap: "10px",
+                            gap: SPACE.md,
                           }}
                         >
                           <span>枚举预设</span>
@@ -6124,7 +6123,7 @@ short mode\n\
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            gap: "10px",
+                            gap: SPACE.md,
                           }}
                         >
                           <span>标签扫描</span>
@@ -6134,7 +6133,7 @@ short mode\n\
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            gap: "10px",
+                            gap: SPACE.md,
                           }}
                         >
                           <span>交易记录</span>

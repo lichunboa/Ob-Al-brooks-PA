@@ -1,5 +1,14 @@
 import type { CSSProperties } from "react";
 
+export const SPACE = {
+  xs: "6px",
+  sm: "8px",
+  md: "10px",
+  lg: "12px",
+  xl: "14px",
+  xxl: "16px",
+} as const;
+
 export const buttonStyle: CSSProperties = {
   marginLeft: "8px",
   padding: "4px 9px",
@@ -90,13 +99,13 @@ export const textButtonNoWrapStyle: CSSProperties = {
 export const cardStyle: CSSProperties = {
   border: "1px solid var(--background-modifier-border)",
   borderRadius: "10px",
-  padding: "12px",
+  padding: SPACE.lg,
   background: "var(--background-primary)",
 };
 
 export const cardTightStyle: CSSProperties = {
   ...cardStyle,
-  padding: "10px",
+  padding: SPACE.md,
 };
 
 export const cardSubtleStyle: CSSProperties = {
@@ -106,5 +115,5 @@ export const cardSubtleStyle: CSSProperties = {
 
 export const cardSubtleTightStyle: CSSProperties = {
   ...cardSubtleStyle,
-  padding: "10px",
+  padding: SPACE.md,
 };
