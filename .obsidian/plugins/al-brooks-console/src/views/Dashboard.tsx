@@ -703,15 +703,64 @@ const ConsoleComponent: React.FC<Props> = ({
     return () => {};
   }, [strategyIndex]);
 
+  const strategyPerf = React.useMemo(() => {
+    const perf = new Map<
+      string,
+      { total: number; wins: number; pnl: number; lastDateIso: string }
+    >();
+
+    const resolveCanonical = (t: TradeRecord): string | null => {
+      const raw = typeof t.strategyName === "string" ? t.strategyName.trim() : "";
+      if (raw && raw !== "Unknown") {
+        const looked = strategyIndex.lookup ? strategyIndex.lookup(raw) : undefined;
+        return looked?.canonicalName || raw;
+      }
+      const pats = (t.patternsObserved ?? [])
+        .map((p) => String(p).trim())
+        .filter(Boolean);
+      for (const p of pats) {
+        const card = strategyIndex.byPattern ? strategyIndex.byPattern(p) : undefined;
+        if (card?.canonicalName) return card.canonicalName;
+      }
+      return null;
+    };
+
+    for (const t of trades) {
+      const canonical = resolveCanonical(t);
+      if (!canonical) continue;
+      const p = perf.get(canonical) ?? {
+        total: 0,
+        wins: 0,
+        pnl: 0,
+        lastDateIso: "",
+      };
+      p.total += 1;
+      if (typeof t.pnl === "number" && Number.isFinite(t.pnl) && t.pnl > 0)
+        p.wins += 1;
+      if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) p.pnl += t.pnl;
+      if (t.dateIso && (!p.lastDateIso || t.dateIso > p.lastDateIso))
+        p.lastDateIso = t.dateIso;
+      perf.set(canonical, p);
+    }
+
+    return perf;
+  }, [trades, strategyIndex]);
+
   const strategyStats = React.useMemo(() => {
+    const isActive = (statusRaw: unknown) => {
+      const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
+      if (!s) return false;
+      return s.includes("实战") || s.toLowerCase().includes("active");
+    };
+
     const total = strategies.length;
-    const activeCount = strategies.filter((s) => s.status === "active").length;
-    const learningCount = strategies.filter(
-      (s) => s.status === "learning"
-    ).length;
-    const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
+    const activeCount = strategies.filter((s) => isActive((s as any).statusRaw))
+      .length;
+    const learningCount = Math.max(0, total - activeCount);
+    let totalUses = 0;
+    strategyPerf.forEach((p) => (totalUses += p.total));
     return { total, activeCount, learningCount, totalUses };
-  }, [strategies]);
+  }, [strategies, strategyPerf]);
 
   React.useEffect(() => {
     if (!todayContext?.onChanged) return;
@@ -4745,6 +4794,82 @@ const ConsoleComponent: React.FC<Props> = ({
             }}
           />
         </div>
+
+        {(() => {
+          const cycle = (todayMarketCycle ?? "").trim();
+          if (!cycle) {
+            return (
+              <div
+                style={{
+                  margin: "-6px 0 10px 0",
+                  padding: "10px 12px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  color: "var(--text-faint)",
+                  fontSize: "0.9em",
+                }}
+              >
+                今日市场周期未设置（可在 Today 里补充）。
+              </div>
+            );
+          }
+
+          const isActive = (statusRaw: unknown) => {
+            const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
+            if (!s) return false;
+            return s.includes("实战") || s.toLowerCase().includes("active");
+          };
+
+          const picks = matchStrategies(strategyIndex, {
+            marketCycle: cycle,
+            limit: 6,
+          }).filter((s) => isActive((s as any).statusRaw));
+
+          return (
+            <div
+              style={{
+                margin: "-6px 0 10px 0",
+                padding: "10px 12px",
+                background: "rgba(var(--mono-rgb-100), 0.03)",
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "8px",
+              }}
+            >
+              <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: 6 }}>
+                🌊 今日市场周期：{" "}
+                <span style={{ color: "var(--text-accent)", fontWeight: 800 }}>
+                  {cycle}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>
+                {picks.length > 0 ? (
+                  <>
+                    推荐优先关注：{" "}
+                    {picks.map((s, idx) => (
+                      <React.Fragment key={`pb-pick-${s.path}`}> 
+                        {idx > 0 ? " · " : ""}
+                        <button
+                          type="button"
+                          onClick={() => openFile(s.path)}
+                          style={{ ...textButtonStyle, whiteSpace: "nowrap" }}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                        >
+                          {String(s.canonicalName || s.name)}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </>
+                ) : (
+                  "暂无匹配的实战策略（可在策略卡片里补充状态/周期）。"
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         <div style={{ marginTop: "10px" }}>
           <StrategyList

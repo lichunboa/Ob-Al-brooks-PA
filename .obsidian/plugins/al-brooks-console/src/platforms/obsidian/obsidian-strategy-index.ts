@@ -11,6 +11,13 @@ const STRATEGY_FIELD_ALIASES = {
     "strategyName",
     "name",
   ],
+  statusRaw: [
+    "状态/status",
+    "status",
+    "strategy_status",
+    "strategyStatus",
+    "statusRaw",
+  ],
   marketCycle: ["市场周期/market_cycle", "market_cycle", "marketCycle"],
   setupCategory: ["设置类别/setup_category", "setup_category", "setupCategory"],
   patternsObserved: [
@@ -153,6 +160,10 @@ export class ObsidianStrategyIndex implements StrategyIndex {
           getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.canonicalName)
         ) ?? file.basename;
 
+      const statusRaw = toString(
+        getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.statusRaw)
+      );
+
       const marketCycles = toStringArray(
         getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.marketCycle)
       );
@@ -192,6 +203,7 @@ export class ObsidianStrategyIndex implements StrategyIndex {
         path: file.path,
         name: file.name,
         canonicalName,
+        statusRaw,
         marketCycles,
         setupCategories,
         patternsObserved,

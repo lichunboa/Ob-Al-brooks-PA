@@ -2,6 +2,8 @@ export interface StrategyCard {
   path: string;
   name: string;
   canonicalName: string;
+  /** Raw status text from frontmatter (e.g. "实战中", "Active"). Optional for backward-compat. */
+  statusRaw?: string;
   marketCycles: string[];
   setupCategories: string[];
   patternsObserved: string[];
