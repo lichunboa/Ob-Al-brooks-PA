@@ -509,16 +509,20 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [accountTargetMonth]);
 
   const accountDailyMap = React.useMemo(() => {
-    const byDay = new Map<number, number>();
+    const byDay = new Map<number, { total: number; types: Set<AccountType> }>();
     for (const t of trades) {
-      if (t.accountType !== "Live") continue;
       const ym = getYearMonth(t.dateIso);
       if (ym !== accountTargetMonth) continue;
       const dayStr = (t.dateIso ?? "").split("-")[2];
       const day = dayStr ? Number(dayStr) : NaN;
       if (!Number.isFinite(day)) continue;
       const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      byDay.set(day, (byDay.get(day) ?? 0) + pnl);
+
+      const acct = (t.accountType ?? "Live") as AccountType;
+      const prev = byDay.get(day) ?? { total: 0, types: new Set<AccountType>() };
+      prev.total += pnl;
+      prev.types.add(acct);
+      byDay.set(day, prev);
     }
     return byDay;
   }, [trades, accountTargetMonth]);
@@ -1177,6 +1181,40 @@ const ConsoleComponent: React.FC<Props> = ({
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
   }, [trades]);
+
+  const analyticsSuggestion = React.useMemo(() => {
+    const bestStrat = analyticsTopStrats[0]?.name ?? "无";
+    const liveWr = summary.Live.winRatePct;
+
+    const cumLive = summary.Live.netProfit;
+    const cumBack = summary.Backtest.netProfit;
+
+    if (analyticsMind.tilt > 0) {
+      return {
+        tone: "danger" as const,
+        text: `检测到情绪化交易 (Tilt) 迹象。建议立即停止实盘，强制休息 24 小时。`,
+      };
+    }
+
+    if (liveWr < 40 && summary.Live.countTotal > 5) {
+      return {
+        tone: "warn" as const,
+        text: `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到模拟盘练习 ${bestStrat}，直到连续盈利。`,
+      };
+    }
+
+    if (cumLive < 0 && cumBack > 0) {
+      return {
+        tone: "warn" as const,
+        text: `回测表现良好但实盘亏损。可能是执行力问题。建议降低仓位，专注于 ${bestStrat}。`,
+      };
+    }
+
+    return {
+      tone: "ok" as const,
+      text: `当前状态良好。表现最好的策略是 ${bestStrat}。建议继续保持一致性。`,
+    };
+  }, [analyticsTopStrats, analyticsMind.tilt, summary.Live.winRatePct, summary.Live.countTotal, summary.Live.netProfit, summary.Backtest.netProfit]);
 
   const strategyLab = React.useMemo(() => {
     const tradesAsc = [...trades].sort((a, b) =>
@@ -2667,12 +2705,13 @@ const ConsoleComponent: React.FC<Props> = ({
             <div style={{ fontWeight: 700, color: "var(--text-muted)" }}>
               📅 盈亏日历 ({accountTargetMonth})
             </div>
-            <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>Live Account Only</div>
+            <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>All Accounts</div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
             {Array.from({ length: accountDaysInMonth }, (_, i) => i + 1).map((day) => {
-              const pnl = accountDailyMap.get(day);
+              const data = accountDailyMap.get(day);
+              const pnl = data?.total;
               const hasTrade = pnl !== undefined;
               const color =
                 !hasTrade
@@ -2716,6 +2755,29 @@ const ConsoleComponent: React.FC<Props> = ({
                   ) : (
                     <div style={{ fontSize: "0.85em", fontWeight: 700, color: "var(--text-faint)", opacity: 0.4 }}>—</div>
                   )}
+
+                  {hasTrade ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "2px",
+                        height: "5px",
+                        width: "80%",
+                        marginTop: "2px",
+                        opacity: 0.95,
+                      }}
+                    >
+                      {data?.types.has("Live") && (
+                        <div style={{ flex: 1, background: getRColorByAccountType("Live"), borderRadius: "2px" }} />
+                      )}
+                      {data?.types.has("Demo") && (
+                        <div style={{ flex: 1, background: getRColorByAccountType("Demo"), borderRadius: "2px" }} />
+                      )}
+                      {data?.types.has("Backtest") && (
+                        <div style={{ flex: 1, background: getRColorByAccountType("Backtest"), borderRadius: "2px" }} />
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -2844,6 +2906,44 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
+          💡 系统建议 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Actions)</span>
+        </div>
+        <div
+          style={{
+            fontSize: "0.95em",
+            lineHeight: 1.6,
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background:
+              analyticsSuggestion.tone === "danger"
+                ? "rgba(var(--color-red-rgb), 0.12)"
+                : analyticsSuggestion.tone === "warn"
+                ? "rgba(var(--color-yellow-rgb), 0.12)"
+                : "rgba(var(--color-green-rgb), 0.10)",
+            border: "1px solid var(--background-modifier-border)",
+            color:
+              analyticsSuggestion.tone === "danger"
+                ? "var(--text-error)"
+                : analyticsSuggestion.tone === "warn"
+                ? "var(--text-warning)"
+                : "var(--text-success)",
+            fontWeight: 700,
+          }}
+        >
+          {analyticsSuggestion.text}
+        </div>
       </div>
 
       <div
