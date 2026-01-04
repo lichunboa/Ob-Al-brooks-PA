@@ -598,6 +598,19 @@ const ConsoleComponent: React.FC<Props> = ({
         });
         setManagerResult(res);
         setManagerBackups(res.backups);
+
+        if (res.failed > 0) {
+          const first = res.errors?.[0];
+          window.alert(
+            `部分操作失败：${res.failed} 个文件。` +
+              (first ? `\n示例：${first.path}\n${first.message}` : "")
+          );
+        } else if (res.applied === 0) {
+          window.alert(
+            "未修改任何文件：可能是未匹配到目标、目标已存在（被跳过）、或文件 frontmatter 不可解析。"
+          );
+        }
+
         if (options.closeInspector) {
           setManagerInspectorKey(undefined);
           setManagerInspectorTab("vals");
@@ -6741,7 +6754,7 @@ short mode\n\
                           selectManagerFiles(allPaths),
                           key,
                           nextKey,
-                          { overwrite: false }
+                          { overwrite: true }
                         );
                         await runManagerPlan(plan, {
                           closeInspector: true,
@@ -7515,6 +7528,26 @@ export class ConsoleView extends ItemView {
         errors: [],
         backups: {},
       };
+
+      const applyFrontmatterPatch = (
+        text: string,
+        updates: Record<string, unknown>,
+        deleteKeys?: string[]
+      ): string => {
+        const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+        const yamlText = m?.[1];
+        const body = m ? text.slice(m[0].length) : text;
+        const fmRaw = yamlText ? (parseYaml(yamlText) as any) : {};
+        const fm: Record<string, any> =
+          fmRaw && typeof fmRaw === "object" ? { ...fmRaw } : {};
+        for (const [k, v] of Object.entries(updates ?? {})) fm[k] = v;
+        if (deleteKeys && deleteKeys.length > 0) {
+          for (const k of deleteKeys) delete fm[k];
+        }
+        const nextYaml = String(stringifyYaml(fm) ?? "").trimEnd();
+        return `---\n${nextYaml}\n---\n${body}`;
+      };
+
       for (const fu of plan.fileUpdates ?? []) {
         try {
           const af = this.app.vault.getAbstractFileByPath(fu.path);
@@ -7526,15 +7559,31 @@ export class ConsoleView extends ItemView {
           const oldText = await this.app.vault.read(af);
           res.backups[fu.path] = oldText;
 
-          await this.app.fileManager.processFrontMatter(af, (fm) => {
-            const updates = (fu.updates ?? {}) as Record<string, unknown>;
-            for (const [k, v] of Object.entries(updates)) (fm as any)[k] = v;
-            if (options?.deleteKeys && fu.deleteKeys && fu.deleteKeys.length) {
-              for (const k of fu.deleteKeys) delete (fm as any)[k];
+          try {
+            await this.app.fileManager.processFrontMatter(af, (fm) => {
+              const updates = (fu.updates ?? {}) as Record<string, unknown>;
+              for (const [k, v] of Object.entries(updates)) (fm as any)[k] = v;
+              if (
+                options?.deleteKeys &&
+                fu.deleteKeys &&
+                fu.deleteKeys.length
+              ) {
+                for (const k of fu.deleteKeys) delete (fm as any)[k];
+              }
+            });
+            res.applied += 1;
+          } catch {
+            // Fallback: patch YAML text directly (best-effort) for files with unusual frontmatter state.
+            const nextText = applyFrontmatterPatch(
+              oldText,
+              fu.updates ?? {},
+              options?.deleteKeys ? fu.deleteKeys : undefined
+            );
+            if (nextText !== oldText) {
+              await this.app.vault.modify(af, nextText);
+              res.applied += 1;
             }
-          });
-
-          res.applied += 1;
+          }
         } catch (e) {
           res.failed += 1;
           res.errors.push({
