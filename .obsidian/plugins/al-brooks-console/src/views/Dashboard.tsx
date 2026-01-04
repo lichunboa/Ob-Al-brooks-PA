@@ -86,6 +86,28 @@ import {
 import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 import { TRADE_TAG } from "../core/field-mapper";
 
+// v5.0 palette (from scripts/pa-config.js) — used for semantic/status & chart colors.
+// Theme/background remains Obsidian CSS variables.
+const V5_COLORS = {
+  live: "#10B981", // 实盘
+  demo: "#3B82F6", // 模拟
+  back: "#F59E0B", // 回测
+  loss: "#EF4444",
+  win: "#10B981",
+  accent: "#60A5FA",
+  accentPurple: "#A78BFA",
+  textSub: "rgba(243,244,246,0.6)",
+  textDim: "rgba(243,244,246,0.4)",
+} as const;
+
+function withHexAlpha(color: string, alphaHex: string): string {
+  // Only apply to 6-digit hex like #RRGGBB. Otherwise return as-is.
+  if (/^#[0-9a-fA-F]{6}$/.test(color) && /^[0-9a-fA-F]{2}$/.test(alphaHex)) {
+    return `${color}${alphaHex}`;
+  }
+  return color;
+}
+
 function toLocalDateIso(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -127,11 +149,11 @@ function sumPnlR(trades: TradeRecord[]): number {
 function getRColorByAccountType(accountType: AccountType): string {
   switch (accountType) {
     case "Live":
-      return "var(--text-success)";
+      return V5_COLORS.live;
     case "Demo":
-      return "var(--text-warning)";
+      return V5_COLORS.demo;
     case "Backtest":
-      return "var(--text-accent)";
+      return V5_COLORS.back;
   }
 }
 
@@ -1010,22 +1032,6 @@ const ConsoleComponent: React.FC<Props> = ({
     outline: "none",
     transition: "background-color 180ms ease, box-shadow 180ms ease",
   };
-
-  const v5Colors = {
-    live: "#10B981",
-    demo: "#3B82F6",
-    back: "#F59E0B",
-    loss: "#EF4444",
-    win: "#10B981",
-    text: "#F3F4F6",
-    textSub: "rgba(243,244,246,0.6)",
-    textDim: "rgba(243,244,246,0.4)",
-    accent: "#60A5FA",
-    accentPurple: "#A78BFA",
-    border: "rgba(148, 163, 184, 0.1)",
-    borderLight: "rgba(148, 163, 184, 0.2)",
-    borderAccent: "rgba(96, 165, 250, 0.3)",
-  } as const;
 
   const onBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -2814,17 +2820,34 @@ short mode\n\
                             flexWrap: "wrap",
                           }}
                         >
-                          <span style={{ color: getRColorByAccountType("Live") }}>
-                            ● 实盘
-                          </span>
-                          <span style={{ color: getRColorByAccountType("Demo") }}>
-                            ● 模拟
-                          </span>
-                          <span
-                            style={{ color: getRColorByAccountType("Backtest") }}
-                          >
-                            ● 回测
-                          </span>
+                          {([
+                            { at: "Live" as const, label: "实盘" },
+                            { at: "Demo" as const, label: "模拟" },
+                            { at: "Backtest" as const, label: "回测" },
+                          ] as const).map((x) => {
+                            const c = getRColorByAccountType(x.at);
+                            return (
+                              <span
+                                key={x.at}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  padding: "2px 8px",
+                                  borderRadius: "999px",
+                                  border: `1px solid ${withHexAlpha(c, "55")}`,
+                                  background: withHexAlpha(c, "14"),
+                                  color: c,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                  ●
+                                </span>
+                                {x.label}
+                              </span>
+                            );
+                          })}
                         </div>
 
                         {last30TradesDesc.length === 0 ? (
@@ -5774,10 +5797,10 @@ short mode\n\
           const healthScore = Math.max(0, 100 - issueCount * 5);
           const healthColor =
             healthScore > 90
-              ? v5Colors.win
+              ? V5_COLORS.win
               : healthScore > 60
-              ? v5Colors.back
-              : v5Colors.loss;
+              ? V5_COLORS.back
+              : V5_COLORS.loss;
           const files = paTagSnapshot?.files ?? 0;
           const tags = paTagSnapshot
             ? Object.keys(paTagSnapshot.tagMap).length
@@ -6506,18 +6529,18 @@ short mode\n\
                     value: String(issueCount),
                     color:
                       issueCount > 0
-                        ? v5Colors.loss
+                        ? V5_COLORS.loss
                         : "var(--text-muted)",
                   },
                   {
                     title: "标签总数",
                     value: String(tags),
-                    color: v5Colors.accent,
+                    color: V5_COLORS.accent,
                   },
                   {
                     title: "笔记档案",
                     value: String(files),
-                    color: v5Colors.accent,
+                    color: V5_COLORS.accent,
                   },
                 ].map((c) => (
                   <div
