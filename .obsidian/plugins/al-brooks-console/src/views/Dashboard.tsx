@@ -32,6 +32,1297 @@ import {
   filterTradesByScope,
   type AnalyticsScope,
   type DailyAgg,
+} from "../core/analytics";
+import {
+  computeHubSuggestion,
+  computeMindsetFromRecentLive,
+  computeMonthDailyAggAllAccounts,
+  computeRMultiplesFromPnl,
+  computeRecentLiveTradesAsc,
+  computeTopStrategiesFromTrades,
+} from "../core/hub-analytics";
+import { parseCoverRef } from "../core/cover-parser";
+import {
+  computeOpenTradePrimaryStrategy,
+  computeTodayStrategyPicks,
+  computeTradeBasedStrategyPicks,
+} from "../core/console-state";
+import type { EnumPresets } from "../core/enum-presets";
+import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
+import {
+  buildFixPlan,
+  buildInspectorIssues,
+  type FixPlan,
+} from "../core/inspector";
+import {
+  buildStrategyMaintenancePlan,
+  buildTradeNormalizationPlan,
+  buildRenameKeyPlan,
+  buildDeleteKeyPlan,
+  buildDeleteValPlan,
+  buildUpdateValPlan,
+  buildAppendValPlan,
+  buildInjectPropPlan,
+  buildFrontmatterInventory,
+  type FrontmatterFile,
+  type FrontmatterInventory,
+  type ManagerApplyResult,
+  type StrategyNoteFrontmatter,
+} from "../core/manager";
+import { MANAGER_GROUPS, managerKeyTokens } from "../core/manager-groups";
+import type { IntegrationCapability } from "../integrations/contracts";
+import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
+import type { TodayContext } from "../core/today-context";
+import { normalizeTag } from "../core/field-mapper";
+import type { AlBrooksConsoleSettings } from "../settings";
+import {
+  buildCourseSnapshot,
+  parseSyllabusJsonFromMarkdown,
+  simpleCourseId,
+  type CourseSnapshot,
+} from "../core/course";
+import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
+import { TRADE_TAG } from "../core/field-mapper";
+
+function toLocalDateIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function getLastLocalDateIsos(days: number): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < Math.max(1, days); i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    out.push(toLocalDateIso(d));
+  }
+  return out;
+}
+
+function getDayOfMonth(dateIso: string): string {
+  const parts = dateIso.split("-");
+  const d = parts[2] ?? "";
+  return d.startsWith("0") ? d.slice(1) : d;
+}
+
+function getYearMonth(dateIso: string | undefined): string | undefined {
+  if (!dateIso) return undefined;
+  const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return undefined;
+  return `${m[1]}-${m[2]}`;
+}
+
+function sumPnlR(trades: TradeRecord[]): number {
+  let sum = 0;
+  for (const t of trades) {
+    if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
+  }
+  return sum;
+}
+
+function getRColorByAccountType(accountType: AccountType): string {
+  switch (accountType) {
+    case "Live":
+      return "var(--text-success)";
+    case "Demo":
+      return "var(--text-warning)";
+    case "Backtest":
+      return "var(--text-accent)";
+  }
+}
+
+function computeWindowRByAccountType(
+  trades: TradeRecord[],
+  windowSize: number
+): Record<AccountType, number> {
+  const by: Record<AccountType, TradeRecord[]> = {
+    Live: [],
+    Demo: [],
+    Backtest: [],
+  };
+  for (const t of trades.slice(0, windowSize)) {
+    const at = t.accountType;
+    if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
+  }
+  return {
+    Live: sumPnlR(by.Live),
+    Demo: sumPnlR(by.Demo),
+    Backtest: sumPnlR(by.Backtest),
+  };
+}
+
+export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
+
+type PaTagSnapshot = {
+  files: number;
+  tagMap: Record<string, number>;
+};
+
+type SchemaIssueItem = {
+  path: string;
+  name: string;
+  key: string;
+  type: string;
+  val?: string;
+};
+
+interface Props {
+  index: TradeIndex;
+  strategyIndex: StrategyIndex;
+  todayContext?: TodayContext;
+  resolveLink?: (linkText: string, fromPath: string) => string | undefined;
+  getResourceUrl?: (path: string) => string | undefined;
+  enumPresets?: EnumPresets;
+  loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
+  loadPaTagSnapshot?: () => Promise<PaTagSnapshot>;
+  applyFixPlan?: (
+    plan: FixPlan,
+    options?: { deleteKeys?: boolean }
+  ) => Promise<ManagerApplyResult>;
+  restoreFiles?: (
+    backups: Record<string, string>
+  ) => Promise<ManagerApplyResult>;
+  createTradeNote?: () => Promise<void>;
+  settings: AlBrooksConsoleSettings;
+  subscribeSettings?: (
+    listener: (settings: AlBrooksConsoleSettings) => void
+  ) => () => void;
+  loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
+  loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
+  openFile: (path: string) => void;
+  openGlobalSearch?: (query: string) => void;
+  runCommand?: (commandId: string) => void;
+  integrations?: PluginIntegrationRegistry;
+  version: string;
+}
+
+class ConsoleErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message?: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.warn("[al-brooks-console] Dashboard render error", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            padding: "16px",
+            fontFamily: "var(--font-interface)",
+            maxWidth: "1200px",
+            margin: "0 auto",
+          }}
+        >
+          <h2
+            style={{
+              borderBottom: "1px solid var(--background-modifier-border)",
+              paddingBottom: "10px",
+              marginBottom: "12px",
+            }}
+          >
+            🦁 交易员控制台
+          </h2>
+          <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
+            控制台渲染失败：{this.state.message ?? "未知错误"}
+          </div>
+          <div style={{ color: "var(--text-muted)" }}>
+            建议重新打开视图后，在顶部使用“重建索引”。
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+const MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }> = ({
+  markdown,
+  sourcePath = "",
+}) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = "";
+
+    const component = new Component();
+    void MarkdownRenderer.renderMarkdown(markdown, el, sourcePath, component);
+    return () => component.unload();
+  }, [markdown, sourcePath]);
+
+  return <div ref={ref} />;
+};
+
+const ConsoleComponent: React.FC<Props> = ({
+  index,
+  strategyIndex,
+  todayContext,
+  resolveLink,
+  getResourceUrl,
+  enumPresets,
+  loadStrategyNotes,
+  loadPaTagSnapshot,
+  applyFixPlan,
+  restoreFiles,
+  createTradeNote,
+  settings: initialSettings,
+  subscribeSettings,
+  loadCourse,
+  loadMemory,
+  openFile,
+  openGlobalSearch,
+  runCommand,
+  integrations,
+  version,
+}) => {
+  const [trades, setTrades] = React.useState(index.getAll());
+  const [strategies, setStrategies] = React.useState<any[]>(
+    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  );
+  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
+    index.getStatus ? index.getStatus() : { phase: "ready" }
+  );
+  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
+    string | undefined
+  >(() => todayContext?.getTodayMarketCycle());
+  const [analyticsScope, setAnalyticsScope] =
+    React.useState<AnalyticsScope>("Live");
+  const [showFixPlan, setShowFixPlan] = React.useState(false);
+  const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
+  const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
+  const [schemaScanNote, setSchemaScanNote] = React.useState<
+    string | undefined
+  >(undefined);
+  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
+    undefined
+  );
+  const [managerResult, setManagerResult] = React.useState<
+    ManagerApplyResult | undefined
+  >(undefined);
+  const [managerBusy, setManagerBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const isEmpty = (v: unknown): boolean => {
+      if (v === undefined || v === null) return true;
+      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
+      const s = String(v).trim();
+      if (!s) return true;
+      if (s === "Empty") return true;
+      if (s.toLowerCase() === "null") return true;
+      if (s.toLowerCase().includes("unknown")) return true;
+      return false;
+    };
+
+    const pickVal = (fm: Record<string, any>, keys: string[]) => {
+      for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
+      }
+      return undefined;
+    };
+
+    const run = async () => {
+      const notes: string[] = [];
+
+      // --- Minimal-burden Schema issues (Trade) ---
+      const tradeIssues: SchemaIssueItem[] = [];
+      for (const t of trades) {
+        const isCompleted =
+          t.outcome === "win" ||
+          t.outcome === "loss" ||
+          t.outcome === "scratch";
+        if (!isCompleted) continue;
+
+        if (isEmpty(t.ticker)) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "品种/ticker",
+            type: "❌ 缺少必填",
+          });
+        }
+        if (isEmpty(t.timeframe)) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "时间周期/timeframe",
+            type: "❌ 缺少必填",
+          });
+        }
+        if (isEmpty(t.direction)) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "方向/direction",
+            type: "❌ 缺少必填",
+          });
+        }
+
+        // “形态/策略”二选一：至少有一个即可
+        const hasPatterns =
+          Array.isArray(t.patternsObserved) &&
+          t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
+        // v5 口径：strategyName / setupKey / setupCategory 任意一个可视作“已填策略维度”
+        const hasStrategy =
+          !isEmpty(t.strategyName) || !isEmpty(t.setupKey) || !isEmpty(t.setupCategory);
+        if (!hasPatterns && !hasStrategy) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "观察到的形态/patterns_observed",
+            type: "❌ 缺少必填(二选一)",
+          });
+        }
+      }
+
+      // --- Minimal-burden Schema issues (Strategy) ---
+      let strategyIssues: SchemaIssueItem[] = [];
+      if (loadStrategyNotes) {
+        try {
+          const strategyNotes = await loadStrategyNotes();
+          strategyIssues = strategyNotes.flatMap((n) => {
+            const fm = (n.frontmatter ?? {}) as Record<string, any>;
+            const out: SchemaIssueItem[] = [];
+            const name =
+              n.path.split("/").pop()?.replace(/\.md$/i, "") ?? n.path;
+            const strategy = pickVal(fm, [
+              "策略名称/strategy_name",
+              "strategy_name",
+              "策略名称",
+            ]);
+            const patterns = pickVal(fm, [
+              "观察到的形态/patterns_observed",
+              "patterns_observed",
+              "观察到的形态",
+            ]);
+            if (isEmpty(strategy)) {
+              out.push({
+                path: n.path,
+                name,
+                key: "策略名称/strategy_name",
+                type: "❌ 缺少必填",
+                val: "",
+              });
+            }
+            if (isEmpty(patterns)) {
+              out.push({
+                path: n.path,
+                name,
+                key: "观察到的形态/patterns_observed",
+                type: "❌ 缺少必填",
+                val: "",
+              });
+            }
+            return out;
+          });
+        } catch (e) {
+          notes.push(
+            `策略扫描失败：${e instanceof Error ? e.message : String(e)}`
+          );
+        }
+      } else {
+        notes.push("策略扫描不可用：将仅基于交易索引进行 Schema 检查");
+      }
+
+      // --- PA tag snapshot (Tag panorama KPIs) ---
+      let paSnap: PaTagSnapshot | undefined = undefined;
+      if (loadPaTagSnapshot) {
+        try {
+          paSnap = await loadPaTagSnapshot();
+        } catch (e) {
+          notes.push(
+            `#PA 标签扫描失败：${e instanceof Error ? e.message : String(e)}`
+          );
+        }
+      } else {
+        notes.push("#PA 标签扫描不可用：将不显示全库标签全景");
+      }
+
+      if (cancelled) return;
+      setPaTagSnapshot(paSnap);
+      setSchemaIssues([...tradeIssues, ...strategyIssues]);
+      setSchemaScanNote(notes.length ? notes.join("；") : undefined);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [trades, loadStrategyNotes, loadPaTagSnapshot]);
+
+  const canOpenTodayNote = Boolean(todayContext?.openTodayNote);
+  const onOpenTodayNote = React.useCallback(async () => {
+    try {
+      await todayContext?.openTodayNote?.();
+    } catch (e) {
+      console.warn("[al-brooks-console] openTodayNote failed", e);
+    }
+  }, [todayContext]);
+  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
+  const [managerBackups, setManagerBackups] = React.useState<
+    Record<string, string> | undefined
+  >(undefined);
+  const [managerTradeInventory, setManagerTradeInventory] = React.useState<
+    FrontmatterInventory | undefined
+  >(undefined);
+  const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] =
+    React.useState<FrontmatterFile[] | undefined>(undefined);
+  const [managerStrategyInventory, setManagerStrategyInventory] =
+    React.useState<FrontmatterInventory | undefined>(undefined);
+  const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] =
+    React.useState<FrontmatterFile[] | undefined>(undefined);
+  const [managerSearch, setManagerSearch] = React.useState("");
+  const [managerScope, setManagerScope] = React.useState<"trade" | "strategy">(
+    "trade"
+  );
+  const [managerInspectorKey, setManagerInspectorKey] = React.useState<
+    string | undefined
+  >(undefined);
+  const [managerInspectorTab, setManagerInspectorTab] = React.useState<
+    "vals" | "files"
+  >("vals");
+  const [managerInspectorFileFilter, setManagerInspectorFileFilter] =
+    React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
+
+  const scanManagerInventory = React.useCallback(async () => {
+    const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
+      path: t.path,
+      frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+    }));
+    const tradeInv = buildFrontmatterInventory(tradeFiles);
+    setManagerTradeInventoryFiles(tradeFiles);
+    setManagerTradeInventory(tradeInv);
+
+    const strategyFiles: FrontmatterFile[] = [];
+    if (loadStrategyNotes) {
+      const notes = await loadStrategyNotes();
+      for (const n of notes) {
+        strategyFiles.push({
+          path: n.path,
+          frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
+        });
+      }
+    }
+    const strategyInv = buildFrontmatterInventory(strategyFiles);
+    setManagerStrategyInventoryFiles(strategyFiles);
+    setManagerStrategyInventory(strategyInv);
+  }, [trades, loadStrategyNotes]);
+
+  const managerTradeFilesByPath = React.useMemo(() => {
+    const map = new Map<string, FrontmatterFile>();
+    for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
+    return map;
+  }, [managerTradeInventoryFiles]);
+
+  const managerStrategyFilesByPath = React.useMemo(() => {
+    const map = new Map<string, FrontmatterFile>();
+    for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
+    return map;
+  }, [managerStrategyInventoryFiles]);
+
+  const selectManagerTradeFiles = React.useCallback(
+    (paths: string[]) =>
+      paths
+        .map((p) => managerTradeFilesByPath.get(p))
+        .filter((x): x is FrontmatterFile => Boolean(x)),
+    [managerTradeFilesByPath]
+  );
+
+  const selectManagerStrategyFiles = React.useCallback(
+    (paths: string[]) =>
+      paths
+        .map((p) => managerStrategyFilesByPath.get(p))
+        .filter((x): x is FrontmatterFile => Boolean(x)),
+    [managerStrategyFilesByPath]
+  );
+
+  const runManagerPlan = React.useCallback(
+    async (
+      plan: FixPlan,
+      options: {
+        closeInspector?: boolean;
+        requiresDeleteKeys?: boolean;
+        forceDeleteKeys?: boolean;
+        refreshInventory?: boolean;
+      } = {}
+    ) => {
+      setManagerPlan(plan);
+      setManagerResult(undefined);
+
+      if (options.requiresDeleteKeys && !managerDeleteKeys) {
+        window.alert("危险操作：请先勾选『允许删除字段（危险）』。");
+        return;
+      }
+
+      if (!applyFixPlan) return;
+
+      setManagerBusy(true);
+      try {
+        const res = await applyFixPlan(plan, {
+          deleteKeys: options.forceDeleteKeys ? true : managerDeleteKeys,
+        });
+        setManagerResult(res);
+        setManagerBackups(res.backups);
+        if (options.closeInspector) {
+          setManagerInspectorKey(undefined);
+          setManagerInspectorTab("vals");
+          setManagerInspectorFileFilter(undefined);
+        }
+        if (options.refreshInventory) {
+          await scanManagerInventory();
+        }
+      } finally {
+        setManagerBusy(false);
+      }
+    },
+    [
+      applyFixPlan,
+      managerDeleteKeys,
+      scanManagerInventory,
+      setManagerBackups,
+      setManagerInspectorFileFilter,
+      setManagerInspectorKey,
+      setManagerInspectorTab,
+    ]
+  );
+
+  const [settings, setSettings] =
+    React.useState<AlBrooksConsoleSettings>(initialSettings);
+  const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
+
+  React.useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
+
+  React.useEffect(() => {
+    if (!subscribeSettings) return;
+    return subscribeSettings((s) => setSettings(s));
+  }, [subscribeSettings]);
+
+  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
+    undefined
+  );
+  const [courseBusy, setCourseBusy] = React.useState(false);
+  const [courseError, setCourseError] = React.useState<string | undefined>(
+    undefined
+  );
+
+  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(
+    undefined
+  );
+  const [memoryBusy, setMemoryBusy] = React.useState(false);
+  const [memoryError, setMemoryError] = React.useState<string | undefined>(
+    undefined
+  );
+  const [memoryIgnoreFocus, setMemoryIgnoreFocus] = React.useState(false);
+  const [memoryShakeIndex, setMemoryShakeIndex] = React.useState(0);
+
+  const summary = React.useMemo(
+    () => computeTradeStatsByAccountType(trades),
+    [trades]
+  );
+  const all = summary.All;
+
+  const accountTargetMonth = React.useMemo(() => {
+    const liveDesc = [...trades]
+      .filter((t) => t.accountType === "Live")
+      .sort((a, b) =>
+        a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
+      );
+    const ym = getYearMonth(liveDesc[0]?.dateIso);
+    if (ym) return ym;
+    return toLocalDateIso(new Date()).slice(0, 7);
+  }, [trades]);
+
+  const accountDaysInMonth = React.useMemo(() => {
+    const m = accountTargetMonth.match(/^(\d{4})-(\d{2})$/);
+    if (!m) return 30;
+    const year = Number(m[1]);
+    const monthIdx = Number(m[2]) - 1;
+    const days = new Date(year, monthIdx + 1, 0).getDate();
+    return Number.isFinite(days) && days > 0 ? days : 30;
+  }, [accountTargetMonth]);
+
+  const accountDailyMap = React.useMemo(() => {
+    return computeMonthDailyAggAllAccounts({
+      trades,
+      yearMonth: accountTargetMonth,
+    });
+  }, [trades, accountTargetMonth]);
+
+  const cycleMap: Record<string, string> = {
+    "Strong Trend": "强趋势",
+    "Weak Trend": "弱趋势",
+    "Trading Range": "交易区间",
+    "Breakout Mode": "突破模式",
+    Breakout: "突破",
+    Channel: "通道",
+    "Broad Channel": "宽通道",
+    "Tight Channel": "窄通道",
+  };
+
+  const liveCyclePerf = React.useMemo(() => {
+    const normalizeCycle = (raw: unknown): string => {
+      let s = String(raw ?? "").trim();
+      if (!s) return "Unknown";
+      // 保留现有 dashboard 的 "/" 兼容行为（不影响 core 口径，只是先做一次拆分）
+      if (s.includes("/")) {
+        const parts = s.split("/");
+        const cand = String(parts[1] ?? parts[0] ?? "").trim();
+        if (cand) s = cand;
+      }
+      return normalizeMarketCycleForAnalytics(s) ?? "Unknown";
+    };
+
+    const byCycle = new Map<string, number>();
+    for (const t of trades) {
+      if (t.accountType !== "Live") continue;
+      const cycle = normalizeCycle(t.marketCycle ?? "Unknown");
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      byCycle.set(cycle, (byCycle.get(cycle) ?? 0) + pnl);
+    }
+
+    return [...byCycle.entries()]
+      .map(([name, pnl]) => ({ name, pnl }))
+      .sort((a, b) => b.pnl - a.pnl);
+  }, [trades]);
+
+  const last30TradesDesc = React.useMemo(() => {
+    const sorted = [...trades].sort((a, b) => {
+      const da = a.dateIso ?? "";
+      const db = b.dateIso ?? "";
+      if (da !== db) return da < db ? 1 : -1;
+      const ma = typeof a.mtime === "number" ? a.mtime : 0;
+      const mb = typeof b.mtime === "number" ? b.mtime : 0;
+      return mb - ma;
+    });
+    return sorted.slice(0, 30);
+  }, [trades]);
+
+  const last30MaxAbsR = React.useMemo(() => {
+    let maxAbs = 0;
+    for (const t of last30TradesDesc) {
+      const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      maxAbs = Math.max(maxAbs, Math.abs(r));
+    }
+    return maxAbs > 0 ? maxAbs : 1;
+  }, [last30TradesDesc]);
+
+  const liveMind = React.useMemo(() => {
+    // 复用 Analytics Hub 的单一信源口径（v5 对齐：从执行评价文本匹配 Tilt/FOMO/Hesitation）
+    const recentAsc = [...last30TradesDesc]
+      .reverse()
+      .filter((t) => (t.accountType ?? "Live") === "Live");
+    return computeMindsetFromRecentLive(recentAsc, 10);
+  }, [last30TradesDesc]);
+
+  const tuition = React.useMemo(() => {
+    const res = computeTuitionAnalysis(trades);
+    return {
+      tuitionR: res.tuitionR,
+      rows: res.rows.map((r) => ({ tag: r.error, costR: r.costR })),
+    };
+  }, [trades]);
+
+  React.useEffect(() => {
+    const onUpdate = () => setTrades(index.getAll());
+    const unsubscribe = index.onChanged(onUpdate);
+    onUpdate();
+    return unsubscribe;
+  }, [index]);
+
+  React.useEffect(() => {
+    if (!strategyIndex) return;
+    const update = () => {
+      try {
+        const list = strategyIndex.list ? strategyIndex.list() : [];
+        setStrategies(list);
+      } catch (e) {
+        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
+        setStrategies([]);
+      }
+    };
+    update();
+    return () => {};
+  }, [strategyIndex]);
+
+  const strategyPerf = React.useMemo(() => {
+    const perf = new Map<
+      string,
+      { total: number; wins: number; pnl: number; lastDateIso: string }
+    >();
+
+    const resolveCanonical = (t: TradeRecord): string | null => {
+      const raw =
+        typeof t.strategyName === "string" ? t.strategyName.trim() : "";
+      if (raw && raw !== "Unknown") {
+        const looked = strategyIndex.lookup
+          ? strategyIndex.lookup(raw)
+          : undefined;
+        return looked?.canonicalName || raw;
+      }
+      const pats = (t.patternsObserved ?? [])
+        .map((p) => String(p).trim())
+        .filter(Boolean);
+      for (const p of pats) {
+        const card = strategyIndex.byPattern
+          ? strategyIndex.byPattern(p)
+          : undefined;
+        if (card?.canonicalName) return card.canonicalName;
+      }
+      return null;
+    };
+
+    for (const t of trades) {
+      const canonical = resolveCanonical(t);
+      if (!canonical) continue;
+      const p = perf.get(canonical) ?? {
+        total: 0,
+        wins: 0,
+        pnl: 0,
+        lastDateIso: "",
+      };
+      p.total += 1;
+      if (typeof t.pnl === "number" && Number.isFinite(t.pnl) && t.pnl > 0)
+        p.wins += 1;
+      if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) p.pnl += t.pnl;
+      if (t.dateIso && (!p.lastDateIso || t.dateIso > p.lastDateIso))
+        p.lastDateIso = t.dateIso;
+      perf.set(canonical, p);
+    }
+
+    return perf;
+  }, [trades, strategyIndex]);
+
+  const strategyStats = React.useMemo(() => {
+    const isActive = (statusRaw: unknown) => {
+      const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
+      if (!s) return false;
+      return s.includes("实战") || s.toLowerCase().includes("active");
+    };
+
+    const total = strategies.length;
+    const activeCount = strategies.filter((s) =>
+      isActive((s as any).statusRaw)
+    ).length;
+    const learningCount = Math.max(0, total - activeCount);
+    let totalUses = 0;
+    strategyPerf.forEach((p) => (totalUses += p.total));
+    return { total, activeCount, learningCount, totalUses };
+  }, [strategies, strategyPerf]);
+
+  const playbookPerfRows = React.useMemo(() => {
+    const safePct = (wins: number, total: number) =>
+      total > 0 ? Math.round((wins / total) * 100) : 0;
+
+    const rows = [...strategyPerf.entries()]
+      .map(([canonical, p]) => {
+        const card = strategyIndex?.byName
+          ? strategyIndex.byName(canonical)
+          : undefined;
+        return {
+          canonical,
+          path: card?.path,
+          total: p.total,
+          wins: p.wins,
+          pnl: p.pnl,
+          winRate: safePct(p.wins, p.total),
+        };
+      })
+      .sort((a, b) => (b.pnl || 0) - (a.pnl || 0));
+
+    return rows;
+  }, [strategyPerf, strategyIndex]);
+
+  React.useEffect(() => {
+    if (!todayContext?.onChanged) return;
+    const onUpdate = () =>
+      setTodayMarketCycle(todayContext.getTodayMarketCycle());
+    const unsubscribe = todayContext.onChanged(onUpdate);
+    onUpdate();
+    return unsubscribe;
+  }, [todayContext]);
+
+  React.useEffect(() => {
+    if (!index.onStatusChanged) return;
+    const onStatus = () =>
+      setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
+    const unsubscribe = index.onStatusChanged(onStatus);
+    onStatus();
+    return unsubscribe;
+  }, [index]);
+
+  const onRebuild = React.useCallback(async () => {
+    if (!index.rebuild) return;
+    try {
+      await index.rebuild();
+    } catch (e) {
+      console.warn("[al-brooks-console] Rebuild failed", e);
+    }
+  }, [index]);
+
+  const statusText = React.useMemo(() => {
+    switch (status.phase) {
+      case "building": {
+        const p = typeof status.processed === "number" ? status.processed : 0;
+        const t = typeof status.total === "number" ? status.total : 0;
+        return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
+      }
+      case "ready": {
+        return typeof status.lastBuildMs === "number"
+          ? `索引：就绪（${status.lastBuildMs}ms）`
+          : "索引：就绪";
+      }
+      case "error":
+        return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
+      default:
+        return "索引：空闲";
+    }
+  }, [status]);
+
+  type DashboardPage = "daily" | "trading" | "analytics" | "learn" | "manage";
+  const [activePage, setActivePage] = React.useState<DashboardPage>("daily");
+
+  const buttonStyle: React.CSSProperties = {
+    marginLeft: "8px",
+    padding: "4px 8px",
+    fontSize: "0.8em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "6px",
+    background: "var(--background-primary)",
+    color: "var(--text-normal)",
+    cursor: "pointer",
+    outline: "none",
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const disabledButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    opacity: 0.5,
+    cursor: "not-allowed",
+  };
+
+  const tabButtonStyle: React.CSSProperties = {
+    padding: "6px 10px",
+    fontSize: "0.85em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "999px",
+    background: "var(--background-primary)",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    outline: "none",
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const activeTabButtonStyle: React.CSSProperties = {
+    ...tabButtonStyle,
+    background: "var(--interactive-accent)",
+    borderColor: "var(--interactive-accent)",
+    color: "var(--text-on-accent)",
+    fontWeight: 800,
+  };
+
+  const selectStyle: React.CSSProperties = {
+    padding: "4px 8px",
+    fontSize: "0.85em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "6px",
+    background: "var(--background-primary)",
+    color: "var(--text-normal)",
+  };
+
+  const textButtonStyle: React.CSSProperties = {
+    padding: "2px 4px",
+    border: "none",
+    background: "transparent",
+    color: "var(--text-accent)",
+    cursor: "pointer",
+    textAlign: "left",
+    borderRadius: "6px",
+    outline: "none",
+    transition: "background-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const onBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "var(--background-primary)";
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const onTextBtnMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.background = "var(--background-modifier-hover)";
+    },
+    []
+  );
+
+  const onTextBtnMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "transparent";
+    },
+    []
+  );
+
+  const onTextBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onTextBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const onMiniCellMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+    },
+    []
+  );
+
+  const onMiniCellFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onMiniCellBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const onCoverMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--interactive-accent)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
+    },
+    []
+  );
+
+  const onCoverMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
+    },
+    []
+  );
+
+  const onCoverFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
+
+  const onCoverBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
+
+  const action = React.useCallback(
+    async (capabilityId: IntegrationCapability) => {
+      if (!integrations) return;
+      try {
+        await integrations.run(capabilityId);
+      } catch (e) {
+        console.warn(
+          "[al-brooks-console] Integration action failed",
+          capabilityId,
+          e
+        );
+      }
+    },
+    [integrations]
+  );
+
+  const can = React.useCallback(
+    (capabilityId: IntegrationCapability) =>
+      Boolean(integrations?.isCapabilityAvailable(capabilityId)),
+    [integrations]
+  );
+
+  const canCreateTrade =
+    can("quickadd:new-live-trade") ||
+    can("quickadd:new-demo-trade") ||
+    can("quickadd:new-backtest");
+
+  const reloadCourse = React.useCallback(async () => {
+    if (!loadCourse) return;
+    setCourseBusy(true);
+    setCourseError(undefined);
+    try {
+      const next = await loadCourse(settings);
+      setCourse(next);
+    } catch (e) {
+      setCourseError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCourseBusy(false);
+    }
+  }, [loadCourse, settingsKey]);
+
+  const reloadMemory = React.useCallback(async () => {
+    if (!loadMemory) return;
+    setMemoryIgnoreFocus(false);
+    setMemoryShakeIndex(0);
+    setMemoryBusy(true);
+    setMemoryError(undefined);
+    try {
+      const next = await loadMemory(settings);
+      setMemory(next);
+    } catch (e) {
+      setMemoryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMemoryBusy(false);
+    }
+  }, [loadMemory, settingsKey]);
+
+  const hardRefreshMemory = React.useCallback(async () => {
+    // Align with legacy semantics: reset local state + best-effort trigger DV refresh + reload snapshot.
+    if (can("dataview:force-refresh")) {
+      void action("dataview:force-refresh");
+    }
+    await reloadMemory();
+  }, [action, can, reloadMemory]);
+
+  React.useEffect(() => {
+    void reloadCourse();
+  }, [reloadCourse]);
+
+  React.useEffect(() => {
+    void reloadMemory();
+  }, [reloadMemory]);
+
+  const latestTrade = trades.length > 0 ? trades[0] : undefined;
+
+  const allTradesDateRange = React.useMemo(() => {
+    let min: string | undefined;
+    let max: string | undefined;
+    for (const t of trades) {
+      const d = (t.dateIso ?? "").toString().trim();
+      if (!d) continue;
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    }
+    return { min, max };
+  }, [trades]);
+  const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
+  const todayTrades = React.useMemo(
+    () => trades.filter((t) => t.dateIso === todayIso),
+    [trades, todayIso]
+  );
+  const todaySummary = React.useMemo(
+    () => computeTradeStatsByAccountType(todayTrades),
+    [todayTrades]
+  );
+  const todayLatestTrade = todayTrades.length > 0 ? todayTrades[0] : undefined;
+  const rLast10 = React.useMemo(
+    () => computeWindowRByAccountType(trades, 10),
+    [trades]
+  );
+  const rLast30 = React.useMemo(
+    () => computeWindowRByAccountType(trades, 30),
+    [trades]
+  );
+  const r10MaxAbs = React.useMemo(
+    () =>
+      Math.max(
+        Math.abs(rLast10.Live),
+        Math.abs(rLast10.Demo),
+        Math.abs(rLast10.Backtest),
+        0
+      ),
+    [rLast10]
+  );
+  const r30MaxAbs = React.useMemo(
+    () =>
+      Math.max(
+        Math.abs(rLast30.Live),
+        Math.abs(rLast30.Demo),
+        Math.abs(rLast30.Backtest),
+        0
+      ),
+    [rLast30]
+  );
+  const reviewHints = React.useMemo(() => {
+    if (!latestTrade) return [];
+    return buildReviewHints(latestTrade);
+  }, [latestTrade]);
+
+  const analyticsTrades = React.useMemo(
+    () => filterTradesByScope(trades, analyticsScope),
+    [trades, analyticsScope]
+  );
+
+  const contextAnalysis = React.useMemo(() => {
+    return computeContextAnalysis(analyticsTrades).slice(0, 8);
+  }, [analyticsTrades]);
+
+  const errorAnalysis = React.useMemo(() => {
+    return computeErrorAnalysis(analyticsTrades).slice(0, 5);
+  }, [analyticsTrades]);
+
+  const analyticsDateRange = React.useMemo(() => {
+    let min: string | undefined;
+    let max: string | undefined;
+    for (const t of analyticsTrades) {
+      const d = (t.dateIso ?? "").toString().trim();
+      if (!d) continue;
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    }
+    return { min, max };
+  }, [analyticsTrades]);
+  const analyticsDaily = React.useMemo(
+    () => computeDailyAgg(analyticsTrades, 90),
+    [analyticsTrades]
+  );
+  const analyticsDailyByDate = React.useMemo(() => {
+    const m = new Map<string, DailyAgg>();
+    for (const d of analyticsDaily) m.set(d.dateIso, d);
+    return m;
+  }, [analyticsDaily]);
+
+  const calendarDays = 35;
+  const calendarDateIsos = React.useMemo(
+    () => getLastLocalDateIsos(calendarDays),
+    []
+  );
+  const calendarCells = React.useMemo(() => {
+    return calendarDateIsos.map(
+      (dateIso) =>
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+    );
+  }, [calendarDateIsos, analyticsDailyByDate]);
+  const calendarMaxAbs = React.useMemo(() => {
+    let max = 0;
+    for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
+    return max;
+  }, [calendarCells]);
+
+  const equitySeries = React.useMemo(() => {
+    const dateIsosAsc = [...calendarDateIsos].reverse();
+    const filled: DailyAgg[] = dateIsosAsc.map(
+      (dateIso) =>
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+    );
+    return computeEquityCurve(filled);
+  }, [calendarDateIsos, analyticsDailyByDate]);
+
+  const strategyAttribution = React.useMemo(() => {
+    return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
+  }, [analyticsTrades, strategyIndex]);
+
+  const analyticsRecentLiveTradesAsc = React.useMemo(() => {
+    return computeRecentLiveTradesAsc(trades, 30);
+  }, [trades]);
+
+  const analyticsRMultiples = React.useMemo(() => {
+    return computeRMultiplesFromPnl(analyticsRecentLiveTradesAsc);
+  }, [analyticsRecentLiveTradesAsc]);
+
+  const analyticsMind = React.useMemo(() => {
+    return computeMindsetFromRecentLive(analyticsRecentLiveTradesAsc, 10);
+  }, [analyticsRecentLiveTradesAsc]);
+
+  const analyticsTopStrats = React.useMemo(() => {
+    return computeTopStrategiesFromTrades(trades, 5, strategyIndex);
+  }, [trades, strategyIndex]);
+
+  const analyticsSuggestion = React.useMemo(() => {
+    const top = tuition.rows[0];
+    const pct =
+      top && tuition.tuitionR > 0
+        ? Math.round((top.costR / tuition.tuitionR) * 100)
+        : undefined;
+    return computeHubSuggestion({
+      topStrategies: analyticsTopStrats,
+      mindset: analyticsMind,
+      live: summary.Live,
+      backtest: summary.Backtest,
+      topTuitionError: top
+        ? { name: top.tag, costR: top.costR, pct }
+        : undefined,
+    });
+  }, [
+    analyticsTopStrats,
+    analyticsMind,
+    summary.Live,
+    summary.Backtest,
+    tuition,
+  ]);
+
+  const strategyLab = React.useMemo(() => {
+    const tradesAsc = [...trades].sort((a, b) =>
+      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
+    );
 
     const curves: Record<AccountType, number[]> = {
       Live: [0],
@@ -40,6 +1331,189 @@ import {
     };
     const cum: Record<AccountType, number> = {
       Live: 0,
+      Demo: 0,
+      Backtest: 0,
+    };
+
+    const stats = new Map<string, { win: number; total: number }>();
+
+    for (const t of tradesAsc) {
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      const acct = (t.accountType ?? "Live") as AccountType;
+
+      // 资金曲线：按账户分别累加（口径与 v5.0 接近：只在该账户出现时 push 一点）
+      cum[acct] += pnl;
+      curves[acct].push(cum[acct]);
+
+      // 策略排行：策略名优先；没有则回退到 setupCategory
+      const key =
+        identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
+
+      const prev = stats.get(key) ?? { win: 0, total: 0 };
+      prev.total += 1;
+      if (pnl > 0) prev.win += 1;
+      stats.set(key, prev);
+    }
+
+    const topSetups = [...stats.entries()]
+      .map(([name, v]) => ({
+        name,
+        total: v.total,
+        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    const mostUsed = topSetups[0]?.name ?? "无";
+    const keepIn = cum.Live < 0 ? "回测" : "实盘";
+
+    return {
+      curves,
+      cum,
+      topSetups,
+      suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
+    };
+  }, [trades]);
+
+  type GalleryItem = {
+    tradePath: string;
+    tradeName: string;
+    accountType: AccountType;
+    pnl: number;
+    coverPath: string;
+    url?: string;
+  };
+
+  const galleryItems = React.useMemo((): GalleryItem[] => {
+    if (!getResourceUrl) return [];
+    const out: GalleryItem[] = [];
+    const seen = new Set<string>();
+    const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+
+    // v5.0 口径：从最近交易里取前 20 个候选，最终只展示 4 张。
+    for (const t of trades.slice(0, 20)) {
+      // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      const rawCover =
+        (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+      const ref = parseCoverRef(rawCover);
+      if (!ref) continue;
+
+      let target = ref.target;
+      // 解析 markdown link 的 target 可能带引号/空格
+      target = String(target).trim();
+      if (!target) continue;
+
+      // 支持外链封面（http/https），否则按 Obsidian linkpath 解析到 vault path。
+      let resolved = "";
+      let url: string | undefined = undefined;
+
+      if (/^https?:\/\//i.test(target)) {
+        resolved = target;
+        url = target;
+      } else {
+        resolved = resolveLink ? resolveLink(target, t.path) ?? target : target;
+        if (!resolved || !isImage(resolved)) continue;
+        url = getResourceUrl(resolved);
+      }
+
+      if (!resolved || !isImage(resolved)) continue;
+      if (seen.has(resolved)) continue;
+      seen.add(resolved);
+
+      const acct = (t.accountType ?? "Live") as AccountType;
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+      out.push({
+        tradePath: t.path,
+        tradeName: t.name,
+        accountType: acct,
+        pnl,
+        coverPath: resolved,
+        url,
+      });
+
+      if (out.length >= 4) break;
+    }
+
+    return out;
+  }, [trades, resolveLink, getResourceUrl]);
+
+  const gallerySearchHref = React.useMemo(() => {
+    return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
+  }, []);
+
+  const inspectorIssues = React.useMemo(() => {
+    return buildInspectorIssues(trades, enumPresets, strategyIndex);
+  }, [trades, enumPresets, strategyIndex]);
+
+  const fixPlanText = React.useMemo(() => {
+    if (!showFixPlan || !enumPresets) return undefined;
+    const plan = buildFixPlan(trades, enumPresets);
+    return JSON.stringify(plan, null, 2);
+  }, [showFixPlan, trades, enumPresets]);
+
+  const managerPlanText = React.useMemo(() => {
+    if (!managerPlan) return undefined;
+    return JSON.stringify(managerPlan, null, 2);
+  }, [managerPlan]);
+
+  const openTrade = React.useMemo(() => {
+    return trades.find((t) => {
+      const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+      if (!pnlMissing) return false;
+      return (
+        t.outcome === "open" ||
+        t.outcome === undefined ||
+        t.outcome === "unknown"
+      );
+    });
+  }, [trades]);
+
+  const todayStrategyPicks = React.useMemo(() => {
+    return computeTodayStrategyPicks({
+      todayMarketCycle,
+      strategyIndex,
+      limit: 6,
+    });
+  }, [strategyIndex, todayMarketCycle]);
+
+  const openTradeStrategy = React.useMemo(() => {
+    return computeOpenTradePrimaryStrategy({
+      openTrade,
+      todayMarketCycle,
+      strategyIndex,
+    });
+  }, [openTrade, strategyIndex, todayMarketCycle]);
+
+  const strategyPicks = React.useMemo(() => {
+    return computeTradeBasedStrategyPicks({
+      trade: latestTrade,
+      todayMarketCycle,
+      strategyIndex,
+      limit: 6,
+    });
+  }, [latestTrade, strategyIndex, todayMarketCycle]);
+
+  const TrendRow: React.FC<{
+    label: string;
+    value: number;
+    ratio: number;
+    color: string;
+  }> = ({ label, value, ratio, color }) => {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "8px",
+        }}
+      >
+        <div
+          style={{
             width: "70px",
             color: "var(--text-muted)",
             fontSize: "0.85em",
@@ -62,6 +1536,189 @@ import {
             {ratio < 0 && (
               <div
                 style={{
+                  position: "absolute",
+                  right: 0,
+                  height: "100%",
+                  width: "100%",
+                  background: color,
+                  opacity: 0.55,
+                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                  transformOrigin: "right",
+                }}
+              />
+            )}
+          </div>
+          <div style={{ flex: "1 1 0", position: "relative" }}>
+            {ratio > 0 && (
+              <div
+                style={{
+                  height: "100%",
+                  width: "100%",
+                  background: color,
+                  opacity: 0.55,
+                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
+                  transformOrigin: "left",
+                }}
+              />
+            )}
+          </div>
+        </div>
+        <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
+          <span
+            style={{
+              color: value >= 0 ? "var(--text-success)" : "var(--text-error)",
+              fontWeight: 600,
+            }}
+          >
+            {value >= 0 ? "+" : ""}
+            {value.toFixed(1)}R
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        padding: "16px",
+        fontFamily: "var(--font-interface)",
+        maxWidth: "1200px",
+        margin: "0 auto",
+      }}
+    >
+      <h2
+        style={{
+          borderBottom: "1px solid var(--background-modifier-border)",
+          paddingBottom: "10px",
+          marginBottom: "20px",
+        }}
+      >
+        🦁 交易员控制台{" "}
+        <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+          （Dashboard）
+        </span>{" "}
+        <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+          v{version}
+        </span>
+        <span
+          style={{
+            fontSize: "0.8em",
+            color: "var(--text-muted)",
+            marginLeft: "10px",
+          }}
+        >
+          {statusText}
+        </span>
+        {integrations && (
+          <span style={{ marginLeft: "10px" }}>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-live-trade")}
+              onClick={() => action("quickadd:new-live-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-live-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建实盘
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-demo-trade")}
+              onClick={() => action("quickadd:new-demo-trade")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-demo-trade")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              新建模拟
+            </button>
+            <button
+              type="button"
+              disabled={!can("quickadd:new-backtest")}
+              onClick={() => action("quickadd:new-backtest")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              新建回测
+            </button>
+            <button
+              type="button"
+              disabled={!can("srs:review-flashcards")}
+              onClick={() => action("srs:review-flashcards")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              ⚡️ 开始复习
+            </button>
+            <button
+              type="button"
+              disabled={!can("dataview:force-refresh")}
+              onClick={() => action("dataview:force-refresh")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("dataview:force-refresh")
+                  ? buttonStyle
+                  : disabledButtonStyle
+              }
+            >
+              刷新 DV
+            </button>
+            <button
+              type="button"
+              disabled={!can("tasks:open")}
+              onClick={() => action("tasks:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
+            >
+              任务
+            </button>
+            <button
+              type="button"
+              disabled={!can("metadata-menu:open")}
+              onClick={() => action("metadata-menu:open")}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={
+                can("metadata-menu:open") ? buttonStyle : disabledButtonStyle
+              }
+            >
+              元数据
+            </button>
+          </span>
+        )}
+        {index.rebuild && (
+          <button
+            type="button"
             onClick={onRebuild}
             onMouseEnter={onBtnMouseEnter}
             onMouseLeave={onBtnMouseLeave}
@@ -84,6 +1741,7 @@ import {
       >
         {(
           [
+            { id: "daily", label: "每日行动" },
             { id: "trading", label: "交易中心" },
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
@@ -101,7 +1759,7 @@ import {
         ))}
       </div>
 
-      {activePage === "trading" ? (
+      {activePage === "daily" || activePage === "trading" ? (
         <>
           <div
             style={{
@@ -120,7 +1778,7 @@ import {
             </div>
           </div>
 
-          {latestTrade && reviewHints.length > 0 && (
+          {activePage === "daily" && latestTrade && reviewHints.length > 0 && (
             <details style={{ marginBottom: "16px" }}>
               <summary
                 style={{
@@ -173,7 +1831,7 @@ import {
             </details>
           )}
 
-          <>
+          {activePage === "daily" ? (
             <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
@@ -590,188 +2248,7 @@ import {
               </div>
 
             </div>
-
-            <div
-              style={{
-                margin: "18px 0 10px",
-                paddingBottom: "8px",
-                borderBottom: "1px solid var(--background-modifier-border)",
-                display: "flex",
-                alignItems: "baseline",
-                gap: "10px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
-              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                Actions
-              </div>
-            </div>
-
-            <div
-              style={{
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "10px",
-                padding: "12px",
-                marginBottom: "16px",
-                background: "var(--background-primary)",
-              }}
-            >
-              {!can("tasks:open") ? (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                  v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
-                  集成可用（请安装/启用 Tasks 插件）。
-                </div>
-              ) : null}
-
-              <div
-                style={{
-                  marginTop: "12px",
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                    🔥 必须解决 (Inbox & Urgent)
-                  </div>
-                  <MarkdownBlock
-                    markdown={`**❓ 疑难杂症 (Questions)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/question\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**🚨 紧急事项 (Urgent)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/urgent\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                    🛠️ 持续改进 (Improvement)
-                  </div>
-                  <MarkdownBlock
-                    markdown={`**🧪 回测任务 (Backtest)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/backtest\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📝 复盘任务 (Review)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/review\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📖 待学习/阅读 (Study)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\n\
-path does not include Templates\n\
-limit 5\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**🔬 待验证想法 (Verify)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/verify\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                    📅 每日例行 (Routine)
-                  </div>
-                  <MarkdownBlock
-                    markdown={`**📝 手动打卡 (Checklist)**\n\n\
-- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
-- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
-- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
-**🧹 杂项待办 (To-Do)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/todo\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-limit 5\n\
-\`\`\`\n`}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                    🛠️ 等待任务 (Maintenance)
-                  </div>
-                  <MarkdownBlock
-                    markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/print\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📂 待整理 (Organize)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/organize\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-                  />
-                </div>
-              </div>
-            </div>
-
+          ) : activePage === "trading" ? (
             <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
@@ -1296,7 +2773,7 @@ short mode\n\
                 </div>
               </div>
             </div>
-          </>
+          ) : null}
         </>
       ) : null}
 
