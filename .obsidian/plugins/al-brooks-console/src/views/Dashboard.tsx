@@ -2769,24 +2769,24 @@ const ConsoleComponent: React.FC<Props> = ({
         </>
       ) : null}
 
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>📊 数据中心</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Analytics Hub
-        </div>
-      </div>
-
-      {activePage === "analytics" ? null : null}
+      {activePage === "analytics" ? (
+        <>
+          <div
+            style={{
+              margin: "18px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>📊 数据中心</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              Analytics Hub
+            </div>
+          </div>
 
       {/* Stats Row */}
       <div
@@ -4178,22 +4178,27 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
       </div>
 
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>📚 学习模块</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Learning
-        </div>
-      </div>
+        </>
+      ) : null}
+
+      {activePage === "learn" ? (
+        <>
+          <div
+            style={{
+              margin: "18px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>📚 学习模块</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              Learning
+            </div>
+          </div>
 
       <div
         style={{
@@ -5485,22 +5490,27 @@ const ConsoleComponent: React.FC<Props> = ({
         </div>
       </div>
 
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>📉 管理模块</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          管理（Management）
-        </div>
-      </div>
+        </>
+      ) : null}
+
+      {activePage === "manage" ? (
+        <>
+          <div
+            style={{
+              margin: "18px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>📉 管理模块</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              管理（Management）
+            </div>
+          </div>
 
       <div
         style={{
@@ -7527,6 +7537,9 @@ short mode\n\
           <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
         </div>
       </div>
+
+        </>
+      ) : null}
     </div>
   );
 };
