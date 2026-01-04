@@ -63,191 +63,6 @@ import {
   buildUpdateValPlan,
   buildAppendValPlan,
   buildInjectPropPlan,
-  buildFrontmatterInventory,
-  type FrontmatterFile,
-  type FrontmatterInventory,
-  type ManagerApplyResult,
-  type StrategyNoteFrontmatter,
-} from "../core/manager";
-import { MANAGER_GROUPS, managerKeyTokens } from "../core/manager-groups";
-import type { IntegrationCapability } from "../integrations/contracts";
-import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
-import type { TodayContext } from "../core/today-context";
-import { normalizeTag } from "../core/field-mapper";
-import type { AlBrooksConsoleSettings } from "../settings";
-import {
-  buildCourseSnapshot,
-  parseSyllabusJsonFromMarkdown,
-  simpleCourseId,
-  type CourseSnapshot,
-} from "../core/course";
-import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
-import { TRADE_TAG } from "../core/field-mapper";
-
-function toLocalDateIso(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function getLastLocalDateIsos(days: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < Math.max(1, days); i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(toLocalDateIso(d));
-  }
-  return out;
-}
-
-function getDayOfMonth(dateIso: string): string {
-  const parts = dateIso.split("-");
-  const d = parts[2] ?? "";
-  return d.startsWith("0") ? d.slice(1) : d;
-}
-
-function getYearMonth(dateIso: string | undefined): string | undefined {
-  if (!dateIso) return undefined;
-  const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return undefined;
-  return `${m[1]}-${m[2]}`;
-}
-
-function sumPnlR(trades: TradeRecord[]): number {
-  let sum = 0;
-  for (const t of trades) {
-    if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
-  }
-  return sum;
-}
-
-function getRColorByAccountType(accountType: AccountType): string {
-  switch (accountType) {
-    case "Live":
-      return "var(--text-success)";
-    case "Demo":
-      return "var(--text-warning)";
-    case "Backtest":
-      return "var(--text-accent)";
-  }
-}
-
-function computeWindowRByAccountType(
-  trades: TradeRecord[],
-  windowSize: number
-): Record<AccountType, number> {
-  const by: Record<AccountType, TradeRecord[]> = {
-    Live: [],
-    Demo: [],
-    Backtest: [],
-  };
-  for (const t of trades.slice(0, windowSize)) {
-    const at = t.accountType;
-    if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
-  }
-  return {
-    Live: sumPnlR(by.Live),
-    Demo: sumPnlR(by.Demo),
-    Backtest: sumPnlR(by.Backtest),
-  };
-}
-
-export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
-
-type PaTagSnapshot = {
-  files: number;
-  tagMap: Record<string, number>;
-};
-
-type SchemaIssueItem = {
-  path: string;
-  name: string;
-  key: string;
-  type: string;
-  val?: string;
-};
-
-interface Props {
-  index: TradeIndex;
-  strategyIndex: StrategyIndex;
-  todayContext?: TodayContext;
-  resolveLink?: (linkText: string, fromPath: string) => string | undefined;
-  getResourceUrl?: (path: string) => string | undefined;
-  enumPresets?: EnumPresets;
-  loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
-  loadPaTagSnapshot?: () => Promise<PaTagSnapshot>;
-  applyFixPlan?: (
-    plan: FixPlan,
-    options?: { deleteKeys?: boolean }
-  ) => Promise<ManagerApplyResult>;
-  restoreFiles?: (
-    backups: Record<string, string>
-  ) => Promise<ManagerApplyResult>;
-  createTradeNote?: () => Promise<void>;
-  settings: AlBrooksConsoleSettings;
-  subscribeSettings?: (
-    listener: (settings: AlBrooksConsoleSettings) => void
-  ) => () => void;
-  loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
-  loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
-  openFile: (path: string) => void;
-  openGlobalSearch?: (query: string) => void;
-  runCommand?: (commandId: string) => void;
-  integrations?: PluginIntegrationRegistry;
-  version: string;
-}
-
-class ConsoleErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; message?: string }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: unknown) {
-    return {
-      hasError: true,
-      message: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.warn("[al-brooks-console] Dashboard render error", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div
-          style={{
-            padding: "16px",
-            fontFamily: "var(--font-interface)",
-            maxWidth: "1200px",
-            margin: "0 auto",
-          }}
-        >
-          <h2
-            style={{
-              borderBottom: "1px solid var(--background-modifier-border)",
-              paddingBottom: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            🦁 交易员控制台
-          </h2>
-          <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
-            控制台渲染失败：{this.state.message ?? "未知错误"}
-          </div>
-          <div style={{ color: "var(--text-muted)" }}>
-            建议重新打开视图后，在顶部使用“重建索引”。
-          </div>
-        </div>
-      );
-    }
-
     return this.props.children;
   }
 }
@@ -277,191 +92,6 @@ const ConsoleComponent: React.FC<Props> = ({
   todayContext,
   resolveLink,
   getResourceUrl,
-  enumPresets,
-  loadStrategyNotes,
-  loadPaTagSnapshot,
-  applyFixPlan,
-  restoreFiles,
-  createTradeNote,
-  settings: initialSettings,
-  subscribeSettings,
-  loadCourse,
-  loadMemory,
-  openFile,
-  openGlobalSearch,
-  runCommand,
-  integrations,
-  version,
-}) => {
-  const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(
-    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
-  );
-  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
-    index.getStatus ? index.getStatus() : { phase: "ready" }
-  );
-  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
-    string | undefined
-  >(() => todayContext?.getTodayMarketCycle());
-  const [analyticsScope, setAnalyticsScope] =
-    React.useState<AnalyticsScope>("Live");
-  const [showFixPlan, setShowFixPlan] = React.useState(false);
-  const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
-  const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
-  const [schemaScanNote, setSchemaScanNote] = React.useState<
-    string | undefined
-  >(undefined);
-  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
-    undefined
-  );
-  const [managerResult, setManagerResult] = React.useState<
-    ManagerApplyResult | undefined
-  >(undefined);
-  const [managerBusy, setManagerBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const isEmpty = (v: unknown): boolean => {
-      if (v === undefined || v === null) return true;
-      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
-      const s = String(v).trim();
-      if (!s) return true;
-      if (s === "Empty") return true;
-      if (s.toLowerCase() === "null") return true;
-      if (s.toLowerCase().includes("unknown")) return true;
-      return false;
-    };
-
-    const pickVal = (fm: Record<string, any>, keys: string[]) => {
-      for (const k of keys) {
-        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
-      }
-      return undefined;
-    };
-
-    const run = async () => {
-      const notes: string[] = [];
-
-      // --- Minimal-burden Schema issues (Trade) ---
-      const tradeIssues: SchemaIssueItem[] = [];
-      for (const t of trades) {
-        const isCompleted =
-          t.outcome === "win" ||
-          t.outcome === "loss" ||
-          t.outcome === "scratch";
-        if (!isCompleted) continue;
-
-        if (isEmpty(t.ticker)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "品种/ticker",
-            type: "❌ 缺少必填",
-          });
-        }
-        if (isEmpty(t.timeframe)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "时间周期/timeframe",
-            type: "❌ 缺少必填",
-          });
-        }
-        if (isEmpty(t.direction)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "方向/direction",
-            type: "❌ 缺少必填",
-          });
-        }
-
-        // “形态/策略”二选一：至少有一个即可
-        const hasPatterns =
-          Array.isArray(t.patternsObserved) &&
-          t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
-        // v5 口径：strategyName / setupKey / setupCategory 任意一个可视作“已填策略维度”
-        const hasStrategy =
-          !isEmpty(t.strategyName) || !isEmpty(t.setupKey) || !isEmpty(t.setupCategory);
-        if (!hasPatterns && !hasStrategy) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "观察到的形态/patterns_observed",
-            type: "❌ 缺少必填(二选一)",
-          });
-        }
-      }
-
-      // --- Minimal-burden Schema issues (Strategy) ---
-      let strategyIssues: SchemaIssueItem[] = [];
-      if (loadStrategyNotes) {
-        try {
-          const strategyNotes = await loadStrategyNotes();
-          strategyIssues = strategyNotes.flatMap((n) => {
-            const fm = (n.frontmatter ?? {}) as Record<string, any>;
-            const out: SchemaIssueItem[] = [];
-            const name =
-              n.path.split("/").pop()?.replace(/\.md$/i, "") ?? n.path;
-            const strategy = pickVal(fm, [
-              "策略名称/strategy_name",
-              "strategy_name",
-              "策略名称",
-            ]);
-            const patterns = pickVal(fm, [
-              "观察到的形态/patterns_observed",
-              "patterns_observed",
-              "观察到的形态",
-            ]);
-            if (isEmpty(strategy)) {
-              out.push({
-                path: n.path,
-                name,
-                key: "策略名称/strategy_name",
-                type: "❌ 缺少必填",
-                val: "",
-              });
-            }
-            if (isEmpty(patterns)) {
-              out.push({
-                path: n.path,
-                name,
-                key: "观察到的形态/patterns_observed",
-                type: "❌ 缺少必填",
-                val: "",
-              });
-            }
-            return out;
-          });
-        } catch (e) {
-          notes.push(
-            `策略扫描失败：${e instanceof Error ? e.message : String(e)}`
-          );
-        }
-      } else {
-        notes.push("策略扫描不可用：将仅基于交易索引进行 Schema 检查");
-      }
-
-      // --- PA tag snapshot (Tag panorama KPIs) ---
-      let paSnap: PaTagSnapshot | undefined = undefined;
-      if (loadPaTagSnapshot) {
-        try {
-          paSnap = await loadPaTagSnapshot();
-        } catch (e) {
-          notes.push(
-            `#PA 标签扫描失败：${e instanceof Error ? e.message : String(e)}`
-          );
-        }
-      } else {
-        notes.push("#PA 标签扫描不可用：将不显示全库标签全景");
-      }
-
-      if (cancelled) return;
-      setPaTagSnapshot(paSnap);
-      setSchemaIssues([...tradeIssues, ...strategyIssues]);
-      setSchemaScanNote(notes.length ? notes.join("；") : undefined);
-    };
 
     void run();
     return () => {
@@ -900,8 +530,8 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [status]);
 
-  type DashboardPage = "daily" | "trading" | "analytics" | "learn" | "manage";
-  const [activePage, setActivePage] = React.useState<DashboardPage>("daily");
+  type DashboardPage = "trading" | "analytics" | "learn" | "manage";
+  const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
 
   const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
@@ -1741,7 +1371,6 @@ const ConsoleComponent: React.FC<Props> = ({
       >
         {(
           [
-            { id: "daily", label: "每日行动" },
             { id: "trading", label: "交易中心" },
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
@@ -1759,7 +1388,7 @@ const ConsoleComponent: React.FC<Props> = ({
         ))}
       </div>
 
-      {activePage === "daily" || activePage === "trading" ? (
+      {activePage === "trading" ? (
         <>
           <div
             style={{
@@ -1778,7 +1407,7 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           </div>
 
-          {activePage === "daily" && latestTrade && reviewHints.length > 0 && (
+          {latestTrade && reviewHints.length > 0 && (
             <details style={{ marginBottom: "16px" }}>
               <summary
                 style={{
@@ -1831,7 +1460,7 @@ const ConsoleComponent: React.FC<Props> = ({
             </details>
           )}
 
-          {activePage === "daily" ? (
+          <>
             <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
@@ -2248,7 +1877,188 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
 
             </div>
-          ) : activePage === "trading" ? (
+
+            <div
+              style={{
+                margin: "18px 0 10px",
+                paddingBottom: "8px",
+                borderBottom: "1px solid var(--background-modifier-border)",
+                display: "flex",
+                alignItems: "baseline",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                Actions
+              </div>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
+              }}
+            >
+              {!can("tasks:open") ? (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
+                  集成可用（请安装/启用 Tasks 插件）。
+                </div>
+              ) : null}
+
+              <div
+                style={{
+                  marginTop: "12px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🔥 必须解决 (Inbox & Urgent)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**❓ 疑难杂症 (Questions)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/question\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**🚨 紧急事项 (Urgent)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/urgent\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🛠️ 持续改进 (Improvement)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**🧪 回测任务 (Backtest)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/backtest\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📝 复盘任务 (Review)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/review\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📖 待学习/阅读 (Study)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\n\
+path does not include Templates\n\
+limit 5\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**🔬 待验证想法 (Verify)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/verify\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    📅 每日例行 (Routine)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**📝 手动打卡 (Checklist)**\n\n\
+- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
+- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
+- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
+**🧹 杂项待办 (To-Do)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/todo\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+limit 5\n\
+\`\`\`\n`}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🛠️ 等待任务 (Maintenance)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/print\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📂 待整理 (Organize)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/organize\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
@@ -2773,7 +2583,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-          ) : null}
+          </>
         </>
       ) : null}
 
