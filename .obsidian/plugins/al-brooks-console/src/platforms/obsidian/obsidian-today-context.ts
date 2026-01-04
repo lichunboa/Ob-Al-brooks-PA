@@ -42,14 +42,18 @@ function pickTodayJournalFile(app: App, todayIso: string): TFile | undefined {
 
   const candidatesSet = new Set<string>();
   candidatesSet.add(`${yyyy}-${mm}-${dd}`); // 2026-01-03
-  candidatesSet.add(`${yyyy}${mm}${dd}`);   // 20260103
-  candidatesSet.add(`${yy}${mm}${dd}`);     // 260103
+  candidatesSet.add(`${yyyy}${mm}${dd}`); // 20260103
+  candidatesSet.add(`${yy}${mm}${dd}`); // 260103
 
   const files = app.vault.getMarkdownFiles();
   const candidates = files.filter((f) => {
     // Check if basename starts with any of the candidate date strings
     for (const pattern of candidatesSet) {
-      if (f.basename === pattern || f.basename.startsWith(pattern + "_") || f.basename.startsWith(pattern + " ")) {
+      if (
+        f.basename === pattern ||
+        f.basename.startsWith(pattern + "_") ||
+        f.basename.startsWith(pattern + " ")
+      ) {
         return true;
       }
     }
@@ -117,7 +121,9 @@ export class ObsidianTodayContext implements TodayContext {
     if (ran === false) {
       console.warn("Daily Notes command not found or failed.");
       // Try 'periodic-notes:open-daily-note' if Periodic Notes is used
-      (this.app as any).commands?.executeCommandById("periodic-notes:open-daily-note");
+      (this.app as any).commands?.executeCommandById(
+        "periodic-notes:open-daily-note"
+      );
     }
   }
 

@@ -125,7 +125,8 @@ export function identifyStrategyForAnalytics(
   if (!cat) cat = toString(trade.setupKey);
   if (!cat) cat = toString(trade.setupCategory);
   if (!cat) {
-    const v = toString((fm as any)["setup_category"]) ??
+    const v =
+      toString((fm as any)["setup_category"]) ??
       toString((fm as any)["setup"]) ??
       toString((fm as any)["setupCategory"]);
     cat = v;
@@ -268,7 +269,9 @@ function toFirstString(v: unknown): string | undefined {
   return toString(v);
 }
 
-export function normalizeMarketCycleForAnalytics(raw: unknown): string | undefined {
+export function normalizeMarketCycleForAnalytics(
+  raw: unknown
+): string | undefined {
   const s0 = toFirstString(raw);
   if (!s0) return undefined;
   if (s0.toLowerCase() === "unknown") return undefined;
