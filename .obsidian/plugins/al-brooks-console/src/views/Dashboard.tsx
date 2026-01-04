@@ -474,13 +474,20 @@ const ConsoleComponent: React.FC<Props> = ({
   const [managerBackups, setManagerBackups] = React.useState<
     Record<string, string> | undefined
   >(undefined);
-  const [managerInventory, setManagerInventory] = React.useState<
+  const [managerTradeInventory, setManagerTradeInventory] = React.useState<
     FrontmatterInventory | undefined
   >(undefined);
-  const [managerInventoryFiles, setManagerInventoryFiles] = React.useState<
-    FrontmatterFile[] | undefined
+  const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] =
+    React.useState<FrontmatterFile[] | undefined>(undefined);
+  const [managerStrategyInventory, setManagerStrategyInventory] = React.useState<
+    FrontmatterInventory | undefined
   >(undefined);
+  const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] =
+    React.useState<FrontmatterFile[] | undefined>(undefined);
   const [managerSearch, setManagerSearch] = React.useState("");
+  const [managerScope, setManagerScope] = React.useState<"trade" | "strategy">(
+    "trade"
+  );
   const [managerInspectorKey, setManagerInspectorKey] = React.useState<
     string | undefined
   >(undefined);
@@ -491,36 +498,55 @@ const ConsoleComponent: React.FC<Props> = ({
     React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
 
   const scanManagerInventory = React.useCallback(async () => {
-    const files: FrontmatterFile[] = trades.map((t) => ({
+    const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
       path: t.path,
       frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
     }));
+    const tradeInv = buildFrontmatterInventory(tradeFiles);
+    setManagerTradeInventoryFiles(tradeFiles);
+    setManagerTradeInventory(tradeInv);
+
+    const strategyFiles: FrontmatterFile[] = [];
     if (loadStrategyNotes) {
       const notes = await loadStrategyNotes();
       for (const n of notes) {
-        files.push({
+        strategyFiles.push({
           path: n.path,
           frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
         });
       }
     }
-    const inv = buildFrontmatterInventory(files);
-    setManagerInventoryFiles(files);
-    setManagerInventory(inv);
+    const strategyInv = buildFrontmatterInventory(strategyFiles);
+    setManagerStrategyInventoryFiles(strategyFiles);
+    setManagerStrategyInventory(strategyInv);
   }, [trades, loadStrategyNotes]);
 
-  const managerFilesByPath = React.useMemo(() => {
+  const managerTradeFilesByPath = React.useMemo(() => {
     const map = new Map<string, FrontmatterFile>();
-    for (const f of managerInventoryFiles ?? []) map.set(f.path, f);
+    for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
     return map;
-  }, [managerInventoryFiles]);
+  }, [managerTradeInventoryFiles]);
 
-  const selectManagerFiles = React.useCallback(
+  const managerStrategyFilesByPath = React.useMemo(() => {
+    const map = new Map<string, FrontmatterFile>();
+    for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
+    return map;
+  }, [managerStrategyInventoryFiles]);
+
+  const selectManagerTradeFiles = React.useCallback(
     (paths: string[]) =>
       paths
-        .map((p) => managerFilesByPath.get(p))
+        .map((p) => managerTradeFilesByPath.get(p))
         .filter((x): x is FrontmatterFile => Boolean(x)),
-    [managerFilesByPath]
+    [managerTradeFilesByPath]
+  );
+
+  const selectManagerStrategyFiles = React.useCallback(
+    (paths: string[]) =>
+      paths
+        .map((p) => managerStrategyFilesByPath.get(p))
+        .filter((x): x is FrontmatterFile => Boolean(x)),
+    [managerStrategyFilesByPath]
   );
 
   const runManagerPlan = React.useCallback(
@@ -5905,8 +5931,10 @@ const ConsoleComponent: React.FC<Props> = ({
                   );
                   setManagerPlan(plan);
                   setManagerResult(undefined);
-                  setManagerInventory(undefined);
-                  setManagerInventoryFiles(undefined);
+                  setManagerTradeInventory(undefined);
+                  setManagerTradeInventoryFiles(undefined);
+                  setManagerStrategyInventory(undefined);
+                  setManagerStrategyInventoryFiles(undefined);
                 } finally {
                   setManagerBusy(false);
                 }
@@ -6017,8 +6045,10 @@ const ConsoleComponent: React.FC<Props> = ({
                 const res = await restoreFiles(managerBackups);
                 setManagerResult(res);
                 setManagerBackups(undefined);
-                setManagerInventory(undefined);
-                setManagerInventoryFiles(undefined);
+                setManagerTradeInventory(undefined);
+                setManagerTradeInventoryFiles(undefined);
+                setManagerStrategyInventory(undefined);
+                setManagerStrategyInventoryFiles(undefined);
               } finally {
                 setManagerBusy(false);
               }
@@ -6092,7 +6122,7 @@ const ConsoleComponent: React.FC<Props> = ({
               💎 上帝模式 (God Mode)
             </div>
 
-            {managerInventory ? (
+            {managerTradeInventory || managerStrategyInventory ? (
               <>
                 <input
                   value={managerSearch}
@@ -6110,7 +6140,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 />
 
                 {(() => {
-                  const inv = managerInventory;
                   const q = managerSearch.trim().toLowerCase();
 
                   const canonicalizeSearch = (s: string) => {
@@ -6198,108 +6227,211 @@ const ConsoleComponent: React.FC<Props> = ({
                     { name: othersTitle, keys: bucketed.get(othersTitle) ?? [] },
                   ].filter((g) => g.keys.length > 0);
 
-                  return (
-                    <div style={{ display: "grid", gap: "12px" }}>
-                      {groupEntries.map((g) => (
-                        <div key={`mgr-v5-g-${g.name}`}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "baseline",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            <div style={{ fontWeight: 700, color: "var(--text-muted)" }}>
-                              {g.name}
-                            </div>
-                            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                              {g.keys.length}
-                            </div>
+                  const groups = MANAGER_GROUPS;
+                  const othersTitle = "📂 其他属性 (Other)";
+
+                  const prettyVal = (val: string) => {
+                    let s = (val ?? "").toString().trim();
+                    if (!s) return "";
+                    const low = s.toLowerCase();
+                    if (s === "Unknown" || low === "unknown") return "未知/Unknown";
+                    if (s === "Empty" || low === "empty") return "空/Empty";
+                    if (low === "null") return "空/null";
+                    return s;
+                  };
+
+                  const matchKeyToGroup = (key: string) => {
+                    const tokens = managerKeyTokens(key);
+                    for (const g of groups) {
+                      for (const kw of g.keywords) {
+                        const needle = String(kw ?? "").trim().toLowerCase();
+                        if (!needle) continue;
+                        if (tokens.some((t) => t === needle || t.includes(needle))) {
+                          return g.title;
+                        }
+                      }
+                    }
+                    return othersTitle;
+                  };
+
+                  const renderInventoryGrid = (
+                    inv: FrontmatterInventory | undefined,
+                    scope: "trade" | "strategy",
+                    title: string
+                  ) => {
+                    if (!inv) return null;
+
+                    const matchesSearch = (key: string) => {
+                      if (!q) return true;
+                      const kl = key.toLowerCase();
+                      if (kl.includes(q)) return true;
+                      if (qCanon && canonicalizeSearch(kl).includes(qCanon)) return true;
+                      const vals = Object.keys(inv.valPaths[key] ?? {});
+                      return vals.some((v) => {
+                        const vl = v.toLowerCase();
+                        if (vl.includes(q)) return true;
+                        if (!qCanon) return false;
+                        return canonicalizeSearch(vl).includes(qCanon);
+                      });
+                    };
+
+                    const bucketed = new Map<string, string[]>();
+                    for (const g of groups) bucketed.set(g.title, []);
+                    bucketed.set(othersTitle, []);
+
+                    const visibleKeys = inv.keys
+                      .map((k) => k.key)
+                      .filter((k) => matchesSearch(k));
+
+                    for (const key of visibleKeys) {
+                      const g = matchKeyToGroup(key);
+                      bucketed.get(g)!.push(key);
+                    }
+
+                    const groupEntries: Array<{ name: string; keys: string[] }> = [
+                      { name: groups[0]?.title ?? "", keys: bucketed.get(groups[0]?.title ?? "") ?? [] },
+                      { name: groups[1]?.title ?? "", keys: bucketed.get(groups[1]?.title ?? "") ?? [] },
+                      { name: groups[2]?.title ?? "", keys: bucketed.get(groups[2]?.title ?? "") ?? [] },
+                      { name: othersTitle, keys: bucketed.get(othersTitle) ?? [] },
+                    ].filter((x) => x.name && x.keys.length > 0);
+
+                    return (
+                      <div style={{ marginBottom: "14px" }}>
+                        <div style={{ fontWeight: 700, margin: "8px 0" }}>{title}</div>
+                        {groupEntries.length === 0 ? (
+                          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                            无匹配属性。
                           </div>
+                        ) : (
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                               gap: "10px",
                             }}
                           >
-                            {g.keys.map((key) => {
-                              const uniqueVals = Object.keys(inv.valPaths[key] ?? {}).length;
-                              return (
-                                <button
-                                  key={`mgr-v5-card-${key}`}
-                                  type="button"
-                                  onClick={() => {
-                                    setManagerInspectorKey(key);
-                                    setManagerInspectorTab("vals");
-                                    setManagerInspectorFileFilter(undefined);
-                                  }}
-                                  onMouseEnter={onTextBtnMouseEnter}
-                                  onMouseLeave={onTextBtnMouseLeave}
-                                  onFocus={onTextBtnFocus}
-                                  onBlur={onTextBtnBlur}
-                                  style={{
-                                    textAlign: "left",
-                                    border: "1px solid var(--background-modifier-border)",
-                                    borderRadius: "10px",
-                                    padding: "10px",
-                                    background: "var(--background-primary)",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-                                    {key}
-                                  </div>
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      gap: "10px",
-                                      alignItems: "baseline",
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        color: "var(--text-faint)",
-                                        fontSize: "0.9em",
-                                      }}
-                                    >
-                                      <span
+                            {groupEntries.map((g) => (
+                              <div
+                                key={`${scope}:${g.name}`}
+                                style={{
+                                  border: "1px solid var(--background-modifier-border)",
+                                  borderRadius: "12px",
+                                  padding: "10px",
+                                  background: "var(--background-secondary)",
+                                }}
+                              >
+                                <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                                  {g.name}
+                                </div>
+                                <div style={{ display: "grid", gap: "6px" }}>
+                                  {g.keys.slice(0, 18).map((key) => {
+                                    const countFiles = (inv.keyPaths[key] ?? []).length;
+                                    const vals = Object.keys(inv.valPaths[key] ?? {});
+                                    const topVals = vals
+                                      .map((v) => ({
+                                        v,
+                                        c: (inv.valPaths[key]?.[v] ?? []).length,
+                                      }))
+                                      .sort((a, b) => b.c - a.c)
+                                      .slice(0, 2);
+                                    return (
+                                      <div
+                                        key={`${scope}:${key}`}
+                                        onClick={() => {
+                                          setManagerScope(scope);
+                                          setManagerInspectorKey(key);
+                                          setManagerInspectorTab("vals");
+                                          setManagerInspectorFileFilter(undefined);
+                                        }}
                                         style={{
                                           border: "1px solid var(--background-modifier-border)",
-                                          borderRadius: "999px",
-                                          padding: "1px 8px",
-                                          marginRight: "8px",
+                                          borderRadius: "10px",
+                                          padding: "8px 10px",
+                                          background: "var(--background-primary)",
+                                          cursor: "pointer",
                                         }}
                                       >
-                                        {uniqueVals} 个值
-                                      </span>
-                                    </div>
-                                    <div style={{ color: "var(--text-muted)", fontWeight: 700 }}>
-                                      管理 →
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
+                                        <div
+                                          style={{
+                                            fontWeight: 650,
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: "8px",
+                                          }}
+                                        >
+                                          <span>{key}</span>
+                                          <span style={{ color: "var(--text-faint)" }}>
+                                            {countFiles}
+                                          </span>
+                                        </div>
+                                        <div
+                                          style={{
+                                            color: "var(--text-faint)",
+                                            fontSize: "0.85em",
+                                            marginTop: "2px",
+                                            display: "flex",
+                                            gap: "8px",
+                                            flexWrap: "wrap",
+                                          }}
+                                        >
+                                          {topVals.length ? (
+                                            topVals.map((x) => (
+                                              <span key={x.v}>
+                                                {prettyVal(x.v)} · {x.c}
+                                              </span>
+                                            ))
+                                          ) : (
+                                            <span>（无值）</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
 
-                      {groupEntries.length === 0 ? (
-                        <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                          无匹配属性。
-                        </div>
-                      ) : null}
-                    </div>
+                                  {g.keys.length > 18 ? (
+                                    <div style={{ color: "var(--text-faint)" }}>
+                                      还有 {g.keys.length - 18} 个…
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <>
+                      {renderInventoryGrid(
+                        managerTradeInventory,
+                        "trade",
+                        "🧾 交易属性 (Trades)"
+                      )}
+                      {renderInventoryGrid(
+                        managerStrategyInventory,
+                        "strategy",
+                        "📚 策略属性 (Strategies)"
+                      )}
+                    </>
                   );
                 })()}
 
                 {managerInspectorKey ? (
                   (() => {
-                    const inv = managerInventory;
+                    const inv =
+                      managerScope === "strategy"
+                        ? managerStrategyInventory
+                        : managerTradeInventory;
                     const key = managerInspectorKey;
+                    if (!inv) return null;
+
+                    const selectManagerFiles =
+                      managerScope === "strategy"
+                        ? selectManagerStrategyFiles
+                        : selectManagerTradeFiles;
+
                     const allPaths = inv.keyPaths[key] ?? [];
                     const perVal = inv.valPaths[key] ?? {};
                     const sortedVals = Object.entries(perVal).sort(
@@ -6458,7 +6590,19 @@ const ConsoleComponent: React.FC<Props> = ({
                                 "1px solid var(--background-modifier-border)",
                             }}
                           >
-                            <div style={{ fontWeight: 800 }}>{key}</div>
+                            <div style={{ fontWeight: 800 }}>
+                              {key}
+                              <span
+                                style={{
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.9em",
+                                  marginLeft: "10px",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {managerScope === "strategy" ? "策略" : "交易"}
+                              </span>
+                            </div>
                             <div style={{ display: "flex", gap: "8px" }}>
                               <button
                                 type="button"
