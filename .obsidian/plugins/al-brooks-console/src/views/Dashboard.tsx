@@ -900,6 +900,9 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [status]);
 
+  type DashboardPage = "daily" | "trading" | "analytics" | "learn" | "manage";
+  const [activePage, setActivePage] = React.useState<DashboardPage>("daily");
+
   const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
     padding: "4px 8px",
@@ -918,6 +921,27 @@ const ConsoleComponent: React.FC<Props> = ({
     ...buttonStyle,
     opacity: 0.5,
     cursor: "not-allowed",
+  };
+
+  const tabButtonStyle: React.CSSProperties = {
+    padding: "6px 10px",
+    fontSize: "0.85em",
+    border: "1px solid var(--background-modifier-border)",
+    borderRadius: "999px",
+    background: "var(--background-primary)",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    outline: "none",
+    transition:
+      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+  };
+
+  const activeTabButtonStyle: React.CSSProperties = {
+    ...tabButtonStyle,
+    background: "var(--interactive-accent)",
+    borderColor: "var(--interactive-accent)",
+    color: "var(--text-on-accent)",
+    fontWeight: 800,
   };
 
   const selectStyle: React.CSSProperties = {
@@ -1709,107 +1733,141 @@ const ConsoleComponent: React.FC<Props> = ({
 
       <div
         style={{
-          margin: "12px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
           display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
           flexWrap: "wrap",
+          gap: "8px",
+          margin: "-6px 0 14px",
         }}
       >
-        <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Trading Hub
-        </div>
+        {(
+          [
+            { id: "daily", label: "每日行动" },
+            { id: "trading", label: "交易中心" },
+            { id: "analytics", label: "数据中心" },
+            { id: "learn", label: "学习模块" },
+            { id: "manage", label: "管理/维护" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActivePage(t.id)}
+            style={t.id === activePage ? activeTabButtonStyle : tabButtonStyle}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {latestTrade && reviewHints.length > 0 && (
-        <details style={{ marginBottom: "16px" }}>
-          <summary
-            style={{
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              fontSize: "0.95em",
-              userSelect: "none",
-              marginBottom: "8px",
-            }}
-          >
-            扩展（不参与旧版对照）：复盘提示
-          </summary>
+      {activePage === "daily" || activePage === "trading" ? (
+        <>
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              background: "var(--background-primary)",
+              margin: "12px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              复盘提示
-              <span
+            <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              Trading Hub
+            </div>
+          </div>
+
+          {activePage === "daily" && latestTrade && reviewHints.length > 0 && (
+            <details style={{ marginBottom: "16px" }}>
+              <summary
                 style={{
-                  fontWeight: 400,
-                  marginLeft: "8px",
+                  cursor: "pointer",
                   color: "var(--text-muted)",
-                  fontSize: "0.85em",
+                  fontSize: "0.95em",
+                  userSelect: "none",
+                  marginBottom: "8px",
                 }}
               >
-                {latestTrade.name}
-              </span>
-            </div>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {reviewHints.slice(0, 4).map((h) => (
-                <li key={h.id} style={{ marginBottom: "6px" }}>
-                  <div>{h.zh}</div>
-                  <div
-                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                扩展（不参与旧版对照）：复盘提示
+              </summary>
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  background: "var(--background-primary)",
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                  复盘提示
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      marginLeft: "8px",
+                      color: "var(--text-muted)",
+                      fontSize: "0.85em",
+                    }}
                   >
-                    {h.en}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
-      )}
+                    {latestTrade.name}
+                  </span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {reviewHints.slice(0, 4).map((h) => (
+                    <li key={h.id} style={{ marginBottom: "6px" }}>
+                      <div>{h.zh}</div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        {h.en}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+          )}
 
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
-
-        {!todayMarketCycle && (
-          <div style={{ marginBottom: "12px" }}>
+          {activePage === "daily" ? (
             <div
               style={{
-                color: "var(--text-muted)",
-                fontSize: "0.9em",
-                marginBottom: "10px",
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
               }}
             >
-              创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-            </div>
-            <button
-              type="button"
-              disabled={!canOpenTodayNote}
-              onClick={onOpenTodayNote}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-            >
-              打开/创建今日日记（设置市场周期）
-            </button>
-          </div>
-        )}
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
+
+              {!todayMarketCycle && (
+                <div style={{ marginBottom: "12px" }}>
+                  <div
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "0.9em",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!canOpenTodayNote}
+                    onClick={onOpenTodayNote}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+                  >
+                    打开/创建今日日记（设置市场周期）
+                  </button>
+                </div>
+              )}
 
         <div
           style={{
@@ -1849,8 +1907,8 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         )}
 
-        {openTrade && (
-          <div>
+              {openTrade && (
+                <div>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
               进行中交易助手
             </div>
@@ -2178,8 +2236,538 @@ const ConsoleComponent: React.FC<Props> = ({
                 );
               })()
             )}
-          </div>
-        )}
+                </div>
+              )}
+
+            </div>
+          ) : activePage === "trading" ? (
+            <div
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                }}
+              >
+                <div style={{ flex: "2 1 520px", minWidth: "320px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    {(
+                      [
+                        {
+                          t: "总交易",
+                          v: String(todaySummary.All.countTotal),
+                          c: "var(--text-normal)",
+                        },
+                        {
+                          t: "获胜",
+                          v: String(todaySummary.All.countWins),
+                          c: "var(--text-success)",
+                        },
+                        {
+                          t: "亏损",
+                          v: String(todaySummary.All.countLosses),
+                          c: "var(--text-error)",
+                        },
+                        {
+                          t: "胜率",
+                          v: `${todaySummary.All.winRatePct}%`,
+                          c:
+                            todaySummary.All.winRatePct >= 50
+                              ? "var(--text-success)"
+                              : "var(--text-warning)",
+                        },
+                        {
+                          t: "净利润",
+                          v: `${
+                            todaySummary.All.netProfit >= 0 ? "+" : ""
+                          }${todaySummary.All.netProfit.toFixed(1)}R`,
+                          c:
+                            todaySummary.All.netProfit >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
+                        },
+                      ] as const
+                    ).map((x) => (
+                      <div
+                        key={`today-m-${x.t}`}
+                        style={{
+                          flex: "1 1 160px",
+                          minWidth: "160px",
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "12px",
+                          padding: "12px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                          }}
+                        >
+                          {x.t}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: "6px",
+                            fontWeight: 800,
+                            fontSize: "1.2rem",
+                            color: x.c,
+                          }}
+                        >
+                          {x.v}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: "6px" }}>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                      最近交易记录
+                    </div>
+                    {todayTrades.length > 0 ? (
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {todayTrades.slice(0, 5).map((t) => {
+                          const dir = (t.direction ?? "").toString().trim();
+                          const dirIcon =
+                            dir === "多" || dir.toLowerCase() === "long"
+                              ? "📈"
+                              : dir === "空" || dir.toLowerCase() === "short"
+                              ? "📉"
+                              : "➡️";
+                          const tf = (t.timeframe ?? "").toString().trim();
+                          const ident = identifyStrategyForAnalytics(
+                            t,
+                            strategyIndex
+                          );
+                          const strategy =
+                            ident.name && ident.name !== "Unknown"
+                              ? ident.name
+                              : "";
+
+                          const outcome = t.outcome;
+                          const outcomeLabel =
+                            outcome === "win"
+                              ? "Win"
+                              : outcome === "loss"
+                              ? "Loss"
+                              : outcome === "scratch"
+                              ? "Scratch"
+                              : outcome === "open" ||
+                                outcome === "unknown" ||
+                                outcome === undefined
+                              ? "进行中"
+                              : String(outcome);
+                          const outcomeColor =
+                            outcome === "win"
+                              ? "var(--text-success)"
+                              : outcome === "loss"
+                              ? "var(--text-error)"
+                              : outcome === "scratch"
+                              ? "var(--text-warning)"
+                              : "var(--text-muted)";
+
+                          const pnl =
+                            typeof t.pnl === "number" && Number.isFinite(t.pnl)
+                              ? t.pnl
+                              : undefined;
+                          const pnlColor =
+                            pnl === undefined
+                              ? "var(--text-muted)"
+                              : pnl >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)";
+
+                          const entry =
+                            (t.rawFrontmatter?.[
+                              "entry"
+                            ] as unknown as string | undefined) ??
+                            (t.rawFrontmatter?.[
+                              "入场"
+                            ] as unknown as string | undefined);
+                          const stop =
+                            (t.rawFrontmatter?.[
+                              "stop"
+                            ] as unknown as string | undefined) ??
+                            (t.rawFrontmatter?.[
+                              "止损"
+                            ] as unknown as string | undefined);
+
+                          return (
+                            <li key={t.path} style={{ marginBottom: "10px" }}>
+                              <button
+                                type="button"
+                                onClick={() => openFile(t.path)}
+                                style={textButtonStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {dirIcon} {t.ticker ?? "未知"}
+                                {tf ? ` ${tf}` : ""}
+                                {strategy ? ` - ${strategy}` : ""}
+                              </button>
+
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "10px",
+                                  marginTop: "4px",
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.85em",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    padding: "1px 6px",
+                                    borderRadius: "6px",
+                                    border:
+                                      "1px solid var(--background-modifier-border)",
+                                    color: outcomeColor,
+                                  }}
+                                >
+                                  {outcomeLabel}
+                                </span>
+                                {entry ? <span>入场: {String(entry)}</span> : null}
+                                {stop ? <span>止损: {String(stop)}</span> : null}
+                                {pnl !== undefined ? (
+                                  <span style={{ color: pnlColor, fontWeight: 700 }}>
+                                    PnL: {pnl >= 0 ? "+" : ""}
+                                    {pnl.toFixed(1)}R
+                                  </span>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <div
+                        style={{ color: "var(--text-faint)", padding: "4px 0" }}
+                      >
+                        今日暂无交易记录
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
+                  <div style={{ marginBottom: "12px" }}>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                      快捷入口
+                    </div>
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                    >
+                      <button
+                        type="button"
+                        disabled={!can("quickadd:new-live-trade")}
+                        onClick={() => action("quickadd:new-live-trade")}
+                        onMouseEnter={onBtnMouseEnter}
+                        onMouseLeave={onBtnMouseLeave}
+                        onFocus={onBtnFocus}
+                        onBlur={onBtnBlur}
+                        style={
+                          can("quickadd:new-live-trade")
+                            ? buttonStyle
+                            : disabledButtonStyle
+                        }
+                      >
+                        新建实盘
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!can("quickadd:new-demo-trade")}
+                        onClick={() => action("quickadd:new-demo-trade")}
+                        onMouseEnter={onBtnMouseEnter}
+                        onMouseLeave={onBtnMouseLeave}
+                        onFocus={onBtnFocus}
+                        onBlur={onBtnBlur}
+                        style={
+                          can("quickadd:new-demo-trade")
+                            ? buttonStyle
+                            : disabledButtonStyle
+                        }
+                      >
+                        新建模拟
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!can("quickadd:new-backtest")}
+                        onClick={() => action("quickadd:new-backtest")}
+                        onMouseEnter={onBtnMouseEnter}
+                        onMouseLeave={onBtnMouseLeave}
+                        onFocus={onBtnFocus}
+                        onBlur={onBtnBlur}
+                        style={
+                          can("quickadd:new-backtest")
+                            ? buttonStyle
+                            : disabledButtonStyle
+                        }
+                      >
+                        新建回测
+                      </button>
+                      {!can("quickadd:new-live-trade") &&
+                        !can("quickadd:new-demo-trade") &&
+                        !can("quickadd:new-backtest") && (
+                          <span
+                            style={{
+                              color: "var(--text-muted)",
+                              fontSize: "0.85em",
+                              alignSelf: "center",
+                            }}
+                          >
+                            QuickAdd 不可用
+                          </span>
+                        )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                      近期 R 趋势
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div style={{ flex: "1 1 220px", minWidth: "220px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            fontSize: "0.75em",
+                            marginBottom: "6px",
+                            color: "var(--text-muted)",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span style={{ color: getRColorByAccountType("Live") }}>
+                            ● 实盘
+                          </span>
+                          <span style={{ color: getRColorByAccountType("Demo") }}>
+                            ● 模拟
+                          </span>
+                          <span
+                            style={{ color: getRColorByAccountType("Backtest") }}
+                          >
+                            ● 回测
+                          </span>
+                        </div>
+
+                        {last30TradesDesc.length === 0 ? (
+                          <div
+                            style={{ color: "var(--text-faint)", fontSize: "0.85em" }}
+                          >
+                            暂无交易数据
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-end",
+                              gap: "4px",
+                              height: "70px",
+                              borderBottom:
+                                "1px solid var(--background-modifier-border)",
+                              paddingBottom: "6px",
+                            }}
+                          >
+                            {last30TradesDesc
+                              .slice()
+                              .reverse()
+                              .map((t) => {
+                                const r =
+                                  typeof t.pnl === "number" &&
+                                  Number.isFinite(t.pnl)
+                                    ? t.pnl
+                                    : 0;
+                                const h = Math.max(
+                                  4,
+                                  Math.round((Math.abs(r) / last30MaxAbsR) * 56)
+                                );
+                                const color =
+                                  r >= 0
+                                    ? getRColorByAccountType(t.accountType ?? "Live")
+                                    : "var(--text-error)";
+                                const title = `${t.name}\n${
+                                  t.accountType ?? "—"
+                                }\nR: ${r.toFixed(2)}`;
+                                return (
+                                  <div
+                                    key={t.path}
+                                    title={title}
+                                    style={{
+                                      width: "6px",
+                                      height: `${h}px`,
+                                      background: color,
+                                      borderRadius: "2px",
+                                      opacity: r >= 0 ? 1 : 0.7,
+                                    }}
+                                  />
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          flex: "1 1 180px",
+                          minWidth: "180px",
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            opacity: 0.75,
+                            marginBottom: "6px",
+                          }}
+                        >
+                          🧠 实盘心态
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "1.2em",
+                            fontWeight: 900,
+                            color: liveMind.color,
+                          }}
+                        >
+                          {liveMind.status}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-faint)",
+                            fontSize: "0.85em",
+                            marginTop: "6px",
+                          }}
+                        >
+                          近期错误：追单(FOMO) {liveMind.fomo} | 上头(Tilt) {liveMind.tilt}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      最近 10 笔
+                    </div>
+                    {(["Live", "Demo", "Backtest"] as const).map((at) => (
+                      <TrendRow
+                        key={`r10-${at}`}
+                        label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+                        value={rLast10[at]}
+                        ratio={r10MaxAbs > 0 ? rLast10[at] / r10MaxAbs : 0}
+                        color={getRColorByAccountType(at)}
+                      />
+                    ))}
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                        margin: "10px 0 8px",
+                      }}
+                    >
+                      最近 30 笔
+                    </div>
+                    {(["Live", "Demo", "Backtest"] as const).map((at) => (
+                      <TrendRow
+                        key={`r30-${at}`}
+                        label={at === "Live" ? "实盘" : at === "Demo" ? "模拟" : "回测"}
+                        value={rLast30[at]}
+                        ratio={r30MaxAbs > 0 ? rLast30[at] / r30MaxAbs : 0}
+                        color={getRColorByAccountType(at)}
+                      />
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: "14px" }}>
+                    <button
+                      type="button"
+                      disabled={!canCreateTrade && !createTradeNote}
+                      onClick={() => {
+                        if (can("quickadd:new-live-trade"))
+                          return action("quickadd:new-live-trade");
+                        if (can("quickadd:new-demo-trade"))
+                          return action("quickadd:new-demo-trade");
+                        if (can("quickadd:new-backtest"))
+                          return action("quickadd:new-backtest");
+                        void createTradeNote?.();
+                      }}
+                      onMouseEnter={(e) => {
+                        if (e.currentTarget.disabled) return;
+                        e.currentTarget.style.filter = "brightness(1.02)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.filter = "none";
+                      }}
+                      style={
+                        canCreateTrade || createTradeNote
+                          ? {
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: "10px",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              background: "var(--interactive-accent)",
+                              color: "var(--text-on-accent)",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }
+                          : {
+                              width: "100%",
+                              padding: "10px 12px",
+                              borderRadius: "10px",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              background: "var(--background-primary)",
+                              color: "var(--text-faint)",
+                              fontWeight: 800,
+                              opacity: 0.6,
+                              cursor: "not-allowed",
+                            }
+                      }
+                    >
+                      创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
 
         <div
           style={{
@@ -2684,6 +3272,8 @@ const ConsoleComponent: React.FC<Props> = ({
           Analytics Hub
         </div>
       </div>
+
+      {activePage === "analytics" ? null : null}
 
       {/* Stats Row */}
       <div
