@@ -5,8 +5,13 @@ interface Props {
   strategies: StrategyCard[];
   onOpenFile: (path: string) => void;
   /** Optional perf stats keyed by canonical strategy name (computed from trades). */
-  perf?: Map<string, { total: number; wins: number; pnl: number; lastDateIso: string }>;
+  perf?: Map<
+    string,
+    { total: number; wins: number; pnl: number; lastDateIso: string }
+  >;
   showTitle?: boolean;
+  /** Hide search/filter controls (Dashboard wants to stay close to v5 UX). */
+  showControls?: boolean;
 }
 
 export const StrategyList: React.FC<Props> = ({
@@ -14,6 +19,7 @@ export const StrategyList: React.FC<Props> = ({
   onOpenFile,
   perf,
   showTitle = true,
+  showControls = true,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [cycleFilter, setCycleFilter] = React.useState("All");
@@ -53,9 +59,19 @@ export const StrategyList: React.FC<Props> = ({
 
       const s = s0.toLowerCase();
       if (s.includes("active") || s.includes("实战")) return "实战中/Active";
-      if (s.includes("valid") || s.includes("verify") || s.includes("test") || s.includes("验证"))
+      if (
+        s.includes("valid") ||
+        s.includes("verify") ||
+        s.includes("test") ||
+        s.includes("验证")
+      )
         return "验证中/Validating";
-      if (s.includes("learn") || s.includes("study") || s.includes("read") || s.includes("学习"))
+      if (
+        s.includes("learn") ||
+        s.includes("study") ||
+        s.includes("read") ||
+        s.includes("学习")
+      )
         return "学习中/Learning";
       return `待补充/${s0}`;
     },
@@ -115,9 +131,12 @@ export const StrategyList: React.FC<Props> = ({
       const pb = perfOf(b);
       if ((pb.lastDateIso || "") !== (pa.lastDateIso || ""))
         return (pb.lastDateIso || "").localeCompare(pa.lastDateIso || "");
-      if ((pb.total || 0) !== (pa.total || 0)) return (pb.total || 0) - (pa.total || 0);
+      if ((pb.total || 0) !== (pa.total || 0))
+        return (pb.total || 0) - (pa.total || 0);
       if ((pb.pnl || 0) !== (pa.pnl || 0)) return (pb.pnl || 0) - (pa.pnl || 0);
-      return (a.canonicalName || a.name).localeCompare(b.canonicalName || b.name);
+      return (a.canonicalName || a.name).localeCompare(
+        b.canonicalName || b.name
+      );
     });
 
     const by = new Map<string, StrategyCard[]>();
@@ -146,27 +165,29 @@ export const StrategyList: React.FC<Props> = ({
         {showTitle ? (
           <h3 className="pa-card-title">策略仓库 (Strategy Repository)</h3>
         ) : null}
-        <div style={{ display: "flex", gap: "8px" }}>
-          <select
-            value={cycleFilter}
-            onChange={(e) => setCycleFilter(e.target.value)}
-            className="pa-input"
-          >
-            <option value="All">所有周期</option>
-            {cycles.map((c) => (
-              <option key={c} value={c}>
-                {cycleToCn(c) || c}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="搜索策略..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pa-input"
-          />
-        </div>
+        {showControls ? (
+          <div style={{ display: "flex", gap: "8px" }}>
+            <select
+              value={cycleFilter}
+              onChange={(e) => setCycleFilter(e.target.value)}
+              className="pa-input"
+            >
+              <option value="All">所有周期</option>
+              {cycles.map((c) => (
+                <option key={c} value={c}>
+                  {cycleToCn(c) || c}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="搜索策略..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pa-input"
+            />
+          </div>
+        ) : null}
       </div>
 
       {filtered.length === 0 ? (
@@ -194,10 +215,13 @@ export const StrategyList: React.FC<Props> = ({
                     perf?.get(s.canonicalName) ??
                     perf?.get(s.name) ??
                     ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
-                  const wr = p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
+                  const wr =
+                    p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                   const active = isActive((s as any).statusRaw);
                   const statusLabel = statusToCn((s as any).statusRaw);
-                  const lastDate = p.lastDateIso ? p.lastDateIso.slice(0, 10) : "";
+                  const lastDate = p.lastDateIso
+                    ? p.lastDateIso.slice(0, 10)
+                    : "";
 
                   return (
                     <div
@@ -243,7 +267,9 @@ export const StrategyList: React.FC<Props> = ({
                           {lastDate ? (
                             <>
                               <span style={{ opacity: 0.6 }}> · </span>
-                              <span style={{ opacity: 0.85 }}>最近 {lastDate}</span>
+                              <span style={{ opacity: 0.85 }}>
+                                最近 {lastDate}
+                              </span>
                             </>
                           ) : null}
                         </span>
@@ -267,7 +293,8 @@ export const StrategyList: React.FC<Props> = ({
                         </div>
                       )}
 
-                      {(s.marketCycles.length > 0 || s.setupCategories.length > 0) && (
+                      {(s.marketCycles.length > 0 ||
+                        s.setupCategories.length > 0) && (
                         <div
                           style={{
                             display: "flex",

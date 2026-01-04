@@ -135,13 +135,11 @@ export default class AlBrooksConsolePlugin extends Plugin {
       const snapshot = this.buildSnapshot();
       // Wraps in a structure vaguely resembling old paData if needed,
       // but usually tools just need 'trades'. The current snapshot has 'trades'.
-      // We will save it to the fixed legacy path.
+      // We will save it to the fixed legacy path (vault root): pa-db-export.json
 
       const content = JSON.stringify(snapshot, null, 2);
-      const dir = "Exports/al-brooks-console";
-      await this.ensureFolder(dir);
 
-      const path = `${dir}/pa-db-export.json`;
+      const path = "pa-db-export.json";
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing) {
         if (existing instanceof TFile) {

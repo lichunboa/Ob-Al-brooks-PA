@@ -197,7 +197,9 @@ export function computeErrorAnalysis(
     const errStr = getExecutionQualityFromTrade(t);
     if (!isBadExecutionQuality(errStr)) continue;
 
-    const keyRaw = errStr.includes("(") ? errStr.split("(")[0].trim() : errStr.trim();
+    const keyRaw = errStr.includes("(")
+      ? errStr.split("(")[0].trim()
+      : errStr.trim();
     const key = keyRaw.length ? keyRaw : "Unknown";
 
     const cost = Math.abs(pnl);
@@ -237,7 +239,8 @@ const EXECUTION_QUALITY_FIELD_ALIASES = [
 ] as const;
 
 function getExecutionQualityFromTrade(t: TradeRecord): string {
-  const direct = typeof t.executionQuality === "string" ? t.executionQuality : "";
+  const direct =
+    typeof t.executionQuality === "string" ? t.executionQuality : "";
   if (direct.trim()) return direct.trim();
 
   const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
@@ -281,7 +284,9 @@ export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
     const errStr = getExecutionQualityFromTrade(t);
     if (!isBadExecutionQuality(errStr)) continue;
 
-    const keyRaw = errStr.includes("(") ? errStr.split("(")[0].trim() : errStr.trim();
+    const keyRaw = errStr.includes("(")
+      ? errStr.split("(")[0].trim()
+      : errStr.trim();
     const key = keyRaw.length ? keyRaw : "Unknown";
 
     const cost = Math.abs(pnl);

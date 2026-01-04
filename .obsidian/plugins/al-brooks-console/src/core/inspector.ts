@@ -76,8 +76,7 @@ function issueId(path: string, kind: string): string {
 
 export function buildInspectorIssues(
   trades: TradeRecord[],
-  presets?: EnumPresets
-  ,
+  presets?: EnumPresets,
   strategyIndex?: StrategyIndex
 ): InspectorIssue[] {
   const issues: InspectorIssue[] = [];
@@ -226,7 +225,9 @@ export function buildInspectorIssues(
     if (strategyIndex) {
       const rawStrategy = normStr(t.strategyName);
       if (rawStrategy && rawStrategy.toLowerCase() !== "unknown") {
-        const looked = strategyIndex.lookup ? strategyIndex.lookup(rawStrategy) : undefined;
+        const looked = strategyIndex.lookup
+          ? strategyIndex.lookup(rawStrategy)
+          : undefined;
 
         if (!looked) {
           issues.push({
@@ -237,10 +238,14 @@ export function buildInspectorIssues(
             detail: rawStrategy,
           });
         } else {
-          const patterns =
-            (t.patternsObserved ?? []).filter((x) => typeof x === "string" && x.trim().length > 0) as string[];
+          const patterns = (t.patternsObserved ?? []).filter(
+            (x) => typeof x === "string" && x.trim().length > 0
+          ) as string[];
           // 若索引层没填 patternsObserved，则回退到 frontmatter。
-          const rawPatHit = getFirstFieldValue(fm, TRADE_FIELD_ALIASES.patternsObserved)?.value;
+          const rawPatHit = getFirstFieldValue(
+            fm,
+            TRADE_FIELD_ALIASES.patternsObserved
+          )?.value;
           const patternsFromFm = patterns.length ? [] : asStrings(rawPatHit);
           const pats = patterns.length ? patterns : patternsFromFm;
 
@@ -251,7 +256,9 @@ export function buildInspectorIssues(
                 .filter(Boolean)
                 .map((x) => x.toLowerCase())
             );
-            const hasMatch = pats.some((p) => allowed.has(normStr(p).toLowerCase()));
+            const hasMatch = pats.some((p) =>
+              allowed.has(normStr(p).toLowerCase())
+            );
 
             if (allowed.size > 0 && !hasMatch) {
               issues.push({
@@ -259,7 +266,10 @@ export function buildInspectorIssues(
                 severity: "warn",
                 path: t.path,
                 title: "策略/形态不匹配",
-                detail: `${rawStrategy} vs [${pats.map((p) => normStr(p)).filter(Boolean).join(", ")}]`,
+                detail: `${rawStrategy} vs [${pats
+                  .map((p) => normStr(p))
+                  .filter(Boolean)
+                  .join(", ")}]`,
               });
             }
           }

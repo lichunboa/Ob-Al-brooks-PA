@@ -103,7 +103,8 @@ export function computeMindsetFromRecentLive(
   ] as const;
 
   const getExecutionText = (t: TradeRecord): string => {
-    const direct = typeof t.executionQuality === "string" ? t.executionQuality : "";
+    const direct =
+      typeof t.executionQuality === "string" ? t.executionQuality : "";
     if (direct.trim()) return direct.trim();
 
     const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
@@ -231,19 +232,44 @@ export function computeHubSuggestion(args: {
 
     // 2) management_error / 自由文本：少量别名兜底（用于兼容旧数据/手填）
     const s = withoutLeadingEmoji.toLowerCase();
-    if (s === "tilt" || raw.includes("上头") || raw.includes("报复")) return "Tilt";
-    if (s === "fomo" || raw.includes("追单") || raw.includes("追涨") || raw.includes("冲动")) return "FOMO";
-    if (s === "hesitation" || raw.includes("犹豫") || raw.includes("不敢") || raw.includes("拖延")) {
+    if (s === "tilt" || raw.includes("上头") || raw.includes("报复"))
+      return "Tilt";
+    if (
+      s === "fomo" ||
+      raw.includes("追单") ||
+      raw.includes("追涨") ||
+      raw.includes("冲动")
+    )
+      return "FOMO";
+    if (
+      s === "hesitation" ||
+      raw.includes("犹豫") ||
+      raw.includes("不敢") ||
+      raw.includes("拖延")
+    ) {
       return "Hesitation";
     }
-    if (s === "panic exit" || raw.includes("恐慌平仓") || raw.includes("恐慌")) return "PanicExit";
-    if (s === "no stop" || s === "nostop" || raw.includes("扛单") || raw.includes("不止损") || raw.includes("无止损")) {
+    if (s === "panic exit" || raw.includes("恐慌平仓") || raw.includes("恐慌"))
+      return "PanicExit";
+    if (
+      s === "no stop" ||
+      s === "nostop" ||
+      raw.includes("扛单") ||
+      raw.includes("不止损") ||
+      raw.includes("无止损")
+    ) {
       return "NoStop";
     }
-    if (s === "overtrading" || s === "overtrade" || raw.includes("过度交易")) return "Overtrading";
+    if (s === "overtrading" || s === "overtrade" || raw.includes("过度交易"))
+      return "Overtrading";
 
     // 3) 非枚举：保留 v5 风格的少量识别
-    if (raw.includes("过早") || raw.includes("早退") || raw.includes("提前止盈") || s === "early exit") {
+    if (
+      raw.includes("过早") ||
+      raw.includes("早退") ||
+      raw.includes("提前止盈") ||
+      s === "early exit"
+    ) {
       return "EarlyExit";
     }
 
@@ -292,16 +318,14 @@ export function computeHubSuggestion(args: {
   if (args.mindset.tilt > 0 || fomo > 1) {
     return {
       tone: "danger",
-      text:
-        `检测到情绪化交易风险（Tilt/FOMO）。${topErrHint}${topErrRule}建议立即停止实盘，强制休息 24 小时。`,
+      text: `检测到情绪化交易风险（Tilt/FOMO）。${topErrHint}${topErrRule}建议立即停止实盘，强制休息 24 小时。`,
     };
   }
 
   if (fomo > 0 || hesitation > 0) {
     return {
       tone: "warn",
-      text:
-        `检测到冲动/犹豫迹象（FOMO/犹豫）。${topErrHint}${topErrRule}建议降低仓位、严格等待信号，优先在模拟盘恢复稳定执行。`,
+      text: `检测到冲动/犹豫迹象（FOMO/犹豫）。${topErrHint}${topErrRule}建议降低仓位、严格等待信号，优先在模拟盘恢复稳定执行。`,
     };
   }
 
