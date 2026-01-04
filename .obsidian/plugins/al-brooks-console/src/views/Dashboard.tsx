@@ -86,6 +86,22 @@ import {
 import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 import { TRADE_TAG } from "../core/field-mapper";
 import { V5_COLORS, withHexAlpha } from "../ui/tokens";
+import {
+  activeTabButtonStyle,
+  buttonSmDisabledStyle,
+  buttonSmStyle,
+  buttonStyle,
+  cardStyle,
+  cardSubtleTightStyle,
+  cardTightStyle,
+  disabledButtonStyle,
+  selectStyle,
+  tabButtonStyle,
+  textButtonNoWrapStyle,
+  textButtonSemiboldStyle,
+  textButtonStrongStyle,
+  textButtonStyle,
+} from "../ui/styles/dashboardPrimitives";
 
 function toLocalDateIso(d: Date): string {
   const y = d.getFullYear();
@@ -951,115 +967,6 @@ const ConsoleComponent: React.FC<Props> = ({
 
   type DashboardPage = "trading" | "analytics" | "learn" | "manage";
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
-
-  const buttonStyle: React.CSSProperties = {
-    marginLeft: "8px",
-    padding: "4px 9px",
-    fontSize: "0.8em",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "6px",
-    background: "var(--background-primary)",
-    color: "var(--text-normal)",
-    cursor: "pointer",
-    outline: "none",
-    transition:
-      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
-  };
-
-  const disabledButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    opacity: 0.5,
-    cursor: "not-allowed",
-  };
-
-  const buttonSmStyle: React.CSSProperties = {
-    ...buttonStyle,
-    padding: "5px 9px",
-  };
-
-  const buttonSmDisabledStyle: React.CSSProperties = {
-    ...disabledButtonStyle,
-    padding: "5px 9px",
-  };
-
-  const tabButtonStyle: React.CSSProperties = {
-    padding: "5px 9px",
-    fontSize: "0.85em",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "999px",
-    background: "var(--background-primary)",
-    color: "var(--text-muted)",
-    cursor: "pointer",
-    outline: "none",
-    transition:
-      "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
-  };
-
-  const activeTabButtonStyle: React.CSSProperties = {
-    ...tabButtonStyle,
-    background: "var(--interactive-accent)",
-    borderColor: "var(--interactive-accent)",
-    color: "var(--text-on-accent)",
-    fontWeight: 800,
-  };
-
-  const selectStyle: React.CSSProperties = {
-    padding: "4px 8px",
-    fontSize: "0.85em",
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "6px",
-    background: "var(--background-primary)",
-    color: "var(--text-normal)",
-  };
-
-  const textButtonStyle: React.CSSProperties = {
-    padding: "2px 4px",
-    border: "none",
-    background: "transparent",
-    color: "var(--text-accent)",
-    cursor: "pointer",
-    textAlign: "left",
-    borderRadius: "6px",
-    outline: "none",
-    transition: "background-color 180ms ease, box-shadow 180ms ease",
-  };
-
-  const textButtonSemiboldStyle: React.CSSProperties = {
-    ...textButtonStyle,
-    fontWeight: 600,
-  };
-
-  const textButtonStrongStyle: React.CSSProperties = {
-    ...textButtonStyle,
-    fontWeight: 700,
-  };
-
-  const textButtonNoWrapStyle: React.CSSProperties = {
-    ...textButtonStyle,
-    whiteSpace: "nowrap",
-  };
-
-  const cardStyle: React.CSSProperties = {
-    border: "1px solid var(--background-modifier-border)",
-    borderRadius: "10px",
-    padding: "12px",
-    background: "var(--background-primary)",
-  };
-
-  const cardTightStyle: React.CSSProperties = {
-    ...cardStyle,
-    padding: "10px",
-  };
-
-  const cardSubtleStyle: React.CSSProperties = {
-    ...cardStyle,
-    background: "rgba(var(--mono-rgb-100), 0.03)",
-  };
-
-  const cardSubtleTightStyle: React.CSSProperties = {
-    ...cardSubtleStyle,
-    padding: "10px",
-  };
 
   const onBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
