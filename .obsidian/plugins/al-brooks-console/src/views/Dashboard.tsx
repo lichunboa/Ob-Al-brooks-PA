@@ -1615,7 +1615,7 @@ const ConsoleComponent: React.FC<Props> = ({
         <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
           <span
             style={{
-              color: value >= 0 ? "var(--text-success)" : "var(--text-error)",
+              color: value >= 0 ? V5_COLORS.win : V5_COLORS.loss,
               fontWeight: 600,
             }}
           >
@@ -2163,8 +2163,8 @@ const ConsoleComponent: React.FC<Props> = ({
                                 style={{
                                   marginLeft: "6px",
                                   color: signalMatch
-                                    ? "var(--text-success)"
-                                    : "var(--text-warning)",
+                                    ? V5_COLORS.win
+                                    : V5_COLORS.back,
                                   fontWeight: 700,
                                 }}
                               >
@@ -3903,7 +3903,7 @@ short mode\n\
                           <polyline
                             points={points}
                             fill="none"
-                            stroke="var(--text-accent)"
+                            stroke={V5_COLORS.accent}
                             strokeWidth="2"
                             strokeLinejoin="round"
                             strokeLinecap="round"
@@ -3921,8 +3921,8 @@ short mode\n\
                             style={{
                               color:
                                 last.equityR >= 0
-                                  ? "var(--text-success)"
-                                  : "var(--text-error)",
+                                  ? V5_COLORS.win
+                                  : V5_COLORS.loss,
                               fontWeight: 600,
                             }}
                           >
@@ -4732,21 +4732,21 @@ short mode\n\
                         <div
                           style={{
                             width: seg(memory.cnt?.mNorm ?? 0),
-                            background: "var(--text-accent)",
+                            background: V5_COLORS.accent,
                             opacity: 0.55,
                           }}
                         />
                         <div
                           style={{
                             width: seg((memory.cnt?.mRev ?? 0) * 2),
-                            background: "var(--text-accent)",
+                            background: V5_COLORS.accent,
                             opacity: 0.35,
                           }}
                         />
                         <div
                           style={{
                             width: seg(memory.cnt?.cloze ?? 0),
-                            background: "var(--text-accent)",
+                            background: V5_COLORS.accent,
                             opacity: 0.85,
                           }}
                         />
