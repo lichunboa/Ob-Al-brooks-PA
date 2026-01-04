@@ -1,5 +1,6 @@
 import type { TradeRecord } from "./contracts";
 import type { EnumPresets } from "./enum-presets";
+import type { StrategyIndex } from "./strategy-index";
 
 export type IssueSeverity = "error" | "warn";
 
@@ -76,11 +77,20 @@ function issueId(path: string, kind: string): string {
 export function buildInspectorIssues(
   trades: TradeRecord[],
   presets?: EnumPresets
+  ,
+  strategyIndex?: StrategyIndex
 ): InspectorIssue[] {
   const issues: InspectorIssue[] = [];
 
   for (const t of trades) {
     const fm = (t.rawFrontmatter ?? {}) as Record<string, any>;
+
+    const normStr = (v: unknown) =>
+      v === undefined || v === null ? "" : String(v).trim();
+    const isUnknown = (v: unknown) => {
+      const s = normStr(v);
+      return !s || s.toLowerCase() === "unknown";
+    };
 
     if (!t.dateIso) {
       issues.push({
@@ -106,6 +116,25 @@ export function buildInspectorIssues(
         severity: "warn",
         path: t.path,
         title: "缺少品种 (ticker)",
+      });
+    }
+
+    if (!t.timeframe) {
+      issues.push({
+        id: issueId(t.path, "missing-timeframe"),
+        severity: "warn",
+        path: t.path,
+        title: "缺少时间周期 (timeframe)",
+      });
+    }
+
+    // legacy v5.0：setup/setup_category 是常见缺失项；若策略名存在可降低其紧迫性，但仍报告。
+    if (!t.setupCategory) {
+      issues.push({
+        id: issueId(t.path, "missing-setup"),
+        severity: "warn",
+        path: t.path,
+        title: "缺少设置类别 (setup_category)",
       });
     }
 
@@ -191,6 +220,51 @@ export function buildInspectorIssues(
         "strategy_name",
         getFirstFieldValue(fm, TRADE_FIELD_ALIASES.strategyName)?.value
       );
+    }
+
+    // --- Strategy consistency checks (align with legacy pa-view-inspector) ---
+    if (strategyIndex) {
+      const rawStrategy = normStr(t.strategyName);
+      if (rawStrategy && rawStrategy.toLowerCase() !== "unknown") {
+        const looked = strategyIndex.lookup ? strategyIndex.lookup(rawStrategy) : undefined;
+
+        if (!looked) {
+          issues.push({
+            id: issueId(t.path, "unknown-strategy"),
+            severity: "warn",
+            path: t.path,
+            title: "未知策略名 (strategy_name)",
+            detail: rawStrategy,
+          });
+        } else {
+          const patterns =
+            (t.patternsObserved ?? []).filter((x) => typeof x === "string" && x.trim().length > 0) as string[];
+          // 若索引层没填 patternsObserved，则回退到 frontmatter。
+          const rawPatHit = getFirstFieldValue(fm, TRADE_FIELD_ALIASES.patternsObserved)?.value;
+          const patternsFromFm = patterns.length ? [] : asStrings(rawPatHit);
+          const pats = patterns.length ? patterns : patternsFromFm;
+
+          if (pats.length > 0) {
+            const allowed = new Set(
+              (looked.patternsObserved ?? [])
+                .map((x) => normStr(x))
+                .filter(Boolean)
+                .map((x) => x.toLowerCase())
+            );
+            const hasMatch = pats.some((p) => allowed.has(normStr(p).toLowerCase()));
+
+            if (allowed.size > 0 && !hasMatch) {
+              issues.push({
+                id: issueId(t.path, "strategy-pattern-mismatch"),
+                severity: "warn",
+                path: t.path,
+                title: "策略/形态不匹配",
+                detail: `${rawStrategy} vs [${pats.map((p) => normStr(p)).filter(Boolean).join(", ")}]`,
+              });
+            }
+          }
+        }
+      }
     }
   }
 

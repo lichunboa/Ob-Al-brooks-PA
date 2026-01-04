@@ -1296,8 +1296,8 @@ const ConsoleComponent: React.FC<Props> = ({
   }, []);
 
   const inspectorIssues = React.useMemo(() => {
-    return buildInspectorIssues(trades, enumPresets);
-  }, [trades, enumPresets]);
+    return buildInspectorIssues(trades, enumPresets, strategyIndex);
+  }, [trades, enumPresets, strategyIndex]);
 
   const fixPlanText = React.useMemo(() => {
     if (!showFixPlan || !enumPresets) return undefined;

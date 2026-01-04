@@ -289,6 +289,14 @@ export const StrategyList: React.FC<Props> = ({
                               {c}
                             </span>
                           ))}
+                          {s.source ? (
+                            <span
+                              className="pa-tag"
+                              style={{ color: "var(--text-normal)" }}
+                            >
+                              来源: {s.source}
+                            </span>
+                          ) : null}
                         </div>
                       )}
 
