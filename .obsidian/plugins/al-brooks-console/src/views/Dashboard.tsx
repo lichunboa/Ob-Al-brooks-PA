@@ -1181,6 +1181,18 @@ const ConsoleComponent: React.FC<Props> = ({
   const errorAnalysis = React.useMemo(() => {
     return computeErrorAnalysis(analyticsTrades).slice(0, 5);
   }, [analyticsTrades]);
+
+  const analyticsDateRange = React.useMemo(() => {
+    let min: string | undefined;
+    let max: string | undefined;
+    for (const t of analyticsTrades) {
+      const d = (t.dateIso ?? "").toString().trim();
+      if (!d) continue;
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    }
+    return { min, max };
+  }, [analyticsTrades]);
   const analyticsDaily = React.useMemo(
     () => computeDailyAgg(analyticsTrades, 90),
     [analyticsTrades]
@@ -2147,11 +2159,20 @@ const ConsoleComponent: React.FC<Props> = ({
         <div
           style={{
             display: "flex",
+            gap: "12px",
             flexWrap: "wrap",
-            gap: "10px",
-            marginBottom: "12px",
+            alignItems: "flex-start",
           }}
         >
+          <div style={{ flex: "2 1 520px", minWidth: "320px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "10px",
+                marginBottom: "12px",
+              }}
+            >
           {(
             [
               {
@@ -2215,15 +2236,16 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
             </div>
           ))}
-        </div>
 
-        <div style={{ marginTop: "6px" }}>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-            最近交易记录
-          </div>
-          {todayTrades.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {todayTrades.slice(0, 5).map((t) => {
+            </div>
+
+            <div style={{ marginTop: "6px" }}>
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                最近交易记录
+              </div>
+              {todayTrades.length > 0 ? (
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {todayTrades.slice(0, 5).map((t) => {
                 const dir = (t.direction ?? "").toString().trim();
                 const dirIcon =
                   dir === "多" || dir.toLowerCase() === "long"
@@ -2326,83 +2348,89 @@ const ConsoleComponent: React.FC<Props> = ({
                   </li>
                 );
               })}
-            </ul>
-          ) : (
-            <div style={{ color: "var(--text-faint)", padding: "4px 0" }}>
-              今日暂无交易记录
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>快捷入口</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-live-trade")}
-              onClick={() => action("quickadd:new-live-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-live-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建实盘
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-demo-trade")}
-              onClick={() => action("quickadd:new-demo-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-demo-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建模拟
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-backtest")}
-              onClick={() => action("quickadd:new-backtest")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              新建回测
-            </button>
-            {!can("quickadd:new-live-trade") &&
-              !can("quickadd:new-demo-trade") &&
-              !can("quickadd:new-backtest") && (
-                <span
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.85em",
-                    alignSelf: "center",
-                  }}
-                >
-                  QuickAdd 不可用
-                </span>
+                </ul>
+              ) : (
+                <div style={{ color: "var(--text-faint)", padding: "4px 0" }}>
+                  今日暂无交易记录
+                </div>
               )}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-            近期 R 趋势
-          </div>
+          <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                快捷入口
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <button
+                  type="button"
+                  disabled={!can("quickadd:new-live-trade")}
+                  onClick={() => action("quickadd:new-live-trade")}
+                  onMouseEnter={onBtnMouseEnter}
+                  onMouseLeave={onBtnMouseLeave}
+                  onFocus={onBtnFocus}
+                  onBlur={onBtnBlur}
+                  style={
+                    can("quickadd:new-live-trade")
+                      ? buttonStyle
+                      : disabledButtonStyle
+                  }
+                >
+                  新建实盘
+                </button>
+                <button
+                  type="button"
+                  disabled={!can("quickadd:new-demo-trade")}
+                  onClick={() => action("quickadd:new-demo-trade")}
+                  onMouseEnter={onBtnMouseEnter}
+                  onMouseLeave={onBtnMouseLeave}
+                  onFocus={onBtnFocus}
+                  onBlur={onBtnBlur}
+                  style={
+                    can("quickadd:new-demo-trade")
+                      ? buttonStyle
+                      : disabledButtonStyle
+                  }
+                >
+                  新建模拟
+                </button>
+                <button
+                  type="button"
+                  disabled={!can("quickadd:new-backtest")}
+                  onClick={() => action("quickadd:new-backtest")}
+                  onMouseEnter={onBtnMouseEnter}
+                  onMouseLeave={onBtnMouseLeave}
+                  onFocus={onBtnFocus}
+                  onBlur={onBtnBlur}
+                  style={
+                    can("quickadd:new-backtest")
+                      ? buttonStyle
+                      : disabledButtonStyle
+                  }
+                >
+                  新建回测
+                </button>
+                {!can("quickadd:new-live-trade") &&
+                  !can("quickadd:new-demo-trade") &&
+                  !can("quickadd:new-backtest") && (
+                    <span
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                        alignSelf: "center",
+                      }}
+                    >
+                      QuickAdd 不可用
+                    </span>
+                  )}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                近期 R 趋势
+              </div>
 
           <div
             style={{
@@ -2559,55 +2587,57 @@ const ConsoleComponent: React.FC<Props> = ({
               color={getRColorByAccountType(at)}
             />
           ))}
-        </div>
+            </div>
 
-        <div style={{ marginTop: "14px" }}>
-          <button
-            type="button"
-            disabled={!canCreateTrade && !createTradeNote}
-            onClick={() => {
-              if (can("quickadd:new-live-trade"))
-                return action("quickadd:new-live-trade");
-              if (can("quickadd:new-demo-trade"))
-                return action("quickadd:new-demo-trade");
-              if (can("quickadd:new-backtest"))
-                return action("quickadd:new-backtest");
-              void createTradeNote?.();
-            }}
-            onMouseEnter={(e) => {
-              if (e.currentTarget.disabled) return;
-              e.currentTarget.style.filter = "brightness(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.filter = "none";
-            }}
-            style={
-              canCreateTrade || createTradeNote
-                ? {
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid var(--background-modifier-border)",
-                    background: "var(--interactive-accent)",
-                    color: "var(--text-on-accent)",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }
-                : {
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid var(--background-modifier-border)",
-                    background: "var(--background-primary)",
-                    color: "var(--text-faint)",
-                    fontWeight: 800,
-                    opacity: 0.6,
-                    cursor: "not-allowed",
-                  }
-            }
-          >
-            创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
-          </button>
+            <div style={{ marginTop: "14px" }}>
+              <button
+                type="button"
+                disabled={!canCreateTrade && !createTradeNote}
+                onClick={() => {
+                  if (can("quickadd:new-live-trade"))
+                    return action("quickadd:new-live-trade");
+                  if (can("quickadd:new-demo-trade"))
+                    return action("quickadd:new-demo-trade");
+                  if (can("quickadd:new-backtest"))
+                    return action("quickadd:new-backtest");
+                  void createTradeNote?.();
+                }}
+                onMouseEnter={(e) => {
+                  if (e.currentTarget.disabled) return;
+                  e.currentTarget.style.filter = "brightness(1.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.filter = "none";
+                }}
+                style={
+                  canCreateTrade || createTradeNote
+                    ? {
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid var(--background-modifier-border)",
+                        background: "var(--interactive-accent)",
+                        color: "var(--text-on-accent)",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }
+                    : {
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid var(--background-modifier-border)",
+                        background: "var(--background-primary)",
+                        color: "var(--text-faint)",
+                        fontWeight: 800,
+                        opacity: 0.6,
+                        cursor: "not-allowed",
+                      }
+                }
+              >
+                创建新交易笔记（图表分析 → 形态识别 → 策略匹配）
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3355,7 +3385,23 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
 
           <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>权益曲线</div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: "10px",
+                marginBottom: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>权益曲线</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+                {analyticsDateRange.min && analyticsDateRange.max
+                  ? `范围：${analyticsDateRange.min} → ${analyticsDateRange.max}`
+                  : "范围：—"}
+              </div>
+            </div>
             {equitySeries.length > 1 ? (
               (() => {
                 const w = 520;
@@ -3488,13 +3534,17 @@ const ConsoleComponent: React.FC<Props> = ({
         <div
           style={{
             marginTop: "12px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            display: "flex",
+            flexWrap: "wrap",
             gap: "12px",
           }}
         >
-          <ContextWidget data={contextAnalysis} />
-          <ErrorWidget data={errorAnalysis} />
+          <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
+            <ContextWidget data={contextAnalysis} />
+          </div>
+          <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
+            <ErrorWidget data={errorAnalysis} />
+          </div>
         </div>
       </div>
 
@@ -3911,12 +3961,12 @@ const ConsoleComponent: React.FC<Props> = ({
         <div
           style={{
             marginTop: "14px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            display: "flex",
+            flexWrap: "wrap",
             gap: "12px",
           }}
         >
-          <div>
+          <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
             <div
               style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}
             >
@@ -3980,7 +4030,7 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           </div>
 
-          <div>
+          <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
             <div
               style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}
             >
