@@ -178,6 +178,7 @@ interface Props {
   loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
   loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
   openFile: (path: string) => void;
+  openGlobalSearch?: (query: string) => void;
   runCommand?: (commandId: string) => void;
   integrations?: PluginIntegrationRegistry;
   version: string;
@@ -272,6 +273,7 @@ const ConsoleComponent: React.FC<Props> = ({
   loadCourse,
   loadMemory,
   openFile,
+  openGlobalSearch,
   runCommand,
   integrations,
   version,
@@ -5447,8 +5449,14 @@ const ConsoleComponent: React.FC<Props> = ({
                     style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
                   >
                     {topTags.map(([tag, count]) => (
-                      <span
+                      <button
                         key={tag}
+                        type="button"
+                        onClick={() => openGlobalSearch(`tag:${tag}`)}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
                         style={{
                           padding: "2px 8px",
                           borderRadius: "999px",
@@ -5456,10 +5464,11 @@ const ConsoleComponent: React.FC<Props> = ({
                           background: "var(--background-primary)",
                           fontSize: "0.85em",
                           color: "var(--text-muted)",
+                          cursor: "pointer",
                         }}
                       >
                         #{tag} ({count})
-                      </span>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -6266,6 +6275,18 @@ export class ConsoleView extends ItemView {
       this.app.workspace.openLinkText(path, "", true);
     };
 
+    const openGlobalSearch = (query: string) => {
+      try {
+        const plugin = (this.app as any)?.internalPlugins?.plugins?.[
+          "global-search"
+        ];
+        const inst = plugin?.instance as any;
+        inst?.openGlobalSearch?.(query);
+      } catch {
+        // best-effort only
+      }
+    };
+
     const resolveLink = (
       linkText: string,
       fromPath: string
@@ -6599,6 +6620,7 @@ export class ConsoleView extends ItemView {
           loadMemory={loadMemory}
           integrations={this.integrations}
           openFile={openFile}
+          openGlobalSearch={openGlobalSearch}
           runCommand={(commandId) =>
             (this.app as any).commands?.executeCommandById?.(commandId)
           }
