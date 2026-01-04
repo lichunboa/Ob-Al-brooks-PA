@@ -900,8 +900,8 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [status]);
 
-  type DashboardPage = "daily" | "trading" | "analytics" | "learn" | "manage";
-  const [activePage, setActivePage] = React.useState<DashboardPage>("daily");
+  type DashboardPage = "trading" | "analytics" | "learn" | "manage";
+  const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
 
   const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
@@ -1741,7 +1741,6 @@ const ConsoleComponent: React.FC<Props> = ({
       >
         {(
           [
-            { id: "daily", label: "每日行动" },
             { id: "trading", label: "交易中心" },
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
@@ -1759,7 +1758,7 @@ const ConsoleComponent: React.FC<Props> = ({
         ))}
       </div>
 
-      {activePage === "daily" || activePage === "trading" ? (
+      {activePage === "trading" ? (
         <>
           <div
             style={{
@@ -1778,7 +1777,7 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           </div>
 
-          {activePage === "daily" && latestTrade && reviewHints.length > 0 && (
+          {latestTrade && reviewHints.length > 0 && (
             <details style={{ marginBottom: "16px" }}>
               <summary
                 style={{
@@ -1831,8 +1830,7 @@ const ConsoleComponent: React.FC<Props> = ({
             </details>
           )}
 
-          {activePage === "daily" ? (
-            <div
+          <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
                 borderRadius: "10px",
@@ -2248,8 +2246,189 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
 
             </div>
-          ) : activePage === "trading" ? (
+
+          <div
+            style={{
+              margin: "18px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              Actions
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "12px",
+              marginBottom: "16px",
+              background: "var(--background-primary)",
+            }}
+          >
+            {!can("tasks:open") ? (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
+                集成可用（请安装/启用 Tasks 插件）。
+              </div>
+            ) : null}
+
             <div
+              style={{
+                marginTop: "12px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  🔥 必须解决 (Inbox & Urgent)
+                </div>
+                <MarkdownBlock
+                  markdown={`**❓ 疑难杂症 (Questions)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/question\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**🚨 紧急事项 (Urgent)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/urgent\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                />
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  🛠️ 持续改进 (Improvement)
+                </div>
+                <MarkdownBlock
+                  markdown={`**🧪 回测任务 (Backtest)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/backtest\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📝 复盘任务 (Review)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/review\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📖 待学习/阅读 (Study)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\n\
+path does not include Templates\n\
+limit 5\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**🔬 待验证想法 (Verify)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/verify\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                />
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  📅 每日例行 (Routine)
+                </div>
+                <MarkdownBlock
+                  markdown={`**📝 手动打卡 (Checklist)**\n\n\
+- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
+- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
+- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
+**🧹 杂项待办 (To-Do)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/todo\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+limit 5\n\
+\`\`\`\n`}
+                />
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  🛠️ 等待任务 (Maintenance)
+                </div>
+                <MarkdownBlock
+                  markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/print\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n\n\
+**📂 待整理 (Organize)**\n\n\
+\`\`\`tasks\n\
+not done\n\
+tag includes #task/organize\n\
+path does not include Templates\n\
+hide backlink\n\
+short mode\n\
+\`\`\`\n`}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div
               style={{
                 border: "1px solid var(--background-modifier-border)",
                 borderRadius: "10px",
@@ -2773,7 +2952,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-          ) : null}
         </>
       ) : null}
 
@@ -7289,187 +7467,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 尚未扫描属性。点击上方“扫描属性（v5.0）”。
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Actions
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        {!can("tasks:open") ? (
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
-            集成可用（请安装/启用 Tasks 插件）。
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            marginTop: "12px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "12px",
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🔥 必须解决 (Inbox & Urgent)
-            </div>
-            <MarkdownBlock
-              markdown={`**❓ 疑难杂症 (Questions)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/question\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**🚨 紧急事项 (Urgent)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/urgent\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🛠️ 持续改进 (Improvement)
-            </div>
-            <MarkdownBlock
-              markdown={`**🧪 回测任务 (Backtest)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/backtest\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📝 复盘任务 (Review)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/review\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📖 待学习/阅读 (Study)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\n\
-path does not include Templates\n\
-limit 5\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**🔬 待验证想法 (Verify)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/verify\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              📅 每日例行 (Routine)
-            </div>
-            <MarkdownBlock
-              markdown={`**📝 手动打卡 (Checklist)**\n\n\
-- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
-- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
-- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
-**🧹 杂项待办 (To-Do)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/todo\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-limit 5\n\
-\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🛠️ 等待任务 (Maintenance)
-            </div>
-            <MarkdownBlock
-              markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/print\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n\n\
-**📂 待整理 (Organize)**\n\n\
-\`\`\`tasks\n\
-not done\n\
-tag includes #task/organize\n\
-path does not include Templates\n\
-hide backlink\n\
-short mode\n\
-\`\`\`\n`}
-            />
           </div>
         </div>
       </div>
