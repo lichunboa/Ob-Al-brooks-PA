@@ -381,7 +381,8 @@ const ConsoleComponent: React.FC<Props> = ({
         const hasPatterns =
           Array.isArray(t.patternsObserved) &&
           t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
-        const hasStrategy = !isEmpty(t.strategyName);
+        // v5 口径：strategyName / setupCategory 任意一个可视作“已填策略维度”
+        const hasStrategy = !isEmpty(t.strategyName) || !isEmpty(t.setupCategory);
         if (!hasPatterns && !hasStrategy) {
           tradeIssues.push({
             path: t.path,
