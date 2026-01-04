@@ -132,14 +132,6 @@ function getYearMonth(dateIso: string | undefined): string | undefined {
   return `${m[1]}-${m[2]}`;
 }
 
-function sumPnlR(trades: TradeRecord[]): number {
-  let sum = 0;
-  for (const t of trades) {
-    if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) sum += t.pnl;
-  }
-  return sum;
-}
-
 function getRColorByAccountType(accountType: AccountType): string {
   switch (accountType) {
     case "Live":
@@ -149,26 +141,6 @@ function getRColorByAccountType(accountType: AccountType): string {
     case "Backtest":
       return V5_COLORS.back;
   }
-}
-
-function computeWindowRByAccountType(
-  trades: TradeRecord[],
-  windowSize: number
-): Record<AccountType, number> {
-  const by: Record<AccountType, TradeRecord[]> = {
-    Live: [],
-    Demo: [],
-    Backtest: [],
-  };
-  for (const t of trades.slice(0, windowSize)) {
-    const at = t.accountType;
-    if (at === "Live" || at === "Demo" || at === "Backtest") by[at].push(t);
-  }
-  return {
-    Live: sumPnlR(by.Live),
-    Demo: sumPnlR(by.Demo),
-    Backtest: sumPnlR(by.Backtest),
-  };
 }
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
@@ -756,23 +728,6 @@ const ConsoleComponent: React.FC<Props> = ({
     return sorted.slice(0, 30);
   }, [trades]);
 
-  const last30MaxAbsR = React.useMemo(() => {
-    let maxAbs = 0;
-    for (const t of last30TradesDesc) {
-      const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      maxAbs = Math.max(maxAbs, Math.abs(r));
-    }
-    return maxAbs > 0 ? maxAbs : 1;
-  }, [last30TradesDesc]);
-
-  const liveMind = React.useMemo(() => {
-    // 复用 Analytics Hub 的单一信源口径（v5 对齐：从执行评价文本匹配 Tilt/FOMO/Hesitation）
-    const recentAsc = [...last30TradesDesc]
-      .reverse()
-      .filter((t) => (t.accountType ?? "Live") === "Live");
-    return computeMindsetFromRecentLive(recentAsc, 10);
-  }, [last30TradesDesc]);
-
   const tuition = React.useMemo(() => {
     const res = computeTuitionAnalysis(trades);
     return {
@@ -1150,39 +1105,6 @@ const ConsoleComponent: React.FC<Props> = ({
     () => trades.filter((t) => t.dateIso === todayIso),
     [trades, todayIso]
   );
-  const todaySummary = React.useMemo(
-    () => computeTradeStatsByAccountType(todayTrades),
-    [todayTrades]
-  );
-  const todayLatestTrade = todayTrades.length > 0 ? todayTrades[0] : undefined;
-  const rLast10 = React.useMemo(
-    () => computeWindowRByAccountType(trades, 10),
-    [trades]
-  );
-  const rLast30 = React.useMemo(
-    () => computeWindowRByAccountType(trades, 30),
-    [trades]
-  );
-  const r10MaxAbs = React.useMemo(
-    () =>
-      Math.max(
-        Math.abs(rLast10.Live),
-        Math.abs(rLast10.Demo),
-        Math.abs(rLast10.Backtest),
-        0
-      ),
-    [rLast10]
-  );
-  const r30MaxAbs = React.useMemo(
-    () =>
-      Math.max(
-        Math.abs(rLast30.Live),
-        Math.abs(rLast30.Demo),
-        Math.abs(rLast30.Backtest),
-        0
-      ),
-    [rLast30]
-  );
   const reviewHints = React.useMemo(() => {
     if (!latestTrade) return [];
     return buildReviewHints(latestTrade);
@@ -1468,87 +1390,6 @@ const ConsoleComponent: React.FC<Props> = ({
       limit: 6,
     });
   }, [latestTrade, strategyIndex, todayMarketCycle]);
-
-  const TrendRow: React.FC<{
-    label: string;
-    value: number;
-    ratio: number;
-    color: string;
-  }> = ({ label, value, ratio, color }) => {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "8px",
-        }}
-      >
-        <div
-          style={{
-            width: "70px",
-            color: "var(--text-muted)",
-            fontSize: "0.85em",
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            flex: "1 1 auto",
-            display: "flex",
-            height: "10px",
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "999px",
-            overflow: "hidden",
-            background: "rgba(var(--mono-rgb-100), 0.03)",
-          }}
-        >
-          <div style={{ flex: "1 1 0", position: "relative" }}>
-            {ratio < 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  height: "100%",
-                  width: "100%",
-                  background: color,
-                  opacity: 0.55,
-                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
-                  transformOrigin: "right",
-                }}
-              />
-            )}
-          </div>
-          <div style={{ flex: "1 1 0", position: "relative" }}>
-            {ratio > 0 && (
-              <div
-                style={{
-                  height: "100%",
-                  width: "100%",
-                  background: color,
-                  opacity: 0.55,
-                  transform: `scaleX(${Math.min(1, Math.abs(ratio))})`,
-                  transformOrigin: "left",
-                }}
-              />
-            )}
-          </div>
-        </div>
-        <div style={{ width: "68px", textAlign: "right", fontSize: "0.9em" }}>
-          <span
-            style={{
-              color: value >= 0 ? V5_COLORS.win : V5_COLORS.loss,
-              fontWeight: 600,
-            }}
-          >
-            {value >= 0 ? "+" : ""}
-            {value.toFixed(1)}R
-          </span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div
