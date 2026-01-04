@@ -416,3 +416,69 @@ export function buildDeleteKeyPlan(
 
   return buildFixPlan(fileUpdates);
 }
+
+/**
+ * Build a FixPlan that removes a single value from a multi-value frontmatter key across files.
+ *
+ * Supported input shapes:
+ * - Array: removes matching string values.
+ * - String: treats it as a list split by common separators (legacy-compatible), then removes.
+ *
+ * If the resulting list is empty and deleteKeyIfEmpty=true, the plan will include deleteKeys=[key].
+ * Actual deletion still requires ManagerApplyOptions.deleteKeys=true for safety.
+ */
+export function buildDeleteValPlan(
+  files: FrontmatterFile[],
+  key: string,
+  valueToDelete: string,
+  options: { deleteKeyIfEmpty?: boolean } = {}
+): FixPlan {
+  const k = (key ?? "").trim();
+  const target = (valueToDelete ?? "").trim();
+  if (!k || !target) return buildFixPlan([]);
+
+  const deleteKeyIfEmpty = options.deleteKeyIfEmpty ?? true;
+  const fileUpdates: FixPlanFileUpdate[] = [];
+
+  const splitList = (s: string) =>
+    s
+      .split(/[,，;；/|]/g)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+  for (const f of files) {
+    const fm = (f.frontmatter ?? {}) as Record<string, any>;
+    const raw = fm[k];
+    if (raw === undefined) continue;
+
+    const asList: string[] = Array.isArray(raw)
+      ? raw
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : typeof raw === "string"
+        ? splitList(raw)
+        : [];
+
+    if (asList.length === 0) continue;
+
+    const next = asList.filter((v) => v !== target);
+    if (next.length === asList.length) continue;
+
+    const updates: Record<string, unknown> = {};
+    let deleteKeys: string[] | undefined = undefined;
+    if (next.length === 0) {
+      if (deleteKeyIfEmpty) {
+        deleteKeys = [k];
+      } else {
+        updates[k] = [];
+      }
+    } else {
+      updates[k] = next;
+    }
+
+    fileUpdates.push({ path: f.path, updates, deleteKeys });
+  }
+
+  return buildFixPlan(fileUpdates);
+}

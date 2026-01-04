@@ -57,6 +57,7 @@ import {
   buildFrontmatterStats,
   buildRenameKeyPlan,
   buildDeleteKeyPlan,
+  buildDeleteValPlan,
   type FrontmatterFile,
   type FrontmatterStats,
   type ManagerApplyResult,
@@ -474,6 +475,10 @@ const ConsoleComponent: React.FC<Props> = ({
   const [renameNewKey, setRenameNewKey] = React.useState("");
   const [renameOverwrite, setRenameOverwrite] = React.useState(false);
   const [deleteKeyName, setDeleteKeyName] = React.useState("");
+  const [deleteValKey, setDeleteValKey] = React.useState("");
+  const [deleteValValue, setDeleteValValue] = React.useState("");
+  const [deleteValDeleteKeyIfEmpty, setDeleteValDeleteKeyIfEmpty] =
+    React.useState(true);
   const [managerFieldInventory, setManagerFieldInventory] = React.useState<
     FrontmatterStats | undefined
   >(undefined);
@@ -6201,6 +6206,118 @@ const ConsoleComponent: React.FC<Props> = ({
                     }
                   >
                     生成删除计划
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                  ➖ 删除字段值（DELETE_VAL）
+                </div>
+                <div
+                  style={{
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  从多值字段（数组/逗号分隔字符串）中移除某个值；如移除后为空，可选择删除整个字段（仍需勾选“允许删除字段”）。
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    value={deleteValKey}
+                    onChange={(e) => setDeleteValKey(e.target.value)}
+                    placeholder="字段名 (key)"
+                    style={{
+                      flex: "1 1 0",
+                      padding: "6px 8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "var(--background-primary)",
+                      color: "var(--text-normal)",
+                    }}
+                  />
+                  <input
+                    value={deleteValValue}
+                    onChange={(e) => setDeleteValValue(e.target.value)}
+                    placeholder="要删除的值 (val)"
+                    style={{
+                      flex: "1 1 0",
+                      padding: "6px 8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "var(--background-primary)",
+                      color: "var(--text-normal)",
+                    }}
+                  />
+                </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "8px",
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={deleteValDeleteKeyIfEmpty}
+                    onChange={(e) =>
+                      setDeleteValDeleteKeyIfEmpty(
+                        (e.target as HTMLInputElement).checked
+                      )
+                    }
+                  />
+                  移除后为空则删除字段
+                </label>
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    disabled={managerBusy}
+                    onClick={async () => {
+                      setManagerBusy(true);
+                      try {
+                        const files: FrontmatterFile[] = trades.map((t) => ({
+                          path: t.path,
+                          frontmatter:
+                            (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+                        }));
+                        if (loadStrategyNotes) {
+                          const notes = await loadStrategyNotes();
+                          for (const n of notes) {
+                            files.push({
+                              path: n.path,
+                              frontmatter:
+                                (n.frontmatter ?? {}) as Record<string, unknown>,
+                            });
+                          }
+                        }
+                        const plan = buildDeleteValPlan(
+                          files,
+                          deleteValKey,
+                          deleteValValue,
+                          { deleteKeyIfEmpty: deleteValDeleteKeyIfEmpty }
+                        );
+                        setManagerPlan(plan);
+                        setManagerResult(undefined);
+                        setManagerArmed(false);
+                      } finally {
+                        setManagerBusy(false);
+                      }
+                    }}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      managerBusy
+                        ? { ...disabledButtonStyle, padding: "6px 10px" }
+                        : { ...buttonStyle, padding: "6px 10px" }
+                    }
+                  >
+                    生成 DELETE_VAL 计划
                   </button>
                 </div>
               </div>
