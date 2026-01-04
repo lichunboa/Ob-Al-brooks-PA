@@ -234,11 +234,50 @@ export interface ErrorAnalysisRow {
 }
 
 const CONTEXT_FIELD_ALIASES = [
+  "marketCycleKey",
+  "market_cycle_key",
+  "cycle",
   "market_cycle",
+  "marketCycle",
   "市场周期/market_cycle",
+  "市场周期",
   "daily_market_cycle",
   "context",
 ] as const;
+
+const MARKET_CYCLE_MAP: Record<string, string> = {
+  "Strong Trend": "强趋势",
+  "Weak Trend": "弱趋势",
+  "Trading Range": "交易区间",
+  "Breakout Mode": "突破模式",
+  Breakout: "突破",
+  Channel: "通道",
+  "Broad Channel": "宽通道",
+  "Tight Channel": "窄通道",
+};
+
+function toFirstString(v: unknown): string | undefined {
+  if (Array.isArray(v)) {
+    for (const it of v) {
+      const s = toString(it);
+      if (s) return s;
+    }
+    return undefined;
+  }
+  return toString(v);
+}
+
+export function normalizeMarketCycleForAnalytics(raw: unknown): string | undefined {
+  const s0 = toFirstString(raw);
+  if (!s0) return undefined;
+  if (s0.toLowerCase() === "unknown") return undefined;
+
+  const base = s0.includes("(") ? s0.split("(")[0].trim() : s0.trim();
+  if (!base) return undefined;
+  if (base.toLowerCase() === "unknown") return undefined;
+
+  return MARKET_CYCLE_MAP[base] ?? base;
+}
 
 export function computeContextAnalysis(
   trades: TradeRecord[]
@@ -247,15 +286,15 @@ export function computeContextAnalysis(
 
   for (const t of trades) {
     // 优先使用索引层规范字段（SSOT），rawFrontmatter 仅作回退。
-    let ctx: string | undefined = toString(t.marketCycle);
+    let ctx: string | undefined = normalizeMarketCycleForAnalytics(
+      (t as any).marketCycle
+    );
     if (!ctx) {
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
       for (const key of CONTEXT_FIELD_ALIASES) {
         const v = (fm as any)[key];
-        if (typeof v === "string" && v.trim()) {
-          ctx = v.trim();
-          break;
-        }
+        ctx = normalizeMarketCycleForAnalytics(v);
+        if (ctx) break;
       }
     }
     if (!ctx) continue;

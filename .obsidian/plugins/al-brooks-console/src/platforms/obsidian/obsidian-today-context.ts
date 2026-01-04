@@ -2,9 +2,13 @@ import { App, TFile } from "obsidian";
 import type { TodayContext } from "../../core/today-context";
 import type { Unsubscribe } from "../../core/trade-index";
 import { getFirstFieldValue } from "../../core/field-mapper";
+import { normalizeMarketCycleForAnalytics } from "../../core/analytics";
 
 const TODAY_FIELD_ALIASES = {
   marketCycle: [
+    "marketCycleKey",
+    "market_cycle_key",
+    "cycle",
     "market_cycle",
     "marketCycle",
     "市场周期/market_cycle",
@@ -150,8 +154,7 @@ export class ObsidianTodayContext implements TodayContext {
     const cache = this.app.metadataCache.getFileCache(file);
     const fm = cache?.frontmatter as Record<string, unknown> | undefined;
     if (!fm) return undefined;
-    return toString(
-      getFirstFieldValue(fm as any, TODAY_FIELD_ALIASES.marketCycle)
-    );
+    const raw = getFirstFieldValue(fm as any, TODAY_FIELD_ALIASES.marketCycle);
+    return normalizeMarketCycleForAnalytics(raw);
   }
 }
