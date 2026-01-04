@@ -61,6 +61,7 @@ import {
   type CourseSnapshot,
 } from "../core/course";
 import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
+import { TRADE_TAG } from "../core/field-mapper";
 
 function toLocalDateIso(d: Date): string {
   const y = d.getFullYear();
@@ -1074,6 +1075,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
   type GalleryItem = {
     tradePath: string;
+    tradeName: string;
+    accountType: AccountType;
+    pnl: number;
     coverPath: string;
     url?: string;
   };
@@ -1084,7 +1088,8 @@ const ConsoleComponent: React.FC<Props> = ({
     const seen = new Set<string>();
     const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
-    for (const t of trades) {
+    // v5.0 口径：从最近交易里取前 20 个候选，最终只展示 4 张。
+    for (const t of trades.slice(0, 20)) {
       // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
       const rawCover =
@@ -1097,18 +1102,44 @@ const ConsoleComponent: React.FC<Props> = ({
       target = String(target).trim();
       if (!target) continue;
 
-      const resolved = resolveLink ? resolveLink(target, t.path) : target;
+      // 支持外链封面（http/https），否则按 Obsidian linkpath 解析到 vault path。
+      let resolved = "";
+      let url: string | undefined = undefined;
+
+      if (/^https?:\/\//i.test(target)) {
+        resolved = target;
+        url = target;
+      } else {
+        resolved = resolveLink ? resolveLink(target, t.path) ?? target : target;
+        if (!resolved || !isImage(resolved)) continue;
+        url = getResourceUrl(resolved);
+      }
+
       if (!resolved || !isImage(resolved)) continue;
       if (seen.has(resolved)) continue;
       seen.add(resolved);
 
-      const url = getResourceUrl(resolved);
-      out.push({ tradePath: t.path, coverPath: resolved, url });
-      if (out.length >= 48) break;
+      const acct = (t.accountType ?? "Live") as AccountType;
+      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+      out.push({
+        tradePath: t.path,
+        tradeName: t.name,
+        accountType: acct,
+        pnl,
+        coverPath: resolved,
+        url,
+      });
+
+      if (out.length >= 4) break;
     }
 
     return out;
   }, [trades, resolveLink, getResourceUrl]);
+
+  const gallerySearchHref = React.useMemo(() => {
+    return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
+  }, []);
 
   const inspectorIssues = React.useMemo(() => {
     return buildInspectorIssues(trades, enumPresets);
@@ -3803,25 +3834,21 @@ const ConsoleComponent: React.FC<Props> = ({
           background: "var(--background-primary)",
         }}
       >
-        <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
+        <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
+          🖼️ 最新复盘 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Charts)</span>
+        </div>
         {!getResourceUrl ? (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             Gallery unavailable.
           </div>
         ) : galleryItems.length > 0 ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-              gap: "8px",
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             {galleryItems.map((it) => (
               <button
                 key={`gal-${it.coverPath}`}
                 type="button"
-                onClick={() => openFile(it.coverPath)}
-                title={it.coverPath}
+                onClick={() => openFile(it.tradePath)}
+                title={`${it.tradeName} • ${it.coverPath}`}
                 onMouseEnter={onCoverMouseEnter}
                 onMouseLeave={onCoverMouseLeave}
                 onFocus={onCoverFocus}
@@ -3834,25 +3861,98 @@ const ConsoleComponent: React.FC<Props> = ({
                   background: `rgba(var(--mono-rgb-100), 0.03)`,
                   cursor: "pointer",
                   outline: "none",
-                  transition:
-                    "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+                  transition: "background-color 180ms ease, border-color 180ms ease",
+                  position: "relative",
+                  aspectRatio: "16 / 9",
                 }}
               >
                 {it.url ? (
-                  <img
-                    src={it.url}
-                    alt=""
-                    style={{
-                      width: "100%",
-                      height: "120px",
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
+                  <>
+                    <img
+                      src={it.url}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "6px",
+                        right: "6px",
+                        background: "rgba(var(--mono-rgb-100), 0.12)",
+                        border: "1px solid var(--background-modifier-border)",
+                        color:
+                          it.accountType === "Live"
+                            ? "var(--text-success)"
+                            : it.accountType === "Backtest"
+                            ? "var(--text-warning)"
+                            : "var(--text-accent)",
+                        fontSize: "0.72em",
+                        fontWeight: 900,
+                        padding: "2px 8px",
+                        borderRadius: "999px",
+                        backdropFilter: "blur(6px)",
+                      }}
+                    >
+                      {it.accountType === "Live"
+                        ? "实盘"
+                        : it.accountType === "Backtest"
+                        ? "回测"
+                        : "模拟"}
+                    </div>
+
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        padding: "16px 10px 8px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-end",
+                        gap: "10px",
+                        background:
+                          "linear-gradient(rgba(var(--mono-rgb-0), 0), rgba(var(--mono-rgb-0), 0.9))",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--text-on-accent)",
+                          fontSize: "0.85em",
+                          fontWeight: 800,
+                          textAlign: "left",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          flex: "1 1 auto",
+                        }}
+                      >
+                        {it.tradeName}
+                      </div>
+                      <div
+                        style={{
+                          color: it.pnl >= 0 ? "var(--text-success)" : "var(--text-error)",
+                          fontWeight: 900,
+                          fontSize: "0.95em",
+                          flex: "0 0 auto",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {it.pnl > 0 ? "+" : ""}
+                        {it.pnl.toFixed(1)}
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div
                     style={{
-                      height: "120px",
+                      height: "100%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -3866,11 +3966,33 @@ const ConsoleComponent: React.FC<Props> = ({
               </button>
             ))}
           </div>
+
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            未找到封面图片。
+            暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或 图片路径。
           </div>
         )}
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "12px",
+            paddingTop: "8px",
+            borderTop: "1px solid var(--background-modifier-border)",
+          }}
+        >
+          <a
+            href={gallerySearchHref}
+            style={{
+              color: "var(--text-accent)",
+              textDecoration: "none",
+              fontSize: "0.85em",
+              fontWeight: 700,
+            }}
+          >
+            📂 查看所有图表
+          </a>
+        </div>
       </div>
 
       <div
