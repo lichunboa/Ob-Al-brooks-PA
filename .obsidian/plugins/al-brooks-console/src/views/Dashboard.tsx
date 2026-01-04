@@ -584,7 +584,12 @@ const ConsoleComponent: React.FC<Props> = ({
       setManagerPlan(plan);
       setManagerResult(undefined);
 
-      if (!applyFixPlan) return;
+      if (!applyFixPlan) {
+        window.alert(
+          "写入能力不可用：applyFixPlan 未注入（可能是 ConsoleView 未正确挂载）"
+        );
+        return;
+      }
 
       setManagerBusy(true);
       try {
@@ -7500,25 +7505,6 @@ export class ConsoleView extends ItemView {
       // best-effort only; dashboard should still render without presets
     }
 
-    const applyFrontmatterPatch = (
-      text: string,
-      updates: Record<string, unknown>,
-      deleteKeys?: string[]
-    ): string => {
-      const m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
-      const yamlText = m?.[1];
-      const body = m ? text.slice(m[0].length) : text;
-      const fmRaw = yamlText ? (parseYaml(yamlText) as any) : {};
-      const fm: Record<string, any> =
-        fmRaw && typeof fmRaw === "object" ? { ...fmRaw } : {};
-      for (const [k, v] of Object.entries(updates ?? {})) fm[k] = v;
-      if (deleteKeys && deleteKeys.length > 0) {
-        for (const k of deleteKeys) delete fm[k];
-      }
-      const nextYaml = String(stringifyYaml(fm) ?? "").trimEnd();
-      return `---\n${nextYaml}\n---\n${body}`;
-    };
-
     const applyFixPlan = async (
       plan: FixPlan,
       options?: { deleteKeys?: boolean }
@@ -7539,15 +7525,16 @@ export class ConsoleView extends ItemView {
           }
           const oldText = await this.app.vault.read(af);
           res.backups[fu.path] = oldText;
-          const nextText = applyFrontmatterPatch(
-            oldText,
-            fu.updates ?? {},
-            options?.deleteKeys ? fu.deleteKeys : undefined
-          );
-          if (nextText !== oldText) {
-            await this.app.vault.modify(af, nextText);
-            res.applied += 1;
-          }
+
+          await this.app.fileManager.processFrontMatter(af, (fm) => {
+            const updates = (fu.updates ?? {}) as Record<string, unknown>;
+            for (const [k, v] of Object.entries(updates)) (fm as any)[k] = v;
+            if (options?.deleteKeys && fu.deleteKeys && fu.deleteKeys.length) {
+              for (const k of fu.deleteKeys) delete (fm as any)[k];
+            }
+          });
+
+          res.applied += 1;
         } catch (e) {
           res.failed += 1;
           res.errors.push({
