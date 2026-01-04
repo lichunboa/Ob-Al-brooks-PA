@@ -33,7 +33,8 @@ export function computeTradeBasedStrategyPicks(args: {
     .map((p) => String(p).trim())
     .filter(Boolean);
   const setupCategory = t.setupCategory?.trim();
-  const marketCycle = (args.todayMarketCycle ?? t.marketCycle)?.trim();
+  // v5 / UX 直觉：优先用交易自身的 marketCycle，其次才回退到 today
+  const marketCycle = (t.marketCycle ?? args.todayMarketCycle)?.trim();
 
   return matchStrategies(args.strategyIndex, {
     marketCycle,

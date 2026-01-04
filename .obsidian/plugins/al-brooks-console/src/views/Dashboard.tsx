@@ -2069,9 +2069,14 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
             ) : (
               (() => {
-                const marketCycle = (openTrade.marketCycle ?? todayMarketCycle)
+                const marketCycleRaw = (openTrade.marketCycle ?? todayMarketCycle)
                   ?.toString()
                   .trim();
+                const marketCycle = marketCycleRaw
+                  ? marketCycleRaw.includes("(")
+                    ? marketCycleRaw.split("(")[0].trim()
+                    : marketCycleRaw
+                  : undefined;
                 const setupCategory = openTrade.setupCategory
                   ?.toString()
                   .trim();

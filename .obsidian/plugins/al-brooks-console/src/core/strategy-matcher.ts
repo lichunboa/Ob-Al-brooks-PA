@@ -8,7 +8,8 @@ export interface StrategyMatchInput {
 }
 
 function normalizeKey(v: string): string {
-  return v.trim().toLowerCase();
+  const base = v.includes("(") ? v.split("(")[0].trim() : v.trim();
+  return base.toLowerCase();
 }
 
 export function matchStrategies(
