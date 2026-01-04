@@ -15,6 +15,9 @@ export const FIELD_ALIASES = {
     "账户",
   ],
   marketCycle: [
+    "marketCycleKey",
+    "market_cycle_key",
+    "cycle",
     "market_cycle",
     "marketCycle",
     "市场周期/market_cycle",
