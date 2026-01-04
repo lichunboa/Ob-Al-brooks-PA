@@ -24,6 +24,7 @@ import {
   computeDailyAgg,
   computeEquityCurve,
   computeStrategyAttribution,
+  identifyStrategyForAnalytics,
   computeContextAnalysis,
   computeErrorAnalysis,
   computeTuitionAnalysis,
@@ -1323,12 +1324,8 @@ const ConsoleComponent: React.FC<Props> = ({
       curves[acct].push(cum[acct]);
 
       // 策略排行：策略名优先；没有则回退到 setupCategory
-      let key = (t.strategyName ?? "").toString().trim();
-      if (!key || key.toLowerCase() === "unknown") {
-        const rawSetup = (t.setupCategory ?? "").toString().trim();
-        key = rawSetup ? rawSetup.split("(")[0].trim() : "Unknown";
-      }
-      if (!key) key = "Unknown";
+      const key =
+        identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
 
       const prev = stats.get(key) ?? { win: 0, total: 0 };
       prev.total += 1;
@@ -2277,7 +2274,9 @@ const ConsoleComponent: React.FC<Props> = ({
                     ? "📉"
                     : "➡️";
                 const tf = (t.timeframe ?? "").toString().trim();
-                const strategy = (t.strategyName ?? "").toString().trim();
+                const ident = identifyStrategyForAnalytics(t, strategyIndex);
+                const strategy =
+                  ident.name && ident.name !== "Unknown" ? ident.name : "";
 
                 const outcome = t.outcome;
                 const outcomeLabel =
