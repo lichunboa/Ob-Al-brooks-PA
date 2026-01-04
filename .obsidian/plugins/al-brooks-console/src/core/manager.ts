@@ -540,8 +540,8 @@ export function buildDeleteValPlan(
       const updates: Record<string, unknown> = {};
       let deleteKeys: string[] | undefined = undefined;
       if (next.length === 0) {
+        updates[k] = [];
         if (deleteKeyIfEmpty) deleteKeys = [k];
-        else updates[k] = [];
       } else {
         updates[k] = next;
       }
@@ -558,8 +558,8 @@ export function buildDeleteValPlan(
       const updates: Record<string, unknown> = {};
       let deleteKeys: string[] | undefined = undefined;
       if (next.length === 0) {
+        updates[k] = [];
         if (deleteKeyIfEmpty) deleteKeys = [k];
-        else updates[k] = [];
       } else {
         updates[k] = next;
       }
