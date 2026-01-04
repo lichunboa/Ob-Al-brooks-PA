@@ -954,7 +954,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const buttonStyle: React.CSSProperties = {
     marginLeft: "8px",
-    padding: "4px 8px",
+    padding: "5px 10px",
     fontSize: "0.8em",
     border: "1px solid var(--background-modifier-border)",
     borderRadius: "6px",
@@ -970,6 +970,16 @@ const ConsoleComponent: React.FC<Props> = ({
     ...buttonStyle,
     opacity: 0.5,
     cursor: "not-allowed",
+  };
+
+  const buttonSmStyle: React.CSSProperties = {
+    ...buttonStyle,
+    padding: "6px 10px",
+  };
+
+  const buttonSmDisabledStyle: React.CSSProperties = {
+    ...disabledButtonStyle,
+    padding: "6px 10px",
   };
 
   const tabButtonStyle: React.CSSProperties = {
