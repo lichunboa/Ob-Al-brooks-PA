@@ -512,6 +512,128 @@ const ConsoleComponent: React.FC<Props> = ({
       .sort((a, b) => b.pnl - a.pnl);
   }, [trades]);
 
+  const last30TradesDesc = React.useMemo(() => {
+    const sorted = [...trades].sort((a, b) => {
+      const da = a.dateIso ?? "";
+      const db = b.dateIso ?? "";
+      if (da !== db) return da < db ? 1 : -1;
+      const ma = typeof a.mtime === "number" ? a.mtime : 0;
+      const mb = typeof b.mtime === "number" ? b.mtime : 0;
+      return mb - ma;
+    });
+    return sorted.slice(0, 30);
+  }, [trades]);
+
+  const last30MaxAbsR = React.useMemo(() => {
+    let maxAbs = 0;
+    for (const t of last30TradesDesc) {
+      const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      maxAbs = Math.max(maxAbs, Math.abs(r));
+    }
+    return maxAbs > 0 ? maxAbs : 1;
+  }, [last30TradesDesc]);
+
+  const liveMind = React.useMemo(() => {
+    const ERROR_FIELD_ALIASES = [
+      "mistake_tags",
+      "错误/mistake_tags",
+      "mistakes",
+      "errors",
+    ] as const;
+
+    const getMistakeTags = (t: TradeRecord): string[] => {
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      for (const key of ERROR_FIELD_ALIASES) {
+        const v = (fm as any)[key];
+        if (Array.isArray(v)) {
+          const tags = v
+            .filter((x) => typeof x === "string")
+            .map((x) => (x as string).trim())
+            .filter(Boolean);
+          if (tags.length > 0) return tags;
+        } else if (typeof v === "string" && v.trim()) {
+          return [v.trim()];
+        }
+      }
+      return [];
+    };
+
+    const recentLive = last30TradesDesc
+      .filter((t) => t.accountType === "Live")
+      .slice(0, 7);
+
+    let tilt = 0;
+    let fomo = 0;
+    for (const t of recentLive) {
+      const tags = getMistakeTags(t);
+      const s = tags.join(" ");
+      if (s.includes("Tilt") || s.includes("上头")) tilt += 1;
+      if (s.includes("FOMO") || s.includes("追单")) fomo += 1;
+    }
+
+    const risk = tilt + fomo;
+    const status =
+      risk === 0 ? "🛡️ 状态极佳" : risk < 3 ? "⚠️ 有点起伏" : "🔥 极度危险";
+    const color =
+      risk === 0
+        ? "var(--text-success)"
+        : risk < 3
+        ? "var(--text-warning)"
+        : "var(--text-error)";
+
+    return { tilt, fomo, risk, status, color };
+  }, [last30TradesDesc]);
+
+  const tuition = React.useMemo(() => {
+    const ERROR_FIELD_ALIASES = [
+      "mistake_tags",
+      "错误/mistake_tags",
+      "mistakes",
+      "errors",
+    ] as const;
+
+    const getMistakeTags = (t: TradeRecord): string[] => {
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      for (const key of ERROR_FIELD_ALIASES) {
+        const v = (fm as any)[key];
+        if (Array.isArray(v)) {
+          const tags = v
+            .filter((x) => typeof x === "string")
+            .map((x) => (x as string).trim())
+            .filter(Boolean);
+          if (tags.length > 0) return tags;
+        } else if (typeof v === "string" && v.trim()) {
+          return [v.trim()];
+        }
+      }
+      return [];
+    };
+
+    let tuitionR = 0;
+    const by = new Map<string, number>();
+
+    for (const t of trades) {
+      if (t.accountType !== "Live") continue;
+      const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      if (r >= 0) continue;
+      const tags = getMistakeTags(t);
+      if (tags.length === 0) continue;
+
+      const cost = Math.abs(r);
+      tuitionR += cost;
+      const share = cost / tags.length;
+      for (const tag of tags) {
+        by.set(tag, (by.get(tag) ?? 0) + share);
+      }
+    }
+
+    const rows = [...by.entries()]
+      .map(([tag, costR]) => ({ tag, costR }))
+      .sort((a, b) => b.costR - a.costR);
+
+    return { tuitionR, rows };
+  }, [trades]);
+
   React.useEffect(() => {
     const onUpdate = () => setTrades(index.getAll());
     const unsubscribe = index.onChanged(onUpdate);
@@ -1915,6 +2037,103 @@ const ConsoleComponent: React.FC<Props> = ({
           <div style={{ fontWeight: 600, marginBottom: "8px" }}>
             近期 R 趋势
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+              marginBottom: "10px",
+            }}
+          >
+            <div style={{ flex: "1 1 220px", minWidth: "220px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  fontSize: "0.75em",
+                  marginBottom: "6px",
+                  color: "var(--text-muted)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ color: getRColorByAccountType("Live") }}>● 实盘</span>
+                <span style={{ color: getRColorByAccountType("Demo") }}>● 模拟</span>
+                <span style={{ color: getRColorByAccountType("Backtest") }}>● 回测</span>
+              </div>
+
+              {last30TradesDesc.length === 0 ? (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                  暂无交易数据
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: "4px",
+                    height: "70px",
+                    borderBottom: "1px solid var(--background-modifier-border)",
+                    paddingBottom: "6px",
+                  }}
+                >
+                  {last30TradesDesc
+                    .slice()
+                    .reverse()
+                    .map((t) => {
+                      const r =
+                        typeof t.pnl === "number" && Number.isFinite(t.pnl)
+                          ? t.pnl
+                          : 0;
+                      const h = Math.max(
+                        4,
+                        Math.round((Math.abs(r) / last30MaxAbsR) * 56)
+                      );
+                      const color =
+                        r >= 0
+                          ? getRColorByAccountType(t.accountType ?? "Live")
+                          : "var(--text-error)";
+                      const title = `${t.name}\n${t.accountType ?? "—"}\nR: ${r.toFixed(2)}`;
+                      return (
+                        <div
+                          key={t.path}
+                          title={title}
+                          style={{
+                            width: "6px",
+                            height: `${h}px`,
+                            background: color,
+                            borderRadius: "2px",
+                            opacity: r >= 0 ? 1 : 0.7,
+                          }}
+                        />
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                flex: "1 1 180px",
+                minWidth: "180px",
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "10px",
+                background: "rgba(var(--mono-rgb-100), 0.03)",
+              }}
+            >
+              <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "6px" }}>
+                🧠 实盘心态
+              </div>
+              <div style={{ fontSize: "1.2em", fontWeight: 900, color: liveMind.color }}>
+                {liveMind.status}
+              </div>
+              <div style={{ color: "var(--text-faint)", fontSize: "0.85em", marginTop: "6px" }}>
+                近期错误：追单(FOMO) {liveMind.fomo} | 上头(Tilt) {liveMind.tilt}
+              </div>
+            </div>
+          </div>
+
           <div
             style={{
               color: "var(--text-muted)",
@@ -2144,6 +2363,70 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
+          💸 错误的代价 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(学费统计)</span>
+        </div>
+        {tuition.tuitionR <= 0 ? (
+          <div style={{ color: "var(--text-success)", fontWeight: 700 }}>
+            🎉 完美！近期实盘没有因纪律问题亏损。
+          </div>
+        ) : (
+          <div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "10px" }}>
+              因执行错误共计亏损：
+              <span style={{ color: "var(--text-error)", fontWeight: 900, marginLeft: "6px" }}>
+                -{tuition.tuitionR.toFixed(1)}R
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {tuition.rows.slice(0, 12).map((row) => {
+                const pct = Math.round((row.costR / tuition.tuitionR) * 100);
+                return (
+                  <div
+                    key={row.tag}
+                    style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.9em" }}
+                  >
+                    <div style={{ width: "110px", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.tag}>
+                      {row.tag}
+                    </div>
+                    <div
+                      style={{
+                        flex: "1 1 auto",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        height: "6px",
+                        borderRadius: "999px",
+                        overflow: "hidden",
+                        border: "1px solid var(--background-modifier-border)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${pct}%`,
+                          height: "100%",
+                          background: "var(--text-error)",
+                        }}
+                      />
+                    </div>
+                    <div style={{ width: "70px", textAlign: "right", color: "var(--text-error)", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                      -{row.costR.toFixed(1)}R
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
