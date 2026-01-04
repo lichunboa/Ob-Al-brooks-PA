@@ -5746,60 +5746,6 @@ short mode\n\
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "12px",
-          marginBottom: "16px",
-        }}
-      >
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "10px",
-            background: "rgba(var(--mono-rgb-100), 0.03)",
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-            🔎 检查器（Inspector）
-          </div>
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            数据治理与巡检（已在下方区块实现）
-          </div>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "10px",
-            background: "rgba(var(--mono-rgb-100), 0.03)",
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🧩 字段规则（Schema）</div>
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            v5.0 的 `pa-view-schema` 已并入下方“检查器/Schema 监控”（KPIs /
-            异常修复台 / 标签全景 / Top 分布）。
-          </div>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "10px",
-            padding: "10px",
-            background: "rgba(var(--mono-rgb-100), 0.03)",
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🛡️ 管理器（Manager）</div>
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            属性管理（已在下方“管理器”区块实现）
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
           border: "1px solid var(--background-modifier-border)",
           borderRadius: "10px",
           padding: "12px",
@@ -5807,50 +5753,6 @@ short mode\n\
           background: "var(--background-primary)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px",
-            marginBottom: "8px",
-          }}
-        >
-          <div style={{ fontWeight: 600 }}>检查器 / 字段规则（Schema）监控</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={() => setShowFixPlan((v) => !v)}
-              disabled={!enumPresets}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                enumPresets
-                  ? { ...buttonStyle, padding: "6px 10px" }
-                  : { ...disabledButtonStyle, padding: "6px 10px" }
-              }
-              title={!enumPresets ? "枚举预设不可用" : "切换修复方案预览"}
-            >
-              {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            color: "var(--text-faint)",
-            fontSize: "0.9em",
-            marginBottom: "10px",
-          }}
-        >
-          只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入 vault）。
-          <span style={{ marginLeft: "8px" }}>
-            枚举预设：{enumPresets ? "已加载" : "不可用"}
-          </span>
-        </div>
-
         {(() => {
           const issueCount = schemaIssues.length;
           const healthScore = Math.max(0, 100 - issueCount * 5);
@@ -5864,6 +5766,15 @@ short mode\n\
           const tags = paTagSnapshot
             ? Object.keys(paTagSnapshot.tagMap).length
             : 0;
+
+          const issueByType = new Map<string, number>();
+          for (const it of schemaIssues) {
+            const k = (it.type ?? "未知").toString();
+            issueByType.set(k, (issueByType.get(k) ?? 0) + 1);
+          }
+          const topTypes = [...issueByType.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8);
 
           const topTags = paTagSnapshot
             ? Object.entries(paTagSnapshot.tagMap)
@@ -5954,79 +5865,245 @@ short mode\n\
           );
           const distExec = topN((t) => t.executionQuality, prettyExecVal);
 
+          const sortedRecent = [...trades]
+            .sort((a, b) =>
+              a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
+            )
+            .slice(0, 15);
+
           return (
             <div style={{ marginBottom: "12px" }}>
               <div
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
                   gap: "12px",
-                  flexWrap: "wrap",
-                  marginBottom: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                <div style={{ color: healthColor, fontWeight: 700 }}>
-                  系统健康度：{healthScore}
-                </div>
                 <div
                   style={{
-                    color:
-                      issueCount > 0
-                        ? "var(--text-error)"
-                        : "var(--text-muted)",
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
                   }}
                 >
-                  待修异常：{issueCount}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: "10px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: healthColor }}>
+                      ❤️ 系统健康度：{healthScore}
+                    </div>
+                    <div style={{ color: "var(--text-muted)" }}>
+                      待修异常：{issueCount}
+                    </div>
+                  </div>
+
+                  {topTypes.length ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "6px 14px",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      {topTypes.map(([t, c]) => (
+                        <div
+                          key={t}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "10px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={t}
+                          >
+                            {t}
+                          </span>
+                          <span
+                            style={{
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {c}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: "var(--text-accent)" }}>
+                      ✅ 系统非常健康（All Clear）
+                    </div>
+                  )}
                 </div>
-                <div style={{ color: "var(--text-muted)" }}>
-                  标签总数：{tags}
-                </div>
-                <div style={{ color: "var(--text-muted)" }}>
-                  笔记档案：{files}
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: "10px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800 }}>🧠 系统诊断</div>
+                    <div style={{ color: "var(--text-muted)" }}>
+                      {schemaScanNote ? "已扫描" : "未扫描"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "6px 14px",
+                      fontSize: "0.9em",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>枚举预设</span>
+                      <span>{enumPresets ? "✅ 已加载" : "—"}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>标签扫描</span>
+                      <span>{paTagSnapshot ? "✅ 正常" : "—"}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>交易记录</span>
+                      <span>{trades.length}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>笔记档案</span>
+                      <span>{files}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>标签总数</span>
+                      <span>{tags}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <span>属性管理器</span>
+                      <span>✅ 可用</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {schemaScanNote ? (
-                <div
-                  style={{
-                    color: "var(--text-faint)",
-                    fontSize: "0.85em",
-                    marginBottom: "10px",
-                  }}
-                >
-                  {schemaScanNote}
-                </div>
-              ) : null}
 
               <div
                 style={{
                   border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                  marginBottom: "10px",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  background: "var(--background-primary)",
+                  marginBottom: "12px",
                 }}
               >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  🚑 异常修复台（Fix Station）
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: "10px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div style={{ fontWeight: 800 }}>⚠️ 异常详情</div>
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                    {issueCount}
+                  </div>
                 </div>
 
                 {schemaIssues.length === 0 ? (
-                  <div
-                    style={{ color: "var(--text-accent)", fontSize: "0.9em" }}
-                  >
-                    ✅ 系统非常健康（All Clear）
+                  <div style={{ color: "var(--text-accent)", fontSize: "0.9em" }}>
+                    ✅ 无异常
                   </div>
                 ) : (
                   <div
                     style={{
-                      maxHeight: "200px",
+                      maxHeight: "260px",
                       overflow: "auto",
                       border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      background: "var(--background-primary)",
+                      borderRadius: "10px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
                     }}
                   >
-                    {schemaIssues.slice(0, 50).map((item, idx) => (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "2fr 1fr 1fr",
+                        gap: "10px",
+                        padding: "10px",
+                        borderBottom:
+                          "1px solid var(--background-modifier-border)",
+                        color: "var(--text-faint)",
+                        fontSize: "0.85em",
+                        background: "var(--background-primary)",
+                      }}
+                    >
+                      <div>文件</div>
+                      <div>问题</div>
+                      <div>字段</div>
+                    </div>
+                    {schemaIssues.slice(0, 80).map((item, idx) => (
                       <button
                         key={`${item.path}:${item.key}:${idx}`}
                         type="button"
@@ -6039,38 +6116,45 @@ short mode\n\
                         style={{
                           width: "100%",
                           textAlign: "left",
-                          padding: "8px 10px",
+                          padding: 0,
                           border: "none",
                           borderBottom:
                             "1px solid var(--background-modifier-border)",
                           background: "transparent",
                           cursor: "pointer",
                           outline: "none",
-                          transition:
-                            "background-color 180ms ease, box-shadow 180ms ease",
                         }}
                       >
                         <div
                           style={{
-                            display: "flex",
+                            display: "grid",
+                            gridTemplateColumns: "2fr 1fr 1fr",
                             gap: "10px",
+                            padding: "10px",
                             alignItems: "baseline",
                           }}
                         >
-                          <div
-                            style={{
-                              flex: "1 1 auto",
-                              minWidth: 0,
-                            }}
-                          >
-                            <div style={{ fontWeight: 600 }}>{item.name}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontWeight: 650,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {item.name}
+                            </div>
                             <div
                               style={{
                                 color: "var(--text-faint)",
                                 fontSize: "0.85em",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              {item.key}
+                              {item.path}
                             </div>
                           </div>
                           <div
@@ -6082,20 +6166,20 @@ short mode\n\
                           >
                             {item.type}
                           </div>
+                          <div
+                            style={{
+                              color: "var(--text-muted)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                            title={item.key}
+                          >
+                            {item.key}
+                          </div>
                         </div>
                       </button>
                     ))}
-                    {schemaIssues.length > 50 ? (
-                      <div
-                        style={{
-                          padding: "8px 10px",
-                          color: "var(--text-faint)",
-                          fontSize: "0.85em",
-                        }}
-                      >
-                        仅显示前 50 条异常。
-                      </div>
-                    ) : null}
                   </div>
                 )}
               </div>
@@ -6106,143 +6190,587 @@ short mode\n\
                   borderRadius: "8px",
                   padding: "10px",
                   background: "rgba(var(--mono-rgb-100), 0.03)",
-                  marginBottom: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  🏷️ 标签全景（Tag System）
-                </div>
-                {!paTagSnapshot ? (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                <details>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      listStyle: "none",
+                    }}
                   >
-                    标签扫描不可用。
-                  </div>
-                ) : (
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
-                  >
-                    {topTags.map(([tag, count]) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => openGlobalSearch(`tag:${tag}`)}
-                        onMouseEnter={onTextBtnMouseEnter}
-                        onMouseLeave={onTextBtnMouseLeave}
-                        onFocus={onTextBtnFocus}
-                        onBlur={onTextBtnBlur}
-                        style={{
-                          padding: "2px 8px",
-                          borderRadius: "999px",
-                          border: "1px solid var(--background-modifier-border)",
-                          background: "var(--background-primary)",
-                          fontSize: "0.85em",
-                          color: "var(--text-muted)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        #{tag} ({count})
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  📊 Top 分布（Ticker / Setup / Exec）
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "10px",
-                  }}
-                >
-                  {[
-                    { title: "Ticker", data: distTicker },
-                    { title: "Setup", data: distSetup },
-                    { title: "Exec", data: distExec },
-                  ].map((col) => (
-                    <div
-                      key={col.title}
+                    📊 分布摘要（可展开）
+                    <span
                       style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        padding: "8px",
+                        marginLeft: "10px",
+                        color: "var(--text-faint)",
+                        fontSize: "0.9em",
+                        fontWeight: 600,
+                      }}
+                    >
+                      完整图像建议看 Schema
+                    </span>
+                  </summary>
+
+                  <div style={{ marginTop: "10px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr",
+                        gap: "10px",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      {[
+                        { title: "Ticker", data: distTicker },
+                        { title: "Setup", data: distSetup },
+                        { title: "Exec", data: distExec },
+                      ].map((col) => (
+                        <div
+                          key={col.title}
+                          style={{
+                            border:
+                              "1px solid var(--background-modifier-border)",
+                            borderRadius: "10px",
+                            padding: "10px",
+                            background: "var(--background-primary)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              marginBottom: "8px",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            {col.title}
+                          </div>
+                          {col.data.length === 0 ? (
+                            <div
+                              style={{
+                                color: "var(--text-faint)",
+                                fontSize: "0.85em",
+                              }}
+                            >
+                              无数据
+                            </div>
+                          ) : (
+                            <div style={{ display: "grid", gap: "6px" }}>
+                              {col.data.map(([k, v]) => (
+                                <div
+                                  key={k}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: "10px",
+                                    fontSize: "0.9em",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      color: "var(--text-normal)",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    title={k}
+                                  >
+                                    {k}
+                                  </div>
+                                  <div
+                                    style={{
+                                      color: "var(--text-muted)",
+                                      fontVariantNumeric: "tabular-nums",
+                                    }}
+                                  >
+                                    {v}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      style={{
+                        border:
+                          "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "10px",
                         background: "var(--background-primary)",
                       }}
                     >
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          marginBottom: "6px",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        {col.title}
+                      <div style={{ fontWeight: 800, marginBottom: "8px" }}>
+                        🏷️ 标签全景（Tag System）
                       </div>
-                      {col.data.length === 0 ? (
+                      {!paTagSnapshot ? (
                         <div
                           style={{
                             color: "var(--text-faint)",
-                            fontSize: "0.85em",
+                            fontSize: "0.9em",
                           }}
                         >
-                          无数据
+                          标签扫描不可用。
                         </div>
                       ) : (
                         <div
                           style={{
                             display: "flex",
-                            flexDirection: "column",
-                            gap: "4px",
+                            flexWrap: "wrap",
+                            gap: "6px",
                           }}
                         >
-                          {col.data.map(([k, v]) => (
-                            <div
-                              key={k}
+                          {topTags.map(([tag, count]) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => openGlobalSearch(`tag:${tag}`)}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
                               style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: "10px",
-                                fontSize: "0.9em",
+                                padding: "2px 8px",
+                                borderRadius: "999px",
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                background: "var(--background-primary)",
+                                fontSize: "0.85em",
+                                color: "var(--text-muted)",
+                                cursor: "pointer",
                               }}
                             >
-                              <div
-                                style={{
-                                  color: "var(--text-normal)",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={k}
-                              >
-                                {k}
-                              </div>
-                              <div
-                                style={{
-                                  color: "var(--text-muted)",
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {v}
-                              </div>
-                            </div>
+                              #{tag} ({count})
+                            </button>
                           ))}
                         </div>
                       )}
                     </div>
+                  </div>
+                </details>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  background: "var(--background-primary)",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: "10px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div style={{ fontWeight: 800 }}>📄 原始数据明细（Raw Data）</div>
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    最近 {sortedRecent.length} 笔
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    overflow: "auto",
+                    maxHeight: "260px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "90px 110px 120px 1fr 100px 120px",
+                      gap: "10px",
+                      padding: "10px",
+                      borderBottom:
+                        "1px solid var(--background-modifier-border)",
+                      color: "var(--text-faint)",
+                      fontSize: "0.85em",
+                      background: "var(--background-primary)",
+                    }}
+                  >
+                    <div>日期</div>
+                    <div>品种</div>
+                    <div>周期</div>
+                    <div>策略</div>
+                    <div>结果</div>
+                    <div>执行</div>
+                  </div>
+
+                  {sortedRecent.map((t) => (
+                    <button
+                      key={t.path}
+                      type="button"
+                      onClick={() => openFile(t.path)}
+                      title={t.path}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: 0,
+                        border: "none",
+                        borderBottom:
+                          "1px solid var(--background-modifier-border)",
+                        background: "transparent",
+                        cursor: "pointer",
+                        outline: "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "90px 110px 120px 1fr 100px 120px",
+                          gap: "10px",
+                          padding: "10px",
+                          alignItems: "baseline",
+                          fontSize: "0.9em",
+                        }}
+                      >
+                        <div style={{ color: "var(--text-muted)" }}>
+                          {t.dateIso}
+                        </div>
+                        <div style={{ fontWeight: 650 }}>{t.ticker ?? "—"}</div>
+                        <div style={{ color: "var(--text-muted)" }}>
+                          {t.timeframe ?? "—"}
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={t.setupKey ?? t.setupCategory ?? ""}
+                        >
+                          {prettySchemaVal(t.setupKey ?? t.setupCategory) || "—"}
+                        </div>
+                        <div style={{ color: "var(--text-muted)" }}>
+                          {t.outcome ?? "unknown"}
+                        </div>
+                        <div style={{ color: "var(--text-muted)" }}>
+                          {prettyExecVal(t.executionQuality) || "—"}
+                        </div>
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                  gap: "12px",
+                  marginBottom: "12px",
+                }}
+              >
+                {[
+                  {
+                    title: "系统健康度",
+                    value: String(healthScore),
+                    color: healthColor,
+                  },
+                  {
+                    title: "待修异常",
+                    value: String(issueCount),
+                    color:
+                      issueCount > 0
+                        ? "var(--text-error)"
+                        : "var(--text-muted)",
+                  },
+                  {
+                    title: "标签总数",
+                    value: String(tags),
+                    color: "var(--text-accent)",
+                  },
+                  {
+                    title: "笔记档案",
+                    value: String(files),
+                    color: "var(--text-accent)",
+                  },
+                ].map((c) => (
+                  <div
+                    key={c.title}
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                  >
+                    <div style={{ color: "var(--text-faint)" }}>{c.title}</div>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontSize: "1.4em",
+                        fontWeight: 900,
+                        color: c.color,
+                      }}
+                    >
+                      {c.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: healthColor }}>
+                  {issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}
+                  <span style={{ marginLeft: "10px", color: "var(--text-faint)", fontWeight: 600 }}>
+                    {issueCount === 0 ? "(AI Clear)" : "(Needs Attention)"}
+                  </span>
+                </div>
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  {issueCount === 0
+                    ? "所有关键属性已规范填写"
+                    : "建议优先处理异常详情中的缺失字段"}
+                </div>
+              </div>
+
+              <details style={{ marginTop: "12px" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    fontWeight: 700,
+                  }}
+                >
+                  🔎 检查器（Inspector）与修复方案预览（可展开）
+                </summary>
+
+                <div style={{ marginTop: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700 }}>检查器问题列表</div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFixPlan((v) => !v)}
+                      disabled={!enumPresets}
+                      onMouseEnter={onBtnMouseEnter}
+                      onMouseLeave={onBtnMouseLeave}
+                      onFocus={onBtnFocus}
+                      onBlur={onBtnBlur}
+                      style={
+                        enumPresets
+                          ? { ...buttonStyle, padding: "6px 10px" }
+                          : { ...disabledButtonStyle, padding: "6px 10px" }
+                      }
+                      title={!enumPresets ? "枚举预设不可用" : "切换修复方案预览"}
+                    >
+                      {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      color: "var(--text-faint)",
+                      fontSize: "0.9em",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入 vault）。
+                    <span style={{ marginLeft: "8px" }}>
+                      枚举预设：{enumPresets ? "已加载" : "不可用"}
+                    </span>
+                  </div>
+
+                  {schemaScanNote ? (
+                    <div
+                      style={{
+                        color: "var(--text-faint)",
+                        fontSize: "0.85em",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      {schemaScanNote}
+                    </div>
+                  ) : null}
+
+                  {(() => {
+                    const errorCount = inspectorIssues.filter(
+                      (i) => i.severity === "error"
+                    ).length;
+                    const warnCount = inspectorIssues.filter(
+                      (i) => i.severity === "warn"
+                    ).length;
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div style={{ color: "var(--text-error)" }}>
+                          错误：{errorCount}
+                        </div>
+                        <div style={{ color: "var(--text-warning)" }}>
+                          警告：{warnCount}
+                        </div>
+                        <div style={{ color: "var(--text-muted)" }}>
+                          总计：{inspectorIssues.length}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {inspectorIssues.length === 0 ? (
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                      未发现问题。
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        maxHeight: "240px",
+                        overflow: "auto",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                      }}
+                    >
+                      {inspectorIssues.slice(0, 50).map((issue) => (
+                        <button
+                          key={issue.id}
+                          type="button"
+                          onClick={() => openFile(issue.path)}
+                          title={issue.path}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "8px 10px",
+                            border: "none",
+                            borderBottom:
+                              "1px solid var(--background-modifier-border)",
+                            background: "transparent",
+                            cursor: "pointer",
+                            outline: "none",
+                            transition:
+                              "background-color 180ms ease, box-shadow 180ms ease",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "10px",
+                              alignItems: "baseline",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "60px",
+                                color:
+                                  issue.severity === "error"
+                                    ? "var(--text-error)"
+                                    : "var(--text-warning)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {issue.severity === "error"
+                                ? "错误"
+                                : issue.severity === "warn"
+                                ? "警告"
+                                : "—"}
+                            </div>
+                            <div style={{ flex: "1 1 auto" }}>
+                              <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                              <div
+                                style={{
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.85em",
+                                }}
+                              >
+                                {issue.path}
+                                {issue.detail ? ` — ${issue.detail}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                      {inspectorIssues.length > 50 ? (
+                        <div
+                          style={{
+                            padding: "8px 10px",
+                            color: "var(--text-faint)",
+                            fontSize: "0.85em",
+                          }}
+                        >
+                          仅显示前 50 条问题。
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {showFixPlan && enumPresets ? (
+                    <div style={{ marginTop: "12px" }}>
+                      <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                        修复方案预览（FixPlan）
+                      </div>
+                      <pre
+                        style={{
+                          margin: 0,
+                          padding: "10px",
+                          border:
+                            "1px solid var(--background-modifier-border)",
+                          borderRadius: "8px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          maxHeight: "220px",
+                          overflow: "auto",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {fixPlanText ?? ""}
+                      </pre>
+                    </div>
+                  ) : !enumPresets ? (
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        color: "var(--text-faint)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      枚举预设不可用，已禁用修复方案生成。
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </div>
           );
         })()}
