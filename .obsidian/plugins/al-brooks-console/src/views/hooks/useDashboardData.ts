@@ -8,7 +8,6 @@ import {
   computeStrategyAttribution,
   computeContextAnalysis,
   computeErrorAnalysis,
-  computeTuitionAnalysis,
   filterTradesByScope,
   type DailyAgg,
   type AnalyticsScope,
@@ -332,11 +331,6 @@ export function useDashboardData(
     return computeErrorAnalysis(filtered).slice(0, 8);
   }, [trades, analyticsScope]);
 
-  const tuitionAnalysis = React.useMemo(() => {
-    const filtered = filterTradesByScope(trades, analyticsScope);
-    return computeTuitionAnalysis(filtered);
-  }, [trades, analyticsScope]);
-
   return {
     trades,
     strategies,
@@ -368,7 +362,6 @@ export function useDashboardData(
     strategyAttribution,
     contextAnalysis,
     errorAnalysis,
-    tuitionAnalysis,
     inspectorIssues,
     fixPlan,
     openTrade,
