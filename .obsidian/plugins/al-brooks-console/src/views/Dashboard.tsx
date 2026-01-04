@@ -85,6 +85,13 @@ function getDayOfMonth(dateIso: string): string {
   return d.startsWith("0") ? d.slice(1) : d;
 }
 
+function getYearMonth(dateIso: string | undefined): string | undefined {
+  if (!dateIso) return undefined;
+  const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return undefined;
+  return `${m[1]}-${m[2]}`;
+}
+
 function sumPnlR(trades: TradeRecord[]): number {
   let sum = 0;
   for (const t of trades) {
@@ -481,6 +488,39 @@ const ConsoleComponent: React.FC<Props> = ({
     [trades]
   );
   const all = summary.All;
+
+  const accountTargetMonth = React.useMemo(() => {
+    const liveDesc = [...trades]
+      .filter((t) => t.accountType === "Live")
+      .sort((a, b) => (a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0));
+    const ym = getYearMonth(liveDesc[0]?.dateIso);
+    if (ym) return ym;
+    return toLocalDateIso(new Date()).slice(0, 7);
+  }, [trades]);
+
+  const accountDaysInMonth = React.useMemo(() => {
+    const m = accountTargetMonth.match(/^(\d{4})-(\d{2})$/);
+    if (!m) return 30;
+    const year = Number(m[1]);
+    const monthIdx = Number(m[2]) - 1;
+    const days = new Date(year, monthIdx + 1, 0).getDate();
+    return Number.isFinite(days) && days > 0 ? days : 30;
+  }, [accountTargetMonth]);
+
+  const accountDailyMap = React.useMemo(() => {
+    const byDay = new Map<number, number>();
+    for (const t of trades) {
+      if (t.accountType !== "Live") continue;
+      const ym = getYearMonth(t.dateIso);
+      if (ym !== accountTargetMonth) continue;
+      const dayStr = (t.dateIso ?? "").split("-")[2];
+      const day = dayStr ? Number(dayStr) : NaN;
+      if (!Number.isFinite(day)) continue;
+      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      byDay.set(day, (byDay.get(day) ?? 0) + pnl);
+    }
+    return byDay;
+  }, [trades, accountTargetMonth]);
 
   const liveCyclePerf = React.useMemo(() => {
     const normalizeCycle = (raw: string): string => {
@@ -2306,6 +2346,185 @@ const ConsoleComponent: React.FC<Props> = ({
           }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
           icon="🔵"
         />
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "12px" }}>
+          💼 账户资金概览 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Account)</span>
+        </div>
+
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
+          <div
+            style={{
+              flex: "1.5 1 360px",
+              minWidth: "320px",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "12px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" }}>
+              <div style={{ fontWeight: 900, fontSize: "1.1em", color: "var(--text-success)" }}>
+                🟢 实盘账户
+              </div>
+              <div
+                style={{
+                  fontSize: "0.8em",
+                  color: "var(--text-muted)",
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "999px",
+                  padding: "2px 8px",
+                  background: "var(--background-primary)",
+                }}
+              >
+                Live
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+              <div
+                style={{
+                  fontSize: "2.2em",
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  color:
+                    summary.Live.netProfit >= 0
+                      ? "var(--text-success)"
+                      : "var(--text-error)",
+                }}
+              >
+                {summary.Live.netProfit > 0 ? "+" : ""}
+                {summary.Live.netProfit.toFixed(1)}
+              </div>
+              <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>R</div>
+            </div>
+            <div style={{ display: "flex", gap: "14px", marginTop: "10px", color: "var(--text-muted)", fontSize: "0.9em", flexWrap: "wrap" }}>
+              <div>📦 {summary.Live.countTotal} 笔交易</div>
+              <div>🎯 {summary.Live.winRatePct}% 胜率</div>
+            </div>
+          </div>
+
+          <div style={{ flex: "1 1 260px", minWidth: "260px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            {([
+              {
+                title: "模拟盘",
+                icon: "🔵",
+                stats: summary.Demo,
+              },
+              {
+                title: "复盘回测",
+                icon: "🟠",
+                stats: summary.Backtest,
+              },
+            ] as const).map((card) => (
+              <div
+                key={card.title}
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" }}>
+                  <div style={{ fontWeight: 800, color: "var(--text-muted)" }}>
+                    {card.icon} {card.title}
+                  </div>
+                  <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>
+                    {card.stats.countTotal} 笔
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                  <div
+                    style={{
+                      fontSize: "1.6em",
+                      fontWeight: 900,
+                      color:
+                        card.stats.netProfit >= 0
+                          ? "var(--text-success)"
+                          : "var(--text-error)",
+                    }}
+                  >
+                    {card.stats.netProfit > 0 ? "+" : ""}
+                    {card.stats.netProfit.toFixed(1)}
+                  </div>
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>R</div>
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginTop: "4px" }}>
+                  胜率：{card.stats.winRatePct}%
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ paddingTop: "12px", borderTop: "1px solid var(--background-modifier-border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
+            <div style={{ fontWeight: 700, color: "var(--text-muted)" }}>
+              📅 盈亏日历 ({accountTargetMonth})
+            </div>
+            <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>Live Account Only</div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
+            {Array.from({ length: accountDaysInMonth }, (_, i) => i + 1).map((day) => {
+              const pnl = accountDailyMap.get(day);
+              const hasTrade = pnl !== undefined;
+              const color =
+                !hasTrade
+                  ? "var(--text-faint)"
+                  : pnl! > 0
+                  ? "var(--text-success)"
+                  : pnl! < 0
+                  ? "var(--text-error)"
+                  : "var(--text-muted)";
+              const bg =
+                !hasTrade
+                  ? "rgba(var(--mono-rgb-100), 0.02)"
+                  : pnl! > 0
+                  ? "rgba(var(--color-green-rgb), 0.12)"
+                  : pnl! < 0
+                  ? "rgba(var(--color-red-rgb), 0.12)"
+                  : "rgba(var(--mono-rgb-100), 0.06)";
+
+              return (
+                <div
+                  key={`${accountTargetMonth}-${day}`}
+                  title={`${accountTargetMonth}-${String(day).padStart(2, "0")} PnL: ${hasTrade ? pnl!.toFixed(2) : "0"}`}
+                  style={{
+                    aspectRatio: "1",
+                    background: bg,
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "8px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "2px",
+                  }}
+                >
+                  <div style={{ fontSize: "0.75em", color: "var(--text-faint)" }}>{day}</div>
+                  {hasTrade ? (
+                    <div style={{ fontSize: "0.85em", fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>
+                      {pnl! > 0 ? "+" : ""}
+                      {pnl!.toFixed(0)}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "0.85em", fontWeight: 700, color: "var(--text-faint)", opacity: 0.4 }}>—</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div
