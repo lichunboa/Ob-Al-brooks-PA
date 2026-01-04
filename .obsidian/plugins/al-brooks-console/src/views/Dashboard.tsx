@@ -6112,6 +6112,19 @@ const ConsoleComponent: React.FC<Props> = ({
                   const inv = managerInventory;
                   const q = managerSearch.trim().toLowerCase();
 
+                  const canonicalizeSearch = (s: string) => {
+                    const raw = (s ?? "").toString().trim();
+                    if (!raw) return "";
+                    const low = raw.toLowerCase();
+                    if (low.includes("unknown") || raw.includes("未知")) return "unknown";
+                    if (low === "null" || raw.includes("空/null")) return "null";
+                    if (low.includes("empty") || raw === "空" || raw.includes("空/empty"))
+                      return "empty";
+                    return low;
+                  };
+
+                  const qCanon = canonicalizeSearch(q);
+
                   const groups = [
                     {
                       title: "⭐ 核心要素 (Core)",
@@ -6126,10 +6139,19 @@ const ConsoleComponent: React.FC<Props> = ({
                         "pnl",
                         "net_profit",
                         "利润",
+                        "净利润",
                         "outcome",
                         "结果",
                         "strategy",
                         "策略",
+                        "setup",
+                        "设置",
+                        "设置类别",
+                        "setup_category",
+                        "patterns",
+                        "形态",
+                        "观察到的形态",
+                        "patterns_observed",
                       ],
                     },
                     {
@@ -6151,8 +6173,19 @@ const ConsoleComponent: React.FC<Props> = ({
                         "r/r",
                         "cycle",
                         "周期",
+                        "market_cycle",
+                        "市场周期",
                         "timeframe",
                         "时间周期",
+                        "direction",
+                        "方向",
+                        "stop",
+                        "止损",
+                        "target",
+                        "目标",
+                        "size",
+                        "qty",
+                        "quantity",
                       ],
                     },
                     {
@@ -6172,6 +6205,9 @@ const ConsoleComponent: React.FC<Props> = ({
                         "时间",
                         "week",
                         "周",
+                        "note",
+                        "笔记",
+                        "id",
                       ],
                     },
                   ] as const;
@@ -6192,9 +6228,16 @@ const ConsoleComponent: React.FC<Props> = ({
 
                   const matchesSearch = (key: string) => {
                     if (!q) return true;
-                    if (key.toLowerCase().includes(q)) return true;
+                    const kl = key.toLowerCase();
+                    if (kl.includes(q)) return true;
+                    if (qCanon && canonicalizeSearch(kl).includes(qCanon)) return true;
                     const vals = Object.keys(inv.valPaths[key] ?? {});
-                    return vals.some((v) => v.toLowerCase().includes(q));
+                    return vals.some((v) => {
+                      const vl = v.toLowerCase();
+                      if (vl.includes(q)) return true;
+                      if (!qCanon) return false;
+                      return canonicalizeSearch(vl).includes(qCanon);
+                    });
                   };
 
                   const visibleKeys = inv.keys
