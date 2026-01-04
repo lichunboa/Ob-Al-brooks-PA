@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from core.fetcher import BaseFetcher
 from core.registry import register_fetcher
+from core.key_manager import get_key_manager
 from config import settings
 
 
@@ -31,7 +32,11 @@ class MacroData(BaseModel):
 
 @register_fetcher("fredapi", "macro")
 class FREDMacroFetcher(BaseFetcher[MacroQuery, MacroData]):
-    """FRED 宏观数据获取器 - 美联储官方数据"""
+    """FRED 宏观数据获取器 - 美联储官方数据
+    
+    支持多 Key 负载均衡，在 config/.env 中配置:
+        FRED_API_KEY=key1,key2,key3
+    """
     
     # 常用序列
     SERIES = {
@@ -46,11 +51,22 @@ class FREDMacroFetcher(BaseFetcher[MacroQuery, MacroData]):
     }
     
     def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or os.getenv("FRED_API_KEY")
+        self._single_key = api_key
+        self._key_manager = get_key_manager("FRED_API_KEY") if not api_key else None
         # fredapi 通过 requests 使用代理
         if settings.http_proxy:
             os.environ.setdefault("HTTP_PROXY", settings.http_proxy)
             os.environ.setdefault("HTTPS_PROXY", settings.http_proxy)
+    
+    def _get_api_key(self) -> str:
+        """获取 API Key (支持多 Key 轮询)"""
+        if self._single_key:
+            return self._single_key
+        if self._key_manager:
+            key = self._key_manager.get_key()
+            if key:
+                return key
+        raise ValueError("需要 FRED_API_KEY 环境变量")
     
     def transform_query(self, params: dict[str, Any]) -> MacroQuery:
         return MacroQuery(**params)
@@ -58,20 +74,27 @@ class FREDMacroFetcher(BaseFetcher[MacroQuery, MacroData]):
     async def extract(self, query: MacroQuery) -> list[dict[str, Any]]:
         from fredapi import Fred
         
-        if not self.api_key:
-            raise ValueError("需要 FRED_API_KEY 环境变量")
+        api_key = self._get_api_key()
+        fred = Fred(api_key=api_key)
         
-        fred = Fred(api_key=self.api_key)
-        
-        series = await asyncio.to_thread(
-            fred.get_series,
-            query.series_id,
-            observation_start=query.start,
-            observation_end=query.end
-        )
-        
-        return [{"date": idx, "value": val, "series_id": query.series_id} 
-                for idx, val in series.items() if val == val]  # 过滤 NaN
+        try:
+            series = await asyncio.to_thread(
+                fred.get_series,
+                query.series_id,
+                observation_start=query.start,
+                observation_end=query.end
+            )
+            
+            if self._key_manager:
+                self._key_manager.report_success(api_key)
+            
+            return [{"date": idx, "value": val, "series_id": query.series_id} 
+                    for idx, val in series.items() if val == val]  # 过滤 NaN
+                    
+        except Exception as e:
+            if self._key_manager:
+                self._key_manager.report_error(api_key)
+            raise
     
     def transform_data(self, raw: list[dict[str, Any]]) -> list[MacroData]:
         return [MacroData(

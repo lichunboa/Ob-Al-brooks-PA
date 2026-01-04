@@ -10,6 +10,8 @@
 
 *All markets, all strategies, all data, all methods - trade everything, monitor everything*
 
+[简体中文](README.md) | English
+
 ---
 
 <p>

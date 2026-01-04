@@ -5960,6 +5960,28 @@ def main():
         print("📞 现在可以发送 /start 命令测试机器人！")
         print("⚡ 注意：初次使用时数据功能可能需要几秒钟加载")
         
+        # 启动信号检测服务
+        try:
+            from signals import init_pusher, start_signal_loop
+            
+            async def send_signal(user_id: int, text: str, reply_markup):
+                """发送信号消息"""
+                try:
+                    await application.bot.send_message(
+                        chat_id=user_id,
+                        text=text,
+                        reply_markup=reply_markup
+                    )
+                except Exception as e:
+                    logger.warning(f"发送信号给 {user_id} 失败: {e}")
+            
+            init_pusher(send_signal)
+            start_signal_loop(interval=60)
+            logger.info("✅ 信号检测服务已启动")
+            print("🔔 信号检测服务已启动，间隔60秒")
+        except Exception as e:
+            logger.warning(f"⚠️ 信号服务启动失败: {e}")
+        
         # 显式阻塞主线程：close_loop=True 交由库关闭事件循环，stop_signals=None 避免额外信号干扰
         application.run_polling(
             allowed_updates=Update.ALL_TYPES,
