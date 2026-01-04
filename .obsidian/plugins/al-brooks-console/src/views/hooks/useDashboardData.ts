@@ -2,6 +2,7 @@ import * as React from "react";
 import type { AccountType, TradeRecord } from "../../core/contracts";
 import type { StrategyIndex } from "../../core/strategy-index";
 import type { TodayContext } from "../../core/today-context";
+import { V5_COLORS } from "../../ui/tokens";
 import {
   computeDailyAgg,
   computeEquityCurve,
@@ -50,11 +51,11 @@ function sumPnlR(trades: TradeRecord[]): number {
 export function getRColorByAccountType(accountType: AccountType): string {
   switch (accountType) {
     case "Live":
-      return "var(--text-success)";
+      return V5_COLORS.live;
     case "Demo":
-      return "var(--text-warning)";
+      return V5_COLORS.demo;
     case "Backtest":
-      return "var(--text-accent)";
+      return V5_COLORS.back;
   }
 }
 

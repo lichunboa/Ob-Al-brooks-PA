@@ -9,6 +9,14 @@ export const GlobalStyles: React.FC = () => (
   margin: 0 auto;
   font-family: var(--font-interface);
   color: var(--text-normal);
+
+  /* v5 palette (scoped): semantic/status/chart colors */
+  --pa-v5-live: #10B981;
+  --pa-v5-demo: #3B82F6;
+  --pa-v5-back: #F59E0B;
+  --pa-v5-win: #10B981;
+  --pa-v5-loss: #EF4444;
+  --pa-v5-accent: #60A5FA;
 }
 
 /* Grid Layouts */
@@ -102,8 +110,8 @@ export const GlobalStyles: React.FC = () => (
   font-family: var(--font-monospace);
   font-weight: bold;
 }
-.pa-stat-value.pos { color: var(--text-success); }
-.pa-stat-value.neg { color: var(--text-error); }
+.pa-stat-value.pos { color: var(--pa-v5-win); }
+.pa-stat-value.neg { color: var(--pa-v5-loss); }
 
 /* Utility */
 .pa-text-muted { color: var(--text-muted); }
