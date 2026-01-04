@@ -36,6 +36,8 @@ export const MANAGER_GROUPS: readonly ManagerGroupConfig[] = [
       "概率",
       "management_plan",
       "管理计划",
+      "signal",
+      "信号",
     ],
   },
   {
@@ -104,10 +106,26 @@ export const MANAGER_GROUPS: readonly ManagerGroupConfig[] = [
 export function managerKeyTokens(key: string): string[] {
   const raw = String(key ?? "").trim();
   if (!raw) return [];
-  const lower = raw.toLowerCase();
-  const tokens = lower
-    .split(/[^\p{L}\p{N}]+/u)
-    .map((t) => t.trim())
-    .filter(Boolean);
-  return Array.from(new Set([lower, ...tokens]));
+
+  const parts = raw.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+
+  const out: string[] = [];
+  out.push(raw.toLowerCase());
+
+  for (const p of parts) {
+    const pLower = p.toLowerCase();
+    out.push(pLower);
+
+    // Split camelCase / PascalCase / snake-ish tokens into smaller pieces.
+    // Example: setupCategory -> ["setup", "category"]
+    const camel = p.match(/[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[0-9]+|[A-Z]+/g);
+    if (camel) {
+      for (const c of camel) {
+        const cl = c.toLowerCase().trim();
+        if (cl) out.push(cl);
+      }
+    }
+  }
+
+  return Array.from(new Set(out));
 }

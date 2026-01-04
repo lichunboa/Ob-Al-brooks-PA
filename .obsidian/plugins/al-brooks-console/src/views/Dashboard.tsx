@@ -6117,6 +6117,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     const raw = (s ?? "").toString().trim();
                     if (!raw) return "";
                     const low = raw.toLowerCase();
+                    if (low === "n/a" || low === "na") return "unknown";
                     if (low.includes("unknown") || raw.includes("未知")) return "unknown";
                     if (low === "null" || raw.includes("空/null")) return "null";
                     if (low.includes("empty") || raw === "空" || raw.includes("空/empty"))
