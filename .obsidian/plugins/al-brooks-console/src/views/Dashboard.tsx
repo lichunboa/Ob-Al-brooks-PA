@@ -7637,9 +7637,17 @@ export class ConsoleView extends ItemView {
     };
 
     const loadAllFrontmatterFiles = async (): Promise<FrontmatterFile[]> => {
+      const EXCLUDE_PREFIXES = [
+        ".obsidian/",
+        "Templates/",
+        "Attachments/",
+        "Exports/",
+        "copilot/",
+      ];
+
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f) => !f.path.startsWith("Templates/"));
+        .filter((f) => !EXCLUDE_PREFIXES.some((p) => f.path.startsWith(p)));
 
       const out: FrontmatterFile[] = [];
       for (let i = 0; i < files.length; i++) {
