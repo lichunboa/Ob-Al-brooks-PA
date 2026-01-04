@@ -1118,6 +1118,35 @@ const ConsoleComponent: React.FC<Props> = ({
     can("quickadd:new-demo-trade") ||
     can("quickadd:new-backtest");
 
+  type NewTradeType = "Live" | "Demo" | "Backtest";
+
+  const getCapabilityIdForNewTradeType = React.useCallback(
+    (t: NewTradeType): IntegrationCapability => {
+      if (t === "Live") return "quickadd:new-live-trade";
+      if (t === "Demo") return "quickadd:new-demo-trade";
+      return "quickadd:new-backtest";
+    },
+    []
+  );
+
+  const getDefaultNewTradeType = React.useCallback((): NewTradeType => {
+    if (can("quickadd:new-live-trade")) return "Live";
+    if (can("quickadd:new-demo-trade")) return "Demo";
+    if (can("quickadd:new-backtest")) return "Backtest";
+    return "Live";
+  }, [can]);
+
+  const [newTradeType, setNewTradeType] = React.useState<NewTradeType>(() =>
+    getDefaultNewTradeType()
+  );
+
+  React.useEffect(() => {
+    // Ensure selected type stays valid as capabilities change.
+    const cap = getCapabilityIdForNewTradeType(newTradeType);
+    if (can(cap)) return;
+    setNewTradeType(getDefaultNewTradeType());
+  }, [can, getCapabilityIdForNewTradeType, getDefaultNewTradeType, newTradeType]);
+
   const reloadCourse = React.useCallback(async () => {
     if (!loadCourse) return;
     setCourseBusy(true);
@@ -1616,52 +1645,61 @@ const ConsoleComponent: React.FC<Props> = ({
         </span>
         {integrations && (
           <span style={{ marginLeft: "10px" }}>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-live-trade")}
-              onClick={() => action("quickadd:new-live-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-live-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建实盘
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-demo-trade")}
-              onClick={() => action("quickadd:new-demo-trade")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-demo-trade")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              新建模拟
-            </button>
-            <button
-              type="button"
-              disabled={!can("quickadd:new-backtest")}
-              onClick={() => action("quickadd:new-backtest")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("quickadd:new-backtest") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              新建回测
-            </button>
+            {(() => {
+              const cap = getCapabilityIdForNewTradeType(newTradeType);
+              const canSelected = can(cap);
+              return (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={!canSelected}
+                    onClick={() => action(cap)}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={canSelected ? buttonStyle : disabledButtonStyle}
+                    title="创建新交易（实盘/模拟/回测）"
+                  >
+                    新建交易
+                  </button>
+                  <select
+                    value={newTradeType}
+                    onChange={(e) =>
+                      setNewTradeType(e.currentTarget.value as NewTradeType)
+                    }
+                    style={selectStyle}
+                    title="选择交易类型"
+                  >
+                    <option
+                      value="Live"
+                      disabled={!can("quickadd:new-live-trade")}
+                    >
+                      实盘
+                    </option>
+                    <option
+                      value="Demo"
+                      disabled={!can("quickadd:new-demo-trade")}
+                    >
+                      模拟
+                    </option>
+                    <option
+                      value="Backtest"
+                      disabled={!can("quickadd:new-backtest")}
+                    >
+                      回测
+                    </option>
+                  </select>
+                </span>
+              );
+            })()}
             <button
               type="button"
               disabled={!can("srs:review-flashcards")}
@@ -2680,77 +2718,6 @@ short mode\n\
               </div>
 
               <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
-                <div style={{ marginBottom: "12px" }}>
-                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                    快捷入口
-                  </div>
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
-                  >
-                    <button
-                      type="button"
-                      disabled={!can("quickadd:new-live-trade")}
-                      onClick={() => action("quickadd:new-live-trade")}
-                      onMouseEnter={onBtnMouseEnter}
-                      onMouseLeave={onBtnMouseLeave}
-                      onFocus={onBtnFocus}
-                      onBlur={onBtnBlur}
-                      style={
-                        can("quickadd:new-live-trade")
-                          ? buttonStyle
-                          : disabledButtonStyle
-                      }
-                    >
-                      新建实盘
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!can("quickadd:new-demo-trade")}
-                      onClick={() => action("quickadd:new-demo-trade")}
-                      onMouseEnter={onBtnMouseEnter}
-                      onMouseLeave={onBtnMouseLeave}
-                      onFocus={onBtnFocus}
-                      onBlur={onBtnBlur}
-                      style={
-                        can("quickadd:new-demo-trade")
-                          ? buttonStyle
-                          : disabledButtonStyle
-                      }
-                    >
-                      新建模拟
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!can("quickadd:new-backtest")}
-                      onClick={() => action("quickadd:new-backtest")}
-                      onMouseEnter={onBtnMouseEnter}
-                      onMouseLeave={onBtnMouseLeave}
-                      onFocus={onBtnFocus}
-                      onBlur={onBtnBlur}
-                      style={
-                        can("quickadd:new-backtest")
-                          ? buttonStyle
-                          : disabledButtonStyle
-                      }
-                    >
-                      新建回测
-                    </button>
-                    {!can("quickadd:new-live-trade") &&
-                      !can("quickadd:new-demo-trade") &&
-                      !can("quickadd:new-backtest") && (
-                        <span
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
-                            alignSelf: "center",
-                          }}
-                        >
-                          QuickAdd 不可用
-                        </span>
-                      )}
-                  </div>
-                </div>
-
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                     近期 R 趋势
