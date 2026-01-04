@@ -1073,6 +1073,111 @@ const ConsoleComponent: React.FC<Props> = ({
     return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
   }, [analyticsTrades, strategyIndex]);
 
+  const analyticsRecentLiveTradesAsc = React.useMemo(() => {
+    const tradesAsc = [...trades].sort((a, b) =>
+      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
+    );
+    return tradesAsc
+      .filter((t) => (t.accountType ?? "Live") === "Live")
+      .slice(-30);
+  }, [trades]);
+
+  const analyticsRMultiples = React.useMemo(() => {
+    const rs = analyticsRecentLiveTradesAsc.map((t) =>
+      typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0
+    );
+    const maxAbs = Math.max(1, ...rs.map((r) => Math.abs(r)));
+    const avg = rs.length
+      ? rs.reduce((acc, r) => acc + r, 0) / Math.max(1, rs.length)
+      : 0;
+    return { maxAbs, avg, rs };
+  }, [analyticsRecentLiveTradesAsc]);
+
+  const analyticsMind = React.useMemo(() => {
+    const ERROR_FIELD_ALIASES = [
+      "mistake_tags",
+      "错误/mistake_tags",
+      "mistakes",
+      "errors",
+    ] as const;
+
+    const getMistakeTags = (t: TradeRecord): string[] => {
+      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+      for (const key of ERROR_FIELD_ALIASES) {
+        const v = (fm as any)[key];
+        if (Array.isArray(v)) {
+          const tags = v
+            .filter((x) => typeof x === "string")
+            .map((x) => (x as string).trim())
+            .filter(Boolean);
+          if (tags.length > 0) return tags;
+        } else if (typeof v === "string" && v.trim()) {
+          return [v.trim()];
+        }
+      }
+      return [];
+    };
+
+    // legacy 口径：最近 10 笔实盘
+    const recentLive = [...analyticsRecentLiveTradesAsc].slice(-10);
+
+    let tilt = 0;
+    let fomo = 0;
+    let hesitation = 0;
+    for (const t of recentLive) {
+      const tags = getMistakeTags(t);
+      const s = tags.join(" ");
+      if (s.includes("Tilt") || s.includes("上头")) tilt += 1;
+      if (s.includes("FOMO") || s.includes("追单")) fomo += 1;
+      if (s.includes("Hesitation") || s.includes("犹豫")) hesitation += 1;
+    }
+
+    let status = "🛡️ 状态极佳";
+    let color = "var(--text-success)";
+    if (tilt > 0 || fomo > 1) {
+      status = "🔥 极度危险";
+      color = "var(--text-error)";
+    } else if (fomo > 0 || hesitation > 0) {
+      status = "⚠️ 有点起伏";
+      color = "var(--text-warning)";
+    }
+
+    return { tilt, fomo, hesitation, status, color };
+  }, [analyticsRecentLiveTradesAsc]);
+
+  const analyticsTopStrats = React.useMemo(() => {
+    const tradesAsc = [...trades].sort((a, b) =>
+      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
+    );
+
+    const stats = new Map<string, { win: number; total: number }>();
+
+    for (const t of tradesAsc) {
+      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+      let key = (t.strategyName ?? "").toString().trim();
+      if (!key || key.toLowerCase() === "unknown") {
+        const rawSetup = (t.setupCategory ?? "").toString().trim();
+        key = rawSetup ? rawSetup.split("(")[0].trim() : "Unknown";
+      }
+      if (!key) key = "Unknown";
+
+      const prev = stats.get(key) ?? { win: 0, total: 0 };
+      prev.total += 1;
+      if (pnl > 0) prev.win += 1;
+      stats.set(key, prev);
+    }
+
+    return [...stats.entries()]
+      .map(([name, v]) => ({
+        name,
+        total: v.total,
+        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }, [trades]);
+
   const strategyLab = React.useMemo(() => {
     const tradesAsc = [...trades].sort((a, b) =>
       a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
@@ -2997,6 +3102,208 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           <ContextWidget data={contextAnalysis} />
           <ErrorWidget data={errorAnalysis} />
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: "12px",
+            marginBottom: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ fontWeight: 700, opacity: 0.85 }}>
+            📈 综合趋势 (R-Multiples)
+            <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em", marginLeft: "6px" }}>
+              仅实盘 · 最近 {analyticsRecentLiveTradesAsc.length} 笔
+            </span>
+          </div>
+          <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+            Avg R: {analyticsRMultiples.avg.toFixed(2)}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+          <div style={{ flex: "2 1 420px", minWidth: "360px" }}>
+            {(() => {
+              const rHeight = 90;
+              const rZeroY = rHeight / 2;
+              const barWidth = 8;
+              const barGap = 4;
+              const step = barWidth + barGap;
+              const maxAbs = analyticsRMultiples.maxAbs;
+              const rScale = (rHeight / 2 - 6) / Math.max(1e-6, maxAbs);
+              const innerWidth = Math.max(analyticsRecentLiveTradesAsc.length * step, 200);
+
+              return (
+                <div
+                  style={{
+                    position: "relative",
+                    height: `${rHeight}px`,
+                    width: "100%",
+                    overflowX: "auto",
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "8px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ position: "relative", height: `${rHeight}px`, width: `${innerWidth}px` }}>
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: `${rZeroY}px`,
+                        height: "1px",
+                        background: "rgba(var(--mono-rgb-100), 0.18)",
+                        borderTop: "1px dashed rgba(var(--mono-rgb-100), 0.25)",
+                      }}
+                    />
+                    <div style={{ position: "absolute", left: 6, top: rZeroY - 10, fontSize: "0.75em", color: "var(--text-faint)" }}>
+                      0R
+                    </div>
+                    {analyticsRecentLiveTradesAsc.length === 0 ? (
+                      <div style={{ padding: "18px", color: "var(--text-faint)", fontSize: "0.9em" }}>
+                        暂无数据
+                      </div>
+                    ) : (
+                      analyticsRecentLiveTradesAsc.map((t, i) => {
+                        const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+                        let h = Math.abs(r) * rScale;
+                        if (h < 3) h = 3;
+                        const color =
+                          r > 0
+                            ? "var(--text-success)"
+                            : r < 0
+                            ? "var(--text-error)"
+                            : "var(--text-muted)";
+                        const top = r >= 0 ? rZeroY - h : rZeroY;
+                        return (
+                          <div
+                            key={`rbar-${t.path}-${t.dateIso}-${i}`}
+                            title={`${t.dateIso} | ${t.name} | R: ${r.toFixed(2)}`}
+                            style={{
+                              position: "absolute",
+                              left: `${i * step}px`,
+                              top: `${top}px`,
+                              width: `${barWidth}px`,
+                              height: `${h}px`,
+                              background: color,
+                              borderRadius: "2px",
+                              opacity: 0.9,
+                            }}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "8px",
+              padding: "12px",
+              background: "rgba(var(--mono-rgb-100), 0.03)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>🧠 实盘心态</div>
+            <div style={{ fontSize: "1.15em", fontWeight: 900, color: analyticsMind.color }}>
+              {analyticsMind.status}
+            </div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+              FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} | 犹豫: {analyticsMind.hesitation}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: "12px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>📊 热门策略</div>
+          {analyticsTopStrats.length === 0 ? (
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>暂无数据</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {analyticsTopStrats.map((s) => {
+                const color =
+                  s.wr >= 50
+                    ? "var(--text-success)"
+                    : s.wr >= 40
+                    ? "var(--text-warning)"
+                    : "var(--text-error)";
+                let displayName = s.name;
+                if (displayName.length > 12 && displayName.includes("(")) {
+                  displayName = displayName.split("(")[0].trim();
+                }
+                return (
+                  <div
+                    key={`topstrat-${s.name}`}
+                    style={{
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      padding: "8px 10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                    }}
+                  >
+                    <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                      <div
+                        title={s.name}
+                        style={{
+                          fontSize: "0.9em",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        {displayName}
+                      </div>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "6px",
+                          borderRadius: "999px",
+                          background: "rgba(var(--mono-rgb-100), 0.05)",
+                          border: "1px solid var(--background-modifier-border)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div style={{ width: `${s.wr}%`, height: "100%", background: color }} />
+                      </div>
+                    </div>
+                    <div style={{ flex: "0 0 auto", textAlign: "right" }}>
+                      <div style={{ fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{s.wr}%</div>
+                      <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>{s.total} 笔</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
