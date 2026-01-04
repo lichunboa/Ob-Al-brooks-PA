@@ -32,7 +32,8 @@ export function computeTradeBasedStrategyPicks(args: {
   const patterns = (t.patternsObserved ?? [])
     .map((p) => String(p).trim())
     .filter(Boolean);
-  const setupCategory = t.setupCategory?.trim();
+  // 为兼容旧数据：如果只填了 setup/setupKey，则允许作为 setupCategory 的回退输入参与匹配。
+  const setupCategory = (t.setupCategory ?? t.setupKey)?.trim();
   // v5 / UX 直觉：优先用交易自身的 marketCycle，其次才回退到 today
   const marketCycle = (t.marketCycle ?? args.todayMarketCycle)?.trim();
 

@@ -82,13 +82,11 @@ function extractCompatFields(trade: TradeRecord): ExportTradeCompat {
     getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.r)
   );
 
-  // Compat 字段优先使用索引层规范字段（SSOT），保持与 legacy 导出一致。
-  // rawFrontmatter 仅用于回退/历史数据。
-  const setup =
-    asNonEmptyString(trade.setupCategory) ??
-    asNonEmptyString(
-      getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup)
-    );
+  // v5/legacy 对齐：export 的 setup 字段语义是 “setup / setupKey”（而不是 setupCategory）。
+  // 因此这里不使用 trade.setupCategory 作为来源，避免把 setup_category 误导出为 setup。
+  const setup = asNonEmptyString(
+    getFirstFieldValue(fm as any, TRADE_COMPAT_FIELD_ALIASES.setup)
+  );
   const error =
     asNonEmptyString(trade.executionQuality) ??
     asNonEmptyString(

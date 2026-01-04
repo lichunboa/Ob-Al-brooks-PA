@@ -22,6 +22,8 @@ export interface TradeRecord {
 
   // 用于“智能联动”的规范字段（由索引层归一化填充）
   marketCycle?: string;
+  /** v5/legacy 的 setup / setupKey（与 setupCategory 区分）。 */
+  setupKey?: string;
   setupCategory?: string;
   patternsObserved?: string[];
   signalBarQuality?: string[];

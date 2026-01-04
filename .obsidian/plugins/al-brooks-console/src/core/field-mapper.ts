@@ -23,9 +23,17 @@ export const FIELD_ALIASES = {
     "市场周期/market_cycle",
     "市场周期",
   ],
+  setupKey: [
+    "setup",
+    "setupKey",
+    "setup_key",
+    "设置/setup",
+    "设置",
+    "形态/setup",
+    "形态",
+  ],
   setupCategory: [
     "setup_category",
-    "setup",
     "setupCategory",
     "设置类别/setup_category",
     "设置类别",

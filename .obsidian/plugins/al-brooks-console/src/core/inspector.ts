@@ -35,6 +35,7 @@ const TRADE_FIELD_ALIASES = {
   timeframe: ["timeframe", "时间周期/timeframe"],
   direction: ["direction", "方向/direction"],
   marketCycle: ["market_cycle", "市场周期/market_cycle"],
+  setupKey: ["setup", "setupKey", "setup_key", "设置/setup", "形态/setup"],
   setupCategory: ["setup_category", "设置类别/setup_category"],
   patternsObserved: ["patterns_observed", "观察到的形态/patterns_observed"],
   probability: ["probability", "概率/probability"],
@@ -128,12 +129,12 @@ export function buildInspectorIssues(
     }
 
     // legacy v5.0：setup/setup_category 是常见缺失项；若策略名存在可降低其紧迫性，但仍报告。
-    if (!t.setupCategory) {
+    if (!t.setupKey && !t.setupCategory) {
       issues.push({
         id: issueId(t.path, "missing-setup"),
         severity: "warn",
         path: t.path,
-        title: "缺少设置类别 (setup_category)",
+        title: "缺少设置 (setup/setup_category)",
       });
     }
 
@@ -198,6 +199,10 @@ export function buildInspectorIssues(
       checkEnum(
         "setup_category",
         getFirstFieldValue(fm, TRADE_FIELD_ALIASES.setupCategory)?.value
+      );
+      checkEnum(
+        "setup",
+        getFirstFieldValue(fm, TRADE_FIELD_ALIASES.setupKey)?.value
       );
       checkEnum(
         "patterns_observed",

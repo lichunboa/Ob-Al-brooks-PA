@@ -122,6 +122,7 @@ export function identifyStrategyForAnalytics(
     cat = toString((fm as any)[key]);
     if (cat) break;
   }
+  if (!cat) cat = toString(trade.setupKey);
   if (!cat) cat = toString(trade.setupCategory);
   if (!cat) {
     const v = toString((fm as any)["setup_category"]) ??

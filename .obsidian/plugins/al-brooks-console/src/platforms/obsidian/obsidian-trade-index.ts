@@ -482,6 +482,7 @@ export class ObsidianTradeIndex implements TradeIndex {
     const accountTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.accountType);
 
     const marketCycleRaw = getFirstFieldValue(fm, FIELD_ALIASES.marketCycle);
+    const setupKeyRaw = getFirstFieldValue(fm, FIELD_ALIASES.setupKey);
     const setupCategoryRaw = getFirstFieldValue(
       fm,
       FIELD_ALIASES.setupCategory
@@ -515,6 +516,7 @@ export class ObsidianTradeIndex implements TradeIndex {
     const accountType = normalizeAccountType(accountTypeRaw);
 
     const marketCycle = normalizeString(marketCycleRaw);
+    const setupKey = normalizeString(setupKeyRaw);
     const setupCategory = normalizeString(setupCategoryRaw);
     const patternsObserved = normalizeStringArray(patternsObservedRaw);
     const signalBarQuality = normalizeStringArray(signalBarQualityRaw);
@@ -534,6 +536,7 @@ export class ObsidianTradeIndex implements TradeIndex {
       outcome,
       accountType,
       marketCycle,
+      setupKey,
       setupCategory,
       patternsObserved,
       signalBarQuality,

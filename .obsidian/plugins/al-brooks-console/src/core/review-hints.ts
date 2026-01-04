@@ -16,7 +16,9 @@ export function buildReviewHints(trade: TradeRecord): ReviewHint[] {
     // 保持与 legacy Dataview 版本一致（scripts/core/pa-loaders.js）：
     // - 仅包含：setup_missing / cycle_missing / tf_missing / loss_review
     // - 使用索引层已归一化的 TradeRecord 字段（不依赖 rawFrontmatter 结构）
-    if (!hasValue(trade.setupCategory)) {
+    // legacy(v5) 对齐：setup_missing 检查 trade.setup（插件侧为 setupKey）。
+    // 为兼容历史数据，也允许 setupCategory 视作已填。
+    if (!hasValue(trade.setupKey) && !hasValue(trade.setupCategory)) {
       push("setup_missing", "补齐设置类别", "Fill setup category");
     }
 

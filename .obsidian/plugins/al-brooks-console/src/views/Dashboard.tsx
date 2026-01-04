@@ -381,8 +381,9 @@ const ConsoleComponent: React.FC<Props> = ({
         const hasPatterns =
           Array.isArray(t.patternsObserved) &&
           t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
-        // v5 口径：strategyName / setupCategory 任意一个可视作“已填策略维度”
-        const hasStrategy = !isEmpty(t.strategyName) || !isEmpty(t.setupCategory);
+        // v5 口径：strategyName / setupKey / setupCategory 任意一个可视作“已填策略维度”
+        const hasStrategy =
+          !isEmpty(t.strategyName) || !isEmpty(t.setupKey) || !isEmpty(t.setupCategory);
         if (!hasPatterns && !hasStrategy) {
           tradeIssues.push({
             path: t.path,
@@ -2080,6 +2081,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 const setupCategory = openTrade.setupCategory
                   ?.toString()
                   .trim();
+                const setupKey = openTrade.setupKey?.toString().trim();
                 const hasHints = Boolean(marketCycle || setupCategory);
 
                 if (!hasHints) {
@@ -2096,8 +2098,8 @@ const ConsoleComponent: React.FC<Props> = ({
                 const wantCycleKey = marketCycle
                   ? norm(marketCycle)
                   : undefined;
-                const wantSetupKey = setupCategory
-                  ? norm(setupCategory)
+                const wantSetupKey = (setupCategory || setupKey)
+                  ? norm(String(setupCategory || setupKey))
                   : undefined;
 
                 const scored = strategyIndex
