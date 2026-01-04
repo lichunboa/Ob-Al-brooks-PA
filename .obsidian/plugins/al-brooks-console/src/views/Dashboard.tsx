@@ -474,6 +474,9 @@ const ConsoleComponent: React.FC<Props> = ({
   const [renameOldKey, setRenameOldKey] = React.useState("");
   const [renameNewKey, setRenameNewKey] = React.useState("");
   const [renameOverwrite, setRenameOverwrite] = React.useState(false);
+  const [renamePlanNote, setRenamePlanNote] = React.useState<
+    string | undefined
+  >(undefined);
   const [deleteKeyName, setDeleteKeyName] = React.useState("");
   const [deleteValKey, setDeleteValKey] = React.useState("");
   const [deleteValValue, setDeleteValValue] = React.useState("");
@@ -482,6 +485,113 @@ const ConsoleComponent: React.FC<Props> = ({
   const [managerFieldInventory, setManagerFieldInventory] = React.useState<
     FrontmatterStats | undefined
   >(undefined);
+  const [fieldInventoryQuery, setFieldInventoryQuery] = React.useState("");
+
+  const groupedFieldInventory = React.useMemo(() => {
+    const inv = managerFieldInventory;
+    if (!inv) return null;
+
+    const q = fieldInventoryQuery.trim().toLowerCase();
+    const matches = (s: string) => (q ? s.toLowerCase().includes(q) : true);
+
+    const wants = (k: string, tokens: string[]) => {
+      const kl = k.toLowerCase();
+      return tokens.some((t) => kl.includes(t));
+    };
+
+    const groups = [
+      {
+        title: "⭐ 核心要素 (Core)",
+        tokens: [
+          "status",
+          "状态",
+          "date",
+          "日期",
+          "ticker",
+          "品种",
+          "profit",
+          "pnl",
+          "net_profit",
+          "利润",
+          "outcome",
+          "结果",
+          "strategy",
+          "策略",
+        ],
+      },
+      {
+        title: "📊 量化数据 (Data)",
+        tokens: [
+          "price",
+          "价格",
+          "entry",
+          "入场",
+          "exit",
+          "出场",
+          "risk",
+          "风险",
+          "amount",
+          "数量",
+          "仓位",
+          "r_",
+          "rr",
+          "r/r",
+          "cycle",
+          "周期",
+        ],
+      },
+      {
+        title: "🏷️ 归档信息 (Meta)",
+        tokens: [
+          "tag",
+          "标签",
+          "source",
+          "来源",
+          "alias",
+          "别名",
+          "type",
+          "类型",
+          "class",
+          "分类",
+          "time",
+          "时间",
+          "week",
+          "周",
+        ],
+      },
+    ] as const;
+
+    const buckets = new Map<string, FrontmatterStats["keys"]>();
+    for (const g of groups) buckets.set(g.title, []);
+    buckets.set("📂 其他属性 (Other)", []);
+
+    for (const item of inv.keys) {
+      const keyText = item.key;
+      const valueText = item.topValues
+        .map((x) => `${x.value} (${x.count})`)
+        .join(" | ");
+      if (!matches(keyText) && !matches(valueText)) continue;
+
+      const hit = groups.find((g) => wants(keyText, [...g.tokens]));
+      const title = hit?.title ?? "📂 其他属性 (Other)";
+      buckets.get(title)!.push(item);
+    }
+
+    const orderedTitles = [
+      ...groups.map((g) => g.title),
+      "📂 其他属性 (Other)",
+    ];
+
+    return orderedTitles
+      .map((title) => {
+        const items = buckets.get(title) ?? [];
+        return {
+          title,
+          items: items.sort((a, b) => b.files - a.files),
+        };
+      })
+      .filter((g) => g.items.length > 0);
+  }, [managerFieldInventory, fieldInventoryQuery]);
 
   const [settings, setSettings] =
     React.useState<AlBrooksConsoleSettings>(initialSettings);
@@ -5768,6 +5878,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 setManagerPlan(plan);
                 setManagerResult(undefined);
                 setManagerArmed(false);
+                setRenamePlanNote(undefined);
               }}
               title={
                 !enumPresets ? "枚举预设不可用" : "使用检查器生成的修复方案"
@@ -5793,6 +5904,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 setManagerPlan(plan);
                 setManagerResult(undefined);
                 setManagerArmed(false);
+                setRenamePlanNote(undefined);
               }}
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
@@ -5818,7 +5930,8 @@ const ConsoleComponent: React.FC<Props> = ({
                   setManagerPlan(plan);
                   setManagerResult(undefined);
                   setManagerArmed(false);
-                    setManagerFieldInventory(undefined);
+                  setManagerFieldInventory(undefined);
+                  setRenamePlanNote(undefined);
                 } finally {
                   setManagerBusy(false);
                 }
@@ -5862,6 +5975,7 @@ const ConsoleComponent: React.FC<Props> = ({
                       topValuesPerKey: 3,
                     });
                     setManagerFieldInventory(stats);
+                    setRenamePlanNote(undefined);
                   } finally {
                     setManagerBusy(false);
                   }
@@ -5890,6 +6004,116 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           默认禁用写入：先预览计划，再勾选确认后执行写入。
         </div>
+
+        {managerFieldInventory ? (
+          <div style={{ marginBottom: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: "10px",
+                flexWrap: "wrap",
+                marginBottom: "8px",
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>🔎 字段分布（只读）</div>
+              <input
+                value={fieldInventoryQuery}
+                onChange={(e) => setFieldInventoryQuery(e.target.value)}
+                placeholder="搜索字段或值..."
+                style={{
+                  flex: "1 1 240px",
+                  padding: "6px 8px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--background-modifier-border)",
+                  background: "var(--background-primary)",
+                  color: "var(--text-normal)",
+                }}
+              />
+            </div>
+
+            {groupedFieldInventory && groupedFieldInventory.length > 0 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr",
+                  gap: "10px",
+                }}
+              >
+                {groupedFieldInventory.map((g) => (
+                  <div
+                    key={`mgr-inv-${g.title}`}
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                      {g.title}
+                    </div>
+                    <div style={{ display: "grid", gap: "6px" }}>
+                      {g.items.map((it) => {
+                        const topValues = it.topValues
+                          .map((x) => `${String(x.value)} (${x.count})`)
+                          .join(" | ");
+                        return (
+                          <div
+                            key={`mgr-inv-item-${g.title}-${it.key}`}
+                            style={{
+                              border: "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                              padding: "8px",
+                              background: "var(--background-primary)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "baseline",
+                                justifyContent: "space-between",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <div style={{ fontWeight: 600 }}>{it.key}</div>
+                              <div
+                                style={{
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.9em",
+                                }}
+                              >
+                                files: {it.files}
+                              </div>
+                            </div>
+                            {topValues ? (
+                              <div
+                                style={{
+                                  marginTop: "4px",
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.9em",
+                                  wordBreak: "break-word",
+                                }}
+                              >
+                                {topValues}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                无匹配字段。
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {managerPlan ? (
           <div>
@@ -5997,28 +6221,6 @@ const ConsoleComponent: React.FC<Props> = ({
               {managerPlanText ?? ""}
             </pre>
 
-            {managerFieldInventory ? (
-              <div style={{ marginTop: "10px" }}>
-                <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                  🔎 字段分布（只读）
-                </div>
-                <pre
-                  style={{
-                    margin: 0,
-                    padding: "10px",
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "8px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                    maxHeight: "220px",
-                    overflow: "auto",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {JSON.stringify(managerFieldInventory, null, 2)}
-                </pre>
-              </div>
-            ) : null}
-
             <div
               style={{
                 marginTop: "10px",
@@ -6111,6 +6313,24 @@ const ConsoleComponent: React.FC<Props> = ({
                             });
                           }
                         }
+
+                        const oldKey = renameOldKey.trim();
+                        const newKey = renameNewKey.trim();
+                        const total = files.length;
+                        const withOld = files.filter((f) => {
+                          if (!oldKey) return false;
+                          const fm = f.frontmatter as Record<string, any>;
+                          return fm[oldKey] !== undefined;
+                        }).length;
+                        const skippedTargetExists = files.filter((f) => {
+                          if (!oldKey || !newKey) return false;
+                          if (oldKey === newKey) return false;
+                          if (renameOverwrite) return false;
+                          const fm = f.frontmatter as Record<string, any>;
+                          if (fm[oldKey] === undefined) return false;
+                          return fm[newKey] !== undefined;
+                        }).length;
+
                         const plan = buildRenameKeyPlan(
                           files,
                           renameOldKey,
@@ -6120,6 +6340,11 @@ const ConsoleComponent: React.FC<Props> = ({
                         setManagerPlan(plan);
                         setManagerResult(undefined);
                         setManagerArmed(false);
+
+                        const planned = plan.fileUpdates?.length ?? 0;
+                        setRenamePlanNote(
+                          `命中: ${withOld}/${total}；跳过(新字段已存在): ${skippedTargetExists}；计划更新: ${planned}`
+                        );
                       } finally {
                         setManagerBusy(false);
                       }
@@ -6137,6 +6362,17 @@ const ConsoleComponent: React.FC<Props> = ({
                     生成重命名计划
                   </button>
                 </div>
+                {renamePlanNote ? (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      color: "var(--text-faint)",
+                      fontSize: "0.9em",
+                    }}
+                  >
+                    {renamePlanNote}
+                  </div>
+                ) : null}
               </div>
 
               <div>
