@@ -2239,6 +2239,14 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
               )}
 
+              <div style={{ marginTop: "16px" }}>
+                <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
+                <TradeList
+                  trades={trades.slice(0, 50)}
+                  onOpenFile={openFile}
+                />
+              </div>
+
             </div>
           ) : activePage === "trading" ? (
             <div
@@ -7526,15 +7534,6 @@ short mode\n\
           pa-db-export.json）。插件版
           目前提供两类导出：旧版兼容快照（写入 vault 根目录
           pa-db-export.json）与索引快照（导出到 Exports/al-brooks-console/）。
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-        {/* Trade Feed */}
-        <div>
-          <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
-          <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
         </div>
       </div>
 
