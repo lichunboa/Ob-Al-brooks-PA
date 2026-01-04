@@ -1073,6 +1073,66 @@ const ConsoleComponent: React.FC<Props> = ({
     return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
   }, [analyticsTrades, strategyIndex]);
 
+  const strategyLab = React.useMemo(() => {
+    const tradesAsc = [...trades].sort((a, b) =>
+      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
+    );
+
+    const curves: Record<AccountType, number[]> = {
+      Live: [0],
+      Demo: [0],
+      Backtest: [0],
+    };
+    const cum: Record<AccountType, number> = {
+      Live: 0,
+      Demo: 0,
+      Backtest: 0,
+    };
+
+    const stats = new Map<string, { win: number; total: number }>();
+
+    for (const t of tradesAsc) {
+      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      const acct = (t.accountType ?? "Live") as AccountType;
+
+      // 资金曲线：按账户分别累加（口径与 v5.0 接近：只在该账户出现时 push 一点）
+      cum[acct] += pnl;
+      curves[acct].push(cum[acct]);
+
+      // 策略排行：策略名优先；没有则回退到 setupCategory
+      let key = (t.strategyName ?? "").toString().trim();
+      if (!key || key.toLowerCase() === "unknown") {
+        const rawSetup = (t.setupCategory ?? "").toString().trim();
+        key = rawSetup ? rawSetup.split("(")[0].trim() : "Unknown";
+      }
+      if (!key) key = "Unknown";
+
+      const prev = stats.get(key) ?? { win: 0, total: 0 };
+      prev.total += 1;
+      if (pnl > 0) prev.win += 1;
+      stats.set(key, prev);
+    }
+
+    const topSetups = [...stats.entries()]
+      .map(([name, v]) => ({
+        name,
+        total: v.total,
+        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    const mostUsed = topSetups[0]?.name ?? "无";
+    const keepIn = cum.Live < 0 ? "回测" : "实盘";
+
+    return {
+      curves,
+      cum,
+      topSetups,
+      suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
+    };
+  }, [trades]);
+
   type GalleryItem = {
     tradePath: string;
     tradeName: string;
@@ -2294,7 +2354,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 fontSize: "0.9em",
               }}
             >
-              （占位符）需要 QuickAdd 适配才能一键创建。
+              （占位符）点击一下用单笔交易模版
             </div>
           )}
         </div>
@@ -2937,6 +2997,196 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           <ContextWidget data={contextAnalysis} />
           <ErrorWidget data={errorAnalysis} />
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: "12px",
+            marginBottom: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ fontWeight: 700, fontSize: "1.05em" }}>
+            🧬 资金增长曲线{" "}
+            <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+              (Capital Growth)
+            </span>
+          </div>
+
+          <div style={{ fontSize: "0.85em", color: "var(--text-muted)", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <span style={{ color: getRColorByAccountType("Live") }}>
+              ● 实盘 {strategyLab.cum.Live >= 0 ? "+" : ""}
+              {strategyLab.cum.Live.toFixed(1)}R
+            </span>
+            <span style={{ color: getRColorByAccountType("Demo") }}>
+              ● 模拟 {strategyLab.cum.Demo >= 0 ? "+" : ""}
+              {strategyLab.cum.Demo.toFixed(1)}R
+            </span>
+            <span style={{ color: getRColorByAccountType("Backtest") }}>
+              ● 回测 {strategyLab.cum.Backtest >= 0 ? "+" : ""}
+              {strategyLab.cum.Backtest.toFixed(1)}R
+            </span>
+          </div>
+        </div>
+
+        {(() => {
+          const w = 520;
+          const h = 150;
+          const pad = 14;
+          const allValues = [
+            ...strategyLab.curves.Live,
+            ...strategyLab.curves.Demo,
+            ...strategyLab.curves.Backtest,
+          ];
+          const maxVal = Math.max(...allValues, 5);
+          const minVal = Math.min(...allValues, -5);
+          const range = Math.max(1e-6, maxVal - minVal);
+          const zeroY = pad + (1 - (0 - minVal) / range) * (h - pad * 2);
+
+          const getPoints = (data: number[]) => {
+            if (data.length < 2) return "";
+            const xStep = (w - pad * 2) / Math.max(1, data.length - 1);
+            return data
+              .map((val, i) => {
+                const x = pad + i * xStep;
+                const y = pad + (1 - (val - minVal) / range) * (h - pad * 2);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              })
+              .join(" ");
+          };
+
+          const ptsLive = getPoints(strategyLab.curves.Live);
+          const ptsDemo = getPoints(strategyLab.curves.Demo);
+          const ptsBack = getPoints(strategyLab.curves.Backtest);
+
+          return (
+            <svg
+              viewBox={`0 0 ${w} ${h}`}
+              width="100%"
+              height="150"
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "8px",
+                background: `rgba(var(--mono-rgb-100), 0.03)`,
+              }}
+            >
+              <line
+                x1={0}
+                y1={zeroY}
+                x2={w}
+                y2={zeroY}
+                stroke="rgba(var(--mono-rgb-100), 0.18)"
+                strokeDasharray="4"
+              />
+
+              {ptsBack && (
+                <polyline
+                  points={ptsBack}
+                  fill="none"
+                  stroke={getRColorByAccountType("Backtest")}
+                  strokeWidth="1.6"
+                  opacity={0.65}
+                  strokeDasharray="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              )}
+              {ptsDemo && (
+                <polyline
+                  points={ptsDemo}
+                  fill="none"
+                  stroke={getRColorByAccountType("Demo")}
+                  strokeWidth="1.8"
+                  opacity={0.8}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              )}
+              {ptsLive && (
+                <polyline
+                  points={ptsLive}
+                  fill="none"
+                  stroke={getRColorByAccountType("Live")}
+                  strokeWidth="2.6"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
+          );
+        })()}
+
+        <div
+          style={{
+            marginTop: "14px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}>
+              📊 热门策略表现{" "}
+              <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.9em" }}>
+                (Top Setups)
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {strategyLab.topSetups.length > 0 ? (
+                strategyLab.topSetups.map((s) => (
+                  <div
+                    key={`topsetup-${s.name}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      fontSize: "0.9em",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--background-modifier-border)",
+                    }}
+                  >
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {s.name}
+                    </span>
+                    <span style={{ color: "var(--text-muted)", flex: "0 0 auto" }}>
+                      <span style={{ color: s.wr > 50 ? "var(--text-success)" : "var(--text-warning)", fontWeight: 800 }}>
+                        {s.wr}%
+                      </span>{" "}
+                      <span style={{ opacity: 0.6 }}>({s.total})</span>
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  数据不足。
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}>
+              💡 系统建议
+            </div>
+            <div style={{ fontSize: "0.9em", opacity: 0.85, lineHeight: 1.6 }}>
+              {strategyLab.suggestion}
+            </div>
+          </div>
         </div>
       </div>
 
