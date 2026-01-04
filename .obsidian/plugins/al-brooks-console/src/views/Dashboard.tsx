@@ -466,7 +466,6 @@ const ConsoleComponent: React.FC<Props> = ({
       console.warn("[al-brooks-console] openTodayNote failed", e);
     }
   }, [todayContext]);
-  const [managerArmed, setManagerArmed] = React.useState(false);
   const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
   const [managerBackups, setManagerBackups] = React.useState<
     Record<string, string> | undefined
@@ -5877,7 +5876,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 const plan = buildFixPlan(trades, enumPresets);
                 setManagerPlan(plan);
                 setManagerResult(undefined);
-                setManagerArmed(false);
                 setRenamePlanNote(undefined);
               }}
               title={
@@ -5903,7 +5901,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 });
                 setManagerPlan(plan);
                 setManagerResult(undefined);
-                setManagerArmed(false);
                 setRenamePlanNote(undefined);
               }}
               onMouseEnter={onBtnMouseEnter}
@@ -5929,7 +5926,6 @@ const ConsoleComponent: React.FC<Props> = ({
                   );
                   setManagerPlan(plan);
                   setManagerResult(undefined);
-                  setManagerArmed(false);
                   setManagerFieldInventory(undefined);
                   setRenamePlanNote(undefined);
                 } finally {
@@ -6002,7 +5998,7 @@ const ConsoleComponent: React.FC<Props> = ({
             marginBottom: "10px",
           }}
         >
-          默认禁用写入：先预览计划，再勾选确认后执行写入。
+          读写模式：生成计划后可直接“应用计划”写入；支持“撤销上次应用”。
         </div>
 
         {managerFieldInventory ? (
@@ -6169,21 +6165,9 @@ const ConsoleComponent: React.FC<Props> = ({
                 />
                 允许删除字段（危险）
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <input
-                  type="checkbox"
-                  checked={managerArmed}
-                  onChange={(e) =>
-                    setManagerArmed((e.target as HTMLInputElement).checked)
-                  }
-                />
-                我理解这会写入笔记
-              </label>
               <button
                 type="button"
-                disabled={!applyFixPlan || !managerArmed || managerBusy}
+                disabled={!applyFixPlan || managerBusy}
                 onClick={async () => {
                   if (!applyFixPlan) return;
                   setManagerBusy(true);
@@ -6202,7 +6186,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 onFocus={onBtnFocus}
                 onBlur={onBtnBlur}
                 style={
-                  !applyFixPlan || !managerArmed || managerBusy
+                  !applyFixPlan || managerBusy
                     ? { ...disabledButtonStyle, padding: "6px 10px" }
                     : { ...buttonStyle, padding: "6px 10px" }
                 }
@@ -6370,7 +6354,6 @@ const ConsoleComponent: React.FC<Props> = ({
                         );
                         setManagerPlan(plan);
                         setManagerResult(undefined);
-                        setManagerArmed(false);
 
                         const planned = plan.fileUpdates?.length ?? 0;
                         setRenamePlanNote(
@@ -6457,7 +6440,6 @@ const ConsoleComponent: React.FC<Props> = ({
                         const plan = buildDeleteKeyPlan(files, deleteKeyName);
                         setManagerPlan(plan);
                         setManagerResult(undefined);
-                        setManagerArmed(false);
                       } finally {
                         setManagerBusy(false);
                       }
@@ -6569,7 +6551,6 @@ const ConsoleComponent: React.FC<Props> = ({
                         );
                         setManagerPlan(plan);
                         setManagerResult(undefined);
-                        setManagerArmed(false);
                       } finally {
                         setManagerBusy(false);
                       }
@@ -6608,21 +6589,9 @@ const ConsoleComponent: React.FC<Props> = ({
                     ))}
                   </div>
                 ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            未加载计划。请先生成计划以预览变更。
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
           margin: "18px 0 10px",
           paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
+                        disabled={!applyFixPlan || managerBusy}
           display: "flex",
           alignItems: "baseline",
           gap: "10px",
@@ -6641,7 +6610,7 @@ const ConsoleComponent: React.FC<Props> = ({
           borderRadius: "10px",
           padding: "12px",
           marginBottom: "16px",
-          background: "var(--background-primary)",
+                          !applyFixPlan || managerBusy
         }}
       >
         {!can("tasks:open") ? (
