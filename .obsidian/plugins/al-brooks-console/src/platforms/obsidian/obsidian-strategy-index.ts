@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, EventRef, TFile } from "obsidian";
 import type { StrategyCard, StrategyIndex } from "../../core/strategy-index";
 import { getFirstFieldValue, normalizeTag } from "../../core/field-mapper";
 
@@ -105,6 +105,9 @@ export class ObsidianStrategyIndex implements StrategyIndex {
   private lookupMap: Map<string, string> = new Map();
   private byPatternMap: Map<string, string> = new Map();
   private initialized = false;
+  private eventRefs: EventRef[] = [];
+  private listeners: Set<() => void> = new Set();
+  private rebuildTimer: number | null = null;
 
   constructor(app: App, options: ObsidianStrategyIndexOptions = {}) {
     this.app = app;
@@ -117,7 +120,36 @@ export class ObsidianStrategyIndex implements StrategyIndex {
   public async initialize(): Promise<void> {
     if (this.initialized) return;
     this.initialized = true;
-    this.rebuild();
+
+    const schedule = () => this.scheduleRebuild();
+
+    // Metadata cache may not be ready on first render; wait for resolved.
+    this.eventRefs.push(this.app.metadataCache.on("resolved", schedule));
+
+    // Watch repo file changes to keep Strategy Repository live without plugin reload.
+    this.eventRefs.push(
+      this.app.vault.on("create", (file) => {
+        if (this.shouldWatchFile(file)) schedule();
+      })
+    );
+    this.eventRefs.push(
+      this.app.vault.on("modify", (file) => {
+        if (this.shouldWatchFile(file)) schedule();
+      })
+    );
+    this.eventRefs.push(
+      this.app.vault.on("delete", (file) => {
+        if (this.shouldWatchFile(file)) schedule();
+      })
+    );
+    this.eventRefs.push(
+      this.app.vault.on("rename", (file) => {
+        if (this.shouldWatchFile(file)) schedule();
+      })
+    );
+
+    // Kick off an initial build (best-effort). A later "resolved" will rebuild again.
+    this.scheduleRebuild(0);
   }
 
   public list(): StrategyCard[] {
@@ -144,6 +176,41 @@ export class ObsidianStrategyIndex implements StrategyIndex {
       this.byPatternMap.get(key) ?? this.byPatternMap.get(key.toLowerCase());
     if (!canonical) return undefined;
     return this.byNameMap.get(canonical);
+  }
+
+  public onChanged(handler: () => void): () => void {
+    this.listeners.add(handler);
+    return () => {
+      this.listeners.delete(handler);
+    };
+  }
+
+  private emitChanged() {
+    for (const fn of this.listeners) {
+      try {
+        fn();
+      } catch (e) {
+        console.warn("[al-brooks-console] StrategyIndex onChanged handler failed", e);
+      }
+    }
+  }
+
+  private scheduleRebuild(delayMs = 200) {
+    if (this.rebuildTimer !== null) {
+      window.clearTimeout(this.rebuildTimer);
+    }
+    this.rebuildTimer = window.setTimeout(() => {
+      this.rebuildTimer = null;
+      this.rebuild();
+      this.emitChanged();
+    }, delayMs);
+  }
+
+  private shouldWatchFile(file: unknown): file is TFile {
+    if (!(file instanceof TFile)) return false;
+    if (file.extension !== "md") return false;
+    const prefix = this.repoPath ? `${this.repoPath}/` : "";
+    return prefix ? file.path.startsWith(prefix) : true;
   }
 
   private rebuild() {

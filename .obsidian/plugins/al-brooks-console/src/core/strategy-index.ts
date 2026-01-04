@@ -24,4 +24,6 @@ export interface StrategyIndex {
   byName(name: string): StrategyCard | undefined;
   lookup(alias: string): StrategyCard | undefined;
   byPattern(pattern: string): StrategyCard | undefined;
+  /** Optional change subscription (e.g. Obsidian vault/metadata updates). */
+  onChanged?(handler: () => void): () => void;
 }

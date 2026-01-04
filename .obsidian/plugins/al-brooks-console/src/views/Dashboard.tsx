@@ -23,7 +23,6 @@ import { StrategyList } from "./components/StrategyList";
 import { ContextWidget, ErrorWidget } from "./components/AnalyticsWidgets";
 import {
   computeDailyAgg,
-  computeEquityCurve,
   computeStrategyAttribution,
   identifyStrategyForAnalytics,
   normalizeMarketCycleForAnalytics,
@@ -755,7 +754,12 @@ const ConsoleComponent: React.FC<Props> = ({
       }
     };
     update();
-    return () => {};
+    const unsubscribe = strategyIndex.onChanged
+      ? strategyIndex.onChanged(update)
+      : undefined;
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [strategyIndex]);
 
   const strategyPerf = React.useMemo(() => {
@@ -1122,18 +1126,6 @@ const ConsoleComponent: React.FC<Props> = ({
   const errorAnalysis = React.useMemo(() => {
     return computeErrorAnalysis(analyticsTrades).slice(0, 5);
   }, [analyticsTrades]);
-
-  const analyticsDateRange = React.useMemo(() => {
-    let min: string | undefined;
-    let max: string | undefined;
-    for (const t of analyticsTrades) {
-      const d = (t.dateIso ?? "").toString().trim();
-      if (!d) continue;
-      if (!min || d < min) min = d;
-      if (!max || d > max) max = d;
-    }
-    return { min, max };
-  }, [analyticsTrades]);
   const analyticsDaily = React.useMemo(
     () => computeDailyAgg(analyticsTrades, 90),
     [analyticsTrades]
@@ -1161,14 +1153,7 @@ const ConsoleComponent: React.FC<Props> = ({
     return max;
   }, [calendarCells]);
 
-  const equitySeries = React.useMemo(() => {
-    const dateIsosAsc = [...calendarDateIsos].reverse();
-    const filled: DailyAgg[] = dateIsosAsc.map(
-      (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
-    );
-    return computeEquityCurve(filled);
-  }, [calendarDateIsos, analyticsDailyByDate]);
+  // Equity curve removed (keep only multi-account Capital Growth curve).
 
   const strategyAttribution = React.useMemo(() => {
     return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
@@ -2087,8 +2072,14 @@ const ConsoleComponent: React.FC<Props> = ({
             )}
 
             <div style={{ marginTop: "16px" }}>
-              <h3 style={{ marginBottom: "12px" }}>最近活动</h3>
-              <TradeList trades={trades.slice(0, 50)} onOpenFile={openFile} />
+              <h3 style={{ marginBottom: "12px" }}>今日交易</h3>
+              {todayTrades.length > 0 ? (
+                <TradeList trades={todayTrades} onOpenFile={openFile} />
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  今日暂无交易记录
+                </div>
+              )}
             </div>
           </div>
 
@@ -2273,161 +2264,7 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-                alignItems: "flex-start",
-              }}
-            >
-              <div style={{ flex: "2 1 520px", minWidth: "320px" }}>
-                <div style={{ marginTop: "6px" }}>
-                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                    最近交易记录
-                  </div>
-                  {todayTrades.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                      {todayTrades.slice(0, 5).map((t) => {
-                        const dir = (t.direction ?? "").toString().trim();
-                        const dirIcon =
-                          dir === "多" || dir.toLowerCase() === "long"
-                            ? "📈"
-                            : dir === "空" || dir.toLowerCase() === "short"
-                            ? "📉"
-                            : "➡️";
-                        const tf = (t.timeframe ?? "").toString().trim();
-                        const ident = identifyStrategyForAnalytics(
-                          t,
-                          strategyIndex
-                        );
-                        const strategy =
-                          ident.name && ident.name !== "Unknown"
-                            ? ident.name
-                            : "";
-
-                        const outcome = t.outcome;
-                        const outcomeLabel =
-                          outcome === "win"
-                            ? "Win"
-                            : outcome === "loss"
-                            ? "Loss"
-                            : outcome === "scratch"
-                            ? "Scratch"
-                            : outcome === "open" ||
-                              outcome === "unknown" ||
-                              outcome === undefined
-                            ? "进行中"
-                            : String(outcome);
-                        const outcomeColor =
-                          outcome === "win"
-                            ? V5_COLORS.win
-                            : outcome === "loss"
-                            ? V5_COLORS.loss
-                            : outcome === "scratch"
-                            ? V5_COLORS.back
-                            : "var(--text-muted)";
-
-                        const pnl =
-                          typeof t.pnl === "number" && Number.isFinite(t.pnl)
-                            ? t.pnl
-                            : undefined;
-                        const pnlColor =
-                          pnl === undefined
-                            ? "var(--text-muted)"
-                            : pnl >= 0
-                            ? V5_COLORS.win
-                            : V5_COLORS.loss;
-
-                        const entry =
-                          (t.rawFrontmatter?.["entry"] as unknown as
-                            | string
-                            | undefined) ??
-                          (t.rawFrontmatter?.["入场"] as unknown as
-                            | string
-                            | undefined);
-                        const stop =
-                          (t.rawFrontmatter?.["stop"] as unknown as
-                            | string
-                            | undefined) ??
-                          (t.rawFrontmatter?.["止损"] as unknown as
-                            | string
-                            | undefined);
-
-                        return (
-                          <li key={t.path} style={{ marginBottom: "10px" }}>
-                            <button
-                              type="button"
-                              onClick={() => openFile(t.path)}
-                              style={textButtonStyle}
-                              onMouseEnter={onTextBtnMouseEnter}
-                              onMouseLeave={onTextBtnMouseLeave}
-                              onFocus={onTextBtnFocus}
-                              onBlur={onTextBtnBlur}
-                            >
-                              {dirIcon} {t.ticker ?? "未知"}
-                              {tf ? ` ${tf}` : ""}
-                              {strategy ? ` - ${strategy}` : ""}
-                            </button>
-
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "10px",
-                                marginTop: "4px",
-                                color: "var(--text-muted)",
-                                fontSize: "0.85em",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  padding: "1px 6px",
-                                  borderRadius: "6px",
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  color: outcomeColor,
-                                }}
-                              >
-                                {outcomeLabel}
-                              </span>
-                              {entry ? (
-                                <span>入场: {String(entry)}</span>
-                              ) : null}
-                              {stop ? <span>止损: {String(stop)}</span> : null}
-                              {pnl !== undefined ? (
-                                <span
-                                  style={{ color: pnlColor, fontWeight: 700 }}
-                                >
-                                  PnL: {pnl >= 0 ? "+" : ""}
-                                  {pnl.toFixed(1)}R
-                                </span>
-                              ) : null}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <div
-                      style={{ color: "var(--text-faint)", padding: "4px 0" }}
-                    >
-                      今日暂无交易记录
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
         </>
       ) : null}
 
@@ -3007,101 +2844,7 @@ short mode\n\
               </div>
 
               <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: "10px",
-                    marginBottom: "8px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ fontWeight: 600 }}>权益曲线</div>
-                  <div
-                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
-                  >
-                    {analyticsDateRange.min && analyticsDateRange.max
-                      ? `范围：${analyticsDateRange.min} → ${analyticsDateRange.max}`
-                      : "范围：—"}
-                  </div>
-                </div>
-                {equitySeries.length > 1 ? (
-                  (() => {
-                    const w = 520;
-                    const h = 160;
-                    const pad = 14;
-                    const ys = equitySeries.map((p) => p.equityR);
-                    const minY = Math.min(...ys);
-                    const maxY = Math.max(...ys);
-                    const span = Math.max(1e-6, maxY - minY);
-                    const xStep =
-                      (w - pad * 2) / Math.max(1, equitySeries.length - 1);
-                    const points = equitySeries
-                      .map((p, i) => {
-                        const x = pad + i * xStep;
-                        const y =
-                          pad + (1 - (p.equityR - minY) / span) * (h - pad * 2);
-                        return `${x.toFixed(1)},${y.toFixed(1)}`;
-                      })
-                      .join(" ");
-
-                    const last = equitySeries[equitySeries.length - 1];
-                    return (
-                      <div>
-                        <svg
-                          viewBox={`0 0 ${w} ${h}`}
-                          width="100%"
-                          height="160"
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            background: `rgba(var(--mono-rgb-100), 0.03)`,
-                          }}
-                        >
-                          <polyline
-                            points={points}
-                            fill="none"
-                            stroke={V5_COLORS.accent}
-                            strokeWidth="2"
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div
-                          style={{
-                            marginTop: "6px",
-                            color: "var(--text-muted)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          最新：{" "}
-                          <span
-                            style={{
-                              color:
-                                last.equityR >= 0
-                                  ? V5_COLORS.win
-                                  : V5_COLORS.loss,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {last.equityR >= 0 ? "+" : ""}
-                            {last.equityR.toFixed(1)}R
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    数据不足。
-                  </div>
-                )}
-
-                <div style={{ fontWeight: 600, margin: "14px 0 8px" }}>
+                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                   策略归因（Top）
                 </div>
                 {strategyAttribution.length > 0 ? (
@@ -3600,105 +3343,7 @@ short mode\n\
               );
             })()}
 
-            <div
-              style={{
-                marginTop: "14px",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "12px",
-              }}
-            >
-              <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
-                <div
-                  style={{
-                    fontSize: "0.85em",
-                    opacity: 0.7,
-                    marginBottom: "8px",
-                  }}
-                >
-                  📊 热门策略表现{" "}
-                  <span
-                    style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.9em" }}
-                  >
-                    (Top Setups)
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px",
-                  }}
-                >
-                  {strategyLab.topSetups.length > 0 ? (
-                    strategyLab.topSetups.map((s) => (
-                      <div
-                        key={`topsetup-${s.name}`}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "10px",
-                          fontSize: "0.9em",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
-                          padding: "6px 10px",
-                          borderRadius: "8px",
-                          border: "1px solid var(--background-modifier-border)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {s.name}
-                        </span>
-                        <span
-                          style={{
-                            color: "var(--text-muted)",
-                            flex: "0 0 auto",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: s.wr > 50 ? V5_COLORS.win : V5_COLORS.back,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {s.wr}%
-                          </span>{" "}
-                          <span style={{ opacity: 0.6 }}>({s.total})</span>
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div
-                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                    >
-                      数据不足。
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
-                <div
-                  style={{
-                    fontSize: "0.85em",
-                    opacity: 0.7,
-                    marginBottom: "8px",
-                  }}
-                >
-                  💡 系统建议
-                </div>
-                <div
-                  style={{ fontSize: "0.9em", opacity: 0.85, lineHeight: 1.6 }}
-                >
-                  {strategyLab.suggestion}
-                </div>
-              </div>
-            </div>
+            {/* Removed embedded strategy/suggestion duplicates; keep only primary modules elsewhere. */}
           </div>
         </>
       ) : null}
