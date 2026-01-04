@@ -6017,7 +6017,20 @@ const ConsoleComponent: React.FC<Props> = ({
                 marginBottom: "8px",
               }}
             >
-              <div style={{ fontWeight: 600 }}>🔎 字段分布（只读）</div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>🔎 字段分布（只读）</div>
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  匹配: {groupedFieldInventory?.reduce((n, g) => n + g.items.length, 0) ?? 0}
+                  /{managerFieldInventory.keys.length}
+                </div>
+              </div>
               <input
                 value={fieldInventoryQuery}
                 onChange={(e) => setFieldInventoryQuery(e.target.value)}
@@ -6053,6 +6066,16 @@ const ConsoleComponent: React.FC<Props> = ({
                   >
                     <div style={{ fontWeight: 600, marginBottom: "6px" }}>
                       {g.title}
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.9em",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {g.items.length}
+                      </span>
                     </div>
                     <div style={{ display: "grid", gap: "6px" }}>
                       {g.items.map((it) => {
