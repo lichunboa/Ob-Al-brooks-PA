@@ -6305,6 +6305,16 @@ const ConsoleComponent: React.FC<Props> = ({
                     const currentPaths = managerInspectorFileFilter?.paths ?? allPaths;
                     const filterLabel = managerInspectorFileFilter?.label;
 
+                    const prettyManagerVal = (val: string) => {
+                      let s = (val ?? "").toString().trim();
+                      if (!s) return "";
+                      const low = s.toLowerCase();
+                      if (s === "Unknown" || low === "unknown") return "未知/Unknown";
+                      if (s === "Empty" || low === "empty") return "空/Empty";
+                      if (low === "null") return "空/null";
+                      return s;
+                    };
+
                     const close = () => {
                       setManagerInspectorKey(undefined);
                       setManagerInspectorTab("vals");
@@ -6566,7 +6576,7 @@ const ConsoleComponent: React.FC<Props> = ({
                                           }}
                                           title={val}
                                         >
-                                          {prettyVal(val) || val}
+                                          {prettyManagerVal(val) || val}
                                         </span>
                                         <span
                                           style={{
