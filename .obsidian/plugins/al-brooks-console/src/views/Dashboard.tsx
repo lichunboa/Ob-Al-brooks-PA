@@ -482,6 +482,36 @@ const ConsoleComponent: React.FC<Props> = ({
   );
   const all = summary.All;
 
+  const liveCyclePerf = React.useMemo(() => {
+    const normalizeCycle = (raw: string): string => {
+      const s = String(raw ?? "").trim();
+      if (!s) return "Unknown";
+      if (s.includes("/")) {
+        const parts = s.split("/");
+        const cand = String(parts[1] ?? parts[0] ?? "Unknown").trim();
+        return cand.length > 0 ? cand : "Unknown";
+      }
+      if (s.includes("(")) {
+        const rawLeft = s.split("(")[0];
+        const cand = String(rawLeft ?? "Unknown").trim();
+        return cand.length > 0 ? cand : "Unknown";
+      }
+      return s;
+    };
+
+    const byCycle = new Map<string, number>();
+    for (const t of trades) {
+      if (t.accountType !== "Live") continue;
+      const cycle = normalizeCycle(t.marketCycle ?? "Unknown");
+      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      byCycle.set(cycle, (byCycle.get(cycle) ?? 0) + pnl);
+    }
+
+    return [...byCycle.entries()]
+      .map(([name, pnl]) => ({ name, pnl }))
+      .sort((a, b) => b.pnl - a.pnl);
+  }, [trades]);
+
   React.useEffect(() => {
     const onUpdate = () => setTrades(index.getAll());
     const unsubscribe = index.onChanged(onUpdate);
@@ -2057,6 +2087,65 @@ const ConsoleComponent: React.FC<Props> = ({
           }% • ${summary.Backtest.netProfit.toFixed(1)}R`}
           icon="🔵"
         />
+      </div>
+
+      <div
+        style={{
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "10px",
+          padding: "12px",
+          marginBottom: "16px",
+          background: "var(--background-primary)",
+        }}
+      >
+        <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
+          🌪️ 不同市场环境表现 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Live PnL)</span>
+        </div>
+        {liveCyclePerf.length === 0 ? (
+          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+            暂无数据
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {liveCyclePerf.map((cy) => {
+              const color =
+                cy.pnl > 0
+                  ? "var(--text-success)"
+                  : cy.pnl < 0
+                  ? "var(--text-error)"
+                  : "var(--text-muted)";
+              return (
+                <div
+                  key={cy.name}
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    minWidth: "120px",
+                    flex: "1 1 180px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>
+                    {cy.name}
+                  </div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      color,
+                      fontVariantNumeric: "tabular-nums",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {cy.pnl > 0 ? "+" : ""}
+                    {cy.pnl.toFixed(1)}R
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div
