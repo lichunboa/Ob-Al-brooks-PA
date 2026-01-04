@@ -4625,8 +4625,8 @@ short mode\n\
                   onBlur={onBtnBlur}
                   style={
                     !loadMemory || memoryBusy
-                      ? { ...disabledButtonStyle, padding: "6px 10px" }
-                      : { ...buttonStyle, padding: "6px 10px" }
+                      ? buttonSmDisabledStyle
+                      : buttonSmStyle
                   }
                 >
                   刷新
@@ -4641,8 +4641,8 @@ short mode\n\
                   onBlur={onBtnBlur}
                   style={
                     !loadMemory || memoryBusy
-                      ? { ...disabledButtonStyle, padding: "6px 10px" }
-                      : { ...buttonStyle, padding: "6px 10px" }
+                      ? buttonSmDisabledStyle
+                      : buttonSmStyle
                   }
                 >
                   强制刷新
@@ -5054,7 +5054,7 @@ short mode\n\
                         onMouseLeave={onBtnMouseLeave}
                         onFocus={onBtnFocus}
                         onBlur={onBtnBlur}
-                        style={{ ...buttonStyle, padding: "6px 10px" }}
+                        style={buttonSmStyle}
                         title="摇一摇换题（跳过优先）"
                       >
                         🎲
@@ -5189,8 +5189,8 @@ short mode\n\
                 onBlur={onBtnBlur}
                 style={
                   !loadCourse || courseBusy
-                    ? { ...disabledButtonStyle, padding: "6px 10px" }
-                    : { ...buttonStyle, padding: "6px 10px" }
+                    ? buttonSmDisabledStyle
+                    : buttonSmStyle
                 }
               >
                 刷新
@@ -6818,8 +6818,8 @@ short mode\n\
                           onBlur={onBtnBlur}
                           style={
                             enumPresets
-                              ? { ...buttonStyle, padding: "6px 10px" }
-                              : { ...disabledButtonStyle, padding: "6px 10px" }
+                              ? buttonSmStyle
+                              : buttonSmDisabledStyle
                           }
                           title={
                             !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
@@ -7210,8 +7210,8 @@ short mode\n\
                   onBlur={onBtnBlur}
                   style={
                     managerBusy
-                      ? { ...disabledButtonStyle, padding: "6px 10px" }
-                      : { ...buttonStyle, padding: "6px 10px" }
+                      ? buttonSmDisabledStyle
+                      : buttonSmStyle
                   }
                 >
                   扫描属性（v5.0）
@@ -7809,14 +7809,8 @@ short mode\n\
                                       onClick={doDeleteKey}
                                       style={
                                         managerBusy
-                                          ? {
-                                              ...disabledButtonStyle,
-                                              padding: "6px 10px",
-                                            }
-                                          : {
-                                              ...buttonStyle,
-                                              padding: "6px 10px",
-                                            }
+                                          ? buttonSmDisabledStyle
+                                          : buttonSmStyle
                                       }
                                     >
                                       🗑️ 删除属性
@@ -7824,10 +7818,7 @@ short mode\n\
                                     <button
                                       type="button"
                                       onClick={close}
-                                      style={{
-                                        ...buttonStyle,
-                                        padding: "6px 10px",
-                                      }}
+                                      style={buttonSmStyle}
                                     >
                                       关闭
                                     </button>
@@ -7850,8 +7841,7 @@ short mode\n\
                                       setManagerInspectorFileFilter(undefined);
                                     }}
                                     style={{
-                                      ...buttonStyle,
-                                      padding: "6px 10px",
+                                      ...buttonSmStyle,
                                       background:
                                         managerInspectorTab === "vals"
                                           ? "rgba(var(--mono-rgb-100), 0.08)"
@@ -7866,8 +7856,7 @@ short mode\n\
                                       setManagerInspectorTab("files")
                                     }
                                     style={{
-                                      ...buttonStyle,
-                                      padding: "6px 10px",
+                                      ...buttonSmStyle,
                                       background:
                                         managerInspectorTab === "files"
                                           ? "rgba(var(--mono-rgb-100), 0.08)"
@@ -7965,14 +7954,8 @@ short mode\n\
                                                 }
                                                 style={
                                                   managerBusy
-                                                    ? {
-                                                        ...disabledButtonStyle,
-                                                        padding: "6px 10px",
-                                                      }
-                                                    : {
-                                                        ...buttonStyle,
-                                                        padding: "6px 10px",
-                                                      }
+                                                    ? buttonSmDisabledStyle
+                                                    : buttonSmStyle
                                                 }
                                                 title="修改"
                                               >
@@ -7986,14 +7969,8 @@ short mode\n\
                                                 }
                                                 style={
                                                   managerBusy
-                                                    ? {
-                                                        ...disabledButtonStyle,
-                                                        padding: "6px 10px",
-                                                      }
-                                                    : {
-                                                        ...buttonStyle,
-                                                        padding: "6px 10px",
-                                                      }
+                                                    ? buttonSmDisabledStyle
+                                                    : buttonSmStyle
                                                 }
                                                 title="删除"
                                               >
@@ -8004,10 +7981,7 @@ short mode\n\
                                                 onClick={() =>
                                                   showFilesForVal(val, paths)
                                                 }
-                                                style={{
-                                                  ...buttonStyle,
-                                                  padding: "6px 10px",
-                                                }}
+                                                style={buttonSmStyle}
                                                 title="查看文件"
                                               >
                                                 👁️
@@ -8045,10 +8019,7 @@ short mode\n\
                                                 undefined
                                               )
                                             }
-                                            style={{
-                                              ...buttonStyle,
-                                              padding: "6px 10px",
-                                            }}
+                                            style={buttonSmStyle}
                                           >
                                             ✕ 重置
                                           </button>
@@ -8112,14 +8083,8 @@ short mode\n\
                                         onClick={() => void doRenameKey()}
                                         style={
                                           managerBusy
-                                            ? {
-                                                ...disabledButtonStyle,
-                                                padding: "6px 10px",
-                                              }
-                                            : {
-                                                ...buttonStyle,
-                                                padding: "6px 10px",
-                                              }
+                                            ? buttonSmDisabledStyle
+                                            : buttonSmStyle
                                         }
                                       >
                                         ✏️ 重命名
@@ -8130,14 +8095,8 @@ short mode\n\
                                         onClick={() => void doAppendVal()}
                                         style={
                                           managerBusy
-                                            ? {
-                                                ...disabledButtonStyle,
-                                                padding: "6px 10px",
-                                              }
-                                            : {
-                                                ...buttonStyle,
-                                                padding: "6px 10px",
-                                              }
+                                            ? buttonSmDisabledStyle
+                                            : buttonSmStyle
                                         }
                                       >
                                         ➕ 追加新值
@@ -8150,14 +8109,8 @@ short mode\n\
                                       onClick={() => void doInjectProp()}
                                       style={
                                         managerBusy
-                                          ? {
-                                              ...disabledButtonStyle,
-                                              padding: "6px 10px",
-                                            }
-                                          : {
-                                              ...buttonStyle,
-                                              padding: "6px 10px",
-                                            }
+                                          ? buttonSmDisabledStyle
+                                          : buttonSmStyle
                                       }
                                     >
                                       💉 注入属性
