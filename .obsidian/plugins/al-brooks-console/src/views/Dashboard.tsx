@@ -85,28 +85,7 @@ import {
 } from "../core/course";
 import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 import { TRADE_TAG } from "../core/field-mapper";
-
-// v5.0 palette (from scripts/pa-config.js) — used for semantic/status & chart colors.
-// Theme/background remains Obsidian CSS variables.
-const V5_COLORS = {
-  live: "#10B981", // 实盘
-  demo: "#3B82F6", // 模拟
-  back: "#F59E0B", // 回测
-  loss: "#EF4444",
-  win: "#10B981",
-  accent: "#60A5FA",
-  accentPurple: "#A78BFA",
-  textSub: "rgba(243,244,246,0.6)",
-  textDim: "rgba(243,244,246,0.4)",
-} as const;
-
-function withHexAlpha(color: string, alphaHex: string): string {
-  // Only apply to 6-digit hex like #RRGGBB. Otherwise return as-is.
-  if (/^#[0-9a-fA-F]{6}$/.test(color) && /^[0-9a-fA-F]{2}$/.test(alphaHex)) {
-    return `${color}${alphaHex}`;
-  }
-  return color;
-}
+import { V5_COLORS, withHexAlpha } from "../ui/tokens";
 
 function toLocalDateIso(d: Date): string {
   const y = d.getFullYear();
