@@ -30,6 +30,14 @@ import {
   type AnalyticsScope,
   type DailyAgg,
 } from "../core/analytics";
+import {
+  computeHubSuggestion,
+  computeMindsetFromRecentLive,
+  computeMonthDailyAggAllAccounts,
+  computeRMultiplesFromPnl,
+  computeRecentLiveTradesAsc,
+  computeTopStrategiesFromTrades,
+} from "../core/hub-analytics";
 import { parseCoverRef } from "../core/cover-parser";
 import {
   computeOpenTradePrimaryStrategy,
@@ -269,8 +277,8 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
 }) => {
   const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(() =>
-    strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
+  const [strategies, setStrategies] = React.useState<any[]>(
+    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
   );
   const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
     index.getStatus ? index.getStatus() : { phase: "ready" }
@@ -321,7 +329,9 @@ const ConsoleComponent: React.FC<Props> = ({
       const tradeIssues: SchemaIssueItem[] = [];
       for (const t of trades) {
         const isCompleted =
-          t.outcome === "win" || t.outcome === "loss" || t.outcome === "scratch";
+          t.outcome === "win" ||
+          t.outcome === "loss" ||
+          t.outcome === "scratch";
         if (!isCompleted) continue;
 
         if (!t.ticker) {
@@ -353,7 +363,8 @@ const ConsoleComponent: React.FC<Props> = ({
         const hasPatterns =
           Array.isArray(t.patternsObserved) && t.patternsObserved.length > 0;
         const hasStrategy =
-          typeof t.strategyName === "string" && t.strategyName.trim().length > 0;
+          typeof t.strategyName === "string" &&
+          t.strategyName.trim().length > 0;
         if (!hasPatterns && !hasStrategy) {
           tradeIssues.push({
             path: t.path,
@@ -493,7 +504,9 @@ const ConsoleComponent: React.FC<Props> = ({
   const accountTargetMonth = React.useMemo(() => {
     const liveDesc = [...trades]
       .filter((t) => t.accountType === "Live")
-      .sort((a, b) => (a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0));
+      .sort((a, b) =>
+        a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
+      );
     const ym = getYearMonth(liveDesc[0]?.dateIso);
     if (ym) return ym;
     return toLocalDateIso(new Date()).slice(0, 7);
@@ -509,22 +522,10 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [accountTargetMonth]);
 
   const accountDailyMap = React.useMemo(() => {
-    const byDay = new Map<number, { total: number; types: Set<AccountType> }>();
-    for (const t of trades) {
-      const ym = getYearMonth(t.dateIso);
-      if (ym !== accountTargetMonth) continue;
-      const dayStr = (t.dateIso ?? "").split("-")[2];
-      const day = dayStr ? Number(dayStr) : NaN;
-      if (!Number.isFinite(day)) continue;
-      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-
-      const acct = (t.accountType ?? "Live") as AccountType;
-      const prev = byDay.get(day) ?? { total: 0, types: new Set<AccountType>() };
-      prev.total += pnl;
-      prev.types.add(acct);
-      byDay.set(day, prev);
-    }
-    return byDay;
+    return computeMonthDailyAggAllAccounts({
+      trades,
+      yearMonth: accountTargetMonth,
+    });
   }, [trades, accountTargetMonth]);
 
   const liveCyclePerf = React.useMemo(() => {
@@ -548,7 +549,8 @@ const ConsoleComponent: React.FC<Props> = ({
     for (const t of trades) {
       if (t.accountType !== "Live") continue;
       const cycle = normalizeCycle(t.marketCycle ?? "Unknown");
-      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
       byCycle.set(cycle, (byCycle.get(cycle) ?? 0) + pnl);
     }
 
@@ -703,10 +705,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const strategyStats = React.useMemo(() => {
     const total = strategies.length;
-    const activeCount = strategies.filter((s) => s.status === "active")
-      .length;
-    const learningCount = strategies.filter((s) => s.status === "learning")
-      .length;
+    const activeCount = strategies.filter((s) => s.status === "active").length;
+    const learningCount = strategies.filter(
+      (s) => s.status === "learning"
+    ).length;
     const totalUses = strategies.reduce((acc, s) => acc + (s.uses || 0), 0);
     return { total, activeCount, learningCount, totalUses };
   }, [strategies]);
@@ -815,14 +817,20 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
+  const onBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
 
-  const onBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
+  const onBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
 
   const onTextBtnMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -839,14 +847,20 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onTextBtnFocus = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    if (e.currentTarget.disabled) return;
-    e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-  }, []);
+  const onTextBtnFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      if (e.currentTarget.disabled) return;
+      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
+    },
+    []
+  );
 
-  const onTextBtnBlur = React.useCallback((e: React.FocusEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.boxShadow = "none";
-  }, []);
+  const onTextBtnBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.boxShadow = "none";
+    },
+    []
+  );
 
   const onMiniCellMouseEnter = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -1078,143 +1092,29 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [analyticsTrades, strategyIndex]);
 
   const analyticsRecentLiveTradesAsc = React.useMemo(() => {
-    const tradesAsc = [...trades].sort((a, b) =>
-      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
-    );
-    return tradesAsc
-      .filter((t) => (t.accountType ?? "Live") === "Live")
-      .slice(-30);
+    return computeRecentLiveTradesAsc(trades, 30);
   }, [trades]);
 
   const analyticsRMultiples = React.useMemo(() => {
-    const rs = analyticsRecentLiveTradesAsc.map((t) =>
-      typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0
-    );
-    const maxAbs = Math.max(1, ...rs.map((r) => Math.abs(r)));
-    const avg = rs.length
-      ? rs.reduce((acc, r) => acc + r, 0) / Math.max(1, rs.length)
-      : 0;
-    return { maxAbs, avg, rs };
+    return computeRMultiplesFromPnl(analyticsRecentLiveTradesAsc);
   }, [analyticsRecentLiveTradesAsc]);
 
   const analyticsMind = React.useMemo(() => {
-    const ERROR_FIELD_ALIASES = [
-      "mistake_tags",
-      "错误/mistake_tags",
-      "mistakes",
-      "errors",
-    ] as const;
-
-    const getMistakeTags = (t: TradeRecord): string[] => {
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      for (const key of ERROR_FIELD_ALIASES) {
-        const v = (fm as any)[key];
-        if (Array.isArray(v)) {
-          const tags = v
-            .filter((x) => typeof x === "string")
-            .map((x) => (x as string).trim())
-            .filter(Boolean);
-          if (tags.length > 0) return tags;
-        } else if (typeof v === "string" && v.trim()) {
-          return [v.trim()];
-        }
-      }
-      return [];
-    };
-
-    // legacy 口径：最近 10 笔实盘
-    const recentLive = [...analyticsRecentLiveTradesAsc].slice(-10);
-
-    let tilt = 0;
-    let fomo = 0;
-    let hesitation = 0;
-    for (const t of recentLive) {
-      const tags = getMistakeTags(t);
-      const s = tags.join(" ");
-      if (s.includes("Tilt") || s.includes("上头")) tilt += 1;
-      if (s.includes("FOMO") || s.includes("追单")) fomo += 1;
-      if (s.includes("Hesitation") || s.includes("犹豫")) hesitation += 1;
-    }
-
-    let status = "🛡️ 状态极佳";
-    let color = "var(--text-success)";
-    if (tilt > 0 || fomo > 1) {
-      status = "🔥 极度危险";
-      color = "var(--text-error)";
-    } else if (fomo > 0 || hesitation > 0) {
-      status = "⚠️ 有点起伏";
-      color = "var(--text-warning)";
-    }
-
-    return { tilt, fomo, hesitation, status, color };
+    return computeMindsetFromRecentLive(analyticsRecentLiveTradesAsc, 10);
   }, [analyticsRecentLiveTradesAsc]);
 
   const analyticsTopStrats = React.useMemo(() => {
-    const tradesAsc = [...trades].sort((a, b) =>
-      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
-    );
-
-    const stats = new Map<string, { win: number; total: number }>();
-
-    for (const t of tradesAsc) {
-      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-
-      let key = (t.strategyName ?? "").toString().trim();
-      if (!key || key.toLowerCase() === "unknown") {
-        const rawSetup = (t.setupCategory ?? "").toString().trim();
-        key = rawSetup ? rawSetup.split("(")[0].trim() : "Unknown";
-      }
-      if (!key) key = "Unknown";
-
-      const prev = stats.get(key) ?? { win: 0, total: 0 };
-      prev.total += 1;
-      if (pnl > 0) prev.win += 1;
-      stats.set(key, prev);
-    }
-
-    return [...stats.entries()]
-      .map(([name, v]) => ({
-        name,
-        total: v.total,
-        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
+    return computeTopStrategiesFromTrades(trades, 5);
   }, [trades]);
 
   const analyticsSuggestion = React.useMemo(() => {
-    const bestStrat = analyticsTopStrats[0]?.name ?? "无";
-    const liveWr = summary.Live.winRatePct;
-
-    const cumLive = summary.Live.netProfit;
-    const cumBack = summary.Backtest.netProfit;
-
-    if (analyticsMind.tilt > 0) {
-      return {
-        tone: "danger" as const,
-        text: `检测到情绪化交易 (Tilt) 迹象。建议立即停止实盘，强制休息 24 小时。`,
-      };
-    }
-
-    if (liveWr < 40 && summary.Live.countTotal > 5) {
-      return {
-        tone: "warn" as const,
-        text: `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到模拟盘练习 ${bestStrat}，直到连续盈利。`,
-      };
-    }
-
-    if (cumLive < 0 && cumBack > 0) {
-      return {
-        tone: "warn" as const,
-        text: `回测表现良好但实盘亏损。可能是执行力问题。建议降低仓位，专注于 ${bestStrat}。`,
-      };
-    }
-
-    return {
-      tone: "ok" as const,
-      text: `当前状态良好。表现最好的策略是 ${bestStrat}。建议继续保持一致性。`,
-    };
-  }, [analyticsTopStrats, analyticsMind.tilt, summary.Live.winRatePct, summary.Live.countTotal, summary.Live.netProfit, summary.Backtest.netProfit]);
+    return computeHubSuggestion({
+      topStrategies: analyticsTopStrats,
+      mindset: analyticsMind,
+      live: summary.Live,
+      backtest: summary.Backtest,
+    });
+  }, [analyticsTopStrats, analyticsMind, summary.Live, summary.Backtest]);
 
   const strategyLab = React.useMemo(() => {
     const tradesAsc = [...trades].sort((a, b) =>
@@ -1235,7 +1135,8 @@ const ConsoleComponent: React.FC<Props> = ({
     const stats = new Map<string, { win: number; total: number }>();
 
     for (const t of tradesAsc) {
-      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
       const acct = (t.accountType ?? "Live") as AccountType;
 
       // 资金曲线：按账户分别累加（口径与 v5.0 接近：只在该账户出现时 push 一点）
@@ -1323,7 +1224,8 @@ const ConsoleComponent: React.FC<Props> = ({
       seen.add(resolved);
 
       const acct = (t.accountType ?? "Live") as AccountType;
-      const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+      const pnl =
+        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
 
       out.push({
         tradePath: t.path,
@@ -1751,7 +1653,10 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
               {todayStrategyPicks.map((s) => (
-                <li key={`today-pick-${s.path}`} style={{ marginBottom: "6px" }}>
+                <li
+                  key={`today-pick-${s.path}`}
+                  style={{ marginBottom: "6px" }}
+                >
                   <button
                     type="button"
                     onClick={() => openFile(s.path)}
@@ -1832,7 +1737,8 @@ const ConsoleComponent: React.FC<Props> = ({
                       </ul>
                     </div>
                   )}
-                  {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                  {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
+                    0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
                         止损
@@ -1852,13 +1758,16 @@ const ConsoleComponent: React.FC<Props> = ({
                         风险
                       </div>
                       <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                        {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
-                          <li key={`risk-${i}`}>{x}</li>
-                        ))}
+                        {openTradeStrategy
+                          .riskAlerts!.slice(0, 3)
+                          .map((x, i) => (
+                            <li key={`risk-${i}`}>{x}</li>
+                          ))}
                       </ul>
                     </div>
                   )}
-                  {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                  {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) >
+                    0 && (
                     <div>
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>
                         目标
@@ -1882,7 +1791,8 @@ const ConsoleComponent: React.FC<Props> = ({
                     .map((s) => String(s).trim())
                     .filter(Boolean);
 
-                  const hasSignalInfo = curSignals.length > 0 || reqSignals.length > 0;
+                  const hasSignalInfo =
+                    curSignals.length > 0 || reqSignals.length > 0;
                   if (!hasSignalInfo) return null;
 
                   const norm = (s: string) => s.toLowerCase();
@@ -1919,7 +1829,10 @@ const ConsoleComponent: React.FC<Props> = ({
                             marginBottom: "6px",
                           }}
                         >
-                          当前：<span style={{ color: "var(--text-accent)" }}>{curSignals.join(" / ")}</span>
+                          当前：
+                          <span style={{ color: "var(--text-accent)" }}>
+                            {curSignals.join(" / ")}
+                          </span>
                         </div>
                       ) : (
                         <div
@@ -1956,7 +1869,12 @@ const ConsoleComponent: React.FC<Props> = ({
                       )}
 
                       {signalMatch === null ? null : (
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                          }}
+                        >
                           匹配：
                           <span
                             style={{
@@ -1987,14 +1905,18 @@ const ConsoleComponent: React.FC<Props> = ({
 
                 if (!hasHints) {
                   return (
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
                       未找到匹配策略。
                     </div>
                   );
                 }
 
                 const norm = (s: string) => s.toLowerCase();
-                const wantCycleKey = marketCycle ? norm(marketCycle) : undefined;
+                const wantCycleKey = marketCycle
+                  ? norm(marketCycle)
+                  : undefined;
                 const wantSetupKey = setupCategory
                   ? norm(setupCategory)
                   : undefined;
@@ -2007,7 +1929,9 @@ const ConsoleComponent: React.FC<Props> = ({
                       wantCycleKey &&
                       card.marketCycles.some((c) => {
                         const ck = norm(String(c));
-                        return ck.includes(wantCycleKey) || wantCycleKey.includes(ck);
+                        return (
+                          ck.includes(wantCycleKey) || wantCycleKey.includes(ck)
+                        );
                       })
                     ) {
                       score += 2;
@@ -2016,7 +1940,9 @@ const ConsoleComponent: React.FC<Props> = ({
                       wantSetupKey &&
                       card.setupCategories.some((c) => {
                         const ck = norm(String(c));
-                        return ck.includes(wantSetupKey) || wantSetupKey.includes(ck);
+                        return (
+                          ck.includes(wantSetupKey) || wantSetupKey.includes(ck)
+                        );
                       })
                     ) {
                       score += 1;
@@ -2030,7 +1956,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
                 if (scored.length === 0) {
                   return (
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
                       未找到匹配策略。
                     </div>
                   );
@@ -2047,7 +1975,9 @@ const ConsoleComponent: React.FC<Props> = ({
                     >
                       💡 基于当前市场背景（{marketCycle ?? "未知"}）的策略建议：
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                    >
                       {scored.map((s) => (
                         <button
                           key={`today-fallback-${s.path}`}
@@ -2105,7 +2035,9 @@ const ConsoleComponent: React.FC<Props> = ({
               },
               {
                 t: "净利润",
-                v: `${todaySummary.All.netProfit >= 0 ? "+" : ""}${todaySummary.All.netProfit.toFixed(1)}R`,
+                v: `${
+                  todaySummary.All.netProfit >= 0 ? "+" : ""
+                }${todaySummary.All.netProfit.toFixed(1)}R`,
                 c:
                   todaySummary.All.netProfit >= 0
                     ? "var(--text-success)"
@@ -2127,7 +2059,14 @@ const ConsoleComponent: React.FC<Props> = ({
               <div style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
                 {x.t}
               </div>
-              <div style={{ marginTop: "6px", fontWeight: 800, fontSize: "1.2rem", color: x.c }}>
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontWeight: 800,
+                  fontSize: "1.2rem",
+                  color: x.c,
+                }}
+              >
                 {x.v}
               </div>
             </div>
@@ -2146,8 +2085,8 @@ const ConsoleComponent: React.FC<Props> = ({
                   dir === "多" || dir.toLowerCase() === "long"
                     ? "📈"
                     : dir === "空" || dir.toLowerCase() === "short"
-                      ? "📉"
-                      : "➡️";
+                    ? "📉"
+                    : "➡️";
                 const tf = (t.timeframe ?? "").toString().trim();
                 const strategy = (t.strategyName ?? "").toString().trim();
 
@@ -2156,34 +2095,43 @@ const ConsoleComponent: React.FC<Props> = ({
                   outcome === "win"
                     ? "Win"
                     : outcome === "loss"
-                      ? "Loss"
-                      : outcome === "scratch"
-                        ? "Scratch"
-                        : outcome === "open" || outcome === "unknown" || outcome === undefined
-                          ? "进行中"
-                          : String(outcome);
+                    ? "Loss"
+                    : outcome === "scratch"
+                    ? "Scratch"
+                    : outcome === "open" ||
+                      outcome === "unknown" ||
+                      outcome === undefined
+                    ? "进行中"
+                    : String(outcome);
                 const outcomeColor =
                   outcome === "win"
                     ? "var(--text-success)"
                     : outcome === "loss"
-                      ? "var(--text-error)"
-                      : outcome === "scratch"
-                        ? "var(--text-warning)"
-                        : "var(--text-muted)";
+                    ? "var(--text-error)"
+                    : outcome === "scratch"
+                    ? "var(--text-warning)"
+                    : "var(--text-muted)";
 
-                const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : undefined;
+                const pnl =
+                  typeof t.pnl === "number" && Number.isFinite(t.pnl)
+                    ? t.pnl
+                    : undefined;
                 const pnlColor =
                   pnl === undefined
                     ? "var(--text-muted)"
                     : pnl >= 0
-                      ? "var(--text-success)"
-                      : "var(--text-error)";
+                    ? "var(--text-success)"
+                    : "var(--text-error)";
 
                 const entry =
-                  (t.rawFrontmatter?.["entry"] as unknown as string | undefined) ??
+                  (t.rawFrontmatter?.["entry"] as unknown as
+                    | string
+                    | undefined) ??
                   (t.rawFrontmatter?.["入场"] as unknown as string | undefined);
                 const stop =
-                  (t.rawFrontmatter?.["stop"] as unknown as string | undefined) ??
+                  (t.rawFrontmatter?.["stop"] as unknown as
+                    | string
+                    | undefined) ??
                   (t.rawFrontmatter?.["止损"] as unknown as string | undefined);
 
                 return (
@@ -2331,9 +2279,15 @@ const ConsoleComponent: React.FC<Props> = ({
                   flexWrap: "wrap",
                 }}
               >
-                <span style={{ color: getRColorByAccountType("Live") }}>● 实盘</span>
-                <span style={{ color: getRColorByAccountType("Demo") }}>● 模拟</span>
-                <span style={{ color: getRColorByAccountType("Backtest") }}>● 回测</span>
+                <span style={{ color: getRColorByAccountType("Live") }}>
+                  ● 实盘
+                </span>
+                <span style={{ color: getRColorByAccountType("Demo") }}>
+                  ● 模拟
+                </span>
+                <span style={{ color: getRColorByAccountType("Backtest") }}>
+                  ● 回测
+                </span>
               </div>
 
               {last30TradesDesc.length === 0 ? (
@@ -2367,7 +2321,9 @@ const ConsoleComponent: React.FC<Props> = ({
                         r >= 0
                           ? getRColorByAccountType(t.accountType ?? "Live")
                           : "var(--text-error)";
-                      const title = `${t.name}\n${t.accountType ?? "—"}\nR: ${r.toFixed(2)}`;
+                      const title = `${t.name}\n${
+                        t.accountType ?? "—"
+                      }\nR: ${r.toFixed(2)}`;
                       return (
                         <div
                           key={t.path}
@@ -2396,14 +2352,29 @@ const ConsoleComponent: React.FC<Props> = ({
                 background: "rgba(var(--mono-rgb-100), 0.03)",
               }}
             >
-              <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "6px" }}>
+              <div
+                style={{ fontWeight: 700, opacity: 0.75, marginBottom: "6px" }}
+              >
                 🧠 实盘心态
               </div>
-              <div style={{ fontSize: "1.2em", fontWeight: 900, color: liveMind.color }}>
+              <div
+                style={{
+                  fontSize: "1.2em",
+                  fontWeight: 900,
+                  color: liveMind.color,
+                }}
+              >
                 {liveMind.status}
               </div>
-              <div style={{ color: "var(--text-faint)", fontSize: "0.85em", marginTop: "6px" }}>
-                近期错误：追单(FOMO) {liveMind.fomo} | 上头(Tilt) {liveMind.tilt}
+              <div
+                style={{
+                  color: "var(--text-faint)",
+                  fontSize: "0.85em",
+                  marginTop: "6px",
+                }}
+              >
+                近期错误：追单(FOMO) {liveMind.fomo} | 上头(Tilt){" "}
+                {liveMind.tilt}
               </div>
             </div>
           </div>
@@ -2451,9 +2422,12 @@ const ConsoleComponent: React.FC<Props> = ({
             type="button"
             disabled={!canCreateTrade}
             onClick={() => {
-              if (can("quickadd:new-live-trade")) return action("quickadd:new-live-trade");
-              if (can("quickadd:new-demo-trade")) return action("quickadd:new-demo-trade");
-              if (can("quickadd:new-backtest")) return action("quickadd:new-backtest");
+              if (can("quickadd:new-live-trade"))
+                return action("quickadd:new-live-trade");
+              if (can("quickadd:new-demo-trade"))
+                return action("quickadd:new-demo-trade");
+              if (can("quickadd:new-backtest"))
+                return action("quickadd:new-backtest");
             }}
             onMouseEnter={(e) => {
               if (e.currentTarget.disabled) return;
@@ -2592,10 +2566,20 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "12px" }}>
-          💼 账户资金概览 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Account)</span>
+          💼 账户资金概览{" "}
+          <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+            (Account)
+          </span>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginBottom: "14px",
+          }}
+        >
           <div
             style={{
               flex: "1.5 1 360px",
@@ -2606,8 +2590,21 @@ const ConsoleComponent: React.FC<Props> = ({
               background: "rgba(var(--mono-rgb-100), 0.03)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" }}>
-              <div style={{ fontWeight: 900, fontSize: "1.1em", color: "var(--text-success)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 900,
+                  fontSize: "1.1em",
+                  color: "var(--text-success)",
+                }}
+              >
                 🟢 实盘账户
               </div>
               <div
@@ -2623,7 +2620,14 @@ const ConsoleComponent: React.FC<Props> = ({
                 Live
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "6px",
+                marginTop: "6px",
+              }}
+            >
               <div
                 style={{
                   fontSize: "2.2em",
@@ -2638,27 +2642,48 @@ const ConsoleComponent: React.FC<Props> = ({
                 {summary.Live.netProfit > 0 ? "+" : ""}
                 {summary.Live.netProfit.toFixed(1)}
               </div>
-              <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>R</div>
+              <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>
+                R
+              </div>
             </div>
-            <div style={{ display: "flex", gap: "14px", marginTop: "10px", color: "var(--text-muted)", fontSize: "0.9em", flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "14px",
+                marginTop: "10px",
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                flexWrap: "wrap",
+              }}
+            >
               <div>📦 {summary.Live.countTotal} 笔交易</div>
               <div>🎯 {summary.Live.winRatePct}% 胜率</div>
             </div>
           </div>
 
-          <div style={{ flex: "1 1 260px", minWidth: "260px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {([
-              {
-                title: "模拟盘",
-                icon: "🔵",
-                stats: summary.Demo,
-              },
-              {
-                title: "复盘回测",
-                icon: "🟠",
-                stats: summary.Backtest,
-              },
-            ] as const).map((card) => (
+          <div
+            style={{
+              flex: "1 1 260px",
+              minWidth: "260px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            {(
+              [
+                {
+                  title: "模拟盘",
+                  icon: "🔵",
+                  stats: summary.Demo,
+                },
+                {
+                  title: "复盘回测",
+                  icon: "🟠",
+                  stats: summary.Backtest,
+                },
+              ] as const
+            ).map((card) => (
               <div
                 key={card.title}
                 style={{
@@ -2668,15 +2693,31 @@ const ConsoleComponent: React.FC<Props> = ({
                   background: "rgba(var(--mono-rgb-100), 0.03)",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: "10px",
+                  }}
+                >
                   <div style={{ fontWeight: 800, color: "var(--text-muted)" }}>
                     {card.icon} {card.title}
                   </div>
-                  <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>
+                  <div
+                    style={{ fontSize: "0.8em", color: "var(--text-faint)" }}
+                  >
                     {card.stats.countTotal} 笔
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "6px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "6px",
+                    marginTop: "6px",
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "1.6em",
@@ -2690,9 +2731,19 @@ const ConsoleComponent: React.FC<Props> = ({
                     {card.stats.netProfit > 0 ? "+" : ""}
                     {card.stats.netProfit.toFixed(1)}
                   </div>
-                  <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>R</div>
+                  <div
+                    style={{ color: "var(--text-faint)", fontSize: "0.95em" }}
+                  >
+                    R
+                  </div>
                 </div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginTop: "4px" }}>
+                <div
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.9em",
+                    marginTop: "4px",
+                  }}
+                >
                   胜率：{card.stats.winRatePct}%
                 </div>
               </div>
@@ -2700,29 +2751,50 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         </div>
 
-        <div style={{ paddingTop: "12px", borderTop: "1px solid var(--background-modifier-border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
+        <div
+          style={{
+            paddingTop: "12px",
+            borderTop: "1px solid var(--background-modifier-border)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: "10px",
+              marginBottom: "10px",
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ fontWeight: 700, color: "var(--text-muted)" }}>
               📅 盈亏日历 ({accountTargetMonth})
             </div>
-            <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>All Accounts</div>
+            <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>
+              All Accounts
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
-            {Array.from({ length: accountDaysInMonth }, (_, i) => i + 1).map((day) => {
-              const data = accountDailyMap.get(day);
-              const pnl = data?.total;
-              const hasTrade = pnl !== undefined;
-              const color =
-                !hasTrade
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              gap: "6px",
+            }}
+          >
+            {Array.from({ length: accountDaysInMonth }, (_, i) => i + 1).map(
+              (day) => {
+                const data = accountDailyMap.get(day);
+                const pnl = data?.total;
+                const hasTrade = pnl !== undefined;
+                const color = !hasTrade
                   ? "var(--text-faint)"
                   : pnl! > 0
                   ? "var(--text-success)"
                   : pnl! < 0
                   ? "var(--text-error)"
                   : "var(--text-muted)";
-              const bg =
-                !hasTrade
+                const bg = !hasTrade
                   ? "rgba(var(--mono-rgb-100), 0.02)"
                   : pnl! > 0
                   ? "rgba(var(--color-green-rgb), 0.12)"
@@ -2730,57 +2802,99 @@ const ConsoleComponent: React.FC<Props> = ({
                   ? "rgba(var(--color-red-rgb), 0.12)"
                   : "rgba(var(--mono-rgb-100), 0.06)";
 
-              return (
-                <div
-                  key={`${accountTargetMonth}-${day}`}
-                  title={`${accountTargetMonth}-${String(day).padStart(2, "0")} PnL: ${hasTrade ? pnl!.toFixed(2) : "0"}`}
-                  style={{
-                    aspectRatio: "1",
-                    background: bg,
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "8px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "2px",
-                  }}
-                >
-                  <div style={{ fontSize: "0.75em", color: "var(--text-faint)" }}>{day}</div>
-                  {hasTrade ? (
-                    <div style={{ fontSize: "0.85em", fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>
-                      {pnl! > 0 ? "+" : ""}
-                      {pnl!.toFixed(0)}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: "0.85em", fontWeight: 700, color: "var(--text-faint)", opacity: 0.4 }}>—</div>
-                  )}
-
-                  {hasTrade ? (
+                return (
+                  <div
+                    key={`${accountTargetMonth}-${day}`}
+                    title={`${accountTargetMonth}-${String(day).padStart(
+                      2,
+                      "0"
+                    )} PnL: ${hasTrade ? pnl!.toFixed(2) : "0"}`}
+                    style={{
+                      aspectRatio: "1",
+                      background: bg,
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "2px",
+                    }}
+                  >
                     <div
-                      style={{
-                        display: "flex",
-                        gap: "2px",
-                        height: "5px",
-                        width: "80%",
-                        marginTop: "2px",
-                        opacity: 0.95,
-                      }}
+                      style={{ fontSize: "0.75em", color: "var(--text-faint)" }}
                     >
-                      {data?.types.has("Live") && (
-                        <div style={{ flex: 1, background: getRColorByAccountType("Live"), borderRadius: "2px" }} />
-                      )}
-                      {data?.types.has("Demo") && (
-                        <div style={{ flex: 1, background: getRColorByAccountType("Demo"), borderRadius: "2px" }} />
-                      )}
-                      {data?.types.has("Backtest") && (
-                        <div style={{ flex: 1, background: getRColorByAccountType("Backtest"), borderRadius: "2px" }} />
-                      )}
+                      {day}
                     </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                    {hasTrade ? (
+                      <div
+                        style={{
+                          fontSize: "0.85em",
+                          fontWeight: 800,
+                          color,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {pnl! > 0 ? "+" : ""}
+                        {pnl!.toFixed(0)}
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          fontSize: "0.85em",
+                          fontWeight: 700,
+                          color: "var(--text-faint)",
+                          opacity: 0.4,
+                        }}
+                      >
+                        —
+                      </div>
+                    )}
+
+                    {hasTrade ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "2px",
+                          height: "5px",
+                          width: "80%",
+                          marginTop: "2px",
+                          opacity: 0.95,
+                        }}
+                      >
+                        {data?.types.has("Live") && (
+                          <div
+                            style={{
+                              flex: 1,
+                              background: getRColorByAccountType("Live"),
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
+                        {data?.types.has("Demo") && (
+                          <div
+                            style={{
+                              flex: 1,
+                              background: getRColorByAccountType("Demo"),
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
+                        {data?.types.has("Backtest") && (
+                          <div
+                            style={{
+                              flex: 1,
+                              background: getRColorByAccountType("Backtest"),
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+            )}
           </div>
         </div>
       </div>
@@ -2795,7 +2909,10 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
-          🌪️ 不同市场环境表现 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Live PnL)</span>
+          🌪️ 不同市场环境表现{" "}
+          <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+            (Live PnL)
+          </span>
         </div>
         {liveCyclePerf.length === 0 ? (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
@@ -2823,7 +2940,9 @@ const ConsoleComponent: React.FC<Props> = ({
                     textAlign: "center",
                   }}
                 >
-                  <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>
+                  <div
+                    style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
+                  >
                     {cy.name}
                   </div>
                   <div
@@ -2854,7 +2973,10 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
-          💸 错误的代价 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(学费统计)</span>
+          💸 错误的代价{" "}
+          <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+            (学费统计)
+          </span>
         </div>
         {tuition.tuitionR <= 0 ? (
           <div style={{ color: "var(--text-success)", fontWeight: 700 }}>
@@ -2862,21 +2984,49 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
         ) : (
           <div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "10px" }}>
+            <div
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                marginBottom: "10px",
+              }}
+            >
               因执行错误共计亏损：
-              <span style={{ color: "var(--text-error)", fontWeight: 900, marginLeft: "6px" }}>
+              <span
+                style={{
+                  color: "var(--text-error)",
+                  fontWeight: 900,
+                  marginLeft: "6px",
+                }}
+              >
                 -{tuition.tuitionR.toFixed(1)}R
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
               {tuition.rows.slice(0, 12).map((row) => {
                 const pct = Math.round((row.costR / tuition.tuitionR) * 100);
                 return (
                   <div
                     key={row.tag}
-                    style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.9em" }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      fontSize: "0.9em",
+                    }}
                   >
-                    <div style={{ width: "110px", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.tag}>
+                    <div
+                      style={{
+                        width: "110px",
+                        color: "var(--text-muted)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={row.tag}
+                    >
                       {row.tag}
                     </div>
                     <div
@@ -2897,7 +3047,15 @@ const ConsoleComponent: React.FC<Props> = ({
                         }}
                       />
                     </div>
-                    <div style={{ width: "70px", textAlign: "right", color: "var(--text-error)", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                    <div
+                      style={{
+                        width: "70px",
+                        textAlign: "right",
+                        color: "var(--text-error)",
+                        fontWeight: 800,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
                       -{row.costR.toFixed(1)}R
                     </div>
                   </div>
@@ -2918,7 +3076,10 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
-          💡 系统建议 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Actions)</span>
+          💡 系统建议{" "}
+          <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+            (Actions)
+          </span>
         </div>
         <div
           style={{
@@ -3060,9 +3221,7 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
 
           <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              权益曲线
-            </div>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>权益曲线</div>
             {equitySeries.length > 1 ? (
               (() => {
                 const w = 520;
@@ -3226,7 +3385,14 @@ const ConsoleComponent: React.FC<Props> = ({
         >
           <div style={{ fontWeight: 700, opacity: 0.85 }}>
             📈 综合趋势 (R-Multiples)
-            <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em", marginLeft: "6px" }}>
+            <span
+              style={{
+                fontWeight: 600,
+                opacity: 0.6,
+                fontSize: "0.85em",
+                marginLeft: "6px",
+              }}
+            >
               仅实盘 · 最近 {analyticsRecentLiveTradesAsc.length} 笔
             </span>
           </div>
@@ -3245,7 +3411,10 @@ const ConsoleComponent: React.FC<Props> = ({
               const step = barWidth + barGap;
               const maxAbs = analyticsRMultiples.maxAbs;
               const rScale = (rHeight / 2 - 6) / Math.max(1e-6, maxAbs);
-              const innerWidth = Math.max(analyticsRecentLiveTradesAsc.length * step, 200);
+              const innerWidth = Math.max(
+                analyticsRecentLiveTradesAsc.length * step,
+                200
+              );
 
               return (
                 <div
@@ -3259,7 +3428,13 @@ const ConsoleComponent: React.FC<Props> = ({
                     background: "rgba(var(--mono-rgb-100), 0.03)",
                   }}
                 >
-                  <div style={{ position: "relative", height: `${rHeight}px`, width: `${innerWidth}px` }}>
+                  <div
+                    style={{
+                      position: "relative",
+                      height: `${rHeight}px`,
+                      width: `${innerWidth}px`,
+                    }}
+                  >
                     <div
                       style={{
                         position: "absolute",
@@ -3271,16 +3446,33 @@ const ConsoleComponent: React.FC<Props> = ({
                         borderTop: "1px dashed rgba(var(--mono-rgb-100), 0.25)",
                       }}
                     />
-                    <div style={{ position: "absolute", left: 6, top: rZeroY - 10, fontSize: "0.75em", color: "var(--text-faint)" }}>
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 6,
+                        top: rZeroY - 10,
+                        fontSize: "0.75em",
+                        color: "var(--text-faint)",
+                      }}
+                    >
                       0R
                     </div>
                     {analyticsRecentLiveTradesAsc.length === 0 ? (
-                      <div style={{ padding: "18px", color: "var(--text-faint)", fontSize: "0.9em" }}>
+                      <div
+                        style={{
+                          padding: "18px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.9em",
+                        }}
+                      >
                         暂无数据
                       </div>
                     ) : (
                       analyticsRecentLiveTradesAsc.map((t, i) => {
-                        const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+                        const r =
+                          typeof t.pnl === "number" && Number.isFinite(t.pnl)
+                            ? t.pnl
+                            : 0;
                         let h = Math.abs(r) * rScale;
                         if (h < 3) h = 3;
                         const color =
@@ -3293,7 +3485,9 @@ const ConsoleComponent: React.FC<Props> = ({
                         return (
                           <div
                             key={`rbar-${t.path}-${t.dateIso}-${i}`}
-                            title={`${t.dateIso} | ${t.name} | R: ${r.toFixed(2)}`}
+                            title={`${t.dateIso} | ${t.name} | R: ${r.toFixed(
+                              2
+                            )}`}
                             style={{
                               position: "absolute",
                               left: `${i * step}px`,
@@ -3328,22 +3522,37 @@ const ConsoleComponent: React.FC<Props> = ({
               gap: "6px",
             }}
           >
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>🧠 实盘心态</div>
-            <div style={{ fontSize: "1.15em", fontWeight: 900, color: analyticsMind.color }}>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              🧠 实盘心态
+            </div>
+            <div
+              style={{
+                fontSize: "1.15em",
+                fontWeight: 900,
+                color: analyticsMind.color,
+              }}
+            >
               {analyticsMind.status}
             </div>
             <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
-              FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} | 犹豫: {analyticsMind.hesitation}
+              FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} | 犹豫:{" "}
+              {analyticsMind.hesitation}
             </div>
           </div>
         </div>
 
         <div style={{ marginTop: "12px" }}>
-          <div style={{ fontWeight: 600, marginBottom: "8px" }}>📊 热门策略</div>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            📊 热门策略
+          </div>
           {analyticsTopStrats.length === 0 ? (
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>暂无数据</div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+              暂无数据
+            </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
               {analyticsTopStrats.map((s) => {
                 const color =
                   s.wr >= 50
@@ -3392,12 +3601,33 @@ const ConsoleComponent: React.FC<Props> = ({
                           overflow: "hidden",
                         }}
                       >
-                        <div style={{ width: `${s.wr}%`, height: "100%", background: color }} />
+                        <div
+                          style={{
+                            width: `${s.wr}%`,
+                            height: "100%",
+                            background: color,
+                          }}
+                        />
                       </div>
                     </div>
                     <div style={{ flex: "0 0 auto", textAlign: "right" }}>
-                      <div style={{ fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>{s.wr}%</div>
-                      <div style={{ fontSize: "0.8em", color: "var(--text-faint)" }}>{s.total} 笔</div>
+                      <div
+                        style={{
+                          fontWeight: 900,
+                          color,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {s.wr}%
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.8em",
+                          color: "var(--text-faint)",
+                        }}
+                      >
+                        {s.total} 笔
+                      </div>
                     </div>
                   </div>
                 );
@@ -3433,7 +3663,15 @@ const ConsoleComponent: React.FC<Props> = ({
             </span>
           </div>
 
-          <div style={{ fontSize: "0.85em", color: "var(--text-muted)", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              fontSize: "0.85em",
+              color: "var(--text-muted)",
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
             <span style={{ color: getRColorByAccountType("Live") }}>
               ● 实盘 {strategyLab.cum.Live >= 0 ? "+" : ""}
               {strategyLab.cum.Live.toFixed(1)}R
@@ -3545,13 +3783,19 @@ const ConsoleComponent: React.FC<Props> = ({
           }}
         >
           <div>
-            <div style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}>
+            <div
+              style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}
+            >
               📊 热门策略表现{" "}
-              <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.9em" }}>
+              <span
+                style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.9em" }}
+              >
                 (Top Setups)
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+            >
               {strategyLab.topSetups.length > 0 ? (
                 strategyLab.topSetups.map((s) => (
                   <div
@@ -3567,11 +3811,27 @@ const ConsoleComponent: React.FC<Props> = ({
                       border: "1px solid var(--background-modifier-border)",
                     }}
                   >
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {s.name}
                     </span>
-                    <span style={{ color: "var(--text-muted)", flex: "0 0 auto" }}>
-                      <span style={{ color: s.wr > 50 ? "var(--text-success)" : "var(--text-warning)", fontWeight: 800 }}>
+                    <span
+                      style={{ color: "var(--text-muted)", flex: "0 0 auto" }}
+                    >
+                      <span
+                        style={{
+                          color:
+                            s.wr > 50
+                              ? "var(--text-success)"
+                              : "var(--text-warning)",
+                          fontWeight: 800,
+                        }}
+                      >
                         {s.wr}%
                       </span>{" "}
                       <span style={{ opacity: 0.6 }}>({s.total})</span>
@@ -3587,7 +3847,9 @@ const ConsoleComponent: React.FC<Props> = ({
           </div>
 
           <div>
-            <div style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}>
+            <div
+              style={{ fontSize: "0.85em", opacity: 0.7, marginBottom: "8px" }}
+            >
               💡 系统建议
             </div>
             <div style={{ fontSize: "0.9em", opacity: 0.85, lineHeight: 1.6 }}>
@@ -3735,8 +3997,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
             {(() => {
               const pTotal = Math.max(1, memory.total);
-              const sBase = (memory.cnt?.sNorm ?? 0) + (memory.cnt?.sRev ?? 0) * 2;
-              const mMulti = (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
+              const sBase =
+                (memory.cnt?.sNorm ?? 0) + (memory.cnt?.sRev ?? 0) * 2;
+              const mMulti =
+                (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
               const cloze = memory.cnt?.cloze ?? 0;
 
               const seg = (n: number) => `${Math.max(0, (n / pTotal) * 100)}%`;
@@ -3894,7 +4158,9 @@ const ConsoleComponent: React.FC<Props> = ({
                     <div style={{ fontWeight: 700, fontSize: "0.9em" }}>
                       未来 7 天负载
                     </div>
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.85em" }}
+                    >
                       +1…+7
                     </div>
                   </div>
@@ -3955,7 +4221,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
             {(() => {
               const canRecommendFocus =
-                !memoryIgnoreFocus && memory.due > 0 && Boolean(memory.focusFile);
+                !memoryIgnoreFocus &&
+                memory.due > 0 &&
+                Boolean(memory.focusFile);
 
               const focusRec =
                 canRecommendFocus && memory.focusFile
@@ -3999,15 +4267,17 @@ const ConsoleComponent: React.FC<Props> = ({
                 rec.type === "Focus"
                   ? "🔥 优先复习"
                   : rec.type === "New"
-                    ? "🚀 推荐"
-                    : rec.type === "Review"
-                      ? "🔄 推荐"
-                      : "🎲 随机抽取";
+                  ? "🚀 推荐"
+                  : rec.type === "Review"
+                  ? "🔄 推荐"
+                  : "🎲 随机抽取";
 
               const onShake = () => {
                 setMemoryIgnoreFocus(true);
                 if (memory.quizPool.length > 0) {
-                  const next = Math.floor(Math.random() * memory.quizPool.length);
+                  const next = Math.floor(
+                    Math.random() * memory.quizPool.length
+                  );
                   setMemoryShakeIndex(next);
                 } else {
                   setMemoryShakeIndex((x) => x + 1);
@@ -4052,7 +4322,9 @@ const ConsoleComponent: React.FC<Props> = ({
                         {String(rec.title)}
                       </button>
                     </div>
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.85em" }}
+                    >
                       {rec.desc}
                     </div>
                   </div>
@@ -4094,7 +4366,8 @@ const ConsoleComponent: React.FC<Props> = ({
                   {memory.focusFile.name.replace(/\.md$/i, "")}
                 </button>
                 <span style={{ marginLeft: "8px", color: "var(--text-faint)" }}>
-                  到期: {memory.focusFile.due} | 易度: {memory.focusFile.avgEase}
+                  到期: {memory.focusFile.due} | 易度:{" "}
+                  {memory.focusFile.avgEase}
                 </span>
               </div>
             ) : (
@@ -4198,7 +4471,6 @@ const ConsoleComponent: React.FC<Props> = ({
                 : { ...buttonStyle, padding: "6px 10px" }
             }
           >
-
             刷新
           </button>
         </div>
@@ -4456,7 +4728,8 @@ const ConsoleComponent: React.FC<Props> = ({
         <div style={{ fontWeight: 600, marginBottom: "10px" }}>
           策略仓库
           <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-            {" "}(Playbook)
+            {" "}
+            (Playbook)
           </span>
         </div>
 
@@ -4492,14 +4765,23 @@ const ConsoleComponent: React.FC<Props> = ({
         }}
       >
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
-          🖼️ 最新复盘 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Charts)</span>
+          🖼️ 最新复盘{" "}
+          <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
+            (Charts)
+          </span>
         </div>
         {!getResourceUrl ? (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             Gallery unavailable.
           </div>
         ) : galleryItems.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+            }}
+          >
             {galleryItems.map((it) => (
               <button
                 key={`gal-${it.coverPath}`}
@@ -4518,7 +4800,8 @@ const ConsoleComponent: React.FC<Props> = ({
                   background: `rgba(var(--mono-rgb-100), 0.03)`,
                   cursor: "pointer",
                   outline: "none",
-                  transition: "background-color 180ms ease, border-color 180ms ease",
+                  transition:
+                    "background-color 180ms ease, border-color 180ms ease",
                   position: "relative",
                   aspectRatio: "16 / 9",
                 }}
@@ -4594,7 +4877,10 @@ const ConsoleComponent: React.FC<Props> = ({
                       </div>
                       <div
                         style={{
-                          color: it.pnl >= 0 ? "var(--text-success)" : "var(--text-error)",
+                          color:
+                            it.pnl >= 0
+                              ? "var(--text-success)"
+                              : "var(--text-error)",
                           fontWeight: 900,
                           fontSize: "0.95em",
                           flex: "0 0 auto",
@@ -4623,7 +4909,6 @@ const ConsoleComponent: React.FC<Props> = ({
               </button>
             ))}
           </div>
-
         ) : (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或 图片路径。
@@ -4701,11 +4986,10 @@ const ConsoleComponent: React.FC<Props> = ({
             background: "rgba(var(--mono-rgb-100), 0.03)",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-            🧩 Schema
-          </div>
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🧩 Schema</div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              v5.0 的 `pa-view-schema` 已并入下方“检查器/Schema 监控”（KPIs / 异常修复台 / 标签全景 / Top 分布）。
+            v5.0 的 `pa-view-schema` 已并入下方“检查器/Schema 监控”（KPIs /
+            异常修复台 / 标签全景 / Top 分布）。
           </div>
         </div>
 
@@ -4717,9 +5001,7 @@ const ConsoleComponent: React.FC<Props> = ({
             background: "rgba(var(--mono-rgb-100), 0.03)",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-            🛡️ Manager
-          </div>
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🛡️ Manager</div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             属性管理（已在下方“管理器”区块实现）
           </div>
@@ -4754,12 +5036,12 @@ const ConsoleComponent: React.FC<Props> = ({
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
-              title={
-                !enumPresets
-                  ? "枚举预设不可用"
-                  : "切换修复方案预览"
+              style={
+                enumPresets
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
               }
+              title={!enumPresets ? "枚举预设不可用" : "切换修复方案预览"}
             >
               {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
             </button>
@@ -4789,7 +5071,9 @@ const ConsoleComponent: React.FC<Props> = ({
               ? "var(--text-warning)"
               : "var(--text-error)";
           const files = paTagSnapshot?.files ?? 0;
-          const tags = paTagSnapshot ? Object.keys(paTagSnapshot.tagMap).length : 0;
+          const tags = paTagSnapshot
+            ? Object.keys(paTagSnapshot.tagMap).length
+            : 0;
 
           const topTags = paTagSnapshot
             ? Object.entries(paTagSnapshot.tagMap)
@@ -4824,11 +5108,22 @@ const ConsoleComponent: React.FC<Props> = ({
                 <div style={{ color: healthColor, fontWeight: 700 }}>
                   系统健康度：{healthScore}
                 </div>
-                <div style={{ color: issueCount > 0 ? "var(--text-error)" : "var(--text-muted)" }}>
+                <div
+                  style={{
+                    color:
+                      issueCount > 0
+                        ? "var(--text-error)"
+                        : "var(--text-muted)",
+                  }}
+                >
                   待修异常：{issueCount}
                 </div>
-                <div style={{ color: "var(--text-muted)" }}>标签总数：{tags}</div>
-                <div style={{ color: "var(--text-muted)" }}>笔记档案：{files}</div>
+                <div style={{ color: "var(--text-muted)" }}>
+                  标签总数：{tags}
+                </div>
+                <div style={{ color: "var(--text-muted)" }}>
+                  笔记档案：{files}
+                </div>
               </div>
 
               {schemaScanNote ? (
@@ -4857,7 +5152,9 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
 
                 {schemaIssues.length === 0 ? (
-                  <div style={{ color: "var(--text-accent)", fontSize: "0.9em" }}>
+                  <div
+                    style={{ color: "var(--text-accent)", fontSize: "0.9em" }}
+                  >
                     ✅ 系统非常健康（All Clear）
                   </div>
                 ) : (
@@ -4957,19 +5254,22 @@ const ConsoleComponent: React.FC<Props> = ({
                   🏷️ 标签全景（Tag System）
                 </div>
                 {!paTagSnapshot ? (
-                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  <div
+                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                  >
                     标签扫描不可用。
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}
+                  >
                     {topTags.map(([tag, count]) => (
                       <span
                         key={tag}
                         style={{
                           padding: "2px 8px",
                           borderRadius: "999px",
-                          border:
-                            "1px solid var(--background-modifier-border)",
+                          border: "1px solid var(--background-modifier-border)",
                           background: "var(--background-primary)",
                           fontSize: "0.85em",
                           color: "var(--text-muted)",
@@ -5000,69 +5300,81 @@ const ConsoleComponent: React.FC<Props> = ({
                     gap: "10px",
                   }}
                 >
-                  {[{ title: "Ticker", data: distTicker }, { title: "Setup", data: distSetup }, { title: "Exec", data: distExec }].map(
-                    (col) => (
+                  {[
+                    { title: "Ticker", data: distTicker },
+                    { title: "Setup", data: distSetup },
+                    { title: "Exec", data: distExec },
+                  ].map((col) => (
+                    <div
+                      key={col.title}
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "8px",
+                        background: "var(--background-primary)",
+                      }}
+                    >
                       <div
-                        key={col.title}
                         style={{
-                          border:
-                            "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                          padding: "8px",
-                          background: "var(--background-primary)",
+                          fontWeight: 700,
+                          marginBottom: "6px",
+                          color: "var(--text-muted)",
                         }}
                       >
+                        {col.title}
+                      </div>
+                      {col.data.length === 0 ? (
                         <div
                           style={{
-                            fontWeight: 700,
-                            marginBottom: "6px",
-                            color: "var(--text-muted)",
+                            color: "var(--text-faint)",
+                            fontSize: "0.85em",
                           }}
                         >
-                          {col.title}
+                          无数据
                         </div>
-                        {col.data.length === 0 ? (
-                          <div
-                            style={{
-                              color: "var(--text-faint)",
-                              fontSize: "0.85em",
-                            }}
-                          >
-                            无数据
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            {col.data.map(([k, v]) => (
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px",
+                          }}
+                        >
+                          {col.data.map(([k, v]) => (
+                            <div
+                              key={k}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: "10px",
+                                fontSize: "0.9em",
+                              }}
+                            >
                               <div
-                                key={k}
                                 style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: "10px",
-                                  fontSize: "0.9em",
+                                  color: "var(--text-normal)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                                title={k}
+                              >
+                                {k}
+                              </div>
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontVariantNumeric: "tabular-nums",
                                 }}
                               >
-                                <div
-                                  style={{
-                                    color: "var(--text-normal)",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                  title={k}
-                                >
-                                  {k}
-                                </div>
-                                <div style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
-                                  {v}
-                                </div>
+                                {v}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -5249,15 +5561,17 @@ const ConsoleComponent: React.FC<Props> = ({
                 setManagerArmed(false);
               }}
               title={
-                !enumPresets
-                  ? "枚举预设不可用"
-                  : "使用检查器生成的修复方案"
+                !enumPresets ? "枚举预设不可用" : "使用检查器生成的修复方案"
               }
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={enumPresets ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+              style={
+                enumPresets
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
+              }
             >
               使用检查器修复方案
             </button>
@@ -5299,16 +5613,16 @@ const ConsoleComponent: React.FC<Props> = ({
                   setManagerBusy(false);
                 }
               }}
-              title={
-                !loadStrategyNotes
-                  ? "策略扫描不可用"
-                  : "生成策略维护计划"
-              }
+              title={!loadStrategyNotes ? "策略扫描不可用" : "生成策略维护计划"}
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={loadStrategyNotes ? { ...buttonStyle, padding: "6px 10px" } : { ...disabledButtonStyle, padding: "6px 10px" }}
+              style={
+                loadStrategyNotes
+                  ? { ...buttonStyle, padding: "6px 10px" }
+                  : { ...disabledButtonStyle, padding: "6px 10px" }
+              }
             >
               生成策略计划
             </button>
@@ -5698,7 +6012,8 @@ short mode\n\
         </div>
 
         <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          v5.0 在页面底部提供“一键备份数据库”按钮（写入 pa-db-export.json）。插件版
+          v5.0 在页面底部提供“一键备份数据库”按钮（写入
+          pa-db-export.json）。插件版
           目前提供两类导出：旧版兼容快照与索引快照（默认导出到
           Exports/al-brooks-console/）。
         </div>
