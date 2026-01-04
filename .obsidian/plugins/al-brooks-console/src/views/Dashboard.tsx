@@ -6763,14 +6763,24 @@ short mode\n\
                       };
 
                       const doRenameKey = async () => {
-                        new Notice(`Manager: 重命名属性 ${key}`);
-                        console.log("[al-brooks-console][manager] rename key", {
-                          key,
-                        });
-                        const n = window.prompt(`重命名 ${key}`, key) ?? "";
+                        const n =
+                          (await promptText?.({
+                            title: `重命名 ${key}`,
+                            defaultValue: key,
+                            placeholder: "输入新属性名",
+                            okText: "重命名",
+                            cancelText: "取消",
+                          })) ?? "";
                         const nextKey = n.trim();
                         if (!nextKey || nextKey === key) return;
-                        if (!window.confirm("确认重命名?")) return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认重命名",
+                            message: `将属性\n${key}\n重命名为\n${nextKey}`,
+                            okText: "确认",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildRenameKeyPlan(
                           selectManagerFiles(allPaths),
                           key,
@@ -6785,12 +6795,14 @@ short mode\n\
                       };
 
                       const doDeleteKey = async () => {
-                        new Notice(`Manager: 删除属性 ${key}`);
-                        console.log("[al-brooks-console][manager] delete key", {
-                          key,
-                        });
-                        if (!window.confirm(`⚠️ 确认删除属性 [${key}]?`))
-                          return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认删除属性",
+                            message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
+                            okText: "删除",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildDeleteKeyPlan(
                           selectManagerFiles(allPaths),
                           key
@@ -6803,14 +6815,23 @@ short mode\n\
                       };
 
                       const doAppendVal = async () => {
-                        new Notice(`Manager: 追加值 → ${key}`);
-                        console.log("[al-brooks-console][manager] append val", {
-                          key,
-                        });
-                        const v = window.prompt("追加新值") ?? "";
+                        const v =
+                          (await promptText?.({
+                            title: `追加新值 → ${key}`,
+                            placeholder: "输入要追加的值",
+                            okText: "追加",
+                            cancelText: "取消",
+                          })) ?? "";
                         const val = v.trim();
                         if (!val) return;
-                        if (!window.confirm("确认追加?")) return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认追加",
+                            message: `向属性\n${key}\n追加值：\n${val}`,
+                            okText: "确认",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildAppendValPlan(
                           selectManagerFiles(allPaths),
                           key,
@@ -6823,18 +6844,34 @@ short mode\n\
                       };
 
                       const doInjectProp = async () => {
-                        new Notice(`Manager: 注入属性（files） → ${key}`);
-                        console.log("[al-brooks-console][manager] inject prop", {
-                          key,
-                          currentPathsCount: currentPaths.length,
-                        });
-                        const k = window.prompt("属性名") ?? "";
+                        const k =
+                          (await promptText?.({
+                            title: "注入属性：属性名",
+                            placeholder: "例如：市场周期/market_cycle",
+                            okText: "下一步",
+                            cancelText: "取消",
+                          })) ?? "";
                         const newKey = k.trim();
                         if (!newKey) return;
-                        const v = window.prompt(`${newKey} 的值`) ?? "";
+                        const v =
+                          (await promptText?.({
+                            title: `注入属性：${newKey} 的值`,
+                            placeholder: "输入要注入的值",
+                            okText: "注入",
+                            cancelText: "取消",
+                          })) ?? "";
                         const newVal = v.trim();
                         if (!newVal) return;
-                        if (!window.confirm("确认注入?")) return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认注入",
+                            message:
+                              `将向 ${currentPaths.length} 个文件注入：\n` +
+                              `${newKey}: ${newVal}`,
+                            okText: "确认",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildInjectPropPlan(
                           selectManagerFiles(currentPaths),
                           newKey,
@@ -6850,16 +6887,28 @@ short mode\n\
                         val: string,
                         paths: string[]
                       ) => {
-                        new Notice(`Manager: 修改值 ${key}`);
-                        console.log("[al-brooks-console][manager] update val", {
-                          key,
-                          val,
-                          pathsCount: paths.length,
-                        });
-                        const n = window.prompt("修改值", val) ?? "";
+                        const n =
+                          (await promptText?.({
+                            title: `修改值 → ${key}`,
+                            defaultValue: val,
+                            placeholder: "输入新的值",
+                            okText: "修改",
+                            cancelText: "取消",
+                          })) ?? "";
                         const next = n.trim();
                         if (!next || next === val) return;
-                        if (!window.confirm("确认修改?")) return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认修改",
+                            message:
+                              `将 ${paths.length} 个文件中的\n` +
+                              `${key}: ${val}\n` +
+                              `修改为\n` +
+                              `${key}: ${next}`,
+                            okText: "确认",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildUpdateValPlan(
                           selectManagerFiles(paths),
                           key,
@@ -6876,13 +6925,16 @@ short mode\n\
                         val: string,
                         paths: string[]
                       ) => {
-                        new Notice(`Manager: 删除值 ${key}`);
-                        console.log("[al-brooks-console][manager] delete val", {
-                          key,
-                          val,
-                          pathsCount: paths.length,
-                        });
-                        if (!window.confirm(`确认移除值 "${val}"?`)) return;
+                        const ok =
+                          (await confirmDialog?.({
+                            title: "确认移除值",
+                            message:
+                              `将从 ${paths.length} 个文件中移除：\n` +
+                              `${key}: ${val}`,
+                            okText: "移除",
+                            cancelText: "取消",
+                          })) ?? false;
+                        if (!ok) return;
                         const plan = buildDeleteValPlan(
                           selectManagerFiles(paths),
                           key,
@@ -7449,6 +7501,111 @@ export class ConsoleView extends ItemView {
       this.app.workspace.openLinkText(path, "", true);
     };
 
+    const promptText: Props["promptText"] = async (options) => {
+      return await new Promise<string | null>((resolve) => {
+        const modal = new Modal(this.app);
+        modal.titleEl.setText(options.title);
+        let resolved = false;
+
+        const wrap = modal.contentEl.createDiv();
+        const input = wrap.createEl("input", {
+          type: "text",
+          value: options.defaultValue ?? "",
+          attr: { placeholder: options.placeholder ?? "" },
+        });
+        input.style.width = "100%";
+        input.style.marginTop = "6px";
+
+        const btnRow = wrap.createDiv();
+        btnRow.style.display = "flex";
+        btnRow.style.justifyContent = "flex-end";
+        btnRow.style.gap = "8px";
+        btnRow.style.marginTop = "12px";
+
+        const cancelBtn = btnRow.createEl("button", {
+          text: options.cancelText ?? "取消",
+        });
+        cancelBtn.addEventListener("click", () => {
+          resolved = true;
+          modal.close();
+          resolve(null);
+        });
+
+        const okBtn = btnRow.createEl("button", {
+          text: options.okText ?? "确定",
+        });
+        okBtn.addEventListener("click", () => {
+          resolved = true;
+          const v = input.value ?? "";
+          modal.close();
+          resolve(v);
+        });
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            okBtn.click();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            cancelBtn.click();
+          }
+        });
+
+        modal.onClose = () => {
+          if (!resolved) resolve(null);
+        };
+
+        modal.open();
+        window.setTimeout(() => {
+          input.focus();
+          input.select();
+        }, 0);
+      });
+    };
+
+    const confirmDialog: Props["confirmDialog"] = async (options) => {
+      return await new Promise<boolean>((resolve) => {
+        const modal = new Modal(this.app);
+        modal.titleEl.setText(options.title);
+        let resolved = false;
+
+        const wrap = modal.contentEl.createDiv();
+        const msg = wrap.createEl("div", { text: options.message });
+        msg.style.whiteSpace = "pre-wrap";
+
+        const btnRow = wrap.createDiv();
+        btnRow.style.display = "flex";
+        btnRow.style.justifyContent = "flex-end";
+        btnRow.style.gap = "8px";
+        btnRow.style.marginTop = "12px";
+
+        const cancelBtn = btnRow.createEl("button", {
+          text: options.cancelText ?? "取消",
+        });
+        cancelBtn.addEventListener("click", () => {
+          resolved = true;
+          modal.close();
+          resolve(false);
+        });
+
+        const okBtn = btnRow.createEl("button", {
+          text: options.okText ?? "确认",
+        });
+        okBtn.addEventListener("click", () => {
+          resolved = true;
+          modal.close();
+          resolve(true);
+        });
+
+        modal.onClose = () => {
+          if (!resolved) resolve(false);
+        };
+
+        modal.open();
+      });
+    };
+
     const openGlobalSearch = (query: string) => {
       try {
         const plugin = (this.app as any)?.internalPlugins?.plugins?.[
@@ -7917,6 +8074,8 @@ export class ConsoleView extends ItemView {
           subscribeSettings={this.subscribeSettings}
           loadCourse={loadCourse}
           loadMemory={loadMemory}
+          promptText={promptText}
+          confirmDialog={confirmDialog}
           integrations={this.integrations}
           openFile={openFile}
           openGlobalSearch={openGlobalSearch}
