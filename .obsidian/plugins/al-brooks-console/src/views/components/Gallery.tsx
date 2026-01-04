@@ -53,10 +53,10 @@ export const Gallery: React.FC<Props> = ({ items, available, onOpenFile }) => {
         background: "var(--background-primary)",
       }}
     >
-      <div style={{ fontWeight: 600, marginBottom: "8px" }}>Gallery</div>
+      <div style={{ fontWeight: 600, marginBottom: "8px" }}>最新复盘（画廊）</div>
       {!available ? (
         <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-          Gallery unavailable.
+          画廊不可用。
         </div>
       ) : items.length > 0 ? (
         <div

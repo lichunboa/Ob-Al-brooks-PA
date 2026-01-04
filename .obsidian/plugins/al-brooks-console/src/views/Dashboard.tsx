@@ -4871,7 +4871,7 @@ const ConsoleComponent: React.FC<Props> = ({
           策略仓库
           <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
             {" "}
-            (Playbook)
+            （作战手册/Playbook）
           </span>
         </div>
 
@@ -4903,7 +4903,7 @@ const ConsoleComponent: React.FC<Props> = ({
                   fontSize: "0.9em",
                 }}
               >
-                今日市场周期未设置（可在 Today 里补充）。
+                今日市场周期未设置（可在 今日/Today 里补充）。
               </div>
             );
           }
@@ -5000,7 +5000,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     fontWeight: 700,
                   }}
                 >
-                  📚 Brooks Playbook
+                  📚 作战手册（Brooks Playbook）
                 </button>
               );
             })()}
@@ -5138,12 +5138,12 @@ const ConsoleComponent: React.FC<Props> = ({
         <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}>
           🖼️ 最新复盘{" "}
           <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>
-            (Charts)
+            （图表/Charts）
           </span>
         </div>
         {!getResourceUrl ? (
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            Gallery unavailable.
+            画廊不可用。
           </div>
         ) : galleryItems.length > 0 ? (
           <div
@@ -5321,7 +5321,7 @@ const ConsoleComponent: React.FC<Props> = ({
       >
         <div style={{ fontWeight: 700 }}>📉 管理模块</div>
         <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Management
+          管理（Management）
         </div>
       </div>
 
@@ -5342,7 +5342,7 @@ const ConsoleComponent: React.FC<Props> = ({
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-            🔎 Inspector
+            🔎 检查器（Inspector）
           </div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             数据治理与巡检（已在下方区块实现）
@@ -5357,7 +5357,7 @@ const ConsoleComponent: React.FC<Props> = ({
             background: "rgba(var(--mono-rgb-100), 0.03)",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🧩 Schema</div>
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🧩 字段规则（Schema）</div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             v5.0 的 `pa-view-schema` 已并入下方“检查器/Schema 监控”（KPIs /
             异常修复台 / 标签全景 / Top 分布）。
@@ -5372,7 +5372,7 @@ const ConsoleComponent: React.FC<Props> = ({
             background: "rgba(var(--mono-rgb-100), 0.03)",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🛡️ Manager</div>
+          <div style={{ fontWeight: 700, marginBottom: "6px" }}>🛡️ 管理器（Manager）</div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
             属性管理（已在下方“管理器”区块实现）
           </div>
@@ -6209,7 +6209,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
         {managerResult ? (
           <div style={{ marginTop: "10px", color: "var(--text-muted)" }}>
-            Applied: {managerResult.applied}, Failed: {managerResult.failed}
+            已应用：{managerResult.applied}，失败：{managerResult.failed}
             {managerResult.errors.length > 0 ? (
               <div
                 style={{
@@ -7287,9 +7287,7 @@ short mode\n\
         }}
       >
         <div style={{ fontWeight: 700 }}>📥 导出</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Export
-        </div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>导出</div>
       </div>
 
       <div
