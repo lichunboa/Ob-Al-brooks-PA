@@ -4,6 +4,10 @@ export interface StrategyCard {
   canonicalName: string;
   /** Raw status text from frontmatter (e.g. "实战中", "Active"). Optional for backward-compat. */
   statusRaw?: string;
+  /** Optional risk/reward field from frontmatter (legacy Playbook: riskReward). */
+  riskReward?: string;
+  /** Optional source field from frontmatter (legacy Playbook: source). */
+  source?: string;
   marketCycles: string[];
   setupCategories: string[];
   patternsObserved: string[];

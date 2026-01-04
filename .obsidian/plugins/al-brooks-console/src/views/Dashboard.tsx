@@ -4875,6 +4875,7 @@ const ConsoleComponent: React.FC<Props> = ({
           <StrategyList
             strategies={strategies}
             onOpenFile={openFile}
+            perf={strategyPerf}
             showTitle={false}
           />
         </div>

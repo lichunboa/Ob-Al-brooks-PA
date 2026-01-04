@@ -18,6 +18,50 @@ export const StrategyList: React.FC<Props> = ({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [cycleFilter, setCycleFilter] = React.useState("All");
 
+  const hasCJK = React.useCallback((str: unknown) => {
+    if (typeof str !== "string") return false;
+    return /[\u4e00-\u9fff]/.test(str);
+  }, []);
+
+  const cycleToCn = React.useCallback(
+    (raw: unknown) => {
+      const s0 = typeof raw === "string" ? raw.trim() : "";
+      if (!s0) return "";
+      if (hasCJK(s0)) return s0;
+      if (s0.includes("/") || (s0.includes("(") && s0.endsWith(")"))) return s0;
+
+      const key = s0.toLowerCase();
+      const map: Record<string, string> = {
+        range: "交易区间/Range",
+        "trading range": "交易区间/Trading Range",
+        trend: "趋势/Trend",
+        pullback: "回调/Pullback",
+        reversal: "反转/Reversal",
+        breakout: "突破/Breakout",
+        spike: "急速/Spike",
+      };
+      return map[key] || `待补充/${s0}`;
+    },
+    [hasCJK]
+  );
+
+  const statusToCn = React.useCallback(
+    (raw: unknown) => {
+      const s0 = typeof raw === "string" ? raw.trim() : "";
+      if (!s0) return "学习中/Learning";
+      if (hasCJK(s0) || s0.includes("/")) return s0;
+
+      const s = s0.toLowerCase();
+      if (s.includes("active") || s.includes("实战")) return "实战中/Active";
+      if (s.includes("valid") || s.includes("verify") || s.includes("test") || s.includes("验证"))
+        return "验证中/Validating";
+      if (s.includes("learn") || s.includes("study") || s.includes("read") || s.includes("学习"))
+        return "学习中/Learning";
+      return `待补充/${s0}`;
+    },
+    [hasCJK]
+  );
+
   const isActive = React.useCallback((statusRaw: unknown) => {
     const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
     if (!s) return false;
@@ -52,11 +96,15 @@ export const StrategyList: React.FC<Props> = ({
 
     const getPrimaryCycle = (s: StrategyCard): string => {
       const first = s.marketCycles?.[0];
-      return typeof first === "string" && first.trim().length ? first.trim() : otherGroup;
+      if (typeof first !== "string") return otherGroup;
+      const out = cycleToCn(first);
+      return out.trim().length ? out : otherGroup;
     };
 
     const perfOf = (s: StrategyCard) =>
-      perf?.get(s.canonicalName) ?? { total: 0, wins: 0, pnl: 0, lastDateIso: "" };
+      perf?.get(s.canonicalName) ??
+      perf?.get(s.name) ??
+      ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
 
     const sorted = [...filtered].sort((a, b) => {
       const aActive = isActive((a as any).statusRaw) ? 1 : 0;
@@ -87,7 +135,7 @@ export const StrategyList: React.FC<Props> = ({
     if (by.has(otherGroup)) ordered.push(otherGroup);
 
     return { by, ordered, otherGroup };
-  }, [filtered, perf, isActive]);
+  }, [filtered, perf, isActive, cycleToCn]);
 
   return (
     <div className="pa-dashboard">
@@ -107,7 +155,7 @@ export const StrategyList: React.FC<Props> = ({
             <option value="All">所有周期</option>
             {cycles.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {cycleToCn(c) || c}
               </option>
             ))}
           </select>
@@ -144,16 +192,12 @@ export const StrategyList: React.FC<Props> = ({
                 {items.map((s) => {
                   const p =
                     perf?.get(s.canonicalName) ??
+                    perf?.get(s.name) ??
                     ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
                   const wr = p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                   const active = isActive((s as any).statusRaw);
-                  const statusLabel =
-                    typeof (s as any).statusRaw === "string" &&
-                    String((s as any).statusRaw).trim().length
-                      ? String((s as any).statusRaw)
-                      : active
-                      ? "实战中/Active"
-                      : "学习中/Learning";
+                  const statusLabel = statusToCn((s as any).statusRaw);
+                  const lastDate = p.lastDateIso ? p.lastDateIso.slice(0, 10) : "";
 
                   return (
                     <div
@@ -196,21 +240,32 @@ export const StrategyList: React.FC<Props> = ({
                             {wr}%
                           </span>{" "}
                           <span style={{ opacity: 0.7 }}>({p.total})</span>
-                          <span style={{ opacity: 0.6 }}> · </span>
-                          <span
-                            style={{
-                              color:
-                                p.pnl >= 0
-                                  ? "var(--text-success)"
-                                  : "var(--text-error)",
-                              fontWeight: 800,
-                            }}
-                          >
-                            {p.pnl > 0 ? "+" : ""}
-                            {p.pnl.toFixed(1)}
-                          </span>
+                          {lastDate ? (
+                            <>
+                              <span style={{ opacity: 0.6 }}> · </span>
+                              <span style={{ opacity: 0.85 }}>最近 {lastDate}</span>
+                            </>
+                          ) : null}
                         </span>
                       </div>
+
+                      {(s.riskReward || p.total > 0) && (
+                        <div
+                          className="pa-text-faint"
+                          style={{ fontSize: "0.78em", marginBottom: "6px" }}
+                        >
+                          {s.riskReward ? (
+                            <span style={{ marginRight: "10px" }}>
+                              📊 R/R: <strong>{s.riskReward}</strong>
+                            </span>
+                          ) : null}
+                          {p.total > 0 ? (
+                            <span>
+                              🔢 使用: <strong>{p.total}次</strong>
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
 
                       {(s.marketCycles.length > 0 || s.setupCategories.length > 0) && (
                         <div
@@ -222,7 +277,7 @@ export const StrategyList: React.FC<Props> = ({
                         >
                           {s.marketCycles.map((c) => (
                             <span key={c} className="pa-tag">
-                              {c}
+                              {cycleToCn(c) || c}
                             </span>
                           ))}
                           {s.setupCategories.map((c) => (
