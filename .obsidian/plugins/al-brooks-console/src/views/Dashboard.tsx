@@ -126,6 +126,19 @@ function computeWindowRByAccountType(
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
+type PaTagSnapshot = {
+  files: number;
+  tagMap: Record<string, number>;
+};
+
+type SchemaIssueItem = {
+  path: string;
+  name: string;
+  key: string;
+  type: string;
+  val?: string;
+};
+
 interface Props {
   index: TradeIndex;
   strategyIndex: StrategyIndex;
@@ -134,6 +147,7 @@ interface Props {
   getResourceUrl?: (path: string) => string | undefined;
   enumPresets?: EnumPresets;
   loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
+  loadPaTagSnapshot?: () => Promise<PaTagSnapshot>;
   applyFixPlan?: (
     plan: FixPlan,
     options?: { deleteKeys?: boolean }
@@ -234,6 +248,7 @@ const ConsoleComponent: React.FC<Props> = ({
   getResourceUrl,
   enumPresets,
   loadStrategyNotes,
+  loadPaTagSnapshot,
   applyFixPlan,
   restoreFiles,
   settings: initialSettings,
@@ -258,6 +273,11 @@ const ConsoleComponent: React.FC<Props> = ({
   const [analyticsScope, setAnalyticsScope] =
     React.useState<AnalyticsScope>("Live");
   const [showFixPlan, setShowFixPlan] = React.useState(false);
+  const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
+  const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
+  const [schemaScanNote, setSchemaScanNote] = React.useState<
+    string | undefined
+  >(undefined);
   const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
     undefined
   );
@@ -265,6 +285,151 @@ const ConsoleComponent: React.FC<Props> = ({
     ManagerApplyResult | undefined
   >(undefined);
   const [managerBusy, setManagerBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const isEmpty = (v: unknown): boolean => {
+      if (v === undefined || v === null) return true;
+      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
+      const s = String(v).trim();
+      if (!s) return true;
+      if (s === "Empty") return true;
+      if (s.toLowerCase().includes("unknown")) return true;
+      return false;
+    };
+
+    const pickVal = (fm: Record<string, any>, keys: string[]) => {
+      for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
+      }
+      return undefined;
+    };
+
+    const run = async () => {
+      const notes: string[] = [];
+
+      // --- Minimal-burden Schema issues (Trade) ---
+      const tradeIssues: SchemaIssueItem[] = [];
+      for (const t of trades) {
+        const isCompleted =
+          t.outcome === "win" || t.outcome === "loss" || t.outcome === "scratch";
+        if (!isCompleted) continue;
+
+        if (!t.ticker) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "品种/ticker",
+            type: "❌ 缺少必填",
+          });
+        }
+        if (!t.timeframe) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "时间周期/timeframe",
+            type: "❌ 缺少必填",
+          });
+        }
+        if (!t.direction) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "方向/direction",
+            type: "❌ 缺少必填",
+          });
+        }
+
+        // “形态/策略”二选一：至少有一个即可
+        const hasPatterns =
+          Array.isArray(t.patternsObserved) && t.patternsObserved.length > 0;
+        const hasStrategy =
+          typeof t.strategyName === "string" && t.strategyName.trim().length > 0;
+        if (!hasPatterns && !hasStrategy) {
+          tradeIssues.push({
+            path: t.path,
+            name: t.name,
+            key: "观察到的形态/patterns_observed",
+            type: "❌ 缺少必填(二选一)",
+          });
+        }
+      }
+
+      // --- Minimal-burden Schema issues (Strategy) ---
+      let strategyIssues: SchemaIssueItem[] = [];
+      if (loadStrategyNotes) {
+        try {
+          const strategyNotes = await loadStrategyNotes();
+          strategyIssues = strategyNotes.flatMap((n) => {
+            const fm = (n.frontmatter ?? {}) as Record<string, any>;
+            const out: SchemaIssueItem[] = [];
+            const name =
+              n.path.split("/").pop()?.replace(/\.md$/i, "") ?? n.path;
+            const strategy = pickVal(fm, [
+              "策略名称/strategy_name",
+              "strategy_name",
+              "策略名称",
+            ]);
+            const patterns = pickVal(fm, [
+              "观察到的形态/patterns_observed",
+              "patterns_observed",
+              "观察到的形态",
+            ]);
+            if (isEmpty(strategy)) {
+              out.push({
+                path: n.path,
+                name,
+                key: "策略名称/strategy_name",
+                type: "❌ 缺少必填",
+                val: "",
+              });
+            }
+            if (isEmpty(patterns)) {
+              out.push({
+                path: n.path,
+                name,
+                key: "观察到的形态/patterns_observed",
+                type: "❌ 缺少必填",
+                val: "",
+              });
+            }
+            return out;
+          });
+        } catch (e) {
+          notes.push(
+            `策略扫描失败：${e instanceof Error ? e.message : String(e)}`
+          );
+        }
+      } else {
+        notes.push("策略扫描不可用：将仅基于交易索引进行 Schema 检查");
+      }
+
+      // --- PA tag snapshot (Tag panorama KPIs) ---
+      let paSnap: PaTagSnapshot | undefined = undefined;
+      if (loadPaTagSnapshot) {
+        try {
+          paSnap = await loadPaTagSnapshot();
+        } catch (e) {
+          notes.push(
+            `#PA 标签扫描失败：${e instanceof Error ? e.message : String(e)}`
+          );
+        }
+      } else {
+        notes.push("#PA 标签扫描不可用：将不显示全库标签全景");
+      }
+
+      if (cancelled) return;
+      setPaTagSnapshot(paSnap);
+      setSchemaIssues([...tradeIssues, ...strategyIssues]);
+      setSchemaScanNote(notes.length ? notes.join("；") : undefined);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [trades, loadStrategyNotes, loadPaTagSnapshot]);
 
   const canOpenTodayNote = Boolean(todayContext?.openTodayNote);
   const onOpenTodayNote = React.useCallback(async () => {
@@ -3170,7 +3335,7 @@ const ConsoleComponent: React.FC<Props> = ({
             🧩 Schema
           </div>
           <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            （占位符）v5.0 的 `pa-view-schema` 在插件版已并入 Inspector 区块（同一处展示）。
+              v5.0 的 `pa-view-schema` 已并入下方“检查器/Schema 监控”（KPIs / 异常修复台 / 标签全景 / Top 分布）。
           </div>
         </div>
 
@@ -3243,6 +3408,296 @@ const ConsoleComponent: React.FC<Props> = ({
             枚举预设：{enumPresets ? "已加载" : "不可用"}
           </span>
         </div>
+
+        {(() => {
+          const issueCount = schemaIssues.length;
+          const healthScore = Math.max(0, 100 - issueCount * 5);
+          const healthColor =
+            healthScore > 90
+              ? "var(--text-accent)"
+              : healthScore > 60
+              ? "var(--text-warning)"
+              : "var(--text-error)";
+          const files = paTagSnapshot?.files ?? 0;
+          const tags = paTagSnapshot ? Object.keys(paTagSnapshot.tagMap).length : 0;
+
+          const topTags = paTagSnapshot
+            ? Object.entries(paTagSnapshot.tagMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 60)
+            : [];
+
+          const topN = (getter: (t: TradeRecord) => string | undefined) => {
+            const map = new Map<string, number>();
+            for (const t of trades) {
+              const v = (getter(t) ?? "Unknown").trim();
+              if (!v) continue;
+              map.set(v, (map.get(v) ?? 0) + 1);
+            }
+            return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+          };
+
+          const distTicker = topN((t) => t.ticker);
+          const distSetup = topN((t) => t.setupCategory);
+          const distExec = topN((t) => t.executionQuality);
+
+          return (
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginBottom: "10px",
+                }}
+              >
+                <div style={{ color: healthColor, fontWeight: 700 }}>
+                  系统健康度：{healthScore}
+                </div>
+                <div style={{ color: issueCount > 0 ? "var(--text-error)" : "var(--text-muted)" }}>
+                  待修异常：{issueCount}
+                </div>
+                <div style={{ color: "var(--text-muted)" }}>标签总数：{tags}</div>
+                <div style={{ color: "var(--text-muted)" }}>笔记档案：{files}</div>
+              </div>
+
+              {schemaScanNote ? (
+                <div
+                  style={{
+                    color: "var(--text-faint)",
+                    fontSize: "0.85em",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {schemaScanNote}
+                </div>
+              ) : null}
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  marginBottom: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  🚑 异常修复台（Fix Station）
+                </div>
+
+                {schemaIssues.length === 0 ? (
+                  <div style={{ color: "var(--text-accent)", fontSize: "0.9em" }}>
+                    ✅ 系统非常健康（All Clear）
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      maxHeight: "200px",
+                      overflow: "auto",
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      background: "var(--background-primary)",
+                    }}
+                  >
+                    {schemaIssues.slice(0, 50).map((item, idx) => (
+                      <button
+                        key={`${item.path}:${item.key}:${idx}`}
+                        type="button"
+                        onClick={() => openFile(item.path)}
+                        title={item.path}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "8px 10px",
+                          border: "none",
+                          borderBottom:
+                            "1px solid var(--background-modifier-border)",
+                          background: "transparent",
+                          cursor: "pointer",
+                          outline: "none",
+                          transition:
+                            "background-color 180ms ease, box-shadow 180ms ease",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            alignItems: "baseline",
+                          }}
+                        >
+                          <div
+                            style={{
+                              flex: "1 1 auto",
+                              minWidth: 0,
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>{item.name}</div>
+                            <div
+                              style={{
+                                color: "var(--text-faint)",
+                                fontSize: "0.85em",
+                              }}
+                            >
+                              {item.key}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              color: "var(--text-error)",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {item.type}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {schemaIssues.length > 50 ? (
+                      <div
+                        style={{
+                          padding: "8px 10px",
+                          color: "var(--text-faint)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        仅显示前 50 条异常。
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  marginBottom: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  🏷️ 标签全景（Tag System）
+                </div>
+                {!paTagSnapshot ? (
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    标签扫描不可用。
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {topTags.map(([tag, count]) => (
+                      <span
+                        key={tag}
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          border:
+                            "1px solid var(--background-modifier-border)",
+                          background: "var(--background-primary)",
+                          fontSize: "0.85em",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        #{tag} ({count})
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "8px",
+                  padding: "10px",
+                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                  📊 Top 分布（Ticker / Setup / Exec）
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: "10px",
+                  }}
+                >
+                  {[{ title: "Ticker", data: distTicker }, { title: "Setup", data: distSetup }, { title: "Exec", data: distExec }].map(
+                    (col) => (
+                      <div
+                        key={col.title}
+                        style={{
+                          border:
+                            "1px solid var(--background-modifier-border)",
+                          borderRadius: "8px",
+                          padding: "8px",
+                          background: "var(--background-primary)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            marginBottom: "6px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          {col.title}
+                        </div>
+                        {col.data.length === 0 ? (
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.85em",
+                            }}
+                          >
+                            无数据
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {col.data.map(([k, v]) => (
+                              <div
+                                key={k}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: "10px",
+                                  fontSize: "0.9em",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    color: "var(--text-normal)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  title={k}
+                                >
+                                  {k}
+                                </div>
+                                <div style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                  {v}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {(() => {
           const errorCount = inspectorIssues.filter(
@@ -4119,6 +4574,44 @@ export class ConsoleView extends ItemView {
       return out;
     };
 
+    const loadPaTagSnapshot = async (): Promise<PaTagSnapshot> => {
+      const files = this.app.vault
+        .getMarkdownFiles()
+        .filter((f) => !f.path.startsWith("Templates/"));
+
+      const tagMap: Record<string, number> = {};
+      let countFiles = 0;
+
+      const isPaTag = (t: string): boolean => {
+        const n = normalizeTag(t).toLowerCase();
+        return n === "pa" || n.startsWith("pa/");
+      };
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const cache = this.app.metadataCache.getFileCache(f);
+        const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
+        const fm = cache?.frontmatter as any;
+        const fmTagsRaw = fm?.tags as unknown;
+        const fmTags = Array.isArray(fmTagsRaw)
+          ? fmTagsRaw.filter((t): t is string => typeof t === "string")
+          : typeof fmTagsRaw === "string"
+          ? [fmTagsRaw]
+          : [];
+        const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
+        if (!normalized.some(isPaTag)) continue;
+
+        countFiles += 1;
+        for (const tag of normalized) {
+          tagMap[tag] = (tagMap[tag] ?? 0) + 1;
+        }
+
+        if (i % 250 === 0) await new Promise((r) => window.setTimeout(r, 0));
+      }
+
+      return { files: countFiles, tagMap };
+    };
+
     const loadCourse = async (
       settings: AlBrooksConsoleSettings
     ): Promise<CourseSnapshot> => {
@@ -4229,6 +4722,7 @@ export class ConsoleView extends ItemView {
           getResourceUrl={getResourceUrl}
           enumPresets={enumPresets}
           loadStrategyNotes={loadStrategyNotes}
+          loadPaTagSnapshot={loadPaTagSnapshot}
           applyFixPlan={applyFixPlan}
           restoreFiles={restoreFiles}
           settings={this.getSettings()}
