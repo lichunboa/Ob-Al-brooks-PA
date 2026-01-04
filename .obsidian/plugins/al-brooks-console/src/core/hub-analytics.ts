@@ -176,6 +176,7 @@ export function computeHubSuggestion(args: {
   mindset: { tilt: number; fomo?: number; hesitation?: number };
   live: TradeStats;
   backtest: TradeStats;
+  topTuitionError?: { name: string; costR: number; pct?: number };
 }): { tone: "danger" | "warn" | "ok"; text: string } {
   const bestStrat = args.topStrategies[0]?.name ?? "无";
   const liveWr = args.live.winRatePct;
@@ -186,12 +187,61 @@ export function computeHubSuggestion(args: {
   const hesitation =
     typeof args.mindset.hesitation === "number" ? args.mindset.hesitation : 0;
 
+  const topErrName = args.topTuitionError?.name;
+  const topErrCost =
+    typeof args.topTuitionError?.costR === "number"
+      ? args.topTuitionError?.costR
+      : undefined;
+  const topErrPct =
+    typeof args.topTuitionError?.pct === "number"
+      ? args.topTuitionError?.pct
+      : undefined;
+
+  const deriveActionRule = (name: string | undefined): string => {
+    const raw = String(name ?? "").trim();
+    const s = raw.toLowerCase();
+    if (!raw) return "行动规则：下一笔只允许 A+ 级别机会，严格按计划执行。";
+
+    // <= 8 条：用“包含匹配”覆盖中英文常见写法。
+    if (s.includes("tilt") || raw.includes("上头") || s.includes("revenge") || raw.includes("报复")) {
+      return "行动规则：出现情绪波动/报复倾向时立刻停止交易（至少 24 小时），并写复盘结论再恢复实盘。";
+    }
+    if (s.includes("fomo") || raw.includes("追单") || raw.includes("追涨") || raw.includes("冲动")) {
+      return "行动规则：只在信号K收盘确认后下单；错过就错过，不追单。";
+    }
+    if (s.includes("hesitation") || raw.includes("犹豫") || raw.includes("不敢") || raw.includes("拖延")) {
+      return "行动规则：满足入场条件就执行；若不能执行则视为计划不清，回到模拟盘重练规则。";
+    }
+    if (raw.includes("过早") || raw.includes("早退") || s.includes("early") || raw.includes("提前止盈")) {
+      return "行动规则：按计划持仓管理（至少到下一个关键位/二次入场失败/明确反向信号），不要因为波动提前退出。";
+    }
+    if (raw.includes("无止损") || raw.includes("不设止损") || s.includes("no stop") || s.includes("nostop")) {
+      return "行动规则：下单前必须先放好止损并确认初始风险；任何不设止损的交易一律禁止。";
+    }
+    if (raw.includes("加仓") || raw.includes("过度") || raw.includes("频繁") || s.includes("overtrade") || s.includes("over trade")) {
+      return "行动规则：限制当日交易次数与加仓次数；不在波动中加仓，只在计划点位加仓。";
+    }
+
+    return "行动规则：把这类错误写成 1 条禁止/必须规则，下次交易前先检查。";
+  };
+  const topErrHint = topErrName
+    ? `最贵错误：${topErrName}${
+        typeof topErrPct === "number"
+          ? `（${topErrPct}%）`
+          : topErrCost
+          ? `（-${topErrCost.toFixed(1)}R）`
+          : ""
+      }。`
+    : "";
+
+  const topErrRule = deriveActionRule(topErrName);
+
   // v5 主规则：Tilt 一票否决；增强：若 FOMO 过高/出现犹豫，也优先给出风控建议。
   if (args.mindset.tilt > 0 || fomo > 1) {
     return {
       tone: "danger",
       text:
-        "检测到情绪化交易风险（Tilt/FOMO）。建议立即停止实盘，强制休息 24 小时。",
+        `检测到情绪化交易风险（Tilt/FOMO）。${topErrHint}${topErrRule}建议立即停止实盘，强制休息 24 小时。`,
     };
   }
 
@@ -199,21 +249,21 @@ export function computeHubSuggestion(args: {
     return {
       tone: "warn",
       text:
-        "检测到冲动/犹豫迹象（FOMO/犹豫）。建议降低仓位、严格等待信号，优先在模拟盘恢复稳定执行。",
+        `检测到冲动/犹豫迹象（FOMO/犹豫）。${topErrHint}${topErrRule}建议降低仓位、严格等待信号，优先在模拟盘恢复稳定执行。`,
     };
   }
 
   if (liveWr < 40 && args.live.countTotal > 5) {
     return {
       tone: "warn",
-      text: `实盘胜率偏低 (${liveWr}%)。建议暂停实盘，回到模拟盘练习 ${bestStrat} 策略，直到连续盈利。`,
+      text: `实盘胜率偏低 (${liveWr}%)。${topErrHint}${topErrRule}建议暂停实盘，回到模拟盘练习 ${bestStrat} 策略，直到连续盈利。`,
     };
   }
 
   if (cumLive < 0 && cumBack > 0) {
     return {
       tone: "warn",
-      text: `回测表现良好但实盘亏损。可能是执行力问题。建议降低仓位，专注于 ${bestStrat}。`,
+      text: `回测表现良好但实盘亏损。可能是执行力问题。${topErrHint}${topErrRule}建议降低仓位，专注于 ${bestStrat}。`,
     };
   }
 

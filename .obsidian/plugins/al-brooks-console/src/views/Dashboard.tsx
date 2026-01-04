@@ -1208,13 +1208,21 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [trades]);
 
   const analyticsSuggestion = React.useMemo(() => {
+    const top = tuition.rows[0];
+    const pct =
+      top && tuition.tuitionR > 0
+        ? Math.round((top.costR / tuition.tuitionR) * 100)
+        : undefined;
     return computeHubSuggestion({
       topStrategies: analyticsTopStrats,
       mindset: analyticsMind,
       live: summary.Live,
       backtest: summary.Backtest,
+      topTuitionError: top
+        ? { name: top.tag, costR: top.costR, pct }
+        : undefined,
     });
-  }, [analyticsTopStrats, analyticsMind, summary.Live, summary.Backtest]);
+  }, [analyticsTopStrats, analyticsMind, summary.Live, summary.Backtest, tuition]);
 
   const strategyLab = React.useMemo(() => {
     const tradesAsc = [...trades].sort((a, b) =>
