@@ -5602,7 +5602,11 @@ const ConsoleComponent: React.FC<Props> = ({
           };
 
           const distTicker = topN((t) => t.ticker, prettySchemaVal);
-          const distSetup = topN((t) => t.setupCategory, prettySchemaVal);
+          // “Setup” 分布优先看 setupKey（v5/legacy 的 setup/setupKey），并兼容 setupCategory。
+          const distSetup = topN(
+            (t) => t.setupKey ?? t.setupCategory,
+            prettySchemaVal
+          );
           const distExec = topN((t) => t.executionQuality, prettyExecVal);
 
           return (
