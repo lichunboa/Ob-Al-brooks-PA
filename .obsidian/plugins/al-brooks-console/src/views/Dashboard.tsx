@@ -1443,7 +1443,6 @@ const ConsoleComponent: React.FC<Props> = ({
         <span className="pa-dashboard-title-meta">（Dashboard）</span>
         <span className="pa-dashboard-title-meta">v{version}</span>
         <span className="pa-dashboard-title-meta">{statusText}</span>
-
         <span className="pa-dashboard-title-actions">
           <button
             type="button"

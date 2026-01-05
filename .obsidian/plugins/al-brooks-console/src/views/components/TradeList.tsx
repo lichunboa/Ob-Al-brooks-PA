@@ -44,12 +44,15 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 cursor: "pointer",
-                transition: "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+                transition:
+                  "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
                 outline: "none",
               }}
               role="button"
               tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""}）`}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${
+                t.dateIso ?? ""
+              }）`}
               onClick={() => {
                 onOpenFile(t.path);
               }}
@@ -181,12 +184,15 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 cursor: "pointer",
-                transition: "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+                transition:
+                  "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
                 outline: "none",
               }}
               role="button"
               tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""}）`}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${
+                t.dateIso ?? ""
+              }）`}
               onClick={() => {
                 // Open file
                 onOpenFile(t.path);
