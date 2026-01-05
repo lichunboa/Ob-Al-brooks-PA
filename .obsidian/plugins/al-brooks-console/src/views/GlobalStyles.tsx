@@ -19,6 +19,37 @@ export const GlobalStyles: React.FC = () => (
   --pa-v5-accent: #60A5FA;
 }
 
+/* Header / Nav (theme-following) */
+.pa-dashboard-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 10px;
+  margin: 0 0 20px;
+}
+
+.pa-dashboard-title-meta {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.pa-dashboard-title-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pa-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 14px;
+}
+
 /* Grid Layouts */
 .pa-grid-2 {
   display: grid;
