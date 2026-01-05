@@ -889,3 +889,9 @@ msgstr "No cache files found"
 
 msgid "data.loading_hint"
 msgstr "🔄 Data is loading in background, please try again later\n💡 Bot needs a few seconds to load data after startup"
+
+msgid "cache.current_use"
+msgstr "Current"
+
+msgid "cache.backup_file"
+msgstr "Backup"

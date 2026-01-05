@@ -2866,7 +2866,7 @@ class TradeCatBot:
                 mtime_str = datetime.fromtimestamp(mtime, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
                 size_str = f"{size/1024:.1f}KB" if size < 1024*1024 else f"{size/(1024*1024):.1f}MB"
 
-                status = "当前使用" if file_path == self._current_cache_file else "备份文件"
+                status = _t("cache.current_use", None) if file_path == self._current_cache_file else _t("cache.backup_file", None)
                 info.append(f"- {file_path}: {status}, {mtime_str}, {size_str}")
             except Exception as e:
                 info.append(f"- {file_path}: 读取失败 - {e}")

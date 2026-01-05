@@ -889,3 +889,9 @@ msgstr "没有找到缓存文件"
 
 msgid "data.loading_hint"
 msgstr "🔄 数据正在后台加载中，请稍后重试\n💡 机器人刚启动时需要几秒钟加载数据"
+
+msgid "cache.current_use"
+msgstr "当前使用"
+
+msgid "cache.backup_file"
+msgstr "备份文件"
