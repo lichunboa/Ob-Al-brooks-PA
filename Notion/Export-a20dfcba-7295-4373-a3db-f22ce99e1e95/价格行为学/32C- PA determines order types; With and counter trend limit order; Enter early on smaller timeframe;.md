@@ -1,6 +1,6 @@
 - PA determines order types
     
-    ![[/image 21.png|image 21.png]]
+    ![[image 21.png|image 21.png]]
     
 
 - 看不懂市场怎么办
@@ -13,7 +13,7 @@
     > 
     > 1. **wait**
     
-    ![[/image 1 13.png|image 1 13.png]]
+    ![[image 1 13.png|image 1 13.png]]
     
 
 - With and counter trend limit order
@@ -22,14 +22,14 @@
     
     - with trend
         
-        ![[/image 2 13.png|image 2 13.png]]
+        ![[image 2 13.png|image 2 13.png]]
         
     
     - anti-trend
         
-        ![[/image 3 11.png|image 3 11.png]]
+        ![[image 3 11.png|image 3 11.png]]
         
-        ![[/image 4 9.png|image 4 9.png]]
+        ![[image 4 9.png|image 4 9.png]]
         
     
 
@@ -41,7 +41,7 @@
     
     - bad 逆势signal bar
     
-    ![[/image 5 8.png|image 5 8.png]]
+    ![[image 5 8.png|image 5 8.png]]
     
 
 - LIMIT order in wedge or MM
@@ -50,13 +50,13 @@
     
     - MM target
     
-    ![[/image 6 5.png|image 6 5.png]]
+    ![[image 6 5.png|image 6 5.png]]
     
-    ![[/image 7 5.png|image 7 5.png]]
+    ![[image 7 5.png|image 7 5.png]]
     
 
 - Enter early on smaller timeframe
     
-    ![[/image 8 5.png|image 8 5.png]]
+    ![[image 8 5.png|image 8 5.png]]
     
-    ![[/image 9 4.png|image 9 4.png]]
+    ![[image 9 4.png|image 9 4.png]]

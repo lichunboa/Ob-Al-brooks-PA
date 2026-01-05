@@ -6,20 +6,20 @@
 
 - Swing and Scalp
     
-    ![[/image 15.png|image 15.png]]
+    ![[image 15.png|image 15.png]]
     
     - Scalper trade minor reversal v.s Swing stay in minor reversal
         
         - scalper: enter and exit
             
-            ![[/image 1 7.png|image 1 7.png]]
+            ![[image 1 7.png|image 1 7.png]]
             
         
         - swing: stay or exit
             
-            ![[/image 2 8.png|image 2 8.png]]
+            ![[image 2 8.png|image 2 8.png]]
             
-            ![[/image 3 7.png|image 3 7.png]]
+            ![[image 3 7.png|image 3 7.png]]
             
         
     

@@ -6,11 +6,11 @@
     > 
     > 这就是bad RR = big probability
     
-    ![[/image 14.png|image 14.png]]
+    ![[image 14.png|image 14.png]]
     
-    ![[/image 1 6.png|image 1 6.png]]
+    ![[image 1 6.png|image 1 6.png]]
     
-    ![[/image 2 7.png|image 2 7.png]]
+    ![[image 2 7.png|image 2 7.png]]
     
 
 - **40-60 rule**
@@ -19,20 +19,20 @@
     > 
     > 只有10%的chart是BO，这里的方向确定性概率有60%，其他的90%的chart的概率只有40%~60%
     
-    ![[/image 3 6.png|image 3 6.png]]
+    ![[image 3 6.png|image 3 6.png]]
     
-    ![[/image 4 5.png|image 4 5.png]]
+    ![[image 4 5.png|image 4 5.png]]
     
-    ![[/image 5 4.png|image 5 4.png]]
+    ![[image 5 4.png|image 5 4.png]]
     
-    ![[/image 6 3.png|image 6 3.png]]
+    ![[image 6 3.png|image 6 3.png]]
     
 
 - If trapped out, great traders get in again
     
-    ![[/image 7 3.png|image 7 3.png]]
+    ![[image 7 3.png|image 7 3.png]]
     
 
 - TR probabiity high near top and bottom
     
-    ![[/image 8 3.png|image 8 3.png]]
+    ![[image 8 3.png|image 8 3.png]]

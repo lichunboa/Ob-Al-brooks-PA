@@ -9,7 +9,7 @@
     
     - To Take profit or to Enter
     
-    ![[/image 19.png|image 19.png]]
+    ![[image 19.png|image 19.png]]
     
 
 - Bracket orders
@@ -18,7 +18,7 @@
     > 
     > [OCO] Protective Stop order + Profit taking Limit order
     
-    ![[/image 1 11.png|image 1 11.png]]
+    ![[image 1 11.png|image 1 11.png]]
     
 
 - Market and other orders

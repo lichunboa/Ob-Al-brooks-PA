@@ -1,14 +1,14 @@
 - Three Variables
     
-    ![[/image 11.png|image 11.png]]
+    ![[image 11.png|image 11.png]]
     
-    ![[/image 1 3.png|image 1 3.png]]
+    ![[image 1 3.png|image 1 3.png]]
     
     > [!important]
     > 
     > There is a reason for both side to take trade!
     
-    ![[/image 2 4.png|image 2 4.png]]
+    ![[image 2 4.png|image 2 4.png]]
     
 
 - To improve the math
@@ -38,8 +38,8 @@
     > 
     > 这种动态平衡让市场时刻都有trade的理由。
     
-    ![[/image 3 3.png|image 3 3.png]]
+    ![[image 3 3.png|image 3 3.png]]
     
-    ![[/image 4 3.png|image 4 3.png]]
+    ![[image 4 3.png|image 4 3.png]]
     
-    ![[/image 5 2.png|image 5 2.png]]
+    ![[image 5 2.png|image 5 2.png]]

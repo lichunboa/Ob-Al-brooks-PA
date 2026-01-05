@@ -1,6 +1,6 @@
 - Stop orders are better for most traders
     
-    ![[/image 20.png|image 20.png]]
+    ![[image 20.png|image 20.png]]
     
 
 - Skilled traders also use market and limit orders to enter
@@ -11,9 +11,9 @@
     > 
     > 如果观察到很多tail和overlapping bars，可以考虑用LIMIT ORDER，因此这里用LIMIT ORDER来bet BO会失败！
     
-    ![[/image 1 12.png|image 1 12.png]]
+    ![[image 1 12.png|image 1 12.png]]
     
-    ![[/image 2 12.png|image 2 12.png]]
+    ![[image 2 12.png|image 2 12.png]]
     
 
 - case1
@@ -32,13 +32,13 @@
     > 
     > **bear**：risk小,probability高。
     
-    ![[/image 3 10.png|image 3 10.png]]
+    ![[image 3 10.png|image 3 10.png]]
     
       
     
 
 - TR limit order market (LOM) and trends
     
-    ![[/image 4 8.png|image 4 8.png]]
+    ![[image 4 8.png|image 4 8.png]]
     
-    ![[/image 5 7.png|image 5 7.png]]
+    ![[image 5 7.png|image 5 7.png]]

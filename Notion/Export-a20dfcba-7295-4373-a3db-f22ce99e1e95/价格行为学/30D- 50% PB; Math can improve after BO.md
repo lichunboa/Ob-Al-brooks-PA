@@ -6,15 +6,15 @@
     > 
     > 但是高probability的代价是bad RR。
     
-    ![[/image 13.png|image 13.png]]
+    ![[image 13.png|image 13.png]]
     
 
 - Math can improve after BO
     
     - BO grows → profit target grows
         
-        ![[/image 1 5.png|image 1 5.png]]
+        ![[image 1 5.png|image 1 5.png]]
         
-        ![[/image 2 6.png|image 2 6.png]]
+        ![[image 2 6.png|image 2 6.png]]
         
-        ![[/image 3 5.png|image 3 5.png]]
+        ![[image 3 5.png|image 3 5.png]]

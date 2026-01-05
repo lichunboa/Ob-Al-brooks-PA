@@ -6,16 +6,16 @@
     
     - Bull case
         
-        ![[/image 25.png|image 25.png]]
+        ![[image 25.png|image 25.png]]
         
-        ![[/image 1 17.png|image 1 17.png]]
+        ![[image 1 17.png|image 1 17.png]]
         
     
     - Bear case
         
-        ![[/image 2 17.png|image 2 17.png]]
+        ![[image 2 17.png|image 2 17.png]]
         
-        ![[/image 3 15.png|image 3 15.png]]
+        ![[image 3 15.png|image 3 15.png]]
         
     
 
@@ -25,22 +25,22 @@
         
         wedge top + final flag + exhaustion bar
         
-        ![[/image 4 12.png|image 4 12.png]]
+        ![[image 4 12.png|image 4 12.png]]
         
-        ![[/image 5 11.png|image 5 11.png]]
+        ![[image 5 11.png|image 5 11.png]]
         
     
     - bear case
         
-        ![[/image 6 8.png|image 6 8.png]]
+        ![[image 6 8.png|image 6 8.png]]
         
-        ![[/image 7 8.png|image 7 8.png]]
+        ![[image 7 8.png|image 7 8.png]]
         
-        ![[/image 8 7.png|image 8 7.png]]
+        ![[image 8 7.png|image 8 7.png]]
         
-        ![[/image 9 6.png|image 9 6.png]]
+        ![[image 9 6.png|image 9 6.png]]
         
     
     - bull case 2
         
-        ![[/image 10 4.png|image 10 4.png]]
+        ![[image 10 4.png|image 10 4.png]]
