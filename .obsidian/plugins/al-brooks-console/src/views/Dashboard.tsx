@@ -2366,603 +2366,892 @@ short mode\n\
 
       {activePage === "analytics" ? (
         <>
-          <div
-            style={{
-              margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
-              paddingBottom: SPACE.xs,
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: SPACE.sm,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>📊 数据中心</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              Analytics Hub
+          <div style={glassCardStyle}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1.1em" }}>📊 数据中心</div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  Analytics Hub
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: SPACE.md,
-              alignItems: "stretch",
-            }}
-          >
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: SPACE.md,
-                minWidth: 0,
+                alignItems: "stretch",
               }}
             >
               <div
                 style={{
-                  ...cardTightStyle,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: SPACE.md,
+                  minWidth: 0,
                 }}
               >
                 <div
                   style={{
-                    fontWeight: 700,
-                    opacity: 0.75,
-                    marginBottom: SPACE.md,
+                    ...glassPanelStyle,
                   }}
                 >
-                  💼 账户资金概览{" "}
-                  <span
+                  <div
                     style={{
-                      fontWeight: 600,
-                      opacity: 0.6,
-                      fontSize: "0.85em",
+                      fontWeight: 700,
+                      opacity: 0.75,
+                      marginBottom: SPACE.md,
                     }}
                   >
-                    (Account)
-                  </span>
-                </div>
-
-                <div
-                  style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}
-                >
-                  {(
-                    [
-                      {
-                        key: "Live",
-                        label: "🟢 实盘账户",
-                        badge: "Live",
-                        accent: V5_COLORS.live,
-                        stats: summary.Live,
-                      },
-                      {
-                        key: "Demo",
-                        label: "🔵 模拟盘",
-                        badge: "Demo",
-                        accent: V5_COLORS.demo,
-                        stats: summary.Demo,
-                      },
-                      {
-                        key: "Backtest",
-                        label: "🟠 复盘回测",
-                        badge: "Backtest",
-                        accent: V5_COLORS.back,
-                        stats: summary.Backtest,
-                      },
-                    ] as const
-                  ).map((card) => (
-                    <div
-                      key={card.key}
+                    💼 账户资金概览{" "}
+                    <span
                       style={{
-                        ...cardSubtleTightStyle,
-                        flex: "1 1 260px",
-                        minWidth: "240px",
+                        fontWeight: 600,
+                        opacity: 0.6,
+                        fontSize: "0.85em",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 900,
-                            fontSize: "1.05em",
-                            color: card.accent,
-                          }}
-                        >
-                          {card.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.8em",
-                            color: "var(--text-muted)",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "999px",
-                            padding: "2px 8px",
-                            background: "var(--background-primary)",
-                          }}
-                        >
-                          {card.badge}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          gap: "6px",
-                          marginTop: "6px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "2.0em",
-                            fontWeight: 900,
-                            lineHeight: 1,
-                            color:
-                              card.stats.netProfit >= 0
-                                ? V5_COLORS.win
-                                : V5_COLORS.loss,
-                          }}
-                        >
-                          {card.stats.netProfit > 0 ? "+" : ""}
-                          {card.stats.netProfit.toFixed(1)}
-                        </div>
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.95em",
-                          }}
-                        >
-                          R
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "14px",
-                          marginTop: "10px",
-                          color: "var(--text-muted)",
-                          fontSize: "0.9em",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>📦 {card.stats.countTotal} 笔交易</div>
-                        <div>🎯 {card.stats.winRatePct}% 胜率</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 700,
-                    opacity: 0.75,
-                    marginBottom: SPACE.sm,
-                  }}
-                >
-                  🌪️ 不同市场环境表现{" "}
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      opacity: 0.6,
-                      fontSize: "0.85em",
-                    }}
-                  >
-                    (Live PnL)
-                  </span>
-                </div>
-                {liveCyclePerf.length === 0 ? (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    暂无数据
+                      (Account)
+                    </span>
                   </div>
-                ) : (
+
                   <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                    style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}
                   >
-                    {liveCyclePerf.map((cy) => {
-                      const color =
-                        cy.pnl > 0
-                          ? V5_COLORS.win
-                          : cy.pnl < 0
-                            ? V5_COLORS.loss
-                            : "var(--text-muted)";
-                      return (
+                    {(
+                      [
+                        {
+                          key: "Live",
+                          label: "🟢 实盘账户",
+                          badge: "Live",
+                          accent: V5_COLORS.live,
+                          stats: summary.Live,
+                        },
+                        {
+                          key: "Demo",
+                          label: "🔵 模拟盘",
+                          badge: "Demo",
+                          accent: V5_COLORS.demo,
+                          stats: summary.Demo,
+                        },
+                        {
+                          key: "Backtest",
+                          label: "🟠 复盘回测",
+                          badge: "Backtest",
+                          accent: V5_COLORS.back,
+                          stats: summary.Backtest,
+                        },
+                      ] as const
+                    ).map((card) => (
+                      <div
+                        key={card.key}
+                        style={{
+                          ...cardSubtleTightStyle,
+                          flex: "1 1 260px",
+                          minWidth: "240px",
+                        }}
+                      >
                         <div
-                          key={cy.name}
                           style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "8px 12px",
-                            minWidth: "120px",
-                            flex: "1 1 180px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            textAlign: "center",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            gap: "10px",
                           }}
                         >
                           <div
                             style={{
-                              fontSize: "0.85em",
+                              fontWeight: 900,
+                              fontSize: "1.05em",
+                              color: card.accent,
+                            }}
+                          >
+                            {card.label}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.8em",
                               color: "var(--text-muted)",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "999px",
+                              padding: "2px 8px",
+                              background: "var(--background-primary)",
                             }}
                           >
-                            {cycleMap[cy.name] ?? cy.name}
+                            {card.badge}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: "6px",
+                            marginTop: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "2.0em",
+                              fontWeight: 900,
+                              lineHeight: 1,
+                              color:
+                                card.stats.netProfit >= 0
+                                  ? V5_COLORS.win
+                                  : V5_COLORS.loss,
+                            }}
+                          >
+                            {card.stats.netProfit > 0 ? "+" : ""}
+                            {card.stats.netProfit.toFixed(1)}
                           </div>
                           <div
                             style={{
-                              fontWeight: 800,
-                              color,
-                              fontVariantNumeric: "tabular-nums",
-                              marginTop: "2px",
+                              color: "var(--text-faint)",
+                              fontSize: "0.95em",
                             }}
                           >
-                            {cy.pnl > 0 ? "+" : ""}
-                            {cy.pnl.toFixed(1)}R
+                            R
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
 
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "14px",
+                            marginTop: "10px",
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>📦 {card.stats.countTotal} 笔交易</div>
+                          <div>🎯 {card.stats.winRatePct}% 胜率</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div
                   style={{
-                    fontWeight: 700,
-                    opacity: 0.75,
-                    marginBottom: SPACE.sm,
+                    ...cardTightStyle,
                   }}
                 >
-                  💸 错误的代价{" "}
-                  <span
+                  <div
                     style={{
-                      fontWeight: 600,
-                      opacity: 0.6,
-                      fontSize: "0.85em",
+                      fontWeight: 700,
+                      opacity: 0.75,
+                      marginBottom: SPACE.sm,
                     }}
                   >
-                    (学费统计)
-                  </span>
-                </div>
-                {tuition.tuitionR <= 0 ? (
-                  <div style={{ color: V5_COLORS.win, fontWeight: 700 }}>
-                    🎉 完美！近期实盘没有因纪律问题亏损。
+                    🌪️ 不同市场环境表现{" "}
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        opacity: 0.6,
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      (Live PnL)
+                    </span>
                   </div>
-                ) : (
-                  <div>
+                  {liveCyclePerf.length === 0 ? (
                     <div
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                        marginBottom: "10px",
-                      }}
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
                     >
-                      因执行错误共计亏损：
-                      <span
-                        style={{
-                          color: V5_COLORS.loss,
-                          fontWeight: 900,
-                          marginLeft: "6px",
-                        }}
-                      >
-                        -{tuition.tuitionR.toFixed(1)}R
-                      </span>
+                      暂无数据
                     </div>
+                  ) : (
                     <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                      }}
+                      style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
                     >
-                      {tuition.rows.slice(0, 5).map((row) => {
-                        const pct = Math.round(
-                          (row.costR / tuition.tuitionR) * 100
-                        );
+                      {liveCyclePerf.map((cy) => {
+                        const color =
+                          cy.pnl > 0
+                            ? V5_COLORS.win
+                            : cy.pnl < 0
+                              ? V5_COLORS.loss
+                              : "var(--text-muted)";
                         return (
                           <div
-                            key={row.tag}
+                            key={cy.name}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              fontSize: "0.9em",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                              padding: "8px 12px",
+                              minWidth: "120px",
+                              flex: "1 1 180px",
+                              background: "rgba(var(--mono-rgb-100), 0.03)",
+                              textAlign: "center",
                             }}
                           >
                             <div
                               style={{
-                                width: "110px",
+                                fontSize: "0.85em",
                                 color: "var(--text-muted)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
                               }}
-                              title={row.tag}
                             >
-                              {row.tag}
+                              {cycleMap[cy.name] ?? cy.name}
                             </div>
                             <div
                               style={{
-                                flex: "1 1 auto",
-                                background: "rgba(var(--mono-rgb-100), 0.03)",
-                                height: "6px",
-                                borderRadius: "999px",
-                                overflow: "hidden",
-                                border:
-                                  "1px solid var(--background-modifier-border)",
+                                fontWeight: 800,
+                                color,
+                                fontVariantNumeric: "tabular-nums",
+                                marginTop: "2px",
+                              }}
+                            >
+                              {cy.pnl > 0 ? "+" : ""}
+                              {cy.pnl.toFixed(1)}R
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    ...cardTightStyle,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      opacity: 0.75,
+                      marginBottom: SPACE.sm,
+                    }}
+                  >
+                    💸 错误的代价{" "}
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        opacity: 0.6,
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      (学费统计)
+                    </span>
+                  </div>
+                  {tuition.tuitionR <= 0 ? (
+                    <div style={{ color: V5_COLORS.win, fontWeight: 700 }}>
+                      🎉 完美！近期实盘没有因纪律问题亏损。
+                    </div>
+                  ) : (
+                    <div>
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.9em",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        因执行错误共计亏损：
+                        <span
+                          style={{
+                            color: V5_COLORS.loss,
+                            fontWeight: 900,
+                            marginLeft: "6px",
+                          }}
+                        >
+                          -{tuition.tuitionR.toFixed(1)}R
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                        }}
+                      >
+                        {tuition.rows.slice(0, 5).map((row) => {
+                          const pct = Math.round(
+                            (row.costR / tuition.tuitionR) * 100
+                          );
+                          return (
+                            <div
+                              key={row.tag}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                fontSize: "0.9em",
                               }}
                             >
                               <div
                                 style={{
-                                  width: `${pct}%`,
-                                  height: "100%",
-                                  background: "var(--text-error)",
+                                  width: "110px",
+                                  color: "var(--text-muted)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
                                 }}
-                              />
+                                title={row.tag}
+                              >
+                                {row.tag}
+                              </div>
+                              <div
+                                style={{
+                                  flex: "1 1 auto",
+                                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                                  height: "6px",
+                                  borderRadius: "999px",
+                                  overflow: "hidden",
+                                  border:
+                                    "1px solid var(--background-modifier-border)",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: `${pct}%`,
+                                    height: "100%",
+                                    background: "var(--text-error)",
+                                  }}
+                                />
+                              </div>
+                              <div
+                                style={{
+                                  width: "70px",
+                                  textAlign: "right",
+                                  color: "var(--text-error)",
+                                  fontWeight: 800,
+                                  fontVariantNumeric: "tabular-nums",
+                                }}
+                              >
+                                -{row.costR.toFixed(1)}R
+                              </div>
                             </div>
-                            <div
-                              style={{
-                                width: "70px",
-                                textAlign: "right",
-                                color: "var(--text-error)",
-                                fontWeight: 800,
-                                fontVariantNumeric: "tabular-nums",
-                              }}
-                            >
-                              -{row.costR.toFixed(1)}R
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
                 <div
                   style={{
-                    fontWeight: 700,
-                    opacity: 0.75,
-                    marginBottom: SPACE.sm,
+                    ...cardTightStyle,
                   }}
                 >
-                  💡 系统建议{" "}
-                  <span
+                  <div
                     style={{
-                      fontWeight: 600,
-                      opacity: 0.6,
-                      fontSize: "0.85em",
+                      fontWeight: 700,
+                      opacity: 0.75,
+                      marginBottom: SPACE.sm,
                     }}
                   >
-                    (Actions)
-                  </span>
+                    💡 系统建议{" "}
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        opacity: 0.6,
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      (Actions)
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.95em",
+                      lineHeight: 1.6,
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      background:
+                        analyticsSuggestion.tone === "danger"
+                          ? withHexAlpha(V5_COLORS.loss, "1F")
+                          : analyticsSuggestion.tone === "warn"
+                            ? withHexAlpha(V5_COLORS.back, "1F")
+                            : withHexAlpha(V5_COLORS.win, "1A"),
+                      border: "1px solid var(--background-modifier-border)",
+                      color:
+                        analyticsSuggestion.tone === "danger"
+                          ? V5_COLORS.loss
+                          : analyticsSuggestion.tone === "warn"
+                            ? V5_COLORS.back
+                            : V5_COLORS.win,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {analyticsSuggestion.text}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "0.95em",
-                    lineHeight: 1.6,
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    background:
-                      analyticsSuggestion.tone === "danger"
-                        ? withHexAlpha(V5_COLORS.loss, "1F")
-                        : analyticsSuggestion.tone === "warn"
-                          ? withHexAlpha(V5_COLORS.back, "1F")
-                          : withHexAlpha(V5_COLORS.win, "1A"),
-                    border: "1px solid var(--background-modifier-border)",
-                    color:
-                      analyticsSuggestion.tone === "danger"
-                        ? V5_COLORS.loss
-                        : analyticsSuggestion.tone === "warn"
-                          ? V5_COLORS.back
-                          : V5_COLORS.win,
-                    fontWeight: 700,
-                  }}
-                >
-                  {analyticsSuggestion.text}
-                </div>
-              </div>
 
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "10px",
-                    marginBottom: "8px",
+                    ...cardTightStyle,
                   }}
                 >
-                  <div style={{ fontWeight: 600 }}>数据分析</div>
-                  <label
+                  <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      marginBottom: "8px",
                     }}
                   >
-                    范围
-                    <select
-                      value={analyticsScope}
-                      onChange={(e) =>
-                        setAnalyticsScope(e.target.value as AnalyticsScope)
-                      }
-                      style={selectStyle}
+                    <div style={{ fontWeight: 600 }}>数据分析</div>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                      }}
                     >
-                      <option value="Live">实盘</option>
-                      <option value="Demo">模拟</option>
-                      <option value="Backtest">回测</option>
-                      <option value="All">全部</option>
-                    </select>
-                  </label>
+                      范围
+                      <select
+                        value={analyticsScope}
+                        onChange={(e) =>
+                          setAnalyticsScope(e.target.value as AnalyticsScope)
+                        }
+                        style={selectStyle}
+                      >
+                        <option value="Live">实盘</option>
+                        <option value="Demo">模拟</option>
+                        <option value="Backtest">回测</option>
+                        <option value="All">全部</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div
+                    style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}
+                  >
+                    <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
+                      <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                        日历（最近 {calendarDays} 天）
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                          gap: "6px",
+                        }}
+                      >
+                        {calendarCells.map((c) => {
+                          const absRatio =
+                            calendarMaxAbs > 0
+                              ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
+                              : 0;
+                          const alpha =
+                            c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
+                          const bg =
+                            c.netR > 0
+                              ? withHexAlpha(V5_COLORS.win, "1A")
+                              : c.netR < 0
+                                ? withHexAlpha(V5_COLORS.loss, "1A")
+                                : `rgba(var(--mono-rgb-100), 0.05)`;
+                          return (
+                            <div
+                              key={`cal-${c.dateIso}`}
+                              title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
+                                }${c.netR.toFixed(1)}R`}
+                              style={{
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                borderRadius: "6px",
+                                padding: "6px",
+                                background: bg,
+                                minHeight: "40px",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "0.85em",
+                                  color: "var(--text-muted)",
+                                }}
+                              >
+                                {getDayOfMonth(c.dateIso)}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.85em",
+                                  fontWeight: 600,
+                                  color:
+                                    c.netR > 0
+                                      ? V5_COLORS.win
+                                      : c.netR < 0
+                                        ? V5_COLORS.loss
+                                        : "var(--text-faint)",
+                                  textAlign: "right",
+                                }}
+                              >
+                                {c.count > 0
+                                  ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(
+                                    1
+                                  )}R`
+                                  : "—"}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
+                      <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                        策略归因（Top）
+                      </div>
+                      {strategyAttribution.length > 0 ? (
+                        <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                          {strategyAttribution.map((r) => (
+                            <li
+                              key={`attr-${r.strategyName}`}
+                              style={{ marginBottom: "6px" }}
+                            >
+                              {r.strategyPath ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openFile(r.strategyPath!)}
+                                  style={textButtonStyle}
+                                  onMouseEnter={onTextBtnMouseEnter}
+                                  onMouseLeave={onTextBtnMouseLeave}
+                                  onFocus={onTextBtnFocus}
+                                  onBlur={onTextBtnBlur}
+                                >
+                                  {r.strategyName}
+                                </button>
+                              ) : (
+                                <span>{r.strategyName}</span>
+                              )}
+                              <span
+                                style={{
+                                  color: "var(--text-muted)",
+                                  marginLeft: "8px",
+                                  fontSize: "0.9em",
+                                }}
+                              >
+                                {r.count} 笔 •{" "}
+                                <span
+                                  style={{
+                                    color:
+                                      r.netR >= 0
+                                        ? V5_COLORS.win
+                                        : V5_COLORS.loss,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {r.netR >= 0 ? "+" : ""}
+                                  {r.netR.toFixed(1)}R
+                                </span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div
+                          style={{
+                            color: "var(--text-faint)",
+                            fontSize: "0.9em",
+                          }}
+                        >
+                          未找到策略归因数据。
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div
-                  style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}
+                  style={{
+                    ...cardTightStyle,
+                  }}
                 >
-                  <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                      日历（最近 {calendarDays} 天）
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: "12px",
+                      marginBottom: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, opacity: 0.85 }}>
+                      📈 综合趋势 (R-Multiples)
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          opacity: 0.6,
+                          fontSize: "0.85em",
+                          marginLeft: "6px",
+                        }}
+                      >
+                        仅实盘 · 最近 {analyticsRecentLiveTradesAsc.length} 笔
+                      </span>
                     </div>
                     <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                        gap: "6px",
-                      }}
+                      style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
                     >
-                      {calendarCells.map((c) => {
-                        const absRatio =
-                          calendarMaxAbs > 0
-                            ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
-                            : 0;
-                        const alpha =
-                          c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
-                        const bg =
-                          c.netR > 0
-                            ? withHexAlpha(V5_COLORS.win, "1A")
-                            : c.netR < 0
-                              ? withHexAlpha(V5_COLORS.loss, "1A")
-                              : `rgba(var(--mono-rgb-100), 0.05)`;
+                      Avg R: {analyticsRMultiples.avg.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ marginBottom: SPACE.md }}>
+                      {(() => {
+                        const rHeight = 90;
+                        const rZeroY = rHeight / 2;
+                        const barWidth = 8;
+                        const barGap = 4;
+                        const step = barWidth + barGap;
+                        const maxAbs = analyticsRMultiples.maxAbs;
+                        const rScale = (rHeight / 2 - 6) / Math.max(1e-6, maxAbs);
+                        const innerWidth = Math.max(
+                          analyticsRecentLiveTradesAsc.length * step,
+                          200
+                        );
+
                         return (
                           <div
-                            key={`cal-${c.dateIso}`}
-                            title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
-                              }${c.netR.toFixed(1)}R`}
                             style={{
+                              position: "relative",
+                              height: `${rHeight}px`,
+                              width: "100%",
+                              overflowX: "auto",
                               border:
                                 "1px solid var(--background-modifier-border)",
-                              borderRadius: "6px",
-                              padding: "6px",
-                              background: bg,
-                              minHeight: "40px",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "space-between",
+                              borderRadius: "8px",
+                              background: "rgba(var(--mono-rgb-100), 0.03)",
                             }}
                           >
                             <div
                               style={{
-                                fontSize: "0.85em",
-                                color: "var(--text-muted)",
+                                position: "relative",
+                                height: `${rHeight}px`,
+                                width: `${innerWidth}px`,
                               }}
                             >
-                              {getDayOfMonth(c.dateIso)}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.85em",
-                                fontWeight: 600,
-                                color:
-                                  c.netR > 0
-                                    ? V5_COLORS.win
-                                    : c.netR < 0
-                                      ? V5_COLORS.loss
-                                      : "var(--text-faint)",
-                                textAlign: "right",
-                              }}
-                            >
-                              {c.count > 0
-                                ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(
-                                  1
-                                )}R`
-                                : "—"}
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: 0,
+                                  right: 0,
+                                  top: `${rZeroY}px`,
+                                  height: "1px",
+                                  background: "rgba(var(--mono-rgb-100), 0.18)",
+                                  borderTop:
+                                    "1px dashed rgba(var(--mono-rgb-100), 0.25)",
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: 6,
+                                  top: rZeroY - 10,
+                                  fontSize: "0.75em",
+                                  color: "var(--text-faint)",
+                                }}
+                              >
+                                0R
+                              </div>
+                              {analyticsRecentLiveTradesAsc.length === 0 ? (
+                                <div
+                                  style={{
+                                    padding: "18px",
+                                    color: "var(--text-faint)",
+                                    fontSize: "0.9em",
+                                  }}
+                                >
+                                  暂无数据
+                                </div>
+                              ) : (
+                                analyticsRecentLiveTradesAsc.map((t, i) => {
+                                  const r =
+                                    typeof t.pnl === "number" &&
+                                      Number.isFinite(t.pnl)
+                                      ? t.pnl
+                                      : 0;
+                                  let h = Math.abs(r) * rScale;
+                                  if (h < 3) h = 3;
+                                  const color =
+                                    r > 0
+                                      ? V5_COLORS.win
+                                      : r < 0
+                                        ? V5_COLORS.loss
+                                        : "var(--text-muted)";
+                                  const top = r >= 0 ? rZeroY - h : rZeroY;
+                                  return (
+                                    <div
+                                      key={`rbar-${t.path}-${t.dateIso}-${i}`}
+                                      title={`${t.dateIso} | ${t.name
+                                        } | R: ${r.toFixed(2)}`}
+                                      style={{
+                                        position: "absolute",
+                                        left: `${i * step}px`,
+                                        top: `${top}px`,
+                                        width: `${barWidth}px`,
+                                        height: `${h}px`,
+                                        background: color,
+                                        borderRadius: "2px",
+                                        opacity: 0.9,
+                                      }}
+                                    />
+                                  );
+                                })
+                              )}
                             </div>
                           </div>
                         );
-                      })}
+                      })()}
                     </div>
-                  </div>
 
-                  <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                      策略归因（Top）
-                    </div>
-                    {strategyAttribution.length > 0 ? (
-                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                        {strategyAttribution.map((r) => (
-                          <li
-                            key={`attr-${r.strategyName}`}
-                            style={{ marginBottom: "6px" }}
-                          >
-                            {r.strategyPath ? (
-                              <button
-                                type="button"
-                                onClick={() => openFile(r.strategyPath!)}
-                                style={textButtonStyle}
-                                onMouseEnter={onTextBtnMouseEnter}
-                                onMouseLeave={onTextBtnMouseLeave}
-                                onFocus={onTextBtnFocus}
-                                onBlur={onTextBtnBlur}
-                              >
-                                {r.strategyName}
-                              </button>
-                            ) : (
-                              <span>{r.strategyName}</span>
-                            )}
-                            <span
-                              style={{
-                                color: "var(--text-muted)",
-                                marginLeft: "8px",
-                                fontSize: "0.9em",
-                              }}
-                            >
-                              {r.count} 笔 •{" "}
-                              <span
-                                style={{
-                                  color:
-                                    r.netR >= 0
-                                      ? V5_COLORS.win
-                                      : V5_COLORS.loss,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {r.netR >= 0 ? "+" : ""}
-                                {r.netR.toFixed(1)}R
-                              </span>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
+                    <div style={cardSubtleTightStyle}>
+                      <div
+                        style={{ color: "var(--text-muted)", fontSize: "0.9em" }}
+                      >
+                        🧠 实盘心态
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.15em",
+                          fontWeight: 900,
+                          color: analyticsMind.color,
+                          marginTop: SPACE.xs,
+                        }}
+                      >
+                        {analyticsMind.status}
+                      </div>
                       <div
                         style={{
                           color: "var(--text-faint)",
-                          fontSize: "0.9em",
+                          fontSize: "0.85em",
+                          marginTop: SPACE.xs,
                         }}
                       >
-                        未找到策略归因数据。
+                        FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} |
+                        犹豫: {analyticsMind.hesitation}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: "12px" }}>
+                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                      📊 热门策略
+                    </div>
+                    {analyticsTopStrats.length === 0 ? (
+                      <div
+                        style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                      >
+                        暂无数据
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                        }}
+                      >
+                        {analyticsTopStrats.map((s) => {
+                          const color =
+                            s.wr >= 50
+                              ? V5_COLORS.win
+                              : s.wr >= 40
+                                ? V5_COLORS.back
+                                : V5_COLORS.loss;
+                          let displayName = s.name;
+                          if (
+                            displayName.length > 12 &&
+                            displayName.includes("(")
+                          ) {
+                            displayName = displayName.split("(")[0].trim();
+                          }
+                          return (
+                            <div
+                              key={`topstrat-${s.name}`}
+                              style={{
+                                background: "rgba(var(--mono-rgb-100), 0.03)",
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                borderRadius: "8px",
+                                padding: "8px 10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "12px",
+                              }}
+                            >
+                              <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                                <div
+                                  title={s.name}
+                                  style={{
+                                    fontSize: "0.9em",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  {displayName}
+                                </div>
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: "6px",
+                                    borderRadius: "999px",
+                                    background: "rgba(var(--mono-rgb-100), 0.05)",
+                                    border:
+                                      "1px solid var(--background-modifier-border)",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: `${s.wr}%`,
+                                      height: "100%",
+                                      background: color,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <div
+                                style={{ flex: "0 0 auto", textAlign: "right" }}
+                              >
+                                <div
+                                  style={{
+                                    fontWeight: 900,
+                                    color,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {s.wr}%
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: "0.8em",
+                                    color: "var(--text-faint)",
+                                  }}
+                                >
+                                  {s.total} 笔
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -2971,695 +3260,300 @@ short mode\n\
 
               <div
                 style={{
-                  ...cardTightStyle,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: SPACE.md,
+                  minWidth: 0,
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: "12px",
-                    marginBottom: "10px",
-                    flexWrap: "wrap",
+                    ...cardTightStyle,
                   }}
                 >
-                  <div style={{ fontWeight: 700, opacity: 0.85 }}>
-                    📈 综合趋势 (R-Multiples)
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        opacity: 0.6,
-                        fontSize: "0.85em",
-                        marginLeft: "6px",
-                      }}
-                    >
-                      仅实盘 · 最近 {analyticsRecentLiveTradesAsc.length} 笔
-                    </span>
-                  </div>
-                  <div
-                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
-                  >
-                    Avg R: {analyticsRMultiples.avg.toFixed(2)}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ marginBottom: SPACE.md }}>
-                    {(() => {
-                      const rHeight = 90;
-                      const rZeroY = rHeight / 2;
-                      const barWidth = 8;
-                      const barGap = 4;
-                      const step = barWidth + barGap;
-                      const maxAbs = analyticsRMultiples.maxAbs;
-                      const rScale = (rHeight / 2 - 6) / Math.max(1e-6, maxAbs);
-                      const innerWidth = Math.max(
-                        analyticsRecentLiveTradesAsc.length * step,
-                        200
-                      );
-
-                      return (
-                        <div
-                          style={{
-                            position: "relative",
-                            height: `${rHeight}px`,
-                            width: "100%",
-                            overflowX: "auto",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "relative",
-                              height: `${rHeight}px`,
-                              width: `${innerWidth}px`,
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                left: 0,
-                                right: 0,
-                                top: `${rZeroY}px`,
-                                height: "1px",
-                                background: "rgba(var(--mono-rgb-100), 0.18)",
-                                borderTop:
-                                  "1px dashed rgba(var(--mono-rgb-100), 0.25)",
-                              }}
-                            />
-                            <div
-                              style={{
-                                position: "absolute",
-                                left: 6,
-                                top: rZeroY - 10,
-                                fontSize: "0.75em",
-                                color: "var(--text-faint)",
-                              }}
-                            >
-                              0R
-                            </div>
-                            {analyticsRecentLiveTradesAsc.length === 0 ? (
-                              <div
-                                style={{
-                                  padding: "18px",
-                                  color: "var(--text-faint)",
-                                  fontSize: "0.9em",
-                                }}
-                              >
-                                暂无数据
-                              </div>
-                            ) : (
-                              analyticsRecentLiveTradesAsc.map((t, i) => {
-                                const r =
-                                  typeof t.pnl === "number" &&
-                                    Number.isFinite(t.pnl)
-                                    ? t.pnl
-                                    : 0;
-                                let h = Math.abs(r) * rScale;
-                                if (h < 3) h = 3;
-                                const color =
-                                  r > 0
-                                    ? V5_COLORS.win
-                                    : r < 0
-                                      ? V5_COLORS.loss
-                                      : "var(--text-muted)";
-                                const top = r >= 0 ? rZeroY - h : rZeroY;
-                                return (
-                                  <div
-                                    key={`rbar-${t.path}-${t.dateIso}-${i}`}
-                                    title={`${t.dateIso} | ${t.name
-                                      } | R: ${r.toFixed(2)}`}
-                                    style={{
-                                      position: "absolute",
-                                      left: `${i * step}px`,
-                                      top: `${top}px`,
-                                      width: `${barWidth}px`,
-                                      height: `${h}px`,
-                                      background: color,
-                                      borderRadius: "2px",
-                                      opacity: 0.9,
-                                    }}
-                                  />
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  <div style={cardSubtleTightStyle}>
-                    <div
-                      style={{ color: "var(--text-muted)", fontSize: "0.9em" }}
-                    >
-                      🧠 实盘心态
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "1.15em",
-                        fontWeight: 900,
-                        color: analyticsMind.color,
-                        marginTop: SPACE.xs,
-                      }}
-                    >
-                      {analyticsMind.status}
-                    </div>
-                    <div
-                      style={{
-                        color: "var(--text-faint)",
-                        fontSize: "0.85em",
-                        marginTop: SPACE.xs,
-                      }}
-                    >
-                      FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} |
-                      犹豫: {analyticsMind.hesitation}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: "12px" }}>
-                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                    📊 热门策略
-                  </div>
-                  {analyticsTopStrats.length === 0 ? (
-                    <div
-                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                    >
-                      暂无数据
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                      }}
-                    >
-                      {analyticsTopStrats.map((s) => {
-                        const color =
-                          s.wr >= 50
-                            ? V5_COLORS.win
-                            : s.wr >= 40
-                              ? V5_COLORS.back
-                              : V5_COLORS.loss;
-                        let displayName = s.name;
-                        if (
-                          displayName.length > 12 &&
-                          displayName.includes("(")
-                        ) {
-                          displayName = displayName.split("(")[0].trim();
-                        }
-                        return (
-                          <div
-                            key={`topstrat-${s.name}`}
-                            style={{
-                              background: "rgba(var(--mono-rgb-100), 0.03)",
-                              border:
-                                "1px solid var(--background-modifier-border)",
-                              borderRadius: "8px",
-                              padding: "8px 10px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: "12px",
-                            }}
-                          >
-                            <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                              <div
-                                title={s.name}
-                                style={{
-                                  fontSize: "0.9em",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                {displayName}
-                              </div>
-                              <div
-                                style={{
-                                  width: "100%",
-                                  height: "6px",
-                                  borderRadius: "999px",
-                                  background: "rgba(var(--mono-rgb-100), 0.05)",
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  overflow: "hidden",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: `${s.wr}%`,
-                                    height: "100%",
-                                    background: color,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            <div
-                              style={{ flex: "0 0 auto", textAlign: "right" }}
-                            >
-                              <div
-                                style={{
-                                  fontWeight: 900,
-                                  color,
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {s.wr}%
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.8em",
-                                  color: "var(--text-faint)",
-                                }}
-                              >
-                                {s.total} 笔
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: SPACE.md,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: "12px",
-                    marginBottom: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "1.05em" }}>
-                    🧬 资金增长曲线{" "}
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        opacity: 0.6,
-                        fontSize: "0.85em",
-                      }}
-                    >
-                      (Capital Growth)
-                    </span>
-                  </div>
-
                   <div
                     style={{
-                      fontSize: "0.85em",
-                      color: "var(--text-muted)",
                       display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
                       gap: "12px",
+                      marginBottom: "12px",
                       flexWrap: "wrap",
                     }}
                   >
-                    <span style={{ color: getRColorByAccountType("Live") }}>
-                      ● 实盘 {strategyLab.cum.Live >= 0 ? "+" : ""}
-                      {strategyLab.cum.Live.toFixed(1)}R
-                    </span>
-                    <span style={{ color: getRColorByAccountType("Demo") }}>
-                      ● 模拟 {strategyLab.cum.Demo >= 0 ? "+" : ""}
-                      {strategyLab.cum.Demo.toFixed(1)}R
-                    </span>
-                    <span style={{ color: getRColorByAccountType("Backtest") }}>
-                      ● 回测 {strategyLab.cum.Backtest >= 0 ? "+" : ""}
-                      {strategyLab.cum.Backtest.toFixed(1)}R
-                    </span>
-                    <span style={{ color: "var(--text-faint)" }}>
-                      {allTradesDateRange.min && allTradesDateRange.max
-                        ? `范围：${allTradesDateRange.min} → ${allTradesDateRange.max}`
-                        : "范围：—"}
-                    </span>
-                  </div>
-                </div>
-
-                {(() => {
-                  const w = 520;
-                  const h = 150;
-                  const pad = 14;
-                  const allValues = [
-                    ...strategyLab.curves.Live,
-                    ...strategyLab.curves.Demo,
-                    ...strategyLab.curves.Backtest,
-                  ];
-                  const maxVal = Math.max(...allValues, 5);
-                  const minVal = Math.min(...allValues, -5);
-                  const range = Math.max(1e-6, maxVal - minVal);
-                  const zeroY =
-                    pad + (1 - (0 - minVal) / range) * (h - pad * 2);
-
-                  const getPoints = (data: number[]) => {
-                    if (data.length < 2) return "";
-                    const xStep = (w - pad * 2) / Math.max(1, data.length - 1);
-                    return data
-                      .map((val, i) => {
-                        const x = pad + i * xStep;
-                        const y =
-                          pad + (1 - (val - minVal) / range) * (h - pad * 2);
-                        return `${x.toFixed(1)},${y.toFixed(1)}`;
-                      })
-                      .join(" ");
-                  };
-
-                  const ptsLive = getPoints(strategyLab.curves.Live);
-                  const ptsDemo = getPoints(strategyLab.curves.Demo);
-                  const ptsBack = getPoints(strategyLab.curves.Backtest);
-
-                  return (
-                    <svg
-                      viewBox={`0 0 ${w} ${h}`}
-                      width="100%"
-                      height="150"
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        background: `rgba(var(--mono-rgb-100), 0.03)`,
-                      }}
-                    >
-                      <line
-                        x1={0}
-                        y1={zeroY}
-                        x2={w}
-                        y2={zeroY}
-                        stroke="rgba(var(--mono-rgb-100), 0.18)"
-                        strokeDasharray="4"
-                      />
-
-                      {ptsBack && (
-                        <polyline
-                          points={ptsBack}
-                          fill="none"
-                          stroke={getRColorByAccountType("Backtest")}
-                          strokeWidth="1.6"
-                          opacity={0.65}
-                          strokeDasharray="2"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      )}
-                      {ptsDemo && (
-                        <polyline
-                          points={ptsDemo}
-                          fill="none"
-                          stroke={getRColorByAccountType("Demo")}
-                          strokeWidth="1.8"
-                          opacity={0.8}
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      )}
-                      {ptsLive && (
-                        <polyline
-                          points={ptsLive}
-                          fill="none"
-                          stroke={getRColorByAccountType("Live")}
-                          strokeWidth="2.6"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        />
-                      )}
-                    </svg>
-                  );
-                })()}
-
-                {/* Removed embedded strategy/suggestion duplicates; keep only primary modules elsewhere. */}
-              </div>
-
-              <div
-                style={{
-                  ...cardTightStyle,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                    gap: SPACE.sm,
-                    marginBottom: SPACE.sm,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, opacity: 0.75 }}>
-                    🖼️ 最新复盘{" "}
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        opacity: 0.6,
-                        fontSize: "0.85em",
-                      }}
-                    >
-                      （图表/Charts）
-                    </span>
-                  </div>
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: SPACE.xs,
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                    }}
-                  >
-                    范围
-                    <select
-                      value={galleryScope}
-                      onChange={(e) =>
-                        setGalleryScope(e.target.value as AnalyticsScope)
-                      }
-                      style={selectStyle}
-                    >
-                      <option value="All">全部</option>
-                      <option value="Live">实盘</option>
-                      <option value="Backtest">回测</option>
-                      <option value="Demo">模拟</option>
-                    </select>
-                  </label>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "2px",
-                    color: "var(--text-faint)",
-                    fontSize: "0.8em",
-                  }}
-                >
-                  {`范围内共 ${gallery.scopeTotal} 笔 · 候选 ${gallery.candidateCount} · 展示 ${gallery.items.length}`}
-                </div>
-
-                {!getResourceUrl ? (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    画廊不可用。
-                  </div>
-                ) : gallery.items.length > 0 ? (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: SPACE.md,
-                    }}
-                  >
-                    {gallery.items.map((it) => (
-                      <button
-                        key={`gal-${it.tradePath}`}
-                        type="button"
-                        onClick={() => openFile(it.tradePath)}
-                        title={`${it.tradeName} • ${it.coverPath}`}
-                        onMouseEnter={onCoverMouseEnter}
-                        onMouseLeave={onCoverMouseLeave}
-                        onFocus={onCoverFocus}
-                        onBlur={onCoverBlur}
+                    <div style={{ fontWeight: 700, fontSize: "1.05em" }}>
+                      🧬 资金增长曲线{" "}
+                      <span
                         style={{
-                          display: "block",
-                          width: "100%",
-                          height: "auto",
-                          minHeight: "140px",
-                          padding: 0,
-                          border: "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                          overflow: "hidden",
-                          background: `rgba(var(--mono-rgb-100), 0.03)`,
-                          cursor: "pointer",
-                          outline: "none",
-                          transition:
-                            "background-color 180ms ease, border-color 180ms ease",
-                          position: "relative",
-                          aspectRatio: "16 / 9",
+                          fontWeight: 600,
+                          opacity: 0.6,
+                          fontSize: "0.85em",
                         }}
                       >
-                        {it.url ? (
-                          <>
-                            <img
-                              src={it.url}
-                              alt=""
-                              style={{
-                                position: "absolute",
-                                inset: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                display: "block",
-                                zIndex: 1,
-                              }}
-                            />
+                        (Capital Growth)
+                      </span>
+                    </div>
 
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: SPACE.xs,
-                                right: SPACE.xs,
-                                zIndex: 2,
-                                background:
-                                  it.accountType === "Live"
-                                    ? V5_COLORS.live
-                                    : it.accountType === "Backtest"
-                                      ? V5_COLORS.back
-                                      : V5_COLORS.demo,
-                                border:
-                                  "1px solid var(--background-modifier-border)",
-                                color: "rgba(var(--mono-rgb-0), 0.9)",
-                                fontSize: "0.6em",
-                                fontWeight: 800,
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              {it.accountType === "Live"
-                                ? "实盘"
-                                : it.accountType === "Backtest"
-                                  ? "回测"
-                                  : "模拟"}
-                            </div>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span style={{ color: getRColorByAccountType("Live") }}>
+                        ● 实盘 {strategyLab.cum.Live >= 0 ? "+" : ""}
+                        {strategyLab.cum.Live.toFixed(1)}R
+                      </span>
+                      <span style={{ color: getRColorByAccountType("Demo") }}>
+                        ● 模拟 {strategyLab.cum.Demo >= 0 ? "+" : ""}
+                        {strategyLab.cum.Demo.toFixed(1)}R
+                      </span>
+                      <span style={{ color: getRColorByAccountType("Backtest") }}>
+                        ● 回测 {strategyLab.cum.Backtest >= 0 ? "+" : ""}
+                        {strategyLab.cum.Backtest.toFixed(1)}R
+                      </span>
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {allTradesDateRange.min && allTradesDateRange.max
+                          ? `范围：${allTradesDateRange.min} → ${allTradesDateRange.max}`
+                          : "范围：—"}
+                      </span>
+                    </div>
+                  </div>
 
-                            <div
-                              style={{
-                                position: "absolute",
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                zIndex: 2,
-                                padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-end",
-                                gap: "10px",
-                                background:
-                                  "linear-gradient(rgba(var(--mono-rgb-0), 0), rgba(var(--mono-rgb-0), 0.9))",
-                              }}
-                            >
-                              <div
+                  {(() => {
+                    const w = 520;
+                    const h = 150;
+                    const pad = 14;
+                    const allValues = [
+                      ...strategyLab.curves.Live,
+                      ...strategyLab.curves.Demo,
+                      ...strategyLab.curves.Backtest,
+                    ];
+                    const maxVal = Math.max(...allValues, 5);
+                    const minVal = Math.min(...allValues, -5);
+                    const range = Math.max(1e-6, maxVal - minVal);
+                    const zeroY =
+                      pad + (1 - (0 - minVal) / range) * (h - pad * 2);
+
+                    const getPoints = (data: number[]) => {
+                      if (data.length < 2) return "";
+                      const xStep = (w - pad * 2) / Math.max(1, data.length - 1);
+                      return data
+                        .map((val, i) => {
+                          const x = pad + i * xStep;
+                          const y =
+                            pad + (1 - (val - minVal) / range) * (h - pad * 2);
+                          return `${x.toFixed(1)},${y.toFixed(1)}`;
+                        })
+                        .join(" ");
+                    };
+
+                    const ptsLive = getPoints(strategyLab.curves.Live);
+                    const ptsDemo = getPoints(strategyLab.curves.Demo);
+                    const ptsBack = getPoints(strategyLab.curves.Backtest);
+
+                    return (
+                      <svg
+                        viewBox={`0 0 ${w} ${h}`}
+                        width="100%"
+                        height="150"
+                        style={{
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "8px",
+                          background: `rgba(var(--mono-rgb-100), 0.03)`,
+                        }}
+                      >
+                        <line
+                          x1={0}
+                          y1={zeroY}
+                          x2={w}
+                          y2={zeroY}
+                          stroke="rgba(var(--mono-rgb-100), 0.18)"
+                          strokeDasharray="4"
+                        />
+
+                        {ptsBack && (
+                          <polyline
+                            points={ptsBack}
+                            fill="none"
+                            stroke={getRColorByAccountType("Backtest")}
+                            strokeWidth="1.6"
+                            opacity={0.65}
+                            strokeDasharray="2"
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                          />
+                        )}
+                        {ptsDemo && (
+                          <polyline
+                            points={ptsDemo}
+                            fill="none"
+                            stroke={getRColorByAccountType("Demo")}
+                            strokeWidth="1.8"
+                            opacity={0.8}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                          />
+                        )}
+                        {ptsLive && (
+                          <polyline
+                            points={ptsLive}
+                            fill="none"
+                            stroke={getRColorByAccountType("Live")}
+                            strokeWidth="2.6"
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                          />
+                        )}
+                      </svg>
+                    );
+                  })()}
+
+                  {/* Removed embedded strategy/suggestion duplicates; keep only primary modules elsewhere. */}
+                </div>
+
+                <div
+                  style={{
+                    ...cardTightStyle,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: SPACE.sm,
+                      marginBottom: SPACE.sm,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, opacity: 0.75 }}>
+                      🖼️ 最新复盘{" "}
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          opacity: 0.6,
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        （图表/Charts）
+                      </span>
+                    </div>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: SPACE.xs,
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      范围
+                      <select
+                        value={galleryScope}
+                        onChange={(e) =>
+                          setGalleryScope(e.target.value as AnalyticsScope)
+                        }
+                        style={selectStyle}
+                      >
+                        <option value="All">全部</option>
+                        <option value="Live">实盘</option>
+                        <option value="Backtest">回测</option>
+                        <option value="Demo">模拟</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "2px",
+                      color: "var(--text-faint)",
+                      fontSize: "0.8em",
+                    }}
+                  >
+                    {`范围内共 ${gallery.scopeTotal} 笔 · 候选 ${gallery.candidateCount} · 展示 ${gallery.items.length}`}
+                  </div>
+
+                  {!getResourceUrl ? (
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
+                      画廊不可用。
+                    </div>
+                  ) : gallery.items.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: SPACE.md,
+                      }}
+                    >
+                      {gallery.items.map((it) => (
+                        <button
+                          key={`gal-${it.tradePath}`}
+                          type="button"
+                          onClick={() => openFile(it.tradePath)}
+                          title={`${it.tradeName} • ${it.coverPath}`}
+                          onMouseEnter={onCoverMouseEnter}
+                          onMouseLeave={onCoverMouseLeave}
+                          onFocus={onCoverFocus}
+                          onBlur={onCoverBlur}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            height: "auto",
+                            minHeight: "140px",
+                            padding: 0,
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            background: `rgba(var(--mono-rgb-100), 0.03)`,
+                            cursor: "pointer",
+                            outline: "none",
+                            transition:
+                              "background-color 180ms ease, border-color 180ms ease",
+                            position: "relative",
+                            aspectRatio: "16 / 9",
+                          }}
+                        >
+                          {it.url ? (
+                            <>
+                              <img
+                                src={it.url}
+                                alt=""
                                 style={{
-                                  color: "var(--text-on-accent)",
-                                  fontSize: "0.75em",
-                                  fontWeight: 800,
-                                  textAlign: "left",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  flex: "1 1 auto",
+                                  position: "absolute",
+                                  inset: 0,
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  display: "block",
+                                  zIndex: 1,
                                 }}
-                              >
-                                {it.tradeName}
-                              </div>
+                              />
+
                               <div
                                 style={{
-                                  color:
-                                    it.pnl >= 0
+                                  position: "absolute",
+                                  top: SPACE.xs,
+                                  right: SPACE.xs,
+                                  zIndex: 2,
+                                  background:
+                                    it.accountType === "Live"
                                       ? V5_COLORS.live
-                                      : V5_COLORS.loss,
-                                  fontWeight: 800,
-                                  fontSize: "0.9em",
-                                  flex: "0 0 auto",
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {(() => {
-                                  const s = it.pnl
-                                    .toFixed(1)
-                                    .replace(/\.0$/, "");
-                                  return `${it.pnl > 0 ? "+" : ""}${s}`;
-                                })()}
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "flex-start",
-                              justifyContent: "space-between",
-                              padding: SPACE.md,
-                              color: "var(--text-muted)",
-                              fontSize: "0.9em",
-                              zIndex: 1,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                color: "var(--text-faint)",
-                              }}
-                            >
-                              无封面
-                            </div>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                width: "100%",
-                              }}
-                            >
-                              {it.tradeName}
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "baseline",
-                                width: "100%",
-                                gap: SPACE.sm,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: "0.8em",
-                                  color: "var(--text-faint)",
+                                      : it.accountType === "Backtest"
+                                        ? V5_COLORS.back
+                                        : V5_COLORS.demo,
                                   border:
                                     "1px solid var(--background-modifier-border)",
-                                  borderRadius: "999px",
-                                  padding: "2px 8px",
-                                  background: "var(--background-primary)",
+                                  color: "rgba(var(--mono-rgb-0), 0.9)",
+                                  fontSize: "0.6em",
+                                  fontWeight: 800,
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
                                 }}
                               >
                                 {it.accountType === "Live"
@@ -3668,57 +3562,170 @@ short mode\n\
                                     ? "回测"
                                     : "模拟"}
                               </div>
+
                               <div
                                 style={{
-                                  color:
-                                    it.pnl >= 0
-                                      ? V5_COLORS.win
-                                      : V5_COLORS.loss,
-                                  fontWeight: 900,
-                                  fontVariantNumeric: "tabular-nums",
+                                  position: "absolute",
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  zIndex: 2,
+                                  padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-end",
+                                  gap: "10px",
+                                  background:
+                                    "linear-gradient(rgba(var(--mono-rgb-0), 0), rgba(var(--mono-rgb-0), 0.9))",
                                 }}
                               >
-                                {(() => {
-                                  const s = it.pnl
-                                    .toFixed(1)
-                                    .replace(/\.0$/, "");
-                                  return `${it.pnl > 0 ? "+" : ""}${s}R`;
-                                })()}
+                                <div
+                                  style={{
+                                    color: "var(--text-on-accent)",
+                                    fontSize: "0.75em",
+                                    fontWeight: 800,
+                                    textAlign: "left",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    flex: "1 1 auto",
+                                  }}
+                                >
+                                  {it.tradeName}
+                                </div>
+                                <div
+                                  style={{
+                                    color:
+                                      it.pnl >= 0
+                                        ? V5_COLORS.live
+                                        : V5_COLORS.loss,
+                                    fontWeight: 800,
+                                    fontSize: "0.9em",
+                                    flex: "0 0 auto",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {(() => {
+                                    const s = it.pnl
+                                      .toFixed(1)
+                                      .replace(/\.0$/, "");
+                                    return `${it.pnl > 0 ? "+" : ""}${s}`;
+                                  })()}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                justifyContent: "space-between",
+                                padding: SPACE.md,
+                                color: "var(--text-muted)",
+                                fontSize: "0.9em",
+                                zIndex: 1,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  color: "var(--text-faint)",
+                                }}
+                              >
+                                无封面
+                              </div>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  width: "100%",
+                                }}
+                              >
+                                {it.tradeName}
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "baseline",
+                                  width: "100%",
+                                  gap: SPACE.sm,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "0.8em",
+                                    color: "var(--text-faint)",
+                                    border:
+                                      "1px solid var(--background-modifier-border)",
+                                    borderRadius: "999px",
+                                    padding: "2px 8px",
+                                    background: "var(--background-primary)",
+                                  }}
+                                >
+                                  {it.accountType === "Live"
+                                    ? "实盘"
+                                    : it.accountType === "Backtest"
+                                      ? "回测"
+                                      : "模拟"}
+                                </div>
+                                <div
+                                  style={{
+                                    color:
+                                      it.pnl >= 0
+                                        ? V5_COLORS.win
+                                        : V5_COLORS.loss,
+                                    fontWeight: 900,
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {(() => {
+                                    const s = it.pnl
+                                      .toFixed(1)
+                                      .replace(/\.0$/, "");
+                                    return `${it.pnl > 0 ? "+" : ""}${s}R`;
+                                  })()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或
-                    图片路径。
-                  </div>
-                )}
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
+                      暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或
+                      图片路径。
+                    </div>
+                  )}
 
-                <div
-                  style={{
-                    textAlign: "center",
-                    marginTop: SPACE.md,
-                    paddingTop: SPACE.sm,
-                    borderTop: "1px solid var(--background-modifier-border)",
-                  }}
-                >
-                  <a
-                    href={gallerySearchHref}
+                  <div
                     style={{
-                      color: "var(--text-accent)",
-                      textDecoration: "none",
-                      fontSize: "0.85em",
-                      fontWeight: 700,
+                      textAlign: "center",
+                      marginTop: SPACE.md,
+                      paddingTop: SPACE.sm,
+                      borderTop: "1px solid var(--background-modifier-border)",
                     }}
                   >
-                    📂 查看所有图表
-                  </a>
+                    <a
+                      href={gallerySearchHref}
+                      style={{
+                        color: "var(--text-accent)",
+                        textDecoration: "none",
+                        fontSize: "0.85em",
+                        fontWeight: 700,
+                      }}
+                    >
+                      📂 查看所有图表
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3728,929 +3735,957 @@ short mode\n\
 
       {activePage === "learn" ? (
         <>
-          <div
-            style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>📚 学习模块</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              Learning
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
+          <div style={glassCardStyle}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "12px",
-                marginBottom: "8px",
+                marginBottom: "16px",
               }}
             >
-              <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
               <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "10px",
+                }}
               >
-                <button
-                  type="button"
-                  disabled={!can("srs:review-flashcards")}
-                  onClick={() => action("srs:review-flashcards")}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={
-                    can("srs:review-flashcards")
-                      ? buttonStyle
-                      : disabledButtonStyle
-                  }
-                >
-                  复习
-                </button>
-                <button
-                  type="button"
-                  onClick={reloadMemory}
-                  disabled={!loadMemory || memoryBusy}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={
-                    !loadMemory || memoryBusy
-                      ? buttonSmDisabledStyle
-                      : buttonSmStyle
-                  }
-                >
-                  刷新
-                </button>
-                <button
-                  type="button"
-                  onClick={hardRefreshMemory}
-                  disabled={!loadMemory || memoryBusy}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={
-                    !loadMemory || memoryBusy
-                      ? buttonSmDisabledStyle
-                      : buttonSmStyle
-                  }
-                >
-                  强制刷新
-                </button>
+                <div style={{ fontWeight: 700, fontSize: "1.1em" }}>📚 学习模块</div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  Learning
+                </div>
               </div>
             </div>
 
-            {!can("srs:review-flashcards") && (
+            <div
+              style={{
+                ...glassPanelStyle,
+                marginBottom: "16px",
+              }}
+            >
               <div
                 style={{
-                  color: "var(--text-faint)",
-                  fontSize: "0.9em",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
                   marginBottom: "8px",
                 }}
               >
-                SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards
-                笔记计算。
+                <div style={{ fontWeight: 600 }}>记忆 / SRS</div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <button
+                    type="button"
+                    disabled={!can("srs:review-flashcards")}
+                    onClick={() => action("srs:review-flashcards")}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      can("srs:review-flashcards")
+                        ? buttonStyle
+                        : disabledButtonStyle
+                    }
+                  >
+                    复习
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reloadMemory}
+                    disabled={!loadMemory || memoryBusy}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      !loadMemory || memoryBusy
+                        ? buttonSmDisabledStyle
+                        : buttonSmStyle
+                    }
+                  >
+                    刷新
+                  </button>
+                  <button
+                    type="button"
+                    onClick={hardRefreshMemory}
+                    disabled={!loadMemory || memoryBusy}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={
+                      !loadMemory || memoryBusy
+                        ? buttonSmDisabledStyle
+                        : buttonSmStyle
+                    }
+                  >
+                    强制刷新
+                  </button>
+                </div>
               </div>
-            )}
 
-            {memoryError ? (
-              <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-                {memoryError}
-              </div>
-            ) : memoryBusy ? (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                加载中…
-              </div>
-            ) : memory ? (
-              <div>
+              {!can("srs:review-flashcards") && (
                 <div
                   style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "12px",
-                    color: "var(--text-muted)",
+                    color: "var(--text-faint)",
                     fontSize: "0.9em",
-                    marginBottom: "10px",
+                    marginBottom: "8px",
                   }}
                 >
-                  <div>
-                    总计：<strong>{memory.total}</strong>
-                  </div>
-                  <div>
-                    到期（≤{settings.srsDueThresholdDays}天）：{" "}
-                    <strong>{memory.due}</strong>
-                  </div>
-                  <div>
-                    掌握度：<strong>{memory.masteryPct}%</strong>
-                  </div>
-                  <div>
-                    负载（7天）：<strong>{memory.load7d}</strong>
-                  </div>
-                  <div>
-                    状态：<strong>{memory.status}</strong>
-                  </div>
+                  SRS 插件不可用（适配器已降级）。统计仍会从 #flashcards
+                  笔记计算。
                 </div>
+              )}
 
-                {(() => {
-                  const pTotal = Math.max(1, memory.total);
-                  const sBase =
-                    (memory.cnt?.sNorm ?? 0) + (memory.cnt?.sRev ?? 0) * 2;
-                  const mMulti =
-                    (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
-                  const cloze = memory.cnt?.cloze ?? 0;
-
-                  const seg = (n: number) =>
-                    `${Math.max(0, (n / pTotal) * 100)}%`;
-
-                  return (
-                    <>
-                      <div
-                        style={{
-                          height: "8px",
-                          width: "100%",
-                          borderRadius: "4px",
-                          overflow: "hidden",
-                          background: "var(--background-modifier-border)",
-                          display: "flex",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: seg(memory.cnt?.sNorm ?? 0),
-                            background: "var(--text-muted)",
-                            opacity: 0.5,
-                          }}
-                        />
-                        <div
-                          style={{
-                            width: seg((memory.cnt?.sRev ?? 0) * 2),
-                            background: "var(--text-muted)",
-                            opacity: 0.35,
-                          }}
-                        />
-                        <div
-                          style={{
-                            width: seg(memory.cnt?.mNorm ?? 0),
-                            background: "var(--interactive-accent)",
-                            opacity: 0.55,
-                          }}
-                        />
-                        <div
-                          style={{
-                            width: seg((memory.cnt?.mRev ?? 0) * 2),
-                            background: "var(--interactive-accent)",
-                            opacity: 0.35,
-                          }}
-                        />
-                        <div
-                          style={{
-                            width: seg(memory.cnt?.cloze ?? 0),
-                            background: "var(--interactive-accent)",
-                            opacity: 0.85,
-                          }}
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr",
-                          gap: "10px",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "10px",
-                            textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontSize: "0.75em",
-                              fontWeight: 700,
-                              marginBottom: "4px",
-                            }}
-                          >
-                            基础
-                          </div>
-                          <div style={{ fontWeight: 800 }}>{sBase}</div>
-                        </div>
-
-                        <div
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "10px",
-                            textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontSize: "0.75em",
-                              fontWeight: 700,
-                              marginBottom: "4px",
-                            }}
-                          >
-                            多选
-                          </div>
-                          <div style={{ fontWeight: 800 }}>{mMulti}</div>
-                        </div>
-
-                        <div
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "10px",
-                            textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontSize: "0.75em",
-                              fontWeight: 700,
-                              marginBottom: "4px",
-                            }}
-                          >
-                            填空
-                          </div>
-                          <div style={{ fontWeight: 800 }}>{cloze}</div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-
-                {(() => {
-                  const series = memory.loadNext7;
-                  const max = Math.max(3, ...series.map((x) => x.count || 0));
-                  return (
-                    <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "10px",
-                        background: "rgba(var(--mono-rgb-100), 0.02)",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          justifyContent: "space-between",
-                          gap: "10px",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <div style={{ fontWeight: 700, fontSize: "0.9em" }}>
-                          未来 7 天负载
-                        </div>
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.85em",
-                          }}
-                        >
-                          +1…+7
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-end",
-                          gap: "10px",
-                          height: "120px",
-                        }}
-                      >
-                        {series.map((x, idx) => {
-                          const h = Math.max(
-                            4,
-                            Math.round((Math.max(0, x.count || 0) / max) * 100)
-                          );
-                          const has = (x.count || 0) > 0;
-                          return (
-                            <div
-                              key={`mem-load-${x.dateIso}-${idx}`}
-                              style={{
-                                flex: "1 1 0",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                gap: "6px",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "8px",
-                                  height: `${h}%`,
-                                  minHeight: "4px",
-                                  borderRadius: "4px",
-                                  background: has
-                                    ? V5_COLORS.accent
-                                    : "var(--background-modifier-border)",
-                                  opacity: has ? 0.85 : 0.6,
-                                }}
-                              />
-                              <div
-                                style={{
-                                  fontSize: "0.75em",
-                                  color: "var(--text-faint)",
-                                  lineHeight: 1,
-                                }}
-                              >
-                                +{idx + 1}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {(() => {
-                  const canRecommendFocus =
-                    !memoryIgnoreFocus &&
-                    memory.due > 0 &&
-                    Boolean(memory.focusFile);
-
-                  const focusRec =
-                    canRecommendFocus && memory.focusFile
-                      ? {
-                        type: "Focus" as const,
-                        title: memory.focusFile.name.replace(/\.md$/i, ""),
-                        path: memory.focusFile.path,
-                        desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
-                      }
-                      : null;
-
-                  const courseRec = course?.hybridRec
-                    ? (() => {
-                      const rec = course.hybridRec;
-                      const title = String(
-                        rec.data.t || rec.data.q || "推荐"
-                      );
-                      const path = String((rec.data as any).path || "");
-                      const desc = rec.type === "New" ? "新主题" : "闪卡测验";
-                      return { type: rec.type, title, path, desc } as const;
-                    })()
-                    : null;
-
-                  const quiz =
-                    memory.quizPool.length > 0
-                      ? memory.quizPool[
-                      Math.max(0, memoryShakeIndex) % memory.quizPool.length
-                      ]
-                      : null;
-                  const randomRec = quiz
-                    ? {
-                      type: "Shake" as const,
-                      title: String(quiz.q || quiz.file),
-                      path: String(quiz.path),
-                      desc: "🎲 随机抽取",
-                    }
-                    : null;
-
-                  const rec = focusRec ?? courseRec ?? randomRec;
-                  if (!rec) return null;
-
-                  const label =
-                    rec.type === "Focus"
-                      ? "🔥 优先复习"
-                      : rec.type === "New"
-                        ? "🚀 推荐"
-                        : rec.type === "Review"
-                          ? "🔄 推荐"
-                          : "🎲 随机抽取";
-
-                  const onShake = () => {
-                    setMemoryIgnoreFocus(true);
-                    if (memory.quizPool.length > 0) {
-                      const next = Math.floor(
-                        Math.random() * memory.quizPool.length
-                      );
-                      setMemoryShakeIndex(next);
-                    } else {
-                      setMemoryShakeIndex((x) => x + 1);
-                    }
-                  };
-
-                  return (
-                    <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "10px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                        marginBottom: "10px",
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                      }}
-                    >
-                      <div style={{ flex: "1 1 auto" }}>
-                        <div
-                          style={{
-                            fontSize: "0.85em",
-                            fontWeight: 700,
-                            color: "var(--text-muted)",
-                            marginBottom: "6px",
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div style={{ marginBottom: "6px" }}>
-                          <button
-                            type="button"
-                            onClick={() => openFile(String(rec.path))}
-                            style={textButtonStrongStyle}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
-                          >
-                            {String(rec.title)}
-                          </button>
-                        </div>
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.85em",
-                          }}
-                        >
-                          {rec.desc}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={onShake}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
-                        style={buttonSmStyle}
-                        title="摇一摇换题（跳过优先）"
-                      >
-                        🎲
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {memory.focusFile ? (
+              {memoryError ? (
+                <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+                  {memoryError}
+                </div>
+              ) : memoryBusy ? (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  加载中…
+                </div>
+              ) : memory ? (
+                <div>
                   <div
                     style={{
-                      marginBottom: "10px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "12px",
                       color: "var(--text-muted)",
                       fontSize: "0.9em",
-                    }}
-                  >
-                    焦点：{" "}
-                    <button
-                      type="button"
-                      onClick={() => openFile(memory.focusFile!.path)}
-                      style={textButtonSemiboldStyle}
-                      onMouseEnter={onTextBtnMouseEnter}
-                      onMouseLeave={onTextBtnMouseLeave}
-                      onFocus={onTextBtnFocus}
-                      onBlur={onTextBtnBlur}
-                    >
-                      {memory.focusFile.name.replace(/\.md$/i, "")}
-                    </button>
-                    <span
-                      style={{ marginLeft: "8px", color: "var(--text-faint)" }}
-                    >
-                      到期: {memory.focusFile.due} | 易度:{" "}
-                      {memory.focusFile.avgEase}
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    style={{
                       marginBottom: "10px",
-                      color: "var(--text-faint)",
-                      fontSize: "0.9em",
                     }}
                   >
-                    暂无焦点卡片。
-                  </div>
-                )}
-
-                {memory.quizPool.length > 0 ? (
-                  <div>
-                    <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                      随机抽题（{settings.srsRandomQuizCount}）
+                    <div>
+                      总计：<strong>{memory.total}</strong>
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                      {memory.quizPool.map((q, idx) => (
-                        <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                          <button
-                            type="button"
-                            onClick={() => openFile(q.path)}
-                            style={textButtonStyle}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
-                          >
-                            {q.q || q.file}
-                          </button>
-                          <span
+                    <div>
+                      到期（≤{settings.srsDueThresholdDays}天）：{" "}
+                      <strong>{memory.due}</strong>
+                    </div>
+                    <div>
+                      掌握度：<strong>{memory.masteryPct}%</strong>
+                    </div>
+                    <div>
+                      负载（7天）：<strong>{memory.load7d}</strong>
+                    </div>
+                    <div>
+                      状态：<strong>{memory.status}</strong>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const pTotal = Math.max(1, memory.total);
+                    const sBase =
+                      (memory.cnt?.sNorm ?? 0) + (memory.cnt?.sRev ?? 0) * 2;
+                    const mMulti =
+                      (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
+                    const cloze = memory.cnt?.cloze ?? 0;
+
+                    const seg = (n: number) =>
+                      `${Math.max(0, (n / pTotal) * 100)}%`;
+
+                    return (
+                      <>
+                        <div
+                          style={{
+                            height: "8px",
+                            width: "100%",
+                            borderRadius: "4px",
+                            overflow: "hidden",
+                            background: "var(--background-modifier-border)",
+                            display: "flex",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div
                             style={{
-                              marginLeft: "8px",
+                              width: seg(memory.cnt?.sNorm ?? 0),
+                              background: "var(--text-muted)",
+                              opacity: 0.5,
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: seg((memory.cnt?.sRev ?? 0) * 2),
+                              background: "var(--text-muted)",
+                              opacity: 0.35,
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: seg(memory.cnt?.mNorm ?? 0),
+                              background: "var(--interactive-accent)",
+                              opacity: 0.55,
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: seg((memory.cnt?.mRev ?? 0) * 2),
+                              background: "var(--interactive-accent)",
+                              opacity: 0.35,
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: seg(memory.cnt?.cloze ?? 0),
+                              background: "var(--interactive-accent)",
+                              opacity: 0.85,
+                            }}
+                          />
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr",
+                            gap: "10px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                              padding: "10px",
+                              textAlign: "center",
+                              background: "rgba(var(--mono-rgb-100), 0.02)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                color: "var(--text-muted)",
+                                fontSize: "0.75em",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              }}
+                            >
+                              基础
+                            </div>
+                            <div style={{ fontWeight: 800 }}>{sBase}</div>
+                          </div>
+
+                          <div
+                            style={{
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                              padding: "10px",
+                              textAlign: "center",
+                              background: "rgba(var(--mono-rgb-100), 0.02)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                color: "var(--text-muted)",
+                                fontSize: "0.75em",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              }}
+                            >
+                              多选
+                            </div>
+                            <div style={{ fontWeight: 800 }}>{mMulti}</div>
+                          </div>
+
+                          <div
+                            style={{
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                              padding: "10px",
+                              textAlign: "center",
+                              background: "rgba(var(--mono-rgb-100), 0.02)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                color: "var(--text-muted)",
+                                fontSize: "0.75em",
+                                fontWeight: 700,
+                                marginBottom: "4px",
+                              }}
+                            >
+                              填空
+                            </div>
+                            <div style={{ fontWeight: 800 }}>{cloze}</div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {(() => {
+                    const series = memory.loadNext7;
+                    const max = Math.max(3, ...series.map((x) => x.count || 0));
+                    return (
+                      <div
+                        style={{
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          background: "rgba(var(--mono-rgb-100), 0.02)",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            justifyContent: "space-between",
+                            gap: "10px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, fontSize: "0.9em" }}>
+                            未来 7 天负载
+                          </div>
+                          <div
+                            style={{
                               color: "var(--text-faint)",
                               fontSize: "0.85em",
                             }}
                           >
-                            {q.file}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    在 #flashcards 笔记中未找到可抽取题库。
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                记忆数据不可用。
-              </div>
-            )}
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-                marginBottom: "8px",
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>
-                课程{" "}
-                <span
-                  style={{
-                    fontWeight: 500,
-                    color: "var(--text-muted)",
-                    fontSize: "0.85em",
-                  }}
-                >
-                  (Course)
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={reloadCourse}
-                disabled={!loadCourse || courseBusy}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
-                style={
-                  !loadCourse || courseBusy
-                    ? buttonSmDisabledStyle
-                    : buttonSmStyle
-                }
-              >
-                刷新
-              </button>
-            </div>
-
-            {courseError ? (
-              <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-                {courseError}
-              </div>
-            ) : courseBusy ? (
-              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                加载中…
-              </div>
-            ) : course && course.syllabus.length > 0 ? (
-              <div>
-                {course.hybridRec
-                  ? (() => {
-                    const rec = course.hybridRec;
-                    const sid = simpleCourseId(rec.data.id);
-                    const link =
-                      course.linksById[rec.data.id] || course.linksById[sid];
-                    const prefix =
-                      rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                    return (
-                      <div
-                        style={{
-                          border:
-                            "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                          padding: "10px",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <div>
-                            {link ? (
-                              <button
-                                type="button"
-                                onClick={() => openFile(link.path)}
-                                style={textButtonSemiboldStyle}
-                                onMouseEnter={onTextBtnMouseEnter}
-                                onMouseLeave={onTextBtnMouseLeave}
-                                onFocus={onTextBtnFocus}
-                                onBlur={onTextBtnBlur}
-                              >
-                                {prefix}: {String(rec.data.t ?? rec.data.id)}
-                              </button>
-                            ) : (
-                              <span style={{ color: "var(--text-faint)" }}>
-                                {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                （笔记未创建）
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontFamily: "var(--font-monospace)",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {rec.data.id}
+                            +1…+7
                           </div>
                         </div>
+
                         <div
                           style={{
-                            marginTop: "6px",
-                            color: "var(--text-muted)",
-                            fontSize: "0.85em",
                             display: "flex",
-                            gap: "12px",
-                            flexWrap: "wrap",
+                            alignItems: "flex-end",
+                            gap: "10px",
+                            height: "120px",
                           }}
                         >
-                          <span>
-                            章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                          </span>
-                          <span>
-                            进度:{" "}
-                            <strong>
-                              {course.progress.doneCount}/
-                              {course.progress.totalCount}
-                            </strong>
-                          </span>
-                          <span>
-                            笔记:{" "}
-                            <strong>{link ? "已创建" : "未创建"}</strong>
-                          </span>
+                          {series.map((x, idx) => {
+                            const h = Math.max(
+                              4,
+                              Math.round((Math.max(0, x.count || 0) / max) * 100)
+                            );
+                            const has = (x.count || 0) > 0;
+                            return (
+                              <div
+                                key={`mem-load-${x.dateIso}-${idx}`}
+                                style={{
+                                  flex: "1 1 0",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "8px",
+                                    height: `${h}%`,
+                                    minHeight: "4px",
+                                    borderRadius: "4px",
+                                    background: has
+                                      ? V5_COLORS.accent
+                                      : "var(--background-modifier-border)",
+                                    opacity: has ? 0.85 : 0.6,
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    fontSize: "0.75em",
+                                    color: "var(--text-faint)",
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  +{idx + 1}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
-                  })()
-                  : null}
+                  })()}
 
-                {course.upNext.length > 0 && (
-                  <div
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    接下来（窗口={settings.courseRecommendationWindow}）：{" "}
-                    {course.upNext.map((x, idx) => {
-                      const label = String(x.item.id);
-                      if (x.link) {
-                        return (
-                          <React.Fragment key={`up-${x.item.id}`}>
-                            {idx > 0 ? ", " : ""}
+                  {(() => {
+                    const canRecommendFocus =
+                      !memoryIgnoreFocus &&
+                      memory.due > 0 &&
+                      Boolean(memory.focusFile);
+
+                    const focusRec =
+                      canRecommendFocus && memory.focusFile
+                        ? {
+                          type: "Focus" as const,
+                          title: memory.focusFile.name.replace(/\.md$/i, ""),
+                          path: memory.focusFile.path,
+                          desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
+                        }
+                        : null;
+
+                    const courseRec = course?.hybridRec
+                      ? (() => {
+                        const rec = course.hybridRec;
+                        const title = String(
+                          rec.data.t || rec.data.q || "推荐"
+                        );
+                        const path = String((rec.data as any).path || "");
+                        const desc = rec.type === "New" ? "新主题" : "闪卡测验";
+                        return { type: rec.type, title, path, desc } as const;
+                      })()
+                      : null;
+
+                    const quiz =
+                      memory.quizPool.length > 0
+                        ? memory.quizPool[
+                        Math.max(0, memoryShakeIndex) % memory.quizPool.length
+                        ]
+                        : null;
+                    const randomRec = quiz
+                      ? {
+                        type: "Shake" as const,
+                        title: String(quiz.q || quiz.file),
+                        path: String(quiz.path),
+                        desc: "🎲 随机抽取",
+                      }
+                      : null;
+
+                    const rec = focusRec ?? courseRec ?? randomRec;
+                    if (!rec) return null;
+
+                    const label =
+                      rec.type === "Focus"
+                        ? "🔥 优先复习"
+                        : rec.type === "New"
+                          ? "🚀 推荐"
+                          : rec.type === "Review"
+                            ? "🔄 推荐"
+                            : "🎲 随机抽取";
+
+                    const onShake = () => {
+                      setMemoryIgnoreFocus(true);
+                      if (memory.quizPool.length > 0) {
+                        const next = Math.floor(
+                          Math.random() * memory.quizPool.length
+                        );
+                        setMemoryShakeIndex(next);
+                      } else {
+                        setMemoryShakeIndex((x) => x + 1);
+                      }
+                    };
+
+                    return (
+                      <div
+                        style={{
+                          border: "1px solid var(--background-modifier-border)",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          marginBottom: "10px",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                        }}
+                      >
+                        <div style={{ flex: "1 1 auto" }}>
+                          <div
+                            style={{
+                              fontSize: "0.85em",
+                              fontWeight: 700,
+                              color: "var(--text-muted)",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {label}
+                          </div>
+                          <div style={{ marginBottom: "6px" }}>
                             <button
                               type="button"
-                              onClick={() => openFile(x.link!.path)}
+                              onClick={() => openFile(String(rec.path))}
+                              style={textButtonStrongStyle}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
+                            >
+                              {String(rec.title)}
+                            </button>
+                          </div>
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.85em",
+                            }}
+                          >
+                            {rec.desc}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={onShake}
+                          onMouseEnter={onBtnMouseEnter}
+                          onMouseLeave={onBtnMouseLeave}
+                          onFocus={onBtnFocus}
+                          onBlur={onBtnBlur}
+                          style={buttonSmStyle}
+                          title="摇一摇换题（跳过优先）"
+                        >
+                          🎲
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {memory.focusFile ? (
+                    <div
+                      style={{
+                        marginBottom: "10px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      焦点：{" "}
+                      <button
+                        type="button"
+                        onClick={() => openFile(memory.focusFile!.path)}
+                        style={textButtonSemiboldStyle}
+                        onMouseEnter={onTextBtnMouseEnter}
+                        onMouseLeave={onTextBtnMouseLeave}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
+                      >
+                        {memory.focusFile.name.replace(/\.md$/i, "")}
+                      </button>
+                      <span
+                        style={{ marginLeft: "8px", color: "var(--text-faint)" }}
+                      >
+                        到期: {memory.focusFile.due} | 易度:{" "}
+                        {memory.focusFile.avgEase}
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        marginBottom: "10px",
+                        color: "var(--text-faint)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      暂无焦点卡片。
+                    </div>
+                  )}
+
+                  {memory.quizPool.length > 0 ? (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                        随机抽题（{settings.srsRandomQuizCount}）
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                        {memory.quizPool.map((q, idx) => (
+                          <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
+                            <button
+                              type="button"
+                              onClick={() => openFile(q.path)}
                               style={textButtonStyle}
                               onMouseEnter={onTextBtnMouseEnter}
                               onMouseLeave={onTextBtnMouseLeave}
                               onFocus={onTextBtnFocus}
                               onBlur={onTextBtnBlur}
                             >
-                              {label}
+                              {q.q || q.file}
                             </button>
+                            <span
+                              style={{
+                                marginLeft: "8px",
+                                color: "var(--text-faint)",
+                                fontSize: "0.85em",
+                              }}
+                            >
+                              {q.file}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
+                      在 #flashcards 笔记中未找到可抽取题库。
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  记忆数据不可用。
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                ...glassPanelStyle,
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "8px",
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>
+                  课程{" "}
+                  <span
+                    style={{
+                      fontWeight: 500,
+                      color: "var(--text-muted)",
+                      fontSize: "0.85em",
+                    }}
+                  >
+                    (Course)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={reloadCourse}
+                  disabled={!loadCourse || courseBusy}
+                  onMouseEnter={onBtnMouseEnter}
+                  onMouseLeave={onBtnMouseLeave}
+                  onFocus={onBtnFocus}
+                  onBlur={onBtnBlur}
+                  style={
+                    !loadCourse || courseBusy
+                      ? buttonSmDisabledStyle
+                      : buttonSmStyle
+                  }
+                >
+                  刷新
+                </button>
+              </div>
+
+              {courseError ? (
+                <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+                  {courseError}
+                </div>
+              ) : courseBusy ? (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  加载中…
+                </div>
+              ) : course && course.syllabus.length > 0 ? (
+                <div>
+                  {course.hybridRec
+                    ? (() => {
+                      const rec = course.hybridRec;
+                      const sid = simpleCourseId(rec.data.id);
+                      const link =
+                        course.linksById[rec.data.id] || course.linksById[sid];
+                      const prefix =
+                        rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                      return (
+                        <div
+                          style={{
+                            border:
+                              "1px solid var(--background-modifier-border)",
+                            borderRadius: "8px",
+                            padding: "10px",
+                            background: "rgba(var(--mono-rgb-100), 0.03)",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                            }}
+                          >
+                            <div>
+                              {link ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openFile(link.path)}
+                                  style={textButtonSemiboldStyle}
+                                  onMouseEnter={onTextBtnMouseEnter}
+                                  onMouseLeave={onTextBtnMouseLeave}
+                                  onFocus={onTextBtnFocus}
+                                  onBlur={onTextBtnBlur}
+                                >
+                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                </button>
+                              ) : (
+                                <span style={{ color: "var(--text-faint)" }}>
+                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                  （笔记未创建）
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                color: "var(--text-muted)",
+                                fontFamily: "var(--font-monospace)",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {rec.data.id}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              marginTop: "6px",
+                              color: "var(--text-muted)",
+                              fontSize: "0.85em",
+                              display: "flex",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span>
+                              章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                            </span>
+                            <span>
+                              进度:{" "}
+                              <strong>
+                                {course.progress.doneCount}/
+                                {course.progress.totalCount}
+                              </strong>
+                            </span>
+                            <span>
+                              笔记:{" "}
+                              <strong>{link ? "已创建" : "未创建"}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()
+                    : null}
+
+                  {course.upNext.length > 0 && (
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      接下来（窗口={settings.courseRecommendationWindow}）：{" "}
+                      {course.upNext.map((x, idx) => {
+                        const label = String(x.item.id);
+                        if (x.link) {
+                          return (
+                            <React.Fragment key={`up-${x.item.id}`}>
+                              {idx > 0 ? ", " : ""}
+                              <button
+                                type="button"
+                                onClick={() => openFile(x.link!.path)}
+                                style={textButtonStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {label}
+                              </button>
+                            </React.Fragment>
+                          );
+                        }
+                        return (
+                          <React.Fragment key={`up-${x.item.id}`}>
+                            {idx > 0 ? ", " : ""}
+                            <span style={{ color: "var(--text-faint)" }}>
+                              {label}
+                            </span>
                           </React.Fragment>
                         );
-                      }
-                      return (
-                        <React.Fragment key={`up-${x.item.id}`}>
-                          {idx > 0 ? ", " : ""}
-                          <span style={{ color: "var(--text-faint)" }}>
-                            {label}
-                          </span>
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                )}
+                      })}
+                    </div>
+                  )}
 
-                <details>
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                      userSelect: "none",
-                    }}
-                  >
-                    展开课程矩阵
-                  </summary>
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "20px",
-                    }}
-                  >
-                    {course.phases.map((ph) => (
-                      <div
-                        key={`ph-${ph.phase}`}
-                        style={{ marginBottom: "12px" }}
-                      >
+                  <details>
+                    <summary
+                      style={{
+                        cursor: "pointer",
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                        userSelect: "none",
+                      }}
+                    >
+                      展开课程矩阵
+                    </summary>
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "20px",
+                      }}
+                    >
+                      {course.phases.map((ph) => (
                         <div
-                          style={{
-                            fontSize: "0.85em",
-                            color: "var(--text-muted)",
-                            marginBottom: "6px",
-                            borderBottom:
-                              "1px solid var(--background-modifier-border)",
-                            paddingBottom: "4px",
-                          }}
+                          key={`ph-${ph.phase}`}
+                          style={{ marginBottom: "12px" }}
                         >
-                          {ph.phase}
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "6px",
-                          }}
-                        >
-                          {ph.items.map((c) => {
-                            const bg = c.isDone
-                              ? V5_COLORS.win
-                              : c.hasNote
-                                ? V5_COLORS.accent
-                                : "rgba(var(--mono-rgb-100), 0.06)";
-                            const fg = c.isDone
-                              ? "var(--background-primary)"
-                              : c.hasNote
+                          <div
+                            style={{
+                              fontSize: "0.85em",
+                              color: "var(--text-muted)",
+                              marginBottom: "6px",
+                              borderBottom:
+                                "1px solid var(--background-modifier-border)",
+                              paddingBottom: "4px",
+                            }}
+                          >
+                            {ph.phase}
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "6px",
+                            }}
+                          >
+                            {ph.items.map((c) => {
+                              const bg = c.isDone
+                                ? V5_COLORS.win
+                                : c.hasNote
+                                  ? V5_COLORS.accent
+                                  : "rgba(var(--mono-rgb-100), 0.06)";
+                              const fg = c.isDone
                                 ? "var(--background-primary)"
-                                : "var(--text-faint)";
-                            const title = `${c.item.id}: ${String(
-                              c.item.t ?? ""
-                            )}`;
-                            return (
-                              <button
-                                key={`c-${ph.phase}-${c.item.id}`}
-                                type="button"
-                                disabled={!c.link}
-                                onClick={() => c.link && openFile(c.link.path)}
-                                title={title}
-                                onMouseEnter={onMiniCellMouseEnter}
-                                onMouseLeave={onMiniCellMouseLeave}
-                                onFocus={onMiniCellFocus}
-                                onBlur={onMiniCellBlur}
-                                style={{
-                                  width: "26px",
-                                  height: "26px",
-                                  borderRadius: "6px",
-                                  flexShrink: 0,
-                                  padding: 0,
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  background: bg,
-                                  cursor: c.link ? "pointer" : "default",
-                                  opacity: c.link ? 1 : 0.75,
-                                  outline: "none",
-                                  transition:
-                                    "border-color 180ms ease, box-shadow 180ms ease",
-                                }}
-                              >
-                                <div
+                                : c.hasNote
+                                  ? "var(--background-primary)"
+                                  : "var(--text-faint)";
+                              const title = `${c.item.id}: ${String(
+                                c.item.t ?? ""
+                              )}`;
+                              return (
+                                <button
+                                  key={`c-${ph.phase}-${c.item.id}`}
+                                  type="button"
+                                  disabled={!c.link}
+                                  onClick={() => c.link && openFile(c.link.path)}
+                                  title={title}
+                                  onMouseEnter={onMiniCellMouseEnter}
+                                  onMouseLeave={onMiniCellMouseLeave}
+                                  onFocus={onMiniCellFocus}
+                                  onBlur={onMiniCellBlur}
                                   style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    width: "100%",
-                                    height: "100%",
-                                    color: fg,
-                                    fontSize: "0.65em",
-                                    fontWeight: 700,
-                                    letterSpacing: "-0.3px",
+                                    width: "26px",
+                                    height: "26px",
+                                    borderRadius: "6px",
+                                    flexShrink: 0,
+                                    padding: 0,
+                                    border:
+                                      "1px solid var(--background-modifier-border)",
+                                    background: bg,
+                                    cursor: c.link ? "pointer" : "default",
+                                    opacity: c.link ? 1 : 0.75,
+                                    outline: "none",
+                                    transition:
+                                      "border-color 180ms ease, box-shadow 180ms ease",
                                   }}
                                 >
-                                  {c.shortId}
-                                </div>
-                              </button>
-                            );
-                          })}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      width: "100%",
+                                      height: "100%",
+                                      color: fg,
+                                      fontSize: "0.65em",
+                                      fontWeight: 700,
+                                      letterSpacing: "-0.3px",
+                                    }}
+                                  >
+                                    {c.shortId}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              </div>
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course
-                相关笔记。
-              </div>
-            )}
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: "10px" }}>
-              策略仓库
-              <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                {" "}
-                （作战手册/Playbook）
-              </span>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course
+                  相关笔记。
+                </div>
+              )}
             </div>
 
-            <div style={{ marginBottom: "10px" }}>
-              <StrategyStats
-                total={strategyStats.total}
-                activeCount={strategyStats.activeCount}
-                learningCount={strategyStats.learningCount}
-                totalUses={strategyStats.totalUses}
-                onFilter={(f: string) => {
-                  // TODO: wire filtering state to StrategyList (future task)
-                  console.log("策略过滤：", f);
-                }}
-              />
-            </div>
+            <div
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "10px" }}>
+                策略仓库
+                <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  {" "}
+                  （作战手册/Playbook）
+                </span>
+              </div>
 
-            {(() => {
-              const cycle = (todayMarketCycle ?? "").trim();
-              if (!cycle) {
+              <div style={{ marginBottom: "10px" }}>
+                <StrategyStats
+                  total={strategyStats.total}
+                  activeCount={strategyStats.activeCount}
+                  learningCount={strategyStats.learningCount}
+                  totalUses={strategyStats.totalUses}
+                  onFilter={(f: string) => {
+                    // TODO: wire filtering state to StrategyList (future task)
+                    console.log("策略过滤：", f);
+                  }}
+                />
+              </div>
+
+              {(() => {
+                const cycle = (todayMarketCycle ?? "").trim();
+                if (!cycle) {
+                  return (
+                    <div
+                      style={{
+                        margin: "-6px 0 10px 0",
+                        padding: "10px 12px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        color: "var(--text-faint)",
+                        fontSize: "0.9em",
+                      }}
+                    >
+                      今日市场周期未设置（可在 今日/Today 里补充）。
+                    </div>
+                  );
+                }
+
+                const isActive = (statusRaw: unknown) => {
+                  const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
+                  if (!s) return false;
+                  return s.includes("实战") || s.toLowerCase().includes("active");
+                };
+
+                const picks = matchStrategies(strategyIndex, {
+                  marketCycle: cycle,
+                  limit: 6,
+                }).filter((s) => isActive((s as any).statusRaw));
+
                 return (
                   <div
                     style={{
@@ -4659,599 +4694,887 @@ short mode\n\
                       background: "rgba(var(--mono-rgb-100), 0.03)",
                       border: "1px solid var(--background-modifier-border)",
                       borderRadius: "8px",
-                      color: "var(--text-faint)",
-                      fontSize: "0.9em",
                     }}
                   >
-                    今日市场周期未设置（可在 今日/Today 里补充）。
+                    <div
+                      style={{ fontWeight: 700, opacity: 0.75, marginBottom: 6 }}
+                    >
+                      🌊 今日市场周期：{" "}
+                      <span
+                        style={{ color: "var(--text-accent)", fontWeight: 800 }}
+                      >
+                        {cycle}
+                      </span>
+                    </div>
+                    <div
+                      style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
+                    >
+                      {picks.length > 0 ? (
+                        <>
+                          推荐优先关注：{" "}
+                          {picks.map((s, idx) => (
+                            <React.Fragment key={`pb-pick-${s.path}`}>
+                              {idx > 0 ? " · " : ""}
+                              <button
+                                type="button"
+                                onClick={() => openFile(s.path)}
+                                style={textButtonNoWrapStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {String(s.canonicalName || s.name)}
+                              </button>
+                            </React.Fragment>
+                          ))}
+                        </>
+                      ) : (
+                        "暂无匹配的实战策略（可在策略卡片里补充状态/周期）。"
+                      )}
+                    </div>
                   </div>
                 );
-              }
+              })()}
 
-              const isActive = (statusRaw: unknown) => {
-                const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
-                if (!s) return false;
-                return s.includes("实战") || s.toLowerCase().includes("active");
-              };
-
-              const picks = matchStrategies(strategyIndex, {
-                marketCycle: cycle,
-                limit: 6,
-              }).filter((s) => isActive((s as any).statusRaw));
-
-              return (
-                <div
-                  style={{
-                    margin: "-6px 0 10px 0",
-                    padding: "10px 12px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div
-                    style={{ fontWeight: 700, opacity: 0.75, marginBottom: 6 }}
-                  >
-                    🌊 今日市场周期：{" "}
-                    <span
-                      style={{ color: "var(--text-accent)", fontWeight: 800 }}
-                    >
-                      {cycle}
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
-                  >
-                    {picks.length > 0 ? (
-                      <>
-                        推荐优先关注：{" "}
-                        {picks.map((s, idx) => (
-                          <React.Fragment key={`pb-pick-${s.path}`}>
-                            {idx > 0 ? " · " : ""}
-                            <button
-                              type="button"
-                              onClick={() => openFile(s.path)}
-                              style={textButtonNoWrapStyle}
-                              onMouseEnter={onTextBtnMouseEnter}
-                              onMouseLeave={onTextBtnMouseLeave}
-                              onFocus={onTextBtnFocus}
-                              onBlur={onTextBtnBlur}
-                            >
-                              {String(s.canonicalName || s.name)}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </>
-                    ) : (
-                      "暂无匹配的实战策略（可在策略卡片里补充状态/周期）。"
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div style={{ marginTop: "10px" }}>
-              <StrategyList
-                strategies={strategies}
-                onOpenFile={openFile}
-                perf={strategyPerf}
-                showTitle={false}
-                showControls={false}
-              />
-            </div>
-
-            <div
-              style={{
-                marginTop: "16px",
-                paddingTop: "12px",
-                borderTop: "1px solid var(--background-modifier-border)",
-              }}
-            >
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {(() => {
-                  const quickPath =
-                    "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => openFile(quickPath)}
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid var(--background-modifier-border)",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                        color: "var(--text-accent)",
-                        cursor: "pointer",
-                        fontSize: "0.85em",
-                        fontWeight: 700,
-                      }}
-                    >
-                      📚 作战手册（Brooks Playbook）
-                    </button>
-                  );
-                })()}
-
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    border: "1px solid var(--background-modifier-border)",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                    color: "var(--text-muted)",
-                    fontSize: "0.85em",
-                    fontWeight: 700,
-                  }}
-                >
-                  📖 Al Brooks经典（即将推出）
-                </span>
+              <div style={{ marginTop: "10px" }}>
+                <StrategyList
+                  strategies={strategies}
+                  onOpenFile={openFile}
+                  perf={strategyPerf}
+                  showTitle={false}
+                  showControls={false}
+                />
               </div>
-            </div>
 
-            <div
-              style={{
-                marginTop: "20px",
-                paddingTop: "15px",
-                borderTop: "1px solid var(--background-modifier-border)",
-              }}
-            >
               <div
-                style={{ fontWeight: 700, opacity: 0.7, marginBottom: "10px" }}
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "12px",
+                  borderTop: "1px solid var(--background-modifier-border)",
+                }}
               >
-                🏆 实战表现 (Performance)
-              </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {(() => {
+                    const quickPath =
+                      "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => openFile(quickPath)}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--background-modifier-border)",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          color: "var(--text-accent)",
+                          cursor: "pointer",
+                          fontSize: "0.85em",
+                          fontWeight: 700,
+                        }}
+                      >
+                        📚 作战手册（Brooks Playbook）
+                      </button>
+                    );
+                  })()}
 
-              {playbookPerfRows.length === 0 ? (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                  暂无可用的策略表现统计（需要交易记录与策略归因）。
-                </div>
-              ) : (
-                <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
+                  <span
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 72px 88px 60px",
-                      gap: "0px",
-                      padding: "8px 10px",
-                      borderBottom:
-                        "1px solid var(--background-modifier-border)",
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--background-modifier-border)",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
                       color: "var(--text-muted)",
                       fontSize: "0.85em",
                       fontWeight: 700,
                     }}
                   >
-                    <div>策略</div>
-                    <div>胜率</div>
-                    <div>盈亏</div>
-                    <div>次数</div>
-                  </div>
-
-                  {playbookPerfRows.map((r) => {
-                    const pnlColor =
-                      r.pnl > 0
-                        ? V5_COLORS.win
-                        : r.pnl < 0
-                          ? V5_COLORS.loss
-                          : "var(--text-muted)";
-
-                    return (
-                      <div
-                        key={`pb-perf-${r.canonical}`}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 72px 88px 60px",
-                          padding: "8px 10px",
-                          borderBottom:
-                            "1px solid var(--background-modifier-border)",
-                          fontSize: "0.9em",
-                          alignItems: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {r.path ? (
-                            <button
-                              type="button"
-                              onClick={() => openFile(r.path!)}
-                              style={textButtonStyle}
-                              onMouseEnter={onTextBtnMouseEnter}
-                              onMouseLeave={onTextBtnMouseLeave}
-                              onFocus={onTextBtnFocus}
-                              onBlur={onTextBtnBlur}
-                            >
-                              {r.canonical}
-                            </button>
-                          ) : (
-                            <span>{r.canonical}</span>
-                          )}
-                        </div>
-                        <div style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {r.winRate}%
-                        </div>
-                        <div
-                          style={{
-                            color: pnlColor,
-                            fontWeight: 800,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {r.pnl > 0 ? "+" : ""}
-                          {Math.round(r.pnl)}
-                        </div>
-                        <div style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {r.total}
-                        </div>
-                      </div>
-                    );
-                  })}
+                    📖 Al Brooks经典（即将推出）
+                  </span>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          {/* Gallery is rendered in the Analytics grid (with scope selector). */}
+              <div
+                style={{
+                  marginTop: "20px",
+                  paddingTop: "15px",
+                  borderTop: "1px solid var(--background-modifier-border)",
+                }}
+              >
+                <div
+                  style={{ fontWeight: 700, opacity: 0.7, marginBottom: "10px" }}
+                >
+                  🏆 实战表现 (Performance)
+                </div>
+
+                {playbookPerfRows.length === 0 ? (
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    暂无可用的策略表现统计（需要交易记录与策略归因）。
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 72px 88px 60px",
+                        gap: "0px",
+                        padding: "8px 10px",
+                        borderBottom:
+                          "1px solid var(--background-modifier-border)",
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                        fontWeight: 700,
+                      }}
+                    >
+                      <div>策略</div>
+                      <div>胜率</div>
+                      <div>盈亏</div>
+                      <div>次数</div>
+                    </div>
+
+                    {playbookPerfRows.map((r) => {
+                      const pnlColor =
+                        r.pnl > 0
+                          ? V5_COLORS.win
+                          : r.pnl < 0
+                            ? V5_COLORS.loss
+                            : "var(--text-muted)";
+
+                      return (
+                        <div
+                          key={`pb-perf-${r.canonical}`}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 72px 88px 60px",
+                            padding: "8px 10px",
+                            borderBottom:
+                              "1px solid var(--background-modifier-border)",
+                            fontSize: "0.9em",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {r.path ? (
+                              <button
+                                type="button"
+                                onClick={() => openFile(r.path!)}
+                                style={textButtonStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {r.canonical}
+                              </button>
+                            ) : (
+                              <span>{r.canonical}</span>
+                            )}
+                          </div>
+                          <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                            {r.winRate}%
+                          </div>
+                          <div
+                            style={{
+                              color: pnlColor,
+                              fontWeight: 800,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {r.pnl > 0 ? "+" : ""}
+                            {Math.round(r.pnl)}
+                          </div>
+                          <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                            {r.total}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Gallery is rendered in the Analytics grid (with scope selector). */}
+          </div>
         </>
       ) : null}
 
       {activePage === "manage" ? (
         <>
-          <div
-            style={{
-              margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
-              paddingBottom: SPACE.xs,
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: SPACE.sm,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>📉 管理模块</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              管理（Management）
+          <div style={glassCardStyle}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1.1em" }}>📉 管理模块</div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  Management
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div style={{ ...cardTightStyle, marginBottom: SPACE.xl }}>
-            {(() => {
-              const issueCount = schemaIssues.length;
-              const healthScore = Math.max(0, 100 - issueCount * 5);
-              const healthColor =
-                healthScore > 90
-                  ? V5_COLORS.win
-                  : healthScore > 60
-                    ? V5_COLORS.back
-                    : V5_COLORS.loss;
-              const files = paTagSnapshot?.files ?? 0;
-              const tags = paTagSnapshot
-                ? Object.keys(paTagSnapshot.tagMap).length
-                : 0;
+            <div style={{ ...glassPanelStyle, marginBottom: SPACE.xl }}>
+              {(() => {
+                const issueCount = schemaIssues.length;
+                const healthScore = Math.max(0, 100 - issueCount * 5);
+                const healthColor =
+                  healthScore > 90
+                    ? V5_COLORS.win
+                    : healthScore > 60
+                      ? V5_COLORS.back
+                      : V5_COLORS.loss;
+                const files = paTagSnapshot?.files ?? 0;
+                const tags = paTagSnapshot
+                  ? Object.keys(paTagSnapshot.tagMap).length
+                  : 0;
 
-              const issueByType = new Map<string, number>();
-              for (const it of schemaIssues) {
-                const k = (it.type ?? "未知").toString();
-                issueByType.set(k, (issueByType.get(k) ?? 0) + 1);
-              }
-              const topTypes = [...issueByType.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 8);
-
-              const topTags = paTagSnapshot
-                ? Object.entries(paTagSnapshot.tagMap)
+                const issueByType = new Map<string, number>();
+                for (const it of schemaIssues) {
+                  const k = (it.type ?? "未知").toString();
+                  issueByType.set(k, (issueByType.get(k) ?? 0) + 1);
+                }
+                const topTypes = [...issueByType.entries()]
                   .sort((a, b) => b[1] - a[1])
-                  .slice(0, 60)
-                : [];
+                  .slice(0, 8);
 
-              const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
+                const topTags = paTagSnapshot
+                  ? Object.entries(paTagSnapshot.tagMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 60)
+                  : [];
 
-              const prettySchemaVal = (val?: string) => {
-                let s = (val ?? "").toString().trim();
-                if (!s) return "";
-                const low = s.toLowerCase();
-                if (s === "Unknown" || low === "unknown") return "未知/Unknown";
-                if (s === "Empty" || low === "empty") return "空/Empty";
-                if (low === "null") return "空/null";
+                const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
 
-                // 中文(English) -> 中文/English
-                if (s.includes("(") && s.endsWith(")")) {
-                  const parts = s.split("(");
-                  const cn = (parts[0] || "").trim();
-                  const en = parts
-                    .slice(1)
-                    .join("(")
-                    .replace(/\)\s*$/, "")
-                    .trim();
-                  if (cn && en) return `${cn}/${en}`;
-                  if (cn) return cn;
-                  if (en) return `待补充/${en}`;
-                }
+                const prettySchemaVal = (val?: string) => {
+                  let s = (val ?? "").toString().trim();
+                  if (!s) return "";
+                  const low = s.toLowerCase();
+                  if (s === "Unknown" || low === "unknown") return "未知/Unknown";
+                  if (s === "Empty" || low === "empty") return "空/Empty";
+                  if (low === "null") return "空/null";
 
-                // 已是 pair，尽量保证中文在左
-                if (s.includes("/")) {
-                  const parts = s.split("/");
-                  const left = (parts[0] || "").trim();
-                  const right = parts.slice(1).join("/").trim();
-                  if (hasCJK(left)) return s;
-                  if (hasCJK(right)) return `${right}/${left}`;
-                  return `待补充/${s}`;
-                }
+                  // 中文(English) -> 中文/English
+                  if (s.includes("(") && s.endsWith(")")) {
+                    const parts = s.split("(");
+                    const cn = (parts[0] || "").trim();
+                    const en = parts
+                      .slice(1)
+                      .join("(")
+                      .replace(/\)\s*$/, "")
+                      .trim();
+                    if (cn && en) return `${cn}/${en}`;
+                    if (cn) return cn;
+                    if (en) return `待补充/${en}`;
+                  }
 
-                if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
-                return s;
-              };
+                  // 已是 pair，尽量保证中文在左
+                  if (s.includes("/")) {
+                    const parts = s.split("/");
+                    const left = (parts[0] || "").trim();
+                    const right = parts.slice(1).join("/").trim();
+                    if (hasCJK(left)) return s;
+                    if (hasCJK(right)) return `${right}/${left}`;
+                    return `待补充/${s}`;
+                  }
 
-              const prettyExecVal = (val?: string) => {
-                const s0 = (val ?? "").toString().trim();
-                if (!s0) return "未知/Unknown";
-                const low = s0.toLowerCase();
-                if (low.includes("unknown") || low === "null")
-                  return "未知/Unknown";
-                if (low.includes("perfect") || s0.includes("完美"))
-                  return "🟢 完美";
-                if (low.includes("fomo") || s0.includes("FOMO"))
-                  return "🔴 FOMO";
-                if (low.includes("tight") || s0.includes("止损太紧"))
-                  return "🔴 止损太紧";
-                if (low.includes("scratch") || s0.includes("主动"))
-                  return "🟡 主动离场";
-                if (
-                  low.includes("normal") ||
-                  low.includes("none") ||
-                  s0.includes("正常")
-                )
-                  return "🟢 正常";
-                return prettySchemaVal(s0) || "未知/Unknown";
-              };
+                  if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
+                  return s;
+                };
 
-              const topN = (
-                getter: (t: TradeRecord) => string | undefined,
-                pretty?: (v?: string) => string
-              ) => {
-                const map = new Map<string, number>();
-                for (const t of trades) {
-                  const raw = getter(t);
-                  const base = (raw ?? "").toString().trim();
-                  const v = (pretty ? pretty(base) : base) || "Unknown";
-                  if (!v) continue;
-                  map.set(v, (map.get(v) ?? 0) + 1);
-                }
-                return [...map.entries()]
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 5);
-              };
+                const prettyExecVal = (val?: string) => {
+                  const s0 = (val ?? "").toString().trim();
+                  if (!s0) return "未知/Unknown";
+                  const low = s0.toLowerCase();
+                  if (low.includes("unknown") || low === "null")
+                    return "未知/Unknown";
+                  if (low.includes("perfect") || s0.includes("完美"))
+                    return "🟢 完美";
+                  if (low.includes("fomo") || s0.includes("FOMO"))
+                    return "🔴 FOMO";
+                  if (low.includes("tight") || s0.includes("止损太紧"))
+                    return "🔴 止损太紧";
+                  if (low.includes("scratch") || s0.includes("主动"))
+                    return "🟡 主动离场";
+                  if (
+                    low.includes("normal") ||
+                    low.includes("none") ||
+                    s0.includes("正常")
+                  )
+                    return "🟢 正常";
+                  return prettySchemaVal(s0) || "未知/Unknown";
+                };
 
-              const distTicker = topN((t) => t.ticker, prettySchemaVal);
-              // “Setup” 分布优先看 setupKey（v5/legacy 的 setup/setupKey），并兼容 setupCategory。
-              const distSetup = topN(
-                (t) => t.setupKey ?? t.setupCategory,
-                prettySchemaVal
-              );
-              const distExec = topN((t) => t.executionQuality, prettyExecVal);
+                const topN = (
+                  getter: (t: TradeRecord) => string | undefined,
+                  pretty?: (v?: string) => string
+                ) => {
+                  const map = new Map<string, number>();
+                  for (const t of trades) {
+                    const raw = getter(t);
+                    const base = (raw ?? "").toString().trim();
+                    const v = (pretty ? pretty(base) : base) || "Unknown";
+                    if (!v) continue;
+                    map.set(v, (map.get(v) ?? 0) + 1);
+                  }
+                  return [...map.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+                };
 
-              const sortedRecent = [...trades]
-                .sort((a, b) =>
-                  a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
-                )
-                .slice(0, 15);
+                const distTicker = topN((t) => t.ticker, prettySchemaVal);
+                // “Setup” 分布优先看 setupKey（v5/legacy 的 setup/setupKey），并兼容 setupCategory。
+                const distSetup = topN(
+                  (t) => t.setupKey ?? t.setupCategory,
+                  prettySchemaVal
+                );
+                const distExec = topN((t) => t.executionQuality, prettyExecVal);
 
-              return (
-                <div style={{ marginBottom: SPACE.md }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: SPACE.md,
-                      marginBottom: SPACE.md,
-                    }}
-                  >
-                    <div style={cardSubtleTightStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: SPACE.md,
-                          marginBottom: SPACE.sm,
-                        }}
-                      >
-                        <div style={{ fontWeight: 800, color: healthColor }}>
-                          ❤️ 系统健康度：{healthScore}
+                const sortedRecent = [...trades]
+                  .sort((a, b) =>
+                    a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
+                  )
+                  .slice(0, 15);
+
+                return (
+                  <div style={{ marginBottom: SPACE.md }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: SPACE.md,
+                        marginBottom: SPACE.md,
+                      }}
+                    >
+                      <div style={cardSubtleTightStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            gap: SPACE.md,
+                            marginBottom: SPACE.sm,
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: healthColor }}>
+                            ❤️ 系统健康度：{healthScore}
+                          </div>
+                          <div style={{ color: "var(--text-muted)" }}>
+                            待修异常：{issueCount}
+                          </div>
                         </div>
-                        <div style={{ color: "var(--text-muted)" }}>
-                          待修异常：{issueCount}
-                        </div>
+
+                        {topTypes.length ? (
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: `${SPACE.xs} ${SPACE.xl}`,
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            {topTypes.map(([t, c]) => (
+                              <div
+                                key={t}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: SPACE.md,
+                                  color: "var(--text-muted)",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  title={t}
+                                >
+                                  {t}
+                                </span>
+                                <span
+                                  style={{
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {c}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ color: V5_COLORS.win }}>
+                            ✅ 系统非常健康（All Clear）
+                          </div>
+                        )}
                       </div>
 
-                      {topTypes.length ? (
+                      <div style={cardSubtleTightStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            gap: SPACE.md,
+                            marginBottom: SPACE.sm,
+                          }}
+                        >
+                          <div style={{ fontWeight: 800 }}>🧠 系统诊断</div>
+                          <div style={{ color: "var(--text-muted)" }}>
+                            {schemaScanNote ? "已扫描" : "未扫描"}
+                          </div>
+                        </div>
+
                         <div
                           style={{
                             display: "grid",
                             gridTemplateColumns: "1fr 1fr",
                             gap: `${SPACE.xs} ${SPACE.xl}`,
                             fontSize: "0.9em",
+                            color: "var(--text-muted)",
                           }}
                         >
-                          {topTypes.map(([t, c]) => (
-                            <div
-                              key={t}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: SPACE.md,
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={t}
-                              >
-                                {t}
-                              </span>
-                              <span
-                                style={{
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {c}
-                              </span>
-                            </div>
-                          ))}
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: SPACE.md,
+                            }}
+                          >
+                            <span>枚举预设</span>
+                            <span>{enumPresets ? "✅ 已加载" : "—"}</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: SPACE.md,
+                            }}
+                          >
+                            <span>标签扫描</span>
+                            <span>{paTagSnapshot ? "✅ 正常" : "—"}</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: SPACE.md,
+                            }}
+                          >
+                            <span>交易记录</span>
+                            <span>{trades.length}</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                            }}
+                          >
+                            <span>笔记档案</span>
+                            <span>{files}</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                            }}
+                          >
+                            <span>标签总数</span>
+                            <span>{tags}</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                            }}
+                          >
+                            <span>属性管理器</span>
+                            <span>✅ 可用</span>
+                          </div>
                         </div>
-                      ) : (
-                        <div style={{ color: V5_COLORS.win }}>
-                          ✅ 系统非常健康（All Clear）
-                        </div>
-                      )}
+                      </div>
                     </div>
 
-                    <div style={cardSubtleTightStyle}>
+                    <div style={{ ...cardTightStyle, marginBottom: "10px" }}>
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "baseline",
-                          gap: SPACE.md,
-                          marginBottom: SPACE.sm,
+                          gap: "10px",
+                          marginBottom: "8px",
                         }}
                       >
-                        <div style={{ fontWeight: 800 }}>🧠 系统诊断</div>
-                        <div style={{ color: "var(--text-muted)" }}>
-                          {schemaScanNote ? "已扫描" : "未扫描"}
+                        <div style={{ fontWeight: 800 }}>⚠️ 异常详情</div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.9em",
+                          }}
+                        >
+                          {issueCount}
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: `${SPACE.xs} ${SPACE.xl}`,
-                          fontSize: "0.9em",
-                          color: "var(--text-muted)",
-                        }}
-                      >
+                      {schemaIssues.length === 0 ? (
                         <div
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
+                            color: V5_COLORS.win,
+                            fontSize: "0.9em",
                           }}
                         >
-                          <span>枚举预设</span>
-                          <span>{enumPresets ? "✅ 已加载" : "—"}</span>
+                          ✅ 无异常
                         </div>
+                      ) : (
                         <div
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
+                            maxHeight: "260px",
+                            overflow: "auto",
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "10px",
+                            background: "rgba(var(--mono-rgb-100), 0.03)",
                           }}
                         >
-                          <span>标签扫描</span>
-                          <span>{paTagSnapshot ? "✅ 正常" : "—"}</span>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "2fr 1fr 1fr",
+                              gap: "10px",
+                              padding: "8px",
+                              borderBottom:
+                                "1px solid var(--background-modifier-border)",
+                              color: "var(--text-faint)",
+                              fontSize: "0.85em",
+                              background: "var(--background-primary)",
+                            }}
+                          >
+                            <div>文件</div>
+                            <div>问题</div>
+                            <div>字段</div>
+                          </div>
+                          {schemaIssues.slice(0, 80).map((item, idx) => (
+                            <button
+                              key={`${item.path}:${item.key}:${idx}`}
+                              type="button"
+                              onClick={() => openFile(item.path)}
+                              title={item.path}
+                              onMouseEnter={onTextBtnMouseEnter}
+                              onMouseLeave={onTextBtnMouseLeave}
+                              onFocus={onTextBtnFocus}
+                              onBlur={onTextBtnBlur}
+                              style={{
+                                width: "100%",
+                                textAlign: "left",
+                                padding: 0,
+                                border: "none",
+                                borderBottom:
+                                  "1px solid var(--background-modifier-border)",
+                                background: "transparent",
+                                cursor: "pointer",
+                                outline: "none",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "2fr 1fr 1fr",
+                                  gap: "10px",
+                                  padding: "10px",
+                                  alignItems: "baseline",
+                                }}
+                              >
+                                <div style={{ minWidth: 0 }}>
+                                  <div
+                                    style={{
+                                      fontWeight: 650,
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {item.name}
+                                  </div>
+                                  <div
+                                    style={{
+                                      color: "var(--text-faint)",
+                                      fontSize: "0.85em",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {item.path}
+                                  </div>
+                                </div>
+                                <div
+                                  style={{
+                                    color: "var(--text-error)",
+                                    fontWeight: 700,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {item.type}
+                                </div>
+                                <div
+                                  style={{
+                                    color: "var(--text-muted)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  title={item.key}
+                                >
+                                  {item.key}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
-                          }}
-                        >
-                          <span>交易记录</span>
-                          <span>{trades.length}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>笔记档案</span>
-                          <span>{files}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>标签总数</span>
-                          <span>{tags}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>属性管理器</span>
-                          <span>✅ 可用</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  </div>
 
-                  <div style={{ ...cardTightStyle, marginBottom: "10px" }}>
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                        gap: "10px",
-                        marginBottom: "8px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        marginBottom: "12px",
                       }}
                     >
-                      <div style={{ fontWeight: 800 }}>⚠️ 异常详情</div>
-                      <div
-                        style={{
-                          color: "var(--text-muted)",
-                          fontSize: "0.9em",
-                        }}
-                      >
-                        {issueCount}
-                      </div>
+                      <details>
+                        <summary
+                          style={{
+                            cursor: "pointer",
+                            fontWeight: 800,
+                            listStyle: "none",
+                          }}
+                        >
+                          📊 分布摘要（可展开）
+                          <span
+                            style={{
+                              marginLeft: "10px",
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                              fontWeight: 600,
+                            }}
+                          >
+                            完整图像建议看 Schema
+                          </span>
+                        </summary>
+
+                        <div style={{ marginTop: "10px" }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr 1fr",
+                              gap: "10px",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            {[
+                              { title: "Ticker", data: distTicker },
+                              { title: "Setup", data: distSetup },
+                              { title: "Exec", data: distExec },
+                            ].map((col) => (
+                              <div
+                                key={col.title}
+                                style={{
+                                  border:
+                                    "1px solid var(--background-modifier-border)",
+                                  borderRadius: "10px",
+                                  padding: "10px",
+                                  background: "var(--background-primary)",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    marginBottom: "8px",
+                                    color: "var(--text-muted)",
+                                  }}
+                                >
+                                  {col.title}
+                                </div>
+                                {col.data.length === 0 ? (
+                                  <div
+                                    style={{
+                                      color: "var(--text-faint)",
+                                      fontSize: "0.85em",
+                                    }}
+                                  >
+                                    无数据
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "grid", gap: "6px" }}>
+                                    {col.data.map(([k, v]) => (
+                                      <div
+                                        key={k}
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          gap: "10px",
+                                          fontSize: "0.9em",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            color: "var(--text-normal)",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                          title={k}
+                                        >
+                                          {k}
+                                        </div>
+                                        <div
+                                          style={{
+                                            color: "var(--text-muted)",
+                                            fontVariantNumeric: "tabular-nums",
+                                          }}
+                                        >
+                                          {v}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div
+                            style={{
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "10px",
+                              padding: "10px",
+                              background: "var(--background-primary)",
+                            }}
+                          >
+                            <div style={{ fontWeight: 800, marginBottom: "8px" }}>
+                              🏷️ 标签全景（Tag System）
+                            </div>
+                            {!paTagSnapshot ? (
+                              <div
+                                style={{
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.9em",
+                                }}
+                              >
+                                标签扫描不可用。
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "6px",
+                                }}
+                              >
+                                {topTags.map(([tag, count]) => (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => openGlobalSearch(`tag:${tag}`)}
+                                    onMouseEnter={onTextBtnMouseEnter}
+                                    onMouseLeave={onTextBtnMouseLeave}
+                                    onFocus={onTextBtnFocus}
+                                    onBlur={onTextBtnBlur}
+                                    style={{
+                                      padding: "2px 8px",
+                                      borderRadius: "999px",
+                                      border:
+                                        "1px solid var(--background-modifier-border)",
+                                      background: "var(--background-primary)",
+                                      fontSize: "0.85em",
+                                      color: "var(--text-muted)",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    #{tag} ({count})
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </details>
                     </div>
 
-                    {schemaIssues.length === 0 ? (
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        background: "var(--background-primary)",
+                        marginBottom: "12px",
+                      }}
+                    >
                       <div
                         style={{
-                          color: V5_COLORS.win,
-                          fontSize: "0.9em",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "baseline",
+                          gap: "10px",
+                          marginBottom: "10px",
                         }}
                       >
-                        ✅ 无异常
+                        <div style={{ fontWeight: 800 }}>
+                          📄 原始数据明细（Raw Data）
+                        </div>
+                        <div
+                          style={{
+                            color: "var(--text-faint)",
+                            fontSize: "0.9em",
+                          }}
+                        >
+                          最近 {sortedRecent.length} 笔
+                        </div>
                       </div>
-                    ) : (
+
                       <div
                         style={{
-                          maxHeight: "260px",
-                          overflow: "auto",
                           border: "1px solid var(--background-modifier-border)",
                           borderRadius: "10px",
+                          overflow: "auto",
+                          maxHeight: "260px",
                           background: "rgba(var(--mono-rgb-100), 0.03)",
                         }}
                       >
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "2fr 1fr 1fr",
+                            gridTemplateColumns:
+                              "90px 110px 120px 1fr 100px 120px",
                             gap: "10px",
-                            padding: "8px",
+                            padding: "10px",
                             borderBottom:
                               "1px solid var(--background-modifier-border)",
                             color: "var(--text-faint)",
@@ -5259,16 +5582,20 @@ short mode\n\
                             background: "var(--background-primary)",
                           }}
                         >
-                          <div>文件</div>
-                          <div>问题</div>
-                          <div>字段</div>
+                          <div>日期</div>
+                          <div>品种</div>
+                          <div>周期</div>
+                          <div>策略</div>
+                          <div>结果</div>
+                          <div>执行</div>
                         </div>
-                        {schemaIssues.slice(0, 80).map((item, idx) => (
+
+                        {sortedRecent.map((t) => (
                           <button
-                            key={`${item.path}:${item.key}:${idx}`}
+                            key={t.path}
                             type="button"
-                            onClick={() => openFile(item.path)}
-                            title={item.path}
+                            onClick={() => openFile(t.path)}
+                            title={t.path}
                             onMouseEnter={onTextBtnMouseEnter}
                             onMouseLeave={onTextBtnMouseLeave}
                             onFocus={onTextBtnFocus}
@@ -5288,43 +5615,22 @@ short mode\n\
                             <div
                               style={{
                                 display: "grid",
-                                gridTemplateColumns: "2fr 1fr 1fr",
+                                gridTemplateColumns:
+                                  "90px 110px 120px 1fr 100px 120px",
                                 gap: "10px",
                                 padding: "10px",
                                 alignItems: "baseline",
+                                fontSize: "0.9em",
                               }}
                             >
-                              <div style={{ minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontWeight: 650,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {item.name}
-                                </div>
-                                <div
-                                  style={{
-                                    color: "var(--text-faint)",
-                                    fontSize: "0.85em",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {item.path}
-                                </div>
+                              <div style={{ color: "var(--text-muted)" }}>
+                                {t.dateIso}
                               </div>
-                              <div
-                                style={{
-                                  color: "var(--text-error)",
-                                  fontWeight: 700,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {item.type}
+                              <div style={{ fontWeight: 650 }}>
+                                {t.ticker ?? "—"}
+                              </div>
+                              <div style={{ color: "var(--text-muted)" }}>
+                                {t.timeframe ?? "—"}
                               </div>
                               <div
                                 style={{
@@ -5333,1657 +5639,1366 @@ short mode\n\
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                 }}
-                                title={item.key}
+                                title={t.setupKey ?? t.setupCategory ?? ""}
                               >
-                                {item.key}
+                                {prettySchemaVal(t.setupKey ?? t.setupCategory) ||
+                                  "—"}
+                              </div>
+                              <div style={{ color: "var(--text-muted)" }}>
+                                {t.outcome ?? "unknown"}
+                              </div>
+                              <div style={{ color: "var(--text-muted)" }}>
+                                {prettyExecVal(t.executionQuality) || "—"}
                               </div>
                             </div>
                           </button>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      padding: "10px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <details>
-                      <summary
-                        style={{
-                          cursor: "pointer",
-                          fontWeight: 800,
-                          listStyle: "none",
-                        }}
-                      >
-                        📊 分布摘要（可展开）
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                        gap: "12px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      {[
+                        {
+                          title: "系统健康度",
+                          value: String(healthScore),
+                          color: healthColor,
+                        },
+                        {
+                          title: "待修异常",
+                          value: String(issueCount),
+                          color:
+                            issueCount > 0 ? V5_COLORS.loss : "var(--text-muted)",
+                        },
+                        {
+                          title: "标签总数",
+                          value: String(tags),
+                          color: "var(--text-accent)",
+                        },
+                        {
+                          title: "笔记档案",
+                          value: String(files),
+                          color: "var(--text-accent)",
+                        },
+                      ].map((c) => (
+                        <div
+                          key={c.title}
+                          style={{
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "10px",
+                            padding: "12px",
+                            background: "rgba(var(--mono-rgb-100), 0.03)",
+                          }}
+                        >
+                          <div style={{ color: "var(--text-faint)" }}>
+                            {c.title}
+                          </div>
+                          <div
+                            style={{
+                              marginTop: "6px",
+                              fontSize: "1.4em",
+                              fontWeight: 900,
+                              color: c.color,
+                            }}
+                          >
+                            {c.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "12px",
+                        padding: "12px",
+                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: healthColor }}>
+                        {issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}
                         <span
                           style={{
                             marginLeft: "10px",
                             color: "var(--text-faint)",
-                            fontSize: "0.9em",
                             fontWeight: 600,
                           }}
                         >
-                          完整图像建议看 Schema
+                          {issueCount === 0 ? "(AI Clear)" : "(Needs Attention)"}
                         </span>
+                      </div>
+                      <div
+                        style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                      >
+                        {issueCount === 0
+                          ? "所有关键属性已规范填写"
+                          : "建议优先处理异常详情中的缺失字段"}
+                      </div>
+                    </div>
+
+                    <details style={{ marginTop: "12px" }}>
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        🔎 检查器（Inspector）与修复方案预览（可展开）
                       </summary>
 
-                      <div style={{ marginTop: "10px" }}>
+                      <div style={{ marginTop: "12px" }}>
                         <div
                           style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr",
-                            gap: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700 }}>检查器问题列表</div>
+                          <button
+                            type="button"
+                            onClick={() => setShowFixPlan((v) => !v)}
+                            disabled={!enumPresets}
+                            onMouseEnter={onBtnMouseEnter}
+                            onMouseLeave={onBtnMouseLeave}
+                            onFocus={onBtnFocus}
+                            onBlur={onBtnBlur}
+                            style={
+                              enumPresets ? buttonSmStyle : buttonSmDisabledStyle
+                            }
+                            title={
+                              !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
+                            }
+                          >
+                            {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
+                          </button>
+                        </div>
+
+                        <div
+                          style={{
+                            color: "var(--text-faint)",
+                            fontSize: "0.9em",
                             marginBottom: "10px",
                           }}
                         >
-                          {[
-                            { title: "Ticker", data: distTicker },
-                            { title: "Setup", data: distSetup },
-                            { title: "Exec", data: distExec },
-                          ].map((col) => (
+                          只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入
+                          vault）。
+                          <span style={{ marginLeft: "8px" }}>
+                            枚举预设：{enumPresets ? "已加载" : "不可用"}
+                          </span>
+                        </div>
+
+                        {schemaScanNote ? (
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.85em",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            {schemaScanNote}
+                          </div>
+                        ) : null}
+
+                        {(() => {
+                          const errorCount = inspectorIssues.filter(
+                            (i) => i.severity === "error"
+                          ).length;
+                          const warnCount = inspectorIssues.filter(
+                            (i) => i.severity === "warn"
+                          ).length;
+                          return (
                             <div
-                              key={col.title}
                               style={{
-                                border:
-                                  "1px solid var(--background-modifier-border)",
-                                borderRadius: "10px",
-                                padding: "10px",
-                                background: "var(--background-primary)",
+                                display: "flex",
+                                gap: "12px",
+                                flexWrap: "wrap",
+                                marginBottom: "10px",
                               }}
                             >
-                              <div
+                              <div style={{ color: V5_COLORS.loss }}>
+                                错误：{errorCount}
+                              </div>
+                              <div style={{ color: V5_COLORS.back }}>
+                                警告：{warnCount}
+                              </div>
+                              <div style={{ color: "var(--text-muted)" }}>
+                                总计：{inspectorIssues.length}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {inspectorIssues.length === 0 ? (
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            未发现问题。
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              maxHeight: "240px",
+                              overflow: "auto",
+                              border:
+                                "1px solid var(--background-modifier-border)",
+                              borderRadius: "8px",
+                            }}
+                          >
+                            {inspectorIssues.slice(0, 50).map((issue) => (
+                              <button
+                                key={issue.id}
+                                type="button"
+                                onClick={() => openFile(issue.path)}
+                                title={issue.path}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
                                 style={{
-                                  fontWeight: 700,
-                                  marginBottom: "8px",
-                                  color: "var(--text-muted)",
+                                  width: "100%",
+                                  textAlign: "left",
+                                  padding: "8px 10px",
+                                  border: "none",
+                                  borderBottom:
+                                    "1px solid var(--background-modifier-border)",
+                                  background: "transparent",
+                                  cursor: "pointer",
+                                  outline: "none",
+                                  transition:
+                                    "background-color 180ms ease, box-shadow 180ms ease",
                                 }}
                               >
-                                {col.title}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "10px",
+                                    alignItems: "baseline",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "60px",
+                                      color:
+                                        issue.severity === "error"
+                                          ? V5_COLORS.loss
+                                          : V5_COLORS.back,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {issue.severity === "error"
+                                      ? "错误"
+                                      : issue.severity === "warn"
+                                        ? "警告"
+                                        : "—"}
+                                  </div>
+                                  <div style={{ flex: "1 1 auto" }}>
+                                    <div style={{ fontWeight: 600 }}>
+                                      {issue.title}
+                                    </div>
+                                    <div
+                                      style={{
+                                        color: "var(--text-faint)",
+                                        fontSize: "0.85em",
+                                      }}
+                                    >
+                                      {issue.path}
+                                      {issue.detail ? ` — ${issue.detail}` : ""}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                            {inspectorIssues.length > 50 ? (
+                              <div
+                                style={{
+                                  padding: "8px 10px",
+                                  color: "var(--text-faint)",
+                                  fontSize: "0.85em",
+                                }}
+                              >
+                                仅显示前 50 条问题。
                               </div>
-                              {col.data.length === 0 ? (
+                            ) : null}
+                          </div>
+                        )}
+
+                        {showFixPlan && enumPresets ? (
+                          <div style={{ marginTop: "12px" }}>
+                            <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                              修复方案预览（FixPlan）
+                            </div>
+                            <pre
+                              style={{
+                                margin: 0,
+                                padding: "10px",
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                borderRadius: "8px",
+                                background: "rgba(var(--mono-rgb-100), 0.03)",
+                                maxHeight: "220px",
+                                overflow: "auto",
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {fixPlanText ?? ""}
+                            </pre>
+                          </div>
+                        ) : !enumPresets ? (
+                          <div
+                            style={{
+                              marginTop: "12px",
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            枚举预设不可用，已禁用修复方案生成。
+                          </div>
+                        ) : null}
+                      </div>
+                    </details>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "8px",
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>💎 上帝模式（属性管理器）</div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setManagerBusy(true);
+                      try {
+                        await scanManagerInventory();
+                      } finally {
+                        setManagerBusy(false);
+                      }
+                    }}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={managerBusy ? buttonSmDisabledStyle : buttonSmStyle}
+                  >
+                    扫描属性（v5.0）
+                  </button>
+                </div>
+              </div>
+              <div style={{ marginTop: "12px" }}>
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  {managerTradeInventory || managerStrategyInventory ? (
+                    <>
+                      <input
+                        value={managerSearch}
+                        onChange={(e) => setManagerSearch(e.target.value)}
+                        placeholder="🔍 搜索属性..."
+                        style={{
+                          width: "100%",
+                          padding: "8px 10px",
+                          borderRadius: "10px",
+                          border: "1px solid var(--background-modifier-border)",
+                          background: "var(--background-primary)",
+                          color: "var(--text-normal)",
+                          marginBottom: "10px",
+                        }}
+                      />
+
+                      {(() => {
+                        const q = managerSearch.trim().toLowerCase();
+
+                        const canonicalizeSearch = (s: string) => {
+                          const raw = (s ?? "").toString().trim();
+                          if (!raw) return "";
+                          const low = raw.toLowerCase();
+                          if (low === "n/a" || low === "na") return "unknown";
+                          if (low.includes("unknown") || raw.includes("未知"))
+                            return "unknown";
+                          if (low === "null" || raw.includes("空/null"))
+                            return "null";
+                          if (
+                            low.includes("empty") ||
+                            raw === "空" ||
+                            raw.includes("空/empty")
+                          )
+                            return "empty";
+                          return low;
+                        };
+
+                        const qCanon = canonicalizeSearch(q);
+
+                        const groups = MANAGER_GROUPS;
+                        const othersTitle = "📂 其他属性 (Other)";
+
+                        const prettyVal = (val: string) => {
+                          let s = (val ?? "").toString().trim();
+                          if (!s) return "";
+                          const low = s.toLowerCase();
+                          if (s === "Unknown" || low === "unknown")
+                            return "未知/Unknown";
+                          if (s === "Empty" || low === "empty") return "空/Empty";
+                          if (low === "null") return "空/null";
+                          return s;
+                        };
+
+                        const matchKeyToGroup = (key: string) => {
+                          const tokens = managerKeyTokens(key);
+                          for (const g of groups) {
+                            for (const kw of g.keywords) {
+                              const needle = String(kw ?? "")
+                                .trim()
+                                .toLowerCase();
+                              if (!needle) continue;
+                              if (
+                                tokens.some(
+                                  (t) => t === needle || t.includes(needle)
+                                )
+                              ) {
+                                return g.title;
+                              }
+                            }
+                          }
+                          return othersTitle;
+                        };
+
+                        const renderInventoryGrid = (
+                          inv: FrontmatterInventory | undefined,
+                          scope: "trade" | "strategy",
+                          title: string
+                        ) => {
+                          if (!inv) return null;
+
+                          const matchesSearch = (key: string) => {
+                            if (!q) return true;
+                            const kl = key.toLowerCase();
+                            if (kl.includes(q)) return true;
+                            if (qCanon && canonicalizeSearch(kl).includes(qCanon))
+                              return true;
+                            const vals = Object.keys(inv.valPaths[key] ?? {});
+                            return vals.some((v) => {
+                              const vl = v.toLowerCase();
+                              if (vl.includes(q)) return true;
+                              if (!qCanon) return false;
+                              return canonicalizeSearch(vl).includes(qCanon);
+                            });
+                          };
+
+                          const bucketed = new Map<string, string[]>();
+                          for (const g of groups) bucketed.set(g.title, []);
+                          bucketed.set(othersTitle, []);
+
+                          const visibleKeys = inv.keys
+                            .map((k) => k.key)
+                            .filter((k) => matchesSearch(k));
+
+                          for (const key of visibleKeys) {
+                            const g = matchKeyToGroup(key);
+                            bucketed.get(g)!.push(key);
+                          }
+
+                          const groupEntries: Array<{
+                            name: string;
+                            keys: string[];
+                          }> = [
+                            {
+                              name: groups[0]?.title ?? "",
+                              keys: bucketed.get(groups[0]?.title ?? "") ?? [],
+                            },
+                            {
+                              name: groups[1]?.title ?? "",
+                              keys: bucketed.get(groups[1]?.title ?? "") ?? [],
+                            },
+                            {
+                              name: groups[2]?.title ?? "",
+                              keys: bucketed.get(groups[2]?.title ?? "") ?? [],
+                            },
+                            {
+                              name: othersTitle,
+                              keys: bucketed.get(othersTitle) ?? [],
+                            },
+                          ].filter((x) => x.name && x.keys.length > 0);
+
+                          return (
+                            <div style={{ marginBottom: "14px" }}>
+                              <div style={{ fontWeight: 700, margin: "8px 0" }}>
+                                {title}
+                              </div>
+                              {groupEntries.length === 0 ? (
                                 <div
                                   style={{
                                     color: "var(--text-faint)",
-                                    fontSize: "0.85em",
+                                    fontSize: "0.9em",
                                   }}
                                 >
-                                  无数据
+                                  无匹配属性。
                                 </div>
                               ) : (
-                                <div style={{ display: "grid", gap: "6px" }}>
-                                  {col.data.map(([k, v]) => (
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns:
+                                      "repeat(auto-fit, minmax(240px, 1fr))",
+                                    gap: SPACE.md,
+                                  }}
+                                >
+                                  {groupEntries.map((g) => (
                                     <div
-                                      key={k}
+                                      key={`${scope}:${g.name}`}
                                       style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: "10px",
-                                        fontSize: "0.9em",
+                                        border:
+                                          "1px solid var(--background-modifier-border)",
+                                        borderRadius: "12px",
+                                        padding: "10px",
+                                        background: "var(--background-secondary)",
                                       }}
                                     >
                                       <div
                                         style={{
-                                          color: "var(--text-normal)",
-                                          overflow: "hidden",
-                                          textOverflow: "ellipsis",
-                                          whiteSpace: "nowrap",
+                                          fontWeight: 700,
+                                          marginBottom: "8px",
                                         }}
-                                        title={k}
                                       >
-                                        {k}
+                                        {g.name}
                                       </div>
                                       <div
-                                        style={{
-                                          color: "var(--text-muted)",
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
+                                        style={{ display: "grid", gap: "6px" }}
                                       >
-                                        {v}
+                                        {g.keys.slice(0, 18).map((key) => {
+                                          const countFiles = (
+                                            inv.keyPaths[key] ?? []
+                                          ).length;
+                                          const vals = Object.keys(
+                                            inv.valPaths[key] ?? {}
+                                          );
+                                          const topVals = vals
+                                            .map((v) => ({
+                                              v,
+                                              c: (inv.valPaths[key]?.[v] ?? [])
+                                                .length,
+                                            }))
+                                            .sort((a, b) => b.c - a.c)
+                                            .slice(0, 2);
+                                          return (
+                                            <div
+                                              key={`${scope}:${key}`}
+                                              onClick={() => {
+                                                setManagerScope(scope);
+                                                setManagerInspectorKey(key);
+                                                setManagerInspectorTab("vals");
+                                                setManagerInspectorFileFilter(
+                                                  undefined
+                                                );
+                                              }}
+                                              style={{
+                                                border:
+                                                  "1px solid var(--background-modifier-border)",
+                                                borderRadius: "10px",
+                                                padding: "8px 10px",
+                                                background:
+                                                  "var(--background-primary)",
+                                                cursor: "pointer",
+                                              }}
+                                            >
+                                              <div
+                                                style={{
+                                                  fontWeight: 650,
+                                                  display: "flex",
+                                                  justifyContent: "space-between",
+                                                  gap: "8px",
+                                                }}
+                                              >
+                                                <span>{key}</span>
+                                                <span
+                                                  style={{
+                                                    color: "var(--text-faint)",
+                                                  }}
+                                                >
+                                                  {countFiles}
+                                                </span>
+                                              </div>
+                                              <div
+                                                style={{
+                                                  color: "var(--text-faint)",
+                                                  fontSize: "0.85em",
+                                                  marginTop: "2px",
+                                                  display: "flex",
+                                                  gap: "8px",
+                                                  flexWrap: "wrap",
+                                                }}
+                                              >
+                                                {topVals.length ? (
+                                                  topVals.map((x) => (
+                                                    <span key={x.v}>
+                                                      {prettyVal(x.v)} · {x.c}
+                                                    </span>
+                                                  ))
+                                                ) : (
+                                                  <span>（无值）</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+
+                                        {g.keys.length > 18 ? (
+                                          <div
+                                            style={{ color: "var(--text-faint)" }}
+                                          >
+                                            还有 {g.keys.length - 18} 个…
+                                          </div>
+                                        ) : null}
                                       </div>
                                     </div>
                                   ))}
                                 </div>
                               )}
                             </div>
-                          ))}
-                        </div>
+                          );
+                        };
 
-                        <div
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "10px",
-                            padding: "10px",
-                            background: "var(--background-primary)",
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, marginBottom: "8px" }}>
-                            🏷️ 标签全景（Tag System）
-                          </div>
-                          {!paTagSnapshot ? (
-                            <div
-                              style={{
-                                color: "var(--text-faint)",
-                                fontSize: "0.9em",
-                              }}
-                            >
-                              标签扫描不可用。
-                            </div>
-                          ) : (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "6px",
-                              }}
-                            >
-                              {topTags.map(([tag, count]) => (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => openGlobalSearch(`tag:${tag}`)}
-                                  onMouseEnter={onTextBtnMouseEnter}
-                                  onMouseLeave={onTextBtnMouseLeave}
-                                  onFocus={onTextBtnFocus}
-                                  onBlur={onTextBtnBlur}
-                                  style={{
-                                    padding: "2px 8px",
-                                    borderRadius: "999px",
-                                    border:
-                                      "1px solid var(--background-modifier-border)",
-                                    background: "var(--background-primary)",
-                                    fontSize: "0.85em",
-                                    color: "var(--text-muted)",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  #{tag} ({count})
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      background: "var(--background-primary)",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                        gap: "10px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 800 }}>
-                        📄 原始数据明细（Raw Data）
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-faint)",
-                          fontSize: "0.9em",
-                        }}
-                      >
-                        最近 {sortedRecent.length} 笔
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        overflow: "auto",
-                        maxHeight: "260px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "90px 110px 120px 1fr 100px 120px",
-                          gap: "10px",
-                          padding: "10px",
-                          borderBottom:
-                            "1px solid var(--background-modifier-border)",
-                          color: "var(--text-faint)",
-                          fontSize: "0.85em",
-                          background: "var(--background-primary)",
-                        }}
-                      >
-                        <div>日期</div>
-                        <div>品种</div>
-                        <div>周期</div>
-                        <div>策略</div>
-                        <div>结果</div>
-                        <div>执行</div>
-                      </div>
-
-                      {sortedRecent.map((t) => (
-                        <button
-                          key={t.path}
-                          type="button"
-                          onClick={() => openFile(t.path)}
-                          title={t.path}
-                          onMouseEnter={onTextBtnMouseEnter}
-                          onMouseLeave={onTextBtnMouseLeave}
-                          onFocus={onTextBtnFocus}
-                          onBlur={onTextBtnBlur}
-                          style={{
-                            width: "100%",
-                            textAlign: "left",
-                            padding: 0,
-                            border: "none",
-                            borderBottom:
-                              "1px solid var(--background-modifier-border)",
-                            background: "transparent",
-                            cursor: "pointer",
-                            outline: "none",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns:
-                                "90px 110px 120px 1fr 100px 120px",
-                              gap: "10px",
-                              padding: "10px",
-                              alignItems: "baseline",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            <div style={{ color: "var(--text-muted)" }}>
-                              {t.dateIso}
-                            </div>
-                            <div style={{ fontWeight: 650 }}>
-                              {t.ticker ?? "—"}
-                            </div>
-                            <div style={{ color: "var(--text-muted)" }}>
-                              {t.timeframe ?? "—"}
-                            </div>
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                              title={t.setupKey ?? t.setupCategory ?? ""}
-                            >
-                              {prettySchemaVal(t.setupKey ?? t.setupCategory) ||
-                                "—"}
-                            </div>
-                            <div style={{ color: "var(--text-muted)" }}>
-                              {t.outcome ?? "unknown"}
-                            </div>
-                            <div style={{ color: "var(--text-muted)" }}>
-                              {prettyExecVal(t.executionQuality) || "—"}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                      gap: "12px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    {[
-                      {
-                        title: "系统健康度",
-                        value: String(healthScore),
-                        color: healthColor,
-                      },
-                      {
-                        title: "待修异常",
-                        value: String(issueCount),
-                        color:
-                          issueCount > 0 ? V5_COLORS.loss : "var(--text-muted)",
-                      },
-                      {
-                        title: "标签总数",
-                        value: String(tags),
-                        color: "var(--text-accent)",
-                      },
-                      {
-                        title: "笔记档案",
-                        value: String(files),
-                        color: "var(--text-accent)",
-                      },
-                    ].map((c) => (
-                      <div
-                        key={c.title}
-                        style={{
-                          border: "1px solid var(--background-modifier-border)",
-                          borderRadius: "10px",
-                          padding: "12px",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
-                        }}
-                      >
-                        <div style={{ color: "var(--text-faint)" }}>
-                          {c.title}
-                        </div>
-                        <div
-                          style={{
-                            marginTop: "6px",
-                            fontSize: "1.4em",
-                            fontWeight: 900,
-                            color: c.color,
-                          }}
-                        >
-                          {c.value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "12px",
-                      padding: "12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: healthColor }}>
-                      {issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}
-                      <span
-                        style={{
-                          marginLeft: "10px",
-                          color: "var(--text-faint)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {issueCount === 0 ? "(AI Clear)" : "(Needs Attention)"}
-                      </span>
-                    </div>
-                    <div
-                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                    >
-                      {issueCount === 0
-                        ? "所有关键属性已规范填写"
-                        : "建议优先处理异常详情中的缺失字段"}
-                    </div>
-                  </div>
-
-                  <details style={{ marginTop: "12px" }}>
-                    <summary
-                      style={{
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      🔎 检查器（Inspector）与修复方案预览（可展开）
-                    </summary>
-
-                    <div style={{ marginTop: "12px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>检查器问题列表</div>
-                        <button
-                          type="button"
-                          onClick={() => setShowFixPlan((v) => !v)}
-                          disabled={!enumPresets}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={
-                            enumPresets ? buttonSmStyle : buttonSmDisabledStyle
-                          }
-                          title={
-                            !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
-                          }
-                        >
-                          {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
-                        </button>
-                      </div>
-
-                      <div
-                        style={{
-                          color: "var(--text-faint)",
-                          fontSize: "0.9em",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入
-                        vault）。
-                        <span style={{ marginLeft: "8px" }}>
-                          枚举预设：{enumPresets ? "已加载" : "不可用"}
-                        </span>
-                      </div>
-
-                      {schemaScanNote ? (
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.85em",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          {schemaScanNote}
-                        </div>
-                      ) : null}
-
-                      {(() => {
-                        const errorCount = inspectorIssues.filter(
-                          (i) => i.severity === "error"
-                        ).length;
-                        const warnCount = inspectorIssues.filter(
-                          (i) => i.severity === "warn"
-                        ).length;
                         return (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "12px",
-                              flexWrap: "wrap",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <div style={{ color: V5_COLORS.loss }}>
-                              错误：{errorCount}
-                            </div>
-                            <div style={{ color: V5_COLORS.back }}>
-                              警告：{warnCount}
-                            </div>
-                            <div style={{ color: "var(--text-muted)" }}>
-                              总计：{inspectorIssues.length}
-                            </div>
-                          </div>
+                          <>
+                            {renderInventoryGrid(
+                              managerTradeInventory,
+                              "trade",
+                              "📂 属性列表"
+                            )}
+                          </>
                         );
                       })()}
 
-                      {inspectorIssues.length === 0 ? (
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          未发现问题。
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            maxHeight: "240px",
-                            overflow: "auto",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          {inspectorIssues.slice(0, 50).map((issue) => (
-                            <button
-                              key={issue.id}
-                              type="button"
-                              onClick={() => openFile(issue.path)}
-                              title={issue.path}
-                              onMouseEnter={onTextBtnMouseEnter}
-                              onMouseLeave={onTextBtnMouseLeave}
-                              onFocus={onTextBtnFocus}
-                              onBlur={onTextBtnBlur}
+                      {managerInspectorKey
+                        ? (() => {
+                          const inv =
+                            managerScope === "strategy"
+                              ? managerStrategyInventory
+                              : managerTradeInventory;
+                          const key = managerInspectorKey;
+                          if (!inv) return null;
+
+                          const selectManagerFiles =
+                            managerScope === "strategy"
+                              ? selectManagerStrategyFiles
+                              : selectManagerTradeFiles;
+
+                          const allPaths = inv.keyPaths[key] ?? [];
+                          const perVal = inv.valPaths[key] ?? {};
+                          const sortedVals = Object.entries(perVal).sort(
+                            (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
+                          );
+                          const currentPaths =
+                            managerInspectorFileFilter?.paths ?? allPaths;
+                          const filterLabel = managerInspectorFileFilter?.label;
+
+                          const prettyManagerVal = (val: string) => {
+                            let s = (val ?? "").toString().trim();
+                            if (!s) return "";
+                            const low = s.toLowerCase();
+                            if (s === "Unknown" || low === "unknown")
+                              return "未知/Unknown";
+                            if (s === "Empty" || low === "empty")
+                              return "空/Empty";
+                            if (low === "null") return "空/null";
+                            return s;
+                          };
+
+                          const close = () => {
+                            setManagerInspectorKey(undefined);
+                            setManagerInspectorTab("vals");
+                            setManagerInspectorFileFilter(undefined);
+                          };
+
+                          const doRenameKey = async () => {
+                            const n =
+                              (await promptText?.({
+                                title: `重命名 ${key}`,
+                                defaultValue: key,
+                                placeholder: "输入新属性名",
+                                okText: "重命名",
+                                cancelText: "取消",
+                              })) ?? "";
+                            const nextKey = n.trim();
+                            if (!nextKey || nextKey === key) return;
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认重命名",
+                                message: `将属性\n${key}\n重命名为\n${nextKey}`,
+                                okText: "确认",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildRenameKeyPlan(
+                              selectManagerFiles(allPaths),
+                              key,
+                              nextKey,
+                              { overwrite: true }
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              forceDeleteKeys: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const doDeleteKey = async () => {
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认删除属性",
+                                message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
+                                okText: "删除",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildDeleteKeyPlan(
+                              selectManagerFiles(allPaths),
+                              key
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              forceDeleteKeys: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const doAppendVal = async () => {
+                            const v =
+                              (await promptText?.({
+                                title: `追加新值 → ${key}`,
+                                placeholder: "输入要追加的值",
+                                okText: "追加",
+                                cancelText: "取消",
+                              })) ?? "";
+                            const val = v.trim();
+                            if (!val) return;
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认追加",
+                                message: `向属性\n${key}\n追加值：\n${val}`,
+                                okText: "确认",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildAppendValPlan(
+                              selectManagerFiles(allPaths),
+                              key,
+                              val
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const doInjectProp = async () => {
+                            const k =
+                              (await promptText?.({
+                                title: "注入属性：属性名",
+                                placeholder: "例如：市场周期/market_cycle",
+                                okText: "下一步",
+                                cancelText: "取消",
+                              })) ?? "";
+                            const newKey = k.trim();
+                            if (!newKey) return;
+                            const v =
+                              (await promptText?.({
+                                title: `注入属性：${newKey} 的值`,
+                                placeholder: "输入要注入的值",
+                                okText: "注入",
+                                cancelText: "取消",
+                              })) ?? "";
+                            const newVal = v.trim();
+                            if (!newVal) return;
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认注入",
+                                message:
+                                  `将向 ${currentPaths.length} 个文件注入：\n` +
+                                  `${newKey}: ${newVal}`,
+                                okText: "确认",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildInjectPropPlan(
+                              selectManagerFiles(currentPaths),
+                              newKey,
+                              newVal
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const doUpdateVal = async (
+                            val: string,
+                            paths: string[]
+                          ) => {
+                            const n =
+                              (await promptText?.({
+                                title: `修改值 → ${key}`,
+                                defaultValue: val,
+                                placeholder: "输入新的值",
+                                okText: "修改",
+                                cancelText: "取消",
+                              })) ?? "";
+                            const next = n.trim();
+                            if (!next || next === val) return;
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认修改",
+                                message:
+                                  `将 ${paths.length} 个文件中的\n` +
+                                  `${key}: ${val}\n` +
+                                  `修改为\n` +
+                                  `${key}: ${next}`,
+                                okText: "确认",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildUpdateValPlan(
+                              selectManagerFiles(paths),
+                              key,
+                              val,
+                              next
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const doDeleteVal = async (
+                            val: string,
+                            paths: string[]
+                          ) => {
+                            const ok =
+                              (await confirmDialog?.({
+                                title: "确认移除值",
+                                message:
+                                  `将从 ${paths.length} 个文件中移除：\n` +
+                                  `${key}: ${val}`,
+                                okText: "移除",
+                                cancelText: "取消",
+                              })) ?? false;
+                            if (!ok) return;
+                            const plan = buildDeleteValPlan(
+                              selectManagerFiles(paths),
+                              key,
+                              val,
+                              {
+                                deleteKeyIfEmpty: true,
+                              }
+                            );
+                            await runManagerPlan(plan, {
+                              closeInspector: true,
+                              forceDeleteKeys: true,
+                              refreshInventory: true,
+                            });
+                          };
+
+                          const showFilesForVal = (
+                            val: string,
+                            paths: string[]
+                          ) => {
+                            setManagerInspectorTab("files");
+                            setManagerInspectorFileFilter({
+                              paths,
+                              label: `值: ${val}`,
+                            });
+                          };
+
+                          return (
+                            <div
+                              onClick={(e) => {
+                                if (e.target === e.currentTarget) close();
+                              }}
                               style={{
-                                width: "100%",
-                                textAlign: "left",
-                                padding: "8px 10px",
-                                border: "none",
-                                borderBottom:
-                                  "1px solid var(--background-modifier-border)",
-                                background: "transparent",
-                                cursor: "pointer",
-                                outline: "none",
-                                transition:
-                                  "background-color 180ms ease, box-shadow 180ms ease",
+                                position: "fixed",
+                                inset: 0,
+                                background: "rgba(0,0,0,0.35)",
+                                zIndex: 9999,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: "24px",
                               }}
                             >
                               <div
                                 style={{
+                                  width: "min(860px, 95vw)",
+                                  maxHeight: "85vh",
+                                  overflow: "hidden",
+                                  borderRadius: "12px",
+                                  border:
+                                    "1px solid var(--background-modifier-border)",
+                                  background: "var(--background-primary)",
                                   display: "flex",
-                                  gap: "10px",
-                                  alignItems: "baseline",
+                                  flexDirection: "column",
                                 }}
                               >
                                 <div
                                   style={{
-                                    width: "60px",
-                                    color:
-                                      issue.severity === "error"
-                                        ? V5_COLORS.loss
-                                        : V5_COLORS.back,
-                                    fontWeight: 600,
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "12px 14px",
+                                    borderBottom:
+                                      "1px solid var(--background-modifier-border)",
                                   }}
                                 >
-                                  {issue.severity === "error"
-                                    ? "错误"
-                                    : issue.severity === "warn"
-                                      ? "警告"
-                                      : "—"}
-                                </div>
-                                <div style={{ flex: "1 1 auto" }}>
-                                  <div style={{ fontWeight: 600 }}>
-                                    {issue.title}
-                                  </div>
-                                  <div
-                                    style={{
-                                      color: "var(--text-faint)",
-                                      fontSize: "0.85em",
-                                    }}
-                                  >
-                                    {issue.path}
-                                    {issue.detail ? ` — ${issue.detail}` : ""}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                          {inspectorIssues.length > 50 ? (
-                            <div
-                              style={{
-                                padding: "8px 10px",
-                                color: "var(--text-faint)",
-                                fontSize: "0.85em",
-                              }}
-                            >
-                              仅显示前 50 条问题。
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
-
-                      {showFixPlan && enumPresets ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-                            修复方案预览（FixPlan）
-                          </div>
-                          <pre
-                            style={{
-                              margin: 0,
-                              padding: "10px",
-                              border:
-                                "1px solid var(--background-modifier-border)",
-                              borderRadius: "8px",
-                              background: "rgba(var(--mono-rgb-100), 0.03)",
-                              maxHeight: "220px",
-                              overflow: "auto",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {fixPlanText ?? ""}
-                          </pre>
-                        </div>
-                      ) : !enumPresets ? (
-                        <div
-                          style={{
-                            marginTop: "12px",
-                            color: "var(--text-faint)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          枚举预设不可用，已禁用修复方案生成。
-                        </div>
-                      ) : null}
-                    </div>
-                  </details>
-                </div>
-              );
-            })()}
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-                marginBottom: "8px",
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>💎 上帝模式（属性管理器）</div>
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setManagerBusy(true);
-                    try {
-                      await scanManagerInventory();
-                    } finally {
-                      setManagerBusy(false);
-                    }
-                  }}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={managerBusy ? buttonSmDisabledStyle : buttonSmStyle}
-                >
-                  扫描属性（v5.0）
-                </button>
-              </div>
-            </div>
-            <div style={{ marginTop: "12px" }}>
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                }}
-              >
-                {managerTradeInventory || managerStrategyInventory ? (
-                  <>
-                    <input
-                      value={managerSearch}
-                      onChange={(e) => setManagerSearch(e.target.value)}
-                      placeholder="🔍 搜索属性..."
-                      style={{
-                        width: "100%",
-                        padding: "8px 10px",
-                        borderRadius: "10px",
-                        border: "1px solid var(--background-modifier-border)",
-                        background: "var(--background-primary)",
-                        color: "var(--text-normal)",
-                        marginBottom: "10px",
-                      }}
-                    />
-
-                    {(() => {
-                      const q = managerSearch.trim().toLowerCase();
-
-                      const canonicalizeSearch = (s: string) => {
-                        const raw = (s ?? "").toString().trim();
-                        if (!raw) return "";
-                        const low = raw.toLowerCase();
-                        if (low === "n/a" || low === "na") return "unknown";
-                        if (low.includes("unknown") || raw.includes("未知"))
-                          return "unknown";
-                        if (low === "null" || raw.includes("空/null"))
-                          return "null";
-                        if (
-                          low.includes("empty") ||
-                          raw === "空" ||
-                          raw.includes("空/empty")
-                        )
-                          return "empty";
-                        return low;
-                      };
-
-                      const qCanon = canonicalizeSearch(q);
-
-                      const groups = MANAGER_GROUPS;
-                      const othersTitle = "📂 其他属性 (Other)";
-
-                      const prettyVal = (val: string) => {
-                        let s = (val ?? "").toString().trim();
-                        if (!s) return "";
-                        const low = s.toLowerCase();
-                        if (s === "Unknown" || low === "unknown")
-                          return "未知/Unknown";
-                        if (s === "Empty" || low === "empty") return "空/Empty";
-                        if (low === "null") return "空/null";
-                        return s;
-                      };
-
-                      const matchKeyToGroup = (key: string) => {
-                        const tokens = managerKeyTokens(key);
-                        for (const g of groups) {
-                          for (const kw of g.keywords) {
-                            const needle = String(kw ?? "")
-                              .trim()
-                              .toLowerCase();
-                            if (!needle) continue;
-                            if (
-                              tokens.some(
-                                (t) => t === needle || t.includes(needle)
-                              )
-                            ) {
-                              return g.title;
-                            }
-                          }
-                        }
-                        return othersTitle;
-                      };
-
-                      const renderInventoryGrid = (
-                        inv: FrontmatterInventory | undefined,
-                        scope: "trade" | "strategy",
-                        title: string
-                      ) => {
-                        if (!inv) return null;
-
-                        const matchesSearch = (key: string) => {
-                          if (!q) return true;
-                          const kl = key.toLowerCase();
-                          if (kl.includes(q)) return true;
-                          if (qCanon && canonicalizeSearch(kl).includes(qCanon))
-                            return true;
-                          const vals = Object.keys(inv.valPaths[key] ?? {});
-                          return vals.some((v) => {
-                            const vl = v.toLowerCase();
-                            if (vl.includes(q)) return true;
-                            if (!qCanon) return false;
-                            return canonicalizeSearch(vl).includes(qCanon);
-                          });
-                        };
-
-                        const bucketed = new Map<string, string[]>();
-                        for (const g of groups) bucketed.set(g.title, []);
-                        bucketed.set(othersTitle, []);
-
-                        const visibleKeys = inv.keys
-                          .map((k) => k.key)
-                          .filter((k) => matchesSearch(k));
-
-                        for (const key of visibleKeys) {
-                          const g = matchKeyToGroup(key);
-                          bucketed.get(g)!.push(key);
-                        }
-
-                        const groupEntries: Array<{
-                          name: string;
-                          keys: string[];
-                        }> = [
-                          {
-                            name: groups[0]?.title ?? "",
-                            keys: bucketed.get(groups[0]?.title ?? "") ?? [],
-                          },
-                          {
-                            name: groups[1]?.title ?? "",
-                            keys: bucketed.get(groups[1]?.title ?? "") ?? [],
-                          },
-                          {
-                            name: groups[2]?.title ?? "",
-                            keys: bucketed.get(groups[2]?.title ?? "") ?? [],
-                          },
-                          {
-                            name: othersTitle,
-                            keys: bucketed.get(othersTitle) ?? [],
-                          },
-                        ].filter((x) => x.name && x.keys.length > 0);
-
-                        return (
-                          <div style={{ marginBottom: "14px" }}>
-                            <div style={{ fontWeight: 700, margin: "8px 0" }}>
-                              {title}
-                            </div>
-                            {groupEntries.length === 0 ? (
-                              <div
-                                style={{
-                                  color: "var(--text-faint)",
-                                  fontSize: "0.9em",
-                                }}
-                              >
-                                无匹配属性。
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns:
-                                    "repeat(auto-fit, minmax(240px, 1fr))",
-                                  gap: SPACE.md,
-                                }}
-                              >
-                                {groupEntries.map((g) => (
-                                  <div
-                                    key={`${scope}:${g.name}`}
-                                    style={{
-                                      border:
-                                        "1px solid var(--background-modifier-border)",
-                                      borderRadius: "12px",
-                                      padding: "10px",
-                                      background: "var(--background-secondary)",
-                                    }}
-                                  >
-                                    <div
+                                  <div style={{ fontWeight: 800 }}>
+                                    {key}
+                                    <span
                                       style={{
-                                        fontWeight: 700,
-                                        marginBottom: "8px",
+                                        color: "var(--text-faint)",
+                                        fontSize: "0.9em",
+                                        marginLeft: "10px",
+                                        fontWeight: 600,
                                       }}
                                     >
-                                      {g.name}
-                                    </div>
-                                    <div
-                                      style={{ display: "grid", gap: "6px" }}
+                                      {managerScope === "strategy"
+                                        ? "策略"
+                                        : "交易"}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: "flex", gap: "8px" }}>
+                                    <button
+                                      type="button"
+                                      disabled={managerBusy}
+                                      onClick={doDeleteKey}
+                                      style={
+                                        managerBusy
+                                          ? buttonSmDisabledStyle
+                                          : buttonSmStyle
+                                      }
                                     >
-                                      {g.keys.slice(0, 18).map((key) => {
-                                        const countFiles = (
-                                          inv.keyPaths[key] ?? []
-                                        ).length;
-                                        const vals = Object.keys(
-                                          inv.valPaths[key] ?? {}
-                                        );
-                                        const topVals = vals
-                                          .map((v) => ({
-                                            v,
-                                            c: (inv.valPaths[key]?.[v] ?? [])
-                                              .length,
-                                          }))
-                                          .sort((a, b) => b.c - a.c)
-                                          .slice(0, 2);
-                                        return (
+                                      🗑️ 删除属性
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={close}
+                                      style={buttonSmStyle}
+                                    >
+                                      关闭
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "8px",
+                                    padding: "10px 14px",
+                                    borderBottom:
+                                      "1px solid var(--background-modifier-border)",
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setManagerInspectorTab("vals");
+                                      setManagerInspectorFileFilter(undefined);
+                                    }}
+                                    style={{
+                                      ...buttonSmStyle,
+                                      background:
+                                        managerInspectorTab === "vals"
+                                          ? "rgba(var(--mono-rgb-100), 0.08)"
+                                          : "var(--background-primary)",
+                                    }}
+                                  >
+                                    属性值 ({sortedVals.length})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setManagerInspectorTab("files")
+                                    }
+                                    style={{
+                                      ...buttonSmStyle,
+                                      background:
+                                        managerInspectorTab === "files"
+                                          ? "rgba(var(--mono-rgb-100), 0.08)"
+                                          : "var(--background-primary)",
+                                    }}
+                                  >
+                                    关联文件 ({allPaths.length})
+                                  </button>
+                                </div>
+
+                                <div
+                                  style={{
+                                    padding: "10px 14px",
+                                    overflow: "auto",
+                                    flex: "1 1 auto",
+                                  }}
+                                >
+                                  {managerInspectorTab === "vals" ? (
+                                    <div
+                                      style={{ display: "grid", gap: "8px" }}
+                                    >
+                                      {sortedVals.length === 0 ? (
+                                        <div
+                                          style={{
+                                            padding: "40px",
+                                            textAlign: "center",
+                                            color: "var(--text-faint)",
+                                          }}
+                                        >
+                                          无值记录
+                                        </div>
+                                      ) : (
+                                        sortedVals.map(([val, paths]) => (
                                           <div
-                                            key={`${scope}:${key}`}
-                                            onClick={() => {
-                                              setManagerScope(scope);
-                                              setManagerInspectorKey(key);
-                                              setManagerInspectorTab("vals");
-                                              setManagerInspectorFileFilter(
-                                                undefined
-                                              );
-                                            }}
+                                            key={`mgr-v5-row-${val}`}
                                             style={{
+                                              display: "flex",
+                                              justifyContent: "space-between",
+                                              alignItems: "center",
+                                              gap: "10px",
                                               border:
                                                 "1px solid var(--background-modifier-border)",
                                               borderRadius: "10px",
-                                              padding: "8px 10px",
+                                              padding: "10px",
                                               background:
-                                                "var(--background-primary)",
-                                              cursor: "pointer",
+                                                "rgba(var(--mono-rgb-100), 0.03)",
                                             }}
                                           >
                                             <div
                                               style={{
-                                                fontWeight: 650,
                                                 display: "flex",
-                                                justifyContent: "space-between",
-                                                gap: "8px",
+                                                alignItems: "center",
+                                                gap: "10px",
+                                                minWidth: 0,
                                               }}
                                             >
-                                              <span>{key}</span>
                                               <span
                                                 style={{
-                                                  color: "var(--text-faint)",
+                                                  border:
+                                                    "1px solid var(--background-modifier-border)",
+                                                  borderRadius: "999px",
+                                                  padding: "2px 10px",
+                                                  background:
+                                                    "var(--background-primary)",
+                                                  maxWidth: "520px",
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                                title={val}
+                                              >
+                                                {prettyManagerVal(val) || val}
+                                              </span>
+                                              <span
+                                                style={{
+                                                  color: "var(--text-muted)",
+                                                  fontVariantNumeric:
+                                                    "tabular-nums",
                                                 }}
                                               >
-                                                {countFiles}
+                                                {paths.length}
                                               </span>
                                             </div>
                                             <div
                                               style={{
-                                                color: "var(--text-faint)",
-                                                fontSize: "0.85em",
-                                                marginTop: "2px",
                                                 display: "flex",
                                                 gap: "8px",
-                                                flexWrap: "wrap",
                                               }}
                                             >
-                                              {topVals.length ? (
-                                                topVals.map((x) => (
-                                                  <span key={x.v}>
-                                                    {prettyVal(x.v)} · {x.c}
-                                                  </span>
-                                                ))
-                                              ) : (
-                                                <span>（无值）</span>
-                                              )}
+                                              <button
+                                                type="button"
+                                                disabled={managerBusy}
+                                                onClick={() =>
+                                                  void doUpdateVal(val, paths)
+                                                }
+                                                style={
+                                                  managerBusy
+                                                    ? buttonSmDisabledStyle
+                                                    : buttonSmStyle
+                                                }
+                                                title="修改"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button
+                                                type="button"
+                                                disabled={managerBusy}
+                                                onClick={() =>
+                                                  void doDeleteVal(val, paths)
+                                                }
+                                                style={
+                                                  managerBusy
+                                                    ? buttonSmDisabledStyle
+                                                    : buttonSmStyle
+                                                }
+                                                title="删除"
+                                              >
+                                                🗑️
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  showFilesForVal(val, paths)
+                                                }
+                                                style={buttonSmStyle}
+                                                title="查看文件"
+                                              >
+                                                👁️
+                                              </button>
                                             </div>
                                           </div>
-                                        );
-                                      })}
-
-                                      {g.keys.length > 18 ? (
-                                        <div
-                                          style={{ color: "var(--text-faint)" }}
-                                        >
-                                          还有 {g.keys.length - 18} 个…
-                                        </div>
-                                      ) : null}
+                                        ))
+                                      )}
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      };
-
-                      return (
-                        <>
-                          {renderInventoryGrid(
-                            managerTradeInventory,
-                            "trade",
-                            "📂 属性列表"
-                          )}
-                        </>
-                      );
-                    })()}
-
-                    {managerInspectorKey
-                      ? (() => {
-                        const inv =
-                          managerScope === "strategy"
-                            ? managerStrategyInventory
-                            : managerTradeInventory;
-                        const key = managerInspectorKey;
-                        if (!inv) return null;
-
-                        const selectManagerFiles =
-                          managerScope === "strategy"
-                            ? selectManagerStrategyFiles
-                            : selectManagerTradeFiles;
-
-                        const allPaths = inv.keyPaths[key] ?? [];
-                        const perVal = inv.valPaths[key] ?? {};
-                        const sortedVals = Object.entries(perVal).sort(
-                          (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
-                        );
-                        const currentPaths =
-                          managerInspectorFileFilter?.paths ?? allPaths;
-                        const filterLabel = managerInspectorFileFilter?.label;
-
-                        const prettyManagerVal = (val: string) => {
-                          let s = (val ?? "").toString().trim();
-                          if (!s) return "";
-                          const low = s.toLowerCase();
-                          if (s === "Unknown" || low === "unknown")
-                            return "未知/Unknown";
-                          if (s === "Empty" || low === "empty")
-                            return "空/Empty";
-                          if (low === "null") return "空/null";
-                          return s;
-                        };
-
-                        const close = () => {
-                          setManagerInspectorKey(undefined);
-                          setManagerInspectorTab("vals");
-                          setManagerInspectorFileFilter(undefined);
-                        };
-
-                        const doRenameKey = async () => {
-                          const n =
-                            (await promptText?.({
-                              title: `重命名 ${key}`,
-                              defaultValue: key,
-                              placeholder: "输入新属性名",
-                              okText: "重命名",
-                              cancelText: "取消",
-                            })) ?? "";
-                          const nextKey = n.trim();
-                          if (!nextKey || nextKey === key) return;
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认重命名",
-                              message: `将属性\n${key}\n重命名为\n${nextKey}`,
-                              okText: "确认",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildRenameKeyPlan(
-                            selectManagerFiles(allPaths),
-                            key,
-                            nextKey,
-                            { overwrite: true }
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            forceDeleteKeys: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const doDeleteKey = async () => {
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认删除属性",
-                              message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
-                              okText: "删除",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildDeleteKeyPlan(
-                            selectManagerFiles(allPaths),
-                            key
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            forceDeleteKeys: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const doAppendVal = async () => {
-                          const v =
-                            (await promptText?.({
-                              title: `追加新值 → ${key}`,
-                              placeholder: "输入要追加的值",
-                              okText: "追加",
-                              cancelText: "取消",
-                            })) ?? "";
-                          const val = v.trim();
-                          if (!val) return;
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认追加",
-                              message: `向属性\n${key}\n追加值：\n${val}`,
-                              okText: "确认",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildAppendValPlan(
-                            selectManagerFiles(allPaths),
-                            key,
-                            val
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const doInjectProp = async () => {
-                          const k =
-                            (await promptText?.({
-                              title: "注入属性：属性名",
-                              placeholder: "例如：市场周期/market_cycle",
-                              okText: "下一步",
-                              cancelText: "取消",
-                            })) ?? "";
-                          const newKey = k.trim();
-                          if (!newKey) return;
-                          const v =
-                            (await promptText?.({
-                              title: `注入属性：${newKey} 的值`,
-                              placeholder: "输入要注入的值",
-                              okText: "注入",
-                              cancelText: "取消",
-                            })) ?? "";
-                          const newVal = v.trim();
-                          if (!newVal) return;
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认注入",
-                              message:
-                                `将向 ${currentPaths.length} 个文件注入：\n` +
-                                `${newKey}: ${newVal}`,
-                              okText: "确认",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildInjectPropPlan(
-                            selectManagerFiles(currentPaths),
-                            newKey,
-                            newVal
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const doUpdateVal = async (
-                          val: string,
-                          paths: string[]
-                        ) => {
-                          const n =
-                            (await promptText?.({
-                              title: `修改值 → ${key}`,
-                              defaultValue: val,
-                              placeholder: "输入新的值",
-                              okText: "修改",
-                              cancelText: "取消",
-                            })) ?? "";
-                          const next = n.trim();
-                          if (!next || next === val) return;
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认修改",
-                              message:
-                                `将 ${paths.length} 个文件中的\n` +
-                                `${key}: ${val}\n` +
-                                `修改为\n` +
-                                `${key}: ${next}`,
-                              okText: "确认",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildUpdateValPlan(
-                            selectManagerFiles(paths),
-                            key,
-                            val,
-                            next
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const doDeleteVal = async (
-                          val: string,
-                          paths: string[]
-                        ) => {
-                          const ok =
-                            (await confirmDialog?.({
-                              title: "确认移除值",
-                              message:
-                                `将从 ${paths.length} 个文件中移除：\n` +
-                                `${key}: ${val}`,
-                              okText: "移除",
-                              cancelText: "取消",
-                            })) ?? false;
-                          if (!ok) return;
-                          const plan = buildDeleteValPlan(
-                            selectManagerFiles(paths),
-                            key,
-                            val,
-                            {
-                              deleteKeyIfEmpty: true,
-                            }
-                          );
-                          await runManagerPlan(plan, {
-                            closeInspector: true,
-                            forceDeleteKeys: true,
-                            refreshInventory: true,
-                          });
-                        };
-
-                        const showFilesForVal = (
-                          val: string,
-                          paths: string[]
-                        ) => {
-                          setManagerInspectorTab("files");
-                          setManagerInspectorFileFilter({
-                            paths,
-                            label: `值: ${val}`,
-                          });
-                        };
-
-                        return (
-                          <div
-                            onClick={(e) => {
-                              if (e.target === e.currentTarget) close();
-                            }}
-                            style={{
-                              position: "fixed",
-                              inset: 0,
-                              background: "rgba(0,0,0,0.35)",
-                              zIndex: 9999,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              padding: "24px",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "min(860px, 95vw)",
-                                maxHeight: "85vh",
-                                overflow: "hidden",
-                                borderRadius: "12px",
-                                border:
-                                  "1px solid var(--background-modifier-border)",
-                                background: "var(--background-primary)",
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  gap: "12px",
-                                  padding: "12px 14px",
-                                  borderBottom:
-                                    "1px solid var(--background-modifier-border)",
-                                }}
-                              >
-                                <div style={{ fontWeight: 800 }}>
-                                  {key}
-                                  <span
-                                    style={{
-                                      color: "var(--text-faint)",
-                                      fontSize: "0.9em",
-                                      marginLeft: "10px",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {managerScope === "strategy"
-                                      ? "策略"
-                                      : "交易"}
-                                  </span>
-                                </div>
-                                <div style={{ display: "flex", gap: "8px" }}>
-                                  <button
-                                    type="button"
-                                    disabled={managerBusy}
-                                    onClick={doDeleteKey}
-                                    style={
-                                      managerBusy
-                                        ? buttonSmDisabledStyle
-                                        : buttonSmStyle
-                                    }
-                                  >
-                                    🗑️ 删除属性
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={close}
-                                    style={buttonSmStyle}
-                                  >
-                                    关闭
-                                  </button>
-                                </div>
-                              </div>
-
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "8px",
-                                  padding: "10px 14px",
-                                  borderBottom:
-                                    "1px solid var(--background-modifier-border)",
-                                }}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setManagerInspectorTab("vals");
-                                    setManagerInspectorFileFilter(undefined);
-                                  }}
-                                  style={{
-                                    ...buttonSmStyle,
-                                    background:
-                                      managerInspectorTab === "vals"
-                                        ? "rgba(var(--mono-rgb-100), 0.08)"
-                                        : "var(--background-primary)",
-                                  }}
-                                >
-                                  属性值 ({sortedVals.length})
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setManagerInspectorTab("files")
-                                  }
-                                  style={{
-                                    ...buttonSmStyle,
-                                    background:
-                                      managerInspectorTab === "files"
-                                        ? "rgba(var(--mono-rgb-100), 0.08)"
-                                        : "var(--background-primary)",
-                                  }}
-                                >
-                                  关联文件 ({allPaths.length})
-                                </button>
-                              </div>
-
-                              <div
-                                style={{
-                                  padding: "10px 14px",
-                                  overflow: "auto",
-                                  flex: "1 1 auto",
-                                }}
-                              >
-                                {managerInspectorTab === "vals" ? (
-                                  <div
-                                    style={{ display: "grid", gap: "8px" }}
-                                  >
-                                    {sortedVals.length === 0 ? (
-                                      <div
-                                        style={{
-                                          padding: "40px",
-                                          textAlign: "center",
-                                          color: "var(--text-faint)",
-                                        }}
-                                      >
-                                        无值记录
-                                      </div>
-                                    ) : (
-                                      sortedVals.map(([val, paths]) => (
+                                  ) : (
+                                    <div
+                                      style={{ display: "grid", gap: "8px" }}
+                                    >
+                                      {filterLabel ? (
                                         <div
-                                          key={`mgr-v5-row-${val}`}
                                           style={{
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            gap: "10px",
+                                            color: V5_COLORS.accent,
+                                            fontWeight: 700,
+                                            padding: "8px 10px",
+                                            border:
+                                              "1px solid var(--background-modifier-border)",
+                                            borderRadius: "10px",
+                                            background:
+                                              "rgba(var(--mono-rgb-100), 0.03)",
+                                          }}
+                                        >
+                                          <span>🔍 筛选: {filterLabel}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setManagerInspectorFileFilter(
+                                                undefined
+                                              )
+                                            }
+                                            style={buttonSmStyle}
+                                          >
+                                            ✕ 重置
+                                          </button>
+                                        </div>
+                                      ) : null}
+
+                                      {currentPaths.slice(0, 200).map((p) => (
+                                        <button
+                                          key={`mgr-v5-file-${p}`}
+                                          type="button"
+                                          onClick={() => void openFile?.(p)}
+                                          title={p}
+                                          onMouseEnter={onTextBtnMouseEnter}
+                                          onMouseLeave={onTextBtnMouseLeave}
+                                          onFocus={onTextBtnFocus}
+                                          onBlur={onTextBtnBlur}
+                                          style={{
+                                            textAlign: "left",
                                             border:
                                               "1px solid var(--background-modifier-border)",
                                             borderRadius: "10px",
                                             padding: "10px",
                                             background:
-                                              "rgba(var(--mono-rgb-100), 0.03)",
+                                              "var(--background-primary)",
+                                            cursor: "pointer",
                                           }}
                                         >
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              gap: "10px",
-                                              minWidth: 0,
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                border:
-                                                  "1px solid var(--background-modifier-border)",
-                                                borderRadius: "999px",
-                                                padding: "2px 10px",
-                                                background:
-                                                  "var(--background-primary)",
-                                                maxWidth: "520px",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                              }}
-                                              title={val}
-                                            >
-                                              {prettyManagerVal(val) || val}
-                                            </span>
-                                            <span
-                                              style={{
-                                                color: "var(--text-muted)",
-                                                fontVariantNumeric:
-                                                  "tabular-nums",
-                                              }}
-                                            >
-                                              {paths.length}
-                                            </span>
+                                          <div style={{ fontWeight: 700 }}>
+                                            {p.split("/").pop()}
                                           </div>
                                           <div
                                             style={{
-                                              display: "flex",
-                                              gap: "8px",
+                                              color: "var(--text-faint)",
+                                              fontSize: "0.85em",
+                                              opacity: 0.8,
                                             }}
                                           >
-                                            <button
-                                              type="button"
-                                              disabled={managerBusy}
-                                              onClick={() =>
-                                                void doUpdateVal(val, paths)
-                                              }
-                                              style={
-                                                managerBusy
-                                                  ? buttonSmDisabledStyle
-                                                  : buttonSmStyle
-                                              }
-                                              title="修改"
-                                            >
-                                              ✏️
-                                            </button>
-                                            <button
-                                              type="button"
-                                              disabled={managerBusy}
-                                              onClick={() =>
-                                                void doDeleteVal(val, paths)
-                                              }
-                                              style={
-                                                managerBusy
-                                                  ? buttonSmDisabledStyle
-                                                  : buttonSmStyle
-                                              }
-                                              title="删除"
-                                            >
-                                              🗑️
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                showFilesForVal(val, paths)
-                                              }
-                                              style={buttonSmStyle}
-                                              title="查看文件"
-                                            >
-                                              👁️
-                                            </button>
+                                            {p}
                                           </div>
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div
-                                    style={{ display: "grid", gap: "8px" }}
-                                  >
-                                    {filterLabel ? (
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          justifyContent: "space-between",
-                                          alignItems: "center",
-                                          color: V5_COLORS.accent,
-                                          fontWeight: 700,
-                                          padding: "8px 10px",
-                                          border:
-                                            "1px solid var(--background-modifier-border)",
-                                          borderRadius: "10px",
-                                          background:
-                                            "rgba(var(--mono-rgb-100), 0.03)",
-                                        }}
-                                      >
-                                        <span>🔍 筛选: {filterLabel}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setManagerInspectorFileFilter(
-                                              undefined
-                                            )
-                                          }
-                                          style={buttonSmStyle}
-                                        >
-                                          ✕ 重置
                                         </button>
-                                      </div>
-                                    ) : null}
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
 
-                                    {currentPaths.slice(0, 200).map((p) => (
+                                <div
+                                  style={{
+                                    padding: "10px 14px",
+                                    borderTop:
+                                      "1px solid var(--background-modifier-border)",
+                                    display: "flex",
+                                    gap: "10px",
+                                    justifyContent: "flex-end",
+                                  }}
+                                >
+                                  {managerInspectorTab === "vals" ? (
+                                    <>
                                       <button
-                                        key={`mgr-v5-file-${p}`}
                                         type="button"
-                                        onClick={() => void openFile?.(p)}
-                                        title={p}
-                                        onMouseEnter={onTextBtnMouseEnter}
-                                        onMouseLeave={onTextBtnMouseLeave}
-                                        onFocus={onTextBtnFocus}
-                                        onBlur={onTextBtnBlur}
-                                        style={{
-                                          textAlign: "left",
-                                          border:
-                                            "1px solid var(--background-modifier-border)",
-                                          borderRadius: "10px",
-                                          padding: "10px",
-                                          background:
-                                            "var(--background-primary)",
-                                          cursor: "pointer",
-                                        }}
+                                        disabled={managerBusy}
+                                        onClick={() => void doRenameKey()}
+                                        style={
+                                          managerBusy
+                                            ? buttonSmDisabledStyle
+                                            : buttonSmStyle
+                                        }
                                       >
-                                        <div style={{ fontWeight: 700 }}>
-                                          {p.split("/").pop()}
-                                        </div>
-                                        <div
-                                          style={{
-                                            color: "var(--text-faint)",
-                                            fontSize: "0.85em",
-                                            opacity: 0.8,
-                                          }}
-                                        >
-                                          {p}
-                                        </div>
+                                        ✏️ 重命名
                                       </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div
-                                style={{
-                                  padding: "10px 14px",
-                                  borderTop:
-                                    "1px solid var(--background-modifier-border)",
-                                  display: "flex",
-                                  gap: "10px",
-                                  justifyContent: "flex-end",
-                                }}
-                              >
-                                {managerInspectorTab === "vals" ? (
-                                  <>
+                                      <button
+                                        type="button"
+                                        disabled={managerBusy}
+                                        onClick={() => void doAppendVal()}
+                                        style={
+                                          managerBusy
+                                            ? buttonSmDisabledStyle
+                                            : buttonSmStyle
+                                        }
+                                      >
+                                        ➕ 追加新值
+                                      </button>
+                                    </>
+                                  ) : (
                                     <button
                                       type="button"
                                       disabled={managerBusy}
-                                      onClick={() => void doRenameKey()}
+                                      onClick={() => void doInjectProp()}
                                       style={
                                         managerBusy
                                           ? buttonSmDisabledStyle
                                           : buttonSmStyle
                                       }
                                     >
-                                      ✏️ 重命名
+                                      💉 注入属性
                                     </button>
-                                    <button
-                                      type="button"
-                                      disabled={managerBusy}
-                                      onClick={() => void doAppendVal()}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
-                                    >
-                                      ➕ 追加新值
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    disabled={managerBusy}
-                                    onClick={() => void doInjectProp()}
-                                    style={
-                                      managerBusy
-                                        ? buttonSmDisabledStyle
-                                        : buttonSmStyle
-                                    }
-                                  >
-                                    💉 注入属性
-                                  </button>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })()
-                      : null}
-                  </>
-                ) : (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    尚未扫描属性。点击上方“扫描属性（v5.0）”。
-                  </div>
-                )}
+                          );
+                        })()
+                        : null}
+                    </>
+                  ) : (
+                    <div
+                      style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
+                    >
+                      尚未扫描属性。点击上方“扫描属性（v5.0）”。
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div
-            style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>📥 导出</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              导出
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
             <div
               style={{
+                margin: "18px 0 10px",
+                paddingBottom: "8px",
+                borderBottom: "1px solid var(--background-modifier-border)",
                 display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                alignItems: "baseline",
+                gap: "10px",
                 flexWrap: "wrap",
-                marginBottom: "10px",
               }}
             >
-              <button
-                type="button"
-                disabled={!runCommand}
-                onClick={() =>
-                  runCommand?.("al-brooks-console:export-legacy-snapshot")
-                }
-                style={runCommand ? buttonStyle : disabledButtonStyle}
-              >
-                导出旧版兼容快照 (pa-db-export.json)
-              </button>
-              <button
-                type="button"
-                disabled={!runCommand}
-                onClick={() =>
-                  runCommand?.("al-brooks-console:export-index-snapshot")
-                }
-                style={runCommand ? buttonStyle : disabledButtonStyle}
-              >
-                导出索引快照 (Index Snapshot)
-              </button>
+              <div style={{ fontWeight: 700 }}>📥 导出</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                导出
+              </div>
             </div>
 
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              v5.0 在页面底部提供“一键备份数据库”按钮（写入
-              pa-db-export.json）。插件版 目前提供两类导出：旧版兼容快照（写入
-              vault 根目录 pa-db-export.json）与索引快照（导出到
-              Exports/al-brooks-console/）。
+            <div
+              style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "16px",
+                background: "var(--background-primary)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  marginBottom: "10px",
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={!runCommand}
+                  onClick={() =>
+                    runCommand?.("al-brooks-console:export-legacy-snapshot")
+                  }
+                  style={runCommand ? buttonStyle : disabledButtonStyle}
+                >
+                  导出旧版兼容快照 (pa-db-export.json)
+                </button>
+                <button
+                  type="button"
+                  disabled={!runCommand}
+                  onClick={() =>
+                    runCommand?.("al-brooks-console:export-index-snapshot")
+                  }
+                  style={runCommand ? buttonStyle : disabledButtonStyle}
+                >
+                  导出索引快照 (Index Snapshot)
+                </button>
+              </div>
+
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                v5.0 在页面底部提供“一键备份数据库”按钮（写入
+                pa-db-export.json）。插件版 目前提供两类导出：旧版兼容快照（写入
+                vault 根目录 pa-db-export.json）与索引快照（导出到
+                Exports/al-brooks-console/）。
+              </div>
             </div>
           </div>
         </>
