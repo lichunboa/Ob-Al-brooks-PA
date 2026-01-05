@@ -819,3 +819,73 @@ msgstr "📊 成交量比率数据"
 
 msgid "card.volume_ratio.hint"
 msgstr "💡 量比=当前成交量/均量，>2 放量，<0.5 缩量"
+
+# app.py 用户消息
+msgid "data.initializing"
+msgstr "🔄 机器人正在初始化中，请稍后重试"
+
+msgid "data.service_unavailable"
+msgstr "❌ 数据服务不可用，请稍后重试"
+
+msgid "data.aggregating_futures_volume"
+msgstr "🔄 正在聚合合约交易量数据，请稍后查看"
+
+msgid "data.aggregating_spot_volume"
+msgstr "🔄 现货交易量数据正在聚合，请稍后再试"
+
+msgid "data.fetch_failed"
+msgstr "❌ 获取市场数据失败，请稍后重试"
+
+msgid "data.option_failed"
+msgstr "❌ 期权数据获取失败，请稍后重试"
+
+msgid "data.option_loading"
+msgstr "🔄 期权数据正在加载中，请稍后重试"
+
+msgid "data.aggregating_futures_cvd"
+msgstr "🔄 正在聚合合约CVD，请稍后查看"
+
+msgid "data.aggregating_spot_cvd"
+msgstr "🔄 正在聚合现货CVD，请稍后查看"
+
+msgid "data.no_flow_data"
+msgstr "📭 当前周期暂无匹配的资金流向数据"
+
+msgid "data.no_spot_flow"
+msgstr "📭 当前周期暂无匹配的现货资金流向"
+
+msgid "data.oi_loading"
+msgstr "🔄 持仓数据正在加载中，请稍后重试"
+
+msgid "data.cache_empty"
+msgstr "❌ 缓存为空"
+
+msgid "data.temporarily_unavailable"
+msgstr "📊 数据暂不可用，请稍后重试"
+
+msgid "error.unsupported_market"
+msgstr "❌ 不支持的市场类型"
+
+msgid "error.signal_not_init"
+msgstr "❌ 信号格式化器未初始化"
+
+msgid "feature.funding_offline"
+msgstr "⏸️ 资金费率排行功能已下线，敬请期待替代方案。"
+
+msgid "feature.depth_offline"
+msgstr "⏸️ 市场深度排行功能已下线，敬请期待替代方案。"
+
+msgid "feature.sentiment_offline"
+msgstr "⏸️ 市场情绪榜单已下线，敬请期待新的指标面板。"
+
+msgid "feature.ai_unavailable"
+msgstr "🤖 AI分析功能暂未开放，请稍后重试。"
+
+msgid "cache.status_title"
+msgstr "📊 缓存状态:"
+
+msgid "cache.no_files"
+msgstr "没有找到缓存文件"
+
+msgid "data.loading_hint"
+msgstr "🔄 数据正在后台加载中，请稍后重试\n💡 机器人刚启动时需要几秒钟加载数据"

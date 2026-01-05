@@ -1045,7 +1045,7 @@ class UserRequestHandler:
             logger.info(f"返回内存缓存数据: {key} (缓存年龄: {cache_age:.1f}秒)")
             return cache[key]['data'], None
         if fallback_message is None:
-            fallback_message = "🔄 数据正在后台加载中，请稍后重试\n💡 机器人刚启动时需要几秒钟加载数据"
+            fallback_message = _t("data.loading_hint", None)
         logger.warning(f"缓存中没有数据: {key}")
         return [], fallback_message
 
@@ -1054,7 +1054,7 @@ class UserRequestHandler:
         数据对齐：默认前 left_align_cols 列左对齐，其余右对齐；支持传入对齐列表 ["L","R",...]
         """
         if not data_rows:
-            return "暂无数据"
+            return _t("data.no_data", None)
 
         col_cnt = max(len(row) for row in data_rows)
         if not all(len(row) == col_cnt for row in data_rows):
@@ -1112,7 +1112,7 @@ class UserRequestHandler:
     # ===== 基础行情占位，避免缺失方法导致报错 =====
     def get_basic_market(self, sort_type='change', period='24h', sort_order='desc', limit=10, market_type='futures'):
         """AI分析占位，保持接口不报错"""
-        return "🤖 AI分析功能暂未开放，请稍后重试。"
+        return _t("feature.ai_unavailable", None)
 
     def get_basic_market_keyboard(
         self,
@@ -1246,7 +1246,7 @@ class UserRequestHandler:
                 return temp_bot.get_position_ranking(limit=limit, sort_order=sort_order, period=period, sort_field=sort_field)
             except Exception as e:
                 logger.error(f"创建临时bot实例失败: {e}")
-                return "🔄 机器人正在初始化中，请稍后重试"
+                return _t("data.initializing", None)
 
     def get_position_ranking_keyboard(self, current_sort='desc', current_limit=10, current_period='24h', update=None):
         """获取持仓量排行榜键盘 - 委托给TradeCatBot处理"""
@@ -1276,7 +1276,7 @@ class UserRequestHandler:
 
     def get_funding_rate_ranking(self, limit=10, sort_order='desc', sort_type='funding_rate'):
         """资金费率排行已下线占位。"""
-        return "⏸️ 资金费率排行功能已下线，敬请期待替代方案。"
+        return _t("feature.funding_offline", None)
 
     def get_coinglass_futures_data(self):
         """CoinGlass 数据源已下线，返回空列表。"""
@@ -1295,7 +1295,7 @@ class UserRequestHandler:
         elif market_type == 'spot':
             return self.get_spot_volume_ranking(limit, period, sort_order, sort_field=sort_field, update=update)
         else:
-            return "❌ 不支持的市场类型"
+            return _t("error.unsupported_market", None)
 
     @staticmethod
     def _format_usd_value(value: float) -> str:
@@ -1335,7 +1335,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return "❌ 数据服务不可用，请稍后重试"
+            return _t("data.service_unavailable", None)
 
         rows = service.获取交易量排行('futures', period, sort_order, limit * 2)
         processed = []
@@ -1351,7 +1351,7 @@ class UserRequestHandler:
             processed.append((symbol, volume, price, change_percent))
 
         if not processed:
-            return "🔄 正在聚合合约交易量数据，请稍后查看"
+            return _t("data.aggregating_futures_volume", None)
 
         reverse_sort = (sort_order == 'desc')
 
@@ -1397,7 +1397,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return "❌ 数据服务不可用，请稍后重试"
+            return _t("data.service_unavailable", None)
 
         rows = service.获取交易量排行('spot', period, sort_order, limit * 2)
         processed = []
@@ -1413,7 +1413,7 @@ class UserRequestHandler:
             processed.append((symbol, volume, price, change_percent))
 
         if not processed:
-            return "🔄 现货交易量数据正在聚合，请稍后再试"
+            return _t("data.aggregating_spot_volume", None)
 
         reverse_sort = (sort_order == 'desc')
 
@@ -1457,7 +1457,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return "❌ 获取市场数据失败，请稍后重试"
+            return _t("data.fetch_failed", None)
 
         # 计算持仓/市值比
         ratio_data = []
@@ -1539,7 +1539,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return "❌ 获取市场数据失败，请稍后重试"
+            return _t("data.fetch_failed", None)
 
         # 计算交易量/市值比
         ratio_data = []
@@ -1631,7 +1631,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return "❌ 获取市场数据失败，请稍后重试"
+            return _t("data.fetch_failed", None)
 
         # 计算交易量/持仓量比
         ratio_data = []
@@ -1815,10 +1815,10 @@ class UserRequestHandler:
         option_data, error = self.get_cached_data_safely('coinglass_option_flow_data')
 
         if error:
-            return "❌ 期权数据获取失败，请稍后重试"
+            return _t("data.option_failed", None)
 
         if not option_data:
-            return "🔄 期权数据正在加载中，请稍后重试"
+            return _t("data.option_loading", None)
 
         # 获取缓存状态信息
         cache_info = ""
@@ -1924,7 +1924,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return "❌ 数据服务不可用，请稍后重试"
+            return _t("data.service_unavailable", None)
 
         raw_rows = service.获取资金流排行('futures', period, limit * 4, flow_type, sort_order)
         rows = []
@@ -1940,7 +1940,7 @@ class UserRequestHandler:
             rows.append((symbol, net_flow, buy_quote, sell_quote, quote_volume, change_percent))
 
         if not rows:
-            return "🔄 正在聚合合约CVD，请稍后查看"
+            return _t("data.aggregating_futures_cvd", None)
 
         def _filter_by_type(data):
             if flow_type == 'inflow':
@@ -1951,7 +1951,7 @@ class UserRequestHandler:
 
         filtered = _filter_by_type(rows)
         if not filtered:
-            return "📭 当前周期暂无匹配的资金流向数据"
+            return _t("data.no_flow_data", None)
 
         if flow_type == 'volume':
             reverse_sort = (sort_order == 'desc')
@@ -2009,7 +2009,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return "❌ 数据服务不可用，请稍后重试"
+            return _t("data.service_unavailable", None)
 
         raw_rows = service.获取资金流排行('spot', period, limit * 4, flow_type, sort_order)
         rows = []
@@ -2025,7 +2025,7 @@ class UserRequestHandler:
             rows.append((symbol, net_flow, buy_quote, sell_quote, quote_volume, change_percent))
 
         if not rows:
-            return "🔄 正在聚合现货CVD，请稍后查看"
+            return _t("data.aggregating_spot_cvd", None)
 
         def _filter_by_type(data):
             if flow_type == 'inflow':
@@ -2036,7 +2036,7 @@ class UserRequestHandler:
 
         filtered = _filter_by_type(rows)
         if not filtered:
-            return "📭 当前周期暂无匹配的现货资金流向"
+            return _t("data.no_spot_flow", None)
 
         if flow_type == 'volume':
             reverse_sort = (sort_order == 'desc')
@@ -2180,7 +2180,7 @@ class UserRequestHandler:
 
     def get_market_depth(self, limit=10, sort_type='ratio', sort_order='desc'):
         """市场深度排行已下线占位。"""
-        return "⏸️ 市场深度排行功能已下线，敬请期待替代方案。"
+        return _t("feature.depth_offline", None)
 
     def get_market_depth_keyboard(self, current_limit=10, current_sort_type='ratio', current_sort='desc', update=None):
         """市场深度排行已下线的占位键盘。"""
@@ -2190,7 +2190,7 @@ class UserRequestHandler:
 
     def get_market_sentiment(self):
         """市场情绪（基于Binance行情）已下线占位。"""
-        return "⏸️ 市场情绪榜单已下线，敬请期待新的指标面板。"
+        return _t("feature.sentiment_offline", None)
 
     def get_market_sentiment_keyboard(self, update=None):
         """市场情绪占位键盘。"""
@@ -2564,14 +2564,14 @@ class TradeCatBot:
         else:
             logger.warning(f"缓存中没有数据: {key}")
             if fallback_message is None:
-                fallback_message = "🔄 数据正在后台加载中，请稍后重试\n💡 机器人刚启动时需要几秒钟加载数据"
+                fallback_message = _t("data.loading_hint", None)
             return [], fallback_message
 
     def get_cache_status(self):
         """获取缓存状态信息"""
         global cache
         if not cache:
-            return "❌ 缓存为空"
+            return _t("data.cache_empty", None)
 
         status_info = []
         current_time = time.time()
@@ -2581,7 +2581,7 @@ class TradeCatBot:
             data_count = len(data['data']) if isinstance(data['data'], list) else 1
             status_info.append(f"- {key}: {data_count}条数据, {age:.1f}秒前")
 
-        return "📊 缓存状态:\n" + "\n".join(status_info)
+        return _t("cache.status_title", None) + "\n" + "\n".join(status_info)
 
     async def refresh_cache_background(self):
         """🚀 极轻量级后台刷新 - 完全非阻塞，用户体验优先"""
@@ -2871,7 +2871,7 @@ class TradeCatBot:
             except Exception as e:
                 info.append(f"- {file_path}: 读取失败 - {e}")
 
-        return "\n".join(info) if info else "没有找到缓存文件"
+        return "\n".join(info) if info else _t("cache.no_files", None)
 
     def get_active_symbols(self, force_refresh=False):
         """获取活跃的USDT合约交易对 - 支持更多币种"""
@@ -3249,7 +3249,7 @@ class TradeCatBot:
         动态视图对齐：前 left_align_cols 列左对齐，其余右对齐；可传入 align_override=["L","R"...]
         """
         if not data_rows:
-            return "暂无数据"
+            return _t("data.no_data", None)
 
         col_cnt = max(len(row) for row in data_rows)
         if not all(len(row) == col_cnt for row in data_rows):
@@ -3294,7 +3294,7 @@ class TradeCatBot:
         futures_data = self.load_latest_futures_data()
 
         if not futures_data:
-            return "🔄 持仓数据正在加载中，请稍后重试"
+            return _t("data.oi_loading", None)
 
         # 映射时间周期到字段
         period_mapping = {
@@ -3581,8 +3581,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _t(update, "start.error", error=str(e))
         )
 
-def ensure_valid_text(text, fallback="🔄 数据加载中，请稍后重试..."):
+def ensure_valid_text(text, fallback=None):
     """确保文本有效，不为空，并且有实际内容"""
+    if fallback is None:
+        fallback = _t("data.loading", None)
     try:
         if text and isinstance(text, str) and len(text.strip()) > 0:
             # 进一步检查是否包含有意义的内容
@@ -6195,7 +6197,7 @@ def add_signal_formatting_to_bot():
         """格式化信号消息"""
         try:
             if not self.signal_formatter:
-                return "❌ 信号格式化器未初始化"
+                return _t("error.signal_not_init", None)
 
             result = None
             if signal_type == "funding_rate":
@@ -6242,11 +6244,11 @@ def add_signal_formatting_to_bot():
         try:
             result = self.format_signal_message(signal_type, symbol, alert_value)
             if result is None:
-                return "📊 数据暂不可用，请稍后重试"
+                return _t("data.temporarily_unavailable", None)
             return result
         except Exception as e:
             logger.error(f"获取信号预览错误: {e}")
-            return "📊 数据暂不可用，请稍后重试"
+            return _t("data.temporarily_unavailable", None)
 
     # 添加发送消息的方法
     async def send_message_to_user(self, user_id: int, message: str, parse_mode: str = 'HTML'):

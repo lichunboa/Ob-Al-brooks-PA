@@ -819,3 +819,73 @@ msgstr "📊 Volume Ratio Data"
 
 msgid "card.volume_ratio.hint"
 msgstr "💡 Ratio = current volume / avg volume, >2 high, <0.5 low"
+
+# app.py user messages
+msgid "data.initializing"
+msgstr "🔄 Bot is initializing, please try again later"
+
+msgid "data.service_unavailable"
+msgstr "❌ Data service unavailable, please try again later"
+
+msgid "data.aggregating_futures_volume"
+msgstr "🔄 Aggregating futures volume data, please wait"
+
+msgid "data.aggregating_spot_volume"
+msgstr "🔄 Aggregating spot volume data, please wait"
+
+msgid "data.fetch_failed"
+msgstr "❌ Failed to fetch market data, please try again later"
+
+msgid "data.option_failed"
+msgstr "❌ Failed to fetch option data, please try again later"
+
+msgid "data.option_loading"
+msgstr "🔄 Option data is loading, please try again later"
+
+msgid "data.aggregating_futures_cvd"
+msgstr "🔄 Aggregating futures CVD, please wait"
+
+msgid "data.aggregating_spot_cvd"
+msgstr "🔄 Aggregating spot CVD, please wait"
+
+msgid "data.no_flow_data"
+msgstr "📭 No fund flow data for current period"
+
+msgid "data.no_spot_flow"
+msgstr "📭 No spot fund flow data for current period"
+
+msgid "data.oi_loading"
+msgstr "🔄 Open interest data is loading, please try again later"
+
+msgid "data.cache_empty"
+msgstr "❌ Cache is empty"
+
+msgid "data.temporarily_unavailable"
+msgstr "📊 Data temporarily unavailable, please try again later"
+
+msgid "error.unsupported_market"
+msgstr "❌ Unsupported market type"
+
+msgid "error.signal_not_init"
+msgstr "❌ Signal formatter not initialized"
+
+msgid "feature.funding_offline"
+msgstr "⏸️ Funding rate ranking is offline, stay tuned for alternatives."
+
+msgid "feature.depth_offline"
+msgstr "⏸️ Market depth ranking is offline, stay tuned for alternatives."
+
+msgid "feature.sentiment_offline"
+msgstr "⏸️ Market sentiment ranking is offline, stay tuned for new indicators."
+
+msgid "feature.ai_unavailable"
+msgstr "🤖 AI analysis is not available, please try again later."
+
+msgid "cache.status_title"
+msgstr "📊 Cache Status:"
+
+msgid "cache.no_files"
+msgstr "No cache files found"
+
+msgid "data.loading_hint"
+msgstr "🔄 Data is loading in background, please try again later\n💡 Bot needs a few seconds to load data after startup"
