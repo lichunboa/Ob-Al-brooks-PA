@@ -1712,6 +1712,7 @@ const ConsoleComponent: React.FC<Props> = ({
                     </DisplayXL>
                   </GlassInset>
                 </div>
+              </div>
             </GlassPanel>
 
 
@@ -2201,153 +2202,52 @@ short mode\n\
             )}
           </GlassCard>
 
-          <div
-            style={{
-              ...glassCardStyle,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 700,
-                opacity: 0.75,
-                marginBottom: SPACE.sm,
-              }}
-            >
-              💸 错误的代价{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.6,
-                  fontSize: "0.85em",
-                }}
-              >
-                (学费统计)
-              </span>
+          <GlassCard>
+            <div style={{ marginBottom: SPACE.lg }}>
+              <HeadingM>💸 错误的代价 <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: 400 }}>(学费统计)</span></HeadingM>
             </div>
             {tuition.tuitionR <= 0 ? (
-              <div style={{ color: V5_COLORS.win, fontWeight: 700 }}>
+              <div style={{ color: COLORS.win, fontWeight: 700, padding: SPACE.sm }}>
                 🎉 完美！近期实盘没有因纪律问题亏损。
               </div>
             ) : (
-              <div>
-                <div
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.9em",
-                    marginBottom: "10px",
-                  }}
-                >
+              <GlassPanel style={{ display: "flex", flexDirection: "column", gap: SPACE.md }}>
+                <div style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>
                   因执行错误共计亏损：
-                  <span
-                    style={{
-                      color: V5_COLORS.loss,
-                      fontWeight: 900,
-                      marginLeft: "6px",
-                    }}
-                  >
+                  <span style={{ color: COLORS.loss, fontWeight: 900, marginLeft: "6px" }}>
                     -{tuition.tuitionR.toFixed(1)}R
                   </span>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
+                <div style={{ display: "flex", flexDirection: "column", gap: SPACE.sm }}>
                   {tuition.rows.slice(0, 5).map((row) => {
-                    const pct = Math.round(
-                      (row.costR / tuition.tuitionR) * 100
-                    );
+                    const pct = Math.round((row.costR / tuition.tuitionR) * 100);
                     return (
-                      <div
-                        key={row.tag}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          fontSize: "0.9em",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "110px",
-                            color: "var(--text-muted)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={row.tag}
-                        >
+                      <div key={row.tag} style={{ display: "flex", alignItems: "center", gap: SPACE.md, fontSize: "0.9em" }}>
+                        <div style={{ width: "110px", color: COLORS.text.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.tag}>
                           {row.tag}
                         </div>
-                        <div
-                          style={{
-                            flex: "1 1 auto",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            height: "6px",
-                            borderRadius: "999px",
-                            overflow: "hidden",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: `${pct}%`,
-                              height: "100%",
-                              background: "var(--text-error)",
-                            }}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            width: "70px",
-                            textAlign: "right",
-                            color: "var(--text-error)",
-                            fontWeight: 800,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
+                        <GlassInset style={{ flex: "1 1 auto", height: "8px", padding: 0, borderRadius: "999px", overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: COLORS.loss }} />
+                        </GlassInset>
+                        <div style={{ width: "70px", textAlign: "right", color: COLORS.loss, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
                           -{row.costR.toFixed(1)}R
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </GlassPanel>
             )}
-          </div>
+          </GlassCard>
 
-          <div
-            style={{
-              ...glassCardStyle,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 700,
-                opacity: 0.75,
-                marginBottom: SPACE.sm,
-              }}
-            >
-              💡 系统建议{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.6,
-                  fontSize: "0.85em",
-                }}
-              >
-                (Actions)
-              </span>
+          <GlassCard>
+            <div style={{ marginBottom: SPACE.lg }}>
+              <HeadingM>💡 系统建议 <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: 400 }}>(Actions)</span></HeadingM>
             </div>
-            <div
+            <GlassPanel
               style={{
                 fontSize: "0.95em",
                 lineHeight: 1.6,
-                padding: "10px 12px",
-                borderRadius: "10px",
                 background:
                   analyticsSuggestion.tone === "danger"
                     ? withHexAlpha(V5_COLORS.loss, "1F")
@@ -2361,44 +2261,29 @@ short mode\n\
                     : analyticsSuggestion.tone === "warn"
                       ? V5_COLORS.back
                       : V5_COLORS.win,
-                fontWeight: 700,
+                fontWeight: 600,
               }}
             >
               {analyticsSuggestion.text}
-            </div>
-          </div>
+            </GlassPanel>
+          </GlassCard>
 
-          <div
-            style={{
-              ...glassCardStyle,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "10px",
-                marginBottom: "8px",
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>数据分析</div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  color: "var(--text-muted)",
-                  fontSize: "0.9em",
-                }}
-              >
+          <GlassCard>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACE.lg }}>
+              <HeadingM>数据分析</HeadingM>
+              <label style={{ display: "flex", alignItems: "center", gap: SPACE.sm, fontSize: "0.9em", color: COLORS.text.muted }}>
                 范围
                 <select
                   value={analyticsScope}
-                  onChange={(e) =>
-                    setAnalyticsScope(e.target.value as AnalyticsScope)
-                  }
-                  style={selectStyle}
+                  onChange={(e) => setAnalyticsScope(e.target.value as AnalyticsScope)}
+                  style={{
+                    background: "var(--background-primary)",
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: "4px",
+                    color: "var(--text-normal)",
+                    padding: "2px 8px",
+                    fontSize: "inherit"
+                  }}
                 >
                   <option value="Live">实盘</option>
                   <option value="Demo">模拟</option>
@@ -2408,428 +2293,193 @@ short mode\n\
               </label>
             </div>
 
-            <div
-              style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}
-            >
-              <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                  日历（最近 {calendarDays} 天）
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: SPACE.xl }}>
+              {/* Calendar */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, marginBottom: SPACE.md, color: COLORS.text.muted, fontSize: "0.9em" }}>
+                  日历 (最近 {calendarDays} 天)
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                    gap: "6px",
-                  }}
-                >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
                   {calendarCells.map((c) => {
-                    const absRatio =
-                      calendarMaxAbs > 0
-                        ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs)
-                        : 0;
-                    const alpha =
-                      c.count > 0 ? 0.12 + 0.55 * absRatio : 0.04;
-                    const bg =
-                      c.netR > 0
-                        ? withHexAlpha(V5_COLORS.win, "1A")
-                        : c.netR < 0
-                          ? withHexAlpha(V5_COLORS.loss, "1A")
-                          : `rgba(var(--mono-rgb-100), 0.05)`;
+                    const absRatio = calendarMaxAbs > 0 ? Math.min(1, Math.abs(c.netR) / calendarMaxAbs) : 0;
+                    const bg = c.netR > 0
+                      ? withHexAlpha(V5_COLORS.win, "20")
+                      : c.netR < 0
+                        ? withHexAlpha(V5_COLORS.loss, "20")
+                        : `rgba(var(--mono-rgb-100), 0.05)`;
+
                     return (
-                      <div
+                      <GlassInset
                         key={`cal-${c.dateIso}`}
-                        title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
-                          }${c.netR.toFixed(1)}R`}
                         style={{
-                          border:
-                            "1px solid var(--background-modifier-border)",
-                          borderRadius: "6px",
-                          padding: "6px",
+                          padding: "4px",
                           background: bg,
-                          minHeight: "40px",
+                          minHeight: "44px",
                           display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
+                          border: `1px solid ${COLORS.border}`
                         }}
                       >
-                        <div
-                          style={{
-                            fontSize: "0.85em",
-                            color: "var(--text-muted)",
-                          }}
-                        >
-                          {getDayOfMonth(c.dateIso)}
+                        <div title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}R`} style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                          <div style={{ fontSize: "0.75em", color: COLORS.text.muted, textAlign: "left" }}>
+                            {getDayOfMonth(c.dateIso)}
+                          </div>
+                          <div style={{
+                            fontSize: "0.8em",
+                            fontWeight: 700,
+                            color: c.netR > 0 ? COLORS.win : c.netR < 0 ? COLORS.loss : COLORS.text.muted,
+                            textAlign: "right"
+                          }}>
+                            {c.count > 0 ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(1)}` : "—"}
+                          </div>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "0.85em",
-                            fontWeight: 600,
-                            color:
-                              c.netR > 0
-                                ? V5_COLORS.win
-                                : c.netR < 0
-                                  ? V5_COLORS.loss
-                                  : "var(--text-faint)",
-                            textAlign: "right",
-                          }}
-                        >
-                          {c.count > 0
-                            ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(
-                              1
-                            )}R`
-                            : "—"}
-                        </div>
-                      </div>
+                      </GlassInset>
                     );
                   })}
                 </div>
               </div>
 
-              <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                  策略归因（Top）
+              {/* Attribution */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, marginBottom: SPACE.md, color: COLORS.text.muted, fontSize: "0.9em" }}>
+                  策略归因 (Top)
                 </div>
-                {strategyAttribution.length > 0 ? (
-                  <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                    {strategyAttribution.map((r) => (
-                      <li
-                        key={`attr-${r.strategyName}`}
-                        style={{ marginBottom: "6px" }}
-                      >
-                        {r.strategyPath ? (
-                          <button
-                            type="button"
-                            onClick={() => openFile(r.strategyPath!)}
-                            style={textButtonStyle}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
-                          >
-                            {r.strategyName}
-                          </button>
-                        ) : (
-                          <span>{r.strategyName}</span>
-                        )}
-                        <span
-                          style={{
-                            color: "var(--text-muted)",
-                            marginLeft: "8px",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          {r.count} 笔 •{" "}
-                          <span
-                            style={{
-                              color:
-                                r.netR >= 0
-                                  ? V5_COLORS.win
-                                  : V5_COLORS.loss,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {r.netR >= 0 ? "+" : ""}
-                            {r.netR.toFixed(1)}R
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div
-                    style={{
-                      color: "var(--text-faint)",
-                      fontSize: "0.9em",
-                    }}
-                  >
-                    未找到策略归因数据。
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              ...cardTightStyle,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                gap: "12px",
-                marginBottom: "10px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ fontWeight: 700, opacity: 0.85 }}>
-                📈 综合趋势 (R-Multiples)
-                <span
-                  style={{
-                    fontWeight: 600,
-                    opacity: 0.6,
-                    fontSize: "0.85em",
-                    marginLeft: "6px",
-                  }}
-                >
-                  仅实盘 · 最近 {analyticsRecentLiveTradesAsc.length} 笔
-                </span>
-              </div>
-              <div
-                style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
-              >
-                Avg R: {analyticsRMultiples.avg.toFixed(2)}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ marginBottom: SPACE.md }}>
-                {(() => {
-                  const rHeight = 90;
-                  const rZeroY = rHeight / 2;
-                  const barWidth = 8;
-                  const barGap = 4;
-                  const step = barWidth + barGap;
-                  const maxAbs = analyticsRMultiples.maxAbs;
-                  const rScale = (rHeight / 2 - 6) / Math.max(1e-6, maxAbs);
-                  const innerWidth = Math.max(
-                    analyticsRecentLiveTradesAsc.length * step,
-                    200
-                  );
-
-                  return (
-                    <div
-                      style={{
-                        position: "relative",
-                        height: `${rHeight}px`,
-                        width: "100%",
-                        overflowX: "auto",
-                        border:
-                          "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "relative",
-                          height: `${rHeight}px`,
-                          width: `${innerWidth}px`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            right: 0,
-                            top: `${rZeroY}px`,
-                            height: "1px",
-                            background: "rgba(var(--mono-rgb-100), 0.18)",
-                            borderTop:
-                              "1px dashed rgba(var(--mono-rgb-100), 0.25)",
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: 6,
-                            top: rZeroY - 10,
-                            fontSize: "0.75em",
-                            color: "var(--text-faint)",
-                          }}
-                        >
-                          0R
-                        </div>
-                        {analyticsRecentLiveTradesAsc.length === 0 ? (
-                          <div
-                            style={{
-                              padding: "18px",
-                              color: "var(--text-faint)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            暂无数据
+                <GlassPanel style={{ padding: SPACE.sm, minHeight: "200px" }}>
+                  {strategyAttribution.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+                      {strategyAttribution.map((r) => (
+                        <div key={`attr-${r.strategyName}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9em" }}>
+                          {r.strategyPath ? (
+                            <ButtonGhost onClick={() => openFile(r.strategyPath!)} style={{ textAlign: "left", justifyContent: "flex-start", flex: 1, overflow: "hidden", textOverflow: "ellipsis", fontSize: "0.85em" }}>
+                              {r.strategyName}
+                            </ButtonGhost>
+                          ) : (
+                            <span style={{ color: COLORS.text.normal, padding: "4px 8px" }}>{r.strategyName}</span>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}>
+                            <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>{r.count}笔</span>
+                            <span style={{ fontWeight: 600, color: r.netR >= 0 ? COLORS.win : COLORS.loss, minWidth: "40px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                              {r.netR >= 0 ? "+" : ""}{r.netR.toFixed(1)}R
+                            </span>
                           </div>
-                        ) : (
-                          analyticsRecentLiveTradesAsc.map((t, i) => {
-                            const r =
-                              typeof t.pnl === "number" &&
-                                Number.isFinite(t.pnl)
-                                ? t.pnl
-                                : 0;
-                            let h = Math.abs(r) * rScale;
-                            if (h < 3) h = 3;
-                            const color =
-                              r > 0
-                                ? V5_COLORS.win
-                                : r < 0
-                                  ? V5_COLORS.loss
-                                  : "var(--text-muted)";
-                            const top = r >= 0 ? rZeroY - h : rZeroY;
-                            return (
-                              <div
-                                key={`rbar-${t.path}-${t.dateIso}-${i}`}
-                                title={`${t.dateIso} | ${t.name
-                                  } | R: ${r.toFixed(2)}`}
-                                style={{
-                                  position: "absolute",
-                                  left: `${i * step}px`,
-                                  top: `${top}px`,
-                                  width: `${barWidth}px`,
-                                  height: `${h}px`,
-                                  background: color,
-                                  borderRadius: "2px",
-                                  opacity: 0.9,
-                                }}
-                              />
-                            );
-                          })
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })()}
-              </div>
-
-              <div style={cardSubtleTightStyle}>
-                <div
-                  style={{ color: "var(--text-muted)", fontSize: "0.9em" }}
-                >
-                  🧠 实盘心态
-                </div>
-                <div
-                  style={{
-                    fontSize: "1.15em",
-                    fontWeight: 900,
-                    color: analyticsMind.color,
-                    marginTop: SPACE.xs,
-                  }}
-                >
-                  {analyticsMind.status}
-                </div>
-                <div
-                  style={{
-                    color: "var(--text-faint)",
-                    fontSize: "0.85em",
-                    marginTop: SPACE.xs,
-                  }}
-                >
-                  FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} |
-                  犹豫: {analyticsMind.hesitation}
-                </div>
+                  ) : (
+                    <div style={{ color: COLORS.text.muted, fontSize: "0.9em", padding: SPACE.sm, textAlign: "center" }}>
+                      未找到策略归因数据。
+                    </div>
+                  )}
+                </GlassPanel>
               </div>
             </div>
+          </GlassCard>
 
-            <div style={{ marginTop: "12px" }}>
-              <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                📊 热门策略
+          <GlassCard>
+            <HeadingM style={{ marginBottom: SPACE.lg }}>Strategy Lab</HeadingM>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg }}>
+              {/* R-Multiples */}
+              <GlassPanel>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: SPACE.md }}>
+                  <Label>📈 综合趋势 (R-Multiples)</Label>
+                  <div style={{ fontSize: "0.85em", color: COLORS.text.muted }}>
+                    Avg R: {analyticsRMultiples.avg.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div style={{
+                  position: "relative",
+                  height: "90px",
+                  width: "100%",
+                  overflowX: "auto",
+                  background: `rgba(var(--mono-rgb-100), 0.03)`,
+                  borderRadius: "8px",
+                  border: `1px solid ${COLORS.border}`
+                }}>
+                  <div style={{ position: "relative", height: "90px", width: `${Math.max(analyticsRecentLiveTradesAsc.length * 12, 200)}px` }}>
+                    <div style={{ position: "absolute", left: 0, right: 0, top: "45px", height: "1px", background: `rgba(var(--mono-rgb-100), 0.18)`, borderTop: `1px dashed rgba(var(--mono-rgb-100), 0.25)` }} />
+                    <div style={{ position: "absolute", left: 6, top: 35, fontSize: "0.75em", color: COLORS.text.muted }}>0R</div>
+
+                    {analyticsRecentLiveTradesAsc.length === 0 ? (
+                      <div style={{ padding: "18px", color: COLORS.text.muted, fontSize: "0.9em" }}>暂无数据</div>
+                    ) : (
+                      analyticsRecentLiveTradesAsc.map((t, i) => {
+                        const r = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+                        const rHeight = 90;
+                        const rZeroY = rHeight / 2;
+                        const rScale = (rHeight / 2 - 6) / Math.max(1e-6, analyticsRMultiples.maxAbs);
+                        let h = Math.abs(r) * rScale;
+                        if (h < 3) h = 3;
+                        const top = r >= 0 ? rZeroY - h : rZeroY;
+                        const color = r > 0 ? COLORS.win : r < 0 ? COLORS.loss : COLORS.text.muted;
+
+                        return (
+                          <div
+                            key={`rbar-${t.path}-${t.dateIso}-${i}`}
+                            title={`${t.dateIso} | ${t.name} | R: ${r.toFixed(2)}`}
+                            style={{
+                              position: "absolute",
+                              left: `${i * 12}px`,
+                              top: `${top}px`,
+                              width: "8px",
+                              height: `${h}px`,
+                              background: color,
+                              borderRadius: "2px",
+                              opacity: 0.9
+                            }}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </GlassPanel>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: SPACE.md }}>
+                {/* Psychology */}
+                <GlassInset style={{ padding: SPACE.md }}>
+                  <Label style={{ marginBottom: SPACE.sm }}>🧠 实盘心态</Label>
+                  <DisplayXL color={analyticsMind.color} style={{ fontSize: "1.5rem" }}>{analyticsMind.status}</DisplayXL>
+                  <div style={{ marginTop: SPACE.sm, color: COLORS.text.muted, fontSize: "0.85em" }}>
+                    FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} | 犹豫: {analyticsMind.hesitation}
+                  </div>
+                </GlassInset>
+
+                {/* Top Strategies */}
+                <GlassPanel>
+                  <Label style={{ marginBottom: SPACE.sm }}>📊 热门策略</Label>
+                  {analyticsTopStrats.length === 0 ? (
+                    <div style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>暂无数据</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+                      {analyticsTopStrats.map((s) => {
+                        const color = s.wr >= 50 ? COLORS.win : s.wr >= 40 ? COLORS.backtest : COLORS.loss; // mapping rough colors using existing vars
+                        let displayName = s.name;
+                        if (displayName.length > 12 && displayName.includes("(")) {
+                          displayName = displayName.split("(")[0].trim();
+                        }
+                        return (
+                          <div key={`topstrat-${s.name}`} style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: "0.9em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "4px" }} title={s.name}>{displayName}</div>
+                              <div style={{ height: "4px", borderRadius: "999px", background: `rgba(var(--mono-rgb-100), 0.05)`, overflow: "hidden" }}>
+                                <div style={{ width: `${s.wr}%`, height: "100%", background: color }} />
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontWeight: 700, color, fontSize: "0.9em", fontVariantNumeric: "tabular-nums" }}>{s.wr}%</div>
+                              <div style={{ fontSize: "0.75em", color: COLORS.text.muted }}>{s.total}笔</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </GlassPanel>
               </div>
-              {analyticsTopStrats.length === 0 ? (
-                <div
-                  style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                >
-                  暂无数据
-                </div>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  {analyticsTopStrats.map((s) => {
-                    const color =
-                      s.wr >= 50
-                        ? V5_COLORS.win
-                        : s.wr >= 40
-                          ? V5_COLORS.back
-                          : V5_COLORS.loss;
-                    let displayName = s.name;
-                    if (
-                      displayName.length > 12 &&
-                      displayName.includes("(")
-                    ) {
-                      displayName = displayName.split("(")[0].trim();
-                    }
-                    return (
-                      <div
-                        key={`topstrat-${s.name}`}
-                        style={{
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
-                          border:
-                            "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                          padding: "8px 10px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                        }}
-                      >
-                        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                          <div
-                            title={s.name}
-                            style={{
-                              fontSize: "0.9em",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            {displayName}
-                          </div>
-                          <div
-                            style={{
-                              width: "100%",
-                              height: "6px",
-                              borderRadius: "999px",
-                              background: "rgba(var(--mono-rgb-100), 0.05)",
-                              border:
-                                "1px solid var(--background-modifier-border)",
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${s.wr}%`,
-                                height: "100%",
-                                background: color,
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div
-                          style={{ flex: "0 0 auto", textAlign: "right" }}
-                        >
-                          <div
-                            style={{
-                              fontWeight: 900,
-                              color,
-                              fontVariantNumeric: "tabular-nums",
-                            }}
-                          >
-                            {s.wr}%
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "0.8em",
-                              color: "var(--text-faint)",
-                            }}
-                          >
-                            {s.total} 笔
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
-          </div>
+          </GlassCard>
         </div>
 
         <div
