@@ -5,12 +5,9 @@
   "templater-obsidian",
   "pdf-plus",
   "obsidian-excalidraw-plugin",
-  "journals",
   "obsidian-enhancing-mindmap",
-  "dataview",
   "obsidian-git",
   "obsidian-spaced-repetition",
-  "obsidian-chartsview-plugin",
   "quickadd",
   "obsidian-outliner",
   "editing-toolbar",
@@ -26,7 +23,7 @@
   "datacore",
   "make-md",
   "url-into-selection",
-  "al-brooks-console",
   "obsidian-importer",
-  "zenboard"
+  "zenboard",
+  "al-brooks-console"
 ]

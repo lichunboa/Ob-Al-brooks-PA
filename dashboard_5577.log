@@ -1,7 +1,0 @@
-Dashboard is already running at: http://localhost:5566
-
-You can:
-  1. Use the existing dashboard at: http://localhost:5566
-  2. Stop it first (Ctrl+C or kill 33662), then start a new one
-
-Note: Only one dashboard instance is needed for all your projects.
