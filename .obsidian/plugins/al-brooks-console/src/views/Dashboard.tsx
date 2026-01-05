@@ -1323,7 +1323,7 @@ const ConsoleComponent: React.FC<Props> = ({
       return da < db ? 1 : -1;
     });
 
-    // v5.0 口径：从最近交易里取前 20 个候选，最终只展示 4 张。
+    // 从最近交易里取前 20 个候选（用于“最新复盘”瀑布流展示）。
     for (const t of candidatesSorted.slice(0, 20)) {
       // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
@@ -1366,8 +1366,6 @@ const ConsoleComponent: React.FC<Props> = ({
         coverPath: resolved,
         url,
       });
-
-      if (out.length >= 4) break;
     }
 
     return {
@@ -3488,7 +3486,7 @@ short mode\n\
                 fontSize: "0.8em",
               }}
             >
-              {`范围内共 ${gallery.scopeTotal} 笔 · 候选 ${gallery.candidateCount} · 展示 ${gallery.items.length}/4`}
+              {`范围内共 ${gallery.scopeTotal} 笔 · 候选 ${gallery.candidateCount} · 展示 ${gallery.items.length}`}
             </div>
 
             {!getResourceUrl ? (
@@ -3498,35 +3496,44 @@ short mode\n\
             ) : gallery.items.length > 0 ? (
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: SPACE.md,
+                  maxHeight: "360px",
+                  overflowY: "auto",
+                  paddingRight: "2px",
                 }}
               >
-                {gallery.items.map((it) => (
-                  <button
-                    key={`gal-${it.tradePath}`}
-                    type="button"
-                    onClick={() => openFile(it.tradePath)}
-                    title={`${it.tradeName} • ${it.coverPath}`}
-                    onMouseEnter={onCoverMouseEnter}
-                    onMouseLeave={onCoverMouseLeave}
-                    onFocus={onCoverFocus}
-                    onBlur={onCoverBlur}
-                    style={{
-                      padding: 0,
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      background: `rgba(var(--mono-rgb-100), 0.03)`,
-                      cursor: "pointer",
-                      outline: "none",
-                      transition:
-                        "background-color 180ms ease, border-color 180ms ease",
-                      position: "relative",
-                      aspectRatio: "4 / 3",
-                    }}
-                  >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: SPACE.md,
+                  }}
+                >
+                  {gallery.items.map((it) => (
+                    <button
+                      key={`gal-${it.tradePath}`}
+                      type="button"
+                      onClick={() => openFile(it.tradePath)}
+                      title={`${it.tradeName} • ${it.coverPath}`}
+                      onMouseEnter={onCoverMouseEnter}
+                      onMouseLeave={onCoverMouseLeave}
+                      onFocus={onCoverFocus}
+                      onBlur={onCoverBlur}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        padding: 0,
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        background: `rgba(var(--mono-rgb-100), 0.03)`,
+                        cursor: "pointer",
+                        outline: "none",
+                        transition:
+                          "background-color 180ms ease, border-color 180ms ease",
+                        position: "relative",
+                        aspectRatio: "4 / 3",
+                      }}
+                    >
                     {it.url ? (
                       <>
                         <img
@@ -3687,8 +3694,9 @@ short mode\n\
                         </div>
                       </div>
                     )}
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
