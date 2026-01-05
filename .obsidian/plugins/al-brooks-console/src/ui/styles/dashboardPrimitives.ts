@@ -118,5 +118,14 @@ export const cardSubtleTightStyle: CSSProperties = {
   padding: SPACE.md,
 };
 
+export const ctaButtonStyle: CSSProperties = {
+  ...buttonStyle,
+  background: "var(--interactive-accent)",
+  color: "var(--text-on-accent)",
+  fontWeight: 600,
+  border: "none",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+};
+
 export * from "./glass";
 

@@ -87,6 +87,7 @@ import {
   buttonSmDisabledStyle,
   buttonSmStyle,
   buttonStyle,
+  ctaButtonStyle,
   cardStyle,
   cardSubtleTightStyle,
   cardTightStyle,
@@ -1480,7 +1481,7 @@ const ConsoleComponent: React.FC<Props> = ({
               onBlur={onBtnBlur}
               style={buttonStyle}
             >
-              重建索引
+              🔄 重建索引
             </button>
           ) : null}
 
@@ -1491,10 +1492,10 @@ const ConsoleComponent: React.FC<Props> = ({
             onMouseLeave={onBtnMouseLeave}
             onFocus={onBtnFocus}
             onBlur={onBtnBlur}
-            style={buttonStyle}
+            style={ctaButtonStyle}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
-            新建交易
+            ✏️ 新建交易
           </button>
         </span>
       </h2>

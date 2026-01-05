@@ -28,7 +28,7 @@ export const glassPanelStyle: CSSProperties = {
   ...GLASS_EFFECT,
   background: "var(--background-secondary)",
   borderRadius: "12px",
-  padding: "16px",
+  padding: "20px",
   border: "1px solid rgba(var(--mono-rgb-100), 0.05)",
 };
 

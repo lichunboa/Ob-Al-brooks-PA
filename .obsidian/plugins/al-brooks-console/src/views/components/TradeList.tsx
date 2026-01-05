@@ -29,8 +29,8 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
           const pnlColor = isWin
             ? "var(--text-success)"
             : isLoss
-            ? "var(--text-error)"
-            : "var(--text-muted)";
+              ? "var(--text-error)"
+              : "var(--text-muted)";
 
           return (
             <div
@@ -50,9 +50,8 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
               }}
               role="button"
               tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${
-                t.dateIso ?? ""
-              }）`}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""
+                }）`}
               onClick={() => {
                 onOpenFile(t.path);
               }}
@@ -169,8 +168,8 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
           const pnlColor = isWin
             ? "var(--text-success)"
             : isLoss
-            ? "var(--text-error)"
-            : "var(--text-muted)";
+              ? "var(--text-error)"
+              : "var(--text-muted)";
 
           return (
             <div
@@ -190,9 +189,8 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
               }}
               role="button"
               tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${
-                t.dateIso ?? ""
-              }）`}
+              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""
+                }）`}
               onClick={() => {
                 // Open file
                 onOpenFile(t.path);
@@ -219,20 +217,32 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 </div>
               </div>
 
-              <div style={{ textAlign: "right" }}>
+              <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
                 <div
                   style={{
-                    fontWeight: "700",
+                    fontWeight: "800",
                     color: pnlColor,
                     fontSize: "1.1rem",
+                    background: isWin ? "rgba(var(--color-green-rgb), 0.1)" : isLoss ? "rgba(var(--color-red-rgb), 0.1)" : "rgba(var(--mono-rgb-100), 0.05)",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
                   }}
                 >
                   {pnl > 0 ? "+" : ""}
                   {pnl}R
                 </div>
-                <div style={{ fontSize: "0.8rem", color: "var(--text-faint)" }}>
-                  {t.outcome ?? ""}
-                </div>
+                {t.outcome && (
+                  <div style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-faint)",
+                    padding: "2px 6px",
+                    background: "var(--background-secondary-alt)",
+                    borderRadius: "4px",
+                    display: "inline-block"
+                  }}>
+                    {t.outcome}
+                  </div>
+                )}
               </div>
             </div>
           );
