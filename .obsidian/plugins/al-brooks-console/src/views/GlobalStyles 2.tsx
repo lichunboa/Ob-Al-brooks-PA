@@ -28,7 +28,7 @@ export const GlobalStyles: React.FC = () => (
 
 /* Card Component */
 .pa-card {
-  background: rgba(var(--mono-rgb-100), 0.03);
+  background: rgba(var(--mono-rgb-100), 0.055);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   padding: 16px;
@@ -43,7 +43,7 @@ export const GlobalStyles: React.FC = () => (
 .pa-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--interactive-accent);
+  border-color: var(--background-modifier-border-hover);
 }
 
 .pa-card-header {
@@ -70,8 +70,19 @@ export const GlobalStyles: React.FC = () => (
 /* Strategy List & Items */
 .pa-strategy-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .pa-strategy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pa-strategy-item {
+  padding: 10px 12px;
+  background: rgba(var(--mono-rgb-100), 0.07);
 }
 
 /* Tags */
