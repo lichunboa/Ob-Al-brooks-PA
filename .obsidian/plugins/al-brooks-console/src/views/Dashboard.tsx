@@ -2402,7 +2402,7 @@ short mode\n\
             >
               <div
                 style={{
-                  ...cardTightStyle,
+                  ...glassCardStyle,
                 }}
               >
                 <div
@@ -2455,7 +2455,7 @@ short mode\n\
                     <div
                       key={card.key}
                       style={{
-                        ...cardSubtleTightStyle,
+                        ...glassPanelStyle,
                         flex: "1 1 260px",
                         minWidth: "240px",
                       }}
@@ -2544,7 +2544,7 @@ short mode\n\
 
               <div
                 style={{
-                  ...cardTightStyle,
+                  ...glassCardStyle,
                 }}
               >
                 <div
@@ -2624,7 +2624,7 @@ short mode\n\
 
               <div
                 style={{
-                  ...cardTightStyle,
+                  ...glassCardStyle,
                 }}
               >
                 <div
@@ -2742,7 +2742,7 @@ short mode\n\
 
               <div
                 style={{
-                  ...cardTightStyle,
+                  ...glassCardStyle,
                 }}
               >
                 <div
@@ -2791,7 +2791,7 @@ short mode\n\
 
               <div
                 style={{
-                  ...cardTightStyle,
+                  ...glassCardStyle,
                 }}
               >
                 <div
@@ -3748,11 +3748,8 @@ short mode\n\
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
+              ...glassCardStyle,
               marginBottom: "16px",
-              background: "var(--background-primary)",
             }}
           >
             <div
@@ -4171,10 +4168,8 @@ short mode\n\
                   return (
                     <div
                       style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "10px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
+                        ...glassPanelStyle,
+                        padding: "12px",
                         marginBottom: "10px",
                         display: "flex",
                         alignItems: "flex-start",
@@ -4320,11 +4315,8 @@ short mode\n\
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
+              ...glassCardStyle,
               marginBottom: "16px",
-              background: "var(--background-primary)",
             }}
           >
             <div
@@ -4387,11 +4379,8 @@ short mode\n\
                     return (
                       <div
                         style={{
-                          border:
-                            "1px solid var(--background-modifier-border)",
-                          borderRadius: "8px",
-                          padding: "10px",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          ...glassPanelStyle,
+                          padding: "12px",
                           marginBottom: "10px",
                         }}
                       >
@@ -4922,7 +4911,7 @@ short mode\n\
             </div>
           </div>
 
-          <div style={{ ...cardTightStyle, marginBottom: SPACE.xl }}>
+          <div style={{ ...glassCardStyle, marginBottom: SPACE.xl }}>
             {(() => {
               const issueCount = schemaIssues.length;
               const healthScore = Math.max(0, 100 - issueCount * 5);
@@ -5054,7 +5043,7 @@ short mode\n\
                       marginBottom: SPACE.md,
                     }}
                   >
-                    <div style={cardSubtleTightStyle}>
+                    <div style={glassPanelStyle}>
                       <div
                         style={{
                           display: "flex",
@@ -5118,7 +5107,7 @@ short mode\n\
                       )}
                     </div>
 
-                    <div style={cardSubtleTightStyle}>
+                    <div style={glassPanelStyle}>
                       <div
                         style={{
                           display: "flex",
@@ -5207,7 +5196,7 @@ short mode\n\
                     </div>
                   </div>
 
-                  <div style={{ ...cardTightStyle, marginBottom: "10px" }}>
+                  <div style={{ ...glassCardStyle, marginBottom: "10px" }}>
                     <div
                       style={{
                         display: "flex",
@@ -5240,11 +5229,9 @@ short mode\n\
                     ) : (
                       <div
                         style={{
+                          ...glassPanelStyle,
                           maxHeight: "260px",
                           overflow: "auto",
-                          border: "1px solid var(--background-modifier-border)",
-                          borderRadius: "10px",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
                         }}
                       >
                         <div
@@ -5347,10 +5334,7 @@ short mode\n\
 
                   <div
                     style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      padding: "10px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                      ...glassPanelStyle,
                       marginBottom: "12px",
                     }}
                   >
@@ -5517,10 +5501,7 @@ short mode\n\
 
                   <div
                     style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      background: "var(--background-primary)",
+                      ...glassCardStyle,
                       marginBottom: "12px",
                     }}
                   >
@@ -5548,11 +5529,9 @@ short mode\n\
 
                     <div
                       style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
+                        ...glassPanelStyle,
                         overflow: "auto",
                         maxHeight: "260px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
                       }}
                     >
                       <div
@@ -5677,10 +5656,7 @@ short mode\n\
                       <div
                         key={c.title}
                         style={{
-                          border: "1px solid var(--background-modifier-border)",
-                          borderRadius: "10px",
-                          padding: "12px",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          ...glassPanelStyle,
                         }}
                       >
                         <div style={{ color: "var(--text-faint)" }}>
@@ -5702,10 +5678,7 @@ short mode\n\
 
                   <div
                     style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "12px",
-                      padding: "12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                      ...glassPanelStyle,
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
@@ -5841,11 +5814,9 @@ short mode\n\
                       ) : (
                         <div
                           style={{
+                            ...glassPanelStyle,
                             maxHeight: "240px",
                             overflow: "auto",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
                           }}
                         >
                           {inspectorIssues.slice(0, 50).map((issue) => (
@@ -5933,12 +5904,9 @@ short mode\n\
                           </div>
                           <pre
                             style={{
+                              ...glassPanelStyle,
                               margin: 0,
                               padding: "10px",
-                              border:
-                                "1px solid var(--background-modifier-border)",
-                              borderRadius: "8px",
-                              background: "rgba(var(--mono-rgb-100), 0.03)",
                               maxHeight: "220px",
                               overflow: "auto",
                               whiteSpace: "pre-wrap",
@@ -5967,11 +5935,8 @@ short mode\n\
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
+              ...glassCardStyle,
               marginBottom: "16px",
-              background: "var(--background-primary)",
             }}
           >
             <div
@@ -6010,10 +5975,8 @@ short mode\n\
             <div style={{ marginTop: "12px" }}>
               <div
                 style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
+                  ...glassPanelStyle,
                   padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
                 }}
               >
                 {managerTradeInventory || managerStrategyInventory ? (

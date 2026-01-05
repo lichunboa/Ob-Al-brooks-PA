@@ -14,7 +14,7 @@ export const buttonStyle: CSSProperties = {
   padding: "4px 9px",
   fontSize: "0.8em",
   border: "1px solid var(--background-modifier-border)",
-  borderRadius: "6px",
+  borderRadius: "8px",
   background: "var(--background-primary)",
   color: "var(--text-normal)",
   cursor: "pointer",
@@ -64,7 +64,7 @@ export const selectStyle: CSSProperties = {
   padding: "4px 8px",
   fontSize: "0.85em",
   border: "1px solid var(--background-modifier-border)",
-  borderRadius: "6px",
+  borderRadius: "8px",
   background: "var(--background-primary)",
   color: "var(--text-normal)",
 };
