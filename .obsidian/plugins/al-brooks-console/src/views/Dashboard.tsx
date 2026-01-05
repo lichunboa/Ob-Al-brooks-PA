@@ -1410,38 +1410,14 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [latestTrade, strategyIndex, todayMarketCycle]);
 
   return (
-    <div
-      style={{
-        padding: "16px",
-        fontFamily: "var(--font-interface)",
-        maxWidth: "1200px",
-        margin: "0 auto",
-      }}
-    >
-      <h2
-        style={{
-          borderBottom: "1px solid var(--background-modifier-border)",
-          paddingBottom: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        🦁 交易员控制台{" "}
-        <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
-          （Dashboard）
-        </span>{" "}
-        <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
-          v{version}
-        </span>
-        <span
-          style={{
-            fontSize: "0.8em",
-            color: "var(--text-muted)",
-            marginLeft: "10px",
-          }}
-        >
-          {statusText}
-        </span>
-        <span style={{ marginLeft: "10px" }}>
+    <div className="pa-dashboard">
+      <h2 className="pa-dashboard-title">
+        🦁 交易员控制台
+        <span className="pa-dashboard-title-meta">（Dashboard）</span>
+        <span className="pa-dashboard-title-meta">v{version}</span>
+        <span className="pa-dashboard-title-meta">{statusText}</span>
+
+        <span className="pa-dashboard-title-actions">
           <button
             type="button"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
@@ -1454,90 +1430,89 @@ const ConsoleComponent: React.FC<Props> = ({
           >
             新建交易
           </button>
+
+          {integrations ? (
+            <>
+              <button
+                type="button"
+                disabled={!can("srs:review-flashcards")}
+                onClick={() => action("srs:review-flashcards")}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  can("srs:review-flashcards")
+                    ? buttonStyle
+                    : disabledButtonStyle
+                }
+              >
+                ⚡️ 开始复习
+              </button>
+              <button
+                type="button"
+                disabled={!can("dataview:force-refresh")}
+                onClick={() => action("dataview:force-refresh")}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  can("dataview:force-refresh")
+                    ? buttonStyle
+                    : disabledButtonStyle
+                }
+              >
+                刷新 DV
+              </button>
+              <button
+                type="button"
+                disabled={!can("tasks:open")}
+                onClick={() => action("tasks:open")}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
+              >
+                任务
+              </button>
+              <button
+                type="button"
+                disabled={!can("metadata-menu:open")}
+                onClick={() => action("metadata-menu:open")}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  can("metadata-menu:open")
+                    ? buttonStyle
+                    : disabledButtonStyle
+                }
+              >
+                元数据
+              </button>
+            </>
+          ) : null}
+
+          {index.rebuild ? (
+            <button
+              type="button"
+              onClick={onRebuild}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={buttonStyle}
+            >
+              重建索引
+            </button>
+          ) : null}
         </span>
-        {integrations && (
-          <span style={{ marginLeft: "10px" }}>
-            <button
-              type="button"
-              disabled={!can("srs:review-flashcards")}
-              onClick={() => action("srs:review-flashcards")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("srs:review-flashcards") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              ⚡️ 开始复习
-            </button>
-            <button
-              type="button"
-              disabled={!can("dataview:force-refresh")}
-              onClick={() => action("dataview:force-refresh")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("dataview:force-refresh")
-                  ? buttonStyle
-                  : disabledButtonStyle
-              }
-            >
-              刷新 DV
-            </button>
-            <button
-              type="button"
-              disabled={!can("tasks:open")}
-              onClick={() => action("tasks:open")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
-            >
-              任务
-            </button>
-            <button
-              type="button"
-              disabled={!can("metadata-menu:open")}
-              onClick={() => action("metadata-menu:open")}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={
-                can("metadata-menu:open") ? buttonStyle : disabledButtonStyle
-              }
-            >
-              元数据
-            </button>
-          </span>
-        )}
-        {index.rebuild && (
-          <button
-            type="button"
-            onClick={onRebuild}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={{ ...buttonStyle, marginLeft: "12px" }}
-          >
-            重建索引
-          </button>
-        )}
       </h2>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "8px",
-          margin: "-6px 0 14px",
-        }}
-      >
+      <div className="pa-tabbar">
         {(
           [
             { id: "trading", label: "交易中心" },
@@ -1559,21 +1534,9 @@ const ConsoleComponent: React.FC<Props> = ({
 
       {activePage === "trading" ? (
         <>
-          <div
-            style={{
-              margin: "12px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              Trading Hub
-            </div>
+          <div className="pa-section-header">
+            <div className="pa-section-title">⚔️ 交易中心</div>
+            <div className="pa-section-subtitle">Trading Hub</div>
           </div>
 
           {latestTrade && reviewHints.length > 0 && (
