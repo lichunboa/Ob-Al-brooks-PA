@@ -312,6 +312,8 @@ const ConsoleComponent: React.FC<Props> = ({
   >(() => todayContext?.getTodayMarketCycle());
   const [analyticsScope, setAnalyticsScope] =
     React.useState<AnalyticsScope>("Live");
+  const [galleryScope, setGalleryScope] =
+    React.useState<AnalyticsScope>("All");
   const [showFixPlan, setShowFixPlan] = React.useState(false);
   const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
   const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
@@ -1303,8 +1305,15 @@ const ConsoleComponent: React.FC<Props> = ({
     const seen = new Set<string>();
     const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
+    const candidates =
+      galleryScope === "All"
+        ? trades
+        : trades.filter(
+            (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
+          );
+
     // v5.0 口径：从最近交易里取前 20 个候选，最终只展示 4 张。
-    for (const t of trades.slice(0, 20)) {
+    for (const t of candidates.slice(0, 20)) {
       // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
       const rawCover =
@@ -1351,7 +1360,7 @@ const ConsoleComponent: React.FC<Props> = ({
     }
 
     return out;
-  }, [trades, resolveLink, getResourceUrl]);
+  }, [trades, resolveLink, getResourceUrl, galleryScope]);
 
   const gallerySearchHref = React.useMemo(() => {
     return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
@@ -2437,7 +2446,20 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+              gap: SPACE.md,
+              alignItems: "start",
+            }}
+          >
+
+          <div
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "1 / 2",
+            }}
           >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.md }}
@@ -2635,7 +2657,11 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "2 / 3",
+            }}
           >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
@@ -2700,7 +2726,11 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "2 / 3",
+            }}
           >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
@@ -2808,7 +2838,11 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "2 / 3",
+            }}
           >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
@@ -2847,7 +2881,11 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "1 / 2",
+            }}
           >
             <div
               style={{
@@ -3032,7 +3070,11 @@ short mode\n\
           </div>
 
           <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
+            style={{
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "1 / 2",
+            }}
           >
             <div
               style={{
@@ -3455,14 +3497,222 @@ short mode\n\
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "2 / 3",
             }}
           >
-            {/* Gallery moved to Analytics (Data Center). */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: SPACE.sm,
+                marginBottom: SPACE.sm,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ fontWeight: 700, opacity: 0.75 }}>
+                🖼️ 最新复盘{" "}
+                <span
+                  style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}
+                >
+                  （图表/Charts）
+                </span>
+              </div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: SPACE.xs,
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                }}
+              >
+                范围
+                <select
+                  value={galleryScope}
+                  onChange={(e) =>
+                    setGalleryScope(e.target.value as AnalyticsScope)
+                  }
+                  style={selectStyle}
+                >
+                  <option value="All">全部</option>
+                  <option value="Live">实盘</option>
+                  <option value="Backtest">回测</option>
+                  <option value="Demo">模拟</option>
+                </select>
+              </label>
+            </div>
+
+            {!getResourceUrl ? (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                画廊不可用。
+              </div>
+            ) : galleryItems.length > 0 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: SPACE.md,
+                }}
+              >
+                {galleryItems.map((it) => (
+                  <button
+                    key={`gal-${it.coverPath}`}
+                    type="button"
+                    onClick={() => openFile(it.tradePath)}
+                    title={`${it.tradeName} • ${it.coverPath}`}
+                    onMouseEnter={onCoverMouseEnter}
+                    onMouseLeave={onCoverMouseLeave}
+                    onFocus={onCoverFocus}
+                    onBlur={onCoverBlur}
+                    style={{
+                      padding: 0,
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      background: `rgba(var(--mono-rgb-100), 0.03)`,
+                      cursor: "pointer",
+                      outline: "none",
+                      transition:
+                        "background-color 180ms ease, border-color 180ms ease",
+                      position: "relative",
+                      aspectRatio: "16 / 9",
+                    }}
+                  >
+                    {it.url ? (
+                      <>
+                        <img
+                          src={it.url}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: SPACE.xs,
+                            right: SPACE.xs,
+                            background:
+                              it.accountType === "Live"
+                                ? V5_COLORS.live
+                                : it.accountType === "Backtest"
+                                ? V5_COLORS.back
+                                : V5_COLORS.demo,
+                            border:
+                              "1px solid var(--background-modifier-border)",
+                            color: "rgba(var(--mono-rgb-0), 0.9)",
+                            fontSize: "0.6em",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          {it.accountType === "Live"
+                            ? "实盘"
+                            : it.accountType === "Backtest"
+                            ? "回测"
+                            : "模拟"}
+                        </div>
+
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-end",
+                            gap: "10px",
+                            background:
+                              "linear-gradient(rgba(var(--mono-rgb-0), 0), rgba(var(--mono-rgb-0), 0.9))",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: "var(--text-on-accent)",
+                              fontSize: "0.75em",
+                              fontWeight: 800,
+                              textAlign: "left",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              flex: "1 1 auto",
+                            }}
+                          >
+                            {it.tradeName}
+                          </div>
+                          <div
+                            style={{
+                              color:
+                                it.pnl >= 0 ? V5_COLORS.live : V5_COLORS.loss,
+                              fontWeight: 800,
+                              fontSize: "0.9em",
+                              flex: "0 0 auto",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {(() => {
+                              const s = it.pnl.toFixed(1).replace(/\.0$/, "");
+                              return `${it.pnl > 0 ? "+" : ""}${s}`;
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        style={{
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--text-faint)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        —
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或
+                图片路径。
+              </div>
+            )}
+
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: SPACE.md,
+                paddingTop: SPACE.sm,
+                borderTop: "1px solid var(--background-modifier-border)",
+              }}
+            >
+              <a
+                href={gallerySearchHref}
+                style={{
+                  color: "var(--text-accent)",
+                  textDecoration: "none",
+                  fontSize: "0.85em",
+                  fontWeight: 700,
+                }}
+              >
+                📂 查看所有图表
+              </a>
+            </div>
+          </div>
+
           </div>
         </>
       ) : null}
@@ -4639,186 +4889,7 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
-          >
-            <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
-            >
-              🖼️ 最新复盘{" "}
-              <span
-                style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}
-              >
-                （图表/Charts）
-              </span>
-            </div>
-            {!getResourceUrl ? (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                画廊不可用。
-              </div>
-            ) : galleryItems.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: SPACE.md,
-                }}
-              >
-                {galleryItems.map((it) => (
-                  <button
-                    key={`gal-${it.coverPath}`}
-                    type="button"
-                    onClick={() => openFile(it.tradePath)}
-                    title={`${it.tradeName} • ${it.coverPath}`}
-                    onMouseEnter={onCoverMouseEnter}
-                    onMouseLeave={onCoverMouseLeave}
-                    onFocus={onCoverFocus}
-                    onBlur={onCoverBlur}
-                    style={{
-                      padding: 0,
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      background: `rgba(var(--mono-rgb-100), 0.03)`,
-                      cursor: "pointer",
-                      outline: "none",
-                      transition:
-                        "background-color 180ms ease, border-color 180ms ease",
-                      position: "relative",
-                      aspectRatio: "16 / 9",
-                    }}
-                  >
-                    {it.url ? (
-                      <>
-                        <img
-                          src={it.url}
-                          alt=""
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
-
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: SPACE.xs,
-                            right: SPACE.xs,
-                            background:
-                              it.accountType === "Live"
-                                ? V5_COLORS.live
-                                : it.accountType === "Backtest"
-                                ? V5_COLORS.back
-                                : V5_COLORS.demo,
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            color: "rgba(var(--mono-rgb-0), 0.9)",
-                            fontSize: "0.6em",
-                            fontWeight: 800,
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {it.accountType === "Live"
-                            ? "实盘"
-                            : it.accountType === "Backtest"
-                            ? "回测"
-                            : "模拟"}
-                        </div>
-
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-end",
-                            gap: "10px",
-                            background:
-                              "linear-gradient(rgba(var(--mono-rgb-0), 0), rgba(var(--mono-rgb-0), 0.9))",
-                          }}
-                        >
-                          <div
-                            style={{
-                              color: "var(--text-on-accent)",
-                              fontSize: "0.75em",
-                              fontWeight: 800,
-                              textAlign: "left",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              flex: "1 1 auto",
-                            }}
-                          >
-                            {it.tradeName}
-                          </div>
-                          <div
-                            style={{
-                              color:
-                                it.pnl >= 0 ? V5_COLORS.live : V5_COLORS.loss,
-                              fontWeight: 800,
-                              fontSize: "0.9em",
-                              flex: "0 0 auto",
-                              fontVariantNumeric: "tabular-nums",
-                            }}
-                          >
-                            {(() => {
-                              const s = it.pnl.toFixed(1).replace(/\.0$/, "");
-                              return `${it.pnl > 0 ? "+" : ""}${s}`;
-                            })()}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div
-                        style={{
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "var(--text-faint)",
-                          fontSize: "0.85em",
-                        }}
-                      >
-                        —
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                暂无封面图片。请在 Frontmatter 添加 cover: [[图片]] 或
-                图片路径。
-              </div>
-            )}
-
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: SPACE.md,
-                paddingTop: SPACE.sm,
-                borderTop: "1px solid var(--background-modifier-border)",
-              }}
-            >
-              <a
-                href={gallerySearchHref}
-                style={{
-                  color: "var(--text-accent)",
-                  textDecoration: "none",
-                  fontSize: "0.85em",
-                  fontWeight: 700,
-                }}
-              >
-                📂 查看所有图表
-              </a>
-            </div>
-          </div>
+          {/* Gallery is rendered in the Analytics grid (with scope selector). */}
         </>
       ) : null}
 
