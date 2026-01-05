@@ -10,62 +10,13 @@ export const GlobalStyles: React.FC = () => (
   font-family: var(--font-interface);
   color: var(--text-normal);
 
-  /* v5 功能色（固定，不随主题变化）：仅用于语义/数据状态色 */
+  /* v5 palette (scoped): semantic/status/chart colors */
   --pa-v5-live: #10B981;
   --pa-v5-demo: #3B82F6;
   --pa-v5-back: #F59E0B;
   --pa-v5-win: #10B981;
   --pa-v5-loss: #EF4444;
   --pa-v5-accent: #60A5FA;
-}
-
-.pa-dashboard-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  padding-bottom: 10px;
-  margin: 0 0 20px;
-}
-
-.pa-dashboard-title-meta {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.pa-dashboard-title-actions {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pa-tabbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: -6px 0 14px;
-}
-
-.pa-section-header {
-  margin: 12px 0 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.pa-section-title {
-  font-weight: 700;
-}
-
-.pa-section-subtitle {
-  color: var(--text-muted);
-  font-size: 0.9em;
 }
 
 /* Grid Layouts */
@@ -85,18 +36,21 @@ export const GlobalStyles: React.FC = () => (
 
 /* Card Component */
 .pa-card {
-  background: var(--background-secondary);
+  background: rgba(var(--mono-rgb-100), 0.055);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 10px;
-  padding: 14px;
-  box-shadow: none;
-  transition: background-color 180ms ease, border-color 180ms ease;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .pa-card:hover {
-  background: var(--background-modifier-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: var(--background-modifier-border-hover);
 }
 
