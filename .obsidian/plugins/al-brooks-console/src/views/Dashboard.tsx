@@ -3499,7 +3499,7 @@ short mode\n\
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                   gap: SPACE.md,
                 }}
               >
@@ -3524,7 +3524,7 @@ short mode\n\
                       transition:
                         "background-color 180ms ease, border-color 180ms ease",
                       position: "relative",
-                      aspectRatio: "16 / 9",
+                      aspectRatio: "4 / 3",
                     }}
                   >
                     {it.url ? (
