@@ -721,7 +721,7 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
     base_font = 5.0
     texts = []
 
-    vol_cmap = plt.cm.YlOrRd_r
+    vol_cmap = plt.cm.RdYlGn  # 红到绿：低成交量红，高成交量绿
 
     for _, row in df.iterrows():
         label = str(row["symbol"]).replace("USDT", "")
@@ -734,7 +734,7 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
 
         # 成交量决定填充颜色
         vol_factor = row.get("vol_factor", 0.5)
-        rgba = vol_cmap(1 - vol_factor)
+        rgba = vol_cmap(vol_factor)  # 0=红, 1=绿
         point_color = f"#{int(rgba[0]*255):02x}{int(rgba[1]*255):02x}{int(rgba[2]*255):02x}"
 
         # 涨跌决定边框颜色
