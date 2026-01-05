@@ -4,7 +4,7 @@ import type {
   IntegrationCapabilityInfo,
   PluginAdapter,
 } from "./contracts";
-import { findCommandByPrefix, runCommand } from "./contracts";
+import { findCommandByPrefix, listCommands, runCommand } from "./contracts";
 
 const PREFIXES = ["metadata-menu:", "metadata-menu-"];
 
@@ -23,11 +23,31 @@ export class MetadataMenuAdapter implements PluginAdapter {
   }
 
   private resolveOpenCommandId(): string | undefined {
+    const cmds = listCommands(this.app);
+
+    // Prefer an exact match if the plugin exposes the canonical command id.
+    const exact = cmds.find((c) => c.id === "metadata-menu:open");
+    if (exact) return exact.id;
+
     for (const prefix of PREFIXES) {
       const cmd = findCommandByPrefix(this.app, prefix);
       if (cmd) return cmd.id;
     }
-    return undefined;
+
+    // Fallbacks: allow variants with slightly different ids/names.
+    const idMatch = cmds.find((c) => c.id.includes("metadata-menu"));
+    if (idMatch) return idMatch.id;
+
+    const nameMatch = cmds.find((c) => {
+      const name = (c.name ?? "").toLowerCase();
+      return (
+        name.includes("metadata menu") ||
+        name.includes("metadata-menu") ||
+        name.includes("metadata") ||
+        name.includes("元数据")
+      );
+    });
+    return nameMatch?.id;
   }
 
   private getOpenCommandId(): string | undefined {
