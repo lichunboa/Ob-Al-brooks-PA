@@ -65,13 +65,13 @@
         - Channels
         - Prior highs and lows
         
-        ![image.png](02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%207.png)
         
     - Trend
         - Bull trend:HH and HL
         - Bear trend: LH and LL
         
-        ![image.png](02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%208.png)
         
     - Context and Momentum
         
@@ -97,7 +97,7 @@
         
     - Pressure
         
-        ![image.png](02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2011.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2011.png)
         
 - Indicators
     
@@ -110,11 +110,11 @@
         - big trend后的50% pb 大概率继续trend + double top
         - w bottom但是判断第二次下降不是很strong
         
-        ![image.png](02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2012.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2012.png)
         
     - Indicator are based on bars，why not just use bars.
         
-        ![image.png](02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2013.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02D%20Chart%20Basics%20and%20Price%20Action%20Price%20Action%20Fun/image%2013.png)
         
         <aside>
         💡

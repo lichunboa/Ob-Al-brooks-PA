@@ -2,14 +2,14 @@
 
 - Overview
     
-    ![image.png](Pair%20Trading/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Pair%20Trading/image.png)
     
     ---
     
     - Concept
         
-        ![image.png](Pair%20Trading/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Pair%20Trading/image%201.png)
         
     - 5 Approaches
         
-        ![image.png](Pair%20Trading/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Pair%20Trading/image%202.png)

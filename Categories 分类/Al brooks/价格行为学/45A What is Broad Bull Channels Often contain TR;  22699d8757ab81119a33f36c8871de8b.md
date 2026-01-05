@@ -12,9 +12,9 @@
         | **PB时间** | 1-3 bar | 5+ bar |
         | **对手盘难度** | 困难, stop order=亏损 | 容易，stop order可以profit |
         
-        ![image.png](45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image.png)
         
-        ![image.png](45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%201.png)
         
 - Often contain TR
     
@@ -35,10 +35,10 @@
         
 - Often last several days
     
-    ![image.png](45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%205.png)
     
-    ![image.png](45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%206.png)
     
 - Usually Tight Channel on higher timeframe;
     
-    ![image.png](45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45A%20What%20is%20Broad%20Bull%20Channels%20Often%20contain%20TR;%20/image%207.png)

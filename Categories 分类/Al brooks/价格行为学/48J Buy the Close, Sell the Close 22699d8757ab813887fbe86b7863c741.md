@@ -11,13 +11,13 @@ BTC/STC 永远是把价格带向**S&R**，所以识别S&R很重要，你不想�
 
 - BTC
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image.png)
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%201.png)
     
 - STC
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%202.png)
     
 - 尾盘BTC/STC的trailing stop的设置
     
@@ -34,12 +34,12 @@ BTC/STC 永远是把价格带向**S&R**，所以识别S&R很重要，你不想�
     
 - End of day BTC/STC: 机会短暂 【需要几个bar才能确定是BTC/STC，但是本身不持续超过5-6个bar】
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%204.png)
     
 - 最好的持续到尾盘的BTC/STC是**3:00-3:35est**开始
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%205.png)
     
 - 尾盘经常LOM，避免LOM的trade
     
-    ![image.png](48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48J%20Buy%20the%20Close,%20Sell%20the%20Close/image%206.png)

@@ -17,9 +17,9 @@
     - 根据actual risk
     - new H/L
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%202.png)
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%203.png)
     
 - Late test of open (TR day经常会在最后测试当日open）
     
@@ -38,14 +38,14 @@
     
 - TTR
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%206.png)
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%207.png)
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%208.png)
     
 - Eventually BO into trend
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%209.png)
     
-    ![image.png](47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47D%20Entering%20with%20limit%20orders;%20Taking%20Profits;%20La/image%2010.png)

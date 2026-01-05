@@ -3,19 +3,19 @@
 - How to buy a Tight Bull Channel?
     - Buy above/close
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image.png)
         
     - Buy below, PB, reversal up
         - 33%,50% PB
         - below 1st,2nd,3rd PB bar
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%201.png)
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%202.png)
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%203.png)
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%204.png)
         
     - Market Cycle can save you
         
@@ -35,9 +35,9 @@
 - Stops and taking profits
     - Stops
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%207.png)
         
-        ![image.png](43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/43D%20How%20to%20buy%20a%20Tight%20Bull%20Channel%20Stops%20and%20taki/image%208.png)
         
     - Taking Profits for Tight Bull Channel
         

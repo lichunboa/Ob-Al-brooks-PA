@@ -3,7 +3,7 @@
 - Breakout mode (BOM) (第一个bar的BOM)
     - 这里不是讨论开局BO后的TR，而是开局本身的TR
         
-        ![image.png](48D%20Breakout%20mode%20(BOM);%20BO%20of%201st%2018%20bar%20range/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48D%20Breakout%20mode%20(BOM);%20BO%20of%201st%2018%20bar%20range/image.png)
         
     - **开局BOM MODE 的setup**
         

@@ -3,28 +3,28 @@
 - Bull BO
     - decide early
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%201.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%202.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%203.png)
         
     - stops setup
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%204.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%205.png)
         
     - trailing stop
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%206.png)
         
 - Buy the Close bull trend
     - Buy the close
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%207.png)
         
     - Buy H1,H2
         
@@ -39,7 +39,7 @@
         
     - Buy Below
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%209.png)
         
     
     ---
@@ -60,12 +60,12 @@
 - Sell the Close bear trend
     - Sell the close
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2011.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2011.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2012.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2012.png)
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2013.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2013.png)
         
     - Sell above
         
-        ![image.png](41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2014.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/41A%20Bull%20BO,%20Buy%20the%20Close%20bull%20trend;%20Sell%20the%20Cl/image%2014.png)

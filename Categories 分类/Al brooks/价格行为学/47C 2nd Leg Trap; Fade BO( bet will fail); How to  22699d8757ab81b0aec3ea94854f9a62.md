@@ -2,20 +2,20 @@
 
 - 2nd Leg Trap
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image.png)
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%201.png)
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%202.png)
     
 - Fade BO( bet will fail)
     - 被对手盘否定one more bar to become always in LONG/SHORT
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%203.png)
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%204.png)
     
-    ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%205.png)
     
 - How to enter on reversals
     - 2nd entry
@@ -40,18 +40,18 @@
         
     - Stop order
         
-        ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%208.png)
         
 - Wide stop and scaling in
     - 初学者不要scale in！
         
-        ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%209.png)
         
     - 基础stop loss：基于signal bar或者合理的structure
         
-        ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%2010.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%2010.png)
         
-        ![image.png](47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%2011.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/47C%202nd%20Leg%20Trap;%20Fade%20BO(%20bet%20will%20fail);%20How%20to%20/image%2011.png)
         
     - scale in 的 wide stop：基于MM / S&R
         

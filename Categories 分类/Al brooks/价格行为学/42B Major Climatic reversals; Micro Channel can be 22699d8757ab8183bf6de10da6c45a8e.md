@@ -2,7 +2,7 @@
 
 - Major Climatic reversals
     
-    ![image.png](42B%20Major%20Climatic%20reversals;%20Micro%20Channel%20can%20be/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/42B%20Major%20Climatic%20reversals;%20Micro%20Channel%20can%20be/image.png)
     
     - stop loss setup
         
@@ -52,4 +52,4 @@
         
 - SPB是最强的一种trend【可持续】
     
-    ![image.png](42B%20Major%20Climatic%20reversals;%20Micro%20Channel%20can%20be/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/42B%20Major%20Climatic%20reversals;%20Micro%20Channel%20can%20be/image%208.png)

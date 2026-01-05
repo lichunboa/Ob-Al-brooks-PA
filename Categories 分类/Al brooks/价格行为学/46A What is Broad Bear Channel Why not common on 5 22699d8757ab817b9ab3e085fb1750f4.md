@@ -3,9 +3,9 @@
 - What is Broad Bear Channel?
     - Mostly TR
         
-        ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image.png)
         
-        ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%201.png)
         
     - Feature of Broad Bear Channel
         
@@ -37,26 +37,26 @@
     - 5min的Broad Channel一般体现为**wedge** / **Trending TR day**
         - Wedge
             
-            ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%205.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%205.png)
             
         - Trending TR day
             
-            ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%206.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%206.png)
             
 - Why not common on 5min chart?
     
     因为Broad Channel要求每个leg是5+bar，如果要确信是个broad channel，需要3 leg up , 3 leg down,也就是至少30+bar，日图上只有81个bar，所以不是很常见能看到。
     
-    ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%207.png)
     
-    ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%208.png)
     
 - Major and minor highs
     
-    ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%209.png)
     
 - Macro是broad channel但是micro每天都是不同的
     
-    ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%2010.png)
     
-    ![image.png](46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46A%20What%20is%20Broad%20Bear%20Channel%20Why%20not%20common%20on%205/image%2011.png)

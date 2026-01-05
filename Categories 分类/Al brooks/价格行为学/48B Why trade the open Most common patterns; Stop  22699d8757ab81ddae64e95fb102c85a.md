@@ -2,7 +2,7 @@
 
 - Why trade the open
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image.png)
     
 - **90%的尾焰是early形成的**
     
@@ -20,18 +20,18 @@
     - BOM
     - Open Reversal
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%202.png)
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%203.png)
     
 - Stop orders are better
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%204.png)
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%205.png)
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%206.png)
     
 - **Most important rule: be prepared for anything!**
     
-    ![image.png](48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48B%20Why%20trade%20the%20open%20Most%20common%20patterns;%20Stop%20/image%207.png)

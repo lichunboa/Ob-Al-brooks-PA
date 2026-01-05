@@ -1,6 +1,6 @@
 # Limit Order in TR/Broad Channel
 
-![71891f64911be0aa8a82eb81cf209fd.png](Limit%20Order%20in%20TR%20Broad%20Channel/71891f64911be0aa8a82eb81cf209fd.png)
+![71891f64911be0aa8a82eb81cf209fd.png](71891f64911be0aa8a82eb81cf209fd.png)
 
 <aside>
 💡

@@ -25,11 +25,11 @@ channel是最难的（没时间去scale in，很可能转换成TR)，避免LIMIT
 
 </aside>
 
-![image.png](48I%20BO%20and%20board%20TR,%20no%20channels/image.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48I%20BO%20and%20board%20TR,%20no%20channels/image.png)
 
-![image.png](48I%20BO%20and%20board%20TR,%20no%20channels/image%201.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48I%20BO%20and%20board%20TR,%20no%20channels/image%201.png)
 
-![image.png](48I%20BO%20and%20board%20TR,%20no%20channels/image%202.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48I%20BO%20and%20board%20TR,%20no%20channels/image%202.png)
 
 - **Channel is Difficult at the end of day**
     

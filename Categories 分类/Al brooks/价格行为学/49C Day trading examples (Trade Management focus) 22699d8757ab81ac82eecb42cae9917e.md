@@ -2,7 +2,7 @@
 
 - example 1: bull micro channel →TR
     
-    ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image.png)
     
 - example 2 【超长的完整一天的例子！】
     - GAP down , reversal up with consecutive bull bars + disappointing FT
@@ -34,7 +34,7 @@
         
         B2: buy in the forming
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%202.png)
         
     - B4,5： Bull开始示弱
         
@@ -42,9 +42,9 @@
         
         bull谋划好自己的stop loss或者scale in
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%203.png)
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%204.png)
         
     - B10: Bear BO,bull不同的离场的理由
         
@@ -54,13 +54,13 @@
         - Bear BO bar
         - Bull BO bar
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%205.png)
         
     - B11: Bear BO后的FT
         
         因为这个FT并不好，给予了bull TR的判断，wide stop bull 决定scale in
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%206.png)
         
     - 双方各持已见，因此TR
         
@@ -70,7 +70,7 @@
         
         当双方都有很好的理由的时候，大概率是TR
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%207.png)
         
     - B11 weak FT后bear的担忧
         
@@ -80,14 +80,14 @@
         - **entry bar**不够大
         - **FT bar**不好
             
-            ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%208.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%208.png)
             
         
     - wedge bottom +DB，bull的反扑，期待MM
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%209.png)
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2010.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2010.png)
         
         <aside>
         💡
@@ -101,9 +101,9 @@
     - 抵达MM后，Parabolic Wedge ，加上之前的TR PA，认为今天可能是TR的一天
         - early TR PA + weak FT after bull trend bar → TR vibes!
             
-            ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2012.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2012.png)
             
-            ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2013.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2013.png)
             
     - 抵达MM后的连续bear bar
         
@@ -120,14 +120,14 @@
         
         这里bear trend很tight【**context**】，而且reversal bull bar很小【**signal**】，有上影线，更可能是bear flag(bear spike + PB → bear channel) 而不是bull reversal
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2015.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2015.png)
         
     - TTR
         
         DT + Wedge Bear Flag in TTR
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2016.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2016.png)
         
         wedge可能在late trend是final flag
         
-        ![image.png](49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2017.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/49C%20Day%20trading%20examples%20(Trade%20Management%20focus)/image%2017.png)

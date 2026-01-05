@@ -3,13 +3,13 @@
 - Weak BO means TR soon
     - case 1: broad trend中**对手盘limit order开始profit**→ TR soon
         
-        ![image.png](42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image.png)
         
     - case 2: **BO bar size不大，而且有抵抗影线**→weak BO → TR likely
         
-        ![image.png](42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image%201.png)
         
-        ![image.png](42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/42A%20Weak%20BO%20means%20TR%20soon;%20BO%20can%20succeed%20(MG)%20or%20/image%202.png)
         
 - BO can succeed (MG) or fail (EG)
     

@@ -58,7 +58,7 @@
     - 知道只有20%的球员做假动作晃人，因此抓住和相信big trend，不怕pain trade
     - 面对pain trade依然会被过，但是在80%情况是不怕的，因此整体是赢！
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%205.png)
     
     <aside>
     💡
@@ -76,18 +76,18 @@
     - trader senses price is wrong
     - top/bottom of range need to be higher/lower to attract more sellers/buyers
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%207.png)
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%208.png)
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%209.png)
     
     - 右侧第一个bull bar会引起你的注意，因为你注意到似乎要从trading range的行为改变了。这个bull bar是close on high而且比前面几个bar的high都要高，有一个gap.
     - 紧接着出现了一个更大的bull bar，确定了这个bull break out行为。
 - Pain Trade中的假突破
     - 假突破造成的double damage！加速市场变动
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2010.png)
     
     pain trade造成多空双杀，导致价格剧烈变动。【假突破】
     
@@ -95,6 +95,6 @@
     
 - Market = 90% TR + 10% Trend(breakout)
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2011.png)
     
-    ![image.png](02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2012.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/02C%20Chart%20Basics%20and%20Price%20Action%20Price%20action,%20pa/image%2012.png)

@@ -20,21 +20,21 @@
 - Reversals are common but most fail
     - reversal often fails
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%204.png)
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%205.png)
         
     - TR的出现和持续让channel变得越来越宽直到TR
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%206.png)
         
 - Diagnose early
     - Different Market Cycle in Broad Bear Channel
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%207.png)
         
     - Trade what is so far clear
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%208.png)
         
-        ![image.png](46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/46B%20Channels%20usually%20last%20at%20least%203%20days;%20Reversa/image%209.png)

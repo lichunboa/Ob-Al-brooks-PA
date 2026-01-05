@@ -32,13 +32,13 @@
 - Failed reversal of BO of yesterday’s range （突破昨日H/L，然后回踩，继续突破方向）
     - 昨日高试图形成DT ，失败，被突破
     
-    ![image.png](48E%20Failed%20BO%20of%20yesterday%E2%80%99s%20H%20L;%20Failed%20reversal%20/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48E%20Failed%20BO%20of%20yesterday’s%20H%20L;%20Failed%20reversal%20/image%2010.png)
     
     - gap up突破昨日高，然后DB回踩形成DB
     
-    ![image.png](48E%20Failed%20BO%20of%20yesterday%E2%80%99s%20H%20L;%20Failed%20reversal%20/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48E%20Failed%20BO%20of%20yesterday’s%20H%20L;%20Failed%20reversal%20/image%2011.png)
     
-    ![image.png](48E%20Failed%20BO%20of%20yesterday%E2%80%99s%20H%20L;%20Failed%20reversal%20/image%2012.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/48E%20Failed%20BO%20of%20yesterday’s%20H%20L;%20Failed%20reversal%20/image%2012.png)
     
 
 <aside>

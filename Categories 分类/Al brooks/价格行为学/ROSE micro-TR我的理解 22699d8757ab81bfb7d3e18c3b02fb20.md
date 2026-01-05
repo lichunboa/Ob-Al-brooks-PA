@@ -1,28 +1,28 @@
 # ROSE micro-TR我的理解
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image.png)
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%201.png)
-
----
-
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%202.png)
-
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%203.png)
-
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%204.png)
-
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%205.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%201.png)
 
 ---
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%206.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%202.png)
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%207.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%203.png)
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%208.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%204.png)
 
-![image.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/image%209.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%205.png)
+
+---
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%206.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%207.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%208.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%209.png)
 
 ---
 
@@ -41,7 +41,7 @@ AUCTION MARKET THEORY的5条规则
 1. 如果价格开始离开一个平衡区，那么上一个平衡区的ledge（极值点）就会hold住，比如房价从第一个TR 移动到第二个TR，那么1.2w这个ledge就会hold住
 2. trend会一直持续，直到访问了以前的TR，或者创造了自己新的TR
 
-![fdf94ebab91a71bbbebbc523a9073fa.png](ROSE%20micro-TR%E6%88%91%E7%9A%84%E7%90%86%E8%A7%A3/fdf94ebab91a71bbbebbc523a9073fa.png)
+![fdf94ebab91a71bbbebbc523a9073fa.png](fdf94ebab91a71bbbebbc523a9073fa.png)
 
 1.寻找一个big bar ，就是auction理论里头的价格朝着下一个平衡区域移动
 2.找到几个bar open和close在一起，也就是形成一个局部平衡区域

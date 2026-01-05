@@ -2,18 +2,18 @@
 
 - Need Higher Lows
     
-    ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image.png)
     
-    ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%201.png)
     
 - 2nd Leg Trap
     
-    ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%202.png)
     
 - **Bears sell in Broad Bull Channel**
     - 在看见stair pattern，也即已经有bear逆势profit了才参与
         
-        ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%203.png)
         
     - 利用MM或者2倍至今为止最大BO size来做STOP LOSS
         
@@ -41,11 +41,11 @@
         
     - [advanced trader only] scale in to avoid a loss / BE
         
-        ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%207.png)
         
-        ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%208.png)
         
-        ![image.png](45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/45D%20Need%20Higher%20Lows;%202nd%20Leg%20Trap;%20Bears%20sell%20in%20/image%209.png)
         
     - **Broad Bull Channel 种 双方利用prior BO size来估计new High从而sell**
         
