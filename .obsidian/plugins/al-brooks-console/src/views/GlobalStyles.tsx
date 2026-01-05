@@ -43,16 +43,16 @@ export const GlobalStyles: React.FC = () => (
   font-size: 1.5em;
   font-weight: 700;
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .pa-dashboard-actions-row {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .pa-dashboard-actions-row button {

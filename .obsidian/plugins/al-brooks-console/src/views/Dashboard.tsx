@@ -1505,8 +1505,8 @@ const ConsoleComponent: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-            onMouseEnter={onCtaMouseEnter}
-            onMouseLeave={onCtaMouseLeave}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
             onFocus={onBtnFocus}
             onBlur={onBtnBlur}
             style={{
