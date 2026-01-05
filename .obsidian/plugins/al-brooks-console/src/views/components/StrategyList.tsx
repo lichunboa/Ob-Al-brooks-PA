@@ -229,25 +229,32 @@ export const StrategyList: React.FC<Props> = ({
                       className="pa-card pa-strategy-item"
                       onClick={() => onOpenFile(s.path)}
                     >
-                      <div className="pa-strategy-title">
-                        {s.canonicalName || s.name}
-                      </div>
-
                       <div
                         style={{
                           display: "flex",
+                          alignItems: "baseline",
                           justifyContent: "space-between",
                           gap: "10px",
-                          flexWrap: "wrap",
                           marginBottom: "6px",
-                          color: "var(--text-muted)",
-                          fontSize: "0.85em",
                         }}
                       >
-                        <span>{statusLabel}</span>
-                        <span
+                        <div
+                          className="pa-strategy-title"
                           style={{
-                            fontFamily: "var(--font-monospace)",
+                            flex: "1 1 auto",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {s.canonicalName || s.name}
+                        </div>
+
+                        <div
+                          style={{
+                            flex: "0 0 auto",
+                            color: "var(--text-muted)",
+                            fontSize: "0.82em",
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
                           }}
@@ -258,33 +265,54 @@ export const StrategyList: React.FC<Props> = ({
                                 wr > 50
                                   ? "var(--text-success)"
                                   : "var(--text-warning)",
-                              fontWeight: 800,
+                              fontWeight: 900,
                             }}
                           >
                             {wr}%
-                          </span>{" "}
-                          <span style={{ opacity: 0.7 }}>({p.total})</span>
+                          </span>
+                          <span style={{ opacity: 0.7 }}> ({p.total})</span>
                           {lastDate ? (
-                            <>
-                              <span style={{ opacity: 0.6 }}> · </span>
-                              <span style={{ opacity: 0.85 }}>
-                                最近 {lastDate}
-                              </span>
-                            </>
+                            <span style={{ opacity: 0.75 }}>
+                              {" "}· 最近 {lastDate}
+                            </span>
                           ) : null}
-                        </span>
+                        </div>
                       </div>
 
-                      {(s.riskReward || p.total > 0) && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                          flexWrap: "wrap",
+                          marginBottom: "6px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: active ? 800 : 600,
+                            color: active
+                              ? "var(--text-accent)"
+                              : "var(--text-muted)",
+                          }}
+                        >
+                          {statusLabel}
+                        </span>
+                        {s.riskReward ? (
+                          <span className="pa-text-faint">
+                            R/R: <strong>{s.riskReward}</strong>
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {p.total > 0 && (
                         <div
                           className="pa-text-faint"
                           style={{ fontSize: "0.78em", marginBottom: "6px" }}
                         >
-                          {s.riskReward ? (
-                            <span style={{ marginRight: "10px" }}>
-                              📊 R/R: <strong>{s.riskReward}</strong>
-                            </span>
-                          ) : null}
                           {p.total > 0 ? (
                             <span>
                               🔢 使用: <strong>{p.total}次</strong>
