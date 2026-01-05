@@ -98,6 +98,10 @@ import {
   textButtonSemiboldStyle,
   textButtonStrongStyle,
   textButtonStyle,
+  glassPanelStyle,
+  glassCardStyle,
+  glassInsetStyle,
+  glassStatusStyle,
 } from "../ui/styles/dashboardPrimitives";
 
 function toLocalDateIso(d: Date): string {
@@ -1546,14 +1550,7 @@ const ConsoleComponent: React.FC<Props> = ({
               >
                 扩展（不参与旧版对照）：复盘提示
               </summary>
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  background: "var(--background-primary)",
-                }}
-              >
+              <div style={glassPanelStyle}>
                 <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                   复盘提示
                   <span
@@ -1588,11 +1585,8 @@ const ConsoleComponent: React.FC<Props> = ({
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
+              ...glassPanelStyle,
               marginBottom: "16px",
-              background: "var(--background-primary)",
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
@@ -1627,12 +1621,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 ).map((c) => (
                   <div
                     key={c.label}
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "10px 12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                    }}
+                    style={glassCardStyle}
                   >
                     <div
                       style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
@@ -1663,12 +1652,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 }}
               >
                 <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px 12px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
+                  style={glassCardStyle}
                 >
                   <div
                     style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
@@ -1690,12 +1674,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
 
                 <div
-                  style={{
-                    border: "1px solid var(--background-modifier-border)",
-                    borderRadius: "10px",
-                    padding: "10px 12px",
-                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                  }}
+                  style={glassCardStyle}
                 >
                   <div
                     style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
@@ -1971,12 +1950,8 @@ const ConsoleComponent: React.FC<Props> = ({
                       return (
                         <div
                           style={{
+                            ...glassInsetStyle,
                             marginTop: "10px",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "10px",
-                            padding: "10px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
                           }}
                         >
                           <div style={{ fontWeight: 600, marginBottom: "6px" }}>
