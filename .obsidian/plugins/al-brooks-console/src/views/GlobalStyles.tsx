@@ -70,15 +70,15 @@ export const GlobalStyles: React.FC = () => (
 .pa-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .pa-grid-3 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* Card Component */
@@ -109,7 +109,7 @@ export const GlobalStyles: React.FC = () => (
 
 .pa-card-title {
   font-weight: 600;
-  font-size: 1.1em;
+  font-size: 1em;
   color: var(--text-normal);
   margin: 0;
 }
@@ -128,9 +128,8 @@ export const GlobalStyles: React.FC = () => (
 
 .pa-strategy-item {
   padding: 10px 12px;
-  background: rgba(var(--mono-rgb-100), 0.11);
-  border-color: rgba(var(--mono-rgb-100), 0.18);
-  box-shadow: 0 0 0 1px rgba(var(--mono-rgb-100), 0.06) inset;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
   border-radius: 10px;
   line-height: 1.2;
 }

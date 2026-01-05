@@ -1476,34 +1476,6 @@ const ConsoleComponent: React.FC<Props> = ({
               >
                 ⚡️ 开始复习
               </button>
-              <button
-                type="button"
-                disabled={!can("tasks:open")}
-                onClick={() => action("tasks:open")}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
-                style={can("tasks:open") ? buttonStyle : disabledButtonStyle}
-              >
-                任务
-              </button>
-              <button
-                type="button"
-                disabled={!can("metadata-menu:open")}
-                onClick={() => action("metadata-menu:open")}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
-                style={
-                  can("metadata-menu:open")
-                    ? buttonStyle
-                    : disabledButtonStyle
-                }
-              >
-                元数据
-              </button>
             </>
           ) : null}
 
