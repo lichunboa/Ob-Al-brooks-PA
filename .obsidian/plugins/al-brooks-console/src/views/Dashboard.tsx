@@ -85,7 +85,7 @@ import { V5_COLORS, withHexAlpha } from "../ui/tokens";
 import {
   activeTabButtonStyle,
   buttonSmDisabledStyle,
-  buttonSmStyle,
+          <span className="pa-dashboard-title-actions">
   buttonStyle,
   cardStyle,
   cardSubtleTightStyle,
@@ -95,7 +95,9 @@ import {
   selectStyle,
   tabButtonStyle,
   textButtonNoWrapStyle,
-  textButtonSemiboldStyle,
+                can("srs:review-flashcards")
+                  ? { ...buttonStyle, marginLeft: 0 }
+                  : { ...disabledButtonStyle, marginLeft: 0 }
   textButtonStrongStyle,
   textButtonStyle,
 } from "../ui/styles/dashboardPrimitives";
@@ -110,8 +112,8 @@ function toLocalDateIso(d: Date): string {
 function getLastLocalDateIsos(days: number): string[] {
   const out: string[] = [];
   const now = new Date();
-  for (let i = 0; i < Math.max(1, days); i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+                  ? { ...buttonStyle, marginLeft: 0 }
+                  : { ...disabledButtonStyle, marginLeft: 0 }
     out.push(toLocalDateIso(d));
   }
   return out;
@@ -124,9 +126,13 @@ function getDayOfMonth(dateIso: string): string {
 }
 
 function getYearMonth(dateIso: string | undefined): string | undefined {
-  if (!dateIso) return undefined;
+              style={
+                can("tasks:open")
+                  ? { ...buttonStyle, marginLeft: 0 }
+                  : { ...disabledButtonStyle, marginLeft: 0 }
+              }
   const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return undefined;
+              任务
   return `${m[1]}-${m[2]}`;
 }
 
@@ -525,53 +531,32 @@ const ConsoleComponent: React.FC<Props> = ({
       setManagerStrategyInventory(undefined);
       return;
     }
-
-    // 回退：若宿主未提供全库扫描，则维持旧逻辑（trade index + strategy notes）。
-    const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
-      path: t.path,
-      frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
-    }));
-    const tradeInv = buildFrontmatterInventory(tradeFiles);
-    setManagerTradeInventoryFiles(tradeFiles);
-    setManagerTradeInventory(tradeInv);
-
-    const strategyFiles: FrontmatterFile[] = [];
-    if (loadStrategyNotes) {
-      const notes = await loadStrategyNotes();
-      for (const n of notes) {
-        strategyFiles.push({
+        <div className="pa-dashboard">
+          <h2 className="pa-dashboard-title">
           path: n.path,
-          frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
+            <span className="pa-dashboard-title-meta">
         });
       }
-    }
+            <span className="pa-dashboard-title-meta">
     const strategyInv = buildFrontmatterInventory(strategyFiles);
     setManagerStrategyInventoryFiles(strategyFiles);
-    setManagerStrategyInventory(strategyInv);
-  }, [loadAllFrontmatterFiles, loadStrategyNotes, trades]);
-
-  const managerTradeFilesByPath = React.useMemo(() => {
-    const map = new Map<string, FrontmatterFile>();
-    for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
-    return map;
+            <span className="pa-dashboard-title-meta">
   }, [managerTradeInventoryFiles]);
 
-  const managerStrategyFilesByPath = React.useMemo(() => {
-    const map = new Map<string, FrontmatterFile>();
-    for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
-    return map;
-  }, [managerStrategyInventoryFiles]);
-
-  const selectManagerTradeFiles = React.useCallback(
-    (paths: string[]) =>
-      paths
-        .map((p) => managerTradeFilesByPath.get(p))
-        .filter((x): x is FrontmatterFile => Boolean(x)),
-    [managerTradeFilesByPath]
-  );
-
+            <button
+              type="button"
+              onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={{ ...buttonStyle, marginLeft: 0 }}
+              title={TRADE_NOTE_TEMPLATE_PATH}
+            >
+              新建交易
+            </button>
   const selectManagerStrategyFiles = React.useCallback(
-    (paths: string[]) =>
+              <>
       paths
         .map((p) => managerStrategyFilesByPath.get(p))
         .filter((x): x is FrontmatterFile => Boolean(x)),

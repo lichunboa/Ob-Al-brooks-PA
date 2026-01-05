@@ -9,10 +9,8 @@
   "obsidian-git",
   "obsidian-spaced-repetition",
   "quickadd",
-  "obsidian-outliner",
   "editing-toolbar",
   "obsidian-emoji-toolbar",
-  "tag-wrangler",
   "obsidian-hover-editor",
   "oz-image-plugin",
   "metadata-menu",
@@ -21,9 +19,9 @@
   "obsidian-custom-attachment-location",
   "omnisearch",
   "datacore",
-  "make-md",
   "url-into-selection",
   "obsidian-importer",
   "zenboard",
-  "al-brooks-console"
+  "al-brooks-console",
+  "make-md"
 ]
