@@ -116,7 +116,7 @@ if [ -f "docs/index.md" ]; then
         warn "发现 $BROKEN_LINKS 个死链"
     fi
 else
-    fail "docs/index.md 不存在"
+    warn "docs/index.md 不存在，跳过文档链接检查（团队单入口文档约定已禁用）"
 fi
 
 # 7. ADR 编号检查
