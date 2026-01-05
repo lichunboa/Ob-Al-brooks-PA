@@ -1517,9 +1517,21 @@ const ConsoleComponent: React.FC<Props> = ({
 
       {activePage === "trading" ? (
         <>
-          <div className="pa-module-header">
-            <div className="pa-module-title">⚔️ 交易中心</div>
-            <div className="pa-module-subtitle">Trading Hub</div>
+          <div
+            style={{
+              margin: "12px 0 10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--background-modifier-border)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+              Trading Hub
+            </div>
           </div>
 
           {latestTrade && reviewHints.length > 0 && (
@@ -1575,11 +1587,26 @@ const ConsoleComponent: React.FC<Props> = ({
             </details>
           )}
 
-          <div className="pa-card" style={{ marginBottom: "16px" }}>
-            <div className="pa-section-title">今日</div>
+          <div
+            style={{
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "10px",
+              padding: "12px",
+              marginBottom: "16px",
+              background: "var(--background-primary)",
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
 
-            <div className="pa-kpi-stack" style={{ marginBottom: "14px" }}>
-              <div className="pa-kpi-grid pa-kpi-grid-3">
+            <div style={{ marginBottom: "14px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "10px",
+                  marginBottom: "10px",
+                }}
+              >
                 {(
                   [
                     {
@@ -1599,29 +1626,92 @@ const ConsoleComponent: React.FC<Props> = ({
                     },
                   ] as const
                 ).map((c) => (
-                  <div key={c.label} className="pa-kpi-tile">
-                    <div className="pa-kpi-label">{c.label}</div>
-                    <div className="pa-kpi-value lg" style={{ color: c.color }}>
+                  <div
+                    key={c.label}
+                    style={{
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                    }}
+                  >
+                    <div
+                      style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                    >
+                      {c.label}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontWeight: 900,
+                        fontSize: "1.8em",
+                        lineHeight: 1,
+                        color: c.color,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
                       {c.value}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="pa-kpi-grid pa-kpi-grid-2">
-                <div className="pa-kpi-tile">
-                  <div className="pa-kpi-label">胜率</div>
-                  <div className="pa-kpi-value" style={{ color: V5_COLORS.back }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div
+                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                  >
+                    胜率
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      fontWeight: 900,
+                      fontSize: "1.6em",
+                      lineHeight: 1,
+                      color: V5_COLORS.back,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
                     {todayKpi.winRatePct}%
                   </div>
                 </div>
 
-                <div className="pa-kpi-tile">
-                  <div className="pa-kpi-label">净利润</div>
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
                   <div
-                    className="pa-kpi-value"
+                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                  >
+                    净利润
+                  </div>
+                  <div
                     style={{
-                      color: todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                      marginTop: "6px",
+                      fontWeight: 900,
+                      fontSize: "1.6em",
+                      lineHeight: 1,
+                      color:
+                        todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {todayKpi.netR >= 0 ? "+" : ""}
