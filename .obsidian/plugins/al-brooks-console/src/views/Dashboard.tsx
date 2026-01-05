@@ -1119,8 +1119,17 @@ const ConsoleComponent: React.FC<Props> = ({
       const pnl =
         typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
       netR += pnl;
-      if (pnl > 0) wins += 1;
-      else if (pnl < 0) losses += 1;
+
+      // Prefer explicit outcome (v5 semantics), fall back to pnl sign if missing.
+      const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
+      if (outcome === "win") {
+        wins += 1;
+      } else if (outcome === "loss") {
+        losses += 1;
+      } else if (!outcome || outcome === "unknown") {
+        if (pnl > 0) wins += 1;
+        else if (pnl < 0) losses += 1;
+      }
     }
 
     const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
