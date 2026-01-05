@@ -22,14 +22,14 @@
     
 - 80% Rule
     
-    ![image.png](15A%20What%20is%20a%20BO%2080%25%20rule%20Most%20breakouts%20fail;%20Rev/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15A%20What%20is%20a%20BO%2080%%20rule%20Most%20breakouts%20fail;%20Rev/image%201.png)
     
-    ![image.png](15A%20What%20is%20a%20BO%2080%25%20rule%20Most%20breakouts%20fail;%20Rev/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15A%20What%20is%20a%20BO%2080%%20rule%20Most%20breakouts%20fail;%20Rev/image%202.png)
     
 - Reversal is a breakout
     
-    ![image.png](15A%20What%20is%20a%20BO%2080%25%20rule%20Most%20breakouts%20fail;%20Rev/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15A%20What%20is%20a%20BO%2080%%20rule%20Most%20breakouts%20fail;%20Rev/image%203.png)
     
 - TR breakouts fails
     
-    ![image.png](15A%20What%20is%20a%20BO%2080%25%20rule%20Most%20breakouts%20fail;%20Rev/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15A%20What%20is%20a%20BO%2080%%20rule%20Most%20breakouts%20fail;%20Rev/image%204.png)

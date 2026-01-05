@@ -180,7 +180,7 @@
         
     - PB sometimes fall below bull BO if in TR
         
-        ![image.png](09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%209.png)
         
 - Bar Counting
     - Count Number of **Legs in PB** (数腿才能进场）
@@ -234,7 +234,7 @@
         
     - trend resumpton次数 = leg次数 😀
         
-        ![image.png](09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2015.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2015.png)
         
     - High 1/2/3 Bull Flag and Move Stop Loss to HL
         
@@ -321,7 +321,7 @@
     
     - Low Bear Flag
         
-        ![image.png](09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2025.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2025.png)
         
     - 综合性例子
         
@@ -329,4 +329,4 @@
         
         然后出现一个big bull bar→3推up,形成大局面的double top→然后down
         
-        ![image.png](09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2026.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/09A%20What%20is%20Pullbacks%20and%20bar%20counting/image%2026.png)

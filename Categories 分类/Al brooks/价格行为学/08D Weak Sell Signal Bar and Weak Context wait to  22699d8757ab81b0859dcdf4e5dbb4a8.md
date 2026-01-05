@@ -204,15 +204,15 @@
         
         1. 2nd entry ioi with last bar bull close high是个比之前胜率更高的买点
         
-        ![image.png](08D%20Weak%20Sell%20Signal%20Bar%20and%20Weak%20Context%20wait%20to%20/image%2025.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08D%20Weak%20Sell%20Signal%20Bar%20and%20Weak%20Context%20wait%20to%20/image%2025.png)
         
-        ![image.png](08D%20Weak%20Sell%20Signal%20Bar%20and%20Weak%20Context%20wait%20to%20/image%2026.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08D%20Weak%20Sell%20Signal%20Bar%20and%20Weak%20Context%20wait%20to%20/image%2026.png)
         
     - 例子2 - bull trend weak sell signal
         1. context：tight bull trend without any pull back, 一开始出现的bear bar和doji大概率是bull flag。
         2. 之后看到强势的bear bar,而且整体上看是3 push ,wedge top，因此这是做空概率更大
         
-        ![image.png](08D%20Weak%20Sell%20Signal%20Bar%20and%20Weak%20Context%20wait%20to%20/image%2027.png)
+        ![image.png](image%2027.png)
         
     - 例子3 - bear trend weak buy signal
         

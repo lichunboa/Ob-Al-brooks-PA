@@ -8,11 +8,11 @@
 
 - When not clear, then TR
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image.png)
     
 - Breakout is strongest trend
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%201.png)
     
 - Trend in Beginner’s eyes
     
@@ -33,12 +33,12 @@
     
 - 80% rule: most reversals fail
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%204.png)
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%205.png)
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%206.png)
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%207.png)
     
-    ![image.png](14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14B%20When%20not%20clear,%20then%20TR;%20Breakout%20is%20strongest/image%208.png)

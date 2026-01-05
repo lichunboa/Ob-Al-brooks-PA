@@ -12,23 +12,23 @@
     
     **Bo** can be one or a series of bars.
     
-    ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image.png)
     
     - case1 : starts with Big BO
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%201.png)
         
     - case2: starts with small BO → big trend
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%202.png)
         
     - case3: starts with small BO → big channel
         
         endless PB in bull trend→ bull give up
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%203.png)
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%204.png)
         
     
     ---
@@ -37,17 +37,17 @@
         - Spike and Channel  （不同的channel，中间spike衔接）
         - Trending TR (不同的TR，中间spike衔接）
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%205.png)
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%206.png)
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%207.png)
         
 - Bull and Bear Trends
     
-    ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%208.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%208.png)
     
-    ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%209.png)
     
 - Traps and BO
     
@@ -57,21 +57,21 @@
         
         失败的逆势 👎
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2010.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2010.png)
         
         正确的顺势 👍
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2011.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2011.png)
         
     - Case 2: bear trend
         
         错误的逆势，小risk，小proba buy
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2012.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2012.png)
         
         正确的顺势sell，虽然risk大，但是可以通过小仓位减少risk
         
-        ![image.png](14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2013.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14C%20Types%20of%20trends;%20Bull%20and%20bear%20trends;%20Traps%20a/image%2013.png)
         
     - 75%的channel会被对手BO，然后成为TR或者对手trend
         

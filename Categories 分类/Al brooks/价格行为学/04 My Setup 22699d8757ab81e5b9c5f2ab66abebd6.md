@@ -13,4 +13,4 @@ Layout
 
 ---
 
-![image.png](04%20My%20Setup/image.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/04%20My%20Setup/image.png)

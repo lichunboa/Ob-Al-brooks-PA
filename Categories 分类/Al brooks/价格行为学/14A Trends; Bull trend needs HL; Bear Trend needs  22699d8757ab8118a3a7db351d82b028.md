@@ -9,15 +9,15 @@
 - Trend
     - concepts
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image.png)
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%201.png)
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%202.png)
         
     - **set & move the stop loss**
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%203.png)
         
         <aside>
         💡
@@ -82,32 +82,32 @@
     
 - Bear trend needs Lower High
     
-    ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2013.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2013.png)
     
     - 例子1 - set and move stop loss
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2014.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2014.png)
         
         new stop!
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2015.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2015.png)
         
     - 例子2 - 破了minor后trend变flatter and broader
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2016.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2016.png)
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2017.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2017.png)
         
     - 例子3 - 破了major后trend变成TR或者bull trend
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2018.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2018.png)
         
         bull bar后不好的follow through,可以看出bull leg in TR或者是Lower 2 sell set up
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2019.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2019.png)
         
     - 例子4 -  bet reversal fail
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2020.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2020.png)
         
-        ![image.png](14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2021.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/14A%20Trends;%20Bull%20trend%20needs%20HL;%20Bear%20Trend%20needs%20/image%2021.png)

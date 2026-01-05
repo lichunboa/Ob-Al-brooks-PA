@@ -117,21 +117,21 @@
     - PB和之前supprt/resistance所形成的gap
     - PB和之前BO point所形成的gap
     
-    ![image.png](11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%209.png)
     
     这里PB的时候，bear认为这是TR里的一个BULL LEG，因此会期待向下走，于是在resistance的地方设下埋伏。也有bear在推动价格跌破resistance这个点。如果这里没有跌破，形成了gap，那么参与推动价格的bear就被trap了，于是要买回，而且一段时间内不参与做空，因此市场价格上升。这里可以利用Meaure moves by measure gap.
     
-    ![image.png](11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2010.png)
     
-    ![image.png](11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2011.png)
     
     这里形成了一个gap（low of the bull bar and high of prior bar)，可以再次用MM.
     
     有多个higher low可以做MM bottom的选择。可以按照价格逐个计算，如果价格继续上升超过了之前BOTTOM计算的MM，那么可以选择更高的MM
     
-    ![image.png](11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2012.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2012.png)
     
-    ![image.png](11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2013.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/11C%20Micro%20gap,%20Gap%20open%20bars,%20Gaps%20means%20strength,/image%2013.png)
     
 - Body Gap (Negative gap)
     

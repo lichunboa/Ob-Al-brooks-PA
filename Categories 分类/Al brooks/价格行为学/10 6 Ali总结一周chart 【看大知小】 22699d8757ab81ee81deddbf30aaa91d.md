@@ -63,9 +63,9 @@
     - 如果一个BO失败了，被反向，如果这个BO依旧掌控市场，一般不会让对方超过自己反向-50%的测量区域（图中灰线），因为很多参与做空的机构会把stoploss放在反向测量1倍的MM
     - bear BE点的思考（这里和我思考的几乎一样）：如果你参与了B57-59,被套，那么会在哪里scale in。B66-69是first reverrsal，不是个好的选择，棕色的B79是个好的bear bar，但是机敏的bull避免了它的stop order被激活，直到下一天的B1。因此可依据这两个点，得到他们的BE位置【图中兰色区域】
         
-        ![image.png](10%206%20Ali%E6%80%BB%E7%BB%93%E4%B8%80%E5%91%A8chart%20%E3%80%90%E7%9C%8B%E5%A4%A7%E7%9F%A5%E5%B0%8F%E3%80%91/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/10%206%20Ali总结一周chart%20【看大知小】/image%203.png)
         
-        ![image.png](10%206%20Ali%E6%80%BB%E7%BB%93%E4%B8%80%E5%91%A8chart%20%E3%80%90%E7%9C%8B%E5%A4%A7%E7%9F%A5%E5%B0%8F%E3%80%91/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/10%206%20Ali总结一周chart%20【看大知小】/image%204.png)
         
     
 - Ali读图3【周三】- 开局第二股力量力量的主导力
@@ -73,11 +73,11 @@
     - 一天开局的第二个力量（这里是bull）一般会成为一天的主导（我也是这么认为！我的第一受害者理论），除非对方做出很强大的举动。
         - 这里第二股力量是bull，创造了当天新高后，就sideway了
     
-    ![image.png](10%206%20Ali%E6%80%BB%E7%BB%93%E4%B8%80%E5%91%A8chart%20%E3%80%90%E7%9C%8B%E5%A4%A7%E7%9F%A5%E5%B0%8F%E3%80%91/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/10%206%20Ali总结一周chart%20【看大知小】/image%205.png)
     
     - 这时候有同学提问：如果你在9进场做多，看到B11,B17怎么做？ 【基于context，基于limit order来测评自己trade的有效性，是否要止损走人】
         
-        ![image.png](10%206%20Ali%E6%80%BB%E7%BB%93%E4%B8%80%E5%91%A8chart%20%E3%80%90%E7%9C%8B%E5%A4%A7%E7%9F%A5%E5%B0%8F%E3%80%91/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/10%206%20Ali总结一周chart%20【看大知小】/image%206.png)
         
         Ali说自己在H2 HIGH挂单，因为那里的bear被困住了，但是没filled order
         
@@ -87,7 +87,7 @@
         - 【基于limit order】最后的底线是H2 low，因为这里是很多人limit order买的场所！
 - Ali读图4【周四】- 被昨日三角形apex吸引
     
-    ![image.png](10%206%20Ali%E6%80%BB%E7%BB%93%E4%B8%80%E5%91%A8chart%20%E3%80%90%E7%9C%8B%E5%A4%A7%E7%9F%A5%E5%B0%8F%E3%80%91/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/10%206%20Ali总结一周chart%20【看大知小】/image%207.png)
     
     两次测试了周三形成的三角形顶点，然后2nd leg down形成一个巨大双底。第二腿很强，展示bear势力，因此之后应该是sideway to down，然后又形成一个双底，形成可能的HL MTR.
     

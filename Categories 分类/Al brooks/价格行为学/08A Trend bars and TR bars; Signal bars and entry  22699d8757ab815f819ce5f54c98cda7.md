@@ -25,32 +25,32 @@ sometimes **context** is good but **signal** bar is not good, but you can take t
         | small overlap with prior bars | overlap with prior bars |
         | form a trend | trend bars quickly reverse |
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image.png)
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%201.png)
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%202.png)
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%203.png)
         
     - Tails are failed breakouts.
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%204.png)
         
         same chart in different 5m and 1m timeframe
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%205.png)
         
 - Signal bars and entry bars
     - **Best signal bars are reversal bars if context is good (the original trend is not strong enough)**
     - 这里是TR或者是震荡向上的，不是strong bull trend，因此在这个context下，这个reversal bar是best signal！否则可能是个bull flag！
     - 有时候signal bar和entry bar可以是同一个，比如左侧tight bear trend，有bull break out，第二个bull bar close far above the high of the prior bar.
     
-    ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%206.png)
     
     - signal bar可以是也可以不是reversal bar
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%207.png)
         
         1. 左侧的3次push up，但是bull bar之后的**follow up bar**都不好。第一次follow up是2个bear bar，第二次follow up是5个side way。这让这个看起来像是个会变成TR的bullleg而不是bull trend。即便这个bull channel很tight，但是在这个context下，更多的人会在这个sell signal bar下做空
         2. 进入tight bull channel。可以看出比起之前得起涨，这个pb没有跌破之前起涨点，因此有可能继续上涨趋势。看到一个bull bar收在高位，是个不错的做多信号
@@ -58,14 +58,14 @@ sometimes **context** is good but **signal** bar is not good, but you can take t
         - 不一定是要强信号的reversal bar（如果左侧趋势不强，那么不强的reversal signal bar也可以奏效）
         - signal reversal bar是否起效要看左侧trend的相对强度
         
-        ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%208.png)
         
     - Strong signal bar: not common
         - only 1% of bars are strong reversal bars
         - reversal signal bar需要有否定之前trend能继续运作的context
         - strong sell signal
             
-            ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%209.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%209.png)
             
             <aside>
             💡
@@ -102,7 +102,7 @@ sometimes **context** is good but **signal** bar is not good, but you can take t
             
         - strong buy signal
             
-            ![image.png](08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%2010.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/08A%20Trend%20bars%20and%20TR%20bars;%20Signal%20bars%20and%20entry%20/image%2010.png)
             
             <aside>
             💡

@@ -12,7 +12,7 @@
         - 这个channel通常是收缩的，但也不一定
         - 如果是个三角形，那么朝向是偏上方或者下方的
             
-            ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image.png)
             
     - 只画顺着wedge的trend方向的一条line (因为期待三次碰触后reverse!)
         
@@ -37,25 +37,25 @@
         
 - 2. DT/DB
     
-    ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%206.png)
     
 - 3.Triangle
     
-    ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%207.png)
     
 - 4.Special Bars
     - Big Bars+ Good Context
         
-        ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%208.png)
         
     - oo/ii/ioi/ (bom, 相当于交通的黄灯）
         
-        ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%209.png)
         
 - 5.Add boxes for entries
     
-    ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%2010.png)
     
-    ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%2011.png)
     
-    ![image.png](%5BBonus%20Video%2013%5DFinding%20Today's%20Trades-%20%E6%AF%8F%E6%97%A5%E7%94%BB%E5%9B%BE%E7%BB%83%E4%B9%A0%EF%BC%81/image%2012.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/[Bonus%20Video%2013]Finding%20Today's%20Trades-%20每日画图练习！/image%2012.png)
