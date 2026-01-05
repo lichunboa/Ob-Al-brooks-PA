@@ -92,7 +92,6 @@ import {
   cardSubtleTightStyle,
   cardTightStyle,
   disabledButtonStyle,
-  SPACE,
   selectStyle,
   tabButtonStyle,
   textButtonNoWrapStyle,
@@ -1713,212 +1712,212 @@ const ConsoleComponent: React.FC<Props> = ({
                     </DisplayXL>
                   </GlassInset>
                 </div>
+            </GlassPanel>
+
+
+
+            <GlassPanel style={{ marginBottom: SPACE.lg }}>
+              <HeadingM style={{ marginBottom: SPACE.sm }}>
+                周期 → 策略推荐
+              </HeadingM>
+
+              <div style={{ marginBottom: SPACE.md }}>
+                <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>当前市场周期：</span>
+                <StatusBadge label={todayMarketCycle ?? "—"} tone="neutral" />
               </div>
 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: SPACE.sm,
+              }}>
+                {todayStrategyPicks.map((s) => (
+                  <ButtonGhost
+                    key={`today-pick-${s.path}`}
+                    onClick={() => openFile(s.path)}
+                    block
+                    style={{ justifyContent: "flex-start", textAlign: "left" }}
+                  >
+                    {s.canonicalName}
+                  </ButtonGhost>
+                ))}
+              </div>
+            </GlassPanel>
 
-
-              <GlassPanel style={{ marginBottom: SPACE.lg }}>
-                <HeadingM style={{ marginBottom: SPACE.sm }}>
-                  周期 → 策略推荐
-                </HeadingM>
-
-                <div style={{ marginBottom: SPACE.md }}>
-                  <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>当前市场周期：</span>
-                  <StatusBadge label={todayMarketCycle ?? "—"} tone="neutral" />
+            {openTrade && (
+              <GlassPanel>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACE.md }}>
+                  <HeadingM>进行中交易助手</HeadingM>
+                  <ButtonGhost onClick={() => openFile(openTrade.path)} style={{ fontSize: "0.85em" }}>
+                    {openTrade.ticker ?? "未知"} • {openTrade.name} ↗
+                  </ButtonGhost>
                 </div>
 
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: SPACE.sm,
-                }}>
-                  {todayStrategyPicks.map((s) => (
-                    <ButtonGhost
-                      key={`today-pick-${s.path}`}
-                      onClick={() => openFile(s.path)}
-                      block
-                      style={{ justifyContent: "flex-start", textAlign: "left" }}
-                    >
-                      {s.canonicalName}
-                    </ButtonGhost>
-                  ))}
-                </div>
-              </GlassPanel>
-
-              {openTrade && (
-                <GlassPanel>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACE.md }}>
-                    <HeadingM>进行中交易助手</HeadingM>
-                    <ButtonGhost onClick={() => openFile(openTrade.path)} style={{ fontSize: "0.85em" }}>
-                      {openTrade.ticker ?? "未知"} • {openTrade.name} ↗
-                    </ButtonGhost>
-                  </div>
-
-                  {openTradeStrategy ? (
-                    <div>
-                      <div style={{ marginBottom: SPACE.sm, display: "flex", alignItems: "baseline", gap: SPACE.xs }}>
-                        <Label>执行策略:</Label>
-                        <ButtonGhost
-                          onClick={() => openFile(openTradeStrategy.path)}
-                          style={{ padding: "0 4px", height: "auto", fontSize: "0.9em" }}
-                        >
-                          {openTradeStrategy.canonicalName}
-                        </ButtonGhost>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                          gap: SPACE.md,
-                        }}
+                {openTradeStrategy ? (
+                  <div>
+                    <div style={{ marginBottom: SPACE.sm, display: "flex", alignItems: "baseline", gap: SPACE.xs }}>
+                      <Label>执行策略:</Label>
+                      <ButtonGhost
+                        onClick={() => openFile(openTradeStrategy.path)}
+                        style={{ padding: "0 4px", height: "auto", fontSize: "0.9em" }}
                       >
-                        {/* 1. Entry */}
-                        {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                          <GlassInset style={{ padding: SPACE.md }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
-                              <span style={{ fontSize: "1.1em" }}>🚪</span>
-                              <Label color="accent">入场条件</Label>
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
-                              {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => (
-                                <li key={`entry-${i}`}><Body size="s">{x}</Body></li>
-                              ))}
-                            </ul>
-                          </GlassInset>
-                        )}
-
-                        {/* 2. Stop Loss */}
-                        {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
-                          <GlassInset style={{ padding: SPACE.md }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
-                              <span style={{ fontSize: "1.1em" }}>🛑</span>
-                              <Label style={{ color: COLORS.loss }}>止损建议</Label>
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
-                              {openTradeStrategy.stopLossRecommendation!.slice(0, 3).map((x, i) => (
-                                <li key={`stop-${i}`}><Body size="s">{x}</Body></li>
-                              ))}
-                            </ul>
-                          </GlassInset>
-                        )}
-
-                        {/* 3. Risks */}
-                        {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                          <GlassInset style={{ padding: SPACE.md }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
-                              <span style={{ fontSize: "1.1em" }}>⚠️</span>
-                              <Label style={{ color: COLORS.backtest }}>风险提示</Label>
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
-                              {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
-                                <li key={`risk-${i}`}><Body size="s">{x}</Body></li>
-                              ))}
-                            </ul>
-                          </GlassInset>
-                        )}
-
-                        {/* 4. Targets */}
-                        {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
-                          <GlassInset style={{ padding: SPACE.md }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
-                              <span style={{ fontSize: "1.1em" }}>🎯</span>
-                              <Label style={{ color: COLORS.accent }}>目标位</Label>
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
-                              {openTradeStrategy.takeProfitRecommendation!.slice(0, 3).map((x, i) => (
-                                <li key={`tp-${i}`}><Body size="s">{x}</Body></li>
-                              ))}
-                            </ul>
-                          </GlassInset>
-                        )}
-                      </div>
-
-                      {/* Signal Validation Logic */}
-                      {(() => {
-                        const curSignals = (openTrade.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
-                        const reqSignals = (openTradeStrategy.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
-
-                        const hasSignalInfo = curSignals.length > 0 || reqSignals.length > 0;
-                        if (!hasSignalInfo) return null;
-
-                        const norm = (s: string) => s.toLowerCase();
-                        const signalMatch = curSignals.length > 0 && reqSignals.length > 0
-                          ? reqSignals.some((r) => curSignals.some((c) => {
-                            const rn = norm(r);
-                            const cn = norm(c);
-                            return rn.includes(cn) || cn.includes(rn);
-                          }))
-                          : null;
-
-                        return (
-                          <GlassInset style={{ marginTop: SPACE.md, padding: SPACE.md }}>
-                            <Label style={{ marginBottom: SPACE.sm }}>🔍 信号K验证</Label>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SPACE.md }}>
-                              <div>
-                                <Label size="s" muted>当前信号</Label>
-                                <div style={{ color: curSignals.length > 0 ? COLORS.accent : COLORS.text.muted }}>
-                                  {curSignals.length > 0 ? curSignals.join(" / ") : "—"}
-                                </div>
-                              </div>
-                              <div>
-                                <Label size="s" muted>策略建议</Label>
-                                <div style={{ color: reqSignals.length > 0 ? COLORS.text.normal : COLORS.text.muted }}>
-                                  {reqSignals.length > 0 ? reqSignals.join(" / ") : "未定义"}
-                                </div>
-                              </div>
-                            </div>
-
-                            {signalMatch !== null && (
-                              <div style={{ marginTop: SPACE.sm, paddingTop: SPACE.sm, borderTop: `1px solid ${COLORS.border}` }}>
-                                <StatusBadge
-                                  label={signalMatch ? "信号匹配" : "信号不符"}
-                                  tone={signalMatch ? "success" : "warning"}
-                                />
-                              </div>
-                            )}
-                          </GlassInset>
-                        );
-                      })()}
+                        {openTradeStrategy.canonicalName}
+                      </ButtonGhost>
                     </div>
-                  ) : (
-                    /* Fallback */
-                    <GlassInset style={{ padding: SPACE.md }}>
-                      <div style={{ marginBottom: SPACE.sm, color: COLORS.text.muted }}>
-                        💡 基于当前市场背景 ({openTrade.marketCycle || "未知"}) 的策略建议:
-                      </div>
-                      <div style={{ display: "flex", gap: SPACE.sm, flexWrap: "wrap" }}>
-                        {strategyPicks.length > 0 ? (
-                          strategyPicks.map((s) => (
-                            <ButtonGhost
-                              key={`fallback-${s.path}`}
-                              onClick={() => openFile(s.path)}
-                              size="sm"
-                            >
-                              {s.canonicalName}
-                            </ButtonGhost>
-                          ))
-                        ) : (
-                          <span style={{ color: COLORS.text.muted }}>无匹配策略</span>
-                        )}
-                      </div>
-                    </GlassInset>
-                  )}
 
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: SPACE.md,
+                      }}
+                    >
+                      {/* 1. Entry */}
+                      {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                        <GlassInset style={{ padding: SPACE.md }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                            <span style={{ fontSize: "1.1em" }}>🚪</span>
+                            <Label color="accent">入场条件</Label>
+                          </div>
+                          <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                            {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => (
+                              <li key={`entry-${i}`}><Body size="s">{x}</Body></li>
+                            ))}
+                          </ul>
+                        </GlassInset>
+                      )}
+
+                      {/* 2. Stop Loss */}
+                      {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                        <GlassInset style={{ padding: SPACE.md }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                            <span style={{ fontSize: "1.1em" }}>🛑</span>
+                            <Label style={{ color: COLORS.loss }}>止损建议</Label>
+                          </div>
+                          <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                            {openTradeStrategy.stopLossRecommendation!.slice(0, 3).map((x, i) => (
+                              <li key={`stop-${i}`}><Body size="s">{x}</Body></li>
+                            ))}
+                          </ul>
+                        </GlassInset>
+                      )}
+
+                      {/* 3. Risks */}
+                      {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                        <GlassInset style={{ padding: SPACE.md }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                            <span style={{ fontSize: "1.1em" }}>⚠️</span>
+                            <Label style={{ color: COLORS.backtest }}>风险提示</Label>
+                          </div>
+                          <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                            {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
+                              <li key={`risk-${i}`}><Body size="s">{x}</Body></li>
+                            ))}
+                          </ul>
+                        </GlassInset>
+                      )}
+
+                      {/* 4. Targets */}
+                      {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                        <GlassInset style={{ padding: SPACE.md }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                            <span style={{ fontSize: "1.1em" }}>🎯</span>
+                            <Label style={{ color: COLORS.accent }}>目标位</Label>
+                          </div>
+                          <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                            {openTradeStrategy.takeProfitRecommendation!.slice(0, 3).map((x, i) => (
+                              <li key={`tp-${i}`}><Body size="s">{x}</Body></li>
+                            ))}
+                          </ul>
+                        </GlassInset>
+                      )}
+                    </div>
+
+                    {/* Signal Validation Logic */}
+                    {(() => {
+                      const curSignals = (openTrade.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
+                      const reqSignals = (openTradeStrategy.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
+
+                      const hasSignalInfo = curSignals.length > 0 || reqSignals.length > 0;
+                      if (!hasSignalInfo) return null;
+
+                      const norm = (s: string) => s.toLowerCase();
+                      const signalMatch = curSignals.length > 0 && reqSignals.length > 0
+                        ? reqSignals.some((r) => curSignals.some((c) => {
+                          const rn = norm(r);
+                          const cn = norm(c);
+                          return rn.includes(cn) || cn.includes(rn);
+                        }))
+                        : null;
+
+                      return (
+                        <GlassInset style={{ marginTop: SPACE.md, padding: SPACE.md }}>
+                          <Label style={{ marginBottom: SPACE.sm }}>🔍 信号K验证</Label>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SPACE.md }}>
+                            <div>
+                              <Label size="s" muted>当前信号</Label>
+                              <div style={{ color: curSignals.length > 0 ? COLORS.accent : COLORS.text.muted }}>
+                                {curSignals.length > 0 ? curSignals.join(" / ") : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <Label size="s" muted>策略建议</Label>
+                              <div style={{ color: reqSignals.length > 0 ? COLORS.text.normal : COLORS.text.muted }}>
+                                {reqSignals.length > 0 ? reqSignals.join(" / ") : "未定义"}
+                              </div>
+                            </div>
+                          </div>
+
+                          {signalMatch !== null && (
+                            <div style={{ marginTop: SPACE.sm, paddingTop: SPACE.sm, borderTop: `1px solid ${COLORS.border}` }}>
+                              <StatusBadge
+                                label={signalMatch ? "信号匹配" : "信号不符"}
+                                tone={signalMatch ? "success" : "warning"}
+                              />
+                            </div>
+                          )}
+                        </GlassInset>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  /* Fallback */
+                  <GlassInset style={{ padding: SPACE.md }}>
+                    <div style={{ marginBottom: SPACE.sm, color: COLORS.text.muted }}>
+                      💡 基于当前市场背景 ({openTrade.marketCycle || "未知"}) 的策略建议:
+                    </div>
+                    <div style={{ display: "flex", gap: SPACE.sm, flexWrap: "wrap" }}>
+                      {strategyPicks.length > 0 ? (
+                        strategyPicks.map((s) => (
+                          <ButtonGhost
+                            key={`fallback-${s.path}`}
+                            onClick={() => openFile(s.path)}
+                            size="sm"
+                          >
+                            {s.canonicalName}
+                          </ButtonGhost>
+                        ))
+                      ) : (
+                        <span style={{ color: COLORS.text.muted }}>无匹配策略</span>
+                      )}
+                    </div>
+                  </GlassInset>
+                )}
+
+              </GlassPanel>
+            )}
+
+            <div style={{ marginTop: SPACE.lg }}>
+              <HeadingM style={{ marginBottom: SPACE.md }}>今日交易</HeadingM>
+              {todayTrades.length > 0 ? (
+                <TradeList trades={todayTrades} onOpenFile={openFile} />
+              ) : (
+                <div style={{ color: COLORS.text.muted, fontSize: "0.9em", paddingLeft: SPACE.xs }}>
+                  今日暂无交易记录
                 </div>
               )}
-
-              <div style={{ marginTop: SPACE.lg }}>
-                <HeadingM style={{ marginBottom: SPACE.md }}>今日交易</HeadingM>
-                {todayTrades.length > 0 ? (
-                  <TradeList trades={todayTrades} onOpenFile={openFile} />
-                ) : (
-                  <div style={{ color: COLORS.text.muted, fontSize: "0.9em", paddingLeft: SPACE.xs }}>
-                    今日暂无交易记录
-                  </div>
-                )}
-              </div>
+            </div>
           </div>
 
           <div
@@ -2141,227 +2140,66 @@ short mode\n\
             minWidth: 0,
           }}
         >
-          <div
-            style={{
-              ...glassCardStyle,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 700,
-                opacity: 0.75,
-                marginBottom: SPACE.md,
-              }}
-            >
-              💼 账户资金概览{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.6,
-                  fontSize: "0.85em",
-                }}
-              >
-                (Account)
-              </span>
+          <GlassCard>
+            <div style={{ marginBottom: SPACE.lg }}>
+              <HeadingM>💼 账户资金概览 <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: 400 }}>(Account)</span></HeadingM>
             </div>
 
-            <div
-              style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}
-            >
-              {(
-                [
-                  {
-                    key: "Live",
-                    label: "🟢 实盘账户",
-                    badge: "Live",
-                    accent: V5_COLORS.live,
-                    stats: summary.Live,
-                  },
-                  {
-                    key: "Demo",
-                    label: "🔵 模拟盘",
-                    badge: "Demo",
-                    accent: V5_COLORS.demo,
-                    stats: summary.Demo,
-                  },
-                  {
-                    key: "Backtest",
-                    label: "🟠 复盘回测",
-                    badge: "Backtest",
-                    accent: V5_COLORS.back,
-                    stats: summary.Backtest,
-                  },
-                ] as const
-              ).map((card) => (
-                <div
-                  key={card.key}
-                  style={{
-                    ...glassPanelStyle,
-                    flex: "1 1 260px",
-                    minWidth: "240px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: "10px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 900,
-                        fontSize: "1.05em",
-                        color: card.accent,
-                      }}
-                    >
-                      {card.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.8em",
-                        color: "var(--text-muted)",
-                        border:
-                          "1px solid var(--background-modifier-border)",
-                        borderRadius: "999px",
-                        padding: "2px 8px",
-                        background: "var(--background-primary)",
-                      }}
-                    >
-                      {card.badge}
-                    </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: SPACE.md }}>
+              {([
+                { key: "Live", label: "🟢 实盘账户", badge: "Live", accent: V5_COLORS.live, stats: summary.Live },
+                { key: "Demo", label: "🔵 模拟盘", badge: "Demo", accent: V5_COLORS.demo, stats: summary.Demo },
+                { key: "Backtest", label: "🟠 复盘回测", badge: "Backtest", accent: V5_COLORS.back, stats: summary.Backtest },
+              ] as const).map((card) => (
+                <GlassPanel key={card.key} style={{ display: "flex", flexDirection: "column", gap: SPACE.sm }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontWeight: 700, color: card.accent }}>{card.label}</div>
+                    <StatusBadge label={card.badge} tone="neutral" />
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "6px",
-                      marginTop: "6px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "2.0em",
-                        fontWeight: 900,
-                        lineHeight: 1,
-                        color:
-                          card.stats.netProfit >= 0
-                            ? V5_COLORS.win
-                            : V5_COLORS.loss,
-                      }}
-                    >
+                  <div style={{ display: "flex", alignItems: "baseline", gap: SPACE.xs, marginTop: SPACE.xs }}>
+                    <DisplayXL money color={card.stats.netProfit >= 0 ? COLORS.win : COLORS.loss}>
                       {card.stats.netProfit > 0 ? "+" : ""}
                       {card.stats.netProfit.toFixed(1)}
-                    </div>
-                    <div
-                      style={{
-                        color: "var(--text-faint)",
-                        fontSize: "0.95em",
-                      }}
-                    >
-                      R
-                    </div>
+                    </DisplayXL>
+                    <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>R</span>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "14px",
-                      marginTop: "10px",
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div>📦 {card.stats.countTotal} 笔交易</div>
+                  <div style={{ display: "flex", gap: SPACE.lg, color: COLORS.text.muted, fontSize: "0.85em" }}>
+                    <div>📦 {card.stats.countTotal} 笔</div>
                     <div>🎯 {card.stats.winRatePct}% 胜率</div>
                   </div>
-                </div>
+                </GlassPanel>
               ))}
             </div>
-          </div>
+          </GlassCard>
 
-          <div
-            style={{
-              ...glassCardStyle,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 700,
-                opacity: 0.75,
-                marginBottom: SPACE.sm,
-              }}
-            >
-              🌪️ 不同市场环境表现{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.6,
-                  fontSize: "0.85em",
-                }}
-              >
-                (Live PnL)
-              </span>
+          <GlassCard>
+            <div style={{ marginBottom: SPACE.lg }}>
+              <HeadingM>🌪️ 不同市场环境表现 <span style={{ opacity: 0.5, fontSize: "0.8em", fontWeight: 400 }}>(Live PnL)</span></HeadingM>
             </div>
+
             {liveCyclePerf.length === 0 ? (
-              <div
-                style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-              >
+              <div style={{ color: COLORS.text.muted, fontSize: "0.9em", padding: SPACE.sm }}>
                 暂无数据
               </div>
             ) : (
-              <div
-                style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: SPACE.sm }}>
                 {liveCyclePerf.map((cy) => {
-                  const color =
-                    cy.pnl > 0
-                      ? V5_COLORS.win
-                      : cy.pnl < 0
-                        ? V5_COLORS.loss
-                        : "var(--text-muted)";
+                  const color = cy.pnl > 0 ? COLORS.win : cy.pnl < 0 ? COLORS.loss : COLORS.text.muted;
                   return (
-                    <div
-                      key={cy.name}
-                      style={{
-                        border:
-                          "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                        minWidth: "120px",
-                        flex: "1 1 180px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "0.85em",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        {cycleMap[cy.name] ?? cy.name}
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 800,
-                          color,
-                          fontVariantNumeric: "tabular-nums",
-                          marginTop: "2px",
-                        }}
-                      >
+                    <GlassInset key={cy.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: SPACE.sm }}>
+                      <Label align="center" style={{ marginBottom: SPACE.xs }}>{cycleMap[cy.name] ?? cy.name}</Label>
+                      <div style={{ fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>
                         {cy.pnl > 0 ? "+" : ""}
                         {cy.pnl.toFixed(1)}R
                       </div>
-                    </div>
+                    </GlassInset>
                   );
                 })}
               </div>
             )}
-          </div>
+          </GlassCard>
 
           <div
             style={{
