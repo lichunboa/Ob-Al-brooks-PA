@@ -613,7 +613,7 @@ const ConsoleComponent: React.FC<Props> = ({
           const first = res.errors?.[0];
           window.alert(
             `部分操作失败：${res.failed} 个文件。` +
-              (first ? `\n示例：${first.path}\n${first.message}` : "")
+            (first ? `\n示例：${first.path}\n${first.message}` : "")
           );
         } else if (res.applied === 0) {
           window.alert(
@@ -1319,8 +1319,8 @@ const ConsoleComponent: React.FC<Props> = ({
       galleryScope === "All"
         ? trades
         : trades.filter(
-            (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
-          );
+          (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
+        );
 
     // v5.0 口径：按“最新”取候选。index.getAll() 的顺序不保证，所以这里显式按日期倒序。
     const candidatesSorted = [...candidates].sort((a, b) => {
@@ -1458,63 +1458,53 @@ const ConsoleComponent: React.FC<Props> = ({
             style={buttonStyle}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
-          {integrations ? (
-            <>
+            {integrations ? (
+              <>
+                <button
+                  type="button"
+                  disabled={!can("srs:review-flashcards")}
+                  onClick={() => action("srs:review-flashcards")}
+                  onMouseEnter={onBtnMouseEnter}
+                  onMouseLeave={onBtnMouseLeave}
+                  onFocus={onBtnFocus}
+                  onBlur={onBtnBlur}
+                  style={
+                    can("srs:review-flashcards")
+                      ? buttonStyle
+                      : disabledButtonStyle
+                  }
+                >
+                  ⚡️ 开始复习
+                </button>
+              </>
+            ) : null}
+
+            {index.rebuild ? (
               <button
                 type="button"
-                disabled={!can("srs:review-flashcards")}
-                onClick={() => action("srs:review-flashcards")}
+                onClick={onRebuild}
                 onMouseEnter={onBtnMouseEnter}
                 onMouseLeave={onBtnMouseLeave}
                 onFocus={onBtnFocus}
                 onBlur={onBtnBlur}
-                style={
-                  can("srs:review-flashcards")
-                    ? buttonStyle
-                    : disabledButtonStyle
-                }
+                style={buttonStyle}
               >
-                ⚡️ 开始复习
+                重建索引
               </button>
-            </>
-          ) : null}
+            ) : null}
 
-          {index.rebuild ? (
             <button
               type="button"
-              onClick={onRebuild}
+              onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
               style={buttonStyle}
+              title={TRADE_NOTE_TEMPLATE_PATH}
             >
-              重建索引
+              新建交易
             </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={buttonStyle}
-            title={TRADE_NOTE_TEMPLATE_PATH}
-          >
-          <button
-            type="button"
-            onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
-            style={buttonStyle}
-            title={TRADE_NOTE_TEMPLATE_PATH}
-          >
-            新建交易
-          </button>
         </span>
       </h2>
 
@@ -1542,7 +1532,7 @@ const ConsoleComponent: React.FC<Props> = ({
         <>
           <div style={glassCardStyle}>
             {/* Level 1 Container (White/Black Frame) */}
-            
+
             {/* Header / Actions Row */}
             <div
               style={{
@@ -1553,7 +1543,7 @@ const ConsoleComponent: React.FC<Props> = ({
               }}
             >
               <div
-               style={{
+                style={{
                   display: "flex",
                   alignItems: "baseline",
                   gap: "10px",
@@ -1566,691 +1556,691 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
             </div>
 
-          {latestTrade && reviewHints.length > 0 && (
-            <details style={{ marginBottom: "16px" }}>
-              <summary
-                style={{
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
-                  fontSize: "0.95em",
-                  userSelect: "none",
-                  marginBottom: "8px",
-                }}
-              >
-                扩展（不参与旧版对照）：复盘提示
-              </summary>
-              <div style={glassPanelStyle}>
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                  复盘提示
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      marginLeft: "8px",
-                      color: "var(--text-muted)",
-                      fontSize: "0.85em",
-                    }}
-                  >
-                    {latestTrade.name}
-                  </span>
+            {latestTrade && reviewHints.length > 0 && (
+              <details style={{ marginBottom: "16px" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    fontSize: "0.95em",
+                    userSelect: "none",
+                    marginBottom: "8px",
+                  }}
+                >
+                  扩展（不参与旧版对照）：复盘提示
+                </summary>
+                <div style={glassPanelStyle}>
+                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                    复盘提示
+                    <span
+                      style={{
+                        fontWeight: 400,
+                        marginLeft: "8px",
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      {latestTrade.name}
+                    </span>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                    {reviewHints.slice(0, 4).map((h) => (
+                      <li key={h.id} style={{ marginBottom: "6px" }}>
+                        <div>{h.zh}</div>
+                        <div
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                          }}
+                        >
+                          {h.en}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                  {reviewHints.slice(0, 4).map((h) => (
-                    <li key={h.id} style={{ marginBottom: "6px" }}>
-                      <div>{h.zh}</div>
+              </details>
+            )}
+
+            <div
+              style={{
+                ...glassPanelStyle,
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
+
+              <div style={{ marginBottom: "14px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: "10px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {(
+                    [
+                      {
+                        label: "总交易",
+                        value: String(todayKpi.total),
+                        color: "var(--text-normal)",
+                      },
+                      {
+                        label: "获胜",
+                        value: String(todayKpi.wins),
+                        color: V5_COLORS.win,
+                      },
+                      {
+                        label: "亏损",
+                        value: String(todayKpi.losses),
+                        color: V5_COLORS.loss,
+                      },
+                    ] as const
+                  ).map((c) => (
+                    <div
+                      key={c.label}
+                      style={glassCardStyle}
+                    >
+                      <div
+                        style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                      >
+                        {c.label}
+                      </div>
                       <div
                         style={{
-                          color: "var(--text-muted)",
-                          fontSize: "0.85em",
+                          marginTop: "6px",
+                          fontWeight: 900,
+                          fontSize: "1.8em",
+                          lineHeight: 1,
+                          color: c.color,
+                          fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {h.en}
+                        {c.value}
                       </div>
-                    </li>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            </details>
-          )}
+                </div>
 
-          <div
-            style={{
-              ...glassPanelStyle,
-              marginBottom: "16px",
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
-
-            <div style={{ marginBottom: "14px" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: "10px",
-                  marginBottom: "10px",
-                }}
-              >
-                {(
-                  [
-                    {
-                      label: "总交易",
-                      value: String(todayKpi.total),
-                      color: "var(--text-normal)",
-                    },
-                    {
-                      label: "获胜",
-                      value: String(todayKpi.wins),
-                      color: V5_COLORS.win,
-                    },
-                    {
-                      label: "亏损",
-                      value: String(todayKpi.losses),
-                      color: V5_COLORS.loss,
-                    },
-                  ] as const
-                ).map((c) => (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: "10px",
+                  }}
+                >
                   <div
-                    key={c.label}
                     style={glassCardStyle}
                   >
                     <div
                       style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
                     >
-                      {c.label}
+                      胜率
                     </div>
                     <div
                       style={{
                         marginTop: "6px",
                         fontWeight: 900,
-                        fontSize: "1.8em",
+                        fontSize: "1.6em",
                         lineHeight: 1,
-                        color: c.color,
+                        color: V5_COLORS.back,
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {c.value}
+                      {todayKpi.winRatePct}%
                     </div>
                   </div>
-                ))}
+
+                  <div
+                    style={glassCardStyle}
+                  >
+                    <div
+                      style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
+                    >
+                      净利润
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontWeight: 900,
+                        fontSize: "1.6em",
+                        lineHeight: 1,
+                        color:
+                          todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {todayKpi.netR >= 0 ? "+" : ""}
+                      {todayKpi.netR.toFixed(1)}R
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {!todayMarketCycle && (
+                <div style={{ marginBottom: "12px" }}>
+                  <div
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "0.9em",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!canOpenTodayNote}
+                    onClick={onOpenTodayNote}
+                    onMouseEnter={onBtnMouseEnter}
+                    onMouseLeave={onBtnMouseLeave}
+                    onFocus={onBtnFocus}
+                    onBlur={onBtnBlur}
+                    style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
+                  >
+                    打开/创建今日日记（设置市场周期）
+                  </button>
+                </div>
+              )}
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: "10px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.9em",
+                  marginBottom: "10px",
                 }}
               >
-                <div
-                  style={glassCardStyle}
-                >
-                  <div
-                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
-                  >
-                    胜率
+                市场周期：{todayMarketCycle ?? "—"}
+              </div>
+
+              {todayStrategyPicks.length > 0 && (
+                <div style={{ marginBottom: "12px" }}>
+                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                    周期 → 策略推荐
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                    {todayStrategyPicks.map((s) => (
+                      <li
+                        key={`today-pick-${s.path}`}
+                        style={{ marginBottom: "6px" }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => openFile(s.path)}
+                          style={textButtonStyle}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                        >
+                          {s.canonicalName}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {openTrade && (
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                    进行中交易助手
                   </div>
                   <div
                     style={{
-                      marginTop: "6px",
-                      fontWeight: 900,
-                      fontSize: "1.6em",
-                      lineHeight: 1,
-                      color: V5_COLORS.back,
-                      fontVariantNumeric: "tabular-nums",
+                      color: "var(--text-muted)",
+                      fontSize: "0.9em",
+                      marginBottom: "8px",
                     }}
                   >
-                    {todayKpi.winRatePct}%
-                  </div>
-                </div>
-
-                <div
-                  style={glassCardStyle}
-                >
-                  <div
-                    style={{ color: "var(--text-muted)", fontSize: "0.85em" }}
-                  >
-                    净利润
-                  </div>
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      fontWeight: 900,
-                      fontSize: "1.6em",
-                      lineHeight: 1,
-                      color:
-                        todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {todayKpi.netR >= 0 ? "+" : ""}
-                    {todayKpi.netR.toFixed(1)}R
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {!todayMarketCycle && (
-              <div style={{ marginBottom: "12px" }}>
-                <div
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.9em",
-                    marginBottom: "10px",
-                  }}
-                >
-                  创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-                </div>
-                <button
-                  type="button"
-                  disabled={!canOpenTodayNote}
-                  onClick={onOpenTodayNote}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-                >
-                  打开/创建今日日记（设置市场周期）
-                </button>
-              </div>
-            )}
-
-            <div
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "0.9em",
-                marginBottom: "10px",
-              }}
-            >
-              市场周期：{todayMarketCycle ?? "—"}
-            </div>
-
-            {todayStrategyPicks.length > 0 && (
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                  周期 → 策略推荐
-                </div>
-                <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                  {todayStrategyPicks.map((s) => (
-                    <li
-                      key={`today-pick-${s.path}`}
-                      style={{ marginBottom: "6px" }}
+                    <button
+                      type="button"
+                      onClick={() => openFile(openTrade.path)}
+                      style={textButtonStyle}
+                      onMouseEnter={onTextBtnMouseEnter}
+                      onMouseLeave={onTextBtnMouseLeave}
+                      onFocus={onTextBtnFocus}
+                      onBlur={onTextBtnBlur}
                     >
-                      <button
-                        type="button"
-                        onClick={() => openFile(s.path)}
-                        style={textButtonStyle}
-                        onMouseEnter={onTextBtnMouseEnter}
-                        onMouseLeave={onTextBtnMouseLeave}
-                        onFocus={onTextBtnFocus}
-                        onBlur={onTextBtnBlur}
+                      {openTrade.ticker ?? "未知"} • {openTrade.name}
+                    </button>
+                  </div>
+
+                  {openTradeStrategy ? (
+                    <div>
+                      <div style={{ marginBottom: "8px" }}>
+                        策略:{" "}
+                        <button
+                          type="button"
+                          onClick={() => openFile(openTradeStrategy.path)}
+                          style={textButtonStyle}
+                          onMouseEnter={onTextBtnMouseEnter}
+                          onMouseLeave={onTextBtnMouseLeave}
+                          onFocus={onTextBtnFocus}
+                          onBlur={onTextBtnBlur}
+                        >
+                          {openTradeStrategy.canonicalName}
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: "8px",
+                        }}
                       >
-                        {s.canonicalName}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {openTrade && (
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                  进行中交易助手
-                </div>
-                <div
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: "0.9em",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => openFile(openTrade.path)}
-                    style={textButtonStyle}
-                    onMouseEnter={onTextBtnMouseEnter}
-                    onMouseLeave={onTextBtnMouseLeave}
-                    onFocus={onTextBtnFocus}
-                    onBlur={onTextBtnBlur}
-                  >
-                    {openTrade.ticker ?? "未知"} • {openTrade.name}
-                  </button>
-                </div>
-
-                {openTradeStrategy ? (
-                  <div>
-                    <div style={{ marginBottom: "8px" }}>
-                      策略:{" "}
-                      <button
-                        type="button"
-                        onClick={() => openFile(openTradeStrategy.path)}
-                        style={textButtonStyle}
-                        onMouseEnter={onTextBtnMouseEnter}
-                        onMouseLeave={onTextBtnMouseLeave}
-                        onFocus={onTextBtnFocus}
-                        onBlur={onTextBtnBlur}
-                      >
-                        {openTradeStrategy.canonicalName}
-                      </button>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-                      {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: "var(--text-accent)",
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              🚪
-                            </span>
-                            入场
+                        {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                marginBottom: "4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                color: "var(--text-accent)",
+                              }}
+                            >
+                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                🚪
+                              </span>
+                              入场
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                              {openTradeStrategy
+                                .entryCriteria!.slice(0, 3)
+                                .map((x, i) => (
+                                  <li key={`entry-${i}`}>{x}</li>
+                                ))}
+                            </ul>
                           </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .entryCriteria!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`entry-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
-                      {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
-                        0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: V5_COLORS.loss,
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              🛑
-                            </span>
-                            止损
+                        )}
+                        {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
+                          0 && (
+                            <div>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  marginBottom: "4px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  color: V5_COLORS.loss,
+                                }}
+                              >
+                                <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                  🛑
+                                </span>
+                                止损
+                              </div>
+                              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                {openTradeStrategy
+                                  .stopLossRecommendation!.slice(0, 3)
+                                  .map((x, i) => (
+                                    <li key={`stop-${i}`}>{x}</li>
+                                  ))}
+                              </ul>
+                            </div>
+                          )}
+                        {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                marginBottom: "4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                color: V5_COLORS.back,
+                              }}
+                            >
+                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                ⚠️
+                              </span>
+                              风险
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                              {openTradeStrategy
+                                .riskAlerts!.slice(0, 3)
+                                .map((x, i) => (
+                                  <li key={`risk-${i}`}>{x}</li>
+                                ))}
+                            </ul>
                           </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .stopLossRecommendation!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`stop-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
-                      {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: V5_COLORS.back,
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              ⚠️
-                            </span>
-                            风险
-                          </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .riskAlerts!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`risk-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
-                      {(openTradeStrategy.takeProfitRecommendation?.length ??
-                        0) > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: "var(--text-accent)",
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              🎯
-                            </span>
-                            目标
-                          </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .takeProfitRecommendation!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`tp-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                        {(openTradeStrategy.takeProfitRecommendation?.length ??
+                          0) > 0 && (
+                            <div>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  marginBottom: "4px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  color: "var(--text-accent)",
+                                }}
+                              >
+                                <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                  🎯
+                                </span>
+                                目标
+                              </div>
+                              <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                {openTradeStrategy
+                                  .takeProfitRecommendation!.slice(0, 3)
+                                  .map((x, i) => (
+                                    <li key={`tp-${i}`}>{x}</li>
+                                  ))}
+                              </ul>
+                            </div>
+                          )}
+                      </div>
 
-                    {(() => {
-                      const curSignals = (openTrade.signalBarQuality ?? [])
-                        .map((s) => String(s).trim())
-                        .filter(Boolean);
-                      const reqSignals = (
-                        openTradeStrategy.signalBarQuality ?? []
-                      )
-                        .map((s) => String(s).trim())
-                        .filter(Boolean);
+                      {(() => {
+                        const curSignals = (openTrade.signalBarQuality ?? [])
+                          .map((s) => String(s).trim())
+                          .filter(Boolean);
+                        const reqSignals = (
+                          openTradeStrategy.signalBarQuality ?? []
+                        )
+                          .map((s) => String(s).trim())
+                          .filter(Boolean);
 
-                      const hasSignalInfo =
-                        curSignals.length > 0 || reqSignals.length > 0;
-                      if (!hasSignalInfo) return null;
+                        const hasSignalInfo =
+                          curSignals.length > 0 || reqSignals.length > 0;
+                        if (!hasSignalInfo) return null;
 
-                      const norm = (s: string) => s.toLowerCase();
-                      const signalMatch =
-                        curSignals.length > 0 && reqSignals.length > 0
-                          ? reqSignals.some((r) =>
+                        const norm = (s: string) => s.toLowerCase();
+                        const signalMatch =
+                          curSignals.length > 0 && reqSignals.length > 0
+                            ? reqSignals.some((r) =>
                               curSignals.some((c) => {
                                 const rn = norm(r);
                                 const cn = norm(c);
                                 return rn.includes(cn) || cn.includes(rn);
                               })
                             )
-                          : null;
+                            : null;
 
-                      return (
-                        <div
-                          style={{
-                            ...glassInsetStyle,
-                            marginTop: "10px",
-                          }}
-                        >
-                          <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                            🔍 信号K验证
-                          </div>
+                        return (
+                          <div
+                            style={{
+                              ...glassInsetStyle,
+                              marginTop: "10px",
+                            }}
+                          >
+                            <div style={{ fontWeight: 600, marginBottom: "6px" }}>
+                              🔍 信号K验证
+                            </div>
 
-                          {curSignals.length > 0 ? (
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                                marginBottom: "6px",
-                              }}
-                            >
-                              当前：
-                              <span style={{ color: "var(--text-accent)" }}>
-                                {curSignals.join(" / ")}
-                              </span>
-                            </div>
-                          ) : (
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                                marginBottom: "6px",
-                              }}
-                            >
-                              当前：—
-                            </div>
-                          )}
-
-                          {reqSignals.length > 0 ? (
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                                marginBottom: "6px",
-                              }}
-                            >
-                              建议：{reqSignals.join(" / ")}
-                            </div>
-                          ) : (
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                                marginBottom: "6px",
-                              }}
-                            >
-                              建议：未在策略卡中定义
-                            </div>
-                          )}
-
-                          {signalMatch === null ? null : (
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                              }}
-                            >
-                              匹配：
-                              <span
+                            {curSignals.length > 0 ? (
+                              <div
                                 style={{
-                                  marginLeft: "6px",
-                                  color: signalMatch
-                                    ? V5_COLORS.win
-                                    : V5_COLORS.back,
-                                  fontWeight: 700,
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.9em",
+                                  marginBottom: "6px",
                                 }}
                               >
-                                {signalMatch ? "✅" : "⚠️"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  (() => {
-                    const marketCycleRaw = (
-                      openTrade.marketCycle ?? todayMarketCycle
-                    )
-                      ?.toString()
-                      .trim();
-                    const marketCycle = marketCycleRaw
-                      ? marketCycleRaw.includes("(")
-                        ? marketCycleRaw.split("(")[0].trim()
-                        : marketCycleRaw
-                      : undefined;
-                    const setupCategory = openTrade.setupCategory
-                      ?.toString()
-                      .trim();
-                    const setupKey = openTrade.setupKey?.toString().trim();
-                    const hasHints = Boolean(marketCycle || setupCategory);
+                                当前：
+                                <span style={{ color: "var(--text-accent)" }}>
+                                  {curSignals.join(" / ")}
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.9em",
+                                  marginBottom: "6px",
+                                }}
+                              >
+                                当前：—
+                              </div>
+                            )}
 
-                    if (!hasHints) {
-                      return (
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          未找到匹配策略。
-                        </div>
-                      );
-                    }
+                            {reqSignals.length > 0 ? (
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.9em",
+                                  marginBottom: "6px",
+                                }}
+                              >
+                                建议：{reqSignals.join(" / ")}
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.9em",
+                                  marginBottom: "6px",
+                                }}
+                              >
+                                建议：未在策略卡中定义
+                              </div>
+                            )}
 
-                    const norm = (s: string) => s.toLowerCase();
-                    const wantCycleKey = marketCycle
-                      ? norm(marketCycle)
-                      : undefined;
-                    const wantSetupKey =
-                      setupCategory || setupKey
-                        ? norm(String(setupCategory || setupKey))
+                            {signalMatch === null ? null : (
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontSize: "0.9em",
+                                }}
+                              >
+                                匹配：
+                                <span
+                                  style={{
+                                    marginLeft: "6px",
+                                    color: signalMatch
+                                      ? V5_COLORS.win
+                                      : V5_COLORS.back,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {signalMatch ? "✅" : "⚠️"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    (() => {
+                      const marketCycleRaw = (
+                        openTrade.marketCycle ?? todayMarketCycle
+                      )
+                        ?.toString()
+                        .trim();
+                      const marketCycle = marketCycleRaw
+                        ? marketCycleRaw.includes("(")
+                          ? marketCycleRaw.split("(")[0].trim()
+                          : marketCycleRaw
                         : undefined;
+                      const setupCategory = openTrade.setupCategory
+                        ?.toString()
+                        .trim();
+                      const setupKey = openTrade.setupKey?.toString().trim();
+                      const hasHints = Boolean(marketCycle || setupCategory);
 
-                    const scored = strategyIndex
-                      .list()
-                      .map((card) => {
-                        let score = 0;
-                        if (
-                          wantCycleKey &&
-                          card.marketCycles.some((c) => {
-                            const ck = norm(String(c));
-                            return (
-                              ck.includes(wantCycleKey) ||
-                              wantCycleKey.includes(ck)
-                            );
-                          })
-                        ) {
-                          score += 2;
-                        }
-                        if (
-                          wantSetupKey &&
-                          card.setupCategories.some((c) => {
-                            const ck = norm(String(c));
-                            return (
-                              ck.includes(wantSetupKey) ||
-                              wantSetupKey.includes(ck)
-                            );
-                          })
-                        ) {
-                          score += 1;
-                        }
-                        return { card, score };
-                      })
-                      .filter((x) => x.score > 0)
-                      .sort((a, b) => b.score - a.score)
-                      .slice(0, 3)
-                      .map((x) => x.card);
+                      if (!hasHints) {
+                        return (
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            未找到匹配策略。
+                          </div>
+                        );
+                      }
 
-                    if (scored.length === 0) {
+                      const norm = (s: string) => s.toLowerCase();
+                      const wantCycleKey = marketCycle
+                        ? norm(marketCycle)
+                        : undefined;
+                      const wantSetupKey =
+                        setupCategory || setupKey
+                          ? norm(String(setupCategory || setupKey))
+                          : undefined;
+
+                      const scored = strategyIndex
+                        .list()
+                        .map((card) => {
+                          let score = 0;
+                          if (
+                            wantCycleKey &&
+                            card.marketCycles.some((c) => {
+                              const ck = norm(String(c));
+                              return (
+                                ck.includes(wantCycleKey) ||
+                                wantCycleKey.includes(ck)
+                              );
+                            })
+                          ) {
+                            score += 2;
+                          }
+                          if (
+                            wantSetupKey &&
+                            card.setupCategories.some((c) => {
+                              const ck = norm(String(c));
+                              return (
+                                ck.includes(wantSetupKey) ||
+                                wantSetupKey.includes(ck)
+                              );
+                            })
+                          ) {
+                            score += 1;
+                          }
+                          return { card, score };
+                        })
+                        .filter((x) => x.score > 0)
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, 3)
+                        .map((x) => x.card);
+
+                      if (scored.length === 0) {
+                        return (
+                          <div
+                            style={{
+                              color: "var(--text-faint)",
+                              fontSize: "0.9em",
+                            }}
+                          >
+                            未找到匹配策略。
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div
-                          style={{
-                            color: "var(--text-faint)",
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          未找到匹配策略。
+                        <div>
+                          <div
+                            style={{
+                              color: "var(--text-muted)",
+                              fontSize: "0.9em",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            💡 基于当前市场背景（{marketCycle ?? "未知"}
+                            ）的策略建议：
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "8px",
+                            }}
+                          >
+                            {scored.map((s) => (
+                              <button
+                                key={`today-fallback-${s.path}`}
+                                type="button"
+                                onClick={() => openFile(s.path)}
+                                style={buttonStyle}
+                                onMouseEnter={onBtnMouseEnter}
+                                onMouseLeave={onBtnMouseLeave}
+                                onFocus={onBtnFocus}
+                                onBlur={onBtnBlur}
+                              >
+                                {s.canonicalName}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       );
-                    }
-
-                    return (
-                      <div>
-                        <div
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: "0.9em",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          💡 基于当前市场背景（{marketCycle ?? "未知"}
-                          ）的策略建议：
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "8px",
-                          }}
-                        >
-                          {scored.map((s) => (
-                            <button
-                              key={`today-fallback-${s.path}`}
-                              type="button"
-                              onClick={() => openFile(s.path)}
-                              style={buttonStyle}
-                              onMouseEnter={onBtnMouseEnter}
-                              onMouseLeave={onBtnMouseLeave}
-                              onFocus={onBtnFocus}
-                              onBlur={onBtnBlur}
-                            >
-                              {s.canonicalName}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
-              </div>
-            )}
-
-            <div style={{ marginTop: "16px" }}>
-              <h3 style={{ marginBottom: "12px" }}>今日交易</h3>
-              {todayTrades.length > 0 ? (
-                <TradeList trades={todayTrades} onOpenFile={openFile} />
-              ) : (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                  今日暂无交易记录
+                    })()
+                  )}
                 </div>
               )}
-            </div>
-          </div>
 
-          <div
-            style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              Actions
-            </div>
-          </div>
-
-          <div
-            style={{
-              ...glassPanelStyle,
-              marginBottom: "16px",
-            }}
-          >
-            {!can("tasks:open") ? (
-              <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
-                集成可用（请安装/启用 Tasks 插件）。
+              <div style={{ marginTop: "16px" }}>
+                <h3 style={{ marginBottom: "12px" }}>今日交易</h3>
+                {todayTrades.length > 0 ? (
+                  <TradeList trades={todayTrades} onOpenFile={openFile} />
+                ) : (
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    今日暂无交易记录
+                  </div>
+                )}
               </div>
-            ) : null}
+            </div>
 
             <div
               style={{
-                marginTop: "12px",
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
+                margin: "18px 0 10px",
+                paddingBottom: "8px",
+                borderBottom: "1px solid var(--background-modifier-border)",
+                display: "flex",
+                alignItems: "baseline",
+                gap: "10px",
+                flexWrap: "wrap",
               }}
             >
+              <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                Actions
+              </div>
+            </div>
+
+            <div
+              style={{
+                ...glassPanelStyle,
+                marginBottom: "16px",
+              }}
+            >
+              {!can("tasks:open") ? (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
+                  集成可用（请安装/启用 Tasks 插件）。
+                </div>
+              ) : null}
+
               <div
                 style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
+                  marginTop: "12px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
                 }}
               >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  🔥 必须解决 (Inbox & Urgent)
-                </div>
-                <MarkdownBlock
-                  markdown={`**❓ 疑难杂症 (Questions)**\n\n\
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🔥 必须解决 (Inbox & Urgent)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**❓ 疑难杂症 (Questions)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/question\n\
@@ -2266,22 +2256,22 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-                />
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  🛠️ 持续改进 (Improvement)
+                  />
                 </div>
-                <MarkdownBlock
-                  markdown={`**🧪 回测任务 (Backtest)**\n\n\
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🛠️ 持续改进 (Improvement)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**🧪 回测任务 (Backtest)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/backtest\n\
@@ -2314,22 +2304,22 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-                />
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  📅 每日例行 (Routine)
+                  />
                 </div>
-                <MarkdownBlock
-                  markdown={`**📝 手动打卡 (Checklist)**\n\n\
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    📅 每日例行 (Routine)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**📝 手动打卡 (Checklist)**\n\n\
 - [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n\
 - [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n\
 - [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n\
@@ -2342,22 +2332,22 @@ hide backlink\n\
 short mode\n\
 limit 5\n\
 \`\`\`\n`}
-                />
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-                  🛠️ 等待任务 (Maintenance)
+                  />
                 </div>
-                <MarkdownBlock
-                  markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
+
+                <div
+                  style={{
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    background: "rgba(var(--mono-rgb-100), 0.03)",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                    🛠️ 等待任务 (Maintenance)
+                  </div>
+                  <MarkdownBlock
+                    markdown={`**🖨️ 待打印 (Print Queue)**\n\n\
 \`\`\`tasks\n\
 not done\n\
 tag includes #task/print\n\
@@ -2373,12 +2363,12 @@ path does not include Templates\n\
 hide backlink\n\
 short mode\n\
 \`\`\`\n`}
-                />
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
+            {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
           </div>
         </>
       ) : null}
@@ -2598,8 +2588,8 @@ short mode\n\
                         cy.pnl > 0
                           ? V5_COLORS.win
                           : cy.pnl < 0
-                          ? V5_COLORS.loss
-                          : "var(--text-muted)";
+                            ? V5_COLORS.loss
+                            : "var(--text-muted)";
                       return (
                         <div
                           key={cy.name}
@@ -2791,15 +2781,15 @@ short mode\n\
                       analyticsSuggestion.tone === "danger"
                         ? withHexAlpha(V5_COLORS.loss, "1F")
                         : analyticsSuggestion.tone === "warn"
-                        ? withHexAlpha(V5_COLORS.back, "1F")
-                        : withHexAlpha(V5_COLORS.win, "1A"),
+                          ? withHexAlpha(V5_COLORS.back, "1F")
+                          : withHexAlpha(V5_COLORS.win, "1A"),
                     border: "1px solid var(--background-modifier-border)",
                     color:
                       analyticsSuggestion.tone === "danger"
                         ? V5_COLORS.loss
                         : analyticsSuggestion.tone === "warn"
-                        ? V5_COLORS.back
-                        : V5_COLORS.win,
+                          ? V5_COLORS.back
+                          : V5_COLORS.win,
                     fontWeight: 700,
                   }}
                 >
@@ -2872,14 +2862,13 @@ short mode\n\
                           c.netR > 0
                             ? withHexAlpha(V5_COLORS.win, "1A")
                             : c.netR < 0
-                            ? withHexAlpha(V5_COLORS.loss, "1A")
-                            : `rgba(var(--mono-rgb-100), 0.05)`;
+                              ? withHexAlpha(V5_COLORS.loss, "1A")
+                              : `rgba(var(--mono-rgb-100), 0.05)`;
                         return (
                           <div
                             key={`cal-${c.dateIso}`}
-                            title={`${c.dateIso} • ${c.count} 笔 • ${
-                              c.netR >= 0 ? "+" : ""
-                            }${c.netR.toFixed(1)}R`}
+                            title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
+                              }${c.netR.toFixed(1)}R`}
                             style={{
                               border:
                                 "1px solid var(--background-modifier-border)",
@@ -2908,15 +2897,15 @@ short mode\n\
                                   c.netR > 0
                                     ? V5_COLORS.win
                                     : c.netR < 0
-                                    ? V5_COLORS.loss
-                                    : "var(--text-faint)",
+                                      ? V5_COLORS.loss
+                                      : "var(--text-faint)",
                                 textAlign: "right",
                               }}
                             >
                               {c.count > 0
                                 ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(
-                                    1
-                                  )}R`
+                                  1
+                                )}R`
                                 : "—"}
                             </div>
                           </div>
@@ -3096,7 +3085,7 @@ short mode\n\
                               analyticsRecentLiveTradesAsc.map((t, i) => {
                                 const r =
                                   typeof t.pnl === "number" &&
-                                  Number.isFinite(t.pnl)
+                                    Number.isFinite(t.pnl)
                                     ? t.pnl
                                     : 0;
                                 let h = Math.abs(r) * rScale;
@@ -3105,15 +3094,14 @@ short mode\n\
                                   r > 0
                                     ? V5_COLORS.win
                                     : r < 0
-                                    ? V5_COLORS.loss
-                                    : "var(--text-muted)";
+                                      ? V5_COLORS.loss
+                                      : "var(--text-muted)";
                                 const top = r >= 0 ? rZeroY - h : rZeroY;
                                 return (
                                   <div
                                     key={`rbar-${t.path}-${t.dateIso}-${i}`}
-                                    title={`${t.dateIso} | ${
-                                      t.name
-                                    } | R: ${r.toFixed(2)}`}
+                                    title={`${t.dateIso} | ${t.name
+                                      } | R: ${r.toFixed(2)}`}
                                     style={{
                                       position: "absolute",
                                       left: `${i * step}px`,
@@ -3186,8 +3174,8 @@ short mode\n\
                           s.wr >= 50
                             ? V5_COLORS.win
                             : s.wr >= 40
-                            ? V5_COLORS.back
-                            : V5_COLORS.loss;
+                              ? V5_COLORS.back
+                              : V5_COLORS.loss;
                         let displayName = s.name;
                         if (
                           displayName.length > 12 &&
@@ -3560,8 +3548,8 @@ short mode\n\
                                   it.accountType === "Live"
                                     ? V5_COLORS.live
                                     : it.accountType === "Backtest"
-                                    ? V5_COLORS.back
-                                    : V5_COLORS.demo,
+                                      ? V5_COLORS.back
+                                      : V5_COLORS.demo,
                                 border:
                                   "1px solid var(--background-modifier-border)",
                                 color: "rgba(var(--mono-rgb-0), 0.9)",
@@ -3574,8 +3562,8 @@ short mode\n\
                               {it.accountType === "Live"
                                 ? "实盘"
                                 : it.accountType === "Backtest"
-                                ? "回测"
-                                : "模拟"}
+                                  ? "回测"
+                                  : "模拟"}
                             </div>
 
                             <div
@@ -3686,8 +3674,8 @@ short mode\n\
                                 {it.accountType === "Live"
                                   ? "实盘"
                                   : it.accountType === "Backtest"
-                                  ? "回测"
-                                  : "模拟"}
+                                    ? "回测"
+                                    : "模拟"}
                               </div>
                               <div
                                 style={{
@@ -4130,38 +4118,38 @@ short mode\n\
                   const focusRec =
                     canRecommendFocus && memory.focusFile
                       ? {
-                          type: "Focus" as const,
-                          title: memory.focusFile.name.replace(/\.md$/i, ""),
-                          path: memory.focusFile.path,
-                          desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
-                        }
+                        type: "Focus" as const,
+                        title: memory.focusFile.name.replace(/\.md$/i, ""),
+                        path: memory.focusFile.path,
+                        desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
+                      }
                       : null;
 
                   const courseRec = course?.hybridRec
                     ? (() => {
-                        const rec = course.hybridRec;
-                        const title = String(
-                          rec.data.t || rec.data.q || "推荐"
-                        );
-                        const path = String((rec.data as any).path || "");
-                        const desc = rec.type === "New" ? "新主题" : "闪卡测验";
-                        return { type: rec.type, title, path, desc } as const;
-                      })()
+                      const rec = course.hybridRec;
+                      const title = String(
+                        rec.data.t || rec.data.q || "推荐"
+                      );
+                      const path = String((rec.data as any).path || "");
+                      const desc = rec.type === "New" ? "新主题" : "闪卡测验";
+                      return { type: rec.type, title, path, desc } as const;
+                    })()
                     : null;
 
                   const quiz =
                     memory.quizPool.length > 0
                       ? memory.quizPool[
-                          Math.max(0, memoryShakeIndex) % memory.quizPool.length
-                        ]
+                      Math.max(0, memoryShakeIndex) % memory.quizPool.length
+                      ]
                       : null;
                   const randomRec = quiz
                     ? {
-                        type: "Shake" as const,
-                        title: String(quiz.q || quiz.file),
-                        path: String(quiz.path),
-                        desc: "🎲 随机抽取",
-                      }
+                      type: "Shake" as const,
+                      title: String(quiz.q || quiz.file),
+                      path: String(quiz.path),
+                      desc: "🎲 随机抽取",
+                    }
                     : null;
 
                   const rec = focusRec ?? courseRec ?? randomRec;
@@ -4171,10 +4159,10 @@ short mode\n\
                     rec.type === "Focus"
                       ? "🔥 优先复习"
                       : rec.type === "New"
-                      ? "🚀 推荐"
-                      : rec.type === "Review"
-                      ? "🔄 推荐"
-                      : "🎲 随机抽取";
+                        ? "🚀 推荐"
+                        : rec.type === "Review"
+                          ? "🔄 推荐"
+                          : "🎲 随机抽取";
 
                   const onShake = () => {
                     setMemoryIgnoreFocus(true);
@@ -4398,88 +4386,88 @@ short mode\n\
               <div>
                 {course.hybridRec
                   ? (() => {
-                      const rec = course.hybridRec;
-                      const sid = simpleCourseId(rec.data.id);
-                      const link =
-                        course.linksById[rec.data.id] || course.linksById[sid];
-                      const prefix =
-                        rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                      return (
+                    const rec = course.hybridRec;
+                    const sid = simpleCourseId(rec.data.id);
+                    const link =
+                      course.linksById[rec.data.id] || course.linksById[sid];
+                    const prefix =
+                      rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                    return (
+                      <div
+                        style={{
+                          border:
+                            "1px solid var(--background-modifier-border)",
+                          borderRadius: "8px",
+                          padding: "10px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          marginBottom: "10px",
+                        }}
+                      >
                         <div
                           style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "10px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            marginBottom: "10px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "10px",
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: "10px",
-                            }}
-                          >
-                            <div>
-                              {link ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openFile(link.path)}
-                                  style={textButtonSemiboldStyle}
-                                  onMouseEnter={onTextBtnMouseEnter}
-                                  onMouseLeave={onTextBtnMouseLeave}
-                                  onFocus={onTextBtnFocus}
-                                  onBlur={onTextBtnBlur}
-                                >
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                </button>
-                              ) : (
-                                <span style={{ color: "var(--text-faint)" }}>
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                  （笔记未创建）
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontFamily: "var(--font-monospace)",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {rec.data.id}
-                            </div>
+                          <div>
+                            {link ? (
+                              <button
+                                type="button"
+                                onClick={() => openFile(link.path)}
+                                style={textButtonSemiboldStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {prefix}: {String(rec.data.t ?? rec.data.id)}
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--text-faint)" }}>
+                                {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                （笔记未创建）
+                              </span>
+                            )}
                           </div>
                           <div
                             style={{
-                              marginTop: "6px",
                               color: "var(--text-muted)",
-                              fontSize: "0.85em",
-                              display: "flex",
-                              gap: "12px",
-                              flexWrap: "wrap",
+                              fontFamily: "var(--font-monospace)",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <span>
-                              章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                            </span>
-                            <span>
-                              进度:{" "}
-                              <strong>
-                                {course.progress.doneCount}/
-                                {course.progress.totalCount}
-                              </strong>
-                            </span>
-                            <span>
-                              笔记:{" "}
-                              <strong>{link ? "已创建" : "未创建"}</strong>
-                            </span>
+                            {rec.data.id}
                           </div>
                         </div>
-                      );
-                    })()
+                        <div
+                          style={{
+                            marginTop: "6px",
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                            display: "flex",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span>
+                            章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                          </span>
+                          <span>
+                            进度:{" "}
+                            <strong>
+                              {course.progress.doneCount}/
+                              {course.progress.totalCount}
+                            </strong>
+                          </span>
+                          <span>
+                            笔记:{" "}
+                            <strong>{link ? "已创建" : "未创建"}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()
                   : null}
 
                 {course.upNext.length > 0 && (
@@ -4570,13 +4558,13 @@ short mode\n\
                             const bg = c.isDone
                               ? V5_COLORS.win
                               : c.hasNote
-                              ? V5_COLORS.accent
-                              : "rgba(var(--mono-rgb-100), 0.06)";
+                                ? V5_COLORS.accent
+                                : "rgba(var(--mono-rgb-100), 0.06)";
                             const fg = c.isDone
                               ? "var(--background-primary)"
                               : c.hasNote
-                              ? "var(--background-primary)"
-                              : "var(--text-faint)";
+                                ? "var(--background-primary)"
+                                : "var(--text-faint)";
                             const title = `${c.item.id}: ${String(
                               c.item.t ?? ""
                             )}`;
@@ -4857,8 +4845,8 @@ short mode\n\
                       r.pnl > 0
                         ? V5_COLORS.win
                         : r.pnl < 0
-                        ? V5_COLORS.loss
-                        : "var(--text-muted)";
+                          ? V5_COLORS.loss
+                          : "var(--text-muted)";
 
                     return (
                       <div
@@ -4950,8 +4938,8 @@ short mode\n\
                 healthScore > 90
                   ? V5_COLORS.win
                   : healthScore > 60
-                  ? V5_COLORS.back
-                  : V5_COLORS.loss;
+                    ? V5_COLORS.back
+                    : V5_COLORS.loss;
               const files = paTagSnapshot?.files ?? 0;
               const tags = paTagSnapshot
                 ? Object.keys(paTagSnapshot.tagMap).length
@@ -4968,8 +4956,8 @@ short mode\n\
 
               const topTags = paTagSnapshot
                 ? Object.entries(paTagSnapshot.tagMap)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 60)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 60)
                 : [];
 
               const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
@@ -5912,8 +5900,8 @@ short mode\n\
                                   {issue.severity === "error"
                                     ? "错误"
                                     : issue.severity === "warn"
-                                    ? "警告"
-                                    : "—"}
+                                      ? "警告"
+                                      : "—"}
                                 </div>
                                 <div style={{ flex: "1 1 auto" }}>
                                   <div style={{ fontWeight: 600 }}>
@@ -6318,618 +6306,618 @@ short mode\n\
 
                     {managerInspectorKey
                       ? (() => {
-                          const inv =
-                            managerScope === "strategy"
-                              ? managerStrategyInventory
-                              : managerTradeInventory;
-                          const key = managerInspectorKey;
-                          if (!inv) return null;
+                        const inv =
+                          managerScope === "strategy"
+                            ? managerStrategyInventory
+                            : managerTradeInventory;
+                        const key = managerInspectorKey;
+                        if (!inv) return null;
 
-                          const selectManagerFiles =
-                            managerScope === "strategy"
-                              ? selectManagerStrategyFiles
-                              : selectManagerTradeFiles;
+                        const selectManagerFiles =
+                          managerScope === "strategy"
+                            ? selectManagerStrategyFiles
+                            : selectManagerTradeFiles;
 
-                          const allPaths = inv.keyPaths[key] ?? [];
-                          const perVal = inv.valPaths[key] ?? {};
-                          const sortedVals = Object.entries(perVal).sort(
-                            (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
+                        const allPaths = inv.keyPaths[key] ?? [];
+                        const perVal = inv.valPaths[key] ?? {};
+                        const sortedVals = Object.entries(perVal).sort(
+                          (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
+                        );
+                        const currentPaths =
+                          managerInspectorFileFilter?.paths ?? allPaths;
+                        const filterLabel = managerInspectorFileFilter?.label;
+
+                        const prettyManagerVal = (val: string) => {
+                          let s = (val ?? "").toString().trim();
+                          if (!s) return "";
+                          const low = s.toLowerCase();
+                          if (s === "Unknown" || low === "unknown")
+                            return "未知/Unknown";
+                          if (s === "Empty" || low === "empty")
+                            return "空/Empty";
+                          if (low === "null") return "空/null";
+                          return s;
+                        };
+
+                        const close = () => {
+                          setManagerInspectorKey(undefined);
+                          setManagerInspectorTab("vals");
+                          setManagerInspectorFileFilter(undefined);
+                        };
+
+                        const doRenameKey = async () => {
+                          const n =
+                            (await promptText?.({
+                              title: `重命名 ${key}`,
+                              defaultValue: key,
+                              placeholder: "输入新属性名",
+                              okText: "重命名",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const nextKey = n.trim();
+                          if (!nextKey || nextKey === key) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认重命名",
+                              message: `将属性\n${key}\n重命名为\n${nextKey}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildRenameKeyPlan(
+                            selectManagerFiles(allPaths),
+                            key,
+                            nextKey,
+                            { overwrite: true }
                           );
-                          const currentPaths =
-                            managerInspectorFileFilter?.paths ?? allPaths;
-                          const filterLabel = managerInspectorFileFilter?.label;
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const prettyManagerVal = (val: string) => {
-                            let s = (val ?? "").toString().trim();
-                            if (!s) return "";
-                            const low = s.toLowerCase();
-                            if (s === "Unknown" || low === "unknown")
-                              return "未知/Unknown";
-                            if (s === "Empty" || low === "empty")
-                              return "空/Empty";
-                            if (low === "null") return "空/null";
-                            return s;
-                          };
+                        const doDeleteKey = async () => {
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认删除属性",
+                              message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
+                              okText: "删除",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildDeleteKeyPlan(
+                            selectManagerFiles(allPaths),
+                            key
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const close = () => {
-                            setManagerInspectorKey(undefined);
-                            setManagerInspectorTab("vals");
-                            setManagerInspectorFileFilter(undefined);
-                          };
+                        const doAppendVal = async () => {
+                          const v =
+                            (await promptText?.({
+                              title: `追加新值 → ${key}`,
+                              placeholder: "输入要追加的值",
+                              okText: "追加",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const val = v.trim();
+                          if (!val) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认追加",
+                              message: `向属性\n${key}\n追加值：\n${val}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildAppendValPlan(
+                            selectManagerFiles(allPaths),
+                            key,
+                            val
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doRenameKey = async () => {
-                            const n =
-                              (await promptText?.({
-                                title: `重命名 ${key}`,
-                                defaultValue: key,
-                                placeholder: "输入新属性名",
-                                okText: "重命名",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const nextKey = n.trim();
-                            if (!nextKey || nextKey === key) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认重命名",
-                                message: `将属性\n${key}\n重命名为\n${nextKey}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildRenameKeyPlan(
-                              selectManagerFiles(allPaths),
-                              key,
-                              nextKey,
-                              { overwrite: true }
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doInjectProp = async () => {
+                          const k =
+                            (await promptText?.({
+                              title: "注入属性：属性名",
+                              placeholder: "例如：市场周期/market_cycle",
+                              okText: "下一步",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const newKey = k.trim();
+                          if (!newKey) return;
+                          const v =
+                            (await promptText?.({
+                              title: `注入属性：${newKey} 的值`,
+                              placeholder: "输入要注入的值",
+                              okText: "注入",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const newVal = v.trim();
+                          if (!newVal) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认注入",
+                              message:
+                                `将向 ${currentPaths.length} 个文件注入：\n` +
+                                `${newKey}: ${newVal}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildInjectPropPlan(
+                            selectManagerFiles(currentPaths),
+                            newKey,
+                            newVal
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doDeleteKey = async () => {
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认删除属性",
-                                message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
-                                okText: "删除",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildDeleteKeyPlan(
-                              selectManagerFiles(allPaths),
-                              key
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doUpdateVal = async (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          const n =
+                            (await promptText?.({
+                              title: `修改值 → ${key}`,
+                              defaultValue: val,
+                              placeholder: "输入新的值",
+                              okText: "修改",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const next = n.trim();
+                          if (!next || next === val) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认修改",
+                              message:
+                                `将 ${paths.length} 个文件中的\n` +
+                                `${key}: ${val}\n` +
+                                `修改为\n` +
+                                `${key}: ${next}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildUpdateValPlan(
+                            selectManagerFiles(paths),
+                            key,
+                            val,
+                            next
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doAppendVal = async () => {
-                            const v =
-                              (await promptText?.({
-                                title: `追加新值 → ${key}`,
-                                placeholder: "输入要追加的值",
-                                okText: "追加",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const val = v.trim();
-                            if (!val) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认追加",
-                                message: `向属性\n${key}\n追加值：\n${val}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildAppendValPlan(
-                              selectManagerFiles(allPaths),
-                              key,
-                              val
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doDeleteVal = async (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认移除值",
+                              message:
+                                `将从 ${paths.length} 个文件中移除：\n` +
+                                `${key}: ${val}`,
+                              okText: "移除",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildDeleteValPlan(
+                            selectManagerFiles(paths),
+                            key,
+                            val,
+                            {
+                              deleteKeyIfEmpty: true,
+                            }
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doInjectProp = async () => {
-                            const k =
-                              (await promptText?.({
-                                title: "注入属性：属性名",
-                                placeholder: "例如：市场周期/market_cycle",
-                                okText: "下一步",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const newKey = k.trim();
-                            if (!newKey) return;
-                            const v =
-                              (await promptText?.({
-                                title: `注入属性：${newKey} 的值`,
-                                placeholder: "输入要注入的值",
-                                okText: "注入",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const newVal = v.trim();
-                            if (!newVal) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认注入",
-                                message:
-                                  `将向 ${currentPaths.length} 个文件注入：\n` +
-                                  `${newKey}: ${newVal}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildInjectPropPlan(
-                              selectManagerFiles(currentPaths),
-                              newKey,
-                              newVal
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const showFilesForVal = (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          setManagerInspectorTab("files");
+                          setManagerInspectorFileFilter({
+                            paths,
+                            label: `值: ${val}`,
+                          });
+                        };
 
-                          const doUpdateVal = async (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            const n =
-                              (await promptText?.({
-                                title: `修改值 → ${key}`,
-                                defaultValue: val,
-                                placeholder: "输入新的值",
-                                okText: "修改",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const next = n.trim();
-                            if (!next || next === val) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认修改",
-                                message:
-                                  `将 ${paths.length} 个文件中的\n` +
-                                  `${key}: ${val}\n` +
-                                  `修改为\n` +
-                                  `${key}: ${next}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildUpdateValPlan(
-                              selectManagerFiles(paths),
-                              key,
-                              val,
-                              next
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
-
-                          const doDeleteVal = async (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认移除值",
-                                message:
-                                  `将从 ${paths.length} 个文件中移除：\n` +
-                                  `${key}: ${val}`,
-                                okText: "移除",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildDeleteValPlan(
-                              selectManagerFiles(paths),
-                              key,
-                              val,
-                              {
-                                deleteKeyIfEmpty: true,
-                              }
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
-
-                          const showFilesForVal = (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            setManagerInspectorTab("files");
-                            setManagerInspectorFileFilter({
-                              paths,
-                              label: `值: ${val}`,
-                            });
-                          };
-
-                          return (
+                        return (
+                          <div
+                            onClick={(e) => {
+                              if (e.target === e.currentTarget) close();
+                            }}
+                            style={{
+                              position: "fixed",
+                              inset: 0,
+                              background: "rgba(0,0,0,0.35)",
+                              zIndex: 9999,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "24px",
+                            }}
+                          >
                             <div
-                              onClick={(e) => {
-                                if (e.target === e.currentTarget) close();
-                              }}
                               style={{
-                                position: "fixed",
-                                inset: 0,
-                                background: "rgba(0,0,0,0.35)",
-                                zIndex: 9999,
+                                width: "min(860px, 95vw)",
+                                maxHeight: "85vh",
+                                overflow: "hidden",
+                                borderRadius: "12px",
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                background: "var(--background-primary)",
                                 display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "24px",
+                                flexDirection: "column",
                               }}
                             >
                               <div
                                 style={{
-                                  width: "min(860px, 95vw)",
-                                  maxHeight: "85vh",
-                                  overflow: "hidden",
-                                  borderRadius: "12px",
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  background: "var(--background-primary)",
                                   display: "flex",
-                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  gap: "12px",
+                                  padding: "12px 14px",
+                                  borderBottom:
+                                    "1px solid var(--background-modifier-border)",
                                 }}
                               >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    gap: "12px",
-                                    padding: "12px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 800 }}>
-                                    {key}
-                                    <span
-                                      style={{
-                                        color: "var(--text-faint)",
-                                        fontSize: "0.9em",
-                                        marginLeft: "10px",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      {managerScope === "strategy"
-                                        ? "策略"
-                                        : "交易"}
-                                    </span>
-                                  </div>
-                                  <div style={{ display: "flex", gap: "8px" }}>
-                                    <button
-                                      type="button"
-                                      disabled={managerBusy}
-                                      onClick={doDeleteKey}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
-                                    >
-                                      🗑️ 删除属性
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={close}
-                                      style={buttonSmStyle}
-                                    >
-                                      关闭
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    padding: "10px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
-                                  }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setManagerInspectorTab("vals");
-                                      setManagerInspectorFileFilter(undefined);
-                                    }}
+                                <div style={{ fontWeight: 800 }}>
+                                  {key}
+                                  <span
                                     style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "vals"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
+                                      color: "var(--text-faint)",
+                                      fontSize: "0.9em",
+                                      marginLeft: "10px",
+                                      fontWeight: 600,
                                     }}
                                   >
-                                    属性值 ({sortedVals.length})
-                                  </button>
+                                    {managerScope === "strategy"
+                                      ? "策略"
+                                      : "交易"}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", gap: "8px" }}>
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setManagerInspectorTab("files")
+                                    disabled={managerBusy}
+                                    onClick={doDeleteKey}
+                                    style={
+                                      managerBusy
+                                        ? buttonSmDisabledStyle
+                                        : buttonSmStyle
                                     }
-                                    style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "files"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
-                                    }}
                                   >
-                                    关联文件 ({allPaths.length})
+                                    🗑️ 删除属性
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={close}
+                                    style={buttonSmStyle}
+                                  >
+                                    关闭
                                   </button>
                                 </div>
+                              </div>
 
-                                <div
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  padding: "10px 14px",
+                                  borderBottom:
+                                    "1px solid var(--background-modifier-border)",
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManagerInspectorTab("vals");
+                                    setManagerInspectorFileFilter(undefined);
+                                  }}
                                   style={{
-                                    padding: "10px 14px",
-                                    overflow: "auto",
-                                    flex: "1 1 auto",
+                                    ...buttonSmStyle,
+                                    background:
+                                      managerInspectorTab === "vals"
+                                        ? "rgba(var(--mono-rgb-100), 0.08)"
+                                        : "var(--background-primary)",
                                   }}
                                 >
-                                  {managerInspectorTab === "vals" ? (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
-                                      {sortedVals.length === 0 ? (
+                                  属性值 ({sortedVals.length})
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setManagerInspectorTab("files")
+                                  }
+                                  style={{
+                                    ...buttonSmStyle,
+                                    background:
+                                      managerInspectorTab === "files"
+                                        ? "rgba(var(--mono-rgb-100), 0.08)"
+                                        : "var(--background-primary)",
+                                  }}
+                                >
+                                  关联文件 ({allPaths.length})
+                                </button>
+                              </div>
+
+                              <div
+                                style={{
+                                  padding: "10px 14px",
+                                  overflow: "auto",
+                                  flex: "1 1 auto",
+                                }}
+                              >
+                                {managerInspectorTab === "vals" ? (
+                                  <div
+                                    style={{ display: "grid", gap: "8px" }}
+                                  >
+                                    {sortedVals.length === 0 ? (
+                                      <div
+                                        style={{
+                                          padding: "40px",
+                                          textAlign: "center",
+                                          color: "var(--text-faint)",
+                                        }}
+                                      >
+                                        无值记录
+                                      </div>
+                                    ) : (
+                                      sortedVals.map(([val, paths]) => (
                                         <div
-                                          style={{
-                                            padding: "40px",
-                                            textAlign: "center",
-                                            color: "var(--text-faint)",
-                                          }}
-                                        >
-                                          无值记录
-                                        </div>
-                                      ) : (
-                                        sortedVals.map(([val, paths]) => (
-                                          <div
-                                            key={`mgr-v5-row-${val}`}
-                                            style={{
-                                              display: "flex",
-                                              justifyContent: "space-between",
-                                              alignItems: "center",
-                                              gap: "10px",
-                                              border:
-                                                "1px solid var(--background-modifier-border)",
-                                              borderRadius: "10px",
-                                              padding: "10px",
-                                              background:
-                                                "rgba(var(--mono-rgb-100), 0.03)",
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "10px",
-                                                minWidth: 0,
-                                              }}
-                                            >
-                                              <span
-                                                style={{
-                                                  border:
-                                                    "1px solid var(--background-modifier-border)",
-                                                  borderRadius: "999px",
-                                                  padding: "2px 10px",
-                                                  background:
-                                                    "var(--background-primary)",
-                                                  maxWidth: "520px",
-                                                  overflow: "hidden",
-                                                  textOverflow: "ellipsis",
-                                                  whiteSpace: "nowrap",
-                                                }}
-                                                title={val}
-                                              >
-                                                {prettyManagerVal(val) || val}
-                                              </span>
-                                              <span
-                                                style={{
-                                                  color: "var(--text-muted)",
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                }}
-                                              >
-                                                {paths.length}
-                                              </span>
-                                            </div>
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                gap: "8px",
-                                              }}
-                                            >
-                                              <button
-                                                type="button"
-                                                disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doUpdateVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
-                                                title="修改"
-                                              >
-                                                ✏️
-                                              </button>
-                                              <button
-                                                type="button"
-                                                disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doDeleteVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
-                                                title="删除"
-                                              >
-                                                🗑️
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  showFilesForVal(val, paths)
-                                                }
-                                                style={buttonSmStyle}
-                                                title="查看文件"
-                                              >
-                                                👁️
-                                              </button>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
-                                      {filterLabel ? (
-                                        <div
+                                          key={`mgr-v5-row-${val}`}
                                           style={{
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            color: V5_COLORS.accent,
-                                            fontWeight: 700,
-                                            padding: "8px 10px",
-                                            border:
-                                              "1px solid var(--background-modifier-border)",
-                                            borderRadius: "10px",
-                                            background:
-                                              "rgba(var(--mono-rgb-100), 0.03)",
-                                          }}
-                                        >
-                                          <span>🔍 筛选: {filterLabel}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setManagerInspectorFileFilter(
-                                                undefined
-                                              )
-                                            }
-                                            style={buttonSmStyle}
-                                          >
-                                            ✕ 重置
-                                          </button>
-                                        </div>
-                                      ) : null}
-
-                                      {currentPaths.slice(0, 200).map((p) => (
-                                        <button
-                                          key={`mgr-v5-file-${p}`}
-                                          type="button"
-                                          onClick={() => void openFile?.(p)}
-                                          title={p}
-                                          onMouseEnter={onTextBtnMouseEnter}
-                                          onMouseLeave={onTextBtnMouseLeave}
-                                          onFocus={onTextBtnFocus}
-                                          onBlur={onTextBtnBlur}
-                                          style={{
-                                            textAlign: "left",
+                                            gap: "10px",
                                             border:
                                               "1px solid var(--background-modifier-border)",
                                             borderRadius: "10px",
                                             padding: "10px",
                                             background:
-                                              "var(--background-primary)",
-                                            cursor: "pointer",
+                                              "rgba(var(--mono-rgb-100), 0.03)",
                                           }}
                                         >
-                                          <div style={{ fontWeight: 700 }}>
-                                            {p.split("/").pop()}
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "10px",
+                                              minWidth: 0,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                border:
+                                                  "1px solid var(--background-modifier-border)",
+                                                borderRadius: "999px",
+                                                padding: "2px 10px",
+                                                background:
+                                                  "var(--background-primary)",
+                                                maxWidth: "520px",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                              title={val}
+                                            >
+                                              {prettyManagerVal(val) || val}
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "var(--text-muted)",
+                                                fontVariantNumeric:
+                                                  "tabular-nums",
+                                              }}
+                                            >
+                                              {paths.length}
+                                            </span>
                                           </div>
                                           <div
                                             style={{
-                                              color: "var(--text-faint)",
-                                              fontSize: "0.85em",
-                                              opacity: 0.8,
+                                              display: "flex",
+                                              gap: "8px",
                                             }}
                                           >
-                                            {p}
+                                            <button
+                                              type="button"
+                                              disabled={managerBusy}
+                                              onClick={() =>
+                                                void doUpdateVal(val, paths)
+                                              }
+                                              style={
+                                                managerBusy
+                                                  ? buttonSmDisabledStyle
+                                                  : buttonSmStyle
+                                              }
+                                              title="修改"
+                                            >
+                                              ✏️
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={managerBusy}
+                                              onClick={() =>
+                                                void doDeleteVal(val, paths)
+                                              }
+                                              style={
+                                                managerBusy
+                                                  ? buttonSmDisabledStyle
+                                                  : buttonSmStyle
+                                              }
+                                              title="删除"
+                                            >
+                                              🗑️
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                showFilesForVal(val, paths)
+                                              }
+                                              style={buttonSmStyle}
+                                              title="查看文件"
+                                            >
+                                              👁️
+                                            </button>
                                           </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div
+                                    style={{ display: "grid", gap: "8px" }}
+                                  >
+                                    {filterLabel ? (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          color: V5_COLORS.accent,
+                                          fontWeight: 700,
+                                          padding: "8px 10px",
+                                          border:
+                                            "1px solid var(--background-modifier-border)",
+                                          borderRadius: "10px",
+                                          background:
+                                            "rgba(var(--mono-rgb-100), 0.03)",
+                                        }}
+                                      >
+                                        <span>🔍 筛选: {filterLabel}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setManagerInspectorFileFilter(
+                                              undefined
+                                            )
+                                          }
+                                          style={buttonSmStyle}
+                                        >
+                                          ✕ 重置
                                         </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
+                                      </div>
+                                    ) : null}
 
-                                <div
-                                  style={{
-                                    padding: "10px 14px",
-                                    borderTop:
-                                      "1px solid var(--background-modifier-border)",
-                                    display: "flex",
-                                    gap: "10px",
-                                    justifyContent: "flex-end",
-                                  }}
-                                >
-                                  {managerInspectorTab === "vals" ? (
-                                    <>
+                                    {currentPaths.slice(0, 200).map((p) => (
                                       <button
+                                        key={`mgr-v5-file-${p}`}
                                         type="button"
-                                        disabled={managerBusy}
-                                        onClick={() => void doRenameKey()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
+                                        onClick={() => void openFile?.(p)}
+                                        title={p}
+                                        onMouseEnter={onTextBtnMouseEnter}
+                                        onMouseLeave={onTextBtnMouseLeave}
+                                        onFocus={onTextBtnFocus}
+                                        onBlur={onTextBtnBlur}
+                                        style={{
+                                          textAlign: "left",
+                                          border:
+                                            "1px solid var(--background-modifier-border)",
+                                          borderRadius: "10px",
+                                          padding: "10px",
+                                          background:
+                                            "var(--background-primary)",
+                                          cursor: "pointer",
+                                        }}
                                       >
-                                        ✏️ 重命名
+                                        <div style={{ fontWeight: 700 }}>
+                                          {p.split("/").pop()}
+                                        </div>
+                                        <div
+                                          style={{
+                                            color: "var(--text-faint)",
+                                            fontSize: "0.85em",
+                                            opacity: 0.8,
+                                          }}
+                                        >
+                                          {p}
+                                        </div>
                                       </button>
-                                      <button
-                                        type="button"
-                                        disabled={managerBusy}
-                                        onClick={() => void doAppendVal()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
-                                      >
-                                        ➕ 追加新值
-                                      </button>
-                                    </>
-                                  ) : (
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div
+                                style={{
+                                  padding: "10px 14px",
+                                  borderTop:
+                                    "1px solid var(--background-modifier-border)",
+                                  display: "flex",
+                                  gap: "10px",
+                                  justifyContent: "flex-end",
+                                }}
+                              >
+                                {managerInspectorTab === "vals" ? (
+                                  <>
                                     <button
                                       type="button"
                                       disabled={managerBusy}
-                                      onClick={() => void doInjectProp()}
+                                      onClick={() => void doRenameKey()}
                                       style={
                                         managerBusy
                                           ? buttonSmDisabledStyle
                                           : buttonSmStyle
                                       }
                                     >
-                                      💉 注入属性
+                                      ✏️ 重命名
                                     </button>
-                                  )}
-                                </div>
+                                    <button
+                                      type="button"
+                                      disabled={managerBusy}
+                                      onClick={() => void doAppendVal()}
+                                      style={
+                                        managerBusy
+                                          ? buttonSmDisabledStyle
+                                          : buttonSmStyle
+                                      }
+                                    >
+                                      ➕ 追加新值
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={managerBusy}
+                                    onClick={() => void doInjectProp()}
+                                    style={
+                                      managerBusy
+                                        ? buttonSmDisabledStyle
+                                        : buttonSmStyle
+                                    }
+                                  >
+                                    💉 注入属性
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          );
-                        })()
+                          </div>
+                        );
+                      })()
                       : null}
                   </>
                 ) : (
@@ -7413,8 +7401,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isStrategy = normalized.some(
           (t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase()
@@ -7504,8 +7492,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         if (!normalized.some(isPaTag)) continue;
 
@@ -7544,8 +7532,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isCourse = normalized.some(
           (t) => t.toLowerCase() === COURSE_TAG.toLowerCase()
@@ -7587,8 +7575,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         return normalized.some(
           (t) => t.toLowerCase() === FLASH_TAG.toLowerCase()
