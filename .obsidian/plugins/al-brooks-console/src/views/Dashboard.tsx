@@ -3496,7 +3496,7 @@ short mode\n\
             ) : gallery.items.length > 0 ? (
               <div
                 style={{
-                  maxHeight: "360px",
+                  maxHeight: "520px",
                   overflowY: "auto",
                   paddingRight: "2px",
                 }}
@@ -3531,7 +3531,7 @@ short mode\n\
                         transition:
                           "background-color 180ms ease, border-color 180ms ease",
                         position: "relative",
-                        aspectRatio: "16 / 9",
+                        aspectRatio: 16 / 9,
                       }}
                     >
                     {it.url ? (
