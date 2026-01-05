@@ -1756,293 +1756,165 @@ const ConsoleComponent: React.FC<Props> = ({
 
                   {openTradeStrategy ? (
                     <div>
-                      <div style={{ marginBottom: "8px" }}>
-                        策略:{" "}
-                        <button
-                          type="button"
+                      <div style={{ marginBottom: SPACE.sm, display: "flex", alignItems: "baseline", gap: SPACE.xs }}>
+                        <Label>执行策略:</Label>
+                        <ButtonGhost
                           onClick={() => openFile(openTradeStrategy.path)}
-                          style={textButtonStyle}
-                          onMouseEnter={onTextBtnMouseEnter}
-                          onMouseLeave={onTextBtnMouseLeave}
-                          onFocus={onTextBtnFocus}
-                          onBlur={onTextBtnBlur}
+                          style={{ padding: "0 4px", height: "auto", fontSize: "0.9em" }}
                         >
                           {openTradeStrategy.canonicalName}
-                        </button>
+                        </ButtonGhost>
                       </div>
 
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(200px, 1fr))",
-                          gap: "10px",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: SPACE.md,
                         }}
                       >
+                        {/* 1. Entry */}
                         {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                          <div style={{ ...glassInsetStyle, padding: "12px" }}>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                marginBottom: "6px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                color: "var(--text-accent)",
-                              }}
-                            >
-                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                🚪
-                              </span>
-                              入场
+                          <GlassInset style={{ padding: SPACE.md }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                              <span style={{ fontSize: "1.1em" }}>🚪</span>
+                              <Label color="accent">入场条件</Label>
                             </div>
-                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                              {openTradeStrategy
-                                .entryCriteria!.slice(0, 3)
-                                .map((x, i) => (
-                                  <li key={`entry-${i}`}>{x}</li>
-                                ))}
+                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                              {openTradeStrategy.entryCriteria!.slice(0, 3).map((x, i) => (
+                                <li key={`entry-${i}`}><Body size="s">{x}</Body></li>
+                              ))}
                             </ul>
-                          </div>
+                          </GlassInset>
                         )}
-                        {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
-                          0 && (
-                            <div style={{ ...glassInsetStyle, padding: "12px" }}>
-                              <div
-                                style={{
-                                  fontWeight: 800,
-                                  marginBottom: "6px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  color: V5_COLORS.loss,
-                                }}
-                              >
-                                <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                  🛑
-                                </span>
-                                止损
-                              </div>
-                              <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                {openTradeStrategy
-                                  .stopLossRecommendation!.slice(0, 3)
-                                  .map((x, i) => (
-                                    <li key={`stop-${i}`}>{x}</li>
-                                  ))}
-                              </ul>
+
+                        {/* 2. Stop Loss */}
+                        {(openTradeStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                          <GlassInset style={{ padding: SPACE.md }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                              <span style={{ fontSize: "1.1em" }}>🛑</span>
+                              <Label style={{ color: COLORS.loss }}>止损建议</Label>
                             </div>
-                          )}
+                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                              {openTradeStrategy.stopLossRecommendation!.slice(0, 3).map((x, i) => (
+                                <li key={`stop-${i}`}><Body size="s">{x}</Body></li>
+                              ))}
+                            </ul>
+                          </GlassInset>
+                        )}
+
+                        {/* 3. Risks */}
                         {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                          <div style={{ ...glassInsetStyle, padding: "12px" }}>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                marginBottom: "6px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                color: V5_COLORS.back,
-                              }}
-                            >
-                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                ⚠️
-                              </span>
-                              风险
+                          <GlassInset style={{ padding: SPACE.md }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                              <span style={{ fontSize: "1.1em" }}>⚠️</span>
+                              <Label style={{ color: COLORS.backtest }}>风险提示</Label>
                             </div>
-                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                              {openTradeStrategy
-                                .riskAlerts!.slice(0, 3)
-                                .map((x, i) => (
-                                  <li key={`risk-${i}`}>{x}</li>
-                                ))}
+                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                              {openTradeStrategy.riskAlerts!.slice(0, 3).map((x, i) => (
+                                <li key={`risk-${i}`}><Body size="s">{x}</Body></li>
+                              ))}
                             </ul>
-                          </div>
+                          </GlassInset>
                         )}
-                        {(openTradeStrategy.takeProfitRecommendation?.length ??
-                          0) > 0 && (
-                            <div style={{ ...glassInsetStyle, padding: "12px" }}>
-                              <div
-                                style={{
-                                  fontWeight: 800,
-                                  marginBottom: "6px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px",
-                                  color: "var(--text-accent)",
-                                }}
-                              >
-                                <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                  🎯
-                                </span>
-                                目标
-                              </div>
-                              <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                {openTradeStrategy
-                                  .takeProfitRecommendation!.slice(0, 3)
-                                  .map((x, i) => (
-                                    <li key={`tp-${i}`}>{x}</li>
-                                  ))}
-                              </ul>
+
+                        {/* 4. Targets */}
+                        {(openTradeStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                          <GlassInset style={{ padding: SPACE.md }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, marginBottom: SPACE.sm }}>
+                              <span style={{ fontSize: "1.1em" }}>🎯</span>
+                              <Label style={{ color: COLORS.accent }}>目标位</Label>
                             </div>
-                          )}
+                            <ul style={{ margin: 0, paddingLeft: SPACE.lg, color: COLORS.text.normal }}>
+                              {openTradeStrategy.takeProfitRecommendation!.slice(0, 3).map((x, i) => (
+                                <li key={`tp-${i}`}><Body size="s">{x}</Body></li>
+                              ))}
+                            </ul>
+                          </GlassInset>
+                        )}
                       </div>
 
+                      {/* Signal Validation Logic */}
                       {(() => {
-                        const curSignals = (openTrade.signalBarQuality ?? [])
-                          .map((s) => String(s).trim())
-                          .filter(Boolean);
-                        const reqSignals = (
-                          openTradeStrategy.signalBarQuality ?? []
-                        )
-                          .map((s) => String(s).trim())
-                          .filter(Boolean);
+                        const curSignals = (openTrade.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
+                        const reqSignals = (openTradeStrategy.signalBarQuality ?? []).map((s) => String(s).trim()).filter(Boolean);
 
-                        const hasSignalInfo =
-                          curSignals.length > 0 || reqSignals.length > 0;
+                        const hasSignalInfo = curSignals.length > 0 || reqSignals.length > 0;
                         if (!hasSignalInfo) return null;
 
                         const norm = (s: string) => s.toLowerCase();
-                        const signalMatch =
-                          curSignals.length > 0 && reqSignals.length > 0
-                            ? reqSignals.some((r) =>
-                              curSignals.some((c) => {
-                                const rn = norm(r);
-                                const cn = norm(c);
-                                return rn.includes(cn) || cn.includes(rn);
-                              })
-                            )
-                            : null;
+                        const signalMatch = curSignals.length > 0 && reqSignals.length > 0
+                          ? reqSignals.some((r) => curSignals.some((c) => {
+                            const rn = norm(r);
+                            const cn = norm(c);
+                            return rn.includes(cn) || cn.includes(rn);
+                          }))
+                          : null;
 
                         return (
-                          <div
-                            style={{
-                              ...glassInsetStyle,
-                              marginTop: "10px",
-                            }}
-                          >
-                            <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                              🔍 信号K验证
+                          <GlassInset style={{ marginTop: SPACE.md, padding: SPACE.md }}>
+                            <Label style={{ marginBottom: SPACE.sm }}>🔍 信号K验证</Label>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SPACE.md }}>
+                              <div>
+                                <Label size="s" muted>当前信号</Label>
+                                <div style={{ color: curSignals.length > 0 ? COLORS.accent : COLORS.text.muted }}>
+                                  {curSignals.length > 0 ? curSignals.join(" / ") : "—"}
+                                </div>
+                              </div>
+                              <div>
+                                <Label size="s" muted>策略建议</Label>
+                                <div style={{ color: reqSignals.length > 0 ? COLORS.text.normal : COLORS.text.muted }}>
+                                  {reqSignals.length > 0 ? reqSignals.join(" / ") : "未定义"}
+                                </div>
+                              </div>
                             </div>
 
-                            {curSignals.length > 0 ? (
-                              <div
-                                style={{
-                                  color: "var(--text-muted)",
-                                  fontSize: "0.9em",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                当前：
-                                <span style={{ color: "var(--text-accent)" }}>
-                                  {curSignals.join(" / ")}
-                                </span>
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  color: "var(--text-muted)",
-                                  fontSize: "0.9em",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                当前：—
+                            {signalMatch !== null && (
+                              <div style={{ marginTop: SPACE.sm, paddingTop: SPACE.sm, borderTop: `1px solid ${COLORS.border}` }}>
+                                <StatusBadge
+                                  label={signalMatch ? "信号匹配" : "信号不符"}
+                                  tone={signalMatch ? "success" : "warning"}
+                                />
                               </div>
                             )}
-
-                            {reqSignals.length > 0 ? (
-                              <div
-                                style={{
-                                  color: "var(--text-muted)",
-                                  fontSize: "0.9em",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                建议：{reqSignals.join(" / ")}
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  color: "var(--text-muted)",
-                                  fontSize: "0.9em",
-                                  marginBottom: "6px",
-                                }}
-                              >
-                                建议：未在策略卡中定义
-                              </div>
-                            )}
-
-                            {signalMatch === null ? null : (
-                              <div
-                                style={{
-                                  marginTop: "6px",
-                                  fontSize: "0.9em",
-                                  color: signalMatch ? V5_COLORS.win : V5_COLORS.loss,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                匹配: {signalMatch ? "✅" : "⚠️"}
-                              </div>
-                            )}
-                          </div>
+                          </GlassInset>
                         );
                       })()}
                     </div>
                   ) : (
-                    /* Fallback: 早期建议（基于 Setup/Cycle） */
-                    <div style={{ ...glassInsetStyle, padding: "12px" }}>
-                      <div
-                        style={{
-                          fontSize: "0.85em",
-                          color: "var(--text-muted)",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        💡 基于当前市场背景 ({openTrade.marketCycle || "未知"}
-                        ) 的策略建议:
+                    /* Fallback */
+                    <GlassInset style={{ padding: SPACE.md }}>
+                      <div style={{ marginBottom: SPACE.sm, color: COLORS.text.muted }}>
+                        💡 基于当前市场背景 ({openTrade.marketCycle || "未知"}) 的策略建议:
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <div style={{ display: "flex", gap: SPACE.sm, flexWrap: "wrap" }}>
                         {strategyPicks.length > 0 ? (
                           strategyPicks.map((s) => (
-                            <button
+                            <ButtonGhost
                               key={`fallback-${s.path}`}
-                              type="button"
                               onClick={() => openFile(s.path)}
-                              style={{
-                                ...textButtonStyle,
-                                background: "rgba(var(--interactive-accent-rgb), 0.1)",
-                                color: "var(--interactive-accent)",
-                                border: "1px solid rgba(var(--interactive-accent-rgb), 0.2)",
-                                borderRadius: "4px",
-                                padding: "4px 8px",
-                              }}
+                              size="sm"
                             >
                               {s.canonicalName}
-                            </button>
+                            </ButtonGhost>
                           ))
                         ) : (
-                          <span style={{ color: "var(--text-faint)", fontSize: "0.8em" }}>
-                            无匹配策略
-                          </span>
+                          <span style={{ color: COLORS.text.muted }}>无匹配策略</span>
                         )}
                       </div>
-                    </div>
+                    </GlassInset>
                   )}
 
                 </div>
               )}
 
-              <div style={{ marginTop: "16px" }}>
-                <h3 style={{ marginBottom: "12px" }}>今日交易</h3>
+              <div style={{ marginTop: SPACE.lg }}>
+                <HeadingM style={{ marginBottom: SPACE.md }}>今日交易</HeadingM>
                 {todayTrades.length > 0 ? (
                   <TradeList trades={todayTrades} onOpenFile={openFile} />
                 ) : (
-                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                  <div style={{ color: COLORS.text.muted, fontSize: "0.9em", paddingLeft: SPACE.xs }}>
                     今日暂无交易记录
                   </div>
                 )}
