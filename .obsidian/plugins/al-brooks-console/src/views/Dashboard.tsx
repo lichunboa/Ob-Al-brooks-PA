@@ -217,6 +217,7 @@ interface Props {
   runCommand?: (commandId: string) => void;
   integrations?: PluginIntegrationRegistry;
   version: string;
+  onUpdateMarketCycle?: (cycle: string) => Promise<void>;
 }
 
 class ConsoleErrorBoundary extends React.Component<
@@ -316,6 +317,7 @@ const ConsoleComponent: React.FC<Props> = ({
   runCommand,
   integrations,
   version,
+  onUpdateMarketCycle,
 }) => {
   const [trades, setTrades] = React.useState(index.getAll());
   const [strategies, setStrategies] = React.useState<any[]>(
@@ -1723,8 +1725,32 @@ const ConsoleComponent: React.FC<Props> = ({
               </HeadingM>
 
               <div style={{ marginBottom: SPACE.md }}>
-                <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>当前市场周期：</span>
-                <StatusBadge label={todayMarketCycle ?? "—"} tone="neutral" />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>当前市场周期：</span>
+                  {onUpdateMarketCycle ? (
+                    <select
+                      value={todayMarketCycle ?? ""}
+                      onChange={(e) => onUpdateMarketCycle(e.target.value)}
+                      style={{
+                        ...selectStyle,
+                        background: "rgba(var(--mono-rgb-100), 0.05)",
+                        borderColor: "rgba(var(--mono-rgb-100), 0.1)",
+                        fontSize: "0.9em",
+                        padding: "2px 8px",
+                      }}
+                    >
+                      <option value="">— 选择周期 —</option>
+                      <option value="Strong Bull">Strong Bull (强多)</option>
+                      <option value="Weak Bull">Weak Bull (弱多)</option>
+                      <option value="Trading Range">Trading Range (震荡)</option>
+                      <option value="Weak Bear">Weak Bear (弱空)</option>
+                      <option value="Strong Bear">Strong Bear (强空)</option>
+                      <option value="Breakout Mode">Breakout Mode (突破)</option>
+                    </select>
+                  ) : (
+                    <StatusBadge label={todayMarketCycle ?? "—"} tone="neutral" />
+                  )}
+                </div>
               </div>
 
               <div style={{
@@ -6574,6 +6600,35 @@ export class ConsoleView extends ItemView {
       });
     };
 
+
+
+    const onUpdateMarketCycle = async (cycle: string) => {
+      // 1. Try to find today's note
+      // Logic: Search for files in "Daily" (or root) that start with YYYY-MM-DD
+      const dateIso = toLocalDateIso(new Date());
+      const allFiles = this.app.vault.getMarkdownFiles();
+      // Heuristic: file name starts with dateIso or contains it
+      const todayFile = allFiles.find(
+        (f) =>
+          f.name.startsWith(dateIso) &&
+          (f.path.includes("Daily") || f.path.includes("Journal") || f.parent?.name === "Daily")
+      );
+
+      if (!todayFile) {
+        new Notice(`未找到今日 (${dateIso}) 的日记文件，无法更新周期。`);
+        return;
+      }
+
+      try {
+        await this.app.fileManager.processFrontMatter(todayFile, (fm) => {
+          fm["market_cycle"] = cycle;
+        });
+        new Notice(`已更新市场周期: ${cycle}`);
+      } catch (e) {
+        new Notice("更新市场周期失败: " + String(e));
+      }
+    };
+
     this.contentEl.empty();
     this.mountEl = this.contentEl.createDiv();
     this.root = createRoot(this.mountEl);
@@ -6605,6 +6660,7 @@ export class ConsoleView extends ItemView {
             (this.app as any).commands?.executeCommandById?.(commandId)
           }
           version={this.version}
+          onUpdateMarketCycle={onUpdateMarketCycle}
         />
       </ConsoleErrorBoundary>
     );
