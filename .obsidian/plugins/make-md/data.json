@@ -55,10 +55,7 @@
     "//Templates/Templates/assets/Templates/assets/理论模版 (Concept Template)",
     "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
     "//Categories 分类/Categories 分类/卡片",
-    "//Daily/Daily/Trades",
-    "//Daily/Daily/SPX",
-    "//策略仓库 (Strategy Repository)",
-    "//Daily"
+    "//Daily/Daily/Trades"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
