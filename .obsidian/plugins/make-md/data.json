@@ -57,7 +57,8 @@
     "//Categories 分类/Categories 分类/卡片",
     "//Daily/Daily/Trades",
     "//Excalidraw",
-    "//Daily"
+    "//Daily",
+    "//Notion"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",

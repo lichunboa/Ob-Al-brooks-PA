@@ -30,8 +30,10 @@ export const GlobalStyles: React.FC = () => (
   border-bottom: 1px solid var(--background-modifier-border);
   padding-bottom: 10px;
   margin: 0 0 20px;
-  font-size: 1.15em;
+  /* Override h2 default sizing to keep the console typography tight */
+  font-size: var(--font-ui-medium, 13px);
   line-height: 1.25;
+  font-weight: 700;
 }
 
 .pa-dashboard-title-meta {
@@ -49,6 +51,12 @@ export const GlobalStyles: React.FC = () => (
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  order: 20;
+  margin-top: 6px;
+}
+
+.pa-dashboard-title-actions button {
+  margin-left: 0 !important;
 }
 
 .pa-tabbar {

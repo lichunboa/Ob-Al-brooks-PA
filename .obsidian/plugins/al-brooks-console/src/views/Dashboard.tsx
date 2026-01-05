@@ -1032,6 +1032,11 @@ const ConsoleComponent: React.FC<Props> = ({
           capabilityId,
           e
         );
+
+        if (capabilityId === "metadata-menu:open") {
+          const msg = e instanceof Error ? e.message : String(e);
+          new Notice(`元数据：未能打开（${msg}）`);
+        }
       }
     },
     [integrations]

@@ -78,6 +78,20 @@ export class MetadataMenuAdapter implements PluginAdapter {
     }
     const cmd = this.getOpenCommandId();
     if (!cmd) throw new Error("Metadata Menu command not available");
+
+    // Many commands rely on an active markdown view. The console view is not a markdown leaf,
+    // so focus an existing markdown leaf first to ensure the command has proper context.
+    const workspace = this.app.workspace;
+    const activeLeaf = workspace.activeLeaf;
+    const activeType = activeLeaf?.view?.getViewType?.();
+    if (activeType !== "markdown") {
+      const markdownLeaf = workspace.getLeavesOfType("markdown")[0];
+      if (!markdownLeaf) {
+        throw new Error("No markdown note is open; cannot open Metadata Menu");
+      }
+      workspace.setActiveLeaf(markdownLeaf, { focus: true });
+    }
+
     return runCommand(this.app, cmd);
   }
 }
