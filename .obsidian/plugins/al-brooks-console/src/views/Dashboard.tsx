@@ -3050,8 +3050,6 @@ short mode\n\
                     )}
                   </div>
                 </div>
-
-
               </div>
 
               <div

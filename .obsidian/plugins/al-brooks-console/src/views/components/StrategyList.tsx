@@ -330,7 +330,8 @@ export const StrategyList: React.FC<Props> = ({
                           <span>
                             {s.patternsObserved.length > 0 ? (
                               <>
-                                形态 <strong>{s.patternsObserved.length}</strong>
+                                形态{" "}
+                                <strong>{s.patternsObserved.length}</strong>
                               </>
                             ) : null}
                           </span>

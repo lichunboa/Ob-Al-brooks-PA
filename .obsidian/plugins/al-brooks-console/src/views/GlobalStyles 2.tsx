@@ -1,7 +1,7 @@
 import * as React from "react";
 
 export const GlobalStyles: React.FC = () => (
-    <style>{`
+  <style>{`
 /* Dashboard Container */
 .pa-dashboard {
   padding: 20px;
