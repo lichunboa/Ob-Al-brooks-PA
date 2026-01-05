@@ -37,6 +37,7 @@ export const GlobalStyles: React.FC = () => (
 }
 
 .pa-dashboard-title-actions {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
