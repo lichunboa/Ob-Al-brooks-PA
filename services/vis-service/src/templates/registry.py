@@ -677,12 +677,12 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
 
     rng = np.random.default_rng(42)
 
-    # 市值归一化 -> 圆圈大小
+    # 市值归一化 -> 圆圈大小 (平方根归一化，保留差异)
     if "market_cap" in df.columns:
         mc = df["market_cap"].fillna(df["market_cap"].median())
-        mc_log = np.log10(mc.clip(lower=1))
-        mc_norm = (mc_log - mc_log.min()) / (mc_log.max() - mc_log.min() + 1e-9)
-        df["size_factor"] = 0.4 + mc_norm * 0.8  # 0.4 ~ 1.2
+        mc_sqrt = np.sqrt(mc.clip(lower=1))
+        mc_norm = (mc_sqrt - mc_sqrt.min()) / (mc_sqrt.max() - mc_sqrt.min() + 1e-9)
+        df["size_factor"] = 0.3 + mc_norm * 1.2  # 0.3 ~ 1.5
     else:
         df["size_factor"] = 1.0
 
