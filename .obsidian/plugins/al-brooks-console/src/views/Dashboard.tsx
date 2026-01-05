@@ -3533,10 +3533,13 @@ short mode\n\
                           src={it.url}
                           alt=""
                           style={{
+                            position: "absolute",
+                            inset: 0,
                             width: "100%",
                             height: "100%",
                             objectFit: "cover",
                             display: "block",
+                            zIndex: 1,
                           }}
                         />
 
@@ -3545,6 +3548,7 @@ short mode\n\
                             position: "absolute",
                             top: SPACE.xs,
                             right: SPACE.xs,
+                            zIndex: 2,
                             background:
                               it.accountType === "Live"
                                 ? V5_COLORS.live
@@ -3573,6 +3577,7 @@ short mode\n\
                             left: 0,
                             right: 0,
                             bottom: 0,
+                            zIndex: 2,
                             padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
                             display: "flex",
                             justifyContent: "space-between",
@@ -3616,7 +3621,8 @@ short mode\n\
                     ) : (
                       <div
                         style={{
-                          height: "100%",
+                          position: "absolute",
+                          inset: 0,
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "flex-start",
@@ -3624,6 +3630,7 @@ short mode\n\
                           padding: SPACE.md,
                           color: "var(--text-muted)",
                           fontSize: "0.9em",
+                          zIndex: 1,
                         }}
                       >
                         <div style={{ fontWeight: 800, color: "var(--text-faint)" }}>

@@ -56,7 +56,8 @@
     "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
     "//Categories 分类/Categories 分类/卡片",
     "//Daily/Daily/Trades",
-    "//Daily/Daily/SPX"
+    "//Daily/Daily/SPX",
+    "//Daily"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
