@@ -273,7 +273,8 @@ export const StrategyList: React.FC<Props> = ({
                           <span style={{ opacity: 0.7 }}> ({p.total})</span>
                           {lastDate ? (
                             <span style={{ opacity: 0.75 }}>
-                              {" "}· 最近 {lastDate}
+                              {" "}
+                              · 最近 {lastDate}
                             </span>
                           ) : null}
                         </div>

@@ -190,7 +190,10 @@ export class ObsidianStrategyIndex implements StrategyIndex {
       try {
         fn();
       } catch (e) {
-        console.warn("[al-brooks-console] StrategyIndex onChanged handler failed", e);
+        console.warn(
+          "[al-brooks-console] StrategyIndex onChanged handler failed",
+          e
+        );
       }
     }
   }

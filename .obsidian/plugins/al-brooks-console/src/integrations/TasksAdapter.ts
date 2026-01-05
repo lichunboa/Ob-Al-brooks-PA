@@ -46,9 +46,7 @@ export class TasksAdapter implements PluginAdapter {
   public getCapabilities(): IntegrationCapabilityInfo[] {
     const cmd = this.getOpenCommandId();
     if (!cmd) return [];
-    return [
-      { id: "tasks:open", label: "Open Tasks", commandId: cmd },
-    ];
+    return [{ id: "tasks:open", label: "Open Tasks", commandId: cmd }];
   }
 
   public async run(capabilityId: IntegrationCapability): Promise<void> {
