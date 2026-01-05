@@ -3946,7 +3946,7 @@ short mode\n\
                         border: "1px solid var(--background-modifier-border)",
                         borderRadius: "10px",
                         padding: "10px",
-                        background: "rgba(var(--mono-rgb-100), 0.02)",
+                        ...glassInsetStyle,
                         marginBottom: "10px",
                       }}
                     >
@@ -5172,7 +5172,8 @@ short mode\n\
                               "1px solid var(--background-modifier-border)",
                             color: "var(--text-faint)",
                             fontSize: "0.85em",
-                            background: "var(--background-primary)",
+                            borderBottom: "1px solid var(--background-modifier-border)",
+                            background: "transparent",
                           }}
                         >
                           <div>文件</div>
