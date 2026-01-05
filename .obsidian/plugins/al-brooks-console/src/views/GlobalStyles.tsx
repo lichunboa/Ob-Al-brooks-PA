@@ -78,24 +78,26 @@ export const GlobalStyles: React.FC = () => (
 /* Strategy List & Items */
 .pa-strategy-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
-}
-
-@media (max-width: 640px) {
-  .pa-strategy-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .pa-strategy-item {
   padding: 10px 12px;
-  background: rgba(var(--mono-rgb-100), 0.085);
-  border-color: rgba(var(--mono-rgb-100), 0.12);
+  background: rgba(var(--mono-rgb-100), 0.11);
+  border-color: rgba(var(--mono-rgb-100), 0.18);
+  box-shadow: 0 0 0 1px rgba(var(--mono-rgb-100), 0.06) inset;
+  border-radius: 10px;
+  line-height: 1.2;
 }
 
 .pa-strategy-item:hover {
   transform: none;
+}
+
+.pa-strategy-title {
+  font-size: 0.95em;
+  font-weight: 700;
 }
 
 /* Tags */
