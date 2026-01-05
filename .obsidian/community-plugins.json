@@ -5,7 +5,6 @@
   "templater-obsidian",
   "pdf-plus",
   "obsidian-excalidraw-plugin",
-  "obsidian-markmind",
   "journals",
   "obsidian-enhancing-mindmap",
   "dataview",
@@ -25,7 +24,7 @@
   "obsidian-custom-attachment-location",
   "omnisearch",
   "datacore",
-  "al-brooks-console",
   "make-md",
-  "url-into-selection"
+  "url-into-selection",
+  "al-brooks-console"
 ]
