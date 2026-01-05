@@ -3499,13 +3499,13 @@ short mode\n\
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "1fr",
                   gap: SPACE.md,
                 }}
               >
                 {gallery.items.map((it) => (
                   <button
-                    key={`gal-${it.coverPath}`}
+                    key={`gal-${it.tradePath}`}
                     type="button"
                     onClick={() => openFile(it.tradePath)}
                     title={`${it.tradeName} • ${it.coverPath}`}
@@ -3618,13 +3618,66 @@ short mode\n\
                         style={{
                           height: "100%",
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "var(--text-faint)",
-                          fontSize: "0.85em",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          padding: SPACE.md,
+                          color: "var(--text-muted)",
+                          fontSize: "0.9em",
                         }}
                       >
-                        —
+                        <div style={{ fontWeight: 800, color: "var(--text-faint)" }}>
+                          无封面
+                        </div>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            width: "100%",
+                          }}
+                        >
+                          {it.tradeName}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            width: "100%",
+                            gap: SPACE.sm,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "0.8em",
+                              color: "var(--text-faint)",
+                              border: "1px solid var(--background-modifier-border)",
+                              borderRadius: "999px",
+                              padding: "2px 8px",
+                              background: "var(--background-primary)",
+                            }}
+                          >
+                            {it.accountType === "Live"
+                              ? "实盘"
+                              : it.accountType === "Backtest"
+                              ? "回测"
+                              : "模拟"}
+                          </div>
+                          <div
+                            style={{
+                              color: it.pnl >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                              fontWeight: 900,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {(() => {
+                              const s = it.pnl.toFixed(1).replace(/\.0$/, "");
+                              return `${it.pnl > 0 ? "+" : ""}${s}R`;
+                            })()}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </button>
