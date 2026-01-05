@@ -85,7 +85,6 @@ import { V5_COLORS, withHexAlpha } from "../ui/tokens";
 import {
   activeTabButtonStyle,
   buttonSmDisabledStyle,
-          <span className="pa-dashboard-title-actions">
   buttonStyle,
   cardStyle,
   cardSubtleTightStyle,
@@ -95,9 +94,6 @@ import {
   selectStyle,
   tabButtonStyle,
   textButtonNoWrapStyle,
-                can("srs:review-flashcards")
-                  ? { ...buttonStyle, marginLeft: 0 }
-                  : { ...disabledButtonStyle, marginLeft: 0 }
   textButtonStrongStyle,
   textButtonStyle,
 } from "../ui/styles/dashboardPrimitives";
@@ -112,8 +108,9 @@ function toLocalDateIso(d: Date): string {
 function getLastLocalDateIsos(days: number): string[] {
   const out: string[] = [];
   const now = new Date();
-                  ? { ...buttonStyle, marginLeft: 0 }
-                  : { ...disabledButtonStyle, marginLeft: 0 }
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
     out.push(toLocalDateIso(d));
   }
   return out;
@@ -126,13 +123,9 @@ function getDayOfMonth(dateIso: string): string {
 }
 
 function getYearMonth(dateIso: string | undefined): string | undefined {
-              style={
-                can("tasks:open")
-                  ? { ...buttonStyle, marginLeft: 0 }
-                  : { ...disabledButtonStyle, marginLeft: 0 }
-              }
+  if (!dateIso) return undefined;
   const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-              任务
+  if (!m) return undefined;
   return `${m[1]}-${m[2]}`;
 }
 
