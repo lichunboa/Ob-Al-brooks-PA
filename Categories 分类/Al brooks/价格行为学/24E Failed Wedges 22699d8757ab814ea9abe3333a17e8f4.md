@@ -2,9 +2,9 @@
 
 - Failed Wedge: look for MM
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24E%20Failed%20Wedges/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24E%20Failed%20Wedges/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24E%20Failed%20Wedges/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24E%20Failed%20Wedges/image%201.png)
     
 - Speical Wedge: Small BO of Small BO
     
@@ -22,6 +22,6 @@
     
 - Wedge被顺反trend BO的机率都是50%，而channel被顺向BO机率是25%
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24E%20Failed%20Wedges/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24E%20Failed%20Wedges/image%203.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24E%20Failed%20Wedges/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24E%20Failed%20Wedges/image%204.png)

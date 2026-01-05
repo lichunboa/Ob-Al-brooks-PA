@@ -33,4 +33,4 @@
     
 - Other People’s Money (OPM) is never true
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/36A%20Management%20is%20after%20entering%20trade%20Other%20Peopl/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/36A%20Management%20is%20after%20entering%20trade%20Other%20Peopl/image%203.png)

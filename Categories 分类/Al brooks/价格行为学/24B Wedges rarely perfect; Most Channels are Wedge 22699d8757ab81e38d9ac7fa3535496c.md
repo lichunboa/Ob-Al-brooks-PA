@@ -34,20 +34,20 @@
     
     ---
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%204.png)
     
 - Most Channels are Wedges
     - need at least 3 strong push compared to bars around
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%206.png)
     
 - Wedge Variations
     - failed DB/DT as wedge
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%207.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%208.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24B%20Wedges%20rarely%20perfect;%20Most%20Channels%20are%20Wedge/image%209.png)

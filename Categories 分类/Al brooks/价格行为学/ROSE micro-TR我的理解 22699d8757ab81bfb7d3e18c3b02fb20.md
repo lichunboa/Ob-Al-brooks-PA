@@ -1,28 +1,28 @@
 # ROSE micro-TR我的理解
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%201.png)
-
----
-
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%202.png)
-
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%203.png)
-
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%204.png)
-
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%205.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%201.png)
 
 ---
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%206.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%202.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%207.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%203.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%208.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%204.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/ROSE%20micro-TR我的理解/image%209.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%205.png)
+
+---
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%206.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%207.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%208.png)
+
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20micro-TR我的理解/image%209.png)
 
 ---
 

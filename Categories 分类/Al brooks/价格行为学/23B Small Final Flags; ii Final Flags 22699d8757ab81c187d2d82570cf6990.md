@@ -8,13 +8,13 @@
 - Small Final Flags
     - FF can be small
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image%201.png)
         
     - FF can last many bars
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/23B%20Small%20Final%20Flags;%20ii%20Final%20Flags/image%202.png)
         
 - ii Final Flags
     

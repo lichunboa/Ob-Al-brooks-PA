@@ -3,7 +3,7 @@
 - Who scale in, why scale in?
     - Scale in winning position
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image.png)
         
     - Scale in losing position
         
@@ -22,19 +22,19 @@
         
     - Scale in : plan in plan
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%203.png)
         
 - Scaling in into a winning trade
     - bull case
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%204.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%205.png)
         
     - bear case
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%206.png)
         
 - Scaling in into a losing trade
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/35A%20Who%20scale%20in,%20why%20scale%20in%20Scaling%20in%20into%20a%20w/image%207.png)

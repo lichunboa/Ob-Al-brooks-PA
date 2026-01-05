@@ -25,14 +25,14 @@
         - 观察市场如何对待loweset close of the trend，这里多次蜻蜓点水测试这个close，但是没有价格继续下降，于是失望的bear怀疑能否继续下降，开始买回，bull也在买，几次down attempt失败后，成就了BULL BO。
         - 如果sell the close后续是tail 或者bull bar，那么有可能会迎来PB。那么sell the close的trader会选择scale in来避免损失
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%202.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%203.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%204.png)
         
 - Buy the close bull trend
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/40B%20H%20and%20L%20closes%20at%20end%20of%20trend;%20Sell%20the%20Close/image%206.png)

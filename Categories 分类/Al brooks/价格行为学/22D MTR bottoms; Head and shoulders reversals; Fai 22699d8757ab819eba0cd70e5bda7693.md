@@ -28,25 +28,25 @@
 - Head and shoulders reversals
     - HSB其实就是LH/HL MTR
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%202.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%203.png)
         
     - HSB经常有**nested** HSB
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%204.png)
         
     - HSB一般有**nested** DT/DB
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%205.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%206.png)
         
 - 潜在top/bottom后出现了TTR，关注TTR内部的DB/DT信号！
     - 很好理解，因为HL/LH这种都是最后一推力竭
     - 在TTR中关注DB/DT
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22D%20MTR%20bottoms;%20Head%20and%20shoulders%20reversals;%20Fai/image%207.png)
     
     - DT LH/HH MTR
         

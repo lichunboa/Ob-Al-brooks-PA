@@ -54,16 +54,16 @@
         
     - MTR takes time to build
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%206.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%207.png)
         
     - Bear Trend → **TR** → Bull Trend
         
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%208.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21C%20Beginnners%20love%20reversals;%20Buying%20and%20Selling%20/image%209.png)
         
     - 通过时间x和价格y来展示pressure
         

@@ -32,19 +32,19 @@
             
     - parabolic wedge is a channel
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%203.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%204.png)
         
     - parabolic wedge can be **spike and channel**
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%205.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%206.png)
         
     - 早盘的parabolic wedge (spike + channel) can be climax
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/24D%20What%20is%20parabolic%20Wedge%20Strong%20trend%20have%20bad%20/image%207.png)
         
 - Strong trend have bad wedges
     
