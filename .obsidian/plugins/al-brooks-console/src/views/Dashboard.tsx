@@ -2462,10 +2462,10 @@ short mode\n\
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+              display: "flex",
+              flexDirection: "column",
               gap: SPACE.md,
-              alignItems: "start",
+              alignItems: "stretch",
             }}
           >
 
@@ -2493,187 +2493,113 @@ short mode\n\
               </span>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: SPACE.md,
-                flexWrap: "wrap",
-                marginBottom: SPACE.md,
-              }}
-            >
-              <div
-                style={{
-                  ...cardSubtleTightStyle,
-                  flex: "1.5 1 360px",
-                  minWidth: "320px",
-                }}
-              >
+            <div style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}>
+              {(
+                [
+                  {
+                    key: "Live",
+                    label: "🟢 实盘账户",
+                    badge: "Live",
+                    accent: V5_COLORS.live,
+                    stats: summary.Live,
+                  },
+                  {
+                    key: "Demo",
+                    label: "🔵 模拟盘",
+                    badge: "Demo",
+                    accent: V5_COLORS.demo,
+                    stats: summary.Demo,
+                  },
+                  {
+                    key: "Backtest",
+                    label: "🟠 复盘回测",
+                    badge: "Backtest",
+                    accent: V5_COLORS.back,
+                    stats: summary.Backtest,
+                  },
+                ] as const
+              ).map((card) => (
                 <div
+                  key={card.key}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: "10px",
+                    ...cardSubtleTightStyle,
+                    flex: "1 1 260px",
+                    minWidth: "240px",
                   }}
                 >
                   <div
                     style={{
-                      fontWeight: 900,
-                      fontSize: "1.1em",
-                      color: V5_COLORS.live,
-                    }}
-                  >
-                    🟢 实盘账户
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.8em",
-                      color: "var(--text-muted)",
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "999px",
-                      padding: "2px 8px",
-                      background: "var(--background-primary)",
-                    }}
-                  >
-                    Live
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "6px",
-                    marginTop: "6px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "2.2em",
-                      fontWeight: 900,
-                      lineHeight: 1,
-                      color:
-                        summary.Live.netProfit >= 0
-                          ? V5_COLORS.win
-                          : V5_COLORS.loss,
-                    }}
-                  >
-                    {summary.Live.netProfit > 0 ? "+" : ""}
-                    {summary.Live.netProfit.toFixed(1)}
-                  </div>
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.95em" }}
-                  >
-                    R
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "14px",
-                    marginTop: "10px",
-                    color: "var(--text-muted)",
-                    fontSize: "0.9em",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>📦 {summary.Live.countTotal} 笔交易</div>
-                  <div>🎯 {summary.Live.winRatePct}% 胜率</div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  flex: "1 1 260px",
-                  minWidth: "260px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}
-              >
-                {(
-                  [
-                    {
-                      title: "模拟盘",
-                      icon: "🔵",
-                      stats: summary.Demo,
-                    },
-                    {
-                      title: "复盘回测",
-                      icon: "🟠",
-                      stats: summary.Backtest,
-                    },
-                  ] as const
-                ).map((card) => (
-                  <div
-                    key={card.title}
-                    style={{
-                      ...cardSubtleTightStyle,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: "10px",
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                        gap: "10px",
+                        fontWeight: 900,
+                        fontSize: "1.05em",
+                        color: card.accent,
                       }}
                     >
-                      <div
-                        style={{ fontWeight: 800, color: "var(--text-muted)" }}
-                      >
-                        {card.icon} {card.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.8em",
-                          color: "var(--text-faint)",
-                        }}
-                      >
-                        {card.stats.countTotal} 笔
-                      </div>
+                      {card.label}
                     </div>
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "6px",
-                        marginTop: "6px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "1.6em",
-                          fontWeight: 900,
-                          color:
-                            card.stats.netProfit >= 0
-                              ? V5_COLORS.win
-                              : V5_COLORS.loss,
-                        }}
-                      >
-                        {card.stats.netProfit > 0 ? "+" : ""}
-                        {card.stats.netProfit.toFixed(1)}
-                      </div>
-                      <div
-                        style={{
-                          color: "var(--text-faint)",
-                          fontSize: "0.95em",
-                        }}
-                      >
-                        R
-                      </div>
-                    </div>
-                    <div
-                      style={{
+                        fontSize: "0.8em",
                         color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                        marginTop: "4px",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "999px",
+                        padding: "2px 8px",
+                        background: "var(--background-primary)",
                       }}
                     >
-                      胜率：{card.stats.winRatePct}%
+                      {card.badge}
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "6px",
+                      marginTop: "6px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "2.0em",
+                        fontWeight: 900,
+                        lineHeight: 1,
+                        color:
+                          card.stats.netProfit >= 0
+                            ? V5_COLORS.win
+                            : V5_COLORS.loss,
+                      }}
+                    >
+                      {card.stats.netProfit > 0 ? "+" : ""}
+                      {card.stats.netProfit.toFixed(1)}
+                    </div>
+                    <div style={{ color: "var(--text-faint)", fontSize: "0.95em" }}>
+                      R
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "14px",
+                      marginTop: "10px",
+                      color: "var(--text-muted)",
+                      fontSize: "0.9em",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>📦 {card.stats.countTotal} 笔交易</div>
+                    <div>🎯 {card.stats.winRatePct}% 胜率</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
