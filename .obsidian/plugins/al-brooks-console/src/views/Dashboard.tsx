@@ -1026,6 +1026,20 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
+  const onCtaMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "var(--interactive-accent-hover)";
+    },
+    []
+  );
+
+  const onCtaMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = "var(--interactive-accent)";
+    },
+    []
+  );
+
   const action = React.useCallback(
     async (capabilityId: IntegrationCapability) => {
       if (!integrations) return;
@@ -1491,8 +1505,8 @@ const ConsoleComponent: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
+            onMouseEnter={onCtaMouseEnter}
+            onMouseLeave={onCtaMouseLeave}
             onFocus={onBtnFocus}
             onBlur={onBtnBlur}
             style={ctaButtonStyle}
@@ -1801,16 +1815,16 @@ const ConsoleComponent: React.FC<Props> = ({
                         style={{
                           display: "grid",
                           gridTemplateColumns:
-                            "repeat(auto-fit, minmax(220px, 1fr))",
-                          gap: "8px",
+                            "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: "10px",
                         }}
                       >
                         {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
-                          <div>
+                          <div style={{ ...glassInsetStyle, padding: "12px" }}>
                             <div
                               style={{
                                 fontWeight: 800,
-                                marginBottom: "4px",
+                                marginBottom: "6px",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: "6px",
@@ -1833,11 +1847,11 @@ const ConsoleComponent: React.FC<Props> = ({
                         )}
                         {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
                           0 && (
-                            <div>
+                            <div style={{ ...glassInsetStyle, padding: "12px" }}>
                               <div
                                 style={{
                                   fontWeight: 800,
-                                  marginBottom: "4px",
+                                  marginBottom: "6px",
                                   display: "inline-flex",
                                   alignItems: "center",
                                   gap: "6px",
@@ -1859,11 +1873,11 @@ const ConsoleComponent: React.FC<Props> = ({
                             </div>
                           )}
                         {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
-                          <div>
+                          <div style={{ ...glassInsetStyle, padding: "12px" }}>
                             <div
                               style={{
                                 fontWeight: 800,
-                                marginBottom: "4px",
+                                marginBottom: "6px",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: "6px",
@@ -1886,11 +1900,11 @@ const ConsoleComponent: React.FC<Props> = ({
                         )}
                         {(openTradeStrategy.takeProfitRecommendation?.length ??
                           0) > 0 && (
-                            <div>
+                            <div style={{ ...glassInsetStyle, padding: "12px" }}>
                               <div
                                 style={{
                                   fontWeight: 800,
-                                  marginBottom: "4px",
+                                  marginBottom: "6px",
                                   display: "inline-flex",
                                   alignItems: "center",
                                   gap: "6px",

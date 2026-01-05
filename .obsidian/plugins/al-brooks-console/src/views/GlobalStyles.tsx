@@ -61,7 +61,7 @@ export const GlobalStyles: React.FC = () => (
 .pa-tabbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 20px;
   margin: 0 0 16px;
 }
 
