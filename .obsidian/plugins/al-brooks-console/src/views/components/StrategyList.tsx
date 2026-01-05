@@ -287,7 +287,7 @@ export const StrategyList: React.FC<Props> = ({
                           justifyContent: "space-between",
                           gap: "10px",
                           flexWrap: "wrap",
-                          marginBottom: "6px",
+                          marginBottom: "4px",
                           color: "var(--text-muted)",
                           fontSize: "0.85em",
                         }}
@@ -309,27 +309,31 @@ export const StrategyList: React.FC<Props> = ({
                         ) : null}
                       </div>
 
-                      {p.total > 0 && (
+                      {(p.total > 0 || s.patternsObserved.length > 0) && (
                         <div
                           className="pa-text-faint"
-                          style={{ fontSize: "0.78em", marginBottom: "6px" }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "10px",
+                            fontSize: "0.78em",
+                          }}
                         >
-                          {p.total > 0 ? (
-                            <span>
-                              🔢 使用: <strong>{p.total}次</strong>
-                            </span>
-                          ) : null}
-                        </div>
-                      )}
-
-
-
-                      {s.patternsObserved.length > 0 && (
-                        <div
-                          className="pa-text-faint"
-                          style={{ fontSize: "0.85em" }}
-                        >
-                          {s.patternsObserved.length} 个关联形态
+                          <span>
+                            {p.total > 0 ? (
+                              <>
+                                使用 <strong>{p.total}</strong>次
+                              </>
+                            ) : null}
+                          </span>
+                          <span>
+                            {s.patternsObserved.length > 0 ? (
+                              <>
+                                形态 <strong>{s.patternsObserved.length}</strong>
+                              </>
+                            ) : null}
+                          </span>
                         </div>
                       )}
                     </div>

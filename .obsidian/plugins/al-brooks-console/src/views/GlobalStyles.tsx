@@ -78,11 +78,11 @@ export const GlobalStyles: React.FC = () => (
 /* Strategy List & Items */
 .pa-strategy-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 10px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .pa-strategy-grid {
     grid-template-columns: 1fr;
   }
@@ -90,7 +90,12 @@ export const GlobalStyles: React.FC = () => (
 
 .pa-strategy-item {
   padding: 10px 12px;
-  background: rgba(var(--mono-rgb-100), 0.07);
+  background: rgba(var(--mono-rgb-100), 0.085);
+  border-color: rgba(var(--mono-rgb-100), 0.12);
+}
+
+.pa-strategy-item:hover {
+  transform: none;
 }
 
 /* Tags */
