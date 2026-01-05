@@ -1509,7 +1509,13 @@ const ConsoleComponent: React.FC<Props> = ({
             onMouseLeave={onCtaMouseLeave}
             onFocus={onBtnFocus}
             onBlur={onBtnBlur}
-            style={ctaButtonStyle}
+            style={{
+              ...buttonStyle,
+              // Maintain a slight hint of accent but mostly match standard button
+              border: "1px solid var(--interactive-accent)",
+              color: "var(--interactive-accent)",
+              fontWeight: 600,
+            }}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
             ✏️ 新建交易
@@ -1746,26 +1752,41 @@ const ConsoleComponent: React.FC<Props> = ({
                   <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                     周期 → 策略推荐
                   </div>
-                  <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px',
+                    marginTop: '8px'
+                  }}>
                     {todayStrategyPicks.map((s) => (
-                      <li
+                      <button
                         key={`today-pick-${s.path}`}
-                        style={{ marginBottom: "6px" }}
+                        type="button"
+                        onClick={() => openFile(s.path)}
+                        style={{
+                          ...textButtonStyle,
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '6px 8px',
+                          background: 'rgba(var(--mono-rgb-100), 0.03)',
+                          border: '1px solid rgba(var(--mono-rgb-100), 0.1)',
+                          borderRadius: '6px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "var(--background-modifier-hover)";
+                          e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
+                          e.currentTarget.style.borderColor = "rgba(var(--mono-rgb-100), 0.1)";
+                        }}
+                        onFocus={onTextBtnFocus}
+                        onBlur={onTextBtnBlur}
                       >
-                        <button
-                          type="button"
-                          onClick={() => openFile(s.path)}
-                          style={textButtonStyle}
-                          onMouseEnter={onTextBtnMouseEnter}
-                          onMouseLeave={onTextBtnMouseLeave}
-                          onFocus={onTextBtnFocus}
-                          onBlur={onTextBtnBlur}
-                        >
-                          {s.canonicalName}
-                        </button>
-                      </li>
+                        {s.canonicalName}
+                      </button>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 

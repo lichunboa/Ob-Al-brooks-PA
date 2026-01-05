@@ -50,8 +50,9 @@ export const GlobalStyles: React.FC = () => (
 
 .pa-dashboard-actions-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .pa-dashboard-actions-row button {
