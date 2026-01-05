@@ -8,6 +8,8 @@ export const GlobalStyles: React.FC = () => (
   max-width: 1200px;
   margin: 0 auto;
   font-family: var(--font-interface);
+  font-size: var(--font-ui-small, 13px);
+  line-height: 1.4;
   color: var(--text-normal);
 
   /* v5 palette (scoped): semantic/status/chart colors */
@@ -68,21 +70,18 @@ export const GlobalStyles: React.FC = () => (
 
 /* Card Component */
 .pa-card {
-  background: rgba(var(--mono-rgb-100), 0.055);
+  background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 14px;
+  box-shadow: none;
+  transition: background-color 180ms ease, border-color 180ms ease;
   display: flex;
   flex-direction: column;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .pa-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--background-modifier-hover);
   border-color: var(--background-modifier-border-hover);
 }
 

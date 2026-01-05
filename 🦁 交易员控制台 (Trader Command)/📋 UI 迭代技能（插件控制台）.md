@@ -28,6 +28,11 @@
   - 避免 hover 位移（`transform: translateY(...)`）。
   - 谨慎使用 `backdrop-filter`（不同主题/性能下会脏/灰/卡）。
 
+## 4.1 精致化检查（Typography & Borders）
+- 字体：优先使用 Obsidian 的 `--font-ui-small` 来整体收一档（必要时带 fallback），避免“大字压屏”。
+- 边框/阴影：卡片默认不加阴影、不做位移；用主题的 `--background-modifier-border` 保持细而克制。
+- 透明灰底慎用：尽量用 `--background-secondary` / `--background-modifier-hover`。
+
 ## 5. 操作流程（每次改动）
 1) 先截屏/对照 v5.0 预期。
 2) 只改一个模块（单点改动）。
@@ -36,3 +41,5 @@
 
 ## 6. 本轮变更记录（2026-01-05）
 - 顶部动作区自动靠右：`.pa-dashboard-title-actions { margin-left: auto; }`
+- 移除顶部“刷新 DV”按钮（减少噪音/提升精致度）。
+- 卡片系统收敛为主题风格：去 blur/去 hover 位移/去阴影，背景改 `--background-secondary`。

@@ -1473,22 +1473,6 @@ const ConsoleComponent: React.FC<Props> = ({
               </button>
               <button
                 type="button"
-                disabled={!can("dataview:force-refresh")}
-                onClick={() => action("dataview:force-refresh")}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
-                style={
-                  can("dataview:force-refresh")
-                    ? buttonStyle
-                    : disabledButtonStyle
-                }
-              >
-                刷新 DV
-              </button>
-              <button
-                type="button"
                 disabled={!can("tasks:open")}
                 onClick={() => action("tasks:open")}
                 onMouseEnter={onBtnMouseEnter}
