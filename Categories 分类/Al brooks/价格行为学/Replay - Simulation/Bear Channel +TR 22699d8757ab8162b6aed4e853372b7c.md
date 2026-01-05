@@ -12,11 +12,11 @@ Winrate: 33
     - 黄色：globex London TR区
     - 绿色：昨日平衡区
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image.png)
+        ![image.png](Bear%20Channel%20+TR/image.png)
         
     
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%201.png)
+![image.png](Bear%20Channel%20+TR/image%201.png)
 
 ---
 
@@ -31,11 +31,11 @@ B1是bear bar，收的很好，有上影线代表强力卖压。结合下面glob
 
 B2 doji，对于B1是个bad Follow Thorough，很可能是均线的支撑，但是B3是个长上影线bar，代表拒绝了来自均线的支撑。这三个bar形成了一个TR，可以选择stop order sell below B3.
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%202.png)
+![image.png](Bear%20Channel%20+TR/image%202.png)
 
 但是这个被B5打止损了，B4,B5之间buy the close非常急切，这里就可以止损离场，不过早盘TR属性，还是应该多等2nd signal 再看。B4,5,6,7,8形成了bull micro channel，抵达了红色区域中央
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%203.png)
+![image.png](Bear%20Channel%20+TR/image%203.png)
 
 这时候B12是个诱人的sell bar，但是：
 
@@ -51,29 +51,29 @@ bear 理由：
 
 决定继续观察！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%204.png)
+![image.png](Bear%20Channel%20+TR/image%204.png)
 
 B14惊天big bear bar！其实价格在感兴趣区域串门，其实可以考虑sell B12,13，但是同样一个图形在一天不同时间段应该有不同的解读方法，早盘加个急于串门，因此big up big down很可能。
 
 如果在其他时间，这个bull micro channel更可能造成价格持续上升
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%205.png)
+![image.png](Bear%20Channel%20+TR/image%205.png)
 
 B14在均线有support，B15是个bear doji，下影线刚好在PB 50上面。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%206.png)
+![image.png](Bear%20Channel%20+TR/image%206.png)
 
 ii结构形成了收缩三角形，也形成了TR，造PB50的位置，下去4次都失败了，遭遇反弹。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%207.png)
+![image.png](Bear%20Channel%20+TR/image%207.png)
 
 这里决定sell below，但是不应该急，应该看看这个Follow through，特别是长下影线。然后利用ROSE trap setup来entry和exit，可以获得1R
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%208.png)
+![image.png](Bear%20Channel%20+TR/image%208.png)
 
 B36后一路很少PB，BO neckline后抵达MM，回撤到EMA。 我在B37被迫止盈的同时可能可以考虑下一笔trade的可能性。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%209.png)
+![image.png](Bear%20Channel%20+TR/image%209.png)
 
 ---
 
@@ -86,7 +86,7 @@ B36后一路很少PB，BO neckline后抵达MM，回撤到EMA。 我在B37被迫�
 - trade 3：要顺双势，大势bear trend，小势头TR；而我做了逆双势头！
 - 结合日线图，得到总体是bear trend的趋势
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20Channel%20+TR/image%2010.png)
+    ![image.png](Bear%20Channel%20+TR/image%2010.png)
     
 
 </aside>

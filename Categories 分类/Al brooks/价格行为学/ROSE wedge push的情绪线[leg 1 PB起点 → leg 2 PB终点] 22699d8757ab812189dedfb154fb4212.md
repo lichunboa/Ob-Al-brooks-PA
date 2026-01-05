@@ -9,14 +9,14 @@ sentiment line是对手盘的price target
 
 - 画法
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20wedge%20push的情绪线[leg%201%20PB起点%20→%20leg%202%20PB终点]/image.png)
+    ![image.png](ROSE%20wedge%20push%E7%9A%84%E6%83%85%E7%BB%AA%E7%BA%BF%5Bleg%201%20PB%E8%B5%B7%E7%82%B9%20%E2%86%92%20leg%202%20PB%E7%BB%88%E7%82%B9%5D/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20wedge%20push的情绪线[leg%201%20PB起点%20→%20leg%202%20PB终点]/image%201.png)
+    ![image.png](ROSE%20wedge%20push%E7%9A%84%E6%83%85%E7%BB%AA%E7%BA%BF%5Bleg%201%20PB%E8%B5%B7%E7%82%B9%20%E2%86%92%20leg%202%20PB%E7%BB%88%E7%82%B9%5D/image%201.png)
     
 - 实例
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20wedge%20push的情绪线[leg%201%20PB起点%20→%20leg%202%20PB终点]/image%202.png)
+    ![image.png](ROSE%20wedge%20push%E7%9A%84%E6%83%85%E7%BB%AA%E7%BA%BF%5Bleg%201%20PB%E8%B5%B7%E7%82%B9%20%E2%86%92%20leg%202%20PB%E7%BB%88%E7%82%B9%5D/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20wedge%20push的情绪线[leg%201%20PB起点%20→%20leg%202%20PB终点]/image%203.png)
+    ![image.png](ROSE%20wedge%20push%E7%9A%84%E6%83%85%E7%BB%AA%E7%BA%BF%5Bleg%201%20PB%E8%B5%B7%E7%82%B9%20%E2%86%92%20leg%202%20PB%E7%BB%88%E7%82%B9%5D/image%203.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/ROSE%20wedge%20push的情绪线[leg%201%20PB起点%20→%20leg%202%20PB终点]/image%204.png)
+    ![image.png](ROSE%20wedge%20push%E7%9A%84%E6%83%85%E7%BB%AA%E7%BA%BF%5Bleg%201%20PB%E8%B5%B7%E7%82%B9%20%E2%86%92%20leg%202%20PB%E7%BB%88%E7%82%B9%5D/image%204.png)

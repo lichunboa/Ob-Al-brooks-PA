@@ -36,8 +36,8 @@
     
 - If trapped out, great traders get in again
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/30E%2070%-90%%20probability;%2040-60%20rule;%20TR%20probabiity/image%207.png)
+    ![image.png](30E%2070%25-90%25%20probability;%2040-60%20rule;%20TR%20probabiity/image%207.png)
     
 - TR probabiity high near top and bottom
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/30E%2070%-90%%20probability;%2040-60%20rule;%20TR%20probabiity/image%208.png)
+    ![image.png](30E%2070%25-90%25%20probability;%2040-60%20rule;%20TR%20probabiity/image%208.png)

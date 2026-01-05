@@ -1458,9 +1458,6 @@ const ConsoleComponent: React.FC<Props> = ({
             style={buttonStyle}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
-            新建交易
-          </button>
-
           {integrations ? (
             <>
               <button
@@ -1495,6 +1492,29 @@ const ConsoleComponent: React.FC<Props> = ({
               重建索引
             </button>
           ) : null}
+
+          <button
+            type="button"
+            onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={buttonStyle}
+            title={TRADE_NOTE_TEMPLATE_PATH}
+          >
+          <button
+            type="button"
+            onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
+            onMouseEnter={onBtnMouseEnter}
+            onMouseLeave={onBtnMouseLeave}
+            onFocus={onBtnFocus}
+            onBlur={onBtnBlur}
+            style={buttonStyle}
+            title={TRADE_NOTE_TEMPLATE_PATH}
+          >
+            新建交易
+          </button>
         </span>
       </h2>
 
@@ -1520,22 +1540,31 @@ const ConsoleComponent: React.FC<Props> = ({
 
       {activePage === "trading" ? (
         <>
-          <div
-            style={{
-              margin: "12px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              Trading Hub
+          <div style={glassCardStyle}>
+            {/* Level 1 Container (White/Black Frame) */}
+            
+            {/* Header / Actions Row */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+               style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1.1em" }}>⚔️ 交易中心</div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                  Trading Hub
+                </div>
+              </div>
             </div>
-          </div>
 
           {latestTrade && reviewHints.length > 0 && (
             <details style={{ marginBottom: "16px" }}>
@@ -2190,11 +2219,8 @@ const ConsoleComponent: React.FC<Props> = ({
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
+              ...glassPanelStyle,
               marginBottom: "16px",
-              background: "var(--background-primary)",
             }}
           >
             {!can("tasks:open") ? (
@@ -2353,6 +2379,7 @@ short mode\n\
           </div>
 
           {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
+          </div>
         </>
       ) : null}
 

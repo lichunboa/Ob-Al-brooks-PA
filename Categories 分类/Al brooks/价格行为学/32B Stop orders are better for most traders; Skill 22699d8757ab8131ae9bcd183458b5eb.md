@@ -2,7 +2,7 @@
 
 - Stop orders are better for most traders
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image.png)
+    ![image.png](32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image.png)
     
 - Skilled traders also use market and limit orders to enter
     
@@ -44,6 +44,6 @@
     
 - TR limit order market (LOM) and trends
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image%204.png)
+    ![image.png](32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image%204.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image%205.png)
+    ![image.png](32B%20Stop%20orders%20are%20better%20for%20most%20traders;%20Skill/image%205.png)

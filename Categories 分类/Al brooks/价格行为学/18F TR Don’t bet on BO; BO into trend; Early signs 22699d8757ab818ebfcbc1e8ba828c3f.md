@@ -8,16 +8,16 @@
 
 - TR: Don’t bet on BO
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image.png)
+    ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image.png)
     
 - TR BO into trend, or become channel without BO!
     - TR→BO
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%201.png)
+        ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%201.png)
         
     - TR→Channel
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%202.png)
+        ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%202.png)
         
     - 从TR中判别之后BO的方向！
         - 比较双方连续的trend bar
@@ -25,15 +25,15 @@
         - Buy/Sell pressure在BO前往往会增大！
         - 看trend bar强度，看trend的形态
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%203.png)
+            ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%203.png)
             
         - BO前显露真身！
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%204.png)
+            ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%204.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%205.png)
+            ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%205.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18F%20TR%20Don’t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%206.png)
+            ![image.png](18F%20TR%20Don%E2%80%99t%20bet%20on%20BO;%20BO%20into%20trend;%20Early%20signs/image%206.png)
             
 - Early signs of TR
     - 从头10个bar判定是否TR day

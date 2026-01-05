@@ -11,15 +11,15 @@
 
 - case1 :Buy climax
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image.png)
     
 - case2 : Sell climax →TR → reversal
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%201.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%201.png)
     
 - Climax之后的TTR有50%机会造成MTR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%202.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%202.png)
     
 - **Open Climax**
     
@@ -54,14 +54,14 @@
     - 对于bear而言，如果想sell buy climax，最好等出现了好的sell signal，而且是关闭了gap的
     - 对于bull而言，可以take profit，但是如果发现gap打开就是个很好的bull强势证明，可以再度进场做多
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%205.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%206.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%206.png)
     
 - Climax in TR as 2nd leg trap
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%207.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%207.png)
     
 - Strong Reversal + Good context could be swing play
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/42C%20Minor%20climactic%20reversals/image%208.png)
+    ![image.png](42C%20Minor%20climactic%20reversals/image%208.png)

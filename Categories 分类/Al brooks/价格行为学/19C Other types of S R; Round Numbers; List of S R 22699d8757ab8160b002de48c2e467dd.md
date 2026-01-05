@@ -29,7 +29,7 @@
         
     - MA
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/19C%20Other%20types%20of%20S%20R;%20Round%20Numbers;%20List%20of%20S%20R/image%203.png)
+        ![image.png](19C%20Other%20types%20of%20S%20R;%20Round%20Numbers;%20List%20of%20S%20R/image%203.png)
         
     
 - Round Numbers
@@ -45,4 +45,4 @@
     
 - List of S/R
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19C%20Other%20types%20of%20S%20R;%20Round%20Numbers;%20List%20of%20S%20R/image%205.png)
+    ![image.png](19C%20Other%20types%20of%20S%20R;%20Round%20Numbers;%20List%20of%20S%20R/image%205.png)

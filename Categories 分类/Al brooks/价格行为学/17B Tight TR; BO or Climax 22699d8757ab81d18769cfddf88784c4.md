@@ -12,7 +12,7 @@
     - 2~3倍平均bar height
     - 2~3倍的smallest scalp
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/17B%20Tight%20TR;%20BO%20or%20Climax/image.png)
+    ![image.png](17B%20Tight%20TR;%20BO%20or%20Climax/image.png)
     
 - MC: Breakout or Climax
     

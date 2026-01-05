@@ -163,6 +163,6 @@ Any 2-5 TTR with Small Bars =  BOM!
 
 在trend的末期，TTR很可能是reversal！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/08C%20Tight%20Trading%20Ranges%20as%20Setup%20;%20ii%20and%20BreakOu/image%2019.png)
+![image.png](08C%20Tight%20Trading%20Ranges%20as%20Setup%20;%20ii%20and%20BreakOu/image%2019.png)
 
 </aside>

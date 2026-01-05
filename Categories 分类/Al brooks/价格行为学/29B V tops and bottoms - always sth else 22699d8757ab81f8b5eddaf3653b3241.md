@@ -13,10 +13,10 @@
     
 - Bull/Bear wait 10 or more bars after buy/sell climax
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%201.png)
+    ![image.png](29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%201.png)
     
 - V top/bottom: expect MTR, TR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%202.png)
+    ![image.png](29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%203.png)
+    ![image.png](29B%20V%20tops%20and%20bottoms%20-%20always%20sth%20else/image%203.png)

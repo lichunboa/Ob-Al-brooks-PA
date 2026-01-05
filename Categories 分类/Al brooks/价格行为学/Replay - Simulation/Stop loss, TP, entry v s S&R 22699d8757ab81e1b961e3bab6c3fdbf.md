@@ -13,9 +13,9 @@ Winrate: 60
     
     ---
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image.png)
+    ![image.png](Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image%201.png)
+    ![image.png](Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image%201.png)
     
     **macro分析**：
     
@@ -44,7 +44,7 @@ Winrate: 60
     
 - 完整图
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image%202.png)
+    ![image.png](Stop%20loss,%20TP,%20entry%20v%20s%20S&R/image%202.png)
     
 - Trade Record
     

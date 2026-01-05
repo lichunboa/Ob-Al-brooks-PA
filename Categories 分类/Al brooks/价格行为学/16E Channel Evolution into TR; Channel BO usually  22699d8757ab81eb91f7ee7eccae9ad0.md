@@ -6,7 +6,7 @@
 
 ---
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image.png)
+![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image.png)
 
 - Channel Evolution into TR
     - Bull Channel → TR
@@ -41,16 +41,16 @@
         
     - Bull Channel → Bear Flag; Bear Channel → Bull Flag
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%205.png)
+        ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%205.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%206.png)
+        ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%206.png)
         
     - **75%的Channel最终会反方向BO后TR或者Reversal,25%被同方向BO**
         - TR
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%207.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%207.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%208.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%208.png)
             
         - REVERSAL
             
@@ -77,7 +77,7 @@
     - **但是一侧的假突破会让另一侧的channel更容易被真突破**
     - **假突破的minimal goal是测试chanel另一侧的trend line**
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2011.png)
+    ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2011.png)
     
 - With trend BO of channel
     - 同方向BO但是被迅速reversal的假突破
@@ -102,18 +102,18 @@
         
         - Bull Example
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2013.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2013.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2014.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2014.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2015.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2015.png)
             
         - Bear Example
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2016.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2016.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2017.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2017.png)
             
         - Flat Channel = TR = 50% 同方向BO
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2018.png)
+            ![image.png](16E%20Channel%20Evolution%20into%20TR;%20Channel%20BO%20usually%20/image%2018.png)

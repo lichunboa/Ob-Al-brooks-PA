@@ -15,21 +15,21 @@
     
 - Bull need HL, Bear need LH
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%202.png)
+    ![image.png](19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%203.png)
+    ![image.png](19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%203.png)
     
 - **50% PB**
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%204.png)
+    ![image.png](19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%204.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%205.png)
+    ![image.png](19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%205.png)
     
 - **Signal and Entry bar as S/R**
     
     bear在top of signal and entry bar建立防线后，bull 2次突围试图超过防线失败，形成DT bear flag于是放弃。
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%206.png)
+    ![image.png](19E%20Highest%20and%20lowest%20of%20close;%20Bull%20need%20HL,%20Bea/image%206.png)
     
     - rose例子的思考
         

@@ -2,9 +2,9 @@
 
 - minimal profit = 2R actual risk
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image.png)
+    ![image.png](38B%20Plan%20to%20take%20profits/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image%201.png)
+    ![image.png](38B%20Plan%20to%20take%20profits/image%201.png)
     
 - HH MTR→LH MTR
     
@@ -33,15 +33,15 @@
     
     这里的sell其实不是个好的选择，这里距离上一次PB已经太多bar了，不是minor reversal接major reversal的节奏，应该重新数。可以说是全新的一个bull leg了
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image%203.png)
+    ![image.png](38B%20Plan%20to%20take%20profits/image%203.png)
     
 - wedge channel需要broad才能做reversal
     - Small PB Bull Trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image%204.png)
+        ![image.png](38B%20Plan%20to%20take%20profits/image%204.png)
         
     - 20 20 Buy Setup
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image%205.png)
+        ![image.png](38B%20Plan%20to%20take%20profits/image%205.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38B%20Plan%20to%20take%20profits/image%206.png)
+        ![image.png](38B%20Plan%20to%20take%20profits/image%206.png)

@@ -37,32 +37,32 @@
         
 - Signs of Strong BO
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%202.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%202.png)
     
     - Bull BO : Strong Signs
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%203.png)
+        ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%203.png)
         
     - Bull BO: Weak
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%204.png)
+        ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%204.png)
         
     - Bear BO: Strong
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%205.png)
+        ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%205.png)
         
     - Bear BO: Weak
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%206.png)
+        ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%206.png)
         
 - Succeed or reverse?
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%207.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%207.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%208.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%208.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%209.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%209.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%2010.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%2010.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%2011.png)
+    ![image.png](15D%202nd%20leg%20traps;%20Signs%20of%20strong%20BO;%20Succeed%20or%20/image%2011.png)

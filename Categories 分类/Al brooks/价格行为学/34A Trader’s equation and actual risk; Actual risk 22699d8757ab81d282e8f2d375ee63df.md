@@ -2,9 +2,9 @@
 
 - Trader’s equation and actual risk
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/34A%20Trader’s%20equation%20and%20actual%20risk;%20Actual%20risk/image.png)
+    ![image.png](34A%20Trader%E2%80%99s%20equation%20and%20actual%20risk;%20Actual%20risk/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/34A%20Trader’s%20equation%20and%20actual%20risk;%20Actual%20risk/image%201.png)
+    ![image.png](34A%20Trader%E2%80%99s%20equation%20and%20actual%20risk;%20Actual%20risk/image%201.png)
     
 - Actual risk
     

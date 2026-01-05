@@ -7,8 +7,8 @@ Setup: Bull H2, Cup and Handle, S&R reversal, wedge reversal
 open: Gap Down, Gap Down + DB
 yesterday: TR
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/DB%20→%20bull%20trend%20→TR/image.png)
+![image.png](DB%20%E2%86%92%20bull%20trend%20%E2%86%92TR/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/DB%20→%20bull%20trend%20→TR/image%201.png)
+![image.png](DB%20%E2%86%92%20bull%20trend%20%E2%86%92TR/image%201.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/DB%20→%20bull%20trend%20→TR/image%202.png)
+![image.png](DB%20%E2%86%92%20bull%20trend%20%E2%86%92TR/image%202.png)

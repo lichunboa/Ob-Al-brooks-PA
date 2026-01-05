@@ -11,7 +11,7 @@
     - 连续11个bar上涨，没有一个低于前面的low
     - 强势的开盘上涨趋势，一般之后会变成TR维持几小时，再决定方向
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/14D%20Trend%20from%20the%20Open;%20Trending%20Trading%20Range;%20B/image.png)
+    ![image.png](14D%20Trend%20from%20the%20Open;%20Trending%20Trading%20Range;%20B/image.png)
     
 - **Trending Trading Range Day**
     

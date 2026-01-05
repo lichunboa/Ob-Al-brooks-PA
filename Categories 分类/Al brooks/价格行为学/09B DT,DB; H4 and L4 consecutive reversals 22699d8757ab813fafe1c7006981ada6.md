@@ -12,7 +12,7 @@
     1. wedge top三推的点
     2. double top的点
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image.png)
+    ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image.png)
     
 - Double Bottom = High 2; Wedge Bottom/ Wedge Bull Flag = High 3
     - 例子1 DB; tight Bear Trend后的DB
@@ -25,11 +25,11 @@
         
         等到DB就概率更加好
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%201.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%201.png)
         
     - 例子2 - BO wedge top之后的DB
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%202.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%202.png)
         
         在整体很强的bulltrend中，我们发现wedge LH MTR的三推小wedge bear flag，但是结合context这并不是一个很好的做空机会。然后看到bull BO突破了这个wedge + good follow through所以期待至少还有一次leg up。然后看到side way DB，于是判断可能是更大的leg up。
         
@@ -44,7 +44,7 @@
         
         1. 最右边DT in bear trend，所以sell
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%203.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%203.png)
         
 
 ---
@@ -82,7 +82,7 @@
     
     一般看2个top/bottom的高低关系来判断趋势
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%206.png)
+    ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%206.png)
     
     ---
     
@@ -94,11 +94,11 @@
         
         接着3 push down bull flag是可以考虑做多的，但是因为tight bear trend三推，可能会有2nd leg down因此可以等候DB，增加胜率！
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%207.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%207.png)
         
     - 例子2
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%208.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%208.png)
         
 
 ---
@@ -136,38 +136,38 @@
         
     - 复合型底部reversal （H2 + H2)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2011.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2011.png)
         
     - 复合型顶部revesal (L3 + L2) + bull trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2012.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2012.png)
         
         这里第一个wedge top 很多bull bar，L3 sell不是好时机。但这也是合理的trade，如果你管理得当的话，不会亏损出场（wide loss , scale in)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2013.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2013.png)
         
     - 复合型顶部revesal (L2 + L2) + bull trend
         
         这里bull trend很tight，所以复合型top reversal估计也只是minor的。但是考虑到TR的context，就是个合理的做空机会。有的bear会在L4后做空，但是也可以等2nd signal 之后的bear bar确认后做空
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2014.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2014.png)
         
     - 复合型顶部resume (L2 + L2) + bear trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2015.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2015.png)
         
     - 不要在strong trend中找复合型bottom/top
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2016.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2016.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2017.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2017.png)
         
     - Others
         
         On higher timeframe
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2018.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2018.png)
         
         Recount after each BO
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2019.png)
+        ![image.png](09B%20DT,DB;%20H4%20and%20L4%20consecutive%20reversals/image%2019.png)

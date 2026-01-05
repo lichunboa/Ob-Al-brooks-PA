@@ -18,10 +18,10 @@ Winrate: 50
     - 盘前H/L
     - 前日的两个bear BO 线
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image.png)
+    ![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image.png)
     
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%201.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%201.png)
 
 ---
 
@@ -83,7 +83,7 @@ given昨日的强势trend，而且这个B6 open位置位于 bull trend 50PB的�
 
 B8 hit loss。看来结合昨日的**tight bear channel，这里需要更复杂的结构起码是DB才可以reversa**l！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%202.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%202.png)
 
 B10-12都是很犹豫的long tail，但是B12的出现展示了一个机会去sel
 
@@ -99,7 +99,7 @@ B10-12都是很犹豫的long tail，但是B12的出现展示了一个机会去se
 - 出现突破B12 LOW bear bar：MM down，B4-B7组成的auction决出了胜负！
 - 出现reversal up bull bar：前面可能是wedge bottom likely，是个bull flag
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%203.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%203.png)
 
 trade 2 从B15 above顺利发车了，但是B21,B30都停了下来，这时候突然意识到黄色区域TTR的影响！这里可能被困住了！
 
@@ -107,15 +107,15 @@ trade 2 从B15 above顺利发车了，但是B21,B30都停了下来，这时候�
 
 所以我这里是否应该sell？
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%204.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%204.png)
 
 之后出现了震惊的结果！我也被迫trailing stop 止盈！
 
 前几天的TTR对这段区域的影响真的很大！价格很完美地追寻了这个TR PA。其实我阅读到B30-B44的时候应该注意到是TR PA。这里三次wedge push未果，在TR顶部形成价格共识！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%205.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%205.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%206.png)
+![image.png](previous%20TR%20range%20guide%20your%20way%20if%20lacking%20contex/image%206.png)
 
 ---
 

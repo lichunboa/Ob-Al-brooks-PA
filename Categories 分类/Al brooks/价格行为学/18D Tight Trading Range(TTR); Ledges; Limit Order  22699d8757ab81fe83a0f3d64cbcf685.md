@@ -11,11 +11,11 @@
         - TTR = Dead Money
         - TTR too narrow: **BLSH with stop order** is hard to make money
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image.png)
+            ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image.png)
             
     - Wait for BO to trade
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%201.png)
+        ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%201.png)
         
     - Trade in Board / Tight TR
         
@@ -55,9 +55,9 @@
     - TTR不要用stop order
     - 在知道是TR的情况下，很多人scale in with wide stop
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%205.png)
+    ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%206.png)
+    ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%206.png)
     
 - **TTR above MA**
     
@@ -74,6 +74,6 @@
     - DT LH MTR
     - DB HL MTR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%208.png)
+    ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%208.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%209.png)
+    ![image.png](18D%20Tight%20Trading%20Range(TTR);%20Ledges;%20Limit%20Order%20/image%209.png)

@@ -26,9 +26,9 @@
     
 - Trade in TR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%202.png)
+    ![image.png](18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%203.png)
+    ![image.png](18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%203.png)
     
 - **BOM**
     
@@ -51,7 +51,7 @@
     > 但是这里是bull channel。Channel只有25%同方向BO成功的机会！
     > 
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%205.png)
+    ![image.png](18B%20TR%20contains%20buy%20and%20sell%20setups;%20BOM;%202nd%20Leg%20/image%205.png)
     
     BO后非常糟糕的bear bar follow through,然后长下影线的smal bull bar，然后是再次向上突破失败的bear bar，形成DT，于是之后产生了bull give up bar.
     

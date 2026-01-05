@@ -68,13 +68,13 @@
         
     - 80% Rule - 80%的BO会失败
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2010.png)
+        ![image.png](18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2010.png)
         
     - 双方力量均衡
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2011.png)
+        ![image.png](18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2011.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2012.png)
+        ![image.png](18A%20Definition%20of%20PB%20and%20TR;%20Hallmarks%20Confusion,%20/image%2012.png)
         
     - Minimum for TR [3 leg and 20+ bars]
         

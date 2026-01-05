@@ -12,10 +12,10 @@ Winrate: 75
     - 黄色：昨日TR区
     - 绿色：昨日bull BO前的盘前GAP
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Ledge%20and%20The%20importance%20of%20CORE/image.png)
+    ![image.png](Ledge%20and%20The%20importance%20of%20CORE/image.png)
     
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Ledge%20and%20The%20importance%20of%20CORE/image%201.png)
+![image.png](Ledge%20and%20The%20importance%20of%20CORE/image%201.png)
 
 ---
 
@@ -26,7 +26,7 @@ Winrate: 75
 | 3 | TTR后B43成功跨过EMA上方，非常好的bull bar，可以用ROSE setup，结合碰触BULL CORE21的context，看好bullish，去测试上方的ledge或者bear BO。 | B41,42,43收在TTR上方，三个连续bull bar | 平稳 | above B43 high | below B40 low | 1R | TTR top | 突破EMA+过去10个bar的high，而且B37测试了bull core，证明bullish | 结合B37,B41-B43，我认为是bullish，因为下方的magnet已经摸过了(PB50,BULL CORE 21)，不大可能还去B2 LOW，因为buy pressure | B55顺利抵达目标 |  | +2.25 |
 | 4 | 在ATH顶部TTR了非常久，价格毫无变动，突破了EMA，巨大的bear bar | B73,B74 big bear bar | 等了很久有点无聊了，想要发生点什么 | 在B74的0.33PB | B84 high | 1R,B49 low | B74,B75巨大的bear bar，在上面横盘太久，可能想测试新的AOI了，如果想继续上，就得测试下面得土地是否结实 | 持续了3小时的bull trend，bull军团力量很大，不过是否太久了？ | 我觉得会下来踩踩土地在上去，因为在上面卡了太久，需要下来吸一波力量如果bull要继续前进尾盘take profit也是可能的 | B76顺利抵达目标，如果有更多Contract可以吃到2R | 神奇的是这里B36开始的bull trend的bull core21又发挥了作用 真的是业界神奇指标 | +1.75 |
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Ledge%20and%20The%20importance%20of%20CORE/image%202.png)
+![image.png](Ledge%20and%20The%20importance%20of%20CORE/image%202.png)
 
 B10-B17形成了巨大的ledge，整齐划一的上影线。**如果说盘前AOI给自己引导的话，同样的道理盘中AOI也会给自己引导**。连续7个bar形成的ledge就是个巨大的magnet，吸引价格区向上突破，然后又回来，这个时候处于ATH，加上ledge这个因素，也就是说价格在ledge这个AOI呆的足够久了，想去其他地方。GIVEN ATH的压力，更可能先向下测试BO点这个magnet，在往上测试ledge这个magnet！果然B24,25出现了两个巨大的bear bar，B25收在bull trend PB 50。先测试这个点，如果继续下行会测试BO点。
 
@@ -54,7 +54,7 @@ B67，78一小一大两个bear bar，碰到均线立刻被打回，这里是20-2
 
 所以我可以侦察前一天的trend的core是否完美反弹或者被吞噬了，获得有用的信息！！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Ledge%20and%20The%20importance%20of%20CORE/image%203.png)
+![image.png](Ledge%20and%20The%20importance%20of%20CORE/image%203.png)
 
 ---
 

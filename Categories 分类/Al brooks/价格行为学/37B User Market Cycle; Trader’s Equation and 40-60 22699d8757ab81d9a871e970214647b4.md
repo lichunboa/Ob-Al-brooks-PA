@@ -3,25 +3,25 @@
 - User Market Cycle
     - BULL
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image.png)
         
     - BEAR
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%201.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%202.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%202.png)
         
     - Bull Channel
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%203.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%203.png)
         
     - Bear Channel
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%204.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%204.png)
         
     - TR
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%205.png)
+        ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%205.png)
         
     
     ---
@@ -38,7 +38,7 @@
         - BLSH at top/bottom 1/3
 - Trader’s Equation and 40-60 Rule
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37B%20User%20Market%20Cycle;%20Trader’s%20Equation%20and%2040-60/image%206.png)
+    ![image.png](37B%20User%20Market%20Cycle;%20Trader%E2%80%99s%20Equation%20and%2040-60/image%206.png)
     
 - Default targets
     

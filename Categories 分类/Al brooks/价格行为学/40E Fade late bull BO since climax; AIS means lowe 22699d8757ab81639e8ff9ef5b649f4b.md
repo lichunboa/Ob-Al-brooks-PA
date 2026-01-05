@@ -2,9 +2,9 @@
 
 - Fade late bull BO since climax
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%201.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%201.png)
     
 - AIS means lower prices likely
     
@@ -12,9 +12,9 @@
     
     - wedge bottom, low of day, TR of yesterday
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%202.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%203.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%203.png)
     
 - Tight TTR can be MTR
     
@@ -31,9 +31,9 @@
     
 - Fade late bear Bo since climax
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%206.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%206.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%207.png)
+    ![image.png](40E%20Fade%20late%20bull%20BO%20since%20climax;%20AIS%20means%20lowe/image%207.png)
     
 - Climax always ends at S/R
     

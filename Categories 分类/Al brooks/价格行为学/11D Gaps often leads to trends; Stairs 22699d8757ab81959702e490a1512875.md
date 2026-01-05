@@ -15,11 +15,11 @@
             如果符合这两个，那么就可能是继续trend的measuring gap
             
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/11D%20Gaps%20often%20leads%20to%20trends;%20Stairs/image.png)
+        ![image.png](11D%20Gaps%20often%20leads%20to%20trends;%20Stairs/image.png)
         
     - 例子2 - series of gaps
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/11D%20Gaps%20often%20leads%20to%20trends;%20Stairs/image%201.png)
+        ![image.png](11D%20Gaps%20often%20leads%20to%20trends;%20Stairs/image%201.png)
         
 - Stairs (late trend gap close → stair (board channel)→TR)
     

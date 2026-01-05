@@ -6,7 +6,7 @@ Tags: Bull Trend
 Trade Record: No
 收获: 每次都要分析双方的道理，写出来。因为一些micro的setup可能会被另一方macro的setup所override。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bull%20Trend%20Day/image.png)
+![image.png](Bull%20Trend%20Day/image.png)
 
 1. 找出感兴趣区域
     - 绿色的平衡/支撑区域（昨日的平衡区+夜盘的支撑区域）
@@ -21,7 +21,7 @@ wedge top+ DT + LH MTR，于是可能是reversal。
 1. ROSE的TTR 2+2+2计划（2组DB和2组DT和2个连续的bar close beyong TD 50)【这里显然不成立】
 2. ROSE的micro-TR 这里可以使用！B11被B12,13trap住，用limit order进场可以拿到接近4R.
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bull%20Trend%20Day/image%201.png)
+    ![image.png](Bull%20Trend%20Day/image%201.png)
     
     在这个bull leg的最低点依然是高于bull trend 的21%的位置，ROSE说这个21%是机构公认的点位，如果突破了证明bull trend强度不够，因此我命名位BULL CORE。
     

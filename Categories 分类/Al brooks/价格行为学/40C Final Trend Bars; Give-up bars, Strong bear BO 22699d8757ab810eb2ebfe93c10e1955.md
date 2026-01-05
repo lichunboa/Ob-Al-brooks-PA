@@ -3,13 +3,13 @@
 - **Final Trend Bars**
     - Definition
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image.png)
+        ![image.png](40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image.png)
         
     - Case 1: Trapped Bull
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%201.png)
+        ![image.png](40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%202.png)
+        ![image.png](40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%202.png)
         
 - Give-up bars
     
@@ -32,8 +32,8 @@
 - Strong bear BO
     - case 1
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%205.png)
+        ![image.png](40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%205.png)
         
     - case 2
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%206.png)
+        ![image.png](40C%20Final%20Trend%20Bars;%20Give-up%20bars,%20Strong%20bear%20BO/image%206.png)

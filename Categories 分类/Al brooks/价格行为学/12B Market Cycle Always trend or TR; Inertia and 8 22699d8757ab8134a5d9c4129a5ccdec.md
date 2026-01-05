@@ -9,17 +9,17 @@
 - Market Cycle: Always trend or TR
     - Always in Trend or TR
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%201.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%202.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%202.png)
         
     - Small TR in trend is PB
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%203.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%203.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%204.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%204.png)
         
     - TR→BO的mm
         
@@ -60,13 +60,13 @@
         
 - Definition 1: Trends, swings, legs
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%209.png)
+    ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%209.png)
     
     - Trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2010.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2010.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2011.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2011.png)
         
         ---
         
@@ -80,11 +80,11 @@
             
             Minor的可以看成是TR中的一个leg
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2012.png)
+            ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2012.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2013.png)
+            ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2013.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2014.png)
+            ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2014.png)
             
         - Bear Trend
             - **Major** LH (creates strong BO LL)
@@ -96,13 +96,13 @@
             
             Minor的可以看成是TR中的一个leg
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2015.png)
+            ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2015.png)
             
             突破了minor点只是把当前trend变成TR，而且是trend中的TR。
             
             只有突破major点，才有可能代表trend的结束。
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2016.png)
+            ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2016.png)
             
         
         <aside>
@@ -130,10 +130,10 @@
         
     - Swing
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2018.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2018.png)
         
     - Leg
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2019.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2019.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2020.png)
+        ![image.png](12B%20Market%20Cycle%20Always%20trend%20or%20TR;%20Inertia%20and%208/image%2020.png)

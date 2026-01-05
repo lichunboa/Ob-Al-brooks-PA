@@ -10,10 +10,10 @@ yesterday: TR
 
 - Joo
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/FOMC%20TR%20day%20,%20failed%20Bear%20BO/image.png)
+    ![image.png](FOMC%20TR%20day%20,%20failed%20Bear%20BO/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/FOMC%20TR%20day%20,%20failed%20Bear%20BO/image%201.png)
+    ![image.png](FOMC%20TR%20day%20,%20failed%20Bear%20BO/image%201.png)
     
 - AL
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/FOMC%20TR%20day%20,%20failed%20Bear%20BO/image%202.png)
+    ![image.png](FOMC%20TR%20day%20,%20failed%20Bear%20BO/image%202.png)

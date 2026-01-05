@@ -8,24 +8,24 @@
 - Trend resumption or reversal
     - Bull/Bear双方都有自己好的trade理由！
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image.png)
+        ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%201.png)
+        ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%202.png)
+        ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%202.png)
         
     - 75% Channel → TR
         - 75% Channel被反向BO成TR/Reversal
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%203.png)
+            ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%203.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%204.png)
+            ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%204.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%205.png)
+            ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%205.png)
             
         - Tight Channel被BO更可能是minor reversal: expect more trend 成为board Channel，或者TR
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%206.png)
+            ![image.png](18C%20Trend%20resumption%20or%20reversal;%20Trend%20or%20leg%20in%20/image%206.png)
             
 - Trend or leg in TR？
     

@@ -8,6 +8,6 @@ open: Bull Trap, OPEN BOM, small Gap up
 yesterday: bull trend day
 收获: B28穷寇莫追，考虑limit order/ stop order bull已经赚钱+已经3push
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/TR%20+%20Late%20Bull%20BO%20failed%20[FOMC]/image.png)
+![image.png](TR%20+%20Late%20Bull%20BO%20failed%20%5BFOMC%5D/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/TR%20+%20Late%20Bull%20BO%20failed%20[FOMC]/image%201.png)
+![image.png](TR%20+%20Late%20Bull%20BO%20failed%20%5BFOMC%5D/image%201.png)

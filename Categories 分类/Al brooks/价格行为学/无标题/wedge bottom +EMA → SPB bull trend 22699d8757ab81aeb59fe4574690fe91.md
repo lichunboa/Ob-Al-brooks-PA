@@ -6,4 +6,4 @@ Day Type: Small PB Bull
 Setup: wedge reversal
 open: Gap Up
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/wedge%20bottom%20+EMA%20→%20SPB%20bull%20trend/image.png)
+![image.png](wedge%20bottom%20+EMA%20%E2%86%92%20SPB%20bull%20trend/image.png)

@@ -25,12 +25,12 @@
     
 - Most tops are DT
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%204.png)
+    ![image.png](22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%204.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%205.png)
+    ![image.png](22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%206.png)
+    ![image.png](22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%206.png)
     
 - 持续画trend line作为MTR reminder
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%207.png)
+    ![image.png](22C%20MAG%20(Moving%20Average%20Gap);%20Most%20tops%20are%20DT/image%207.png)

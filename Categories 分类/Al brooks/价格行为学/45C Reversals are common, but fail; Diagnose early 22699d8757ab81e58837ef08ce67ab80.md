@@ -5,15 +5,15 @@
     - Bear BO fail → often DB
     - Price fails below HL/Trend Line → often TR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%201.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%201.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%202.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%203.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%203.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%204.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%204.png)
     
 - Diagnose early
     - 突破后很好的FT，AIL
@@ -22,9 +22,9 @@
         1. Big up big down，那么就是买在TR的底部
     - late trend三角形，一般是final flag。果然两个big bull bar后一个doji+最后leg，形成两腿往上。这时候一般会测试三角形apex
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%205.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%206.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%206.png)
     
 - Trade what is clear so far
     - 多次向下突破失败+2nd entry long
@@ -32,11 +32,11 @@
     - 低概率的L2 SELL
     - BO +FT
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%207.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%207.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%208.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%208.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%209.png)
+    ![image.png](45C%20Reversals%20are%20common,%20but%20fail;%20Diagnose%20early/image%209.png)
     
 - Bears sell rallies
     

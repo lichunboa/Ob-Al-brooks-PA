@@ -3,16 +3,16 @@
 - Use swing stops
     - swing stops
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image.png)
+        ![image.png](41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image.png)
         
     - PB in different forms
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%201.png)
+        ![image.png](41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%201.png)
         
 - If now channel, trade like channel
     - BO→PB→Channel
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%202.png)
+        ![image.png](41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%202.png)
         
     - 对手盘scalper开始参与并盈利代表channel快变成TR了
         1. limit order 对手盘开始盈利 → 当前trend弱化
@@ -82,4 +82,4 @@
     
 - Enter early on smaller time frame;
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%2013.png)
+    ![image.png](41B%20Use%20swing%20stops;%20If%20now%20channel,%20trade%20like%20ch/image%2013.png)

@@ -57,20 +57,20 @@
     
     思考：同理可用在5min→2min上
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%206.png)
+    ![image.png](16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%206.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%207.png)
+    ![image.png](16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%207.png)
     
 - Reversals and BOs.
     - Trade reversal in channel: Strong leg need strong reversal setups
         - 等待2nd entry or Strong BO on the reversal
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%208.png)
+        ![image.png](16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%208.png)
         
     - BO of channel → TR
         
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%209.png)
+        ![image.png](16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%209.png)
         
     
 
@@ -83,4 +83,4 @@ Keep drawing Line, look  for reversal or BO when price close the lines
 
 </aside>
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%2010.png)
+![image.png](16C%20New%20trend%20begins%20in%20old%20trend;%20Higher%20timefram/image%2010.png)

@@ -9,12 +9,12 @@
 
 </aside>
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/36B%20Defaults%20for%20Profit%20taking/image.png)
+![image.png](36B%20Defaults%20for%20Profit%20taking/image.png)
 
 - Take Profit
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/36B%20Defaults%20for%20Profit%20taking/image%201.png)
+    ![image.png](36B%20Defaults%20for%20Profit%20taking/image%201.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/36B%20Defaults%20for%20Profit%20taking/image%202.png)
+    ![image.png](36B%20Defaults%20for%20Profit%20taking/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/36B%20Defaults%20for%20Profit%20taking/image%203.png)
+    ![image.png](36B%20Defaults%20for%20Profit%20taking/image%203.png)

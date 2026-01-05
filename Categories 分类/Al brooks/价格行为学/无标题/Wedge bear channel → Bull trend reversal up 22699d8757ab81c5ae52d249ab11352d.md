@@ -13,6 +13,6 @@ B63有 shave head deny trigger，说明bull的强势
 
 这里wedge bottom fail是因为有盘前关键阻力位
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/Wedge%20bear%20channel%20→%20Bull%20trend%20reversal%20up/image.png)
+![image.png](Wedge%20bear%20channel%20%E2%86%92%20Bull%20trend%20reversal%20up/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/Wedge%20bear%20channel%20→%20Bull%20trend%20reversal%20up/image%201.png)
+![image.png](Wedge%20bear%20channel%20%E2%86%92%20Bull%20trend%20reversal%20up/image%201.png)

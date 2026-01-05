@@ -12,10 +12,10 @@ Winrate: 86
     - 黄色：globex London TR区
     - 绿色：昨日close， globex low
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image.png)
+    ![image.png](Bear%20spike%20+%20Bear%20Channel/image.png)
     
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%201.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%201.png)
 
 ---
 
@@ -38,65 +38,65 @@ B4,B5,B6形成了一个reversal up and down，都在London TR区域.
 
 决定take trade 1！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%202.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%202.png)
 
 看到sell the close依然强势，不过距离绿色区域也很近了，可能会有人take profit 我决定在B7的PB33位置limit order，然后target是绿色中端位置
 
 在B14的时候limit order trigger，但是B12,14挺强的而且不断抬高低点，导致sell below的bear被trapped。还好EMA也来帮忙了。继续观察。这时候想把stop los放在EMA上方
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%203.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%203.png)
 
 B12-16形成了一个wedge top的bear flag，最高点打在PB50，顺利抵达target！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%204.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%204.png)
 
 B21超级大的bear bar有可能是exhaustion bar因为是过去20个bar最大的，打算在PB21也即绿色区域中部埋伏一手 reversal up.顺利击中target！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%205.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%205.png)
 
 B23,24,25形成bull micro channel，似乎想关闭sell climax，但是遇上了ema。第一直觉是sel ema，但是等个signal才是正确的方法。
 
 B26是个有趣的信号。下影线靠近这个bull micro channel PB50，而且从EMA开始测量，幅度是5.25点，刚好是个scalp的幅度，所以有可能bear要等到更高的地方再sell for swing，这里只是scalp，不会hold for swing。但是查看这几日的chart，发现已经push down多次，不排除这里和昨日的close构成DB
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%206.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%206.png)
 
 B27再度背靠EMA+BEAR CORE21 下探到bull micro channel PB50 的地方，与B6,B17形成一个broad bear chanel的价格共识。考虑到
 
 1. PB50
 2. Broad channel的上沿，我这里试一试用中点来sell
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%207.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%207.png)
 
 这个stop loss设计的也太刺激了！这时候非常想trailing stop了，感觉会有很大的向下势头！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%208.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%208.png)
 
 顺利平仓！感觉bull非常的完全，争夺很激烈，bear三次下压，三次反抗，这是否是个wedge top bull flag? 等more信号！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%209.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%209.png)
 
 bear连续下降，抵达LOY和af_L两个magnet重叠处，开始反弹。B33开起来是个surprise bar，可以sell above，但是还是等信号
 
 1. broad channel 上方
 2. 抵达EMA
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%2010.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%2010.png)
 
 B33后是一个bear doji + big bull bar，而且两个下影线测试了B33 PB50的位置非常强力，刚好这个PB50也是绿色区域的midpoint，可能会形成一个MAG，然后MTR attempt，我在这个midpoint暂时下limit order，可能无法接到。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%2011.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%2011.png)
 
 顺利抵达target
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%2012.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%2012.png)
 
 这里我想顺着trend line做多，但是有点累和飘了，每天写trade表格，忘记思考bear的理由了，这里经典wedge top
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%2013.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%2013.png)
 
 TR BO，大概率MM move down 这里sell below B50。
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Bear%20spike%20+%20Bear%20Channel/image%2014.png)
+![image.png](Bear%20spike%20+%20Bear%20Channel/image%2014.png)
 
 ---
 

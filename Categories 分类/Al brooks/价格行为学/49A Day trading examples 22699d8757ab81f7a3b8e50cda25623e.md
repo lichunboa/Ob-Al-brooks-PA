@@ -41,9 +41,9 @@
     
     那么H2呢？第二个H其实之前也是4个bear bar，所以选择了2nd entry
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%203.png)
+    ![image.png](49A%20Day%20trading%20examples/image%203.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%204.png)
+    ![image.png](49A%20Day%20trading%20examples/image%204.png)
     
 - example 3: Parabolic Wedge Top → Bear Trend
     
@@ -60,52 +60,52 @@
     
 - example 4: Parabolic Wedge Top → Failed Bear BO
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%207.png)
+    ![image.png](49A%20Day%20trading%20examples/image%207.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%208.png)
+    ![image.png](49A%20Day%20trading%20examples/image%208.png)
     
 - example 5: Parabolic Wedge Bottom → Bull Trend
     
     ii-潜在的final flag
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%209.png)
+    ![image.png](49A%20Day%20trading%20examples/image%209.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2010.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2010.png)
     
 - example 6: 从gap这个细节看出SMPB的early sign
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2011.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2011.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2012.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2012.png)
     
 - example 7: Gap Up from strong bull trend day, wedge bottom at MA
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2013.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2013.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2014.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2014.png)
     
 - example 8: Gap up, BO mode, DB at MA → Bull Trend
     
     为了阻止三连3BMC bear，这里bull buy the close of 2nd bear bar
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2015.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2015.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2016.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2016.png)
     
 - example 9: Gap up, BO mode, DB at MA → TR
     
     Big Gap up, Always in Long on the close of B1
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2017.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2017.png)
     
     bull body **small**, 2 upper wick + bear bar :很可能成为TTR，go side way to down to MA
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2018.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2018.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2019.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2019.png)
     
 - example 10: TR day, second leg trap in channel Open
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2020.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2020.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/49A%20Day%20trading%20examples/image%2021.png)
+    ![image.png](49A%20Day%20trading%20examples/image%2021.png)

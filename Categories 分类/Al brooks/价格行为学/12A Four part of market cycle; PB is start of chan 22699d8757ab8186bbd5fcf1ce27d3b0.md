@@ -20,16 +20,16 @@
             
         - 4 part in Bull
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image.png)
             
             - BO
                 - 无明显回调或者很小的回调
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%201.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%201.png)
                 
             - Tight Channel
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%202.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%202.png)
                 
             - Board Channel
                 - HH,HL for bull board channel
@@ -49,28 +49,28 @@
             - Trading Range
                 - 其实PB也是一种TR，但是一般是20个以上bar才叫做TR，否则还是trend里头的PB
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%204.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%204.png)
                 
         - 4 part in Bear
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%205.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%205.png)
             
             - BO
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%206.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%206.png)
                 
             - Tight Channel
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%207.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%207.png)
                 
             - Board Channel
                 - LL,LH
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%208.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%208.png)
                 
             - TR
                 
-                ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%209.png)
+                ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%209.png)
                 
         
     - Cycle: trend→TR→trend
@@ -93,26 +93,26 @@
     
     - BO initiate the trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2010.png)
+        ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2010.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2011.png)
+        ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2011.png)
         
     - PB leads to channel , then TR
         - bull 例子
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2012.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2012.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2013.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2013.png)
             
         - bear 例子
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2014.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2014.png)
             
-            ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2015.png)
+            ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2015.png)
             
     - **Momentum and Value Trader**
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2016.png)
+        ![image.png](12A%20Four%20part%20of%20market%20cycle;%20PB%20is%20start%20of%20chan/image%2016.png)
         
         <aside>
         💡

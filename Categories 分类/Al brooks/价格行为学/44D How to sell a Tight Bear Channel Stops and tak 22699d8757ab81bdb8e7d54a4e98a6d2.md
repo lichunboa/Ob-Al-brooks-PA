@@ -3,19 +3,19 @@
 - How to sell a Tight Bear Channel?
     - Sell L1,L2 reversal down
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image.png)
+        ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image.png)
         
     - Sell BO-PB test
     - Sell 33%-50% PB of leg
     - Sell PB to resistance (EMA, trendline)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%201.png)
+        ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%202.png)
+        ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%202.png)
         
     - Sell above 1,2,3 PB bar
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%203.png)
+        ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%203.png)
         
 - Stops and taking profits
     - Trailing Stops
@@ -41,13 +41,13 @@
     
 - Tight Channel evolves into TR
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%205.png)
+    ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%205.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%206.png)
+    ![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%206.png)
     
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%207.png)
+![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%207.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%208.png)
+![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%208.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%209.png)
+![image.png](44D%20How%20to%20sell%20a%20Tight%20Bear%20Channel%20Stops%20and%20tak/image%209.png)

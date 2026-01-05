@@ -3,11 +3,11 @@
 - TR
     - Watch for Increasing Buying Pressure
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10B%20Pressure%20in%20TR%20and%20Channels/image.png)
+        ![image.png](10B%20Pressure%20in%20TR%20and%20Channels/image.png)
         
     - Watch for Increasing Selling Pressure
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10B%20Pressure%20in%20TR%20and%20Channels/image%201.png)
+        ![image.png](10B%20Pressure%20in%20TR%20and%20Channels/image%201.png)
         
 - Channel
     

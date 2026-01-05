@@ -13,11 +13,11 @@
     
 - Climax: 1~3 big bars / many small bars  / micro channel / tight channel
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%201.png)
+    ![image.png](29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%201.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%202.png)
+    ![image.png](29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%202.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%203.png)
+    ![image.png](29C%20Climatic%20reversals;%20Gaps%20exhaustion,%20measuring/image%203.png)
     
 - Gaps: exhaustion, measuring
     

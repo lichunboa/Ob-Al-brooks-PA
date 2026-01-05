@@ -18,6 +18,6 @@ B7想买，但是
 - midday reversal
 - TR
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/bear%20spike%20+%20channel,%20midday%20reversal%20,%20TR/image.png)
+![image.png](bear%20spike%20+%20channel,%20midday%20reversal%20,%20TR/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/无标题/bear%20spike%20+%20channel,%20midday%20reversal%20,%20TR/image%201.png)
+![image.png](bear%20spike%20+%20channel,%20midday%20reversal%20,%20TR/image%201.png)

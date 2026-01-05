@@ -23,14 +23,14 @@
     
 - Trapped bears at end of bear trend
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%202.png)
+    ![image.png](40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%202.png)
     
     ---
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%203.png)
+    ![image.png](40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%203.png)
     
 - Sell the close bears give up
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%204.png)
+    ![image.png](40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%204.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%205.png)
+    ![image.png](40D%20Disappointed%20bears;%20Trapped%20bears%20at%20end%20of%20be/image%205.png)

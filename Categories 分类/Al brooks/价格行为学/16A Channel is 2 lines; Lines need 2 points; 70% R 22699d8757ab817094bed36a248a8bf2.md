@@ -141,13 +141,13 @@
     - 70% 在channel line 5个bar 以内 reverse（如果BO持续10个bar以上，需要看higher timeframe showing the channel，才符合这个规则）
     - 30% 顺势BO
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%%20R/image%2015.png)
+    ![image.png](16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%25%20R/image%2015.png)
     
     - 顺势reversal比逆势reversal容易
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%%20R/image%2016.png)
+        ![image.png](16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%25%20R/image%2016.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%%20R/image%2017.png)
+        ![image.png](16A%20Channel%20is%202%20lines;%20Lines%20need%202%20points;%2070%25%20R/image%2017.png)
         
 - Channel : 2 converging lines （不止是平行线）
     - parallel （平行）

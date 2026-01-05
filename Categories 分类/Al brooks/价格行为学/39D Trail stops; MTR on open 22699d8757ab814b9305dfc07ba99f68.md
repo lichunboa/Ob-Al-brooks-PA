@@ -4,7 +4,7 @@
     
     [Buy setup] : 2nd failed BO below LOY 
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/39D%20Trail%20stops;%20MTR%20on%20open/image.png)
+    ![image.png](39D%20Trail%20stops;%20MTR%20on%20open/image.png)
     
 - MTR on open (开盘的MTR需要更少的bar数目就可以达成）
     

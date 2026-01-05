@@ -63,13 +63,13 @@
 - Multi-bar reversals [讲了合并bar]
     - 通过合并bar的奥义，能找到reversal bar！
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%206.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%206.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%207.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%207.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%208.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%208.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%209.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%209.png)
         
         <aside>
         💡
@@ -84,20 +84,20 @@
     - inside bar
         - 颜色不一致的2个bar，看作2 bar reversal
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2011.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2011.png)
         
         context: double bottom + HL
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2012.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2012.png)
         
     - outside bar
         - Big outside bar in 1st hour: often starts **swing trade**
         - Big outside bar sometimes is **BO** and entry bar
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2013.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2013.png)
         
         context: micro double bottom , test of neckline of double bottom
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2014.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2014.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2015.png)
+        ![image.png](08B%20Reversal%20bars%20and%20inside%20outside%20bars/image%2015.png)

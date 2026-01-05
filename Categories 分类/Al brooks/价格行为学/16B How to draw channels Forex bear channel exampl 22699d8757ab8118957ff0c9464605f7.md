@@ -77,7 +77,7 @@
         
 - CASE2: Emini bull channel
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2015.png)
+    ![image.png](16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2015.png)
     
     更新trend line
     
@@ -88,9 +88,9 @@
     - 每当市场上涨时，Brooks都会考虑空头处境
     - 大结构比起小结构更重要，不要忽略了
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2016.png)
+    ![image.png](16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2016.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2017.png)
+    ![image.png](16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2017.png)
     
     这时候三推完成，可以看若干阻力
     
@@ -98,6 +98,6 @@
     - wedge
     - MM
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2018.png)
+    ![image.png](16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2018.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2019.png)
+    ![image.png](16B%20How%20to%20draw%20channels%20Forex%20bear%20channel%20exampl/image%2019.png)

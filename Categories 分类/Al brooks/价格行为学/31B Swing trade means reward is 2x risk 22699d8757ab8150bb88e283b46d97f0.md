@@ -17,4 +17,4 @@
     
 - Scalpe察觉概率的蛛丝马迹的变化
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/31B%20Swing%20trade%20means%20reward%20is%202x%20risk/image%202.png)
+    ![image.png](31B%20Swing%20trade%20means%20reward%20is%202x%20risk/image%202.png)

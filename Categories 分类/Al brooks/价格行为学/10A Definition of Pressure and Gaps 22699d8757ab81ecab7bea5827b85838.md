@@ -7,29 +7,29 @@
 
 - Defition
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image.png)
+    ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image.png)
     
     - Buying Pressure
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%201.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%201.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%202.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%202.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%203.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%203.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%204.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%204.png)
         
     - Selling Pressure
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%205.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%205.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%206.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%206.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%207.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%207.png)
         
     - Pressure in TR
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/10A%20Definition%20of%20Pressure%20and%20Gaps/image%208.png)
+        ![image.png](10A%20Definition%20of%20Pressure%20and%20Gaps/image%208.png)
         
 - **Gaps**
     

@@ -17,6 +17,6 @@
     
 - Bear BO
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/41C%20Weak%20BO,%20then%20TR;%20Bear%20BO/image%201.png)
+    ![image.png](41C%20Weak%20BO,%20then%20TR;%20Bear%20BO/image%201.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/41C%20Weak%20BO,%20then%20TR;%20Bear%20BO/image%202.png)
+    ![image.png](41C%20Weak%20BO,%20then%20TR;%20Bear%20BO/image%202.png)

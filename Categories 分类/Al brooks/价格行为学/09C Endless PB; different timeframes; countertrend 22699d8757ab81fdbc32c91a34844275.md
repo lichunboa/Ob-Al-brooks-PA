@@ -59,16 +59,16 @@
 - Countertrend traders exit on High or Low 2
     - H2 in bull trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2010.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2010.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2011.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2011.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2012.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2012.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2013.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2013.png)
         
     - L2 in bear trend
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2014.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2014.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2015.png)
+        ![image.png](09C%20Endless%20PB;%20different%20timeframes;%20countertrend/image%2015.png)

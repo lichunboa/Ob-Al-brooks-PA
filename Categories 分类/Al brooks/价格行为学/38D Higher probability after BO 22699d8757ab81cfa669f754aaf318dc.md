@@ -2,9 +2,9 @@
 
 - Case1
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38D%20Higher%20probability%20after%20BO/image.png)
+    ![image.png](38D%20Higher%20probability%20after%20BO/image.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/38D%20Higher%20probability%20after%20BO/image%201.png)
+    ![image.png](38D%20Higher%20probability%20after%20BO/image%201.png)
     
 - End of day session
     

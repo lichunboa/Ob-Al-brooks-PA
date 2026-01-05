@@ -7,11 +7,11 @@ Trade Record: No
 Winrate: 100
 收获: 盘前要罗列出几个AOI，形成magnet指引价格移动！
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Gap%20down,%20TR%20between%20two%20AOI/image.png)
+![image.png](Gap%20down,%20TR%20between%20two%20AOI/image.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Gap%20down,%20TR%20between%20two%20AOI/image%201.png)
+![image.png](Gap%20down,%20TR%20between%20two%20AOI/image%201.png)
 
-![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/Replay%20-%20Simulation/Gap%20down,%20TR%20between%20two%20AOI/image%202.png)
+![image.png](Gap%20down,%20TR%20between%20two%20AOI/image%202.png)
 
 开局找到若干AOI
 
