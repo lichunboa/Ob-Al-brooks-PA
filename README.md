@@ -155,7 +155,7 @@ vim config/.env
 ```
 
 > 说明：顶层 `./scripts/start.sh` 仅管理 `data-service`、`trading-service`、`telegram-service`。  
-> 其他服务需手动：`cd services/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行。
+> 其他服务需手动：`cd services/markets-service && ./scripts/start.sh start`（多市场采集）或 `./scripts/crypto-daemon.sh start`（加密货币守护）；`cd services/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`vis-service` 需手动启动 `uvicorn src.main:app --port 8087`。
 
 ### ⚙️ 配置（必须）
 
@@ -169,6 +169,7 @@ vim config/.env
   - 计算后端：`COMPUTE_BACKEND`、`MAX_WORKERS`、`HIGH_PRIORITY_TOP_N`、`INDICATORS_ENABLED`/`INDICATORS_DISABLED`  
   - 展示过滤：`BINANCE_API_DISABLED`、`DISABLE_SINGLE_TOKEN_QUERY`、`SNAPSHOT_HIDDEN_FIELDS`、`BLOCKED_SYMBOLS`  
   - AI/交易：`AI_INDICATOR_TABLES`、`AI_INDICATOR_TABLES_DISABLED`、`BINANCE_API_KEY`、`BINANCE_API_SECRET`
+  - 国际化：`DEFAULT_LOCALE`（默认 zh-CN）、`SUPPORTED_LOCALES`（zh-CN,en）、`FALLBACK_LOCALE`
 
 ### 📦 下载历史数据（可选）
 

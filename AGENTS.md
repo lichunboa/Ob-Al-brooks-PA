@@ -348,6 +348,8 @@ tradecat/
 | K线形态检测 | `trading-service/src/indicators/batch/k_pattern.py` | TA-Lib + patternpy |
 | 期货情绪聚合 | `trading-service/src/indicators/batch/futures_aggregate.py` | OI/多空比/情绪 |
 | 数据提供者 | `telegram-service/src/cards/data_provider.py` | 读取 SQLite + 币种过滤 |
+| i18n 国际化 | `libs/common/i18n.py` | gettext 封装，支持 zh_CN/en |
+| 可视化模板 | `vis-service/src/templates/registry.py` | 4 个内置模板（line/kline/macd/vpvr）|
 | 单币快照 | `telegram-service/src/bot/single_token_snapshot.py` | 单币多周期数据表格 |
 | 共享币种模块 | `libs/common/symbols.py` | 统一币种过滤逻辑 |
 | 代理管理器 | `libs/common/proxy_manager.py` | 运行时代理重试+冷却 |
@@ -528,6 +530,9 @@ docs: 更新 README 快速开始指南
 | `SNAPSHOT_HIDDEN_FIELDS` | telegram-service | 单币快照屏蔽字段 |
 | `AI_INDICATOR_TABLES` | ai-service | 启用的指标表（逗号分隔） |
 | `AI_INDICATOR_TABLES_DISABLED` | ai-service | 禁用的指标表 |
+| `VIS_SERVICE_HOST` | vis-service | 监听地址（默认 0.0.0.0） |
+| `VIS_SERVICE_PORT` | vis-service | 监听端口（默认 8087） |
+| `VIS_SERVICE_TOKEN` | vis-service | 访问令牌（可选） |
 
 ---
 
@@ -557,6 +562,16 @@ cd services/trading-service
 ./scripts/start.sh start        # 启动
 ./scripts/start.sh stop         # 停止
 ./scripts/start.sh status       # 状态
+
+# markets-service（多市场采集）
+cd services/markets-service
+./scripts/start.sh start        # 启动
+./scripts/crypto-daemon.sh      # 加密货币守护进程
+
+# vis-service（可视化渲染）
+cd services/vis-service
+source .venv/bin/activate
+uvicorn src.main:app --host 0.0.0.0 --port 8087
 
 # 验证
 ./scripts/verify.sh             # 运行验证
