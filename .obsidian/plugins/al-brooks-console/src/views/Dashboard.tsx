@@ -1299,8 +1299,12 @@ const ConsoleComponent: React.FC<Props> = ({
     url?: string;
   };
 
-  const galleryItems = React.useMemo((): GalleryItem[] => {
-    if (!getResourceUrl) return [];
+  const gallery = React.useMemo((): {
+    items: GalleryItem[];
+    scopeTotal: number;
+    candidateCount: number;
+  } => {
+    if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
     const out: GalleryItem[] = [];
     const seen = new Set<string>();
     const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
@@ -1312,8 +1316,16 @@ const ConsoleComponent: React.FC<Props> = ({
             (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
           );
 
+    // v5.0 口径：按“最新”取候选。index.getAll() 的顺序不保证，所以这里显式按日期倒序。
+    const candidatesSorted = [...candidates].sort((a, b) => {
+      const da = String((a as any).dateIso ?? "");
+      const db = String((b as any).dateIso ?? "");
+      if (da === db) return 0;
+      return da < db ? 1 : -1;
+    });
+
     // v5.0 口径：从最近交易里取前 20 个候选，最终只展示 4 张。
-    for (const t of candidates.slice(0, 20)) {
+    for (const t of candidatesSorted.slice(0, 20)) {
       // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
       const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
       const rawCover =
@@ -1359,7 +1371,11 @@ const ConsoleComponent: React.FC<Props> = ({
       if (out.length >= 4) break;
     }
 
-    return out;
+    return {
+      items: out,
+      scopeTotal: candidatesSorted.length,
+      candidateCount: Math.min(20, candidatesSorted.length),
+    };
   }, [trades, resolveLink, getResourceUrl, galleryScope]);
 
   const gallerySearchHref = React.useMemo(() => {
@@ -3104,8 +3120,8 @@ short mode\n\
               </div>
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}>
-              <div style={{ flex: "2 1 420px", minWidth: "360px" }}>
+            <div>
+              <div style={{ marginBottom: SPACE.md }}>
                 {(() => {
                   const rHeight = 90;
                   const rZeroY = rHeight / 2;
@@ -3213,20 +3229,7 @@ short mode\n\
                 })()}
               </div>
 
-              <div
-                style={{
-                  flex: "1 1 260px",
-                  minWidth: "260px",
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "8px",
-                  padding: "12px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  gap: "6px",
-                }}
-              >
+              <div style={cardSubtleTightStyle}>
                 <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
                   🧠 实盘心态
                 </div>
@@ -3235,11 +3238,18 @@ short mode\n\
                     fontSize: "1.15em",
                     fontWeight: 900,
                     color: analyticsMind.color,
+                    marginTop: SPACE.xs,
                   }}
                 >
                   {analyticsMind.status}
                 </div>
-                <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>
+                <div
+                  style={{
+                    color: "var(--text-faint)",
+                    fontSize: "0.85em",
+                    marginTop: SPACE.xs,
+                  }}
+                >
                   FOMO: {analyticsMind.fomo} | Tilt: {analyticsMind.tilt} |
                   犹豫: {analyticsMind.hesitation}
                 </div>
@@ -3349,11 +3359,9 @@ short mode\n\
 
           <div
             style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
+              ...cardTightStyle,
+              marginBottom: SPACE.xl,
+              gridColumn: "2 / 3",
             }}
           >
             <div
@@ -3545,11 +3553,21 @@ short mode\n\
               </label>
             </div>
 
+            <div
+              style={{
+                marginTop: "2px",
+                color: "var(--text-faint)",
+                fontSize: "0.8em",
+              }}
+            >
+              {`范围内共 ${gallery.scopeTotal} 笔 · 候选 ${gallery.candidateCount} · 展示 ${gallery.items.length}/4`}
+            </div>
+
             {!getResourceUrl ? (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
                 画廊不可用。
               </div>
-            ) : galleryItems.length > 0 ? (
+            ) : gallery.items.length > 0 ? (
               <div
                 style={{
                   display: "grid",
@@ -3557,7 +3575,7 @@ short mode\n\
                   gap: SPACE.md,
                 }}
               >
-                {galleryItems.map((it) => (
+                {gallery.items.map((it) => (
                   <button
                     key={`gal-${it.coverPath}`}
                     type="button"
