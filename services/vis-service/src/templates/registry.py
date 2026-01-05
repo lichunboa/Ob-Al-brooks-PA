@@ -823,6 +823,121 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
+def render_vpvr_ridge(params: Dict, output: str) -> Tuple[object, str]:
+    """
+    VPVR 山脊图 - 展示成交量分布随时间演变。
+
+    必填：
+    - data: [{period, prices: list, volumes: list}] 或
+            [{period, distribution: [{price, volume}]}]
+    
+    可选：
+    - title: 标题
+    - bins: 价格分桶数，默认 50
+    - overlap: 山脊重叠度，默认 0.5
+    - colormap: 颜色映射，默认 viridis
+    """
+    data = params.get("data")
+    if not data or not isinstance(data, list):
+        raise ValueError("缺少 data 列表")
+
+    bins = int(params.get("bins", 50))
+    overlap = float(params.get("overlap", 0.5))
+    cmap_name = params.get("colormap", "viridis")
+    title = params.get("title", "VPVR Ridge Plot")
+
+    # 解析数据，构建每个时间段的价格-成交量分布
+    periods = []
+    distributions = []
+    
+    for item in data:
+        period = item.get("period", str(len(periods)))
+        
+        if "distribution" in item:
+            # 已聚合的分布数据
+            dist = item["distribution"]
+            prices = [d["price"] for d in dist]
+            volumes = [d["volume"] for d in dist]
+        elif "prices" in item and "volumes" in item:
+            # 原始价格-成交量数据，需要分桶
+            prices = np.array(item["prices"], dtype=float)
+            volumes = np.array(item["volumes"], dtype=float)
+            if len(prices) != len(volumes) or len(prices) == 0:
+                continue
+        else:
+            continue
+        
+        periods.append(period)
+        distributions.append((prices, volumes))
+
+    if not distributions:
+        raise ValueError("无有效的分布数据")
+
+    # 计算全局价格范围
+    all_prices = np.concatenate([d[0] for d in distributions])
+    price_min, price_max = np.nanmin(all_prices), np.nanmax(all_prices)
+    bin_edges = np.linspace(price_min, price_max, bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # 计算每个时间段的成交量分布
+    histograms = []
+    for prices, volumes in distributions:
+        hist, _ = np.histogram(prices, bins=bin_edges, weights=volumes)
+        # 归一化
+        hist = hist / (hist.max() + 1e-9)
+        histograms.append(hist)
+
+    n_periods = len(periods)
+    
+    if output == "json":
+        return (
+            {
+                "title": title,
+                "periods": periods,
+                "bin_centers": bin_centers.tolist(),
+                "distributions": [h.tolist() for h in histograms],
+            },
+            "application/json",
+        )
+
+    # 绘制山脊图
+    sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
+    cmap = plt.cm.get_cmap(cmap_name)
+    
+    fig, axes = plt.subplots(n_periods, 1, figsize=(12, max(6, n_periods * 0.8)), 
+                              sharex=True, gridspec_kw={"hspace": -overlap})
+
+    if n_periods == 1:
+        axes = [axes]
+
+    for i, (period, hist) in enumerate(zip(periods, histograms)):
+        ax = axes[i]
+        color = cmap(i / max(1, n_periods - 1))
+        
+        # 填充山脊
+        ax.fill_between(bin_centers, hist, alpha=0.8, color=color)
+        ax.plot(bin_centers, hist, color="white", lw=0.8)
+        
+        # 标记 POC（最大成交量价格）
+        poc_idx = np.argmax(hist)
+        poc_price = bin_centers[poc_idx]
+        ax.axvline(poc_price, color="white", lw=1, ls="--", alpha=0.6)
+        
+        # 设置样式
+        ax.set_yticks([])
+        ax.set_ylabel(period, rotation=0, ha="right", va="center", fontsize=9)
+        ax.patch.set_alpha(0)
+        
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+    axes[-1].set_xlabel("Price", fontsize=10)
+    fig.suptitle(title, fontsize=12, fontweight="bold", y=0.98)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+
+    return _fig_to_png(fig), "image/png"
+
+
 def register_defaults() -> TemplateRegistry:
     """注册内置模板，并返回注册表实例。"""
 
