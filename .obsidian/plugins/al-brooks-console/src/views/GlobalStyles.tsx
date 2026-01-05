@@ -42,6 +42,32 @@ export const GlobalStyles: React.FC = () => (
   gap: 8px;
 }
 
+.pa-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 14px;
+}
+
+.pa-section-header {
+  margin: 12px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pa-section-title {
+  font-weight: 700;
+}
+
+.pa-section-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
 /* Grid Layouts */
 .pa-grid-2 {
   display: grid;

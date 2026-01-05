@@ -12,16 +12,13 @@
   "editing-toolbar",
   "obsidian-emoji-toolbar",
   "obsidian-hover-editor",
-  "oz-image-plugin",
-  "metadata-menu",
   "excalibrain",
   "note-toolbar",
-  "obsidian-custom-attachment-location",
   "omnisearch",
-  "datacore",
   "url-into-selection",
   "obsidian-importer",
   "zenboard",
   "al-brooks-console",
-  "make-md"
+  "make-md",
+  "dataview"
 ]
