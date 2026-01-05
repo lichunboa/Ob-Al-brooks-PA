@@ -1448,6 +1448,42 @@ const ConsoleComponent: React.FC<Props> = ({
         <span className="pa-dashboard-title-meta">v{version}</span>
         <span className="pa-dashboard-title-meta">{statusText}</span>
         <span className="pa-dashboard-title-actions">
+
+          {integrations ? (
+            <>
+              <button
+                type="button"
+                disabled={!can("srs:review-flashcards")}
+                onClick={() => action("srs:review-flashcards")}
+                onMouseEnter={onBtnMouseEnter}
+                onMouseLeave={onBtnMouseLeave}
+                onFocus={onBtnFocus}
+                onBlur={onBtnBlur}
+                style={
+                  can("srs:review-flashcards")
+                    ? buttonStyle
+                    : disabledButtonStyle
+                }
+              >
+                ⚡️ 开始复习
+              </button>
+            </>
+          ) : null}
+
+          {index.rebuild ? (
+            <button
+              type="button"
+              onClick={onRebuild}
+              onMouseEnter={onBtnMouseEnter}
+              onMouseLeave={onBtnMouseLeave}
+              onFocus={onBtnFocus}
+              onBlur={onBtnBlur}
+              style={buttonStyle}
+            >
+              重建索引
+            </button>
+          ) : null}
+
           <button
             type="button"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
@@ -1458,53 +1494,8 @@ const ConsoleComponent: React.FC<Props> = ({
             style={buttonStyle}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
-            {integrations ? (
-              <>
-                <button
-                  type="button"
-                  disabled={!can("srs:review-flashcards")}
-                  onClick={() => action("srs:review-flashcards")}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={
-                    can("srs:review-flashcards")
-                      ? buttonStyle
-                      : disabledButtonStyle
-                  }
-                >
-                  ⚡️ 开始复习
-                </button>
-              </>
-            ) : null}
-
-            {index.rebuild ? (
-              <button
-                type="button"
-                onClick={onRebuild}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
-                style={buttonStyle}
-              >
-                重建索引
-              </button>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={buttonStyle}
-              title={TRADE_NOTE_TEMPLATE_PATH}
-            >
-              新建交易
-            </button>
+            新建交易
+          </button>
         </span>
       </h2>
 
