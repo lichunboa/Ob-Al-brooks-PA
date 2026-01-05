@@ -717,8 +717,8 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
     df["x"] = df["x"].clip(0.03, 0.97)
 
     # 绘制圆圈 - 参数调大
-    # 气泡大小只由市值决定，字体固定比例缩放
-    base_size = 6.0  # 基础气泡大小
+    # 绘制圆圈 - v13 参数
+    base_font = 5.0
     texts = []
 
     vol_cmap = plt.cm.YlOrRd_r
@@ -728,10 +728,9 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
         if len(label) > 6:
             label = label[:6] + ".."
 
-        # 市值决定气泡大小
-        size_factor = row.get("size_factor", 1.0)  # 0.4 ~ 1.2
-        bubble_size = base_size * size_factor  # 气泡大小
-        font_size = bubble_size * 0.8  # 字体固定为气泡的 80%
+        # 市值决定大小
+        size_factor = row.get("size_factor", 1.0)
+        font_size = base_font * (0.8 + size_factor * 0.7)
 
         # 成交量决定填充颜色
         vol_factor = row.get("vol_factor", 0.5)
@@ -747,8 +746,8 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
         else:
             edge_color = "#ffffff"
 
-        # 边框宽度固定比例
-        edge_width = bubble_size * 0.25
+        # 边框宽度
+        edge_width = 1.0 + size_factor * 1.2
 
         txt = ax.text(
             row["x"], row["y"], label,
