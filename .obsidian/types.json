@@ -28,6 +28,14 @@
     "TQ_show_urgency": "checkbox",
     "设置类别/setup_category": "multitext",
     "date": "date",
-    "概率/probability": "multitext"
+    "概率/probability": "multitext",
+    "方向/direction": "multitext",
+    "订单类型/order_type": "multitext",
+    "结果/outcome": "multitext",
+    "执行评价/execution_quality": "multitext",
+    "策略名称/strategy_name": "multitext",
+    "时间周期/timeframe": "multitext",
+    "品种/ticker": "multitext",
+    "账户类型/account_type": "multitext"
   }
 }
