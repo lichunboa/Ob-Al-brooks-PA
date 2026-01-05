@@ -42,9 +42,9 @@ export const buttonSmDisabledStyle: CSSProperties = {
 export const tabButtonStyle: CSSProperties = {
   padding: "5px 9px",
   fontSize: "0.85em",
-  border: "1px solid var(--background-modifier-border)",
+  border: "1px solid rgba(var(--mono-rgb-100), 0.15)",
   borderRadius: "999px",
-  background: "var(--background-primary)",
+  background: "rgba(var(--mono-rgb-100), 0.02)",
   color: "var(--text-muted)",
   cursor: "pointer",
   outline: "none",

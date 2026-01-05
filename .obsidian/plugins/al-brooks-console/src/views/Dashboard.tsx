@@ -1710,31 +1710,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 </div>
               </div>
 
-              {!todayMarketCycle && (
-                <div style={{ marginBottom: "12px" }}>
-                  <div
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: "0.9em",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-                  </div>
-                  <button
-                    type="button"
-                    disabled={!canOpenTodayNote}
-                    onClick={onOpenTodayNote}
-                    onMouseEnter={onBtnMouseEnter}
-                    onMouseLeave={onBtnMouseLeave}
-                    onFocus={onBtnFocus}
-                    onBlur={onBtnBlur}
-                    style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-                  >
-                    打开/创建今日日记（设置市场周期）
-                  </button>
-                </div>
-              )}
+
 
               <div
                 style={{
@@ -1747,7 +1723,7 @@ const ConsoleComponent: React.FC<Props> = ({
               </div>
 
               {todayStrategyPicks.length > 0 && (
-                <div style={{ marginBottom: "12px" }}>
+                <div style={{ ...glassPanelStyle, marginBottom: "12px" }}>
                   <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                     周期 → 策略推荐
                   </div>
@@ -1775,7 +1751,7 @@ const ConsoleComponent: React.FC<Props> = ({
               )}
 
               {openTrade && (
-                <div>
+                <div style={{ ...glassPanelStyle }}>
                   <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                     进行中交易助手
                   </div>

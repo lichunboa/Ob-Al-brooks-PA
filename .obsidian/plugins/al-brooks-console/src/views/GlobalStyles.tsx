@@ -30,6 +30,14 @@ export const GlobalStyles: React.FC = () => (
   gap: 10px;
 }
 
+.pa-dashboard-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
 .pa-dashboard-title-meta {
   font-size: 0.8em;
   color: var(--text-muted);
@@ -56,8 +64,8 @@ export const GlobalStyles: React.FC = () => (
 .pa-tabbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: -6px 0 14px;
+  gap: 14px;
+  margin: 0 0 16px;
 }
 
 /* Grid Layouts */
