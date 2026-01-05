@@ -3496,44 +3496,39 @@ short mode\n\
             ) : gallery.items.length > 0 ? (
               <div
                 style={{
-                  maxHeight: "520px",
-                  overflowY: "auto",
-                  paddingRight: "2px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: SPACE.md,
                 }}
               >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: SPACE.md,
-                  }}
-                >
-                  {gallery.items.map((it) => (
-                    <button
-                      key={`gal-${it.tradePath}`}
-                      type="button"
-                      onClick={() => openFile(it.tradePath)}
-                      title={`${it.tradeName} • ${it.coverPath}`}
-                      onMouseEnter={onCoverMouseEnter}
-                      onMouseLeave={onCoverMouseLeave}
-                      onFocus={onCoverFocus}
-                      onBlur={onCoverBlur}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        padding: 0,
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        background: `rgba(var(--mono-rgb-100), 0.03)`,
-                        cursor: "pointer",
-                        outline: "none",
-                        transition:
-                          "background-color 180ms ease, border-color 180ms ease",
-                        position: "relative",
-                        aspectRatio: 16 / 9,
-                      }}
-                    >
+                {gallery.items.map((it) => (
+                  <button
+                    key={`gal-${it.tradePath}`}
+                    type="button"
+                    onClick={() => openFile(it.tradePath)}
+                    title={`${it.tradeName} • ${it.coverPath}`}
+                    onMouseEnter={onCoverMouseEnter}
+                    onMouseLeave={onCoverMouseLeave}
+                    onFocus={onCoverFocus}
+                    onBlur={onCoverBlur}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "auto",
+                      minHeight: "140px",
+                      padding: 0,
+                      border: "1px solid var(--background-modifier-border)",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      background: `rgba(var(--mono-rgb-100), 0.03)`,
+                      cursor: "pointer",
+                      outline: "none",
+                      transition:
+                        "background-color 180ms ease, border-color 180ms ease",
+                      position: "relative",
+                      aspectRatio: "16 / 9",
+                    }}
+                  >
                     {it.url ? (
                       <>
                         <img
@@ -3694,9 +3689,8 @@ short mode\n\
                         </div>
                       </div>
                     )}
-                    </button>
-                  ))}
-                </div>
+                  </button>
+                ))}
               </div>
             ) : (
               <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
