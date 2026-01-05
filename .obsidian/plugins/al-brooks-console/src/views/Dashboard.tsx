@@ -2470,13 +2470,19 @@ short mode\n\
             }}
           >
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "1 / 2",
-            }}
-          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: SPACE.md,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.md }}
             >
@@ -2672,13 +2678,11 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "2 / 3",
-            }}
-          >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
@@ -2741,13 +2745,11 @@ short mode\n\
             )}
           </div>
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "2 / 3",
-            }}
-          >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
@@ -2853,13 +2855,11 @@ short mode\n\
             )}
           </div>
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "2 / 3",
-            }}
-          >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
@@ -2896,13 +2896,11 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "1 / 2",
-            }}
-          >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{
                 display: "flex",
@@ -3085,13 +3083,11 @@ short mode\n\
             </div>
           </div>
 
-          <div
-            style={{
-              ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "1 / 2",
-            }}
-          >
+              <div
+                style={{
+                  ...cardTightStyle,
+                }}
+              >
             <div
               style={{
                 display: "flex",
@@ -3357,11 +3353,20 @@ short mode\n\
             </div>
           </div>
 
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: SPACE.md,
+                minWidth: 0,
+              }}
+            >
+
           <div
             style={{
               ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "2 / 3",
             }}
           >
             <div
@@ -3506,8 +3511,6 @@ short mode\n\
           <div
             style={{
               ...cardTightStyle,
-              marginBottom: SPACE.xl,
-              gridColumn: "2 / 3",
             }}
           >
             <div
@@ -3730,6 +3733,8 @@ short mode\n\
               </a>
             </div>
           </div>
+
+            </div>
 
           </div>
         </>
