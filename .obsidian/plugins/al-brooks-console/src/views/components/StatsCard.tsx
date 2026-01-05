@@ -16,25 +16,11 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   color = "var(--interactive-accent)",
 }) => {
   return (
-    <div
-      style={{
-        background: `rgba(var(--mono-rgb-100), 0.05)`, // Default obsidian card bg
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "12px",
-        padding: "16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        minWidth: "120px",
-        flex: "1 1 auto", // Responsive flex
-      }}
-    >
+    <div className="pa-card" style={{ minWidth: "120px", flex: "1 1 auto" }}>
       <div
         style={{
           fontSize: "0.85rem",
           color: "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -46,10 +32,11 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 
       <div
         style={{
-          fontSize: "1.8rem",
-          fontWeight: "700",
+          fontSize: "1.65rem",
+          fontWeight: 700,
           color: color,
-          lineHeight: "1.2",
+          lineHeight: "1.15",
+          marginTop: "2px",
         }}
       >
         {value}

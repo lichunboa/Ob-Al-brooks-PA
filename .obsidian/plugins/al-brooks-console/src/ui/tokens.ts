@@ -1,24 +1,24 @@
 // UI tokens & helpers
 // - Theme/background stays on Obsidian CSS variables (var(--background-*), var(--text-*) etc.)
-// - Semantic/status/chart colors follow v5 palette (from scripts/pa-config.js)
+// - Semantic/status/chart colors follow Obsidian theme variables
 
 export const V5_COLORS = {
   // Trading status
-  live: "#10B981", // 实盘
-  demo: "#3B82F6", // 模拟
-  back: "#F59E0B", // 回测
+  live: "var(--text-success)", // 实盘
+  demo: "var(--text-accent)", // 模拟
+  back: "var(--text-warning)", // 回测
 
   // Outcome / alerts
-  loss: "#EF4444",
-  win: "#10B981",
+  loss: "var(--text-error)",
+  win: "var(--text-success)",
 
   // Accents
-  accent: "#60A5FA",
-  accentPurple: "#A78BFA",
+  accent: "var(--interactive-accent)",
+  accentPurple: "var(--interactive-accent)",
 
   // Text (v5 baseline, optional use)
-  textSub: "rgba(243,244,246,0.6)",
-  textDim: "rgba(243,244,246,0.4)",
+  textSub: "var(--text-muted)",
+  textDim: "var(--text-faint)",
 } as const;
 
 export function withHexAlpha(color: string, alphaHex: string): string {

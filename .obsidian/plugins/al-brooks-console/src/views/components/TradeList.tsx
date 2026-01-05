@@ -15,7 +15,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
 
   const deactivateRow = React.useCallback((el: HTMLDivElement) => {
     el.style.borderColor = "var(--background-modifier-border)";
-    el.style.background = "var(--background-primary)";
+    el.style.background = "var(--background-secondary)";
     el.style.boxShadow = "none";
   }, []);
 
@@ -37,7 +37,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
               key={t.path}
               style={{
                 padding: "12px",
-                background: "var(--background-primary)",
+                background: "var(--background-secondary)",
                 border: "1px solid var(--background-modifier-border)",
                 borderRadius: "8px",
                 display: "flex",

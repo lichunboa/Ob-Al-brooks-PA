@@ -54,10 +54,10 @@ export const tabButtonStyle: CSSProperties = {
 
 export const activeTabButtonStyle: CSSProperties = {
   ...tabButtonStyle,
-  background: "var(--interactive-accent)",
+  background: "var(--background-modifier-hover)",
   borderColor: "var(--interactive-accent)",
-  color: "var(--text-on-accent)",
-  fontWeight: 800,
+  color: "var(--text-normal)",
+  fontWeight: 700,
 };
 
 export const selectStyle: CSSProperties = {
@@ -100,7 +100,7 @@ export const cardStyle: CSSProperties = {
   border: "1px solid var(--background-modifier-border)",
   borderRadius: "10px",
   padding: SPACE.lg,
-  background: "var(--background-primary)",
+  background: "var(--background-secondary)",
 };
 
 export const cardTightStyle: CSSProperties = {
