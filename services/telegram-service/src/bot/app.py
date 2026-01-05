@@ -4874,12 +4874,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 coins = [s.replace("USDT", "") for s in symbols] if symbols else ["BTC", "ETH", "SOL"]
                 coins_text = "\n".join(coins)
                 text = (
-                    "🔍 *币种查询*\n\n"
+                    f"{_t(update, 'query.title')}\n\n"
                     f"```\n{coins_text}\n```\n"
-                    f"📊 可查询币种 ({len(coins)} 个)\n"
-                    "💡 使用方法:\n"
-                    "• `BTC!` - 交互式查询\n"
-                    "• `BTC!!` - 导出完整TXT文件"
+                    f"{_t(update, 'query.count', count=len(coins))}\n"
+                    f"{_t(update, 'query.usage')}\n"
+                    f"{_t(update, 'query.usage_interactive')}\n"
+                    f"{_t(update, 'query.usage_export')}"
                 )
                 keyboard = InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]])
                 await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
@@ -5770,12 +5770,12 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                 coins = [s.replace("USDT", "") for s in symbols] if symbols else ["BTC", "ETH", "SOL"]
                 coins_text = "\n".join(coins)
                 text = (
-                    "🔍 *币种查询*\n\n"
+                    f"{_t(update, 'query.title')}\n\n"
                     f"```\n{coins_text}\n```\n"
-                    f"📊 可查询币种 ({len(coins)} 个)\n"
-                    "💡 使用方法:\n"
-                    "• `BTC!` - 交互式查询\n"
-                    "• `BTC!!` - 导出完整TXT文件"
+                    f"{_t(update, 'query.count', count=len(coins))}\n"
+                    f"{_t(update, 'query.usage')}\n"
+                    f"{_t(update, 'query.usage_interactive')}\n"
+                    f"{_t(update, 'query.usage_export')}"
                 )
                 keyboard = InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]])
                 await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
