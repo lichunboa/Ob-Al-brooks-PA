@@ -1306,7 +1306,6 @@ const ConsoleComponent: React.FC<Props> = ({
   } => {
     if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
     const out: GalleryItem[] = [];
-    const seen = new Set<string>();
     const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
     const candidates =
@@ -1331,29 +1330,29 @@ const ConsoleComponent: React.FC<Props> = ({
       const rawCover =
         (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
       const ref = parseCoverRef(rawCover);
-      if (!ref) continue;
 
-      let target = ref.target;
-      // 解析 markdown link 的 target 可能带引号/空格
-      target = String(target).trim();
-      if (!target) continue;
-
-      // 支持外链封面（http/https），否则按 Obsidian linkpath 解析到 vault path。
+      // 允许“没有封面”的交易也进入展示（用占位卡片），否则用户会看到
+      // “范围内有 2 笔，但只展示 1 张”的困惑。
       let resolved = "";
       let url: string | undefined = undefined;
-
-      if (/^https?:\/\//i.test(target)) {
-        resolved = target;
-        url = target;
-      } else {
-        resolved = resolveLink ? resolveLink(target, t.path) ?? target : target;
-        if (!resolved || !isImage(resolved)) continue;
-        url = getResourceUrl(resolved);
+      if (ref) {
+        let target = String(ref.target ?? "").trim();
+        if (target) {
+          // 支持外链封面（http/https），否则按 Obsidian linkpath 解析到 vault path。
+          if (/^https?:\/\//i.test(target)) {
+            resolved = target;
+            url = target;
+          } else {
+            resolved = resolveLink ? resolveLink(target, t.path) ?? target : target;
+            if (resolved && isImage(resolved)) {
+              url = getResourceUrl(resolved);
+            } else {
+              resolved = "";
+              url = undefined;
+            }
+          }
+        }
       }
-
-      if (!resolved || !isImage(resolved)) continue;
-      if (seen.has(resolved)) continue;
-      seen.add(resolved);
 
       const acct = (t.accountType ?? "Live") as AccountType;
       const pnl =
