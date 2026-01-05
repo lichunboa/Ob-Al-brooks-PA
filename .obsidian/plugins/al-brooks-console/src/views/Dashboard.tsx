@@ -2421,12 +2421,12 @@ short mode\n\
         <>
           <div
             style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
+              margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
+              paddingBottom: SPACE.xs,
               borderBottom: "1px solid var(--background-modifier-border)",
               display: "flex",
               alignItems: "baseline",
-              gap: "10px",
+              gap: SPACE.sm,
               flexWrap: "wrap",
             }}
           >
@@ -2437,16 +2437,10 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: "12px" }}
+              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.md }}
             >
               💼 账户资金概览{" "}
               <span
@@ -2459,19 +2453,16 @@ short mode\n\
             <div
               style={{
                 display: "flex",
-                gap: "12px",
+                gap: SPACE.md,
                 flexWrap: "wrap",
-                marginBottom: "14px",
+                marginBottom: SPACE.md,
               }}
             >
               <div
                 style={{
+                  ...cardSubtleTightStyle,
                   flex: "1.5 1 360px",
                   minWidth: "320px",
-                  border: "1px solid var(--background-modifier-border)",
-                  borderRadius: "10px",
-                  padding: "12px",
-                  background: "rgba(var(--mono-rgb-100), 0.03)",
                 }}
               >
                 <div
@@ -2573,10 +2564,7 @@ short mode\n\
                   <div
                     key={card.title}
                     style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
+                      ...cardSubtleTightStyle,
                     }}
                   >
                     <div
@@ -2647,16 +2635,10 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}
+              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
               🌪️ 不同市场环境表现{" "}
               <span
@@ -2718,16 +2700,10 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}
+              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
               💸 错误的代价{" "}
               <span
@@ -2832,16 +2808,10 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}
+              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
               💡 系统建议{" "}
               <span
@@ -2877,13 +2847,7 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
               style={{
@@ -2920,7 +2884,7 @@ short mode\n\
               </label>
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}>
               <div style={{ flex: "1 1 320px", minWidth: "320px" }}>
                 <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                   日历（最近 {calendarDays} 天）
@@ -3055,7 +3019,7 @@ short mode\n\
                 marginTop: "12px",
                 display: "flex",
                 flexWrap: "wrap",
-                gap: "12px",
+                gap: SPACE.md,
               }}
             >
               <div style={{ flex: "1 1 360px", minWidth: "320px" }}>
@@ -3068,13 +3032,7 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
               style={{
@@ -3104,7 +3062,7 @@ short mode\n\
               </div>
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.md }}>
               <div style={{ flex: "2 1 420px", minWidth: "360px" }}>
                 {(() => {
                   const rHeight = 90;
@@ -4682,16 +4640,10 @@ short mode\n\
           </div>
 
           <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
+            style={{ ...cardTightStyle, marginBottom: SPACE.xl }}
           >
             <div
-              style={{ fontWeight: 700, opacity: 0.75, marginBottom: "10px" }}
+              style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.sm }}
             >
               🖼️ 最新复盘{" "}
               <span
@@ -4709,7 +4661,7 @@ short mode\n\
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
+                  gap: SPACE.md,
                 }}
               >
                 {galleryItems.map((it) => (
@@ -4752,22 +4704,21 @@ short mode\n\
                         <div
                           style={{
                             position: "absolute",
-                            top: "6px",
-                            right: "6px",
-                            background: "rgba(var(--mono-rgb-100), 0.12)",
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            color:
+                            top: SPACE.xs,
+                            right: SPACE.xs,
+                            background:
                               it.accountType === "Live"
                                 ? V5_COLORS.live
                                 : it.accountType === "Backtest"
                                 ? V5_COLORS.back
                                 : V5_COLORS.demo,
-                            fontSize: "0.72em",
-                            fontWeight: 900,
-                            padding: "2px 8px",
-                            borderRadius: "999px",
-                            backdropFilter: "blur(6px)",
+                            border:
+                              "1px solid var(--background-modifier-border)",
+                            color: "rgba(var(--mono-rgb-0), 0.9)",
+                            fontSize: "0.6em",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "4px",
                           }}
                         >
                           {it.accountType === "Live"
@@ -4783,7 +4734,7 @@ short mode\n\
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            padding: "16px 10px 8px",
+                            padding: `${SPACE.xxl} ${SPACE.sm} ${SPACE.xs}`,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "flex-end",
@@ -4795,7 +4746,7 @@ short mode\n\
                           <div
                             style={{
                               color: "var(--text-on-accent)",
-                              fontSize: "0.85em",
+                              fontSize: "0.75em",
                               fontWeight: 800,
                               textAlign: "left",
                               overflow: "hidden",
@@ -4809,15 +4760,17 @@ short mode\n\
                           <div
                             style={{
                               color:
-                                it.pnl >= 0 ? V5_COLORS.win : V5_COLORS.loss,
-                              fontWeight: 900,
-                              fontSize: "0.95em",
+                                it.pnl >= 0 ? V5_COLORS.live : V5_COLORS.loss,
+                              fontWeight: 800,
+                              fontSize: "0.9em",
                               flex: "0 0 auto",
                               fontVariantNumeric: "tabular-nums",
                             }}
                           >
-                            {it.pnl > 0 ? "+" : ""}
-                            {it.pnl.toFixed(1)}
+                            {(() => {
+                              const s = it.pnl.toFixed(1).replace(/\.0$/, "");
+                              return `${it.pnl > 0 ? "+" : ""}${s}`;
+                            })()}
                           </div>
                         </div>
                       </>
@@ -4848,8 +4801,8 @@ short mode\n\
             <div
               style={{
                 textAlign: "center",
-                marginTop: "12px",
-                paddingTop: "8px",
+                marginTop: SPACE.md,
+                paddingTop: SPACE.sm,
                 borderTop: "1px solid var(--background-modifier-border)",
               }}
             >
