@@ -322,14 +322,7 @@ export const StrategyList: React.FC<Props> = ({
                         </div>
                       )}
 
-                      {s.source ? (
-                        <div
-                          className="pa-text-faint"
-                          style={{ fontSize: "0.85em", marginBottom: "4px" }}
-                        >
-                          来源: {s.source}
-                        </div>
-                      ) : null}
+
 
                       {s.patternsObserved.length > 0 && (
                         <div

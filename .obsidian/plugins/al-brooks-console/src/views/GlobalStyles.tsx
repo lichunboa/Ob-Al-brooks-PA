@@ -36,7 +36,7 @@ export const GlobalStyles: React.FC = () => (
 
 /* Card Component */
 .pa-card {
-  background: var(--background-primary);
+  background: rgba(var(--mono-rgb-100), 0.03);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   padding: 16px;
@@ -44,6 +44,8 @@ export const GlobalStyles: React.FC = () => (
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .pa-card:hover {
