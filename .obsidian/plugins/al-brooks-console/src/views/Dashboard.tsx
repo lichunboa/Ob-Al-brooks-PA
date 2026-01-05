@@ -3871,7 +3871,7 @@ short mode\n\
                             borderRadius: "8px",
                             padding: "10px",
                             textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
+                            ...glassInsetStyle,
                           }}
                         >
                           <div
@@ -3894,7 +3894,7 @@ short mode\n\
                             borderRadius: "8px",
                             padding: "10px",
                             textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
+                            ...glassInsetStyle,
                           }}
                         >
                           <div
@@ -3917,7 +3917,7 @@ short mode\n\
                             borderRadius: "8px",
                             padding: "10px",
                             textAlign: "center",
-                            background: "rgba(var(--mono-rgb-100), 0.02)",
+                            ...glassInsetStyle,
                           }}
                         >
                           <div
@@ -5168,11 +5168,9 @@ short mode\n\
                             gridTemplateColumns: "2fr 1fr 1fr",
                             gap: "10px",
                             padding: "8px",
-                            borderBottom:
-                              "1px solid var(--background-modifier-border)",
+                            borderBottom: "1px solid var(--background-modifier-border)",
                             color: "var(--text-faint)",
                             fontSize: "0.85em",
-                            borderBottom: "1px solid var(--background-modifier-border)",
                             background: "transparent",
                           }}
                         >
