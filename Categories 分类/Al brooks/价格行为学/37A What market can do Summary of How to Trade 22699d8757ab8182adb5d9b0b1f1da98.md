@@ -3,15 +3,15 @@
 - What market can do
     - Trade what you see not what you hope to see
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image.png)
         
     - Market Cycle in Bull Market
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%201.png)
         
     - Market Cycle in Bear Market
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%202.png)
         
     - Key: Strucuture a trade
         
@@ -83,13 +83,13 @@
 - Summary of How to Trade
     - Good **Signal Bar** -（trade above/below good close)
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2010.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2010.png)
         
     - Use Good **stop** (put stop at the begin of the leg)
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2011.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2011.png)
         
     - Control your **risk (1-2% percent)**
     - Beginer should only look for **swing trade** ( 1-3 trade a day)
         
-        ![image.png](37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2012.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/37A%20What%20market%20can%20do%20Summary%20of%20How%20to%20Trade/image%2012.png)

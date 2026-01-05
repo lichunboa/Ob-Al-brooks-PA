@@ -8,7 +8,7 @@
 - Edge and perfect trades
     - Risk or Probability
         
-        ![image.png](30A%20Edge%20and%20perfect%20trades;%20Trader%E2%80%99s%20Equation/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/30A%20Edge%20and%20perfect%20trades;%20Trader’s%20Equation/image.png)
         
     - Strategy should change according to market cycle
         
@@ -25,7 +25,7 @@
         
     - Almost perfct trade..
         
-        ![image.png](30A%20Edge%20and%20perfect%20trades;%20Trader%E2%80%99s%20Equation/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/30A%20Edge%20and%20perfect%20trades;%20Trader’s%20Equation/image%203.png)
         
 - Trader’s Equation
     

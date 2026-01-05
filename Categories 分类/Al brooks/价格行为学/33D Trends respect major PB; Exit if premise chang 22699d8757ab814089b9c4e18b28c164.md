@@ -26,20 +26,20 @@
         
         wedge top + final flag + exhaustion bar
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%204.png)
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%205.png)
         
     - bear case
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%206.png)
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%207.png)
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%208.png)
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%209.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%209.png)
         
     - bull case 2
         
-        ![image.png](33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%2010.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33D%20Trends%20respect%20major%20PB;%20Exit%20if%20premise%20chang/image%2010.png)

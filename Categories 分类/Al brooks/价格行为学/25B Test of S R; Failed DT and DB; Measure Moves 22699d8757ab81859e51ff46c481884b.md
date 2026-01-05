@@ -9,9 +9,9 @@
 - Test of S/R
     - DB/DT: Test of Support/Resistance
         
-        ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image.png)
         
-        ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%201.png)
         
     - Neckline
         
@@ -43,14 +43,14 @@
 - Failed DT and DB → could lead to MM
     - failed DT → MM
         
-        ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%204.png)
         
     - failed DB → MM
         
-        ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%205.png)
         
 - DT/DB → Measure Moves
     
-    ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%206.png)
     
-    ![image.png](25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%207.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/25B%20Test%20of%20S%20R;%20Failed%20DT%20and%20DB;%20Measure%20Moves/image%207.png)

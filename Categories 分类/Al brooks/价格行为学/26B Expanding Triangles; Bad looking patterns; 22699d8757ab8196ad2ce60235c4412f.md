@@ -7,14 +7,14 @@
         - 如果不是在TTR中，比如第四或者第五腿有5+ big bar或者10+ small bar, 那么ET也是MTR
         - ET Bottom后面经常对应ET TOP
         
-        ![image.png](26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image.png)
         
     - 小ET可能只是minor reversal
         
         > 当然这里更重要的TR context
         > 
         
-        ![image.png](26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%201.png)
         
     - ET如果幅度太小的话（**TTR**），那么就减少了**MTR**的可能性
         
@@ -31,15 +31,15 @@
         
     - Nested ET
         
-        ![image.png](26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%204.png)
         
     - Growing ET
         
-        ![image.png](26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%205.png)
         
     - BLSH in ET
         
-        ![image.png](26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/26B%20Expanding%20Triangles;%20Bad%20looking%20patterns;/image%206.png)
         
 - Bad looking patterns
     

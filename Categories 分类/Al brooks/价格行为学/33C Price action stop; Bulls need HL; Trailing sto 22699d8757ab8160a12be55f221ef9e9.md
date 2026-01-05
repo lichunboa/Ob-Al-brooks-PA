@@ -2,23 +2,23 @@
 
 - Price action stop
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image.png)
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%201.png)
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%202.png)
     
 - Bulls need major HL
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%203.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%203.png)
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%204.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%204.png)
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%205.png)
     
 - Trailing stops
     
-    ![image.png](33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%206.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33C%20Price%20action%20stop;%20Bulls%20need%20HL;%20Trailing%20sto/image%206.png)
     
 - Stops in bear
     

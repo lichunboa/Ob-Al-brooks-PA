@@ -2,9 +2,9 @@
 
 - Why use stops
     
-    ![image.png](33A%20Why%20use%20stops%20Stop%20determines%20position%20size/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33A%20Why%20use%20stops%20Stop%20determines%20position%20size/image.png)
     
-    ![image.png](33A%20Why%20use%20stops%20Stop%20determines%20position%20size/image%201.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/33A%20Why%20use%20stops%20Stop%20determines%20position%20size/image%201.png)
     
 - Stop determines position size
     

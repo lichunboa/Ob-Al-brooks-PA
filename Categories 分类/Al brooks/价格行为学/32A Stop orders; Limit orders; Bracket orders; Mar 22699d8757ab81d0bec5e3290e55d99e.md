@@ -6,7 +6,7 @@
 - Limit order
     - To Take profit or to Enter
     
-    ![image.png](32A%20Stop%20orders;%20Limit%20orders;%20Bracket%20orders;%20Mar/image.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/32A%20Stop%20orders;%20Limit%20orders;%20Bracket%20orders;%20Mar/image.png)
     
 - Bracket orders
     
