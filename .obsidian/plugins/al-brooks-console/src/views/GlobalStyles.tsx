@@ -36,6 +36,74 @@ export const GlobalStyles: React.FC = () => (
   font-weight: 700;
 }
 
+/* Module scaffold (universal) */
+.pa-module-header {
+  margin: 12px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pa-module-title {
+  font-weight: 700;
+}
+
+.pa-module-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.pa-section-title {
+  font-weight: 650;
+  margin-bottom: 8px;
+}
+
+.pa-kpi-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.pa-kpi-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pa-kpi-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pa-kpi-tile {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--background-primary);
+}
+
+.pa-kpi-label {
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
+.pa-kpi-value {
+  margin-top: 6px;
+  font-weight: 850;
+  font-size: 1.55em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pa-kpi-value.lg {
+  font-size: 1.7em;
+}
+
+.pa-kpi-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .pa-dashboard-title-meta {
   font-size: 0.8em;
   color: var(--text-muted);
