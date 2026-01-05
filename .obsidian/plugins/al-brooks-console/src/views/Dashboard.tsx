@@ -3531,7 +3531,7 @@ short mode\n\
                         transition:
                           "background-color 180ms ease, border-color 180ms ease",
                         position: "relative",
-                        aspectRatio: "4 / 3",
+                        aspectRatio: "16 / 9",
                       }}
                     >
                     {it.url ? (

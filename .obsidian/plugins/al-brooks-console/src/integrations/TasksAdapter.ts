@@ -19,7 +19,10 @@ export class TasksAdapter implements PluginAdapter {
 
   constructor(app: App) {
     this.app = app;
-    this.openCmdId = this.resolveOpenCommandId();
+    // NOTE: Commands from community plugins may not be registered yet during app startup.
+    // We lazily resolve the command id on demand so the button can become available
+    // without requiring an explicit reload of this plugin.
+    this.openCmdId = undefined;
   }
 
   private resolveOpenCommandId(): string | undefined {
@@ -30,14 +33,21 @@ export class TasksAdapter implements PluginAdapter {
     return undefined;
   }
 
+  private getOpenCommandId(): string | undefined {
+    if (this.openCmdId) return this.openCmdId;
+    this.openCmdId = this.resolveOpenCommandId();
+    return this.openCmdId;
+  }
+
   public isAvailable(): boolean {
-    return Boolean(this.openCmdId);
+    return Boolean(this.getOpenCommandId());
   }
 
   public getCapabilities(): IntegrationCapabilityInfo[] {
-    if (!this.openCmdId) return [];
+    const cmd = this.getOpenCommandId();
+    if (!cmd) return [];
     return [
-      { id: "tasks:open", label: "Open Tasks", commandId: this.openCmdId },
+      { id: "tasks:open", label: "Open Tasks", commandId: cmd },
     ];
   }
 
@@ -45,7 +55,8 @@ export class TasksAdapter implements PluginAdapter {
     if (capabilityId !== "tasks:open") {
       throw new Error(`TasksAdapter cannot run: ${capabilityId}`);
     }
-    if (!this.openCmdId) throw new Error("Tasks open command not available");
-    return runCommand(this.app, this.openCmdId);
+    const cmd = this.getOpenCommandId();
+    if (!cmd) throw new Error("Tasks open command not available");
+    return runCommand(this.app, cmd);
   }
 }

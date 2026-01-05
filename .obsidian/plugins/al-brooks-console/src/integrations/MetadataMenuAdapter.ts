@@ -17,7 +17,9 @@ export class MetadataMenuAdapter implements PluginAdapter {
 
   constructor(app: App) {
     this.app = app;
-    this.openCmdId = this.resolveOpenCommandId();
+    // Commands from community plugins may not be registered yet during app startup.
+    // Resolve lazily so availability can update without requiring a plugin reload.
+    this.openCmdId = undefined;
   }
 
   private resolveOpenCommandId(): string | undefined {
@@ -28,17 +30,24 @@ export class MetadataMenuAdapter implements PluginAdapter {
     return undefined;
   }
 
+  private getOpenCommandId(): string | undefined {
+    if (this.openCmdId) return this.openCmdId;
+    this.openCmdId = this.resolveOpenCommandId();
+    return this.openCmdId;
+  }
+
   public isAvailable(): boolean {
-    return Boolean(this.openCmdId);
+    return Boolean(this.getOpenCommandId());
   }
 
   public getCapabilities(): IntegrationCapabilityInfo[] {
-    if (!this.openCmdId) return [];
+    const cmd = this.getOpenCommandId();
+    if (!cmd) return [];
     return [
       {
         id: "metadata-menu:open",
         label: "Open Metadata Menu",
-        commandId: this.openCmdId,
+        commandId: cmd,
       },
     ];
   }
@@ -47,7 +56,8 @@ export class MetadataMenuAdapter implements PluginAdapter {
     if (capabilityId !== "metadata-menu:open") {
       throw new Error(`MetadataMenuAdapter cannot run: ${capabilityId}`);
     }
-    if (!this.openCmdId) throw new Error("Metadata Menu command not available");
-    return runCommand(this.app, this.openCmdId);
+    const cmd = this.getOpenCommandId();
+    if (!cmd) throw new Error("Metadata Menu command not available");
+    return runCommand(this.app, cmd);
   }
 }
