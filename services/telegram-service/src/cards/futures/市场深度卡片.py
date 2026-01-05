@@ -4,19 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
 from cards.排行榜服务 import DEFAULT_PERIODS, get_market_depth_service, normalize_period
 
 
 class MarketDepthCard(RankingCard):
     """🔬 市场深度排行 - 市场深度排行榜"""
 
-    FALLBACK = "📊 市场深度数据加载中，请稍后重试..."
+    FALLBACK = "card.depth.fallback"
 
     def __init__(self) -> None:
         super().__init__(
@@ -153,17 +154,17 @@ class MarketDepthCard(RankingCard):
             fields_state,
         )
 
-        aligned = user_handler.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"🧊 市场深度数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {sort_type.replace('_','\\_')}({sort_symbol})\n"
+            f"{_t('card.depth.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 深度比=买卖盘量对比，搭配价差/买墙/卖墙查看流动性质量\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.depth.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
 
         if callable(ensure_valid_text):
@@ -180,9 +181,13 @@ class MarketDepthCard(RankingCard):
         period = h.user_states.get('market_depth_period', '15m')
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="md_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: list[list[InlineKeyboardButton]] = []
         # 行1 市场省略（仅期货）
@@ -225,8 +230,8 @@ class MarketDepthCard(RankingCard):
 
         # 行8 主控
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="market_depth_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "market_depth_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)

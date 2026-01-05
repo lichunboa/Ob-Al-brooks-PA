@@ -9,13 +9,14 @@ from typing import Dict, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
 from cards.排行榜服务 import DEFAULT_PERIODS, get_funding_service, normalize_period
 
 
 class FundingRateCard(RankingCard):
     """🎯 资金费率排行 - 资金费率排行榜"""
 
-    FALLBACK = "💲 资金费率数据加载中，请稍后重试..."
+    FALLBACK = "card.funding.fallback"
 
     def __init__(self) -> None:
         super().__init__(
@@ -142,20 +143,20 @@ class FundingRateCard(RankingCard):
         rows, header = await loop.run_in_executor(
             None, self._load_rows, service, limit, sort_order, sort_type, period, fields_state
         )
-        aligned = user_handler.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"💱 资金费率数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {sort_type.replace('_','\\\\_')}({sort_symbol})\n"
+            f"{_t('card.funding.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 可切换资金费率/加权费率及通用列\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.funding.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure_valid_text):
-            text = ensure_valid_text(text, self.FALLBACK)
+            text = ensure_valid_text(text, _t(self.FALLBACK))
         keyboard = self._build_keyboard(user_handler, fields_state)
         return text, keyboard
 
@@ -163,12 +164,16 @@ class FundingRateCard(RankingCard):
         sort_order = h.user_states.get('funding_sort', 'desc')
         current_limit = h.user_states.get('funding_limit', 10)
         sort_type = h.user_states.get('funding_sort_type', 'funding_rate')
-        period = h.user_states.get('funding_period', '24h')
+        h.user_states.get('funding_period', '24h')
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="funding_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: list[list[InlineKeyboardButton]] = []
         # 行1 市场省略
@@ -204,8 +209,8 @@ class FundingRateCard(RankingCard):
         ])
         # 行8 主控
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="funding_rate_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "funding_rate_refresh"),
         ])
         return InlineKeyboardMarkup(kb)
 

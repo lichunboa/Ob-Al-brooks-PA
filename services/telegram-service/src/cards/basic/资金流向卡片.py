@@ -10,6 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
 from cards.排行榜服务 import (
     DEFAULT_PERIODS,
     MONEY_FLOW_FUTURES_PERIODS,
@@ -21,7 +22,7 @@ from cards.排行榜服务 import (
 class MoneyFlowCard(RankingCard):
     """🌊 资金流向排行 - 资金流向排行榜"""
 
-    FALLBACK = "💰 资金流向数据加载中，请稍后重试..."
+    FALLBACK = "card.flow.fallback"
     SHOW_MARKET_SWITCH = False  # 当前仅期货，隐藏市场切换行
 
     def __init__(self) -> None:
@@ -174,18 +175,18 @@ class MoneyFlowCard(RankingCard):
             fields_state,
         )
 
-        aligned = user_handler.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = flow_type.replace("_", "\\_")
         text = (
-            f"💧 资金流向数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.flow.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 净流=流入-流出；可切换净流/成交额/流入/流出/价格等维度\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.flow.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
 
         if callable(ensure_valid_text):
@@ -204,9 +205,13 @@ class MoneyFlowCard(RankingCard):
         market = handler.user_states.get("money_flow_market", "futures")
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="money_flow_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
 
@@ -264,8 +269,8 @@ class MoneyFlowCard(RankingCard):
         ])
 
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="money_flow_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "money_flow_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)

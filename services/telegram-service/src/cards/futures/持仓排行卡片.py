@@ -4,19 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol
-from cards.排行榜服务 import POSITION_PERIODS, get_position_service, normalize_period
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.排行榜服务 import POSITION_PERIODS, normalize_period
 
 
 class PositionRankingCard(RankingCard):
     """🦅 持仓量排行 - 持仓量排行榜"""
 
-    FALLBACK = "📊 持仓数据加载中，请稍后重试..."
+    FALLBACK = "card.oi.fallback"
 
     def __init__(self) -> None:
         super().__init__(
@@ -149,17 +150,17 @@ class PositionRankingCard(RankingCard):
             sort_field,
             fields_state,
         )
-        aligned = user_handler.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"🐋 持仓量数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {sort_field.replace('_','\\_')}({sort_symbol})\n"
+            f"{_t('card.oi.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=sort_field.replace('_','\\_'), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 持仓占比按多空拆分，可切换字段/排序\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.oi.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure_valid_text):
             text = ensure_valid_text(text, self.FALLBACK)
@@ -175,9 +176,13 @@ class PositionRankingCard(RankingCard):
         sort_field = handler.user_states.get("position_sort_field", "position")
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="position_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
 
@@ -221,8 +226,8 @@ class PositionRankingCard(RankingCard):
 
         # 行8 主控
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="position_ranking_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "position_ranking_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)

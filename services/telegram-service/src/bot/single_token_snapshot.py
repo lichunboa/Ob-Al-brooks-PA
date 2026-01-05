@@ -14,10 +14,10 @@ from __future__ import annotations
 import math
 import os
 import unicodedata
-from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Sequence, Tuple
+from typing import Dict, List, Literal, Sequence, Tuple
 
 from cards.data_provider import format_symbol, get_ranking_provider
+from cards.i18n import gettext as _t, resolve_lang
 
 # ==================== 配置 ====================
 
@@ -303,6 +303,7 @@ class SingleTokenSnapshot:
         page: int = 0,
         max_lines: int = 40,
         max_chars: int = 4000,
+        lang: str | None = None,
     ) -> tuple[str, int]:
         """渲染指定面板的表格文本（含表头 + 代码块对齐内容）。
 
@@ -311,17 +312,18 @@ class SingleTokenSnapshot:
         self._data_cache.clear()
         self._index_cache.clear()
         self._target_sym = format_symbol(symbol)
+        lang = resolve_lang(lang=lang)
         if not self._target_sym:
-            return "未提供有效币种", 1
+            return _t("snapshot.error.no_symbol", lang=lang), 1
 
         periods = FUTURES_PERIODS if panel == "futures" else ALL_PERIODS
         enabled = enabled_periods or {p: True for p in periods}
         columns = [p for p in periods if enabled.get(p, False)]
         if not columns:
-            return "请至少开启一个周期列", 1
+            return _t("snapshot.error.no_period", lang=lang), 1
 
         enabled_cards = enabled_cards or {}
-        header = ["字段\\周期"] + columns
+        header = [_t("snapshot.header.field", lang=lang)] + columns
         rows: List[List[str]] = []
         table_field_map = TABLE_FIELDS.get(panel, {})
         hidden_fields = _get_hidden_fields()
@@ -349,14 +351,14 @@ class SingleTokenSnapshot:
 
         aligned = align_rows([header] + rows, left_cols=1)
         title = {
-            "basic": f"💵 {self._target_sym} 基础数据",
-            "futures": f"📑 {self._target_sym} 合约数据",
-            "advanced": f"🧠 {self._target_sym} 高级数据",
-        }.get(panel, f"{self._target_sym} 数据快照")
-        header_line = "字段\\周期/" + "/".join(columns)
+            "basic": _t("snapshot.title.basic", lang=lang, symbol=self._target_sym),
+            "futures": _t("snapshot.title.futures", lang=lang, symbol=self._target_sym),
+            "advanced": _t("snapshot.title.advanced", lang=lang, symbol=self._target_sym),
+        }.get(panel, _t("snapshot.title.default", lang=lang, symbol=self._target_sym))
+        header_line = _t("snapshot.header.compact", lang=lang, columns="/".join(columns))
         body_lines = aligned[1:]
         if not body_lines:
-            body_lines = ["暂无数据"]
+            body_lines = [_t("data.no_data", lang=lang)]
 
         # 分页：优先按字符数防止超 4096 长度，再兜底按行数
         if max_lines <= 0:
@@ -383,11 +385,11 @@ class SingleTokenSnapshot:
 
         total_pages = max(len(pages_list), 1)
         page = max(0, min(page, total_pages - 1))
-        page_body = "\n".join(pages_list[page]) if pages_list else "暂无数据"
+        page_body = "\n".join(pages_list[page]) if pages_list else _t("data.no_data", lang=lang)
 
         footer_parts = [
-            "💡 按钮可开关卡片/周期/面板；合约不含1m；高级默认少列防超长",
-            f"📑 页 {page+1}/{total_pages}",
+            _t("snapshot.footer.hint", lang=lang),
+            _t("snapshot.footer.page", lang=lang, current=page + 1, total=total_pages),
         ]
         footer = "\n".join(footer_parts)
         return f"{title}\n{header_line}\n```\n{page_body}\n```\n{footer}", total_pages
@@ -444,7 +446,7 @@ class SingleTokenSnapshot:
     def _get_row(self, table: str, period: str, panel: PanelType) -> Dict:
         """获取指定表/周期/币种的首行，用于字段探测。"""
         base_table = TABLE_ALIAS.get(panel, {}).get(table, table)
-        data = self._get_table_data(base_table, period)
+        self._get_table_data(base_table, period)
         return self._index_cache.get((base_table, period), {}).get(self._target_sym, {})
 
     def _get_table_data(self, base_table: str, period: str) -> list[dict]:
@@ -504,16 +506,16 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
     sym = format_symbol(symbol)
     if not sym:
         return "❌ 未提供有效币种"
-    
+
     sym_full = sym + "USDT" if not sym.endswith("USDT") else sym
-    
+
     # 默认周期开关：15m/1h/4h 开启，其他关闭
     if enabled_periods is None:
         enabled_periods = {"1m": False, "5m": False, "15m": True, "1h": True, "4h": True, "1d": False, "1w": False}
-    
+
     periods = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
     lines = [f"🕯️ {sym} K线形态分析"]
-    
+
     for p in periods:
         if not enabled_periods.get(p, False):
             continue
@@ -524,15 +526,15 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
         count = row.get("检测数量", 0)
         if not patterns:
             continue
-        
+
         # 分类形态
         bullish = []  # 看涨
         bearish = []  # 看跌
         neutral = []  # 中性
-        
+
         bullish_kw = ["锤子", "晨星", "吞没", "孕线", "头肩底", "双底", "三底", "上升", "看涨"]
         bearish_kw = ["上吊", "黄昏", "乌鸦", "头肩顶", "双顶", "三顶", "下降", "看跌", "墓碑"]
-        
+
         for pat in patterns.split(","):
             pat = pat.strip()
             if not pat:
@@ -543,7 +545,7 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
                 bearish.append(pat)
             else:
                 neutral.append(pat)
-        
+
         lines.append(f"📊 {p} ({count}个形态)")
         lines.append("```")
         if bullish:
@@ -553,10 +555,10 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
         if neutral:
             lines.append(f"⚪ {', '.join(neutral)}")
         lines.append("```")
-    
+
     if len(lines) == 1:  # 只有标题
         return f"🕯️ {sym} K线形态分析\n```\n暂无形态数据\n```"
-    
+
     return "\n".join(lines)
 
 

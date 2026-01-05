@@ -11,13 +11,13 @@ from typing import Dict, List, Tuple
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from cards.排行榜服务 import build_standard_keyboard, GENERAL_FIELDS
 
 
 class KDJ排行卡片(RankingCard):
-    FALLBACK = "🔄 KDJ 数据准备中"
+    FALLBACK = "card.kdj.fallback"
     provider = get_ranking_provider()
     DEFAULT_FIELDS_STATE = {
         # 通用字段默认关闭
@@ -38,7 +38,7 @@ class KDJ排行卡片(RankingCard):
             card_id="kdj_ranking",
             button_text="🎯 KDJ",
             category="free",
-            description="KDJ 随机指标强度榜",
+            description="card.kdj.desc",
             default_state={
                 "kdj_period": "15m",
                 "kdj_sort": "desc",
@@ -135,71 +135,75 @@ class KDJ排行卡片(RankingCard):
 
     async def _reply(self, query, h, ensure):
         await query.answer()
-        text, kb = await self._build_payload(h, ensure)
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit(self, query, h, ensure):
+        lang = resolve_lang(query)
         await query.answer()
-        text, kb = await self._build_payload(h, ensure)
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit_settings(self, query, h, ensure):
         await query.answer()
-        text, kb = await self._build_settings_payload(h, ensure)
+        lang = resolve_lang(query)
+        text, kb = await self._build_settings_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, h, ensure) -> Tuple[str, object]:
+    async def _build_payload(self, h, ensure, lang: str, update=None) -> Tuple[str, object]:
         period = h.user_states.get("kdj_period", "15m")
         sort_order = h.user_states.get("kdj_sort", "desc")
         limit = h.user_states.get("kdj_limit", 10)
         sort_field = h.user_states.get("kdj_sort_field", "quote_volume")
         fields_state = self._ensure_field_state(h)
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
         display_sort_field = sort_field.replace("_", "\\_")
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"🎯 KDJ数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.kdj.title')}\n"
+            f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"
+            f"{_t('card.common.sort', update, lang=lang, period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 强度综合 J/K/D 与超买超卖，>0 偏多，<0 偏空\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.kdj.hint')}\n"
+            f"{_t('time.last_update', update, lang=lang, time=time_info['full'])}"
         )
         if callable(ensure):
-            text = ensure(text, self.FALLBACK)
+            text = ensure(text, _t(self.FALLBACK))
         kb = self._build_keyboard(h)
         return text, kb
 
-    async def _build_settings_payload(self, h, ensure) -> Tuple[str, object]:
+    async def _build_settings_payload(self, h, ensure, lang: str, update=None) -> Tuple[str, object]:
         period = h.user_states.get("kdj_period", "15m")
         sort_order = h.user_states.get("kdj_sort", "desc")
         limit = h.user_states.get("kdj_limit", 10)
         sort_field = h.user_states.get("kdj_sort_field", "quote_volume")
         fields_state = self._ensure_field_state(h)
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
         display_sort_field = sort_field.replace("_", "\\_")
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"⚙️ KDJ字段设置\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.kdj.settings.title')}\n"
+            f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"
+            f"{_t('card.common.sort', update, lang=lang, period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 点击字段开关，数据实时刷新"
+            f"{_t('card.kdj.settings.hint')}"
         )
         if callable(ensure):
-            text = ensure(text, self.FALLBACK)
+            text = ensure(text, _t(self.FALLBACK))
         kb = self._build_settings_keyboard(h)
         return text, kb
 
     def _build_keyboard(self, h):
         # 状态
-        fields_state = self._ensure_field_state(h)
+        self._ensure_field_state(h)
         period = h.user_states.get("kdj_period", "15m")
         sort_order = h.user_states.get("kdj_sort", "desc")
         current_limit = h.user_states.get("kdj_limit", 10)
@@ -207,9 +211,13 @@ class KDJ排行卡片(RankingCard):
         market = h.user_states.get("kdj_market", "spot")
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="kdj_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
 
@@ -249,9 +257,9 @@ class KDJ排行卡片(RankingCard):
 
         # 组5 主控
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("⚙️设置", callback_data="kdj_settings"),
-            InlineKeyboardButton("🔄刷新", callback_data="kdj_ranking_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "⚙️设置", "kdj_settings"),
+            _btn_auto(None, "🔄刷新", "kdj_ranking_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)
@@ -281,7 +289,7 @@ class KDJ排行卡片(RankingCard):
         kb.append(spec_row)
 
         # 返回按钮
-        kb.append([InlineKeyboardButton("⬅️ 返回KDJ", callback_data="kdj_settings_back")])
+        kb.append([_btn_auto(None, "⬅️ 返回KDJ", "kdj_settings_back")])
 
         return InlineKeyboardMarkup(kb)
 

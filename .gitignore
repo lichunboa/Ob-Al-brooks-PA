@@ -5,13 +5,14 @@
 .env.*
 !.env.example
 1
+2
 3
 AUDIT_REPORT.md
 CODE_LOCATIONS.md
 CODE_OF_CONDUCT.md
 OPTIMIZATION_TODO.md
-TODO.md
 MARKETING.md
+book/
 
 # ====================
 # Python
@@ -102,3 +103,8 @@ services/markets-service/.venv
 services/order-service/.venv
 services/telegram-service/.venv
 services/trading-service/.venv
+
+
+book/
+# Ignore temp file "5"
+5

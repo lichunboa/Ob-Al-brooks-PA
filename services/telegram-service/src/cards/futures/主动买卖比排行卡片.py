@@ -15,11 +15,12 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
 from cards.排行榜服务 import DEFAULT_PERIODS, normalize_period
 
 
 class 主动买卖比排行卡片(RankingCard):
-    FALLBACK = "🔄 主动买卖比数据正在准备，稍后再试"
+    FALLBACK = "card.taker_ratio.fallback"
 
     def __init__(self) -> None:
         super().__init__(
@@ -131,18 +132,18 @@ class 主动买卖比排行卡片(RankingCard):
         fields_state = self._ensure_field_state(handler)
 
         rows, header = self._load_rows(handler, period, sort_order, limit, sort_field, fields_state)
-        aligned = handler.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = handler.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
-            f"🧾 主动买卖比数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.taker_ratio.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 买卖比 = 主动买成交额 ÷ 总成交额，越高代表买盘越强\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.taker_ratio.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
 
         if callable(ensure_valid_text):
@@ -162,9 +163,13 @@ class 主动买卖比排行卡片(RankingCard):
         current_sort_field = handler.user_states.get("bsr_sort_field", "buy_ratio")
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="bsr_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
 
@@ -222,8 +227,8 @@ class 主动买卖比排行卡片(RankingCard):
 
         # 主控行
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="buy_sell_ratio_ranking_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "buy_sell_ratio_ranking_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)

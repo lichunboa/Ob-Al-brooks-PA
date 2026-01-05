@@ -12,12 +12,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
 
 
 class FuturesOIStreakCard(RankingCard):
     """📈 OI连续性榜"""
 
-    FALLBACK = "📈 OI连续性数据加载中，请稍后重试..."
+    FALLBACK = "card.oi_streak.fallback"
     provider = get_ranking_provider()
     SHOW_MARKET_SWITCH = False
     DEFAULT_MARKET = "futures"
@@ -111,11 +112,14 @@ class FuturesOIStreakCard(RankingCard):
         return False
 
     async def _reply(self, query, h, ensure):
-        text, kb = await self._build_payload(h, ensure)
+        await query.answer()
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit(self, query, h, ensure):
-        text, kb = await self._build_payload(h, ensure)
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _build_payload(self, h, ensure):
@@ -126,7 +130,7 @@ class FuturesOIStreakCard(RankingCard):
         fields_state = self._ensure_field_state(h)
 
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
 
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
@@ -134,17 +138,17 @@ class FuturesOIStreakCard(RankingCard):
 
         text = (
             "📈 OI连续性榜\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
             "💡 数据源：期货情绪聚合表（OI 连续根数）\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure):
-            text = ensure(text, self.FALLBACK)
+            text = ensure(text, _t(self.FALLBACK))
         kb = self._build_keyboard(h)
         return text, kb
 
@@ -157,9 +161,13 @@ class FuturesOIStreakCard(RankingCard):
         market = h.user_states.get("streak_market", self.DEFAULT_MARKET)
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="streak_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
         if self.SHOW_MARKET_SWITCH:
@@ -204,8 +212,8 @@ class FuturesOIStreakCard(RankingCard):
         ])
 
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="futures_oi_streak_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "futures_oi_streak_refresh"),
         ])
         return InlineKeyboardMarkup(kb)
 

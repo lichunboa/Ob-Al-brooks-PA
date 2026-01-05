@@ -12,10 +12,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
 
 
 class CVD排行卡片(RankingCard):
-    FALLBACK = "🔄 CVD 数据正在准备，稍后再试"
+    FALLBACK = "card.cvd.fallback"
     provider = get_ranking_provider()
 
     def __init__(self) -> None:
@@ -110,35 +111,38 @@ class CVD排行卡片(RankingCard):
         return False
 
     async def _reply(self, query, h, ensure):
-        text, kb = await self._build_payload(h, ensure)
+        await query.answer()
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit(self, query, h, ensure):
-        text, kb = await self._build_payload(h, ensure)
+        lang = resolve_lang(query)
+        text, kb = await self._build_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, h, ensure) -> Tuple[str, object]:
+    async def _build_payload(self, h, ensure, lang: str = "zh_CN", update=None) -> Tuple[str, object]:
         period = h.user_states.get("cvd_period", "15m")
         sort_order = h.user_states.get("cvd_sort", "desc")
         limit = h.user_states.get("cvd_limit", 10)
         sort_field = h.user_states.get("cvd_sort_field", "net")
         fields_state = self._ensure_field_state(h)
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else "暂无数据"
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
-            f"🌊 CVD数据\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} {display_sort_field}({sort_symbol})\n"
+            f"{_t('card.cvd.title')}\n"
+            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"💡 CVD = 主动买额 - 主动卖额，正为多头，负为空头\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.cvd.hint')}\n"
+            f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure):
-            text = ensure(text, self.FALLBACK)
+            text = ensure(text, _t(self.FALLBACK))
         kb = self._build_keyboard(h)
         return text, kb
 
@@ -151,9 +155,13 @@ class CVD排行卡片(RankingCard):
         market = h.user_states.get("cvd_market", "futures")
 
         def b(label: str, data: str, active: bool = False, disabled: bool = False):
+
             if disabled:
-                return InlineKeyboardButton(label, callback_data="cvd_nop")
-            return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+
+                return InlineKeyboardButton(label, callback_data=data or 'nop')
+
+            return _btn_auto(None, label, data, active=active)
+
 
         kb: List[List[InlineKeyboardButton]] = []
 
@@ -201,8 +209,8 @@ class CVD排行卡片(RankingCard):
         ])
 
         kb.append([
-            InlineKeyboardButton("🏠主菜单", callback_data="ranking_menu"),
-            InlineKeyboardButton("🔄刷新", callback_data="cvd_ranking_refresh"),
+            _btn_auto(None, "🏠主菜单", "ranking_menu"),
+            _btn_auto(None, "🔄刷新", "cvd_ranking_refresh"),
         ])
 
         return InlineKeyboardMarkup(kb)

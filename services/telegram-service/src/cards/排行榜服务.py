@@ -11,12 +11,11 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Dict, List, Sequence
 
 from cards.data_provider import get_ranking_provider, format_symbol
+from cards.i18n import btn_auto as _btn_auto, gettext as _t
 
-from cards.数据库行情服务 import 获取数据库行情服务
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
@@ -175,7 +174,7 @@ class VolumeRankingService(BaseService):
             row_cells.append(change_str)
             data_rows.append(row_cells)
 
-        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else "暂无数据"
+        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
         time_info = self.handler.get_current_time_display()
         title = f"🎪 热币排行 - {market_text}{period_text}交易量"
         header_parts = ["排名", "币种"]
@@ -485,7 +484,7 @@ def build_standard_keyboard(
     """
 
     def btn(label: str, data: str, active: bool = False) -> InlineKeyboardButton:
-        return InlineKeyboardButton(f"✅{label}" if active else label, callback_data=data)
+        return _btn_auto(None, label, data, active=active)
 
     prefix = callback_prefix or ""
     if prefix and not prefix.endswith("_"):
@@ -537,16 +536,16 @@ def build_standard_keyboard(
         btn("降序", f"{prefix}sort_desc", active=current_sort_order == "desc"),
         btn("升序", f"{prefix}sort_asc", active=current_sort_order == "asc"),
     ]
-    for l in limits:
-        sort_limit_row.append(btn(f"{l}条", f"{prefix}limit_{l}", active=l == current_limit))
+    for lim in limits:
+        sort_limit_row.append(btn(f"{lim}条", f"{prefix}limit_{lim}", active=lim == current_limit))
     if show_sort_limit:
         keyboard.append(sort_limit_row)
 
     # 第六行：返回排行榜 + 刷新
     if show_main_refresh:
         keyboard.append([
-            InlineKeyboardButton("🏠返回排行榜", callback_data=main_callback),
-            InlineKeyboardButton("🔄刷新", callback_data=refresh_callback),
+            _btn_auto(None, "btn.back_home", main_callback),
+            _btn_auto(None, "btn.refresh", refresh_callback),
         ])
 
     return InlineKeyboardMarkup(keyboard)
@@ -592,7 +591,7 @@ class BuySellRatioService(BaseService):
                 period,
             ])
 
-        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else "暂无数据"
+        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
         time_info = self.handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         sort_text = "降序" if sort_order == "desc" else "升序"
