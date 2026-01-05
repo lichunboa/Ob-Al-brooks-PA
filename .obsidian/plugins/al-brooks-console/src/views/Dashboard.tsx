@@ -1443,13 +1443,16 @@ const ConsoleComponent: React.FC<Props> = ({
 
   return (
     <div className="pa-dashboard">
-      <h2 className="pa-dashboard-title">
-        🦁 交易员控制台
-        <span className="pa-dashboard-title-meta">（Dashboard）</span>
-        <span className="pa-dashboard-title-meta">v{version}</span>
-        <span className="pa-dashboard-title-meta">{statusText}</span>
-        <span className="pa-dashboard-title-actions">
-
+      <div className="pa-dashboard-header">
+        <div className="pa-dashboard-title-row">
+          <h2 className="pa-dashboard-title-text">
+            🦁 交易员控制台
+            <span className="pa-dashboard-title-meta">（Dashboard）</span>
+            <span className="pa-dashboard-title-meta">v{version}</span>
+            <span className="pa-dashboard-title-meta">{statusText}</span>
+          </h2>
+        </div>
+        <div className="pa-dashboard-actions-row">
           {integrations ? (
             <>
               <button
@@ -1497,8 +1500,8 @@ const ConsoleComponent: React.FC<Props> = ({
           >
             ✏️ 新建交易
           </button>
-        </span>
-      </h2>
+        </div>
+      </div>
 
       <div className="pa-tabbar">
         {(
@@ -1714,12 +1717,14 @@ const ConsoleComponent: React.FC<Props> = ({
 
               <div
                 style={{
+                  ...glassPanelStyle,
+                  padding: "10px 14px",
+                  marginBottom: "12px",
                   color: "var(--text-muted)",
-                  fontSize: "0.9em",
-                  marginBottom: "10px",
+                  fontSize: "0.95em",
                 }}
               >
-                市场周期：{todayMarketCycle ?? "—"}
+                <strong>市场周期：</strong> {todayMarketCycle ?? "—"}
               </div>
 
               {todayStrategyPicks.length > 0 && (

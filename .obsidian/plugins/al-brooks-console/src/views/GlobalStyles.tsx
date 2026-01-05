@@ -30,34 +30,31 @@ export const GlobalStyles: React.FC = () => (
   gap: 10px;
 }
 
-.pa-dashboard-title {
+.pa-dashboard-header {
+  margin-bottom: 16px;
+}
+
+.pa-dashboard-title-row {
+  margin-bottom: 8px;
+}
+
+.pa-dashboard-title-text {
+  margin: 0;
+  font-size: 1.5em;
+  font-weight: 700;
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 10px;
   flex-wrap: wrap;
-  justify-content: space-between;
-  margin-bottom: 4px;
 }
 
-.pa-dashboard-title-meta {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.pa-dashboard-title-actions {
-  flex-basis: 100%;
-  width: 100%;
-  margin-left: 0;
+.pa-dashboard-actions-row {
   display: flex;
-  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  order: 20;
-  margin-top: 6px;
 }
 
-.pa-dashboard-title-actions button {
+.pa-dashboard-actions-row button {
   margin-left: 0 !important;
 }
 
