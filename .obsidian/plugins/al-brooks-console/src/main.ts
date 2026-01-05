@@ -104,7 +104,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
 
     this.addCommand({
       id: "export-index-snapshot",
-      name: "导出索引快照 (Index Snapshot)",
+      name: "导出索引快照 (JSON)",
       callback: () => {
         void this.exportIndexSnapshot();
       },
@@ -139,7 +139,10 @@ export default class AlBrooksConsolePlugin extends Plugin {
 
       const content = JSON.stringify(snapshot, null, 2);
 
-      const path = "pa-db-export.json";
+      const dir = "Exports/al-brooks-console";
+      await this.ensureFolder(dir);
+
+      const path = `${dir}/pa-db-export.json`;
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing) {
         if (existing instanceof TFile) {
