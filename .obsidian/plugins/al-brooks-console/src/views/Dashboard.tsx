@@ -1909,7 +1909,7 @@ const ConsoleComponent: React.FC<Props> = ({
                               display: "inline-flex",
                               alignItems: "center",
                               gap: "6px",
-                              color: V5_COLORS.accent,
+                              color: "var(--text-accent)",
                             }}
                           >
                             <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
@@ -1989,7 +1989,7 @@ const ConsoleComponent: React.FC<Props> = ({
                               display: "inline-flex",
                               alignItems: "center",
                               gap: "6px",
-                              color: V5_COLORS.accent,
+                              color: "var(--text-accent)",
                             }}
                           >
                             <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
@@ -2629,79 +2629,7 @@ short mode\n\
                   ...cardTightStyle,
                 }}
               >
-                <div
-                  style={{
-                    fontWeight: 700,
-                    opacity: 0.75,
-                    marginBottom: SPACE.sm,
-                  }}
-                >
-                  🌪️ 不同市场环境表现{" "}
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      opacity: 0.6,
-                      fontSize: "0.85em",
-                    }}
-                  >
-                    (Live PnL)
-                  </span>
-                </div>
-                {liveCyclePerf.length === 0 ? (
-                  <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                  >
-                    暂无数据
-                  </div>
-                ) : (
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
-                  >
-                    {liveCyclePerf.map((cy) => {
-                      const color =
-                        cy.pnl > 0
-                          ? V5_COLORS.win
-                          : cy.pnl < 0
-                          ? V5_COLORS.loss
-                          : "var(--text-muted)";
-                      return (
-                        <div
-                          key={cy.name}
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "8px 12px",
-                            minWidth: "120px",
-                            flex: "1 1 180px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            textAlign: "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "0.85em",
-                              color: "var(--text-muted)",
-                            }}
-                          >
-                            {cycleMap[cy.name] ?? cy.name}
-                          </div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              color,
-                              fontVariantNumeric: "tabular-nums",
-                              marginTop: "2px",
-                            }}
-                          >
-                            {cy.pnl > 0 ? "+" : ""}
-                            {cy.pnl.toFixed(1)}R
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* 环境周期分析已在下方 ContextWidget 展示，避免重复 */}
               </div>
 
               <div
@@ -4011,21 +3939,21 @@ short mode\n\
                         <div
                           style={{
                             width: seg(memory.cnt?.mNorm ?? 0),
-                            background: V5_COLORS.accent,
+                            background: "var(--interactive-accent)",
                             opacity: 0.55,
                           }}
                         />
                         <div
                           style={{
                             width: seg((memory.cnt?.mRev ?? 0) * 2),
-                            background: V5_COLORS.accent,
+                            background: "var(--interactive-accent)",
                             opacity: 0.35,
                           }}
                         />
                         <div
                           style={{
                             width: seg(memory.cnt?.cloze ?? 0),
-                            background: V5_COLORS.accent,
+                            background: "var(--interactive-accent)",
                             opacity: 0.85,
                           }}
                         />
@@ -5766,12 +5694,12 @@ short mode\n\
                       {
                         title: "标签总数",
                         value: String(tags),
-                        color: V5_COLORS.accent,
+                        color: "var(--text-accent)",
                       },
                       {
                         title: "笔记档案",
                         value: String(files),
-                        color: V5_COLORS.accent,
+                        color: "var(--text-accent)",
                       },
                     ].map((c) => (
                       <div

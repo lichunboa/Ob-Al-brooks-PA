@@ -322,39 +322,14 @@ export const StrategyList: React.FC<Props> = ({
                         </div>
                       )}
 
-                      {(s.marketCycles.length > 0 ||
-                        s.setupCategories.length > 0) && (
+                      {s.source ? (
                         <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            marginBottom: "4px",
-                          }}
+                          className="pa-text-faint"
+                          style={{ fontSize: "0.85em", marginBottom: "4px" }}
                         >
-                          {s.marketCycles.map((c) => (
-                            <span key={c} className="pa-tag">
-                              {cycleToCn(c) || c}
-                            </span>
-                          ))}
-                          {s.setupCategories.map((c) => (
-                            <span
-                              key={c}
-                              className="pa-tag"
-                              style={{ color: "var(--text-normal)" }}
-                            >
-                              {c}
-                            </span>
-                          ))}
-                          {s.source ? (
-                            <span
-                              className="pa-tag"
-                              style={{ color: "var(--text-normal)" }}
-                            >
-                              来源: {s.source}
-                            </span>
-                          ) : null}
+                          来源: {s.source}
                         </div>
-                      )}
+                      ) : null}
 
                       {s.patternsObserved.length > 0 && (
                         <div
