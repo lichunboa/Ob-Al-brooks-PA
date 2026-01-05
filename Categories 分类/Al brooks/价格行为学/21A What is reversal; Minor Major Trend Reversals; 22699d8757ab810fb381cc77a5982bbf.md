@@ -27,7 +27,7 @@
         
 - Minor/Major Trend Reversals
     
-    ![image.png](21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%202.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%202.png)
     
     - Minor Trend Reversals
         
@@ -93,10 +93,10 @@
     
 - case1: Reversal can be clear after 1 bar
     
-    ![image.png](21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%209.png)
     
 - case2: Reversal can  take 20 or more bars
     
-    ![image.png](21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%2010.png)
     
-    ![image.png](21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/21A%20What%20is%20reversal;%20Minor%20Major%20Trend%20Reversals;/image%2011.png)

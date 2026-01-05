@@ -8,32 +8,32 @@
 - Failed BO
     - Failed BO in Trend → PB → Trend Resumption
         
-        ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image.png)
         
     - Failed BO late in Trend → Trend Reversal
         
-        ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%201.png)
         
 - Trend resumption or reversal
     - Compare Strength: BO v.s Reversal
         - 强弱分明
             
-            ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%202.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%202.png)
             
         - 五五开→wait for more
             
-            ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%203.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%203.png)
             
     - BO follow through is important
         - Good FT
             
-            ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%204.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%204.png)
             
         - Bad FT
             
-            ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%205.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%205.png)
             
-            ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%206.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%206.png)
             
     - Trends needs more than BO: needs CONTEXT
         
@@ -45,4 +45,4 @@
         
         DT + Bull BO in TR → MTR
         
-        ![image.png](15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15F%20Failed%20BO,%20trend%20resumption%20or%20reversal/image%207.png)

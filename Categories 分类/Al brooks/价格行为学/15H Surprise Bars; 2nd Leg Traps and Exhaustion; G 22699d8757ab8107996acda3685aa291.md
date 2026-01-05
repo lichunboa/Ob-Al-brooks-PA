@@ -15,11 +15,11 @@
         - Exhaustion Bars
         - Reversal Bars
         
-        ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image.png)
         
     - could be PB
         
-        ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%201.png)
         
     - Strong BO or Reversal : MM likely
         
@@ -38,7 +38,7 @@
         
         这里看到两种交易者：左侧和右侧
         
-        ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%204.png)
         
     - Big Bar Means Big Risk → Buy 50% PB
         
@@ -46,46 +46,46 @@
         
         第二个BEAR BO之前是BULL TREND，因此更有可能是继续trend。
         
-        ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%205.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%205.png)
         
-        ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%206.png)
         
     - Huge Surprise Bar creates trend
         - bull
             
-            ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%207.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%207.png)
             
         - bear
             
-            ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%208.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%208.png)
             
-            ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%209.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%209.png)
             
 - 2nd Leg Traps
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2010.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2011.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2011.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2012.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2012.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2013.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2013.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2014.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2014.png)
     
 - Exhaustion
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2015.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2015.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2016.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2016.png)
     
 - Give up Bars - Minor reversal;
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2017.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2017.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2018.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2018.png)
     
-    ![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2019.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2019.png)
     
 
-![image.png](15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2020.png)
+![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/15H%20Surprise%20Bars;%202nd%20Leg%20Traps%20and%20Exhaustion;%20G/image%2020.png)

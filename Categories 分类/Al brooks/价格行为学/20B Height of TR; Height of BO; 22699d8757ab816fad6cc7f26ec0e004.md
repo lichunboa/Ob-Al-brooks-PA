@@ -19,21 +19,21 @@
         
     - MM:Height of TR
         
-        ![image.png](20B%20Height%20of%20TR;%20Height%20of%20BO;/image%201.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/20B%20Height%20of%20TR;%20Height%20of%20BO;/image%201.png)
         
-        ![image.png](20B%20Height%20of%20TR;%20Height%20of%20BO;/image%202.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/20B%20Height%20of%20TR;%20Height%20of%20BO;/image%202.png)
         
     - MM: trend start → Middle of MM(其实是LEG1→TR→LEG2）
         
-        ![image.png](20B%20Height%20of%20TR;%20Height%20of%20BO;/image%203.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/20B%20Height%20of%20TR;%20Height%20of%20BO;/image%203.png)
         
         其实是
         
-        ![image.png](20B%20Height%20of%20TR;%20Height%20of%20BO;/image%204.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/20B%20Height%20of%20TR;%20Height%20of%20BO;/image%204.png)
         
 - Height of BO
     
-    ![image.png](20B%20Height%20of%20TR;%20Height%20of%20BO;/image%205.png)
+    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/20B%20Height%20of%20TR;%20Height%20of%20BO;/image%205.png)
     
     - 40%的BO MM →反向MM
         

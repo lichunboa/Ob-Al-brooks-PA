@@ -39,9 +39,9 @@
         - 【形态特征】-no pull back
             - **No pullback** [对于bull来说就是连续的bar的low不低于前一个bar的low】
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%203.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%203.png)
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%204.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%204.png)
                 
         - 【交易方法】- [expect one more leg] **limit order后勤**或者**stop order冲锋**
             
@@ -55,46 +55,46 @@
             - limit order: sell above
             - stop order: sell below
             
-            ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%205.png)
+            ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%205.png)
             
             - 例子: Bull Micro Channel → Bear Bo below Micro Channel → Bull FLAG!
                 
                 【老手在1min时间级使用这个】
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%206.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%206.png)
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%207.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%207.png)
                 
             - 例子: Bear Micro Channel → Bull Bo below Micro Channel → Bear FLAG!
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%208.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%208.png)
                 
-                ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%209.png)
+                ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%209.png)
                 
         - **trend早期**的Micro Channel是**BO**，可能形成MM，**trend晚期**的Micro Channel可能是**exhaustion gap**
             - MC as BO
                 - Bear MC Case
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2010.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2010.png)
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2011.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2011.png)
                     
                 - Bull MC Case
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2012.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2012.png)
                     
             - MC as exhaustion Gap
                 - 例子1
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2013.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2013.png)
                     
                 - 例子2
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2014.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2014.png)
                     
                 - 例子3
                     
-                    ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2015.png)
+                    ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2015.png)
                     
         - MC as flag in trend (注意context!强trend才能镇压MC这种强逆反flag）
             - Bear MC in Bull Trend → usually Bull Flag!
@@ -136,10 +136,10 @@
             
     - Small PB Trend - Tiny PB
         
-        ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2020.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2020.png)
         
-        ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2021.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2021.png)
         
     - Parabolic Wedge - small PB 三push
         
-        ![image.png](17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2022.png)
+        ![image.png](Categories%20分类/Al%20brooks/价格行为学/assets/17A%20Definition%20Tight%20Channel;%20Micro%20Channel/image%2022.png)
