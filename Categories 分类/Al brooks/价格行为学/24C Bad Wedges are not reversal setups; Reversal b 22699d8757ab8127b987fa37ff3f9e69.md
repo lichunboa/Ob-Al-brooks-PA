@@ -75,16 +75,16 @@
 - Reversal begins before old trend ends
     - Bull case
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%206.png)
+        ![image.png](Categories%20分类/Al%20brooks/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%206.png)
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%207.png)
+        ![image.png](Categories%20分类/Al%20brooks/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%207.png)
         
     - Bear case
         
-        ![image.png](Categories%20分类/Al%20brooks/价格行为学/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%208.png)
+        ![image.png](Categories%20分类/Al%20brooks/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%208.png)
         
 - Earlier entry on smaller time frame
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%209.png)
+    ![image.png](Categories%20分类/Al%20brooks/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%209.png)
     
-    ![image.png](Categories%20分类/Al%20brooks/价格行为学/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%2010.png)
+    ![image.png](Categories%20分类/Al%20brooks/24C%20Bad%20Wedges%20are%20not%20reversal%20setups;%20Reversal%20b/image%2010.png)
