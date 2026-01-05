@@ -2014,22 +2014,13 @@ const ConsoleComponent: React.FC<Props> = ({
                             {signalMatch === null ? null : (
                               <div
                                 style={{
-                                  color: "var(--text-muted)",
+                                  marginTop: "6px",
                                   fontSize: "0.9em",
+                                  color: signalMatch ? V5_COLORS.win : V5_COLORS.loss,
+                                  fontWeight: 600,
                                 }}
                               >
-                                匹配：
-                                <span
-                                  style={{
-                                    marginLeft: "6px",
-                                    color: signalMatch
-                                      ? V5_COLORS.win
-                                      : V5_COLORS.back,
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {signalMatch ? "✅" : "⚠️"}
-                                </span>
+                                匹配: {signalMatch ? "✅" : "⚠️"}
                               </div>
                             )}
                           </div>
@@ -2037,129 +2028,175 @@ const ConsoleComponent: React.FC<Props> = ({
                       })()}
                     </div>
                   ) : (
+                    /* Fallback: 早期建议（基于 Setup/Cycle） */
+                    <div style={{ ...glassInsetStyle, padding: "12px" }}>
+                      <div
+                        style={{
+                          fontSize: "0.85em",
+                          color: "var(--text-muted)",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        💡 基于当前市场背景 ({openTrade.market_cycle || "未知"}
+                        ) 的策略建议:
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {strategyPicks.length > 0 ? (
+                          strategyPicks.map((s) => (
+                            <button
+                              key={`fallback-${s.path}`}
+                              type="button"
+                              onClick={() => openFile(s.path)}
+                              style={{
+                                ...textButtonStyle,
+                                background: "rgba(var(--interactive-accent-rgb), 0.1)",
+                                color: "var(--interactive-accent)",
+                                border: "1px solid rgba(var(--interactive-accent-rgb), 0.2)",
+                                borderRadius: "4px",
+                                padding: "4px 8px",
+                              }}
+                            >
+                              {s.canonicalName}
+                            </button>
+                          ))
+                        ) : (
+                          <span style={{ color: "var(--text-faint)", fontSize: "0.8em" }}>
+                            无匹配策略
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  ) : (
                     (() => {
                       const marketCycleRaw = (
-                        openTrade.marketCycle ?? todayMarketCycle
-                      )
-                        ?.toString()
-                        .trim();
-                      const marketCycle = marketCycleRaw
-                        ? marketCycleRaw.includes("(")
-                          ? marketCycleRaw.split("(")[0].trim()
-                          : marketCycleRaw
-                        : undefined;
-                      const setupCategory = openTrade.setupCategory
-                        ?.toString()
-                        .trim();
-                      const setupKey = openTrade.setupKey?.toString().trim();
-                      const hasHints = Boolean(marketCycle || setupCategory);
+                  openTrade.marketCycle ?? todayMarketCycle
+                  )
+                  ?.toString()
+                  .trim();
+                  const marketCycle = marketCycleRaw
+                  ? marketCycleRaw.includes("(")
+                  ? marketCycleRaw.split("(")[0].trim()
+                  : marketCycleRaw
+                  : undefined;
+                  const setupCategory = openTrade.setupCategory
+                  ?.toString()
+                  .trim();
+                  const setupKey = openTrade.setupKey?.toString().trim();
+                  const hasHints = Boolean(marketCycle || setupCategory);
 
-                      if (!hasHints) {
+                  if (!hasHints) {
                         return (
-                          <div
-                            style={{
-                              color: "var(--text-faint)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            未找到匹配策略。
-                          </div>
-                        );
+                  <div
+                    style={{
+                      color: "var(--text-faint)",
+                      fontSize: "0.9em",
+                    }}
+                  >
+                    未找到匹配策略。
+                  </div>
+                  );
                       }
 
                       const norm = (s: string) => s.toLowerCase();
-                      const wantCycleKey = marketCycle
-                        ? norm(marketCycle)
-                        : undefined;
-                      const wantSetupKey =
-                        setupCategory || setupKey
-                          ? norm(String(setupCategory || setupKey))
-                          : undefined;
+                  const wantCycleKey = marketCycle
+                  ? norm(marketCycle)
+                  : undefined;
+                  const wantSetupKey =
+                  setupCategory || setupKey
+                  ? norm(String(setupCategory || setupKey))
+                  : undefined;
 
-                      const scored = strategyIndex
-                        .list()
+                  const scored = strategyIndex
+                  .list()
                         .map((card) => {
-                          let score = 0;
-                          if (
-                            wantCycleKey &&
+                    let score = 0;
+                  if (
+                  wantCycleKey &&
                             card.marketCycles.some((c) => {
                               const ck = norm(String(c));
-                              return (
-                                ck.includes(wantCycleKey) ||
-                                wantCycleKey.includes(ck)
-                              );
+                  return (
+                  ck.includes(wantCycleKey) ||
+                  wantCycleKey.includes(ck)
+                  );
                             })
-                          ) {
-                            score += 2;
+                  ) {
+                    score += 2;
                           }
-                          if (
-                            wantSetupKey &&
+                  if (
+                  wantSetupKey &&
                             card.setupCategories.some((c) => {
                               const ck = norm(String(c));
-                              return (
-                                ck.includes(wantSetupKey) ||
-                                wantSetupKey.includes(ck)
-                              );
+                  return (
+                  ck.includes(wantSetupKey) ||
+                  wantSetupKey.includes(ck)
+                  );
                             })
-                          ) {
-                            score += 1;
+                  ) {
+                    score += 1;
                           }
-                          return { card, score };
+                  return {card, score};
                         })
                         .filter((x) => x.score > 0)
                         .sort((a, b) => b.score - a.score)
-                        .slice(0, 3)
+                  .slice(0, 3)
                         .map((x) => x.card);
 
-                      if (scored.length === 0) {
+                  if (scored.length === 0) {
                         return (
-                          <div
-                            style={{
-                              color: "var(--text-faint)",
-                              fontSize: "0.9em",
-                            }}
-                          >
-                            未找到匹配策略。
-                          </div>
-                        );
+                  <div
+                    style={{
+                      color: "var(--text-faint)",
+                      fontSize: "0.9em",
+                    }}
+                  >
+                    未找到匹配策略。
+                  </div>
+                  );
                       }
 
-                      return (
-                        <div>
-                          <div
-                            style={{
-                              color: "var(--text-muted)",
-                              fontSize: "0.9em",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            💡 基于当前市场背景（{marketCycle ?? "未知"}
-                            ）的策略建议：
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: "8px",
-                            }}
-                          >
-                            {scored.map((s) => (
-                              <button
-                                key={`today-fallback-${s.path}`}
-                                type="button"
-                                onClick={() => openFile(s.path)}
-                                style={buttonStyle}
-                                onMouseEnter={onBtnMouseEnter}
-                                onMouseLeave={onBtnMouseLeave}
-                                onFocus={onBtnFocus}
-                                onBlur={onBtnBlur}
-                              >
-                                {s.canonicalName}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
+                  return (
+                  <div>
+                    <div
+                      style={{
+                        color: "var(--text-muted)",
+                        fontSize: "0.9em",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      💡 基于当前市场背景（{marketCycle ?? "未知"}
+                      ）的策略建议：
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                      }}
+                    >
+                      {scored.map((s) => (
+                        <button
+                          key={`today-fallback-${s.path}`}
+                          type="button"
+                          onClick={() => openFile(s.path)}
+                          style={buttonStyle}
+                          onMouseEnter={onBtnMouseEnter}
+                          onMouseLeave={onBtnMouseLeave}
+                          onFocus={onBtnFocus}
+                          onBlur={onBtnBlur}
+                        >
+                          {s.canonicalName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  );
                     })()
                   )}
                 </div>
