@@ -66,11 +66,11 @@ export const GlobalStyles: React.FC = () => (
   gap: 10px;
 }
 
-.pa-kpi-grid.cols-3 {
+.pa-kpi-grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.pa-kpi-grid.cols-2 {
+.pa-kpi-grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -78,7 +78,7 @@ export const GlobalStyles: React.FC = () => (
   border: 1px solid var(--background-modifier-border);
   border-radius: 10px;
   padding: 10px 12px;
-  background: var(--background-primary);
+  background: var(--background-secondary);
 }
 
 .pa-kpi-label {
@@ -89,13 +89,13 @@ export const GlobalStyles: React.FC = () => (
 .pa-kpi-value {
   margin-top: 6px;
   font-weight: 850;
-  font-size: 1.55em;
+  font-size: 1.6em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .pa-kpi-value.lg {
-  font-size: 1.7em;
+  font-size: 1.85em;
 }
 
 .pa-kpi-stack {

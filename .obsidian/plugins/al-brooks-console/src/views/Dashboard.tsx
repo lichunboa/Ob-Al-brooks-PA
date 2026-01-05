@@ -1579,7 +1579,7 @@ const ConsoleComponent: React.FC<Props> = ({
             <div className="pa-section-title">今日</div>
 
             <div className="pa-kpi-stack" style={{ marginBottom: "14px" }}>
-              <div className="pa-kpi-grid cols-3">
+              <div className="pa-kpi-grid pa-kpi-grid-3">
                 {(
                   [
                     {
@@ -1608,7 +1608,7 @@ const ConsoleComponent: React.FC<Props> = ({
                 ))}
               </div>
 
-              <div className="pa-kpi-grid cols-2">
+              <div className="pa-kpi-grid pa-kpi-grid-2">
                 <div className="pa-kpi-tile">
                   <div className="pa-kpi-label">胜率</div>
                   <div className="pa-kpi-value" style={{ color: V5_COLORS.back }}>
