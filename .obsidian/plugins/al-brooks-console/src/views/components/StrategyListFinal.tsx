@@ -335,7 +335,7 @@ export const StrategyListFinal: React.FC<Props> = ({
                                                 )}
                                             </div>
 
-                                            {s.patternsObserved.length > 0 && (
+                                            {s.patternsObserved?.length > 0 && (
                                                 <div style={{ ...TYPO.caption, marginTop: "2px", display: "flex", gap: "6px", alignItems: "center" }}>
                                                     <span>📐 {s.patternsObserved.length} 形态</span>
                                                 </div>

@@ -58,7 +58,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     strategyIndex,
     openFile,
     strategyPerf,
-    playbookPerfRows,
+    playbookPerfRows = [],
     recommendationWindow = 3,
 }) => {
     const [activeFilter, setActiveFilter] = React.useState<string>("all");
@@ -233,7 +233,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                             })()}
 
                                             {/* Up Next Recommendation */}
-                                            {course.upNext.length > 0 && (
+                                            {course.upNext?.length > 0 && (
                                                 <div
                                                     style={{
                                                         color: "var(--text-muted)",
