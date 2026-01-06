@@ -19,6 +19,8 @@ import type { StrategyIndex } from "../../core/strategy-index";
 import { matchStrategies } from "../../core/strategy-matcher";
 import type { CourseSnapshot } from "../../core/course";
 
+import type { CoachData, CoachFocusItem } from "../../core/coach";
+
 // Types
 interface EnrichedCourse extends CourseSnapshot {
     title?: string;
@@ -48,6 +50,7 @@ export interface LearnTabProps {
         winRate: number;
     }>;
     recommendationWindow?: number;
+    coach?: CoachData;
 }
 
 export const LearnTab: React.FC<LearnTabProps> = ({
@@ -60,6 +63,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     strategyPerf,
     playbookPerfRows = [],
     recommendationWindow = 3,
+    coach,
 }) => {
     // Helper Styles
     const onTextBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -132,6 +136,129 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                     gap: "20px",
                 }}
             >
+                {/* Coach Focus Section */}
+                {coach && (
+                    <GlassCard style={{ marginBottom: "16px" }}>
+                        <HeadingM style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                            🎯 教练重点
+                            <span style={{ fontSize: "0.85em", color: "var(--text-muted)", fontWeight: "normal" }}>
+                                (Coach Focus)
+                            </span>
+                        </HeadingM>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                            {/* Left: Ranked Recommendations */}
+                            <div>
+                                <div style={{ fontSize: "0.9em", fontWeight: 600, marginBottom: "8px", color: "var(--text-normal)" }}>
+                                    综合推荐 (Top Recommendations)
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    {coach.combined.ranked.length === 0 ? (
+                                        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>暂无足够数据生成推荐</div>
+                                    ) : (
+                                        coach.combined.ranked.slice(0, 5).map((item, idx) => (
+                                            <div key={`${item.kind}-${item.key}`} style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                padding: "8px",
+                                                borderRadius: "6px",
+                                                background: "rgba(var(--mono-rgb-100), 0.03)",
+                                                border: "1px solid var(--background-modifier-border)"
+                                            }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                    <div style={{
+                                                        width: "20px", height: "20px",
+                                                        borderRadius: "50%",
+                                                        background: "var(--interactive-accent)",
+                                                        color: "var(--text-on-accent)",
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        fontSize: "0.75em", fontWeight: 700
+                                                    }}>
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: "0.95em", fontWeight: 600 }}>{item.label}</div>
+                                                        <div style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+                                                            {item.dimLabel} • Urgency: {item.urgency.toFixed(1)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: "right", fontSize: "0.85em" }}>
+                                                    <div style={{ color: item.stats.winRate < 40 ? "var(--text-error)" : "var(--text-success)" }}>
+                                                        WR: {item.stats.winRate}%
+                                                    </div>
+                                                    <div style={{ color: "var(--text-muted)" }}>
+                                                        {item.stats.completed} trades
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right: Weekly Series & Focus */}
+                            <div>
+                                <div style={{ fontSize: "0.9em", fontWeight: 600, marginBottom: "8px", color: "var(--text-normal)" }}>
+                                    每周重点 (Weekly Focus Series)
+                                </div>
+                                <div style={{
+                                    display: "flex",
+                                    gap: "4px",
+                                    marginBottom: "16px",
+                                    overflowX: "auto",
+                                    paddingBottom: "4px"
+                                }}>
+                                    {coach.combined.weekly.series.map((week, idx) => {
+                                        const focus = week.focus;
+                                        // Color based on focus item performance if available, else gray
+                                        let bg = "var(--background-modifier-border)";
+                                        if (focus) {
+                                            if (focus.stats.winRate >= 50) bg = "var(--interactive-success)";
+                                            else bg = "var(--interactive-error)"; // highlight issues
+                                        }
+
+                                        return (
+                                            <div key={week.start} title={`${week.start} - ${week.end}\nFocus: ${focus?.label || "None"}`} style={{
+                                                flex: "0 0 24px",
+                                                height: "24px",
+                                                borderRadius: "4px",
+                                                background: bg,
+                                                opacity: 0.8,
+                                                cursor: "help"
+                                            }} />
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ padding: "12px", background: "rgba(var(--mono-rgb-100), 0.03)", borderRadius: "8px" }}>
+                                    <div style={{ fontSize: "0.9em", fontWeight: 600, marginBottom: "4px" }}>
+                                        本周焦点 (Current Focus)
+                                    </div>
+                                    {coach.combined.focus ? (
+                                        <div>
+                                            <div style={{ fontSize: "1.1em", color: "var(--interactive-accent)", fontWeight: 700, marginBottom: "4px" }}>
+                                                {coach.combined.focus.label}
+                                            </div>
+                                            <div style={{ fontSize: "0.9em", color: "var(--text-muted)" }}>
+                                                {coach.combined.focus.dimLabel} • Score: {coach.combined.focus.score?.toFixed(1) ?? 0}
+                                            </div>
+                                            <div style={{ marginTop: "8px", fontSize: "0.9em" }}>
+                                                建议重点复盘此类交易，检查是否符合 {coach.combined.focus.kind === "setupKey" ? "架构定义" : "策略规则"}。
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                                            本周暂无显著异常项。保持各项指标平稳。
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </GlassCard>
+                )}
+
                 {/* Course Syllabus */}
                 <div>
                     <GlassCard style={{ marginBottom: "16px", height: "100%" }}>
