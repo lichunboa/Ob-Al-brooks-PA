@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { StrategyCard } from "../../core/strategy-index";
+import { GlassCard } from "../../ui/components/DesignSystem";
 
 interface Props {
   strategies: StrategyCard[];
@@ -224,10 +225,11 @@ export const StrategyList: React.FC<Props> = ({
                     : "";
 
                   return (
-                    <div
+                    <GlassCard
                       key={s.path}
-                      className="pa-card pa-strategy-item"
+                      hoverEffect={true}
                       onClick={() => onOpenFile(s.path)}
+                      style={{ marginBottom: "10px", padding: "12px" }}
                     >
                       <div
                         style={{
@@ -245,6 +247,8 @@ export const StrategyList: React.FC<Props> = ({
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
+                            fontWeight: 600,
+                            fontSize: "1.05em",
                           }}
                         >
                           {s.canonicalName || s.name}
@@ -337,7 +341,7 @@ export const StrategyList: React.FC<Props> = ({
                           </span>
                         </div>
                       )}
-                    </div>
+                    </GlassCard>
                   );
                 })}
               </div>
