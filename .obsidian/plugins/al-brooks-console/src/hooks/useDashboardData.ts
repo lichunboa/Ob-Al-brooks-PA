@@ -54,6 +54,7 @@ import { TRADE_TAG } from "../core/field-mapper";
 import type { App, Component, TFile } from "obsidian";
 import type { TodayContext } from "../core/today-context";
 import { type PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
+import { buildCoachFocus, type CoachData } from "../core/coach";
 
 // --- Local Helpers ---
 
@@ -807,7 +808,11 @@ export const useDashboardData = ({
             topSetups,
             suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
         };
-    }, [trades]);
+    }, [trades, strategyIndex]);
+
+    const coach: CoachData = React.useMemo(() => {
+        return buildCoachFocus(trades, todayIso);
+    }, [trades, todayIso]);
 
     const gallery = React.useMemo((): {
         items: GalleryItem[];
@@ -1145,6 +1150,7 @@ export const useDashboardData = ({
         analyticsTopStrats,
         analyticsSuggestion,
         strategyLab,
+        coach,
 
         // Gallery
         gallery,

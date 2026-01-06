@@ -18,6 +18,7 @@ import { StrategyListFinal as StrategyList } from "../components/StrategyListFin
 import type { StrategyIndex } from "../../core/strategy-index";
 import { matchStrategies } from "../../core/strategy-matcher";
 import type { CourseSnapshot } from "../../core/course";
+import type { CoachData, CoachFocusItem } from "../../core/coach";
 
 // Types
 interface EnrichedCourse extends CourseSnapshot {
@@ -48,6 +49,7 @@ export interface LearnTabProps {
         winRate: number;
     }>;
     recommendationWindow?: number;
+    coach?: CoachData;
 }
 
 export const LearnTab: React.FC<LearnTabProps> = ({
@@ -60,6 +62,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     strategyPerf,
     playbookPerfRows,
     recommendationWindow = 3,
+    coach,
 }) => {
     const [activeFilter, setActiveFilter] = React.useState<string>("all");
 

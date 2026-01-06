@@ -287,7 +287,7 @@ const ConsoleComponent: React.FC<Props> = ({
     calendarCells, calendarDays, calendarMaxAbs,
     strategyAttribution, analyticsRMultiples,
     analyticsRecentLiveTradesAsc, analyticsMind,
-    analyticsTopStrats, analyticsSuggestion, strategyLab,
+    analyticsTopStrats, analyticsSuggestion, strategyLab, coach,
 
     // Gallery
     gallery, gallerySearchHref,
@@ -526,6 +526,7 @@ const ConsoleComponent: React.FC<Props> = ({
             strategyPerf={strategyPerf}
             playbookPerfRows={playbookPerfRows}
             recommendationWindow={settings.courseRecommendationWindow}
+            coach={coach}
           />
         ) : null
       }
