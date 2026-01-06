@@ -212,15 +212,15 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                                             <span>
                                                                 进度:{" "}
                                                                 <strong>
-                                                                    {course.progress.percent.toFixed(0)}%
+                                                                    {(course.progress?.percent ?? 0).toFixed(0)}%
                                                                 </strong>
                                                             </span>
                                                             <span style={{ color: "var(--text-muted)" }}>|</span>
                                                             <span>
                                                                 已完成:{" "}
                                                                 <strong>
-                                                                    {course.progress.doneCount}/
-                                                                    {course.progress.totalCount}
+                                                                    {course.progress?.doneCount ?? 0}/
+                                                                    {course.progress?.totalCount ?? 0}
                                                                 </strong>
                                                             </span>
                                                             <span>
