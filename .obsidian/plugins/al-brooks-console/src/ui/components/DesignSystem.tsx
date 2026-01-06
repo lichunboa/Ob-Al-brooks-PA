@@ -28,10 +28,10 @@ export const GlassCard: React.FC<GlassProps> = ({ children, style, onClick, hove
         WebkitBackdropFilter: EFFECTS.blur.card,
         borderRadius: "16px",
         border: isHovered && hoverEffect ? COLORS.border.highlight : COLORS.border.subtle,
-        boxShadow: isHovered && hoverEffect ? EFFECTS.shadow.float : EFFECTS.shadow.card,
+        boxShadow: isHovered && hoverEffect ? "0 16px 48px rgba(0,0,0,0.22)" : EFFECTS.shadow.card,
         padding: SPACE.lg,
-        transition: EFFECTS.transition,
-        transform: isHovered && hoverEffect ? "translateY(-2px)" : "none",
+        transition: "all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)", // Snappier
+        transform: isHovered && hoverEffect ? "translateY(-4px) scale(1.002)" : "none",
         overflow: "hidden", // Clip content
         cursor: onClick ? "pointer" : "default",
         ...style,
