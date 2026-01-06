@@ -13,6 +13,7 @@ import {
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
+import { useDashboardData } from "../hooks/useDashboardData";
 import { buildReviewHints } from "../core/review-hints";
 import type { AccountType, TradeRecord } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
