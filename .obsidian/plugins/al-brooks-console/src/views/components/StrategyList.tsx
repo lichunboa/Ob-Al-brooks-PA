@@ -210,7 +210,13 @@ export const StrategyList: React.FC<Props> = ({
                 {groupName} ({items.length})
               </div>
 
-              <div className="pa-strategy-grid">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: "12px",
+                }}
+              >
                 {items.map((s) => {
                   const p =
                     perf?.get(s.canonicalName) ??
@@ -230,11 +236,12 @@ export const StrategyList: React.FC<Props> = ({
                       hoverEffect={true}
                       onClick={() => onOpenFile(s.path)}
                       style={{
-                        marginBottom: "10px",
+                        marginBottom: "0",
                         padding: "16px",
-                        background: "rgba(255, 255, 255, 0.08)", // Explicitly stronger background
-                        border: "1px solid rgba(255, 255, 255, 0.15)", // Explicitly stronger border
-                        borderRadius: "12px",
+                        background: "var(--interactive-normal)", // Standard Obsidian card background
+                        border: "1px solid var(--background-modifier-border)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                        borderRadius: "8px",
                       }}
                     >
                       <div
