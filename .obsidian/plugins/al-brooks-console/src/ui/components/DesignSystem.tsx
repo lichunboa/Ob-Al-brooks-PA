@@ -27,7 +27,7 @@ export const GlassCard: React.FC<GlassProps> = ({ children, style, onClick, hove
         backdropFilter: EFFECTS.blur.card,
         WebkitBackdropFilter: EFFECTS.blur.card,
         borderRadius: "16px",
-        border: COLORS.border.subtle,
+        border: isHovered && hoverEffect ? COLORS.border.highlight : COLORS.border.subtle,
         boxShadow: isHovered && hoverEffect ? EFFECTS.shadow.float : EFFECTS.shadow.card,
         padding: SPACE.lg,
         transition: EFFECTS.transition,
@@ -280,6 +280,51 @@ export const StatusBadge: React.FC<BadgeProps> = ({ label, color, tone = "neutra
         }}>
             {label}
         </span>
+    );
+};
+
+// --- 5. Empty State ---
+
+interface EmptyStateProps {
+    title: string;
+    message?: string;
+    icon?: string;
+    action?: {
+        label: string;
+        onClick: () => void;
+    };
+    style?: CSSProperties;
+}
+
+export const EmptyState: React.FC<EmptyStateProps> = ({ title, message, icon = "📭", action, style }) => {
+    return (
+        <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: SPACE.xxl,
+            color: COLORS.text.muted,
+            gap: SPACE.md,
+            textAlign: "center",
+            opacity: 0.8,
+            ...style
+        }}>
+            <div style={{ fontSize: "48px", marginBottom: SPACE.sm, opacity: 0.5 }}>
+                {icon}
+            </div>
+            <HeadingM color={COLORS.text.muted} align="center">
+                {title}
+            </HeadingM>
+            {message && <Body align="center" style={{ maxWidth: "400px", margin: "0 auto" }}>{message}</Body>}
+            {action && (
+                <div style={{ marginTop: SPACE.md }}>
+                    <ButtonPrimary onClick={action.onClick}>
+                        {action.label}
+                    </ButtonPrimary>
+                </div>
+            )}
+        </div>
     );
 };
 

@@ -8,6 +8,7 @@ import {
     DisplayXL,
     StatusBadge,
     ButtonGhost,
+    EmptyState,
 } from "../../ui/components/DesignSystem";
 import {
     SPACE,
@@ -231,15 +232,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
 
                         {liveCyclePerf.length === 0 ? (
-                            <div
-                                style={{
-                                    color: COLORS.text.muted,
-                                    fontSize: "0.9em",
-                                    padding: SPACE.sm,
-                                }}
-                            >
-                                暂无数据
-                            </div>
+                            <EmptyState
+                                title="暂无表现数据"
+                                icon="📉"
+                                style={{ padding: SPACE.md }}
+                            />
                         ) : (
                             <div
                                 style={{
@@ -651,16 +648,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                             ))}
                                         </div>
                                     ) : (
-                                        <div
-                                            style={{
-                                                color: COLORS.text.muted,
-                                                fontSize: "0.9em",
-                                                padding: SPACE.sm,
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            未找到策略归因数据。
-                                        </div>
+                                        <EmptyState
+                                            title="暂无策略归因"
+                                            message="记录一些交易来填充这里。"
+                                            icon="🧬"
+                                            style={{ padding: SPACE.lg }}
+                                        />
                                     )}
                                 </GlassPanel>
                             </div>

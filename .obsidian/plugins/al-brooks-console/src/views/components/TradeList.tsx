@@ -1,4 +1,5 @@
 import * as React from "react";
+import { EmptyState } from "../../ui/components/DesignSystem";
 import type { TradeData } from "../../types";
 
 interface TradeListProps {
@@ -96,15 +97,15 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
           );
         })}
         {trades.length === 0 && (
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              color: "var(--text-faint)",
+          <EmptyState
+            title="暂无交易"
+            message="开始你的第一笔交易记录吧！"
+            icon="📝"
+            action={{
+              label: "新建交易",
+              onClick: () => { /* triggers externally or via shortcut */ }
             }}
-          >
-            未找到交易记录。开始记录吧！
-          </div>
+          />
         )}
       </div>
     );
@@ -248,15 +249,11 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
           );
         })}
         {trades.length === 0 && (
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              color: "var(--text-faint)",
-            }}
-          >
-            未找到交易记录。开始记录吧！
-          </div>
+          <EmptyState
+            title="暂无交易"
+            message="开始你的第一笔交易记录吧！"
+            icon="📝"
+          />
         )}
       </div>
       <div style={{ height: bottomSpacer }} />

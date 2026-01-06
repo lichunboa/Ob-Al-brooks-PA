@@ -16,7 +16,8 @@ import {
     StatusBadge,
     ButtonGhost,
     Label,
-    Body
+    Body,
+    EmptyState,
 } from "../../ui/components/DesignSystem";
 import { COLORS } from "../../ui/styles/theme";
 import type { TradeRecord } from "../../core/contracts";
@@ -658,9 +659,11 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                     {title}
                 </div>
                 {groupEntries.length === 0 ? (
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        无匹配属性。
-                    </div>
+                    <EmptyState
+                        title="无匹配属性"
+                        icon="🔍"
+                        style={{ padding: SPACE.lg }}
+                    />
                 ) : (
                     <div
                         style={{
@@ -1144,7 +1147,12 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                 </div>
 
                 {schemaIssues.length === 0 ? (
-                    <div>✅ 无异常</div>
+                    <EmptyState
+                        title="系统运行正常"
+                        message="未发现需要修复的元数据问题"
+                        icon="✅"
+                        style={{ padding: SPACE.md }}
+                    />
                 ) : (
                     <GlassPanel
                         style={{
