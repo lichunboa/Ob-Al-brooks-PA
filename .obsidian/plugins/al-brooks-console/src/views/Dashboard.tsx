@@ -117,6 +117,7 @@ import {
   StatusBadge,
 } from "../ui/components/DesignSystem";
 import { ManageTab } from "./tabs/ManageTab";
+import { LearnTab } from "./tabs/LearnTab";
 import { COLORS, SPACE } from "../ui/styles/theme";
 
 function toLocalDateIso(d: Date): string {
