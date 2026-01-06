@@ -231,17 +231,28 @@ export const StrategyList: React.FC<Props> = ({
                     : "";
 
                   return (
-                    <GlassCard
+                    <div
                       key={s.path}
-                      hoverEffect={true}
                       onClick={() => onOpenFile(s.path)}
                       style={{
                         marginBottom: "0",
                         padding: "16px",
-                        background: "var(--interactive-normal)", // Standard Obsidian card background
+                        backgroundColor: "var(--background-secondary)",
                         border: "1px solid var(--background-modifier-border)",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                        borderRadius: "8px",
+                        borderRadius: "10px",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.15)";
                       }}
                     >
                       <div
@@ -354,7 +365,7 @@ export const StrategyList: React.FC<Props> = ({
                           </span>
                         </div>
                       )}
-                    </GlassCard>
+                    </div>
                   );
                 })}
               </div>
