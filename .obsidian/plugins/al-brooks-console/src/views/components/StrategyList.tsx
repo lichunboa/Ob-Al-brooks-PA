@@ -1,14 +1,5 @@
 import * as React from "react";
 import type { StrategyCard } from "../../core/strategy-index";
-import {
-  GlassCard,
-  GlassPanel,
-  StatusBadge,
-  HeadingS,
-  Body,
-  Label
-} from "../../ui/components/DesignSystem";
-import { COLORS, SPACE, TYPO, EFFECTS } from "../../ui/styles/theme";
 
 interface Props {
   strategies: StrategyCard[];
@@ -86,13 +77,6 @@ export const StrategyList: React.FC<Props> = ({
     },
     [hasCJK]
   );
-
-  const getStatusTone = (statusRaw: unknown): "success" | "neutral" | "warn" | "loss" => {
-    const s = typeof statusRaw === "string" ? statusRaw.trim().toLowerCase() : "";
-    if (s.includes("active") || s.includes("实战")) return "success";
-    if (s.includes("valid") || s.includes("verify") || s.includes("验证")) return "warn";
-    return "neutral"; // Learning
-  };
 
   const isActive = React.useCallback((statusRaw: unknown) => {
     const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
@@ -172,44 +156,23 @@ export const StrategyList: React.FC<Props> = ({
     return { by, ordered, otherGroup };
   }, [filtered, perf, isActive, cycleToCn]);
 
-  // Styles for inputs to match glass aesthetic
-  const inputStyle: React.CSSProperties = {
-    background: "rgba(0, 0, 0, 0.2)",
-    border: COLORS.border.subtle,
-    borderRadius: "8px",
-    padding: "6px 12px",
-    color: COLORS.text.normal,
-    outline: "none",
-    fontSize: "0.9em",
-    minWidth: "140px",
-  };
-
   return (
-    <div style={{ marginBottom: SPACE.xl }}>
+    <div className="pa-dashboard">
       <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: SPACE.lg,
-          paddingBottom: SPACE.sm,
-          borderBottom: showTitle ? COLORS.border.subtle : "none",
-        }}
+        className="pa-card-header"
+        style={{ marginBottom: "20px", borderBottom: "none" }}
       >
         {showTitle ? (
-          <div style={{ ...TYPO.headingM, color: COLORS.text.normal }}>
-            🔮 策略仓库 (Strategy Playbook)
-          </div>
-        ) : <div />} {/* Spacer if no title */}
-
+          <h3 className="pa-card-title">策略仓库 (Strategy Repository)</h3>
+        ) : null}
         {showControls ? (
-          <div style={{ display: "flex", gap: SPACE.sm }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <select
               value={cycleFilter}
               onChange={(e) => setCycleFilter(e.target.value)}
-              style={inputStyle}
+              className="pa-input"
             >
-              <option value="All">所有周期 (All Cycles)</option>
+              <option value="All">所有周期</option>
               {cycles.map((c) => (
                 <option key={c} value={c}>
                   {cycleToCn(c) || c}
@@ -218,36 +181,35 @@ export const StrategyList: React.FC<Props> = ({
             </select>
             <input
               type="text"
-              placeholder="🔍 搜索策略..."
+              placeholder="搜索策略..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={inputStyle}
+              className="pa-input"
             />
           </div>
         ) : null}
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: SPACE.xl, color: COLORS.text.muted }}>
-          🤷‍♂️ 未找到匹配的策略 (No strategies found)
-        </div>
+        <div className="pa-text-muted">未找到匹配的策略。</div>
       ) : (
         grouped.ordered.map((groupName) => {
           const items = grouped.by.get(groupName) ?? [];
           if (items.length === 0) return null;
           return (
-            <div key={`group-${groupName}`} style={{ marginBottom: SPACE.lg }}>
-              <Label style={{ marginBottom: SPACE.sm, color: COLORS.accent, opacity: 0.9 }}>
-                {groupName} ({items.length})
-              </Label>
-
+            <div key={`group-${groupName}`} style={{ marginBottom: "14px" }}>
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                  gap: SPACE.md,
+                  fontSize: "0.85em",
+                  opacity: 0.75,
+                  fontWeight: 700,
+                  marginBottom: "8px",
                 }}
               >
+                {groupName} ({items.length})
+              </div>
+
+              <div className="pa-strategy-grid">
                 {items.map((s) => {
                   const p =
                     perf?.get(s.canonicalName) ??
@@ -257,66 +219,64 @@ export const StrategyList: React.FC<Props> = ({
                     p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                   const active = isActive((s as any).statusRaw);
                   const statusLabel = statusToCn((s as any).statusRaw);
-                  const statusTone = getStatusTone((s as any).statusRaw);
-
                   const lastDate = p.lastDateIso
-                    ? p.lastDateIso.slice(5, 10) // MM-DD for brevity
+                    ? p.lastDateIso.slice(0, 10)
                     : "";
 
                   return (
-                    <GlassCard
+                    <div
                       key={s.path}
+                      className="pa-card pa-strategy-item"
                       onClick={() => onOpenFile(s.path)}
-                      hoverEffect={true}
-                      style={{
-                        padding: SPACE.md,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: SPACE.xs,
-                        border: active ? `1px solid ${COLORS.win}40` : undefined, // Subtle green border for active
-                        background: active ? "rgba(16, 185, 129, 0.03)" : undefined,
-                      }}
                     >
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "flex-start",
+                          alignItems: "baseline",
                           justifyContent: "space-between",
-                          gap: SPACE.sm,
-                          marginBottom: "2px",
+                          gap: "10px",
+                          marginBottom: "6px",
                         }}
                       >
-                        <HeadingS style={{
-                          fontSize: "1.05em",
-                          lineHeight: "1.3",
-                          flex: "1",
-                          wordBreak: "break-word"
-                        }}>
+                        <div
+                          className="pa-strategy-title"
+                          style={{
+                            flex: "1 1 auto",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {s.canonicalName || s.name}
-                        </HeadingS>
+                        </div>
 
-                        {/* Performance Pill */}
-                        <div style={{
-                          textAlign: "right",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                          minWidth: "60px"
-                        }}>
-                          <span style={{
-                            ...TYPO.numeric,
-                            fontSize: "1.1em",
-                            fontWeight: 700,
-                            color: wr >= 50 ? COLORS.win : COLORS.loss,
-                            opacity: p.total > 0 ? 1 : 0.3
-                          }}>
-                            {p.total > 0 ? `${wr}%` : "--"}
+                        <div
+                          style={{
+                            flex: "0 0 auto",
+                            color: "var(--text-muted)",
+                            fontSize: "0.82em",
+                            fontVariantNumeric: "tabular-nums",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              color:
+                                wr > 50
+                                  ? "var(--text-success)"
+                                  : "var(--text-warning)",
+                              fontWeight: 900,
+                            }}
+                          >
+                            {wr}%
                           </span>
-                          {p.total > 0 && (
-                            <span style={{ ...TYPO.caption, fontSize: "0.75em" }}>
-                              {p.total} 次
+                          <span style={{ opacity: 0.7 }}> ({p.total})</span>
+                          {lastDate ? (
+                            <span style={{ opacity: 0.75 }}>
+                              {" "}
+                              · 最近 {lastDate}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
@@ -325,33 +285,59 @@ export const StrategyList: React.FC<Props> = ({
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          marginTop: "auto",
-                          paddingTop: SPACE.sm
+                          gap: "10px",
+                          flexWrap: "wrap",
+                          marginBottom: "4px",
+                          color: "var(--text-muted)",
+                          fontSize: "0.85em",
                         }}
                       >
-                        <StatusBadge
-                          label={statusLabel.split("/")[0]} // Show CN only for brevity
-                          tone={statusTone}
-                        />
-
-                        {lastDate && (
-                          <span style={{ ...TYPO.caption, color: COLORS.text.faint }}>
-                            📅 {lastDate}
+                        <span
+                          style={{
+                            fontWeight: active ? 800 : 600,
+                            color: active
+                              ? "var(--text-accent)"
+                              : "var(--text-muted)",
+                          }}
+                        >
+                          {statusLabel}
+                        </span>
+                        {s.riskReward ? (
+                          <span className="pa-text-faint">
+                            R/R: <strong>{s.riskReward}</strong>
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
-                      {/* Optional extra info row */}
-                      {s.patternsObserved.length > 0 && (
-                        <div style={{ ...TYPO.caption, marginTop: "2px", display: "flex", gap: "6px", alignItems: "center" }}>
-                          <span>📐 {s.patternsObserved.length} 形态</span>
-                          {s.riskReward && (
-                            <span>⚖️ R:R {s.riskReward}</span>
-                          )}
+                      {(p.total > 0 || s.patternsObserved.length > 0) && (
+                        <div
+                          className="pa-text-faint"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "10px",
+                            fontSize: "0.78em",
+                          }}
+                        >
+                          <span>
+                            {p.total > 0 ? (
+                              <>
+                                使用 <strong>{p.total}</strong>次
+                              </>
+                            ) : null}
+                          </span>
+                          <span>
+                            {s.patternsObserved.length > 0 ? (
+                              <>
+                                形态{" "}
+                                <strong>{s.patternsObserved.length}</strong>
+                              </>
+                            ) : null}
+                          </span>
                         </div>
                       )}
-
-                    </GlassCard>
+                    </div>
                   );
                 })}
               </div>

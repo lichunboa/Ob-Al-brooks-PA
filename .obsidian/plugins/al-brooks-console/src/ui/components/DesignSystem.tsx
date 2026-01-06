@@ -27,11 +27,11 @@ export const GlassCard: React.FC<GlassProps> = ({ children, style, onClick, hove
         backdropFilter: EFFECTS.blur.card,
         WebkitBackdropFilter: EFFECTS.blur.card,
         borderRadius: "16px",
-        border: isHovered && hoverEffect ? COLORS.border.highlight : COLORS.border.subtle,
-        boxShadow: isHovered && hoverEffect ? "0 16px 48px rgba(0,0,0,0.22)" : EFFECTS.shadow.card,
+        border: COLORS.border.subtle,
+        boxShadow: isHovered && hoverEffect ? EFFECTS.shadow.float : EFFECTS.shadow.card,
         padding: SPACE.lg,
-        transition: "all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)", // Snappier
-        transform: isHovered && hoverEffect ? "translateY(-4px) scale(1.002)" : "none",
+        transition: EFFECTS.transition,
+        transform: isHovered && hoverEffect ? "translateY(-2px)" : "none",
         overflow: "hidden", // Clip content
         cursor: onClick ? "pointer" : "default",
         ...style,
@@ -123,17 +123,6 @@ export const HeadingL: React.FC<TextProps> = ({ children, style, color, align })
 export const HeadingM: React.FC<TextProps> = ({ children, style, color, align }) => (
     <div style={{
         ...TYPO.headingM,
-        color: color ?? COLORS.text.normal,
-        textAlign: align,
-        ...style
-    }}>
-        {children}
-    </div>
-);
-
-export const HeadingS: React.FC<TextProps> = ({ children, style, color, align }) => (
-    <div style={{
-        ...TYPO.headingS,
         color: color ?? COLORS.text.normal,
         textAlign: align,
         ...style
@@ -291,51 +280,6 @@ export const StatusBadge: React.FC<BadgeProps> = ({ label, color, tone = "neutra
         }}>
             {label}
         </span>
-    );
-};
-
-// --- 5. Empty State ---
-
-interface EmptyStateProps {
-    title: string;
-    message?: string;
-    icon?: string;
-    action?: {
-        label: string;
-        onClick: () => void;
-    };
-    style?: CSSProperties;
-}
-
-export const EmptyState: React.FC<EmptyStateProps> = ({ title, message, icon = "📭", action, style }) => {
-    return (
-        <div style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: SPACE.xxl,
-            color: COLORS.text.muted,
-            gap: SPACE.md,
-            textAlign: "center",
-            opacity: 0.8,
-            ...style
-        }}>
-            <div style={{ fontSize: "48px", marginBottom: SPACE.sm, opacity: 0.5 }}>
-                {icon}
-            </div>
-            <HeadingM color={COLORS.text.muted} align="center">
-                {title}
-            </HeadingM>
-            {message && <Body align="center" style={{ maxWidth: "400px", margin: "0 auto" }}>{message}</Body>}
-            {action && (
-                <div style={{ marginTop: SPACE.md }}>
-                    <ButtonPrimary onClick={action.onClick}>
-                        {action.label}
-                    </ButtonPrimary>
-                </div>
-            )}
-        </div>
     );
 };
 
