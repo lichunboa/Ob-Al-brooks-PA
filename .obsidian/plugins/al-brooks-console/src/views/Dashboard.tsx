@@ -5133,20 +5133,22 @@ short mode\n\
                                   }}
                                 >
                                   {groupEntries.map((g) => (
-                                    <div
+                                    <GlassPanel
                                       key={`${scope}:${g.name}`}
                                       style={{
-                                        border:
-                                          "1px solid var(--background-modifier-border)",
-                                        borderRadius: "12px",
                                         padding: "10px",
-                                        background: "var(--background-secondary)",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: SPACE.sm,
                                       }}
                                     >
                                       <div
                                         style={{
                                           fontWeight: 700,
-                                          marginBottom: "8px",
+                                          marginBottom: "4px",
+                                          color: COLORS.text.muted,
+                                          fontSize: "0.9em",
+                                          paddingLeft: "4px"
                                         }}
                                       >
                                         {g.name}
@@ -5170,8 +5172,9 @@ short mode\n\
                                             .sort((a, b) => b.c - a.c)
                                             .slice(0, 2);
                                           return (
-                                            <div
+                                            <button
                                               key={`${scope}:${key}`}
+                                              type="button"
                                               onClick={() => {
                                                 setManagerScope(scope);
                                                 setManagerInspectorKey(key);
@@ -5180,14 +5183,19 @@ short mode\n\
                                                   undefined
                                                 );
                                               }}
+                                              onMouseEnter={onBtnMouseEnter}
+                                              onMouseLeave={onBtnMouseLeave}
+                                              onFocus={onBtnFocus}
+                                              onBlur={onBtnBlur}
                                               style={{
-                                                border:
-                                                  "1px solid var(--background-modifier-border)",
+                                                border: `1px solid ${COLORS.border}`,
                                                 borderRadius: "10px",
-                                                padding: "8px 10px",
-                                                background:
-                                                  "var(--background-primary)",
+                                                padding: "10px",
+                                                background: "rgba(255,255,255,0.03)",
                                                 cursor: "pointer",
+                                                width: "100%",
+                                                textAlign: "left",
+                                                transition: "all 0.2s ease"
                                               }}
                                             >
                                               <div
@@ -5196,12 +5204,18 @@ short mode\n\
                                                   display: "flex",
                                                   justifyContent: "space-between",
                                                   gap: "8px",
+                                                  color: COLORS.text.normal,
+                                                  marginBottom: "6px"
                                                 }}
                                               >
                                                 <span>{key}</span>
                                                 <span
                                                   style={{
-                                                    color: "var(--text-faint)",
+                                                    fontSize: "0.85em",
+                                                    color: COLORS.text.muted,
+                                                    background: "rgba(0,0,0,0.2)",
+                                                    padding: "2px 6px",
+                                                    borderRadius: "4px"
                                                   }}
                                                 >
                                                   {countFiles}
@@ -5209,26 +5223,32 @@ short mode\n\
                                               </div>
                                               <div
                                                 style={{
-                                                  color: "var(--text-faint)",
                                                   fontSize: "0.85em",
-                                                  marginTop: "2px",
+                                                  color: COLORS.text.faint,
                                                   display: "flex",
-                                                  gap: "8px",
+                                                  gap: "6px",
                                                   flexWrap: "wrap",
+                                                  lineHeight: 1.3
                                                 }}
                                               >
-                                                {topVals.length ? (
-                                                  topVals.map((x) => (
-                                                    <span key={x.v}>
-                                                      {prettyVal(x.v)} · {x.c}
-                                                    </span>
-                                                  ))
-                                                ) : (
-                                                  <span>（无值）</span>
-                                                )}
+                                                {topVals.map((tv) => (
+                                                  <span
+                                                    key={tv.v}
+                                                    style={{
+                                                      background: "rgba(255,255,255,0.1)",
+                                                      padding: "1px 5px",
+                                                      borderRadius: "4px",
+                                                    }}
+                                                  >
+                                                    {prettyVal(tv.v)} ({tv.c})
+                                                  </span>
+                                                ))}
+                                                {vals.length > 2 ? (
+                                                  <span>...</span>
+                                                ) : null}
+                                                {vals.length === 0 ? <span>(无值)</span> : null}
                                               </div>
-                                            </div>
-                                          );
+                                            </button>);
                                         })}
 
                                         {g.keys.length > 18 ? (
@@ -5239,7 +5259,7 @@ short mode\n\
                                           </div>
                                         ) : null}
                                       </div>
-                                    </div>
+                                    </GlassPanel>
                                   ))}
                                 </div>
                               )}
@@ -5506,7 +5526,8 @@ short mode\n\
                               style={{
                                 position: "fixed",
                                 inset: 0,
-                                background: "rgba(0,0,0,0.35)",
+                                background: "rgba(0,0,0,0.5)",
+                                backdropFilter: "blur(6px)",
                                 zIndex: 9999,
                                 display: "flex",
                                 alignItems: "center",
@@ -5514,17 +5535,14 @@ short mode\n\
                                 padding: "24px",
                               }}
                             >
-                              <div
+                              <GlassCard
                                 style={{
                                   width: "min(860px, 95vw)",
                                   maxHeight: "85vh",
                                   overflow: "hidden",
-                                  borderRadius: "12px",
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  background: "var(--background-primary)",
                                   display: "flex",
                                   flexDirection: "column",
+                                  padding: 0,
                                 }}
                               >
                                 <div
@@ -5532,147 +5550,106 @@ short mode\n\
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
-                                    gap: "12px",
-                                    padding: "12px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
+                                    gap: SPACE.md,
+                                    padding: "16px",
+                                    borderBottom: `1px solid ${COLORS.border}`,
+                                    background: "rgba(0,0,0,0.2)",
                                   }}
                                 >
-                                  <div style={{ fontWeight: 800 }}>
+                                  <div style={{ fontWeight: 800, fontSize: "1.1em" }}>
                                     {key}
                                     <span
                                       style={{
-                                        color: "var(--text-faint)",
-                                        fontSize: "0.9em",
+                                        color: COLORS.text.muted,
+                                        fontSize: "0.8em",
                                         marginLeft: "10px",
                                         fontWeight: 600,
+                                        background: "rgba(255,255,255,0.1)",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px"
                                       }}
                                     >
-                                      {managerScope === "strategy"
-                                        ? "策略"
-                                        : "交易"}
+                                      {managerScope === "strategy" ? "STRATEGY" : "TRADE"}
                                     </span>
                                   </div>
-                                  <div style={{ display: "flex", gap: "8px" }}>
-                                    <button
-                                      type="button"
+                                  <div style={{ display: "flex", gap: SPACE.sm }}>
+                                    <ButtonGhost
                                       disabled={managerBusy}
                                       onClick={doDeleteKey}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
+                                      style={{ color: COLORS.loss }}
                                     >
                                       🗑️ 删除属性
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={close}
-                                      style={buttonSmStyle}
-                                    >
-                                      关闭
-                                    </button>
+                                    </ButtonGhost>
+                                    <ButtonGhost onClick={close}>
+                                      ✕ 关闭
+                                    </ButtonGhost>
                                   </div>
                                 </div>
 
                                 <div
                                   style={{
                                     display: "flex",
-                                    gap: "8px",
-                                    padding: "10px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
+                                    gap: SPACE.sm,
+                                    padding: "12px 16px",
+                                    borderBottom: `1px solid ${COLORS.border}`,
                                   }}
                                 >
-                                  <button
-                                    type="button"
+                                  <ButtonGhost
                                     onClick={() => {
                                       setManagerInspectorTab("vals");
                                       setManagerInspectorFileFilter(undefined);
                                     }}
                                     style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "vals"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
+                                      background: managerInspectorTab === "vals" ? "rgba(255,255,255,0.15)" : undefined,
+                                      borderColor: managerInspectorTab === "vals" ? COLORS.accent : undefined
                                     }}
                                   >
                                     属性值 ({sortedVals.length})
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setManagerInspectorTab("files")
-                                    }
+                                  </ButtonGhost>
+                                  <ButtonGhost
+                                    onClick={() => setManagerInspectorTab("files")}
                                     style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "files"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
+                                      background: managerInspectorTab === "files" ? "rgba(255,255,255,0.15)" : undefined,
+                                      borderColor: managerInspectorTab === "files" ? COLORS.accent : undefined
                                     }}
                                   >
                                     关联文件 ({allPaths.length})
-                                  </button>
+                                  </ButtonGhost>
                                 </div>
 
                                 <div
                                   style={{
-                                    padding: "10px 14px",
+                                    padding: "16px",
                                     overflow: "auto",
                                     flex: "1 1 auto",
                                   }}
                                 >
                                   {managerInspectorTab === "vals" ? (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
+                                    <div style={{ display: "grid", gap: SPACE.sm }}>
                                       {sortedVals.length === 0 ? (
-                                        <div
-                                          style={{
-                                            padding: "40px",
-                                            textAlign: "center",
-                                            color: "var(--text-faint)",
-                                          }}
-                                        >
+                                        <div style={{ padding: "40px", textAlign: "center", color: COLORS.text.muted }}>
                                           无值记录
                                         </div>
                                       ) : (
                                         sortedVals.map(([val, paths]) => (
-                                          <div
+                                          <GlassPanel
                                             key={`mgr-v5-row-${val}`}
                                             style={{
                                               display: "flex",
                                               justifyContent: "space-between",
                                               alignItems: "center",
-                                              gap: "10px",
-                                              border:
-                                                "1px solid var(--background-modifier-border)",
-                                              borderRadius: "10px",
+                                              gap: SPACE.md,
                                               padding: "10px",
-                                              background:
-                                                "rgba(var(--mono-rgb-100), 0.03)",
                                             }}
                                           >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "10px",
-                                                minWidth: 0,
-                                              }}
-                                            >
+                                            <div style={{ display: "flex", alignItems: "center", gap: SPACE.md, minWidth: 0 }}>
                                               <span
                                                 style={{
-                                                  border:
-                                                    "1px solid var(--background-modifier-border)",
-                                                  borderRadius: "999px",
+                                                  border: `1px solid ${COLORS.border}`,
+                                                  borderRadius: "99px",
                                                   padding: "2px 10px",
-                                                  background:
-                                                    "var(--background-primary)",
-                                                  maxWidth: "520px",
+                                                  background: "rgba(0,0,0,0.2)",
+                                                  maxWidth: "400px",
                                                   overflow: "hidden",
                                                   textOverflow: "ellipsis",
                                                   whiteSpace: "nowrap",
@@ -5681,99 +5658,56 @@ short mode\n\
                                               >
                                                 {prettyManagerVal(val) || val}
                                               </span>
-                                              <span
-                                                style={{
-                                                  color: "var(--text-muted)",
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                }}
-                                              >
+                                              <span style={{ color: COLORS.text.muted, fontVariantNumeric: "tabular-nums" }}>
                                                 {paths.length}
                                               </span>
                                             </div>
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                gap: "8px",
-                                              }}
-                                            >
-                                              <button
-                                                type="button"
+                                            <div style={{ display: "flex", gap: SPACE.sm }}>
+                                              <ButtonGhost
                                                 disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doUpdateVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
+                                                onClick={() => void doUpdateVal(val, paths)}
                                                 title="修改"
                                               >
                                                 ✏️
-                                              </button>
-                                              <button
-                                                type="button"
+                                              </ButtonGhost>
+                                              <ButtonGhost
                                                 disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doDeleteVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
+                                                onClick={() => void doDeleteVal(val, paths)}
                                                 title="删除"
                                               >
                                                 🗑️
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  showFilesForVal(val, paths)
-                                                }
-                                                style={buttonSmStyle}
+                                              </ButtonGhost>
+                                              <ButtonGhost
+                                                onClick={() => showFilesForVal(val, paths)}
                                                 title="查看文件"
                                               >
                                                 👁️
-                                              </button>
+                                              </ButtonGhost>
                                             </div>
-                                          </div>
+                                          </GlassPanel>
                                         ))
                                       )}
                                     </div>
                                   ) : (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
+                                    <div style={{ display: "grid", gap: SPACE.sm }}>
                                       {filterLabel ? (
                                         <div
                                           style={{
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            color: V5_COLORS.accent,
+                                            color: COLORS.accent,
                                             fontWeight: 700,
-                                            padding: "8px 10px",
-                                            border:
-                                              "1px solid var(--background-modifier-border)",
-                                            borderRadius: "10px",
-                                            background:
-                                              "rgba(var(--mono-rgb-100), 0.03)",
+                                            padding: "8px 12px",
+                                            border: `1px solid ${COLORS.border}`,
+                                            borderRadius: "8px",
+                                            background: "rgba(0,0,0,0.1)",
                                           }}
                                         >
                                           <span>🔍 筛选: {filterLabel}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setManagerInspectorFileFilter(
-                                                undefined
-                                              )
-                                            }
-                                            style={buttonSmStyle}
-                                          >
+                                          <ButtonGhost onClick={() => setManagerInspectorFileFilter(undefined)}>
                                             ✕ 重置
-                                          </button>
+                                          </ButtonGhost>
                                         </div>
                                       ) : null}
 
@@ -5783,33 +5717,23 @@ short mode\n\
                                           type="button"
                                           onClick={() => void openFile?.(p)}
                                           title={p}
-                                          onMouseEnter={onTextBtnMouseEnter}
-                                          onMouseLeave={onTextBtnMouseLeave}
-                                          onFocus={onTextBtnFocus}
-                                          onBlur={onTextBtnBlur}
+                                          onMouseEnter={onBtnMouseEnter}
+                                          onMouseLeave={onBtnMouseLeave}
+                                          onFocus={onBtnFocus}
+                                          onBlur={onBtnBlur}
                                           style={{
                                             textAlign: "left",
-                                            border:
-                                              "1px solid var(--background-modifier-border)",
-                                            borderRadius: "10px",
+                                            border: `1px solid ${COLORS.border}`,
+                                            borderRadius: "8px",
                                             padding: "10px",
-                                            background:
-                                              "var(--background-primary)",
+                                            background: "rgba(255,255,255,0.03)",
                                             cursor: "pointer",
+                                            color: COLORS.text.normal,
+                                            width: "100%"
                                           }}
                                         >
-                                          <div style={{ fontWeight: 700 }}>
-                                            {p.split("/").pop()}
-                                          </div>
-                                          <div
-                                            style={{
-                                              color: "var(--text-faint)",
-                                              fontSize: "0.85em",
-                                              opacity: 0.8,
-                                            }}
-                                          >
-                                            {p}
-                                          </div>
+                                          <div style={{ fontWeight: 700 }}>{p.split("/").pop()}</div>
+                                          <div style={{ color: COLORS.text.muted, fontSize: "0.85em", opacity: 0.8 }}>{p}</div>
                                         </button>
                                       ))}
                                     </div>
@@ -5818,57 +5742,39 @@ short mode\n\
 
                                 <div
                                   style={{
-                                    padding: "10px 14px",
-                                    borderTop:
-                                      "1px solid var(--background-modifier-border)",
+                                    padding: "12px 16px",
+                                    borderTop: `1px solid ${COLORS.border}`,
                                     display: "flex",
-                                    gap: "10px",
+                                    gap: SPACE.sm,
                                     justifyContent: "flex-end",
+                                    background: "rgba(0,0,0,0.1)",
                                   }}
                                 >
                                   {managerInspectorTab === "vals" ? (
                                     <>
-                                      <button
-                                        type="button"
+                                      <ButtonGhost
                                         disabled={managerBusy}
                                         onClick={() => void doRenameKey()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
                                       >
                                         ✏️ 重命名
-                                      </button>
-                                      <button
-                                        type="button"
+                                      </ButtonGhost>
+                                      <ButtonGhost
                                         disabled={managerBusy}
                                         onClick={() => void doAppendVal()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
                                       >
                                         ➕ 追加新值
-                                      </button>
+                                      </ButtonGhost>
                                     </>
                                   ) : (
-                                    <button
-                                      type="button"
+                                    <ButtonGhost
                                       disabled={managerBusy}
                                       onClick={() => void doInjectProp()}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
                                     >
                                       💉 注入属性
-                                    </button>
+                                    </ButtonGhost>
                                   )}
                                 </div>
-                              </div>
+                              </GlassCard>
                             </div>
                           );
                         })()

@@ -166,12 +166,14 @@ interface ButtonProps {
     disabled?: boolean;
     block?: boolean; // Full width
     icon?: string;   // Optional leading icon char
+    title?: string;  // Tooltip text
 }
 
 /**
  * Primary Call-to-Action. Gradient + Glow.
  */
-export const ButtonPrimary: React.FC<ButtonProps> = ({ children, onClick, style, disabled, block, icon }) => {
+export const ButtonPrimary: React.FC<ButtonProps> = (props) => {
+    const { children, onClick, style, disabled, block, icon } = props;
     const [hover, setHover] = React.useState(false);
 
     return (
@@ -213,12 +215,14 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({ children, onClick, style,
 /**
  * Ghost / Secondary Action.
  */
-export const ButtonGhost: React.FC<ButtonProps> = ({ children, onClick, style, disabled, block, icon }) => {
+export const ButtonGhost: React.FC<ButtonProps> = (props) => {
+    const { children, onClick, style, disabled, block, icon } = props;
     const [hover, setHover] = React.useState(false);
 
     return (
         <button
             type="button"
+            title={props.title}
             onClick={onClick}
             disabled={disabled}
             onMouseEnter={() => setHover(true)}
