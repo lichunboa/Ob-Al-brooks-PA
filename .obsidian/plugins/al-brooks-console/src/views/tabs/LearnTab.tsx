@@ -13,7 +13,7 @@ import {
 } from "../../ui/styles/dashboardPrimitives";
 import { V5_COLORS } from "../../ui/tokens";
 import { StrategyStats } from "../components/StrategyStats";
-import { StrategyListFinal as StrategyList } from "../components/StrategyListFinal";
+import { StrategyList } from "../components/StrategyList";
 
 import type { StrategyIndex } from "../../core/strategy-index";
 import { matchStrategies } from "../../core/strategy-matcher";
@@ -61,34 +61,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     playbookPerfRows = [],
     recommendationWindow = 3,
 }) => {
-    const [activeFilter, setActiveFilter] = React.useState<string>("all");
-
-    // Filter Logic
-    const filteredStrategies = React.useMemo(() => {
-        if (activeFilter === "all") return strategies;
-
-        const isActive = (s: any) => {
-            const raw = typeof s.statusRaw === "string" ? s.statusRaw : "";
-            return raw.includes("实战") || raw.toLowerCase().includes("active");
-        };
-
-        const isLearning = (s: any) => {
-            const raw = typeof s.statusRaw === "string" ? s.statusRaw : "";
-            // If not active, assume learning if explicitly marked or just fallback
-            // Reuse StrategyList logic: empty = learning
-            if (isActive(s)) return false;
-            return true;
-            // Ideally strictly match: learn, study, read, 学习, or empty
-        };
-
-        return strategies.filter(s => {
-            if (activeFilter === "active") return isActive(s);
-            if (activeFilter === "learning") return isLearning(s);
-            if (activeFilter === "uses") return (strategyPerf.get(s.canonicalName)?.total ?? 0) > 0;
-            return true;
-        });
-    }, [strategies, activeFilter, strategyPerf]);
-
     // Helper Styles
     const onTextBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.05)";
@@ -405,8 +377,9 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                 activeCount={strategyStats.activeCount}
                                 learningCount={strategyStats.learningCount}
                                 totalUses={strategyStats.totalUses}
-                                activeFilter={activeFilter}
-                                onFilter={(f) => setActiveFilter(f)}
+                                onFilter={(f: string) => {
+                                    console.log("策略过滤：", f);
+                                }}
                             />
                         </div>
 
@@ -499,7 +472,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                         <div style={{ marginTop: "10px" }}>
                             {/* Unified Strategy List (New Design) */}
                             <StrategyList
-                                strategies={filteredStrategies}
+                                strategies={strategies}
                                 onOpenFile={openFile}
                                 perf={strategyPerf}
                                 showTitle={false}
