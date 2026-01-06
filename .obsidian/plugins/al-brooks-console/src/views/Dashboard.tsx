@@ -518,7 +518,18 @@ const ConsoleComponent: React.FC<Props> = ({
         activePage === "learn" ? (
           <LearnTab
             strategies={strategies}
-            syllabuses={courseSnapshot?.syllabus as any}
+            syllabuses={(() => {
+              if (!courseSnapshot) return [];
+              const total = courseSnapshot.progress?.totalCount || 1;
+              const done = courseSnapshot.progress?.doneCount || 0;
+              const percent = (done / total) * 100;
+              return [{
+                ...courseSnapshot,
+                title: "Al Brooks Price Action",
+                path: "PA_Syllabus_Data.md", // approximate path or from settings
+                progress: { ...courseSnapshot.progress, percent }
+              }];
+            })()}
             strategyStats={strategyStats}
             todayMarketCycle={todayMarketCycle}
             strategyIndex={strategyIndex}
