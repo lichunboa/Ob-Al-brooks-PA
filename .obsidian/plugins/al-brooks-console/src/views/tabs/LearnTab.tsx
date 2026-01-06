@@ -179,7 +179,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
 
                         {syllabuses.length > 0 ? (
                             <div style={{ display: "grid", gap: "10px" }}>
-                                {syllabuses.map((course) => (
+                                {syllabuses?.map((course) => (
                                     <div key={course.path}>
                                         <details open>
                                             <summary
@@ -242,7 +242,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                                     }}
                                                 >
                                                     接下来（窗口={recommendationWindow}）：{" "}
-                                                    {course.upNext.map((x: any, idx: number) => {
+                                                    {course.upNext?.map((x: any, idx: number) => {
                                                         const label = String(x.item.id);
                                                         if (x.link) {
                                                             return (
@@ -282,7 +282,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                                     gap: "20px",
                                                 }}
                                             >
-                                                {course.phases.map((ph) => (
+                                                {course.phases?.map((ph) => (
                                                     <div
                                                         key={`ph-${ph.phase}`}
                                                         style={{ marginBottom: "12px" }}
@@ -306,7 +306,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                                                 gap: "6px",
                                                             }}
                                                         >
-                                                            {ph.items.map((c) => {
+                                                            {ph.items?.map((c) => {
                                                                 const bg = c.isDone
                                                                     ? V5_COLORS.win
                                                                     : c.hasNote
