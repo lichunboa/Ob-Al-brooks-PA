@@ -3204,10 +3204,8 @@ short mode\n\
                     };
 
                     return (
-                      <div
+                      <GlassPanel
                         style={{
-                          ...glassPanelStyle,
-                          padding: "12px",
                           marginBottom: "10px",
                           display: "flex",
                           alignItems: "flex-start",
@@ -3216,25 +3214,18 @@ short mode\n\
                         }}
                       >
                         <div style={{ flex: "1 1 auto" }}>
-                          <div
+                          <Label
                             style={{
-                              fontSize: "0.85em",
-                              fontWeight: 700,
-                              color: "var(--text-muted)",
                               marginBottom: "6px",
                             }}
                           >
                             {label}
-                          </div>
+                          </Label>
                           <div style={{ marginBottom: "6px" }}>
                             <button
                               type="button"
                               onClick={() => openFile(String(rec.path))}
                               style={textButtonStrongStyle}
-                              onMouseEnter={onTextBtnMouseEnter}
-                              onMouseLeave={onTextBtnMouseLeave}
-                              onFocus={onTextBtnFocus}
-                              onBlur={onTextBtnBlur}
                             >
                               {String(rec.title)}
                             </button>
@@ -3249,19 +3240,13 @@ short mode\n\
                           </div>
                         </div>
 
-                        <button
-                          type="button"
+                        <ButtonGhost
                           onClick={onShake}
-                          onMouseEnter={onBtnMouseEnter}
-                          onMouseLeave={onBtnMouseLeave}
-                          onFocus={onBtnFocus}
-                          onBlur={onBtnBlur}
-                          style={buttonSmStyle}
                           title="摇一摇换题（跳过优先）"
                         >
                           🎲
-                        </button>
-                      </div>
+                        </ButtonGhost>
+                      </GlassPanel>
                     );
                   })()}
 
@@ -3351,317 +3336,302 @@ short mode\n\
               )}
             </div>
 
-            <div
-              style={{
-                ...glassCardStyle,
-                marginBottom: "16px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                  marginBottom: "8px",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>
-                  课程{" "}
-                  <span
-                    style={{
-                      fontWeight: 500,
-                      color: "var(--text-muted)",
-                      fontSize: "0.85em",
-                    }}
-                  >
-                    (Course)
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={reloadCourse}
-                  disabled={!loadCourse || courseBusy}
-                  onMouseEnter={onBtnMouseEnter}
-                  onMouseLeave={onBtnMouseLeave}
-                  onFocus={onBtnFocus}
-                  onBlur={onBtnBlur}
-                  style={
-                    !loadCourse || courseBusy
-                      ? buttonSmDisabledStyle
-                      : buttonSmStyle
-                  }
+            <div style={{ marginBottom: "16px" }}>
+              <GlassCard>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
                 >
-                  刷新
-                </button>
-              </div>
+                  <HeadingM>
+                    课程{" "}
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        color: "var(--text-muted)",
+                        fontSize: "0.85em",
+                      }}
+                    >
+                      (Course)
+                    </span>
+                  </HeadingM>
+                  <ButtonGhost
+                    onClick={reloadCourse}
+                    disabled={!loadCourse || courseBusy}
+                  >
+                    刷新
+                  </ButtonGhost>
+                </div>
 
-              {courseError ? (
-                <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
-                  {courseError}
-                </div>
-              ) : courseBusy ? (
-                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                  加载中…
-                </div>
-              ) : course && course.syllabus.length > 0 ? (
-                <div>
-                  {course.hybridRec
-                    ? (() => {
-                      const rec = course.hybridRec;
-                      const sid = simpleCourseId(rec.data.id);
-                      const link =
-                        course.linksById[rec.data.id] || course.linksById[sid];
-                      const prefix =
-                        rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                      return (
-                        <div
-                          style={{
-                            ...glassPanelStyle,
-                            padding: "12px",
-                            marginBottom: "10px",
-                          }}
-                        >
+                {courseError ? (
+                  <div style={{ color: "var(--text-error)", fontSize: "0.9em" }}>
+                    {courseError}
+                  </div>
+                ) : courseBusy ? (
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                    加载中…
+                  </div>
+                ) : course && course.syllabus.length > 0 ? (
+                  <div>
+                    {course.hybridRec
+                      ? (() => {
+                        const rec = course.hybridRec;
+                        const sid = simpleCourseId(rec.data.id);
+                        const link =
+                          course.linksById[rec.data.id] || course.linksById[sid];
+                        const prefix =
+                          rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                        return (
                           <div
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: "10px",
+                              ...glassPanelStyle,
+                              padding: "12px",
+                              marginBottom: "10px",
                             }}
                           >
-                            <div>
-                              {link ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: "10px",
+                              }}
+                            >
+                              <div>
+                                {link ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openFile(link.path)}
+                                    style={textButtonSemiboldStyle}
+                                    onMouseEnter={onTextBtnMouseEnter}
+                                    onMouseLeave={onTextBtnMouseLeave}
+                                    onFocus={onTextBtnFocus}
+                                    onBlur={onTextBtnBlur}
+                                  >
+                                    {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                  </button>
+                                ) : (
+                                  <span style={{ color: "var(--text-faint)" }}>
+                                    {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                    （笔记未创建）
+                                  </span>
+                                )}
+                              </div>
+                              <div
+                                style={{
+                                  color: "var(--text-muted)",
+                                  fontFamily: "var(--font-monospace)",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {rec.data.id}
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                marginTop: "6px",
+                                color: "var(--text-muted)",
+                                fontSize: "0.85em",
+                                display: "flex",
+                                gap: "12px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span>
+                                章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                              </span>
+                              <span>
+                                进度:{" "}
+                                <strong>
+                                  {course.progress.doneCount}/
+                                  {course.progress.totalCount}
+                                </strong>
+                              </span>
+                              <span>
+                                笔记:{" "}
+                                <strong>{link ? "已创建" : "未创建"}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                      : null}
+
+                    {course.upNext.length > 0 && (
+                      <div
+                        style={{
+                          color: "var(--text-muted)",
+                          fontSize: "0.9em",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        接下来（窗口={settings.courseRecommendationWindow}）：{" "}
+                        {course.upNext.map((x, idx) => {
+                          const label = String(x.item.id);
+                          if (x.link) {
+                            return (
+                              <React.Fragment key={`up-${x.item.id}`}>
+                                {idx > 0 ? ", " : ""}
                                 <button
                                   type="button"
-                                  onClick={() => openFile(link.path)}
-                                  style={textButtonSemiboldStyle}
+                                  onClick={() => openFile(x.link!.path)}
+                                  style={textButtonStyle}
                                   onMouseEnter={onTextBtnMouseEnter}
                                   onMouseLeave={onTextBtnMouseLeave}
                                   onFocus={onTextBtnFocus}
                                   onBlur={onTextBtnBlur}
                                 >
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                  {label}
                                 </button>
-                              ) : (
-                                <span style={{ color: "var(--text-faint)" }}>
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                  （笔记未创建）
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontFamily: "var(--font-monospace)",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {rec.data.id}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              marginTop: "6px",
-                              color: "var(--text-muted)",
-                              fontSize: "0.85em",
-                              display: "flex",
-                              gap: "12px",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span>
-                              章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                            </span>
-                            <span>
-                              进度:{" "}
-                              <strong>
-                                {course.progress.doneCount}/
-                                {course.progress.totalCount}
-                              </strong>
-                            </span>
-                            <span>
-                              笔记:{" "}
-                              <strong>{link ? "已创建" : "未创建"}</strong>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()
-                    : null}
-
-                  {course.upNext.length > 0 && (
-                    <div
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      接下来（窗口={settings.courseRecommendationWindow}）：{" "}
-                      {course.upNext.map((x, idx) => {
-                        const label = String(x.item.id);
-                        if (x.link) {
+                              </React.Fragment>
+                            );
+                          }
                           return (
                             <React.Fragment key={`up-${x.item.id}`}>
                               {idx > 0 ? ", " : ""}
-                              <button
-                                type="button"
-                                onClick={() => openFile(x.link!.path)}
-                                style={textButtonStyle}
-                                onMouseEnter={onTextBtnMouseEnter}
-                                onMouseLeave={onTextBtnMouseLeave}
-                                onFocus={onTextBtnFocus}
-                                onBlur={onTextBtnBlur}
-                              >
+                              <span style={{ color: "var(--text-faint)" }}>
                                 {label}
-                              </button>
+                              </span>
                             </React.Fragment>
                           );
-                        }
-                        return (
-                          <React.Fragment key={`up-${x.item.id}`}>
-                            {idx > 0 ? ", " : ""}
-                            <span style={{ color: "var(--text-faint)" }}>
-                              {label}
-                            </span>
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  )}
+                        })}
+                      </div>
+                    )}
 
-                  <details>
-                    <summary
-                      style={{
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                        userSelect: "none",
-                      }}
-                    >
-                      展开课程矩阵
-                    </summary>
-                    <div
-                      style={{
-                        marginTop: "12px",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "20px",
-                      }}
-                    >
-                      {course.phases.map((ph) => (
-                        <div
-                          key={`ph-${ph.phase}`}
-                          style={{ marginBottom: "12px" }}
-                        >
+                    <details>
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          fontSize: "0.9em",
+                          userSelect: "none",
+                        }}
+                      >
+                        展开课程矩阵
+                      </summary>
+                      <div
+                        style={{
+                          marginTop: "12px",
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "20px",
+                        }}
+                      >
+                        {course.phases.map((ph) => (
                           <div
-                            style={{
-                              fontSize: "0.85em",
-                              color: "var(--text-muted)",
-                              marginBottom: "6px",
-                              borderBottom:
-                                "1px solid var(--background-modifier-border)",
-                              paddingBottom: "4px",
-                            }}
+                            key={`ph-${ph.phase}`}
+                            style={{ marginBottom: "12px" }}
                           >
-                            {ph.phase}
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: "6px",
-                            }}
-                          >
-                            {ph.items.map((c) => {
-                              const bg = c.isDone
-                                ? V5_COLORS.win
-                                : c.hasNote
-                                  ? V5_COLORS.accent
-                                  : "rgba(var(--mono-rgb-100), 0.06)";
-                              const fg = c.isDone
-                                ? "var(--background-primary)"
-                                : c.hasNote
+                            <div
+                              style={{
+                                fontSize: "0.85em",
+                                color: "var(--text-muted)",
+                                marginBottom: "6px",
+                                borderBottom:
+                                  "1px solid var(--background-modifier-border)",
+                                paddingBottom: "4px",
+                              }}
+                            >
+                              {ph.phase}
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "6px",
+                              }}
+                            >
+                              {ph.items.map((c) => {
+                                const bg = c.isDone
+                                  ? V5_COLORS.win
+                                  : c.hasNote
+                                    ? V5_COLORS.accent
+                                    : "rgba(var(--mono-rgb-100), 0.06)";
+                                const fg = c.isDone
                                   ? "var(--background-primary)"
-                                  : "var(--text-faint)";
-                              const title = `${c.item.id}: ${String(
-                                c.item.t ?? ""
-                              )}`;
-                              return (
-                                <button
-                                  key={`c-${ph.phase}-${c.item.id}`}
-                                  type="button"
-                                  disabled={!c.link}
-                                  onClick={() => c.link && openFile(c.link.path)}
-                                  title={title}
-                                  onMouseEnter={onMiniCellMouseEnter}
-                                  onMouseLeave={onMiniCellMouseLeave}
-                                  onFocus={onMiniCellFocus}
-                                  onBlur={onMiniCellBlur}
-                                  style={{
-                                    width: "26px",
-                                    height: "26px",
-                                    borderRadius: "6px",
-                                    flexShrink: 0,
-                                    padding: 0,
-                                    border:
-                                      "1px solid var(--background-modifier-border)",
-                                    background: bg,
-                                    cursor: c.link ? "pointer" : "default",
-                                    opacity: c.link ? 1 : 0.75,
-                                    outline: "none",
-                                    transition:
-                                      "border-color 180ms ease, box-shadow 180ms ease",
-                                  }}
-                                >
-                                  <div
+                                  : c.hasNote
+                                    ? "var(--background-primary)"
+                                    : "var(--text-faint)";
+                                const title = `${c.item.id}: ${String(
+                                  c.item.t ?? ""
+                                )}`;
+                                return (
+                                  <button
+                                    key={`c-${ph.phase}-${c.item.id}`}
+                                    type="button"
+                                    disabled={!c.link}
+                                    onClick={() => c.link && openFile(c.link.path)}
+                                    title={title}
+                                    onMouseEnter={onMiniCellMouseEnter}
+                                    onMouseLeave={onMiniCellMouseLeave}
+                                    onFocus={onMiniCellFocus}
+                                    onBlur={onMiniCellBlur}
                                     style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      width: "100%",
-                                      height: "100%",
-                                      color: fg,
-                                      fontSize: "0.65em",
-                                      fontWeight: 700,
-                                      letterSpacing: "-0.3px",
+                                      width: "26px",
+                                      height: "26px",
+                                      borderRadius: "6px",
+                                      flexShrink: 0,
+                                      padding: 0,
+                                      border:
+                                        "1px solid var(--background-modifier-border)",
+                                      background: bg,
+                                      cursor: c.link ? "pointer" : "default",
+                                      opacity: c.link ? 1 : 0.75,
+                                      outline: "none",
+                                      transition:
+                                        "border-color 180ms ease, box-shadow 180ms ease",
                                     }}
                                   >
-                                    {c.shortId}
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "100%",
+                                        height: "100%",
+                                        color: fg,
+                                        fontSize: "0.65em",
+                                        fontWeight: 700,
+                                        letterSpacing: "-0.3px",
+                                      }}
+                                    >
+                                      {c.shortId}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                </div>
-              ) : (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                  课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course
-                  相关笔记。
-                </div>
-              )}
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                ) : (
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
+                    课程数据不可用。请检查 PA_Syllabus_Data.md 与 #PA/Course
+                    相关笔记。
+                  </div>
+                )}
+              </GlassCard>
             </div>
 
-            <div
-              style={{
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "10px",
-                padding: "12px",
-                marginBottom: "16px",
-                background: "var(--background-primary)",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: "10px" }}>
+            <GlassCard style={{ marginBottom: "16px" }}>
+              <HeadingM style={{ marginBottom: "10px" }}>
                 策略仓库
-                <span style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.9em",
+                    fontWeight: "normal",
+                  }}
+                >
                   {" "}
                   （作战手册/Playbook）
                 </span>
-              </div>
+              </HeadingM>
 
               <div style={{ marginBottom: "10px" }}>
                 <StrategyStats
@@ -3680,26 +3650,27 @@ short mode\n\
                 const cycle = (todayMarketCycle ?? "").trim();
                 if (!cycle) {
                   return (
-                    <div
+                    <GlassInset
+                      variant="soft"
                       style={{
                         margin: "-6px 0 10px 0",
                         padding: "10px 12px",
-                        background: "rgba(var(--mono-rgb-100), 0.03)",
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "8px",
                         color: "var(--text-faint)",
                         fontSize: "0.9em",
                       }}
                     >
                       今日市场周期未设置（可在 今日/Today 里补充）。
-                    </div>
+                    </GlassInset>
                   );
                 }
 
                 const isActive = (statusRaw: unknown) => {
-                  const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
+                  const s =
+                    typeof statusRaw === "string" ? statusRaw.trim() : "";
                   if (!s) return false;
-                  return s.includes("实战") || s.toLowerCase().includes("active");
+                  return (
+                    s.includes("实战") || s.toLowerCase().includes("active")
+                  );
                 };
 
                 const picks = matchStrategies(strategyIndex, {
@@ -3708,21 +3679,25 @@ short mode\n\
                 }).filter((s) => isActive((s as any).statusRaw));
 
                 return (
-                  <div
+                  <GlassInset
                     style={{
                       margin: "-6px 0 10px 0",
                       padding: "10px 12px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
                     }}
                   >
                     <div
-                      style={{ fontWeight: 700, opacity: 0.75, marginBottom: 6 }}
+                      style={{
+                        fontWeight: 700,
+                        opacity: 0.75,
+                        marginBottom: 6,
+                      }}
                     >
                       🌊 今日市场周期：{" "}
                       <span
-                        style={{ color: "var(--text-accent)", fontWeight: 800 }}
+                        style={{
+                          color: "var(--text-accent)",
+                          fontWeight: 800,
+                        }}
                       >
                         {cycle}
                       </span>
@@ -3754,7 +3729,7 @@ short mode\n\
                         "暂无匹配的实战策略（可在策略卡片里补充状态/周期）。"
                       )}
                     </div>
-                  </div>
+                  </GlassInset>
                 );
               })()}
 
@@ -3775,29 +3750,16 @@ short mode\n\
                   borderTop: "1px solid var(--background-modifier-border)",
                 }}
               >
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {(() => {
-                    const quickPath =
-                      "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => openFile(quickPath)}
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: "6px",
-                          border: "1px solid var(--background-modifier-border)",
-                          background: "rgba(var(--mono-rgb-100), 0.03)",
-                          color: "var(--text-accent)",
-                          cursor: "pointer",
-                          fontSize: "0.85em",
-                          fontWeight: 700,
-                        }}
-                      >
-                        📚 作战手册（Brooks Playbook）
-                      </button>
-                    );
-                  })()}
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                  <ButtonGhost
+                    onClick={() =>
+                      openFile(
+                        "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md"
+                      )
+                    }
+                  >
+                    📚 作战手册（Brooks Playbook）
+                  </ButtonGhost>
 
                   <span
                     style={{
@@ -3808,6 +3770,8 @@ short mode\n\
                       color: "var(--text-muted)",
                       fontSize: "0.85em",
                       fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
                     }}
                   >
                     📖 Al Brooks经典（即将推出）
