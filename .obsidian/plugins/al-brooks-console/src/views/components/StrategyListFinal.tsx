@@ -4,11 +4,9 @@ import {
     GlassCard,
     StatusBadge,
     HeadingS,
-    Label,
-    COLORS,
-    SPACE,
-    TYPO
+    Label
 } from "../../ui/components/DesignSystem";
+import { COLORS, SPACE, TYPO } from "../../ui/styles/theme";
 
 interface Props {
     strategies: StrategyCard[];
@@ -270,7 +268,7 @@ export const StrategyListFinal: React.FC<Props> = ({
                                                     : "1px solid var(--background-modifier-border)",
                                                 background: active
                                                     ? "rgba(16, 185, 129, 0.05)"
-                                                    : "var(--background-secondary)", // Fallback to secondary bg if glass is too subtle
+                                                    : "var(--background-secondary)",
                                                 boxShadow: "var(--shadow-s)",
                                             }}
                                         >

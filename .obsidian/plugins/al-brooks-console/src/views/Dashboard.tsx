@@ -518,7 +518,7 @@ const ConsoleComponent: React.FC<Props> = ({
         activePage === "learn" ? (
           <LearnTab
             strategies={strategies}
-            syllabuses={courseSnapshot?.syllabus}
+            syllabuses={courseSnapshot?.syllabus as any}
             strategyStats={strategyStats}
             todayMarketCycle={todayMarketCycle}
             strategyIndex={strategyIndex}
