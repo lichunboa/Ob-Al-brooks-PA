@@ -1,6 +1,7 @@
 import React from "react";
 import { HeadingM, GlassCard, GlassPanel, ButtonGhost, GlassInset, DisplayXL, StatusBadge } from "../../ui/components/DesignSystem";
-import { SPACE, V5_COLORS } from "../../ui/styles/theme";
+import { SPACE } from "../../ui/styles/theme";
+import { V5_COLORS } from "../../ui/tokens";
 import { textButtonNoWrapStyle, textButtonStyle } from "../../ui/styles/dashboardPrimitives";
 import { StrategyStats } from "../components";
 import { StrategyList } from "../components/StrategyList";
