@@ -4197,7 +4197,7 @@ short mode\n\
                       </GlassPanel>
                     </div>
 
-                    <div style={{ ...glassCardStyle, marginBottom: "10px" }}>
+                    <GlassCard style={{ marginBottom: "10px" }}>
                       <div
                         style={{
                           display: "flex",
@@ -4228,9 +4228,8 @@ short mode\n\
                           ✅ 无异常
                         </div>
                       ) : (
-                        <div
+                        <GlassPanel
                           style={{
-                            ...glassPanelStyle,
                             maxHeight: "260px",
                             overflow: "auto",
                           }}
@@ -4328,16 +4327,11 @@ short mode\n\
                               </div>
                             </button>
                           ))}
-                        </div>
+                        </GlassPanel>
                       )}
-                    </div>
+                    </GlassCard>
 
-                    <div
-                      style={{
-                        ...glassPanelStyle,
-                        marginBottom: "12px",
-                      }}
-                    >
+                    <GlassPanel style={{ marginBottom: "12px" }}>
                       <details>
                         <summary
                           style={{
@@ -4497,11 +4491,10 @@ short mode\n\
                           </div>
                         </div>
                       </details>
-                    </div>
+                    </GlassPanel>
 
-                    <div
+                    <GlassCard
                       style={{
-                        ...glassCardStyle,
                         marginBottom: "12px",
                       }}
                     >
@@ -4527,9 +4520,8 @@ short mode\n\
                         </div>
                       </div>
 
-                      <div
+                      <GlassPanel
                         style={{
-                          ...glassPanelStyle,
                           overflow: "auto",
                           maxHeight: "260px",
                         }}
@@ -4619,8 +4611,8 @@ short mode\n\
                             </div>
                           </button>
                         ))}
-                      </div>
-                    </div>
+                      </GlassPanel>
+                    </GlassCard>
 
                     <div
                       style={{
