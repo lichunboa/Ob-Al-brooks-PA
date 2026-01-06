@@ -1347,134 +1347,124 @@ const ConsoleComponent: React.FC<Props> = ({
     scopeTotal: number;
     candidateCount: number;
   } => {
-    if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
-    const out: GalleryItem[] = [];
-    const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
-    const candidates =
-      galleryScope === "All"
-        ? trades
-        : trades.filter(
-          (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
-        );
+  const data = useDashboardData({
+    index,
+    strategyIndex,
+    todayContext,
+    loadStrategyNotes,
+    loadPaTagSnapshot,
+    loadAllFrontmatterFiles,
+    applyFixPlan,
+    settings: initialSettings,
+    subscribeSettings,
+    loadCourse,
+    loadMemory,
+    integrations,
+    resolveLink,
+    getResourceUrl,
+    enumPresets,
+  });
 
-    // v5.0 口径：按“最新”取候选。index.getAll() 的顺序不保证，所以这里显式按日期倒序。
-    const candidatesSorted = [...candidates].sort((a, b) => {
-      const da = String((a as any).dateIso ?? "");
-      const db = String((b as any).dateIso ?? "");
-      if (da === db) return 0;
-      return da < db ? 1 : -1;
-    });
+  const {
+    // Data
+    trades, strategies, status, todayMarketCycle, settings,
+    
+    // UI Scope & Layout
+    analyticsScope, setAnalyticsScope,
+    galleryScope, setGalleryScope,
+    showFixPlan, setShowFixPlan,
+    activePage, setActivePage,
+    statusText,
 
-    // 从最近交易里取前 20 个候选（用于“最新复盘”瀑布流展示）。
-    for (const t of candidatesSorted.slice(0, 20)) {
-      // 优先使用索引层规范字段（SSOT）；frontmatter 仅作回退。
-      const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-      const rawCover =
-        (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
-      const ref = parseCoverRef(rawCover);
+    // Core Metrics
+    summary, liveCyclePerf, last30TradesDesc, tuition,
+    strategyPerf, strategyStats, playbookPerfRows,
+    todayKpi, latestTrade, todayTrades, reviewHints,
+    analyticsTrades, contextAnalysis, errorAnalysis,
+    analyticsDaily, analyticsDailyByDate,
+    calendarCells, calendarDays, calendarMaxAbs,
+    strategyAttribution, analyticsRMultiples,
+    analyticsRecentLiveTradesAsc, analyticsMind,
+    analyticsTopStrats, analyticsSuggestion, strategyLab,
+    
+    // Gallery
+    gallery, gallerySearchHref,
 
-      // 允许“没有封面”的交易也进入展示（用占位卡片），否则用户会看到
-      // “范围内有 2 笔，但只展示 1 张”的困惑。
-      let resolved = "";
-      let url: string | undefined = undefined;
-      if (ref) {
-        let target = String(ref.target ?? "").trim();
-        if (target) {
-          // 支持外链封面（http/https），否则按 Obsidian linkpath 解析到 vault path。
-          if (/^https?:\/\//i.test(target)) {
-            resolved = target;
-            url = target;
-          } else {
-            resolved = resolveLink
-              ? resolveLink(target, t.path) ?? target
-              : target;
-            if (resolved && isImage(resolved)) {
-              url = getResourceUrl(resolved);
-            } else {
-              resolved = "";
-              url = undefined;
-            }
-          }
-        }
-      }
+    // Course & Memory
+    course, setCourse, courseBusy, setCourseBusy, courseError, setCourseError,
+    reloadCourse, memory, setMemory, memoryBusy, setMemoryBusy,
+    memoryError, setMemoryError, memoryIgnoreFocus, setMemoryIgnoreFocus,
+    memoryShakeIndex, setMemoryShakeIndex, reloadMemory,
 
-      const acct = (t.accountType ?? "Live") as AccountType;
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    // Schema & Updates
+    schemaIssues, schemaScanNote, paTagSnapshot,
+    inspectorIssues, fixPlanText, managerPlanText,
+    
+    // Open/Picks
+    openTrade, todayStrategyPicks, openTradeStrategy, strategyPicks,
 
-      out.push({
-        tradePath: t.path,
-        tradeName: t.name,
-        accountType: acct,
-        pnl,
-        coverPath: resolved,
-        url,
-      });
+    // Manager
+    managerPlan, setManagerPlan,
+    managerResult, setManagerResult,
+    managerBusy, setManagerBusy,
+    managerDeleteKeys, setManagerDeleteKeys,
+    managerBackups, setManagerBackups,
+    managerTradeInventory,
+    managerTradeInventoryFiles,
+    managerStrategyInventory,
+    managerStrategyInventoryFiles,
+    managerSearch, setManagerSearch,
+    managerScope, setManagerScope,
+    managerInspectorKey, setManagerInspectorKey,
+    managerInspectorTab, setManagerInspectorTab,
+    managerInspectorFileFilter, setManagerInspectorFileFilter,
+    scanManagerInventory, runManagerPlan,
+    selectManagerTradeFiles, selectManagerStrategyFiles,
+
+    // Integrations / Misc
+    can,
+    cycleMap,
+    onRebuild,
+  } = data;
+
+  const action = (capabilityId: IntegrationCapability) => {
+    if (!integrations || !integrations.isCapabilityAvailable(capabilityId)) {
+      new Notice(`能力不可用: ${capabilityId}`);
+      return;
     }
+    const cap = integrations.getCapability(capabilityId);
+    if (cap && cap.commandId) {
+      if (runCommand) runCommand(cap.commandId);
+      else new Notice("宿主环境未提供 runCommand");
+    } else {
+      new Notice(`能力未绑定命令: ${capabilityId}`);
+    }
+  };
 
-    return {
-      items: out,
-      scopeTotal: candidatesSorted.length,
-      candidateCount: Math.min(20, candidatesSorted.length),
-    };
-  }, [trades, resolveLink, getResourceUrl, galleryScope]);
-
-  const gallerySearchHref = React.useMemo(() => {
-    return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
-  }, []);
-
-  const inspectorIssues = React.useMemo(() => {
-    return buildInspectorIssues(trades, enumPresets, strategyIndex);
-  }, [trades, enumPresets, strategyIndex]);
-
-  const fixPlanText = React.useMemo(() => {
-    if (!showFixPlan || !enumPresets) return undefined;
-    const plan = buildFixPlan(trades, enumPresets);
-    return JSON.stringify(plan, null, 2);
-  }, [showFixPlan, trades, enumPresets]);
-
-  const managerPlanText = React.useMemo(() => {
-    if (!managerPlan) return undefined;
-    return JSON.stringify(managerPlan, null, 2);
-  }, [managerPlan]);
-
-  const openTrade = React.useMemo(() => {
-    return trades.find((t) => {
-      const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-      if (!pnlMissing) return false;
-      return (
-        t.outcome === "open" ||
-        t.outcome === undefined ||
-        t.outcome === "unknown"
-      );
-    });
-  }, [trades]);
-
-  const todayStrategyPicks = React.useMemo(() => {
-    return computeTodayStrategyPicks({
-      todayMarketCycle,
-      strategyIndex,
-      limit: 6,
-    });
-  }, [strategyIndex, todayMarketCycle]);
-
-  const openTradeStrategy = React.useMemo(() => {
-    return computeOpenTradePrimaryStrategy({
-      openTrade,
-      todayMarketCycle,
-      strategyIndex,
-    });
-  }, [openTrade, strategyIndex, todayMarketCycle]);
-
-  const strategyPicks = React.useMemo(() => {
-    return computeTradeBasedStrategyPicks({
-      trade: latestTrade,
-      todayMarketCycle,
-      strategyIndex,
-      limit: 6,
-    });
-  }, [latestTrade, strategyIndex, todayMarketCycle]);
+  const onBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.transform = "translateY(-1px)";
+    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+  };
+  const onBtnMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.transform = "none";
+    e.currentTarget.style.boxShadow = "none";
+  };
+  const onBtnFocus = (e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.borderColor = "var(--interactive-accent)";
+  };
+  const onBtnBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+  };
+  
+  const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
+  
+  const hardRefreshMemory = React.useCallback(async () => {
+    if (can("dataview:force-refresh")) {
+      void action("dataview:force-refresh");
+    }
+    await reloadMemory();
+  }, [can, reloadMemory]);
 
   return (
     <div className="pa-dashboard">
