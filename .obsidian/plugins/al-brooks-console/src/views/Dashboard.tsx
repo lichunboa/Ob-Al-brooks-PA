@@ -4664,9 +4664,9 @@ short mode\n\
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                        gap: "12px",
-                        marginBottom: "12px",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                        gap: SPACE.md,
+                        marginBottom: SPACE.md,
                       }}
                     >
                       {[
@@ -4679,71 +4679,44 @@ short mode\n\
                           title: "待修异常",
                           value: String(issueCount),
                           color:
-                            issueCount > 0 ? V5_COLORS.loss : "var(--text-muted)",
+                            issueCount > 0 ? COLORS.loss : COLORS.text.muted,
                         },
                         {
                           title: "标签总数",
                           value: String(tags),
-                          color: "var(--text-accent)",
+                          color: COLORS.accent,
                         },
                         {
                           title: "笔记档案",
                           value: String(files),
-                          color: "var(--text-accent)",
+                          color: COLORS.accent,
                         },
                       ].map((c) => (
-                        <div
-                          key={c.title}
-                          style={{
-                            ...glassPanelStyle,
-                          }}
-                        >
-                          <div style={{ color: "var(--text-faint)" }}>
+                        <GlassPanel key={c.title} style={{ textAlign: "center" }}>
+                          <div style={{ color: COLORS.text.muted, fontSize: "0.9em", marginBottom: SPACE.xs }}>
                             {c.title}
                           </div>
-                          <div
-                            style={{
-                              marginTop: "6px",
-                              fontSize: "1.4em",
-                              fontWeight: 900,
-                              color: c.color,
-                            }}
-                          >
+                          <DisplayXL style={{ color: c.color }}>
                             {c.value}
-                          </div>
-                        </div>
+                          </DisplayXL>
+                        </GlassPanel>
                       ))}
                     </div>
 
-                    <div
-                      style={{
-                        ...glassPanelStyle,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: healthColor }}>
-                        {issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}
-                        <span
-                          style={{
-                            marginLeft: "10px",
-                            color: "var(--text-faint)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {issueCount === 0 ? "(AI Clear)" : "(Needs Attention)"}
-                        </span>
+                    <GlassPanel style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: SPACE.md }}>
+                      <div style={{ fontWeight: 800, color: healthColor, display: "flex", alignItems: "center", gap: SPACE.md }}>
+                        <span>{issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}</span>
+                        <StatusBadge
+                          label={issueCount === 0 ? "AI Clear" : "Needs Attention"}
+                          tone={issueCount === 0 ? "success" : "warn"}
+                        />
                       </div>
-                      <div
-                        style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                      >
+                      <div style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>
                         {issueCount === 0
                           ? "所有关键属性已规范填写"
                           : "建议优先处理异常详情中的缺失字段"}
                       </div>
-                    </div>
+                    </GlassPanel>
 
                     <details style={{ marginTop: "12px" }}>
                       <summary
@@ -4972,27 +4945,21 @@ short mode\n\
               })()}
             </div>
 
-            <div
-              style={{
-                ...glassCardStyle,
-                marginBottom: "16px",
-              }}
-            >
+            <GlassCard style={{ marginBottom: SPACE.lg }}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: "12px",
-                  marginBottom: "8px",
+                  gap: SPACE.md,
+                  marginBottom: SPACE.md,
                 }}
               >
-                <div style={{ fontWeight: 600 }}>💎 上帝模式（属性管理器）</div>
+                <HeadingM>💎 上帝模式（属性管理器）</HeadingM>
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}
                 >
-                  <button
-                    type="button"
+                  <ButtonPrimary
                     onClick={async () => {
                       setManagerBusy(true);
                       try {
@@ -5001,23 +4968,15 @@ short mode\n\
                         setManagerBusy(false);
                       }
                     }}
-                    onMouseEnter={onBtnMouseEnter}
-                    onMouseLeave={onBtnMouseLeave}
-                    onFocus={onBtnFocus}
-                    onBlur={onBtnBlur}
-                    style={managerBusy ? buttonSmDisabledStyle : buttonSmStyle}
+                    disabled={managerBusy}
+                    style={{ padding: "6px 16px" }}
                   >
-                    扫描属性（v5.0）
-                  </button>
+                    扫描属性 (v5.0)
+                  </ButtonPrimary>
                 </div>
               </div>
-              <div style={{ marginTop: "12px" }}>
-                <div
-                  style={{
-                    ...glassPanelStyle,
-                    padding: "10px",
-                  }}
-                >
+              <div style={{ marginTop: SPACE.md }}>
+                <GlassPanel style={{ padding: SPACE.md }}>
                   {managerTradeInventory || managerStrategyInventory ? (
                     <>
                       <input
@@ -5026,12 +4985,13 @@ short mode\n\
                         placeholder="🔍 搜索属性..."
                         style={{
                           width: "100%",
-                          padding: "8px 10px",
-                          borderRadius: "10px",
-                          border: "1px solid var(--background-modifier-border)",
-                          background: "var(--background-primary)",
-                          color: "var(--text-normal)",
-                          marginBottom: "10px",
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          border: `1px solid ${COLORS.border}`,
+                          background: "rgba(0,0,0,0.2)",
+                          color: COLORS.text.normal,
+                          marginBottom: SPACE.md,
+                          fontSize: "1rem"
                         }}
                       />
 
@@ -5921,9 +5881,9 @@ short mode\n\
                       尚未扫描属性。点击上方“扫描属性（v5.0）”。
                     </div>
                   )}
-                </div>
+                </GlassPanel>
               </div>
-            </div>
+            </GlassCard>
 
             <div
               style={{
