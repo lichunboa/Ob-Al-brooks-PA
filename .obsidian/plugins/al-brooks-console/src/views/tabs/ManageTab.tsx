@@ -139,7 +139,22 @@ export const ManageTab: React.FC<ManageTabProps> = ({
     runCommand
 }) => {
 
-    // Event Handlers for buttons (local helpers)
+    // Event Handlers
+
+    // Filter State
+    const [issueFilter, setIssueFilter] = React.useState<string>("All");
+
+    const uniqueIssueTypes = React.useMemo(() => {
+        const types = new Set(schemaIssues.map(i => i.type));
+        return Array.from(types).sort();
+    }, [schemaIssues]);
+
+    const filteredIssues = React.useMemo(() => {
+        if (issueFilter === "All") return schemaIssues;
+        return schemaIssues.filter(i => i.type === issueFilter);
+    }, [schemaIssues, issueFilter]);
+
+    // Button helpers
     const onBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.transform = "translateY(-1px)";
         e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
@@ -1140,9 +1155,30 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                         style={{
                             color: "var(--text-faint)",
                             fontSize: "0.9em",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
                         }}
                     >
-                        {schemaIssues.length} 个待处理
+                        {uniqueIssueTypes.length > 0 && (
+                            <select
+                                value={issueFilter}
+                                onChange={(e) => setIssueFilter(e.target.value)}
+                                style={{
+                                    fontSize: "0.85em",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    border: "1px solid var(--background-modifier-border)",
+                                    background: "rgba(var(--mono-rgb-100), 0.05)",
+                                }}
+                            >
+                                <option value="All">所有类型</option>
+                                {uniqueIssueTypes.map(t => (
+                                    <option key={t} value={t}>{t}</option>
+                                ))}
+                            </select>
+                        )}
+                        <span>{filteredIssues.length} 个待处理</span>
                     </div>
                 </div>
 
@@ -1160,7 +1196,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                             overflow: "auto",
                         }}
                     >
-                        {schemaIssues.map((issue, idx) => (
+                        {filteredIssues.map((issue, idx) => (
                             <button
                                 key={idx}
                                 type="button"
