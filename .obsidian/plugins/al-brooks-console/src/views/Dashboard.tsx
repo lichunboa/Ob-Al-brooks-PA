@@ -20,6 +20,8 @@ import { matchStrategies } from "../core/strategy-matcher";
 import { StrategyStats } from "./components";
 import { TradeList } from "./components/TradeList";
 import { StrategyList } from "./components/StrategyList";
+import { ManageTab } from "./tabs/ManageTab";
+import { PaTagSnapshot, SchemaIssueItem } from "../types";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -161,18 +163,7 @@ function getRColorByAccountType(accountType: AccountType): string {
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
-type PaTagSnapshot = {
-  files: number;
-  tagMap: Record<string, number>;
-};
 
-type SchemaIssueItem = {
-  path: string;
-  name: string;
-  key: string;
-  type: string;
-  val?: string;
-};
 
 interface Props {
   index: TradeIndex;
@@ -3892,24 +3883,128 @@ short mode\n\
         ) : null
       }
 
-      {
-        activePage === "manage" ? (
-          <>
-            <div style={{ marginBottom: SPACE.xl }}>
-              <HeadingM>
-                📉 管理模块
-                <span
-                  style={{
-                    fontSize: "0.85em",
-                    color: "var(--text-muted)",
-                    fontWeight: "normal",
-                    marginLeft: "8px",
-                  }}
-                >
-                  管理（Management）
-                </span>
-              </HeadingM>
-            </div>
+      activePage === "manage" ? (
+      <ManageTab
+        schemaIssues={schemaIssues}
+        paTagSnapshot={paTagSnapshot}
+        tradesCount={trades.length}
+        filesCount={paTagSnapshot?.files ?? 0}
+        tagsCount={paTagSnapshot ? Object.keys(paTagSnapshot.tagMap).length : 0}
+        healthScore={(() => {
+          const issueCount = schemaIssues.length;
+          return Math.max(0, 100 - issueCount * 5);
+        })()}
+        healthColor={(() => {
+          const issueCount = schemaIssues.length;
+          const score = Math.max(0, 100 - issueCount * 5);
+          return score > 90 ? V5_COLORS.win : score > 60 ? V5_COLORS.back : V5_COLORS.loss;
+        })()}
+        issueCount={schemaIssues.length}
+        topTypes={(() => {
+          const issueByType = new Map<string, number>();
+          for (const it of schemaIssues) {
+            const k = (it.type ?? "未知").toString();
+            issueByType.set(k, (issueByType.get(k) ?? 0) + 1);
+          }
+          return [...issueByType.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+        })()}
+        topTags={paTagSnapshot ? Object.entries(paTagSnapshot.tagMap).sort((a, b) => b[1] - a[1]).slice(0, 60) : []}
+        sortedRecent={[...trades].sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0)).slice(0, 50)} // Simplified sort logic
+        prettySchemaVal={(val?: string) => {
+          const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
+          let s = (val ?? "").toString().trim();
+          if (!s) return "";
+          const low = s.toLowerCase();
+          if (s === "Unknown" || low === "unknown") return "未知/Unknown";
+          if (s === "Empty" || low === "empty") return "空/Empty";
+          if (low === "null") return "空/null";
+          if (s.includes("(") && s.endsWith(")")) {
+            const parts = s.split("(");
+            const cn = (parts[0] || "").trim();
+            const en = parts.slice(1).join("(").replace(/\)\s*$/, "").trim();
+            if (cn && en) return `${cn}/${en}`;
+            if (cn) return cn;
+            if (en) return `待补充/${en}`;
+          }
+          if (s.includes("/")) {
+            const parts = s.split("/");
+            const left = (parts[0] || "").trim();
+            const right = parts.slice(1).join("/").trim();
+            if (hasCJK(left)) return s;
+            if (hasCJK(right)) return `${right}/${left}`;
+            return `待补充/${s}`;
+          }
+          if (!hasCJK(s) && /[a-zA-Z]/.test(s)) return `待补充/${s}`;
+          return s;
+        }}
+        prettyExecVal={(val?: string) => {
+          const s0 = (val ?? "").toString().trim();
+          if (!s0) return "未知/Unknown";
+          const low = s0.toLowerCase();
+          if (low.includes("perfect") || s0.includes("完美")) return "🟢 完美";
+          if (low.includes("fomo") || s0.includes("FOMO")) return "🔴 FOMO";
+          if (low.includes("tight") || s0.includes("止损太紧")) return "🔴 止损太紧";
+          if (low.includes("scratch") || s0.includes("主动")) return "🟡 主动离场";
+          if (low.includes("normal") || low.includes("none") || s0.includes("正常")) return "🟢 正常";
+          return s0;
+        }}
+        openFile={openFile}
+        openGlobalSearch={openGlobalSearch}
+
+        enumPresets={enumPresets}
+        schemaScanNote={schemaScanNote}
+        showFixPlan={showFixPlan}
+        setShowFixPlan={setShowFixPlan}
+        fixPlanText={fixPlanText}
+
+        managerBusy={managerBusy}
+        setManagerBusy={setManagerBusy}
+        scanManagerInventory={scanManagerInventory}
+        managerTradeInventory={managerTradeInventory}
+        managerStrategyInventory={managerStrategyInventory}
+        managerSearch={managerSearch}
+        setManagerSearch={setManagerSearch}
+        managerScope={managerScope}
+        setManagerScope={setManagerScope}
+
+        managerInspectorKey={managerInspectorKey}
+        setManagerInspectorKey={setManagerInspectorKey}
+        managerInspectorTab={managerInspectorTab}
+        setManagerInspectorTab={setManagerInspectorTab}
+        managerInspectorFileFilter={managerInspectorFileFilter}
+        setManagerInspectorFileFilter={setManagerInspectorFileFilter}
+
+        selectManagerTradeFiles={selectManagerTradeFiles}
+        selectManagerStrategyFiles={selectManagerStrategyFiles}
+
+        promptText={promptText}
+        confirmDialog={confirmDialog}
+        runManagerPlan={runManagerPlan}
+        runCommand={runCommand}
+
+        onTextBtnMouseEnter={onTextBtnMouseEnter}
+        onTextBtnMouseLeave={onTextBtnMouseLeave}
+        onTextBtnFocus={onTextBtnFocus}
+        onTextBtnBlur={onTextBtnBlur}
+        onBtnMouseEnter={onBtnMouseEnter}
+        onBtnMouseLeave={onBtnMouseLeave}
+        onBtnFocus={onBtnFocus}
+        onBtnBlur={onBtnBlur}
+      />
+      ) : null
+      }
+      <span
+        style={{
+          fontSize: "0.85em",
+          color: "var(--text-muted)",
+          fontWeight: "normal",
+          marginLeft: "8px",
+        }}
+      >
+        管理（Management）
+      </span>
+    </HeadingM>
+            </div >
 
             <GlassCard style={{ marginBottom: SPACE.xl }}>
               {(() => {
