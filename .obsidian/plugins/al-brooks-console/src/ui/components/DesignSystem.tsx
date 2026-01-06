@@ -131,6 +131,17 @@ export const HeadingM: React.FC<TextProps> = ({ children, style, color, align })
     </div>
 );
 
+export const HeadingS: React.FC<TextProps> = ({ children, style, color, align }) => (
+    <div style={{
+        ...TYPO.headingS,
+        color: color ?? COLORS.text.normal,
+        textAlign: align,
+        ...style
+    }}>
+        {children}
+    </div>
+);
+
 export const Label: React.FC<TextProps> = ({ children, style, color, align }) => (
     <div style={{
         ...TYPO.bodyS,

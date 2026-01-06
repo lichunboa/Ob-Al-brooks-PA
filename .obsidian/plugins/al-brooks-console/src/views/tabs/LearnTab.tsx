@@ -14,7 +14,7 @@ import {
 import { V5_COLORS } from "../../ui/tokens";
 import { StrategyStats } from "../components/StrategyStats";
 import { StrategyList } from "../components/StrategyList";
-import { StrategyListV2 } from "../components/StrategyListV2";
+
 import type { StrategyIndex } from "../../core/strategy-index";
 import { matchStrategies } from "../../core/strategy-matcher";
 import type { CourseSnapshot } from "../../core/course";
@@ -497,24 +497,14 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                         })()}
 
                         <div style={{ marginTop: "10px" }}>
-                            {/* --- A/B TEST: V2 LIST --- */}
-                            <StrategyListV2
+                            {/* Unified Strategy List (New Design) */}
+                            <StrategyList
                                 strategies={filteredStrategies}
                                 onOpenFile={openFile}
                                 perf={strategyPerf}
+                                showTitle={false}
+                                showControls={false}
                             />
-
-                            {/* LEGACY LIST (Kept for comparison until V2 approved) */}
-                            <div style={{ opacity: 0.5, pointerEvents: "none", filter: "grayscale(100%)", marginTop: "40px" }}>
-                                <div style={{ textAlign: "center", marginBottom: "10px" }}>--- 旧版本 (Old) ---</div>
-                                <StrategyList
-                                    strategies={filteredStrategies}
-                                    onOpenFile={openFile}
-                                    perf={strategyPerf}
-                                    showTitle={false}
-                                    showControls={false}
-                                />
-                            </div>
                         </div>
 
                         <div
