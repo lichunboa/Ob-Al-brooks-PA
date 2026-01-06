@@ -19,11 +19,15 @@ import { matchStrategies } from "../../core/strategy-matcher";
 import type { CourseSnapshot } from "../../core/course";
 
 // Types
-type SyllabusItem = CourseSnapshot["syllabuses"][0];
+interface EnrichedCourse extends CourseSnapshot {
+    title?: string;
+    path?: string;
+    progress: CourseSnapshot["progress"] & { percent: number };
+}
 
 export interface LearnTabProps {
     strategies: any[]; // Strategy[]
-    syllabuses?: SyllabusItem[];
+    syllabuses?: EnrichedCourse[];
     strategyStats: {
         total: number;
         activeCount: number;
@@ -56,6 +60,33 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     playbookPerfRows,
     recommendationWindow = 3,
 }) => {
+    const [activeFilter, setActiveFilter] = React.useState<string>("all");
+
+    // Filter Logic
+    const filteredStrategies = React.useMemo(() => {
+        if (activeFilter === "all") return strategies;
+
+        const isActive = (s: any) => {
+            const raw = typeof s.statusRaw === "string" ? s.statusRaw : "";
+            return raw.includes("实战") || raw.toLowerCase().includes("active");
+        };
+
+        const isLearning = (s: any) => {
+            const raw = typeof s.statusRaw === "string" ? s.statusRaw : "";
+            // If not active, assume learning if explicitly marked or just fallback
+            // Reuse StrategyList logic: empty = learning
+            if (isActive(s)) return false;
+            return true;
+            // Ideally strictly match: learn, study, read, 学习, or empty
+        };
+
+        return strategies.filter(s => {
+            if (activeFilter === "active") return isActive(s);
+            if (activeFilter === "learning") return isLearning(s);
+            if (activeFilter === "uses") return (strategyPerf.get(s.canonicalName)?.total ?? 0) > 0;
+            return true;
+        });
+    }, [strategies, activeFilter, strategyPerf]);
 
     // Helper Styles
     const onTextBtnMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -210,7 +241,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                                     }}
                                                 >
                                                     接下来（窗口={recommendationWindow}）：{" "}
-                                                    {course.upNext.map((x, idx) => {
+                                                    {course.upNext.map((x: any, idx: number) => {
                                                         const label = String(x.item.id);
                                                         if (x.link) {
                                                             return (
@@ -373,9 +404,8 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                 activeCount={strategyStats.activeCount}
                                 learningCount={strategyStats.learningCount}
                                 totalUses={strategyStats.totalUses}
-                                onFilter={(f: string) => {
-                                    console.log("策略过滤：", f);
-                                }}
+                                activeFilter={activeFilter}
+                                onFilter={(f) => setActiveFilter(f)}
                             />
                         </div>
 
@@ -467,7 +497,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
 
                         <div style={{ marginTop: "10px" }}>
                             <StrategyList
-                                strategies={strategies}
+                                strategies={filteredStrategies}
                                 onOpenFile={openFile}
                                 perf={strategyPerf}
                                 showTitle={false}
