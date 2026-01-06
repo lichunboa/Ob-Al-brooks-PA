@@ -13,7 +13,7 @@ import {
 } from "../../ui/styles/dashboardPrimitives";
 import { V5_COLORS } from "../../ui/tokens";
 import { StrategyStats } from "../components/StrategyStats";
-import { StrategyList } from "../components/StrategyList";
+import { StrategyListFinal as StrategyList } from "../components/StrategyListFinal";
 
 import type { StrategyIndex } from "../../core/strategy-index";
 import { matchStrategies } from "../../core/strategy-matcher";
