@@ -116,6 +116,7 @@ import {
   ButtonGhost,
   StatusBadge,
 } from "../ui/components/DesignSystem";
+import { ManageTab } from "./tabs/ManageTab";
 import { COLORS, SPACE } from "../ui/styles/theme";
 
 function toLocalDateIso(d: Date): string {
