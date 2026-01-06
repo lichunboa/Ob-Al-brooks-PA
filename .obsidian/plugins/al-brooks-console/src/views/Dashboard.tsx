@@ -38,10 +38,14 @@ import type { PluginIntegrationRegistry } from "../integrations/PluginIntegratio
 import type { TodayContext } from "../core/today-context";
 
 import type { AlBrooksConsoleSettings } from "../settings";
+import { normalizeTag, TRADE_TAG } from "../core/field-mapper";
 import {
+  buildCourseSnapshot,
+  parseSyllabusJsonFromMarkdown,
+  simpleCourseId,
   type CourseSnapshot,
 } from "../core/course";
-import { type MemorySnapshot } from "../core/memory";
+import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
 
 
 import {
