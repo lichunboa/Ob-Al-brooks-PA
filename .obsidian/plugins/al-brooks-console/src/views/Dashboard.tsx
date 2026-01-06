@@ -4740,23 +4740,15 @@ short mode\n\
                           }}
                         >
                           <div style={{ fontWeight: 700 }}>检查器问题列表</div>
-                          <button
-                            type="button"
+                          <ButtonGhost
                             onClick={() => setShowFixPlan((v) => !v)}
                             disabled={!enumPresets}
-                            onMouseEnter={onBtnMouseEnter}
-                            onMouseLeave={onBtnMouseLeave}
-                            onFocus={onBtnFocus}
-                            onBlur={onBtnBlur}
-                            style={
-                              enumPresets ? buttonSmStyle : buttonSmDisabledStyle
-                            }
                             title={
                               !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
                             }
                           >
                             {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
-                          </button>
+                          </ButtonGhost>
                         </div>
 
                         <div
