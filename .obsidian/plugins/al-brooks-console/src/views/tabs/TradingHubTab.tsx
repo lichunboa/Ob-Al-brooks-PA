@@ -22,7 +22,7 @@ import {
 } from "../../ui/styles/dashboardPrimitives";
 import { COLORS } from "../../ui/styles/theme";
 import { TradeList } from "../components/TradeList";
-import type { TradeRecord } from "../../core/contracts";
+import type { TradeRecord, ReviewHint } from "../../core/contracts";
 import type { StrategyNoteFrontmatter } from "../../core/manager";
 
 // Local MarkdownBlock component (duplicated from Dashboard.tsx to allow self-contained tab)
@@ -45,11 +45,7 @@ const MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }> = ({
     return <div ref={ref} />;
 };
 
-interface ReviewHint {
-    id: number;
-    zh: string;
-    en: string;
-}
+// ReviewHint imported from contracts
 
 interface KpiStats {
     total: number;

@@ -11,98 +11,44 @@ import {
   stringifyYaml,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
-import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
-import { computeTradeStatsByAccountType } from "../core/stats";
+import type { TradeIndex } from "../core/trade-index";
+
 import { useDashboardData } from "../hooks/useDashboardData";
-import { buildReviewHints } from "../core/review-hints";
-import type { AccountType, TradeRecord } from "../core/contracts";
+
+import type { AccountType } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
-import { matchStrategies } from "../core/strategy-matcher";
-import { StrategyStats } from "./components";
-import { TradeList } from "./components/TradeList";
-import { StrategyList } from "./components/StrategyList";
-import {
-  computeDailyAgg,
-  computeStrategyAttribution,
-  identifyStrategyForAnalytics,
-  normalizeMarketCycleForAnalytics,
-  computeContextAnalysis,
-  computeErrorAnalysis,
-  computeTuitionAnalysis,
-  filterTradesByScope,
-  type AnalyticsScope,
-  type DailyAgg,
-} from "../core/analytics";
-import {
-  computeHubSuggestion,
-  computeMindsetFromRecentLive,
-  computeRMultiplesFromPnl,
-  computeRecentLiveTradesAsc,
-  computeTopStrategiesFromTrades,
-} from "../core/hub-analytics";
-import { parseCoverRef } from "../core/cover-parser";
-import {
-  computeOpenTradePrimaryStrategy,
-  computeTodayStrategyPicks,
-  computeTradeBasedStrategyPicks,
-} from "../core/console-state";
+
+
+
+
 import type { EnumPresets } from "../core/enum-presets";
 import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
 import {
-  buildFixPlan,
-  buildInspectorIssues,
   type FixPlan,
 } from "../core/inspector";
 import {
-  buildStrategyMaintenancePlan,
-  buildTradeNormalizationPlan,
-  buildRenameKeyPlan,
-  buildDeleteKeyPlan,
-  buildDeleteValPlan,
-  buildUpdateValPlan,
-  buildAppendValPlan,
-  buildInjectPropPlan,
-  buildFrontmatterInventory,
   type FrontmatterFile,
   type FrontmatterInventory,
   type ManagerApplyResult,
   type StrategyNoteFrontmatter,
 } from "../core/manager";
-import { MANAGER_GROUPS, managerKeyTokens } from "../core/manager-groups";
+
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
-import { normalizeTag } from "../core/field-mapper";
+
 import type { AlBrooksConsoleSettings } from "../settings";
 import {
-  buildCourseSnapshot,
-  parseSyllabusJsonFromMarkdown,
-  simpleCourseId,
   type CourseSnapshot,
 } from "../core/course";
-import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
-import { TRADE_TAG } from "../core/field-mapper";
-import { V5_COLORS, withHexAlpha } from "../ui/tokens";
+import { type MemorySnapshot } from "../core/memory";
+
+
 import {
   activeTabButtonStyle,
-  buttonSmDisabledStyle,
-  buttonSmStyle,
   buttonStyle,
-  ctaButtonStyle,
-  cardStyle,
-  cardSubtleTightStyle,
-  cardTightStyle,
   disabledButtonStyle,
-  selectStyle,
   tabButtonStyle,
-  textButtonNoWrapStyle,
-  textButtonSemiboldStyle,
-  textButtonStrongStyle,
-  textButtonStyle,
-  glassPanelStyle,
-  glassCardStyle,
-  glassInsetStyle,
-  glassStatusStyle,
 } from "../ui/styles/dashboardPrimitives";
 import {
   GlassCard,
@@ -123,21 +69,12 @@ import { AnalyticsTab } from "./tabs/AnalyticsTab";
 import { TradingHubTab } from "./tabs/TradingHubTab";
 import { COLORS, SPACE } from "../ui/styles/theme";
 
+
 function toLocalDateIso(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function getLastLocalDateIsos(days: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < Math.max(1, days); i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(toLocalDateIso(d));
-  }
-  return out;
 }
 
 function getDayOfMonth(dateIso: string): string {
@@ -146,23 +83,6 @@ function getDayOfMonth(dateIso: string): string {
   return d.startsWith("0") ? d.slice(1) : d;
 }
 
-function getYearMonth(dateIso: string | undefined): string | undefined {
-  if (!dateIso) return undefined;
-  const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return undefined;
-  return `${m[1]}-${m[2]}`;
-}
-
-function getRColorByAccountType(accountType: AccountType): string {
-  switch (accountType) {
-    case "Live":
-      return V5_COLORS.live;
-    case "Demo":
-      return V5_COLORS.demo;
-    case "Backtest":
-      return V5_COLORS.back;
-  }
-}
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -324,1029 +244,6 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
   onUpdateMarketCycle,
 }) => {
-  const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(
-    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
-  );
-  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
-    index.getStatus ? index.getStatus() : { phase: "ready" }
-  );
-  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
-    string | undefined
-  >(() => todayContext?.getTodayMarketCycle());
-  const [analyticsScope, setAnalyticsScope] =
-    React.useState<AnalyticsScope>("Live");
-  const [galleryScope, setGalleryScope] = React.useState<AnalyticsScope>("All");
-  const [showFixPlan, setShowFixPlan] = React.useState(false);
-  const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
-  const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
-  const [schemaScanNote, setSchemaScanNote] = React.useState<
-    string | undefined
-  >(undefined);
-  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
-    undefined
-  );
-  const [managerResult, setManagerResult] = React.useState<
-    ManagerApplyResult | undefined
-  >(undefined);
-  const [managerBusy, setManagerBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const isEmpty = (v: unknown): boolean => {
-      if (v === undefined || v === null) return true;
-      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
-      const s = String(v).trim();
-      if (!s) return true;
-      if (s === "Empty") return true;
-      if (s.toLowerCase() === "null") return true;
-      if (s.toLowerCase().includes("unknown")) return true;
-      return false;
-    };
-
-    const pickVal = (fm: Record<string, any>, keys: string[]) => {
-      for (const k of keys) {
-        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
-      }
-      return undefined;
-    };
-
-    const run = async () => {
-      const notes: string[] = [];
-
-      // --- Minimal-burden Schema issues (Trade) ---
-      const tradeIssues: SchemaIssueItem[] = [];
-      for (const t of trades) {
-        const isCompleted =
-          t.outcome === "win" ||
-          t.outcome === "loss" ||
-          t.outcome === "scratch";
-        if (!isCompleted) continue;
-
-        if (isEmpty(t.ticker)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "品种/ticker",
-            type: "❌ 缺少必填",
-          });
-        }
-        if (isEmpty(t.timeframe)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "时间周期/timeframe",
-            type: "❌ 缺少必填",
-          });
-        }
-        if (isEmpty(t.direction)) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "方向/direction",
-            type: "❌ 缺少必填",
-          });
-        }
-
-        // “形态/策略”二选一：至少有一个即可
-        const hasPatterns =
-          Array.isArray(t.patternsObserved) &&
-          t.patternsObserved.filter((p) => !isEmpty(p)).length > 0;
-        // v5 口径：strategyName / setupKey / setupCategory 任意一个可视作“已填策略维度”
-        const hasStrategy =
-          !isEmpty(t.strategyName) ||
-          !isEmpty(t.setupKey) ||
-          !isEmpty(t.setupCategory);
-        if (!hasPatterns && !hasStrategy) {
-          tradeIssues.push({
-            path: t.path,
-            name: t.name,
-            key: "观察到的形态/patterns_observed",
-            type: "❌ 缺少必填(二选一)",
-          });
-        }
-      }
-
-      // --- Minimal-burden Schema issues (Strategy) ---
-      let strategyIssues: SchemaIssueItem[] = [];
-      if (loadStrategyNotes) {
-        try {
-          const strategyNotes = await loadStrategyNotes();
-          strategyIssues = strategyNotes.flatMap((n) => {
-            const fm = (n.frontmatter ?? {}) as Record<string, any>;
-            const out: SchemaIssueItem[] = [];
-            const name =
-              n.path.split("/").pop()?.replace(/\.md$/i, "") ?? n.path;
-            const strategy = pickVal(fm, [
-              "策略名称/strategy_name",
-              "strategy_name",
-              "策略名称",
-            ]);
-            const patterns = pickVal(fm, [
-              "观察到的形态/patterns_observed",
-              "patterns_observed",
-              "观察到的形态",
-            ]);
-            if (isEmpty(strategy)) {
-              out.push({
-                path: n.path,
-                name,
-                key: "策略名称/strategy_name",
-                type: "❌ 缺少必填",
-                val: "",
-              });
-            }
-            if (isEmpty(patterns)) {
-              out.push({
-                path: n.path,
-                name,
-                key: "观察到的形态/patterns_observed",
-                type: "❌ 缺少必填",
-                val: "",
-              });
-            }
-            return out;
-          });
-        } catch (e) {
-          notes.push(
-            `策略扫描失败：${e instanceof Error ? e.message : String(e)}`
-          );
-        }
-      } else {
-        notes.push("策略扫描不可用：将仅基于交易索引进行 Schema 检查");
-      }
-
-      // --- PA tag snapshot (Tag panorama KPIs) ---
-      let paSnap: PaTagSnapshot | undefined = undefined;
-      if (loadPaTagSnapshot) {
-        try {
-          paSnap = await loadPaTagSnapshot();
-        } catch (e) {
-          notes.push(
-            `#PA 标签扫描失败：${e instanceof Error ? e.message : String(e)}`
-          );
-        }
-      } else {
-        notes.push("#PA 标签扫描不可用：将不显示全库标签全景");
-      }
-
-      if (cancelled) return;
-      setPaTagSnapshot(paSnap);
-      setSchemaIssues([...tradeIssues, ...strategyIssues]);
-      setSchemaScanNote(notes.length ? notes.join("；") : undefined);
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [trades, loadStrategyNotes, loadPaTagSnapshot]);
-
-  const canOpenTodayNote = Boolean(todayContext?.openTodayNote);
-  const onOpenTodayNote = React.useCallback(async () => {
-    try {
-      await todayContext?.openTodayNote?.();
-    } catch (e) {
-      console.warn("[al-brooks-console] openTodayNote failed", e);
-    }
-  }, [todayContext]);
-  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
-  const [managerBackups, setManagerBackups] = React.useState<
-    Record<string, string> | undefined
-  >(undefined);
-  const [managerTradeInventory, setManagerTradeInventory] = React.useState<
-    FrontmatterInventory | undefined
-  >(undefined);
-  const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] =
-    React.useState<FrontmatterFile[] | undefined>(undefined);
-  const [managerStrategyInventory, setManagerStrategyInventory] =
-    React.useState<FrontmatterInventory | undefined>(undefined);
-  const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] =
-    React.useState<FrontmatterFile[] | undefined>(undefined);
-  const [managerSearch, setManagerSearch] = React.useState("");
-  const [managerScope, setManagerScope] = React.useState<"trade" | "strategy">(
-    "trade"
-  );
-  const [managerInspectorKey, setManagerInspectorKey] = React.useState<
-    string | undefined
-  >(undefined);
-  const [managerInspectorTab, setManagerInspectorTab] = React.useState<
-    "vals" | "files"
-  >("vals");
-  const [managerInspectorFileFilter, setManagerInspectorFileFilter] =
-    React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
-
-  const scanManagerInventory = React.useCallback(async () => {
-    // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
-    if (loadAllFrontmatterFiles) {
-      const files = await loadAllFrontmatterFiles();
-      const inv = buildFrontmatterInventory(files);
-      setManagerTradeInventoryFiles(files);
-      setManagerTradeInventory(inv);
-
-      // 仅保留一个“全库”入口；策略区块不再单独展示。
-      setManagerStrategyInventoryFiles(undefined);
-      setManagerStrategyInventory(undefined);
-      return;
-    }
-
-    // 回退：若宿主未提供全库扫描，则维持旧逻辑（trade index + strategy notes）。
-    const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
-      path: t.path,
-      frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
-    }));
-    const tradeInv = buildFrontmatterInventory(tradeFiles);
-    setManagerTradeInventoryFiles(tradeFiles);
-    setManagerTradeInventory(tradeInv);
-
-    const strategyFiles: FrontmatterFile[] = [];
-    if (loadStrategyNotes) {
-      const notes = await loadStrategyNotes();
-      for (const n of notes) {
-        strategyFiles.push({
-          path: n.path,
-          frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
-        });
-      }
-    }
-    const strategyInv = buildFrontmatterInventory(strategyFiles);
-    setManagerStrategyInventoryFiles(strategyFiles);
-    setManagerStrategyInventory(strategyInv);
-  }, [loadAllFrontmatterFiles, loadStrategyNotes, trades]);
-
-  const managerTradeFilesByPath = React.useMemo(() => {
-    const map = new Map<string, FrontmatterFile>();
-    for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
-    return map;
-  }, [managerTradeInventoryFiles]);
-
-  const managerStrategyFilesByPath = React.useMemo(() => {
-    const map = new Map<string, FrontmatterFile>();
-    for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
-    return map;
-  }, [managerStrategyInventoryFiles]);
-
-  const selectManagerTradeFiles = React.useCallback(
-    (paths: string[]) =>
-      paths
-        .map((p) => managerTradeFilesByPath.get(p))
-        .filter((x): x is FrontmatterFile => Boolean(x)),
-    [managerTradeFilesByPath]
-  );
-
-  const selectManagerStrategyFiles = React.useCallback(
-    (paths: string[]) =>
-      paths
-        .map((p) => managerStrategyFilesByPath.get(p))
-        .filter((x): x is FrontmatterFile => Boolean(x)),
-    [managerStrategyFilesByPath]
-  );
-
-  const runManagerPlan = React.useCallback(
-    async (
-      plan: FixPlan,
-      options: {
-        closeInspector?: boolean;
-        forceDeleteKeys?: boolean;
-        refreshInventory?: boolean;
-      } = {}
-    ) => {
-      setManagerPlan(plan);
-      setManagerResult(undefined);
-
-      if (!applyFixPlan) {
-        window.alert(
-          "写入能力不可用：applyFixPlan 未注入（可能是 ConsoleView 未正确挂载）"
-        );
-        return;
-      }
-
-      setManagerBusy(true);
-      try {
-        const res = await applyFixPlan(plan, {
-          deleteKeys: options.forceDeleteKeys ? true : managerDeleteKeys,
-        });
-        setManagerResult(res);
-        setManagerBackups(res.backups);
-
-        if (res.failed > 0) {
-          const first = res.errors?.[0];
-          window.alert(
-            `部分操作失败：${res.failed} 个文件。` +
-            (first ? `\n示例：${first.path}\n${first.message}` : "")
-          );
-        } else if (res.applied === 0) {
-          window.alert(
-            "未修改任何文件：可能是未匹配到目标、目标已存在（被跳过）、或文件 frontmatter 不可解析。"
-          );
-        }
-
-        if (options.closeInspector) {
-          setManagerInspectorKey(undefined);
-          setManagerInspectorTab("vals");
-          setManagerInspectorFileFilter(undefined);
-        }
-        if (options.refreshInventory) {
-          await scanManagerInventory();
-        }
-      } finally {
-        setManagerBusy(false);
-      }
-    },
-    [
-      applyFixPlan,
-      managerDeleteKeys,
-      scanManagerInventory,
-      setManagerBackups,
-      setManagerInspectorFileFilter,
-      setManagerInspectorKey,
-      setManagerInspectorTab,
-    ]
-  );
-
-  const [settings, setSettings] =
-    React.useState<AlBrooksConsoleSettings>(initialSettings);
-  const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
-
-  React.useEffect(() => {
-    setSettings(initialSettings);
-  }, [initialSettings]);
-
-  React.useEffect(() => {
-    if (!subscribeSettings) return;
-    return subscribeSettings((s) => setSettings(s));
-  }, [subscribeSettings]);
-
-  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
-    undefined
-  );
-  const [courseBusy, setCourseBusy] = React.useState(false);
-  const [courseError, setCourseError] = React.useState<string | undefined>(
-    undefined
-  );
-  const courseSnapshot = course;
-
-  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(
-    undefined
-  );
-  const [memoryBusy, setMemoryBusy] = React.useState(false);
-  const [memoryError, setMemoryError] = React.useState<string | undefined>(
-    undefined
-  );
-  const [memoryIgnoreFocus, setMemoryIgnoreFocus] = React.useState(false);
-  const [memoryShakeIndex, setMemoryShakeIndex] = React.useState(0);
-
-  const summary = React.useMemo(
-    () => computeTradeStatsByAccountType(trades),
-    [trades]
-  );
-  const all = summary.All;
-
-  const cycleMap: Record<string, string> = {
-    "Strong Trend": "强趋势",
-    "Weak Trend": "弱趋势",
-    "Trading Range": "交易区间",
-    "Breakout Mode": "突破模式",
-    Breakout: "突破",
-    Channel: "通道",
-    "Broad Channel": "宽通道",
-    "Tight Channel": "窄通道",
-  };
-
-  const liveCyclePerf = React.useMemo(() => {
-    const normalizeCycle = (raw: unknown): string => {
-      let s = String(raw ?? "").trim();
-      if (!s) return "Unknown";
-      // 保留现有 dashboard 的 "/" 兼容行为（不影响 core 口径，只是先做一次拆分）
-      if (s.includes("/")) {
-        const parts = s.split("/");
-        const cand = String(parts[1] ?? parts[0] ?? "").trim();
-        if (cand) s = cand;
-      }
-      return normalizeMarketCycleForAnalytics(s) ?? "Unknown";
-    };
-
-    const byCycle = new Map<string, number>();
-    for (const t of trades) {
-      if (t.accountType !== "Live") continue;
-      const cycle = normalizeCycle(t.marketCycle ?? "Unknown");
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      byCycle.set(cycle, (byCycle.get(cycle) ?? 0) + pnl);
-    }
-
-    return [...byCycle.entries()]
-      .map(([name, pnl]) => ({ name, pnl }))
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [trades]);
-
-  const last30TradesDesc = React.useMemo(() => {
-    const sorted = [...trades].sort((a, b) => {
-      const da = a.dateIso ?? "";
-      const db = b.dateIso ?? "";
-      if (da !== db) return da < db ? 1 : -1;
-      const ma = typeof a.mtime === "number" ? a.mtime : 0;
-      const mb = typeof b.mtime === "number" ? b.mtime : 0;
-      return mb - ma;
-    });
-    return sorted.slice(0, 30);
-  }, [trades]);
-
-  const tuition = React.useMemo(() => {
-    const res = computeTuitionAnalysis(trades);
-    return {
-      tuitionR: res.tuitionR,
-      rows: res.rows.map((r) => ({ tag: r.error, costR: r.costR })),
-    };
-  }, [trades]);
-
-  React.useEffect(() => {
-    const onUpdate = () => setTrades(index.getAll());
-    const unsubscribe = index.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [index]);
-
-  React.useEffect(() => {
-    if (!strategyIndex) return;
-    const update = () => {
-      try {
-        const list = strategyIndex.list ? strategyIndex.list() : [];
-        setStrategies(list);
-      } catch (e) {
-        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
-        setStrategies([]);
-      }
-    };
-    update();
-    const unsubscribe = strategyIndex.onChanged
-      ? strategyIndex.onChanged(update)
-      : undefined;
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [strategyIndex]);
-
-  const strategyPerf = React.useMemo(() => {
-    const perf = new Map<
-      string,
-      { total: number; wins: number; pnl: number; lastDateIso: string }
-    >();
-
-    const resolveCanonical = (t: TradeRecord): string | null => {
-      const raw =
-        typeof t.strategyName === "string" ? t.strategyName.trim() : "";
-      if (raw && raw !== "Unknown") {
-        const looked = strategyIndex.lookup
-          ? strategyIndex.lookup(raw)
-          : undefined;
-        return looked?.canonicalName || raw;
-      }
-      const pats = (t.patternsObserved ?? [])
-        .map((p) => String(p).trim())
-        .filter(Boolean);
-      for (const p of pats) {
-        const card = strategyIndex.byPattern
-          ? strategyIndex.byPattern(p)
-          : undefined;
-        if (card?.canonicalName) return card.canonicalName;
-      }
-      return null;
-    };
-
-    for (const t of trades) {
-      const canonical = resolveCanonical(t);
-      if (!canonical) continue;
-      const p = perf.get(canonical) ?? {
-        total: 0,
-        wins: 0,
-        pnl: 0,
-        lastDateIso: "",
-      };
-      p.total += 1;
-      if (typeof t.pnl === "number" && Number.isFinite(t.pnl) && t.pnl > 0)
-        p.wins += 1;
-      if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) p.pnl += t.pnl;
-      if (t.dateIso && (!p.lastDateIso || t.dateIso > p.lastDateIso))
-        p.lastDateIso = t.dateIso;
-      perf.set(canonical, p);
-    }
-
-    return perf;
-  }, [trades, strategyIndex]);
-
-  const strategyStats = React.useMemo(() => {
-    const isActive = (statusRaw: unknown) => {
-      const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
-      if (!s) return false;
-      return s.includes("实战") || s.toLowerCase().includes("active");
-    };
-
-    const total = strategies.length;
-    const activeCount = strategies.filter((s) =>
-      isActive((s as any).statusRaw)
-    ).length;
-    const learningCount = Math.max(0, total - activeCount);
-    let totalUses = 0;
-    strategyPerf.forEach((p) => (totalUses += p.total));
-    return { total, activeCount, learningCount, totalUses };
-  }, [strategies, strategyPerf]);
-
-  const playbookPerfRows = React.useMemo(() => {
-    const safePct = (wins: number, total: number) =>
-      total > 0 ? Math.round((wins / total) * 100) : 0;
-
-    const rows = [...strategyPerf.entries()]
-      .map(([canonical, p]) => {
-        const card = strategyIndex?.byName
-          ? strategyIndex.byName(canonical)
-          : undefined;
-        return {
-          canonical,
-          path: card?.path,
-          total: p.total,
-          wins: p.wins,
-          pnl: p.pnl,
-          winRate: safePct(p.wins, p.total),
-        };
-      })
-      .sort((a, b) => (b.pnl || 0) - (a.pnl || 0));
-
-    return rows;
-  }, [strategyPerf, strategyIndex]);
-
-  React.useEffect(() => {
-    if (!todayContext?.onChanged) return;
-    const onUpdate = () =>
-      setTodayMarketCycle(todayContext.getTodayMarketCycle());
-    const unsubscribe = todayContext.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [todayContext]);
-
-  React.useEffect(() => {
-    if (!index.onStatusChanged) return;
-    const onStatus = () =>
-      setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
-    const unsubscribe = index.onStatusChanged(onStatus);
-    onStatus();
-    return unsubscribe;
-  }, [index]);
-
-  const onRebuild = React.useCallback(async () => {
-    if (!index.rebuild) return;
-    try {
-      await index.rebuild();
-    } catch (e) {
-      console.warn("[al-brooks-console] Rebuild failed", e);
-    }
-  }, [index]);
-
-  const statusText = React.useMemo(() => {
-    switch (status.phase) {
-      case "building": {
-        const p = typeof status.processed === "number" ? status.processed : 0;
-        const t = typeof status.total === "number" ? status.total : 0;
-        return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
-      }
-      case "ready": {
-        return typeof status.lastBuildMs === "number"
-          ? `索引：就绪（${status.lastBuildMs}ms）`
-          : "索引：就绪";
-      }
-      case "error":
-        return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
-      default:
-        return "索引：空闲";
-    }
-  }, [status]);
-
-  type DashboardPage = "trading" | "analytics" | "learn" | "manage";
-  const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
-
-  const onBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onBtnMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "var(--background-primary)";
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-    },
-    []
-  );
-
-  const onBtnFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onBtnBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onTextBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
-    },
-    []
-  );
-
-  const onTextBtnMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "transparent";
-    },
-    []
-  );
-
-  const onTextBtnFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onTextBtnBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onMiniCellMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onMiniCellMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-    },
-    []
-  );
-
-  const onMiniCellFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onMiniCellBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onCoverMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
-    },
-    []
-  );
-
-  const onCoverMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.03)";
-    },
-    []
-  );
-
-  const onCoverFocus = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "0 0 0 2px var(--interactive-accent)";
-    },
-    []
-  );
-
-  const onCoverBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onCtaMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "var(--interactive-accent-hover)";
-    },
-    []
-  );
-
-  const onCtaMouseLeave = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "var(--interactive-accent)";
-    },
-    []
-  );
-
-  const action = React.useCallback(
-    async (capabilityId: IntegrationCapability) => {
-      if (!integrations) return;
-      try {
-        await integrations.run(capabilityId);
-      } catch (e) {
-        console.warn(
-          "[al-brooks-console] Integration action failed",
-          capabilityId,
-          e
-        );
-
-        if (capabilityId === "metadata-menu:open") {
-          const msg = e instanceof Error ? e.message : String(e);
-          new Notice(`元数据：未能打开（${msg}）`);
-        }
-      }
-    },
-    [integrations]
-  );
-
-  const can = React.useCallback(
-    (capabilityId: IntegrationCapability) =>
-      Boolean(integrations?.isCapabilityAvailable(capabilityId)),
-    [integrations]
-  );
-
-  const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
-
-  const reloadCourse = React.useCallback(async () => {
-    if (!loadCourse) return;
-    setCourseBusy(true);
-    setCourseError(undefined);
-    try {
-      const next = await loadCourse(settings);
-      setCourse(next);
-    } catch (e) {
-      setCourseError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCourseBusy(false);
-    }
-  }, [loadCourse, settingsKey]);
-
-  const reloadMemory = React.useCallback(async () => {
-    if (!loadMemory) return;
-    setMemoryIgnoreFocus(false);
-    setMemoryShakeIndex(0);
-    setMemoryBusy(true);
-    setMemoryError(undefined);
-    try {
-      const next = await loadMemory(settings);
-      setMemory(next);
-    } catch (e) {
-      setMemoryError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setMemoryBusy(false);
-    }
-  }, [loadMemory, settingsKey]);
-
-  const hardRefreshMemory = React.useCallback(async () => {
-    // Align with legacy semantics: reset local state + best-effort trigger DV refresh + reload snapshot.
-    if (can("dataview:force-refresh")) {
-      void action("dataview:force-refresh");
-    }
-    await reloadMemory();
-  }, [action, can, reloadMemory]);
-
-  React.useEffect(() => {
-    void reloadCourse();
-  }, [reloadCourse]);
-
-  React.useEffect(() => {
-    void reloadMemory();
-  }, [reloadMemory]);
-
-  const latestTrade = trades.length > 0 ? trades[0] : undefined;
-
-  const allTradesDateRange = React.useMemo(() => {
-    let min: string | undefined;
-    let max: string | undefined;
-    for (const t of trades) {
-      const d = (t.dateIso ?? "").toString().trim();
-      if (!d) continue;
-      if (!min || d < min) min = d;
-      if (!max || d > max) max = d;
-    }
-    return { min, max };
-  }, [trades]);
-  const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
-  const todayTrades = React.useMemo(
-    () => trades.filter((t) => t.dateIso === todayIso),
-    [trades, todayIso]
-  );
-  const todayKpi = React.useMemo(() => {
-    const total = todayTrades.length;
-    let wins = 0;
-    let losses = 0;
-    let netR = 0;
-
-    for (const t of todayTrades) {
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      netR += pnl;
-
-      // Prefer explicit outcome (v5 semantics), fall back to pnl sign if missing.
-      const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
-      if (outcome === "win") {
-        wins += 1;
-      } else if (outcome === "loss") {
-        losses += 1;
-      } else if (!outcome || outcome === "unknown") {
-        if (pnl > 0) wins += 1;
-        else if (pnl < 0) losses += 1;
-      }
-    }
-
-    const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
-
-    return {
-      total,
-      wins,
-      losses,
-      winRatePct,
-      netR,
-    };
-  }, [todayTrades]);
-  const reviewHints = React.useMemo(() => {
-    if (!latestTrade) return [];
-    return buildReviewHints(latestTrade);
-  }, [latestTrade]);
-
-  const analyticsTrades = React.useMemo(
-    () => filterTradesByScope(trades, analyticsScope),
-    [trades, analyticsScope]
-  );
-
-  const contextAnalysis = React.useMemo(() => {
-    return computeContextAnalysis(analyticsTrades).slice(0, 8);
-  }, [analyticsTrades]);
-
-  const errorAnalysis = React.useMemo(() => {
-    return computeErrorAnalysis(analyticsTrades).slice(0, 5);
-  }, [analyticsTrades]);
-  const analyticsDaily = React.useMemo(
-    () => computeDailyAgg(analyticsTrades, 90),
-    [analyticsTrades]
-  );
-  const analyticsDailyByDate = React.useMemo(() => {
-    const m = new Map<string, DailyAgg>();
-    for (const d of analyticsDaily) m.set(d.dateIso, d);
-    return m;
-  }, [analyticsDaily]);
-
-  const calendarDays = 35;
-  const calendarDateIsos = React.useMemo(
-    () => getLastLocalDateIsos(calendarDays),
-    []
-  );
-  const calendarCells = React.useMemo(() => {
-    return calendarDateIsos.map(
-      (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
-    );
-  }, [calendarDateIsos, analyticsDailyByDate]);
-  const calendarMaxAbs = React.useMemo(() => {
-    let max = 0;
-    for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
-    return max;
-  }, [calendarCells]);
-
-  // Equity curve removed (keep only multi-account Capital Growth curve).
-
-  const strategyAttribution = React.useMemo(() => {
-    return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
-  }, [analyticsTrades, strategyIndex]);
-
-  const analyticsRecentLiveTradesAsc = React.useMemo(() => {
-    return computeRecentLiveTradesAsc(trades, 30);
-  }, [trades]);
-
-  const analyticsRMultiples = React.useMemo(() => {
-    return computeRMultiplesFromPnl(analyticsRecentLiveTradesAsc);
-  }, [analyticsRecentLiveTradesAsc]);
-
-  const analyticsMind = React.useMemo(() => {
-    return computeMindsetFromRecentLive(analyticsRecentLiveTradesAsc, 10);
-  }, [analyticsRecentLiveTradesAsc]);
-
-  const analyticsTopStrats = React.useMemo(() => {
-    return computeTopStrategiesFromTrades(trades, 5, strategyIndex);
-  }, [trades, strategyIndex]);
-
-  const analyticsSuggestion = React.useMemo(() => {
-    const top = tuition.rows[0];
-    const pct =
-      top && tuition.tuitionR > 0
-        ? Math.round((top.costR / tuition.tuitionR) * 100)
-        : undefined;
-    return computeHubSuggestion({
-      topStrategies: analyticsTopStrats,
-      mindset: analyticsMind,
-      live: summary.Live,
-      backtest: summary.Backtest,
-      topTuitionError: top
-        ? { name: top.tag, costR: top.costR, pct }
-        : undefined,
-    });
-  }, [
-    analyticsTopStrats,
-    analyticsMind,
-    summary.Live,
-    summary.Backtest,
-    tuition,
-  ]);
-
-  const strategyLab = React.useMemo(() => {
-    const tradesAsc = [...trades].sort((a, b) =>
-      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
-    );
-
-    const curves: Record<AccountType, number[]> = {
-      Live: [0],
-      Demo: [0],
-      Backtest: [0],
-    };
-    const cum: Record<AccountType, number> = {
-      Live: 0,
-      Demo: 0,
-      Backtest: 0,
-    };
-
-    const stats = new Map<string, { win: number; total: number }>();
-
-    for (const t of tradesAsc) {
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      const acct = (t.accountType ?? "Live") as AccountType;
-
-      // 资金曲线：按账户分别累加（口径与 v5.0 接近：只在该账户出现时 push 一点）
-      cum[acct] += pnl;
-      curves[acct].push(cum[acct]);
-
-      // 策略排行：策略名优先；没有则回退到 setupCategory
-      const key =
-        identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
-
-      const prev = stats.get(key) ?? { win: 0, total: 0 };
-      prev.total += 1;
-      if (pnl > 0) prev.win += 1;
-      stats.set(key, prev);
-    }
-
-    const topSetups = [...stats.entries()]
-      .map(([name, v]) => ({
-        name,
-        total: v.total,
-        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-
-    const mostUsed = topSetups[0]?.name ?? "无";
-    const keepIn = cum.Live < 0 ? "回测" : "实盘";
-
-    return {
-      curves,
-      cum,
-      topSetups,
-      suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
-    };
-  }, [trades]);
-
-  type GalleryItem = {
-    tradePath: string;
-    tradeName: string;
-    accountType: AccountType;
-    pnl: number;
-    coverPath: string;
-    url?: string;
-  };
-
-  const gallery = React.useMemo((): {
-    items: GalleryItem[];
-    scopeTotal: number;
-    candidateCount: number;
-  } => {
 
   const data = useDashboardData({
     index,
@@ -1369,7 +266,7 @@ const ConsoleComponent: React.FC<Props> = ({
   const {
     // Data
     trades, strategies, status, todayMarketCycle, settings,
-    
+
     // UI Scope & Layout
     analyticsScope, setAnalyticsScope,
     galleryScope, setGalleryScope,
@@ -1387,7 +284,7 @@ const ConsoleComponent: React.FC<Props> = ({
     strategyAttribution, analyticsRMultiples,
     analyticsRecentLiveTradesAsc, analyticsMind,
     analyticsTopStrats, analyticsSuggestion, strategyLab,
-    
+
     // Gallery
     gallery, gallerySearchHref,
 
@@ -1400,7 +297,7 @@ const ConsoleComponent: React.FC<Props> = ({
     // Schema & Updates
     schemaIssues, schemaScanNote, paTagSnapshot,
     inspectorIssues, fixPlanText, managerPlanText,
-    
+
     // Open/Picks
     openTrade, todayStrategyPicks, openTradeStrategy, strategyPicks,
 
@@ -1428,14 +325,27 @@ const ConsoleComponent: React.FC<Props> = ({
     onRebuild,
   } = data;
 
+  // Restore aliases used in JSX
+  const courseSnapshot = course;
+
+  // Map Inspector Issues for ManageTab
+  const manageInspectorIssues: SchemaIssueItem[] = React.useMemo(() => inspectorIssues.map(i => ({
+    path: i.path,
+    name: i.title,
+    key: i.id,
+    type: i.severity === "error" ? "Error" : "Warn",
+    severity: i.severity,
+    val: i.detail
+  })), [inspectorIssues]);
+
   const action = (capabilityId: IntegrationCapability) => {
     if (!integrations || !integrations.isCapabilityAvailable(capabilityId)) {
       new Notice(`能力不可用: ${capabilityId}`);
       return;
     }
-    const cap = integrations.getCapability(capabilityId);
-    if (cap && cap.commandId) {
-      if (runCommand) runCommand(cap.commandId);
+    const found = integrations.findCapability(capabilityId);
+    if (found && found.info.commandId) {
+      if (runCommand) runCommand(found.info.commandId);
       else new Notice("宿主环境未提供 runCommand");
     } else {
       new Notice(`能力未绑定命令: ${capabilityId}`);
@@ -1456,9 +366,9 @@ const ConsoleComponent: React.FC<Props> = ({
   const onBtnBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
     e.currentTarget.style.borderColor = "var(--background-modifier-border)";
   };
-  
+
   const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
-  
+
   const hardRefreshMemory = React.useCallback(async () => {
     if (can("dataview:force-refresh")) {
       void action("dataview:force-refresh");
@@ -1558,7 +468,7 @@ const ConsoleComponent: React.FC<Props> = ({
         <TradingHubTab
           latestTrade={latestTrade}
           reviewHints={reviewHints}
-          todayKpi={todayKpi}
+          todayKpi={{ ...todayKpi, winRatePct: String(todayKpi.winRatePct) }}
           todayMarketCycle={todayMarketCycle}
           onUpdateMarketCycle={onUpdateMarketCycle}
           todayStrategyPicks={todayStrategyPicks}
@@ -1570,7 +480,6 @@ const ConsoleComponent: React.FC<Props> = ({
           can={can}
         />
       ) : null}
-      }
 
       {
         activePage === "analytics" ? (
@@ -1588,7 +497,12 @@ const ConsoleComponent: React.FC<Props> = ({
             strategyAttribution={strategyAttribution}
             analyticsRMultiples={analyticsRMultiples}
             analyticsRecentLiveTradesAsc={analyticsRecentLiveTradesAsc}
-            analyticsMind={analyticsMind}
+            analyticsMind={{
+              ...analyticsMind,
+              fomo: String(analyticsMind.fomo),
+              tilt: String(analyticsMind.tilt),
+              hesitation: String(analyticsMind.hesitation)
+            }}
             analyticsTopStrats={analyticsTopStrats}
             openFile={openFile}
             getDayOfMonth={getDayOfMonth}
@@ -1648,7 +562,7 @@ const ConsoleComponent: React.FC<Props> = ({
             fixPlanText={fixPlanText}
             showFixPlan={showFixPlan}
             setShowFixPlan={setShowFixPlan}
-            inspectorIssues={inspectorIssues}
+            inspectorIssues={manageInspectorIssues}
             promptText={promptText}
             confirmDialog={confirmDialog}
             runCommand={runCommand}
