@@ -1,14 +1,43 @@
 import * as React from "react";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
-import type { TradeRecord } from "../core/contracts";
+import type { TradeRecord, AccountType } from "../core/contracts";
 import type { StrategyIndex } from "../core/strategy-index";
 import {
     normalizeMarketCycleForAnalytics,
     computeTuitionAnalysis,
+    computeDailyAgg,
+    computeStrategyAttribution,
+    identifyStrategyForAnalytics,
+    computeContextAnalysis,
+    computeErrorAnalysis,
+    filterTradesByScope,
     type AnalyticsScope,
+    type DailyAgg,
 } from "../core/analytics";
-import type { FixPlan } from "../core/inspector";
+import {
+    computeHubSuggestion,
+    computeMindsetFromRecentLive,
+    computeRMultiplesFromPnl,
+    computeRecentLiveTradesAsc,
+    computeTopStrategiesFromTrades,
+} from "../core/hub-analytics";
+import { parseCoverRef } from "../core/cover-parser";
+import {
+    computeOpenTradePrimaryStrategy,
+    computeTodayStrategyPicks,
+    computeTradeBasedStrategyPicks,
+} from "../core/console-state";
+import { buildReviewHints } from "../core/review-hints";
+import type { EnumPresets } from "../core/enum-presets";
+import { createEnumPresetsFromFrontmatter } from "../core/enum-presets";
+
+import {
+    buildFixPlan,
+    buildInspectorIssues,
+    type FixPlan,
+} from "../core/inspector";
+
 import {
     buildFrontmatterInventory,
     type FrontmatterFile,
@@ -18,16 +47,35 @@ import {
 } from "../core/manager";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { AlBrooksConsoleSettings } from "../settings";
-import type {
-    CourseSnapshot,
-} from "../core/course";
+import type { CourseSnapshot } from "../core/course";
 import { type MemorySnapshot } from "../core/memory";
+import { TRADE_TAG } from "../core/field-mapper";
 
 import type { App, Component, TFile } from "obsidian";
 import type { TodayContext } from "../core/today-context";
 import { type PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 
-// Local types copied from Dashboard.tsx
+// --- Local Helpers ---
+
+function toLocalDateIso(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function getLastLocalDateIsos(days: number): string[] {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < Math.max(1, days); i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        out.push(toLocalDateIso(d));
+    }
+    return out;
+}
+
+// --- Types ---
+
 export type PaTagSnapshot = {
     files: number;
     tagMap: Record<string, number>;
@@ -41,7 +89,15 @@ export type SchemaIssueItem = {
     val?: string;
 };
 
-// Re-exporting or redefining props needed for the hook
+export type GalleryItem = {
+    tradePath: string;
+    tradeName: string;
+    accountType: AccountType;
+    pnl: number;
+    coverPath: string;
+    url?: string;
+};
+
 export interface DashboardDataProps {
     index: TradeIndex;
     strategyIndex: StrategyIndex;
@@ -60,6 +116,11 @@ export interface DashboardDataProps {
     loadCourse?: (settings: AlBrooksConsoleSettings) => Promise<CourseSnapshot>;
     loadMemory?: (settings: AlBrooksConsoleSettings) => Promise<MemorySnapshot>;
     integrations?: PluginIntegrationRegistry;
+
+    // Added for derived logic
+    resolveLink?: (linkText: string, fromPath: string) => string | undefined;
+    getResourceUrl?: (path: string) => string | undefined;
+    enumPresets?: EnumPresets;
 }
 
 export const useDashboardData = ({
@@ -75,6 +136,9 @@ export const useDashboardData = ({
     loadCourse,
     loadMemory,
     integrations,
+    resolveLink,
+    getResourceUrl,
+    enumPresets,
 }: DashboardDataProps) => {
     // --- State: Core Data ---
     const [trades, setTrades] = React.useState(index.getAll());
@@ -138,6 +202,7 @@ export const useDashboardData = ({
     // --- State: Settings & Async Loaders ---
     const [settings, setSettings] =
         React.useState<AlBrooksConsoleSettings>(initialSettings);
+    const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
 
     const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
         undefined
@@ -365,8 +430,58 @@ export const useDashboardData = ({
         return unsubscribe;
     }, [index]);
 
+    // RELOAD Course & Memory
+    const reloadCourse = React.useCallback(async () => {
+        if (!loadCourse) return;
+        setCourseBusy(true);
+        setCourseError(undefined);
+        try {
+            const next = await loadCourse(settings);
+            setCourse(next);
+        } catch (e) {
+            console.warn("[al-brooks-console] loadCourse failed", e);
+            setCourseError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setCourseBusy(false);
+        }
+    }, [loadCourse, settings]);
+
+    const reloadMemory = React.useCallback(async () => {
+        if (!loadMemory) return;
+        setMemoryIgnoreFocus(false);
+        setMemoryShakeIndex(0);
+        setMemoryBusy(true);
+        setMemoryError(undefined);
+        try {
+            const next = await loadMemory(settings);
+            setMemory(next);
+        } catch (e) {
+            setMemoryError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setMemoryBusy(false);
+        }
+    }, [loadMemory, settings]);
+
+    React.useEffect(() => {
+        void reloadCourse();
+    }, [reloadCourse, settingsKey]);
+
+    React.useEffect(() => {
+        void reloadMemory();
+    }, [reloadMemory, settingsKey]);
+
+    const onRebuild = React.useCallback(async () => {
+        if (!index.rebuild) return;
+        try {
+            await index.rebuild();
+        } catch (e) {
+            console.warn("[al-brooks-console] Rebuild failed", e);
+        }
+    }, [index]);
+
     // --- Computed Data ---
 
+    // 1. Core Summary
     const summary = React.useMemo(
         () => computeTradeStatsByAccountType(trades),
         [trades]
@@ -506,6 +621,322 @@ export const useDashboardData = ({
         return rows;
     }, [strategyPerf, strategyIndex]);
 
+    // 2. Extra Derived Data (Added in Phase 2)
+
+    const latestTrade = trades.length > 0 ? trades[0] : undefined;
+
+    const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
+    const todayTrades = React.useMemo(
+        () => trades.filter((t) => t.dateIso === todayIso),
+        [trades, todayIso]
+    );
+
+    const todayKpi = React.useMemo(() => {
+        const total = todayTrades.length;
+        let wins = 0;
+        let losses = 0;
+        let netR = 0;
+
+        for (const t of todayTrades) {
+            const pnl =
+                typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+            netR += pnl;
+
+            const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
+            if (outcome === "win") {
+                wins += 1;
+            } else if (outcome === "loss") {
+                losses += 1;
+            } else if (!outcome || outcome === "unknown") {
+                if (pnl > 0) wins += 1;
+                else if (pnl < 0) losses += 1;
+            }
+        }
+
+        const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+        return {
+            total,
+            wins,
+            losses,
+            winRatePct,
+            netR,
+        };
+    }, [todayTrades]);
+
+    const reviewHints = React.useMemo(() => {
+        if (!latestTrade) return [];
+        return buildReviewHints(latestTrade);
+    }, [latestTrade]);
+
+    const analyticsTrades = React.useMemo(
+        () => filterTradesByScope(trades, analyticsScope),
+        [trades, analyticsScope]
+    );
+
+    const contextAnalysis = React.useMemo(() => {
+        return computeContextAnalysis(analyticsTrades).slice(0, 8);
+    }, [analyticsTrades]);
+
+    const errorAnalysis = React.useMemo(() => {
+        return computeErrorAnalysis(analyticsTrades).slice(0, 5);
+    }, [analyticsTrades]);
+
+    const analyticsDaily = React.useMemo(
+        () => computeDailyAgg(analyticsTrades, 90),
+        [analyticsTrades]
+    );
+
+    const analyticsDailyByDate = React.useMemo(() => {
+        const m = new Map<string, DailyAgg>();
+        for (const d of analyticsDaily) m.set(d.dateIso, d);
+        return m;
+    }, [analyticsDaily]);
+
+    const calendarDays = 35;
+    const calendarDateIsos = React.useMemo(
+        () => getLastLocalDateIsos(calendarDays),
+        []
+    );
+    const calendarCells = React.useMemo(() => {
+        return calendarDateIsos.map(
+            (dateIso) =>
+                analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+        );
+    }, [calendarDateIsos, analyticsDailyByDate]);
+
+    const calendarMaxAbs = React.useMemo(() => {
+        let max = 0;
+        for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
+        return max;
+    }, [calendarCells]);
+
+    const strategyAttribution = React.useMemo(() => {
+        return computeStrategyAttribution(analyticsTrades, strategyIndex, 8);
+    }, [analyticsTrades, strategyIndex]);
+
+    const analyticsRecentLiveTradesAsc = React.useMemo(() => {
+        return computeRecentLiveTradesAsc(trades, 30);
+    }, [trades]);
+
+    const analyticsRMultiples = React.useMemo(() => {
+        return computeRMultiplesFromPnl(analyticsRecentLiveTradesAsc);
+    }, [analyticsRecentLiveTradesAsc]);
+
+    const analyticsMind = React.useMemo(() => {
+        return computeMindsetFromRecentLive(analyticsRecentLiveTradesAsc, 10);
+    }, [analyticsRecentLiveTradesAsc]);
+
+    const analyticsTopStrats = React.useMemo(() => {
+        return computeTopStrategiesFromTrades(trades, 5, strategyIndex);
+    }, [trades, strategyIndex]);
+
+    const analyticsSuggestion = React.useMemo(() => {
+        const top = tuition.rows[0];
+        const pct =
+            top && tuition.tuitionR > 0
+                ? Math.round((top.costR / tuition.tuitionR) * 100)
+                : undefined;
+        return computeHubSuggestion({
+            topStrategies: analyticsTopStrats,
+            mindset: analyticsMind,
+            live: summary.Live,
+            backtest: summary.Backtest,
+            topTuitionError: top
+                ? { name: top.tag, costR: top.costR, pct }
+                : undefined,
+        });
+    }, [
+        analyticsTopStrats,
+        analyticsMind,
+        summary.Live,
+        summary.Backtest,
+        tuition,
+    ]);
+
+    const strategyLab = React.useMemo(() => {
+        const tradesAsc = [...trades].sort((a, b) =>
+            a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
+        );
+
+        const curves: Record<AccountType, number[]> = {
+            Live: [0],
+            Demo: [0],
+            Backtest: [0],
+        };
+        const cum: Record<AccountType, number> = {
+            Live: 0,
+            Demo: 0,
+            Backtest: 0,
+        };
+
+        const stats = new Map<string, { win: number; total: number }>();
+
+        for (const t of tradesAsc) {
+            const pnl =
+                typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+            const acct = (t.accountType ?? "Live") as AccountType;
+
+            cum[acct] += pnl;
+            curves[acct].push(cum[acct]);
+
+            const key =
+                identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
+
+            const prev = stats.get(key) ?? { win: 0, total: 0 };
+            prev.total += 1;
+            if (pnl > 0) prev.win += 1;
+            stats.set(key, prev);
+        }
+
+        const topSetups = [...stats.entries()]
+            .map(([name, v]) => ({
+                name,
+                total: v.total,
+                wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
+            }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5);
+
+        const mostUsed = topSetups[0]?.name ?? "无";
+        const keepIn = cum.Live < 0 ? "回测" : "实盘";
+
+        return {
+            curves,
+            cum,
+            topSetups,
+            suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
+        };
+    }, [trades]);
+
+    const gallery = React.useMemo((): {
+        items: GalleryItem[];
+        scopeTotal: number;
+        candidateCount: number;
+    } => {
+        if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
+        const out: GalleryItem[] = [];
+        const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+
+        const candidates =
+            galleryScope === "All"
+                ? trades
+                : trades.filter(
+                    (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
+                );
+
+        const candidatesSorted = [...candidates].sort((a, b) => {
+            const da = String((a as any).dateIso ?? "");
+            const db = String((b as any).dateIso ?? "");
+            if (da === db) return 0;
+            return da < db ? 1 : -1;
+        });
+
+        for (const t of candidatesSorted.slice(0, 20)) {
+            const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+            const rawCover =
+                (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+            const ref = parseCoverRef(rawCover);
+
+            let resolved = "";
+            let url: string | undefined = undefined;
+            if (ref) {
+                let target = String(ref.target ?? "").trim();
+                if (target) {
+                    if (/^https?:\/\//i.test(target)) {
+                        resolved = target;
+                        url = target;
+                    } else {
+                        resolved = resolveLink
+                            ? resolveLink(target, t.path) ?? target
+                            : target;
+                        if (resolved && isImage(resolved)) {
+                            url = getResourceUrl(resolved);
+                        } else {
+                            resolved = "";
+                            url = undefined;
+                        }
+                    }
+                }
+            }
+
+            const acct = (t.accountType ?? "Live") as AccountType;
+            const pnl =
+                typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+            out.push({
+                tradePath: t.path,
+                tradeName: t.name,
+                accountType: acct,
+                pnl,
+                coverPath: resolved,
+                url,
+            });
+        }
+
+        return {
+            items: out,
+            scopeTotal: candidatesSorted.length,
+            candidateCount: Math.min(20, candidatesSorted.length),
+        };
+    }, [trades, resolveLink, getResourceUrl, galleryScope]);
+
+    const gallerySearchHref = React.useMemo(() => {
+        return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
+    }, []);
+
+    const inspectorIssues = React.useMemo(() => {
+        return buildInspectorIssues(trades, enumPresets, strategyIndex);
+    }, [trades, enumPresets, strategyIndex]);
+
+    const fixPlanText = React.useMemo(() => {
+        if (!showFixPlan || !enumPresets) return undefined;
+        const plan = buildFixPlan(trades, enumPresets);
+        return JSON.stringify(plan, null, 2);
+    }, [showFixPlan, trades, enumPresets]);
+
+    const managerPlanText = React.useMemo(() => {
+        if (!managerPlan) return undefined;
+        return JSON.stringify(managerPlan, null, 2);
+    }, [managerPlan]);
+
+    const openTrade = React.useMemo(() => {
+        return trades.find((t) => {
+            const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+            if (!pnlMissing) return false;
+            return (
+                t.outcome === "open" ||
+                t.outcome === undefined ||
+                t.outcome === "unknown"
+            );
+        });
+    }, [trades]);
+
+    const todayStrategyPicks = React.useMemo(() => {
+        return computeTodayStrategyPicks({
+            todayMarketCycle,
+            strategyIndex,
+            limit: 6,
+        });
+    }, [strategyIndex, todayMarketCycle]);
+
+    const openTradeStrategy = React.useMemo(() => {
+        return computeOpenTradePrimaryStrategy({
+            openTrade,
+            todayMarketCycle,
+            strategyIndex,
+        });
+    }, [openTrade, strategyIndex, todayMarketCycle]);
+
+    const strategyPicks = React.useMemo(() => {
+        return computeTradeBasedStrategyPicks({
+            trade: latestTrade,
+            todayMarketCycle,
+            strategyIndex,
+            limit: 6,
+        });
+    }, [latestTrade, strategyIndex, todayMarketCycle]);
+
     const statusText = React.useMemo(() => {
         switch (status.phase) {
             case "building": {
@@ -532,6 +963,17 @@ export const useDashboardData = ({
             Boolean(integrations?.isCapabilityAvailable(capabilityId)),
         [integrations]
     );
+
+    const cycleMap: Record<string, string> = {
+        "Strong Trend": "强趋势",
+        "Weak Trend": "弱趋势",
+        "Trading Range": "交易区间",
+        "Breakout Mode": "突破模式",
+        Breakout: "突破",
+        Channel: "通道",
+        "Broad Channel": "宽通道",
+        "Tight Channel": "窄通道",
+    };
 
     const scanManagerInventory = React.useCallback(async () => {
         // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
@@ -661,46 +1103,6 @@ export const useDashboardData = ({
         ]
     );
 
-    const reloadCourse = React.useCallback(async () => {
-        if (!loadCourse) return;
-        setCourseBusy(true);
-        setCourseError(undefined);
-        try {
-            const next = await loadCourse(settings);
-            setCourse(next);
-        } catch (e) {
-            console.warn("[al-brooks-console] loadCourse failed", e);
-            setCourseError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setCourseBusy(false);
-        }
-    }, [loadCourse, settings]);
-
-    const reloadMemory = React.useCallback(async () => {
-        if (!loadMemory) return;
-        setMemoryBusy(true);
-        setMemoryError(undefined);
-        try {
-            const next = await loadMemory(settings);
-            setMemory(next);
-            setMemoryShakeIndex((prev) => prev + 1);
-        } catch (e) {
-            console.warn("[al-brooks-console] loadMemory failed", e);
-            setMemoryError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setMemoryBusy(false);
-        }
-    }, [loadMemory, settings]);
-
-    const onRebuild = React.useCallback(async () => {
-        if (!index.rebuild) return;
-        try {
-            await index.rebuild();
-        } catch (e) {
-            console.warn("[al-brooks-console] Rebuild failed", e);
-        }
-    }, [index]);
-
     return {
         // Data
         trades,
@@ -724,6 +1126,29 @@ export const useDashboardData = ({
         strategyPerf,
         strategyStats,
         playbookPerfRows,
+        todayKpi,
+        latestTrade,
+        todayTrades,
+        reviewHints,
+        analyticsTrades,
+        contextAnalysis,
+        errorAnalysis,
+        analyticsDaily,
+        analyticsDailyByDate,
+        calendarCells,
+        calendarDays,
+        calendarMaxAbs,
+        strategyAttribution,
+        analyticsRMultiples,
+        analyticsRecentLiveTradesAsc,
+        analyticsMind,
+        analyticsTopStrats,
+        analyticsSuggestion,
+        strategyLab,
+
+        // Gallery
+        gallery,
+        gallerySearchHref,
 
         // Course & Memory
         course, setCourse,
@@ -741,6 +1166,15 @@ export const useDashboardData = ({
         schemaIssues,
         schemaScanNote,
         paTagSnapshot,
+        inspectorIssues,
+        fixPlanText,
+        managerPlanText,
+
+        // Open/Picks
+        openTrade,
+        todayStrategyPicks,
+        openTradeStrategy,
+        strategyPicks,
 
         // Manager
         managerPlan, setManagerPlan,
@@ -764,11 +1198,7 @@ export const useDashboardData = ({
 
         // Integrations / Misc
         can,
+        cycleMap,
         onRebuild,
-        onUpdateMarketCycle: todayContext?.openTodayNote ? () => todayContext.openTodayNote?.() : undefined, // Placeholder logic? 
-        // Wait, onUpdateMarketCycle in Dashboard was passing `(val) => ...` to `AnalyticsTab`?
-        // In Dashboard.tsx line 324: `onUpdateMarketCycle` is a PROP passed TO ConsoleComponent.
-        // So we don't need to define it here, we just use it from props in the component.
-        // BUT `TradingHubTab` and `AnalyticsTab` use it.
     };
 };
