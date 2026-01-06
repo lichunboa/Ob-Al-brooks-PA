@@ -41,17 +41,17 @@ export const COLORS = {
     // Glass Backgrounds (Physical Depth)
     glass: {
         // L1: Card (Floating) - Boosted opacity for visibility
-        card: "rgba(var(--mono-rgb-100), 0.06)",
+        card: "rgba(255, 255, 255, 0.06)",
         // L2: Panel (Group)
-        panel: "rgba(var(--mono-rgb-100), 0.03)",
+        panel: "rgba(255, 255, 255, 0.03)",
         // L3: Inset (Sunk)
         inset: "rgba(0, 0, 0, 0.2)", // Darker for depth
     },
 
     // Borders
     border: {
-        subtle: "1px solid rgba(var(--mono-rgb-100), 0.12)",
-        highlight: "1px solid rgba(var(--mono-rgb-100), 0.3)",
+        subtle: "1px solid rgba(255, 255, 255, 0.12)",
+        highlight: "1px solid rgba(255, 255, 255, 0.3)",
         accent: `1px solid ${V5_COLORS.accent}`,
     }
 } as const;

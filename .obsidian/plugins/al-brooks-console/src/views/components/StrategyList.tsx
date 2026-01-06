@@ -229,7 +229,13 @@ export const StrategyList: React.FC<Props> = ({
                       key={s.path}
                       hoverEffect={true}
                       onClick={() => onOpenFile(s.path)}
-                      style={{ marginBottom: "10px", padding: "12px" }}
+                      style={{
+                        marginBottom: "10px",
+                        padding: "16px",
+                        background: "rgba(255, 255, 255, 0.08)", // Explicitly stronger background
+                        border: "1px solid rgba(255, 255, 255, 0.15)", // Explicitly stronger border
+                        borderRadius: "12px",
+                      }}
                     >
                       <div
                         style={{
