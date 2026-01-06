@@ -54,6 +54,7 @@ import { TRADE_TAG } from "../core/field-mapper";
 import type { App, Component, TFile } from "obsidian";
 import type { TodayContext } from "../core/today-context";
 import { type PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
+import { type CoachData, buildCoachFocus } from "../core/coach";
 
 // --- Local Helpers ---
 
@@ -798,407 +799,414 @@ export const useDashboardData = ({
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
-        const mostUsed = topSetups[0]?.name ?? "无";
-        const keepIn = cum.Live < 0 ? "回测" : "实盘";
+        return topSetups;
+    }, [tradesAsc, strategyIndex]);
 
-        return {
-            curves,
-            cum,
-            topSetups,
-            suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
-        };
-    }, [trades]);
+    const coach: CoachData = React.useMemo(() => {
+        return buildCoachFocus(trades, todayIso);
+    }, [trades, todayIso]);
 
-    const gallery = React.useMemo((): {
-        items: GalleryItem[];
-        scopeTotal: number;
-        candidateCount: number;
-    } => {
-        if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
-        const out: GalleryItem[] = [];
-        const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+    const mostUsed = topSetups[0]?.name ?? "无";
+    const keepIn = cum.Live < 0 ? "回测" : "实盘";
 
-        const candidates =
-            galleryScope === "All"
-                ? trades
-                : trades.filter(
-                    (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
-                );
+    return {
+        curves,
+        cum,
+        topSetups,
+        suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
+    };
+}, [trades]);
 
-        const candidatesSorted = [...candidates].sort((a, b) => {
-            const da = String((a as any).dateIso ?? "");
-            const db = String((b as any).dateIso ?? "");
-            if (da === db) return 0;
-            return da < db ? 1 : -1;
-        });
+const gallery = React.useMemo((): {
+    items: GalleryItem[];
+    scopeTotal: number;
+    candidateCount: number;
+} => {
+    if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
+    const out: GalleryItem[] = [];
+    const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
 
-        for (const t of candidatesSorted.slice(0, 20)) {
-            const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
-            const rawCover =
-                (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
-            const ref = parseCoverRef(rawCover);
+    const candidates =
+        galleryScope === "All"
+            ? trades
+            : trades.filter(
+                (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
+            );
 
-            let resolved = "";
-            let url: string | undefined = undefined;
-            if (ref) {
-                let target = String(ref.target ?? "").trim();
-                if (target) {
-                    if (/^https?:\/\//i.test(target)) {
-                        resolved = target;
-                        url = target;
+    const candidatesSorted = [...candidates].sort((a, b) => {
+        const da = String((a as any).dateIso ?? "");
+        const db = String((b as any).dateIso ?? "");
+        if (da === db) return 0;
+        return da < db ? 1 : -1;
+    });
+
+    for (const t of candidatesSorted.slice(0, 20)) {
+        const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
+        const rawCover =
+            (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+        const ref = parseCoverRef(rawCover);
+
+        let resolved = "";
+        let url: string | undefined = undefined;
+        if (ref) {
+            let target = String(ref.target ?? "").trim();
+            if (target) {
+                if (/^https?:\/\//i.test(target)) {
+                    resolved = target;
+                    url = target;
+                } else {
+                    resolved = resolveLink
+                        ? resolveLink(target, t.path) ?? target
+                        : target;
+                    if (resolved && isImage(resolved)) {
+                        url = getResourceUrl(resolved);
                     } else {
-                        resolved = resolveLink
-                            ? resolveLink(target, t.path) ?? target
-                            : target;
-                        if (resolved && isImage(resolved)) {
-                            url = getResourceUrl(resolved);
-                        } else {
-                            resolved = "";
-                            url = undefined;
-                        }
+                        resolved = "";
+                        url = undefined;
                     }
                 }
             }
+        }
 
-            const acct = (t.accountType ?? "Live") as AccountType;
-            const pnl =
-                typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+        const acct = (t.accountType ?? "Live") as AccountType;
+        const pnl =
+            typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
 
-            out.push({
-                tradePath: t.path,
-                tradeName: t.name,
-                accountType: acct,
-                pnl,
-                coverPath: resolved,
-                url,
+        out.push({
+            tradePath: t.path,
+            tradeName: t.name,
+            accountType: acct,
+            pnl,
+            coverPath: resolved,
+            url,
+        });
+    }
+
+    return {
+        items: out,
+        scopeTotal: candidatesSorted.length,
+        candidateCount: Math.min(20, candidatesSorted.length),
+    };
+}, [trades, resolveLink, getResourceUrl, galleryScope]);
+
+const gallerySearchHref = React.useMemo(() => {
+    return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
+}, []);
+
+const inspectorIssues = React.useMemo(() => {
+    return buildInspectorIssues(trades, enumPresets, strategyIndex);
+}, [trades, enumPresets, strategyIndex]);
+
+const fixPlanText = React.useMemo(() => {
+    if (!showFixPlan || !enumPresets) return undefined;
+    const plan = buildFixPlan(trades, enumPresets);
+    return JSON.stringify(plan, null, 2);
+}, [showFixPlan, trades, enumPresets]);
+
+const managerPlanText = React.useMemo(() => {
+    if (!managerPlan) return undefined;
+    return JSON.stringify(managerPlan, null, 2);
+}, [managerPlan]);
+
+const openTrade = React.useMemo(() => {
+    return trades.find((t) => {
+        const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+        if (!pnlMissing) return false;
+        return (
+            t.outcome === "open" ||
+            t.outcome === undefined ||
+            t.outcome === "unknown"
+        );
+    });
+}, [trades]);
+
+const todayStrategyPicks = React.useMemo(() => {
+    return computeTodayStrategyPicks({
+        todayMarketCycle,
+        strategyIndex,
+        limit: 6,
+    });
+}, [strategyIndex, todayMarketCycle]);
+
+const openTradeStrategy = React.useMemo(() => {
+    return computeOpenTradePrimaryStrategy({
+        openTrade,
+        todayMarketCycle,
+        strategyIndex,
+    });
+}, [openTrade, strategyIndex, todayMarketCycle]);
+
+const strategyPicks = React.useMemo(() => {
+    return computeTradeBasedStrategyPicks({
+        trade: latestTrade,
+        todayMarketCycle,
+        strategyIndex,
+        limit: 6,
+    });
+}, [latestTrade, strategyIndex, todayMarketCycle]);
+
+const statusText = React.useMemo(() => {
+    switch (status.phase) {
+        case "building": {
+            const p = typeof status.processed === "number" ? status.processed : 0;
+            const t = typeof status.total === "number" ? status.total : 0;
+            return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
+        }
+        case "ready": {
+            return typeof status.lastBuildMs === "number"
+                ? `索引：就绪（${status.lastBuildMs}ms）`
+                : "索引：就绪";
+        }
+        case "error":
+            return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
+        default:
+            return "索引：空闲";
+    }
+}, [status]);
+
+// --- Actions ---
+
+const can = React.useCallback(
+    (capabilityId: IntegrationCapability) =>
+        Boolean(integrations?.isCapabilityAvailable(capabilityId)),
+    [integrations]
+);
+
+const cycleMap: Record<string, string> = {
+    "Strong Trend": "强趋势",
+    "Weak Trend": "弱趋势",
+    "Trading Range": "交易区间",
+    "Breakout Mode": "突破模式",
+    Breakout: "突破",
+    Channel: "通道",
+    "Broad Channel": "宽通道",
+    "Tight Channel": "窄通道",
+};
+
+const scanManagerInventory = React.useCallback(async () => {
+    // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
+    if (loadAllFrontmatterFiles) {
+        const files = await loadAllFrontmatterFiles();
+        const inv = buildFrontmatterInventory(files);
+        setManagerTradeInventoryFiles(files);
+        setManagerTradeInventory(inv);
+
+        // 仅保留一个“全库”入口；策略区块不再单独展示。
+        setManagerStrategyInventoryFiles(undefined);
+        setManagerStrategyInventory(undefined);
+        return;
+    }
+
+    // 回退：若宿主未提供全库扫描，则维持旧逻辑（trade index + strategy notes）。
+    const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
+        path: t.path,
+        frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+    }));
+    const tradeInv = buildFrontmatterInventory(tradeFiles);
+    setManagerTradeInventoryFiles(tradeFiles);
+    setManagerTradeInventory(tradeInv);
+
+    const strategyFiles: FrontmatterFile[] = [];
+    if (loadStrategyNotes) {
+        const notes = await loadStrategyNotes();
+        for (const n of notes) {
+            strategyFiles.push({
+                path: n.path,
+                frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
             });
         }
+    }
+    const strategyInv = buildFrontmatterInventory(strategyFiles);
+    setManagerStrategyInventoryFiles(strategyFiles);
+    setManagerStrategyInventory(strategyInv);
+}, [loadAllFrontmatterFiles, loadStrategyNotes, trades]);
 
-        return {
-            items: out,
-            scopeTotal: candidatesSorted.length,
-            candidateCount: Math.min(20, candidatesSorted.length),
-        };
-    }, [trades, resolveLink, getResourceUrl, galleryScope]);
+const managerTradeFilesByPath = React.useMemo(() => {
+    const map = new Map<string, FrontmatterFile>();
+    for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
+    return map;
+}, [managerTradeInventoryFiles]);
 
-    const gallerySearchHref = React.useMemo(() => {
-        return `obsidian://search?query=${encodeURIComponent(`tag:#${TRADE_TAG}`)}`;
-    }, []);
+const managerStrategyFilesByPath = React.useMemo(() => {
+    const map = new Map<string, FrontmatterFile>();
+    for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
+    return map;
+}, [managerStrategyInventoryFiles]);
 
-    const inspectorIssues = React.useMemo(() => {
-        return buildInspectorIssues(trades, enumPresets, strategyIndex);
-    }, [trades, enumPresets, strategyIndex]);
+const selectManagerTradeFiles = React.useCallback(
+    (paths: string[]) =>
+        paths
+            .map((p) => managerTradeFilesByPath.get(p))
+            .filter((x): x is FrontmatterFile => Boolean(x)),
+    [managerTradeFilesByPath]
+);
 
-    const fixPlanText = React.useMemo(() => {
-        if (!showFixPlan || !enumPresets) return undefined;
-        const plan = buildFixPlan(trades, enumPresets);
-        return JSON.stringify(plan, null, 2);
-    }, [showFixPlan, trades, enumPresets]);
+const selectManagerStrategyFiles = React.useCallback(
+    (paths: string[]) =>
+        paths
+            .map((p) => managerStrategyFilesByPath.get(p))
+            .filter((x): x is FrontmatterFile => Boolean(x)),
+    [managerStrategyFilesByPath]
+);
 
-    const managerPlanText = React.useMemo(() => {
-        if (!managerPlan) return undefined;
-        return JSON.stringify(managerPlan, null, 2);
-    }, [managerPlan]);
+const runManagerPlan = React.useCallback(
+    async (
+        plan: FixPlan,
+        options: {
+            closeInspector?: boolean;
+            forceDeleteKeys?: boolean;
+            refreshInventory?: boolean;
+        } = {}
+    ) => {
+        setManagerPlan(plan);
+        setManagerResult(undefined);
 
-    const openTrade = React.useMemo(() => {
-        return trades.find((t) => {
-            const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-            if (!pnlMissing) return false;
-            return (
-                t.outcome === "open" ||
-                t.outcome === undefined ||
-                t.outcome === "unknown"
+        if (!applyFixPlan) {
+            window.alert(
+                "写入能力不可用：applyFixPlan 未注入（可能是 ConsoleView 未正确挂载）"
             );
-        });
-    }, [trades]);
-
-    const todayStrategyPicks = React.useMemo(() => {
-        return computeTodayStrategyPicks({
-            todayMarketCycle,
-            strategyIndex,
-            limit: 6,
-        });
-    }, [strategyIndex, todayMarketCycle]);
-
-    const openTradeStrategy = React.useMemo(() => {
-        return computeOpenTradePrimaryStrategy({
-            openTrade,
-            todayMarketCycle,
-            strategyIndex,
-        });
-    }, [openTrade, strategyIndex, todayMarketCycle]);
-
-    const strategyPicks = React.useMemo(() => {
-        return computeTradeBasedStrategyPicks({
-            trade: latestTrade,
-            todayMarketCycle,
-            strategyIndex,
-            limit: 6,
-        });
-    }, [latestTrade, strategyIndex, todayMarketCycle]);
-
-    const statusText = React.useMemo(() => {
-        switch (status.phase) {
-            case "building": {
-                const p = typeof status.processed === "number" ? status.processed : 0;
-                const t = typeof status.total === "number" ? status.total : 0;
-                return t > 0 ? `索引：构建中… ${p}/${t}` : "索引：构建中…";
-            }
-            case "ready": {
-                return typeof status.lastBuildMs === "number"
-                    ? `索引：就绪（${status.lastBuildMs}ms）`
-                    : "索引：就绪";
-            }
-            case "error":
-                return `索引：错误${status.message ? ` — ${status.message}` : ""}`;
-            default:
-                return "索引：空闲";
-        }
-    }, [status]);
-
-    // --- Actions ---
-
-    const can = React.useCallback(
-        (capabilityId: IntegrationCapability) =>
-            Boolean(integrations?.isCapabilityAvailable(capabilityId)),
-        [integrations]
-    );
-
-    const cycleMap: Record<string, string> = {
-        "Strong Trend": "强趋势",
-        "Weak Trend": "弱趋势",
-        "Trading Range": "交易区间",
-        "Breakout Mode": "突破模式",
-        Breakout: "突破",
-        Channel: "通道",
-        "Broad Channel": "宽通道",
-        "Tight Channel": "窄通道",
-    };
-
-    const scanManagerInventory = React.useCallback(async () => {
-        // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
-        if (loadAllFrontmatterFiles) {
-            const files = await loadAllFrontmatterFiles();
-            const inv = buildFrontmatterInventory(files);
-            setManagerTradeInventoryFiles(files);
-            setManagerTradeInventory(inv);
-
-            // 仅保留一个“全库”入口；策略区块不再单独展示。
-            setManagerStrategyInventoryFiles(undefined);
-            setManagerStrategyInventory(undefined);
             return;
         }
 
-        // 回退：若宿主未提供全库扫描，则维持旧逻辑（trade index + strategy notes）。
-        const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
-            path: t.path,
-            frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
-        }));
-        const tradeInv = buildFrontmatterInventory(tradeFiles);
-        setManagerTradeInventoryFiles(tradeFiles);
-        setManagerTradeInventory(tradeInv);
+        setManagerBusy(true);
+        try {
+            const res = await applyFixPlan(plan, {
+                deleteKeys: options.forceDeleteKeys ? true : managerDeleteKeys,
+            });
+            setManagerResult(res);
+            setManagerBackups(res.backups);
 
-        const strategyFiles: FrontmatterFile[] = [];
-        if (loadStrategyNotes) {
-            const notes = await loadStrategyNotes();
-            for (const n of notes) {
-                strategyFiles.push({
-                    path: n.path,
-                    frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
-                });
-            }
-        }
-        const strategyInv = buildFrontmatterInventory(strategyFiles);
-        setManagerStrategyInventoryFiles(strategyFiles);
-        setManagerStrategyInventory(strategyInv);
-    }, [loadAllFrontmatterFiles, loadStrategyNotes, trades]);
-
-    const managerTradeFilesByPath = React.useMemo(() => {
-        const map = new Map<string, FrontmatterFile>();
-        for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
-        return map;
-    }, [managerTradeInventoryFiles]);
-
-    const managerStrategyFilesByPath = React.useMemo(() => {
-        const map = new Map<string, FrontmatterFile>();
-        for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
-        return map;
-    }, [managerStrategyInventoryFiles]);
-
-    const selectManagerTradeFiles = React.useCallback(
-        (paths: string[]) =>
-            paths
-                .map((p) => managerTradeFilesByPath.get(p))
-                .filter((x): x is FrontmatterFile => Boolean(x)),
-        [managerTradeFilesByPath]
-    );
-
-    const selectManagerStrategyFiles = React.useCallback(
-        (paths: string[]) =>
-            paths
-                .map((p) => managerStrategyFilesByPath.get(p))
-                .filter((x): x is FrontmatterFile => Boolean(x)),
-        [managerStrategyFilesByPath]
-    );
-
-    const runManagerPlan = React.useCallback(
-        async (
-            plan: FixPlan,
-            options: {
-                closeInspector?: boolean;
-                forceDeleteKeys?: boolean;
-                refreshInventory?: boolean;
-            } = {}
-        ) => {
-            setManagerPlan(plan);
-            setManagerResult(undefined);
-
-            if (!applyFixPlan) {
+            if (res.failed > 0) {
+                const first = res.errors?.[0];
                 window.alert(
-                    "写入能力不可用：applyFixPlan 未注入（可能是 ConsoleView 未正确挂载）"
+                    `部分操作失败：${res.failed} 个文件。` +
+                    (first ? `\n示例：${first.path}\n${first.message}` : "")
                 );
-                return;
+            } else if (res.applied === 0) {
+                window.alert(
+                    "未修改任何文件：可能是未匹配到目标、目标已存在（被跳过）、或文件 frontmatter 不可解析。"
+                );
             }
 
-            setManagerBusy(true);
-            try {
-                const res = await applyFixPlan(plan, {
-                    deleteKeys: options.forceDeleteKeys ? true : managerDeleteKeys,
-                });
-                setManagerResult(res);
-                setManagerBackups(res.backups);
-
-                if (res.failed > 0) {
-                    const first = res.errors?.[0];
-                    window.alert(
-                        `部分操作失败：${res.failed} 个文件。` +
-                        (first ? `\n示例：${first.path}\n${first.message}` : "")
-                    );
-                } else if (res.applied === 0) {
-                    window.alert(
-                        "未修改任何文件：可能是未匹配到目标、目标已存在（被跳过）、或文件 frontmatter 不可解析。"
-                    );
-                }
-
-                if (options.closeInspector) {
-                    setManagerInspectorKey(undefined);
-                    setManagerInspectorTab("vals");
-                    setManagerInspectorFileFilter(undefined);
-                }
-                if (options.refreshInventory) {
-                    await scanManagerInventory();
-                }
-            } finally {
-                setManagerBusy(false);
+            if (options.closeInspector) {
+                setManagerInspectorKey(undefined);
+                setManagerInspectorTab("vals");
+                setManagerInspectorFileFilter(undefined);
             }
-        },
-        [
-            applyFixPlan,
-            managerDeleteKeys,
-            scanManagerInventory,
-            setManagerBackups,
-            setManagerInspectorFileFilter,
-            setManagerInspectorKey,
-            setManagerInspectorTab,
-        ]
-    );
-
-    return {
-        // Data
-        trades,
-        strategies,
-        status,
-        todayMarketCycle,
-        settings,
-
-        // UI Scope & Layout
-        analyticsScope, setAnalyticsScope,
-        galleryScope, setGalleryScope,
-        showFixPlan, setShowFixPlan,
-        activePage, setActivePage,
-        statusText,
-
-        // Core Metrics
-        summary,
-        liveCyclePerf,
-        last30TradesDesc,
-        tuition,
-        strategyPerf,
-        strategyStats,
-        playbookPerfRows,
-        todayKpi,
-        latestTrade,
-        todayTrades,
-        reviewHints,
-        analyticsTrades,
-        contextAnalysis,
-        errorAnalysis,
-        analyticsDaily,
-        analyticsDailyByDate,
-        calendarCells,
-        calendarDays,
-        calendarMaxAbs,
-        strategyAttribution,
-        analyticsRMultiples,
-        analyticsRecentLiveTradesAsc,
-        analyticsMind,
-        analyticsTopStrats,
-        analyticsSuggestion,
-        strategyLab,
-
-        // Gallery
-        gallery,
-        gallerySearchHref,
-
-        // Course & Memory
-        course, setCourse,
-        courseBusy, setCourseBusy,
-        courseError, setCourseError,
-        reloadCourse,
-        memory, setMemory,
-        memoryBusy, setMemoryBusy,
-        memoryError, setMemoryError,
-        memoryIgnoreFocus, setMemoryIgnoreFocus,
-        memoryShakeIndex, setMemoryShakeIndex,
-        reloadMemory,
-
-        // Schema & Updates
-        schemaIssues,
-        schemaScanNote,
-        paTagSnapshot,
-        inspectorIssues,
-        fixPlanText,
-        managerPlanText,
-
-        // Open/Picks
-        openTrade,
-        todayStrategyPicks,
-        openTradeStrategy,
-        strategyPicks,
-
-        // Manager
-        managerPlan, setManagerPlan,
-        managerResult, setManagerResult,
-        managerBusy, setManagerBusy,
-        managerDeleteKeys, setManagerDeleteKeys,
-        managerBackups, setManagerBackups,
-        managerTradeInventory,
-        managerTradeInventoryFiles,
-        managerStrategyInventory,
-        managerStrategyInventoryFiles,
-        managerSearch, setManagerSearch,
-        managerScope, setManagerScope,
-        managerInspectorKey, setManagerInspectorKey,
-        managerInspectorTab, setManagerInspectorTab,
-        managerInspectorFileFilter, setManagerInspectorFileFilter,
+            if (options.refreshInventory) {
+                await scanManagerInventory();
+            }
+        } finally {
+            setManagerBusy(false);
+        }
+    },
+    [
+        applyFixPlan,
+        managerDeleteKeys,
         scanManagerInventory,
-        runManagerPlan,
-        selectManagerTradeFiles,
-        selectManagerStrategyFiles,
+        setManagerBackups,
+        setManagerInspectorFileFilter,
+        setManagerInspectorKey,
+        setManagerInspectorTab,
+    ]
+);
 
-        // Integrations / Misc
-        can,
-        cycleMap,
-        onRebuild,
-    };
+return {
+    // Data
+    trades,
+    strategies,
+    status,
+    todayMarketCycle,
+    settings,
+
+    // UI Scope & Layout
+    analyticsScope, setAnalyticsScope,
+    galleryScope, setGalleryScope,
+    showFixPlan, setShowFixPlan,
+    activePage, setActivePage,
+    statusText,
+
+    // Core Metrics
+    summary,
+    liveCyclePerf,
+    last30TradesDesc,
+    tuition,
+    strategyPerf,
+    strategyStats,
+    playbookPerfRows,
+    todayKpi,
+    latestTrade,
+    todayTrades,
+    reviewHints,
+    analyticsTrades,
+    contextAnalysis,
+    errorAnalysis,
+    analyticsDaily,
+    analyticsDailyByDate,
+    calendarCells,
+    calendarDays,
+    calendarMaxAbs,
+    strategyAttribution,
+    analyticsRMultiples,
+    analyticsRecentLiveTradesAsc,
+    analyticsMind,
+    analyticsTopStrats,
+    analyticsSuggestion,
+    strategyLab,
+
+    // Gallery
+    gallery,
+    gallerySearchHref,
+
+    // Course & Memory
+    course, setCourse,
+    courseBusy, setCourseBusy,
+    courseError, setCourseError,
+    reloadCourse,
+    memory, setMemory,
+    memoryBusy, setMemoryBusy,
+    memoryError, setMemoryError,
+    memoryIgnoreFocus, setMemoryIgnoreFocus,
+    memoryShakeIndex, setMemoryShakeIndex,
+    reloadMemory,
+
+    // Schema & Updates
+    schemaIssues,
+    schemaScanNote,
+    paTagSnapshot,
+    inspectorIssues,
+    fixPlanText,
+    managerPlanText,
+
+    // Open/Picks
+    openTrade,
+    todayStrategyPicks,
+    openTradeStrategy,
+    strategyPicks,
+
+    // Manager
+    managerPlan, setManagerPlan,
+    managerResult, setManagerResult,
+    managerBusy, setManagerBusy,
+    managerDeleteKeys, setManagerDeleteKeys,
+    managerBackups, setManagerBackups,
+    managerTradeInventory,
+    managerTradeInventoryFiles,
+    managerStrategyInventory,
+    managerStrategyInventoryFiles,
+    managerSearch, setManagerSearch,
+    managerScope, setManagerScope,
+    managerInspectorKey, setManagerInspectorKey,
+    managerInspectorTab, setManagerInspectorTab,
+    managerInspectorFileFilter, setManagerInspectorFileFilter,
+    scanManagerInventory,
+    runManagerPlan,
+    selectManagerTradeFiles,
+    selectManagerStrategyFiles,
+
+    // Integrations / Misc
+    can,
+    cycleMap,
+    onRebuild,
+};
 };
