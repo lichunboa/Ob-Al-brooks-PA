@@ -660,90 +660,91 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                 </div>
             </GlassCard>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.md, marginBottom: SPACE.md }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <HeadingM>🛠 资源管理器 (Manager)</HeadingM>
-                    <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "2px", border: "1px solid var(--background-modifier-border)" }}>
-                        <button
-                            onClick={() => setManagerScope("trade")}
-                            style={{
-                                padding: "4px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85em", fontWeight: 700,
-                                background: managerScope === "trade" ? COLORS.accent : "transparent",
-                                color: managerScope === "trade" ? "#fff" : "var(--text-muted)"
-                            }}
-                        >
-                            交易 (Trade)
-                        </button>
-                        <button
-                            onClick={() => setManagerScope("strategy")}
-                            style={{
-                                padding: "4px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85em", fontWeight: 700,
-                                background: managerScope === "strategy" ? COLORS.accent : "transparent",
-                                color: managerScope === "strategy" ? "#fff" : "var(--text-muted)"
-                            }}
-                        >
-                            策略 (Strategy)
-                        </button>
+            <GlassCard>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.md, marginBottom: SPACE.md }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <HeadingM>🛠 资源管理器 (Manager)</HeadingM>
+                        <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "2px", border: "1px solid var(--background-modifier-border)" }}>
+                            <button
+                                onClick={() => setManagerScope("trade")}
+                                style={{
+                                    padding: "4px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85em", fontWeight: 700,
+                                    background: managerScope === "trade" ? COLORS.accent : "transparent",
+                                    color: managerScope === "trade" ? "#fff" : "var(--text-muted)"
+                                }}
+                            >
+                                交易 (Trade)
+                            </button>
+                            <button
+                                onClick={() => setManagerScope("strategy")}
+                                style={{
+                                    padding: "4px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85em", fontWeight: 700,
+                                    background: managerScope === "strategy" ? COLORS.accent : "transparent",
+                                    color: managerScope === "strategy" ? "#fff" : "var(--text-muted)"
+                                }}
+                            >
+                                策略 (Strategy)
+                            </button>
+                        </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <ButtonGhost onClick={onExport}>
+                            📥 备份数据库 (Export)
+                        </ButtonGhost>
+                        <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
+                            {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
+                        </ButtonGhost>
                     </div>
                 </div>
-                <div style={{ display: "flex", gap: "10px" }}>
-                    <ButtonGhost onClick={onExport}>
-                        📥 备份数据库 (Export)
-                    </ButtonGhost>
-                    <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
-                        {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
-                    </ButtonGhost>
-                </div>
-            </div>
 
-            {/* Manager Inventory Grid */}
-            {managerScope === "trade" && managerTradeInventory ? (
-                <ManagerInventoryGrid
-                    inventory={managerTradeInventory}
-                    onRenameKey={onRenameKey}
-                    onDeleteKey={onDeleteKey}
-                    onUpdateVal={onUpdateVal}
-                    onDeleteVal={onDeleteVal}
-                    onSelectFiles={(paths) => {
-                        const files = selectManagerTradeFiles(paths);
-                        // Set inspector filter
-                        if (files.length > 0) {
-                            // We need a way to bubble up 'setManagerInspectorFileFilter' call?
-                            // ManageTab has 'setManagerInspectorFileFilter' in props.
-                            // But simple select usually implies opening them or listing them.
-                            // For now, let's just open the first file or log.
-                            // Ideally we show them in the Inspector "Files" tab.
-                            // But for now let's use promptText to show paths? No.
-                            // Let's just update the Inspector filter and switch tab.
-                            // But inside ManagerInventoryGrid, onSelectFiles is void.
-                            // We can implement behavior here.
-                            setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
-                            setManagerInspectorTab("files");
-                            // Also scroll to inspector?
-                        }
-                    }}
-                />
-            ) : managerScope === "strategy" && managerStrategyInventory ? (
-                <ManagerInventoryGrid
-                    inventory={managerStrategyInventory}
-                    onRenameKey={onRenameKey}
-                    onDeleteKey={onDeleteKey}
-                    onUpdateVal={onUpdateVal}
-                    onDeleteVal={onDeleteVal}
-                    onSelectFiles={(paths) => {
-                        const files = selectManagerStrategyFiles(paths);
-                        if (files.length > 0) {
-                            setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
-                            setManagerInspectorTab("files");
-                        }
-                    }}
-                />
-            ) : (
-                <div style={{ color: "var(--text-muted)", padding: "40px", textAlign: "center" }}>
-                    {managerBusy ? "正在扫描索引..." : "索引未加载，请点击“刷新全库索引”。"}
-                </div>
-            )}
-        </GlassCard >
+                {/* Manager Inventory Grid */}
+                {managerScope === "trade" && managerTradeInventory ? (
+                    <ManagerInventoryGrid
+                        inventory={managerTradeInventory}
+                        onRenameKey={onRenameKey}
+                        onDeleteKey={onDeleteKey}
+                        onUpdateVal={onUpdateVal}
+                        onDeleteVal={onDeleteVal}
+                        onSelectFiles={(paths) => {
+                            const files = selectManagerTradeFiles(paths);
+                            // Set inspector filter
+                            if (files.length > 0) {
+                                // We need a way to bubble up 'setManagerInspectorFileFilter' call?
+                                // ManageTab has 'setManagerInspectorFileFilter' in props.
+                                // But simple select usually implies opening them or listing them.
+                                // For now, let's just open the first file or log.
+                                // Ideally we show them in the Inspector "Files" tab.
+                                // But for now let's use promptText to show paths? No.
+                                // Let's just update the Inspector filter and switch tab.
+                                // But inside ManagerInventoryGrid, onSelectFiles is void.
+                                // We can implement behavior here.
+                                setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
+                                setManagerInspectorTab("files");
+                                // Also scroll to inspector?
+                            }
+                        }}
+                    />
+                ) : managerScope === "strategy" && managerStrategyInventory ? (
+                    <ManagerInventoryGrid
+                        inventory={managerStrategyInventory}
+                        onRenameKey={onRenameKey}
+                        onDeleteKey={onDeleteKey}
+                        onUpdateVal={onUpdateVal}
+                        onDeleteVal={onDeleteVal}
+                        onSelectFiles={(paths) => {
+                            const files = selectManagerStrategyFiles(paths);
+                            if (files.length > 0) {
+                                setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
+                                setManagerInspectorTab("files");
+                            }
+                        }}
+                    />
+                ) : (
+                    <div style={{ color: "var(--text-muted)", padding: "40px", textAlign: "center" }}>
+                        {managerBusy ? "正在扫描索引..." : "索引未加载，请点击“刷新全库索引”。"}
+                    </div>
+                )}
+            </GlassCard >
         </>
     );
 };

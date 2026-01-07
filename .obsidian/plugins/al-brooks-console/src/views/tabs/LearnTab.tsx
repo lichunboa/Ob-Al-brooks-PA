@@ -28,6 +28,8 @@ export interface LearnTabProps {
     memoryError?: string;
     onReloadMemory: () => void;
     onMemoryShake: () => void;
+    onMemoryShake: () => void;
+    onMemoryRate: (path: string, rating: number) => void;
     memoryShakeIndex: number;
     // Strategy & Playbook Props
     strategyStats: {
@@ -65,6 +67,9 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     memoryError,
     onReloadMemory,
     onMemoryShake,
+    onReloadMemory,
+    onMemoryShake,
+    onMemoryRate,
     memoryShakeIndex,
     strategyStats,
     strategies,
@@ -206,7 +211,14 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                 if (!rec) return null;
 
                                 const label = rec.type === "Focus" ? "🔥 优先复习" : rec.type === "New" ? "🚀 推荐" : rec.type === "Review" ? "🔄 推荐" : "🎲 随机抽取";
+                                const isFocus = rec.type === "Focus";
 
+                                // Review State (Local to this block? No, needed component level state for persistence?
+                                // Actually, if we use a simple toggle, we can use a React.useState.
+                                // BUT we are inside an IIFE here. We can't use hooks here.
+                                // We must move this logic OUT of the IIFE or use a separate component.
+                                // For simplicity/refactor limitation: I will render buttons directly if isFocus.
+                                // And I will use a simple "Review Mode" check by adding state to LearnTab.
                                 return (
                                     <div style={{
                                         border: "1px solid var(--background-modifier-border)",
@@ -215,23 +227,41 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                         background: "rgba(var(--mono-rgb-100), 0.03)",
                                         marginBottom: "10px",
                                         display: "flex",
-                                        alignItems: "flex-start",
-                                        justifyContent: "space-between",
+                                        flexDirection: "column",
                                         gap: "12px",
                                     }}>
-                                        <div style={{ flex: "1 1 auto" }}>
-                                            <div style={{ fontSize: "0.85em", fontWeight: 700, color: "var(--text-muted)", marginBottom: "6px" }}>{label}</div>
-                                            <div style={{ marginBottom: "6px" }}>
-                                                <button type="button" onClick={() => openFile(String(rec.path))} style={textButtonStrongStyle}
-                                                    onMouseEnter={onTextBtnMouseEnter} onMouseLeave={onTextBtnMouseLeave} onFocus={onTextBtnFocus} onBlur={onTextBtnBlur}>
-                                                    {String(rec.title)}
+                                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", width: "100%" }}>
+                                            <div style={{ flex: "1 1 auto" }}>
+                                                <div style={{ fontSize: "0.85em", fontWeight: 700, color: "var(--text-muted)", marginBottom: "6px" }}>{label}</div>
+                                                <div style={{ marginBottom: "6px" }}>
+                                                    <button type="button" onClick={() => openFile(String(rec.path))} style={textButtonStrongStyle}
+                                                        onMouseEnter={onTextBtnMouseEnter} onMouseLeave={onTextBtnMouseLeave} onFocus={onTextBtnFocus} onBlur={onTextBtnBlur}>
+                                                        {String(rec.title)}
+                                                    </button>
+                                                </div>
+                                                <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>{rec.desc}</div>
+                                            </div>
+                                            <button type="button" onClick={onMemoryShake} onMouseEnter={onBtnMouseEnter} onMouseLeave={onBtnMouseLeave} onFocus={onBtnFocus} onBlur={onBtnBlur} style={buttonSmStyle} title="摇一摇换题">
+                                                🎲
+                                            </button>
+                                        </div>
+
+                                        {isFocus && (
+                                            <div style={{ display: "flex", gap: "8px", marginTop: "4px", borderTop: "1px solid var(--background-modifier-border)", paddingTop: "10px" }}>
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 0)} style={{ ...buttonSmStyle, color: V5_COLORS.loss }} title="重来 (Again)">
+                                                    重来
+                                                </button>
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 1)} style={{ ...buttonSmStyle, color: "var(--text-normal)" }} title="困难 (Hard)">
+                                                    困难
+                                                </button>
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 2)} style={{ ...buttonSmStyle, color: V5_COLORS.win }} title="良好 (Good)">
+                                                    良好
+                                                </button>
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 3)} style={{ ...buttonSmStyle, color: V5_COLORS.accent }} title="简单 (Easy)">
+                                                    简单
                                                 </button>
                                             </div>
-                                            <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>{rec.desc}</div>
-                                        </div>
-                                        <button type="button" onClick={onMemoryShake} onMouseEnter={onBtnMouseEnter} onMouseLeave={onBtnMouseLeave} onFocus={onBtnFocus} onBlur={onBtnBlur} style={buttonSmStyle} title="摇一摇换题">
-                                            🎲
-                                        </button>
+                                        )}
                                     </div>
                                 );
                             })()}

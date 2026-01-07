@@ -82,6 +82,7 @@ import {
   type CourseSnapshot,
 } from "../core/course";
 import { buildMemorySnapshot, type MemorySnapshot } from "../core/memory";
+import { calculateSm2 } from "../core/sm2";
 import { TRADE_TAG } from "../core/field-mapper";
 import { V5_COLORS, withHexAlpha } from "../ui/tokens";
 import {
@@ -635,78 +636,6 @@ const ConsoleComponent: React.FC<Props> = ({
     ]
   );
 
-  const handleExport = React.useCallback(async () => {
-    if (!app?.vault?.adapter?.write) {
-      window.alert("无法导出：Vault Adapter 不可用");
-      return;
-    }
-    const data = {
-      generatedAt: new Date().toISOString(),
-      trades,
-      stats: summary,
-      course: course,
-      memory: memory,
-      inventory: {
-        trade: managerTradeInventory,
-        strategy: managerStrategyInventory
-      }
-    };
-    const path = "pa-db-export.json";
-    try {
-      await app.vault.adapter.write(path, JSON.stringify(data, null, 2));
-      window.alert(`导出成功！\n文件路径: ${path}`);
-    } catch (e) {
-      console.error(e);
-      window.alert(`导出失败: ${String(e)}`);
-    }
-  }, [app, trades, summary, course, memory, managerTradeInventory, managerStrategyInventory]);
-
-  const handleManagerRenameKey = React.useCallback(async (oldKey: string, newKey: string) => {
-    const scope = managerScope === "strategy" ? "strategy" : "trade";
-    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
-    if (!files) return;
-
-    const plan = buildRenameKeyPlan(files, oldKey, newKey);
-    await runManagerPlan(plan, { refreshInventory: true });
-  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
-
-  const handleManagerDeleteKey = React.useCallback(async (key: string) => {
-    const scope = managerScope === "strategy" ? "strategy" : "trade";
-    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
-    if (!files) return;
-
-    if (!await confirmDialog(`确定要删除属性键 "${key}" 吗？\n这将从 ${files.length} 个文件中移除该字段。\n该操作不可逆（除非手动恢复备份）。`)) {
-      return;
-    }
-
-    const plan = buildDeleteKeyPlan(files, key);
-    // forceDeleteKeys must be true for actual deletion as per manager logic safety
-    await runManagerPlan(plan, { forceDeleteKeys: true, refreshInventory: true });
-  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
-
-  const handleManagerUpdateVal = React.useCallback(async (key: string, oldVal: string, newVal: string) => {
-    const scope = managerScope === "strategy" ? "strategy" : "trade";
-    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
-    if (!files) return;
-
-    const plan = buildUpdateValPlan(files, key, oldVal, newVal);
-    await runManagerPlan(plan, { refreshInventory: true });
-  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
-
-  const handleManagerDeleteVal = React.useCallback(async (key: string, val: string) => {
-    const scope = managerScope === "strategy" ? "strategy" : "trade";
-    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
-    if (!files) return;
-
-    if (!await confirmDialog(`确定要删除属性 "${key}" 的值 "${val}" 吗？`)) {
-      return;
-    }
-
-    const plan = buildDeleteValPlan(files, key, val, { deleteKeyIfEmpty: false });
-    await runManagerPlan(plan, { refreshInventory: true });
-  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
-
-
   const [settings, setSettings] =
     React.useState<AlBrooksConsoleSettings>(initialSettings);
   const settingsKey = `${settings.courseRecommendationWindow}|${settings.srsDueThresholdDays}|${settings.srsRandomQuizCount}`;
@@ -743,6 +672,143 @@ const ConsoleComponent: React.FC<Props> = ({
     [trades]
   );
   const all = summary.All;
+
+  const handleMemoryRate = React.useCallback(async (path: string, rating: number) => {
+    const app = (window as any).app;
+    if (!app?.vault) return;
+    const file = app.vault.getAbstractFileByPath(path);
+    if (!file) return;
+
+    try {
+      const content = await app.vault.read(file);
+      const today = new Date();
+      const todayIso = today.toISOString().split("T")[0];
+
+      // Check for existing SRS tag
+      const regex = /!(\d{4}-\d{2}-\d{2}),(\d+),(\d+)/;
+      const match = content.match(regex);
+
+      let newContent = content;
+      let newInterval = 1;
+      let newEase = 250;
+
+      if (match) {
+        const currentInterval = parseInt(match[2]);
+        const currentEase = parseInt(match[3]);
+        const res = calculateSm2(currentInterval, currentEase, rating);
+        newInterval = res.interval;
+        newEase = res.ease;
+      } else {
+        // Init new
+        const res = calculateSm2(0, 250, rating);
+        newInterval = res.interval;
+        newEase = res.ease;
+      }
+
+      // Calculate new due date
+      const dueDate = new Date(today);
+      dueDate.setDate(dueDate.getDate() + newInterval);
+      const dueIso = dueDate.toISOString().split("T")[0];
+      const newTag = `!${dueIso},${newInterval},${newEase}`;
+
+      if (match) {
+        newContent = content.replace(regex, newTag);
+      } else {
+        newContent = content + `\n\n${newTag}`;
+      }
+
+      await app.vault.modify(file, newContent);
+
+      // Reload memory
+      await loadMemory();
+
+    } catch (e) {
+      console.error("Failed to update SRS", e);
+    }
+  }, [loadMemory]);
+
+  // Handlers for ManageTab (Defined here to access computed stats/state)
+  const handleExport = React.useCallback(async () => {
+    const app = (window as any).app;
+    if (!app?.vault?.adapter?.write) {
+      window.alert("无法导出：Vault Adapter 不可用");
+      return;
+    }
+    const data = {
+      generatedAt: new Date().toISOString(),
+      trades,
+      stats: summary,
+      course: course,
+      memory: memory,
+      inventory: {
+        trade: managerTradeInventory,
+        strategy: managerStrategyInventory
+      }
+    };
+    const path = "pa-db-export.json";
+    try {
+      await app.vault.adapter.write(path, JSON.stringify(data, null, 2));
+      window.alert(`导出成功！\n文件路径: ${path}`);
+    } catch (e) {
+      console.error(e);
+      window.alert(`导出失败: ${String(e)}`);
+    }
+  }, [trades, summary, course, memory, managerTradeInventory, managerStrategyInventory]);
+
+  const handleManagerRenameKey = React.useCallback(async (oldKey: string, newKey: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    const plan = buildRenameKeyPlan(files, oldKey, newKey);
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
+
+  const handleManagerDeleteKey = React.useCallback(async (key: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    if (!await confirmDialog({
+      title: "确认删除属性键",
+      message: `确定要删除属性键 "${key}" 吗？\n这将从 ${files.length} 个文件中移除该字段。\n该操作不可逆（除非手动恢复备份）。`,
+      okText: "确认删除",
+      cancelText: "取消"
+    })) {
+      return;
+    }
+
+    const plan = buildDeleteKeyPlan(files, key);
+    await runManagerPlan(plan, { forceDeleteKeys: true, refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
+
+  const handleManagerUpdateVal = React.useCallback(async (key: string, oldVal: string, newVal: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    const plan = buildUpdateValPlan(files, key, oldVal, newVal);
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
+
+  const handleManagerDeleteVal = React.useCallback(async (key: string, val: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    if (!await confirmDialog({
+      title: "确认删除属性值",
+      message: `确定要删除属性 "${key}" 的值 "${val}" 吗？`,
+      okText: "确认删除",
+      cancelText: "取消"
+    })) {
+      return;
+    }
+
+    const plan = buildDeleteValPlan(files, key, val, { deleteKeyIfEmpty: false });
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
+
 
   const cycleMap: Record<string, string> = {
     "Strong Trend": "强趋势",
@@ -3920,6 +3986,7 @@ short mode\n\
               setMemoryShakeIndex((x) => x + 1);
             }
           }}
+          onMemoryRate={handleMemoryRate}
           memoryShakeIndex={memoryShakeIndex}
           strategyStats={strategyStats}
           strategies={strategies}
