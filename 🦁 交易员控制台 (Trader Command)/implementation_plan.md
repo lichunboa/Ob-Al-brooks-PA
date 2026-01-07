@@ -96,7 +96,15 @@
     - `src/views/Dashboard.tsx`：添加 `handleExport` 函数，调用 `app.vault.adapter.write`。
     - `src/views/tabs/ManageTab.tsx`：添加 `onExport` prop 和 UI 按钮。
 
-### C. 模块重组文档 (Module Documentation)
+### C. 记忆库卡片交互 (Memory Card Interaction)
+**目标**：恢复学习模块中的闪卡交互体验（抽卡 -> 翻面 -> 评分）。
+- **文件**：`src/views/tabs/LearnTab.tsx` (以及可能的 Dashboard 逻辑)
+- **实现**：
+    - 实装 `FlashcardModal` 或内联交互组件。
+    - 实现 "显示答案" (Reveal) 和 "评分" (Rate: Easy/Good/Hard) 按钮。
+    - 对接 SR 算法（更新 `due`, `ease` 等元数据）。
+
+### D. 模块重组文档 (Module Documentation)
 - 创建 `README.md`，定义 4 大核心模块结构：
     1. **交易中心 (Trading Hub)**
     2. **数据中心 (Analytics Hub)**
