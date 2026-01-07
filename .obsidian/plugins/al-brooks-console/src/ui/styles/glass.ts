@@ -12,24 +12,20 @@ export const GLASS_EFFECT: CSSProperties = {
 
 // Level 1: The "White" (Light Mode) or "Black" (Dark Mode) - Main Content
 // Uses --background-primary with slight transparency
-// Level 1: The "1st Level" - Base Frame (White/Black tint)
-// Provides a subtle glass foundation for the main application area
 export const glassCardStyle: CSSProperties = {
   ...GLASS_EFFECT,
-  background: "rgba(var(--mono-rgb-100), 0.03)", // Slightly more visible tint
-  borderRadius: "16px",
-  padding: "20px",
-  boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.1)", // Deeper shadow for "lifted" feel
+  background: "rgba(var(--mono-rgb-100), 0.02)", // Very subtle tint
+  borderRadius: "12px",
+  padding: "16px",
 };
 
-// Level 2: The "2nd Level" - Inner Grouping (Gray tint)
-// Uses --background-secondary to distinguish functional areas within the base frame
+// Level 2: The "Gray" - Secondary/Sidebar/Group
+// Uses --background-secondary
 export const glassPanelStyle: CSSProperties = {
   ...GLASS_EFFECT,
   background: "var(--background-secondary)",
-  borderRadius: "12px",
-  padding: "16px",
-  border: "1px solid rgba(var(--mono-rgb-100), 0.05)",
+  borderRadius: "16px",
+  padding: "20px",
 };
 
 // Level 3: High Contrast / Header

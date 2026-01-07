@@ -347,8 +347,8 @@ export class ObsidianTradeIndex implements TradeIndex {
     const files = this.app.vault.getMarkdownFiles();
     const filteredByFolder = this.folderAllowlistNormalized.length
       ? files.filter((f) =>
-          this.folderAllowlistNormalized.some((p) => f.path.startsWith(p))
-        )
+        this.folderAllowlistNormalized.some((p) => f.path.startsWith(p))
+      )
       : files;
 
     const filteredByPath = filteredByFolder.filter((f) =>
@@ -372,8 +372,8 @@ export class ObsidianTradeIndex implements TradeIndex {
       const fileClasses = Array.isArray(fileClassRaw)
         ? fileClassRaw.filter((v): v is string => typeof v === "string")
         : typeof fileClassRaw === "string"
-        ? [fileClassRaw]
-        : [];
+          ? [fileClassRaw]
+          : [];
       return fileClasses.some((fc) =>
         this.tradeFileClassesLower.has(fc.trim().toLowerCase())
       );
@@ -435,8 +435,8 @@ export class ObsidianTradeIndex implements TradeIndex {
     const fmTags = Array.isArray(fmTagsRaw)
       ? fmTagsRaw.filter((t): t is string => typeof t === "string")
       : typeof fmTagsRaw === "string"
-      ? [fmTagsRaw]
-      : [];
+        ? [fmTagsRaw]
+        : [];
     return fmTags.map(normalizeTag);
   }
 
@@ -461,8 +461,8 @@ export class ObsidianTradeIndex implements TradeIndex {
     const fileClasses = Array.isArray(fileClassRaw)
       ? fileClassRaw.filter((v): v is string => typeof v === "string")
       : typeof fileClassRaw === "string"
-      ? [fileClassRaw]
-      : [];
+        ? [fileClassRaw]
+        : [];
 
     const hasTradeFileClass =
       this.enableFileClass &&

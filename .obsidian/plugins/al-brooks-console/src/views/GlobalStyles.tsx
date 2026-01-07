@@ -30,34 +30,40 @@ export const GlobalStyles: React.FC = () => (
   gap: 10px;
 }
 
-.pa-dashboard-title-meta {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  font-weight: 400;
+.pa-dashboard-header {
+  margin-bottom: 16px;
 }
 
-.pa-dashboard-title-actions {
-  flex-basis: 100%;
-  width: 100%;
-  margin-left: 0;
+.pa-dashboard-title-row {
+  margin-bottom: 8px;
+}
+
+.pa-dashboard-title-text {
+  margin: 0;
+  font-size: 1.5em;
+  font-weight: 700;
   display: flex;
   align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  order: 20;
-  margin-top: 6px;
 }
 
-.pa-dashboard-title-actions button {
+.pa-dashboard-actions-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.pa-dashboard-actions-row button {
   margin-left: 0 !important;
 }
 
 .pa-tabbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: -6px 0 14px;
+  gap: 20px;
+  margin: 0 0 16px;
 }
 
 /* Grid Layouts */

@@ -1,6 +1,7 @@
 export type CourseHybridRec = {
   type: "New" | "Review";
   data: SyllabusItem;
+  link?: CourseLink;
 };
 
 export type SyllabusItem = {
@@ -32,7 +33,8 @@ export type CourseSnapshot = {
   doneIds: string[];
   linksById: Record<string, CourseLink>;
   progress: { doneCount: number; totalCount: number };
-  hybridRec: CourseHybridRec | null;
+  current: CourseHybridRec[]; // Changed from hybridRec to current array
+  hybridRec: CourseHybridRec | null; // Keep for backward compat if needed
   phases: CoursePhaseGroup[];
   upNext: CourseMatrixItem[];
 };
@@ -157,12 +159,16 @@ export function buildCourseSnapshot(args: {
     });
   }
 
+  const hybridRecLink = next ? (linksById[next.id] || linksById[simpleCourseId(next.id)]) : undefined;
+  const hybridRec = next ? { type: nextType, data: next, link: hybridRecLink } : null;
+
   return {
     syllabus,
     doneIds: Array.from(doneSet),
     linksById,
     progress: { doneCount, totalCount: syllabus.length },
-    hybridRec: next ? { type: nextType, data: next } : null,
+    current: hybridRec ? [hybridRec] : [],
+    hybridRec,
     phases: phaseGroups,
     upNext,
   };
