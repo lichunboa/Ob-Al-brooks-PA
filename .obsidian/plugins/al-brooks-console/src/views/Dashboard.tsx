@@ -110,6 +110,8 @@ import {
   getYearMonth,
 } from "../utils/date-utils";
 import { getRColorByAccountType } from "../utils/color-utils";
+import { isEmpty, pickVal } from "../utils/validation-utils";
+import { safePct } from "../utils/trade-calculations";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -290,24 +292,6 @@ const ConsoleComponent: React.FC<Props> = ({
 
   React.useEffect(() => {
     let cancelled = false;
-
-    const isEmpty = (v: unknown): boolean => {
-      if (v === undefined || v === null) return true;
-      if (Array.isArray(v)) return v.filter((x) => !isEmpty(x)).length === 0;
-      const s = String(v).trim();
-      if (!s) return true;
-      if (s === "Empty") return true;
-      if (s.toLowerCase() === "null") return true;
-      if (s.toLowerCase().includes("unknown")) return true;
-      return false;
-    };
-
-    const pickVal = (fm: Record<string, any>, keys: string[]) => {
-      for (const k of keys) {
-        if (Object.prototype.hasOwnProperty.call(fm, k)) return fm[k];
-      }
-      return undefined;
-    };
 
     const run = async () => {
       const notes: string[] = [];
@@ -790,9 +774,6 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [strategies, strategyPerf]);
 
   const playbookPerfRows = React.useMemo(() => {
-    const safePct = (wins: number, total: number) =>
-      total > 0 ? Math.round((wins / total) * 100) : 0;
-
     const rows = [...strategyPerf.entries()]
       .map(([canonical, p]) => {
         const card = strategyIndex?.byName
