@@ -113,6 +113,8 @@ import { getRColorByAccountType } from "../utils/color-utils";
 import { isEmpty, pickVal } from "../utils/validation-utils";
 import { safePct } from "../utils/trade-calculations";
 import { isActive } from "../utils/trade-utils";
+import { useDashboardData } from "../hooks/useDashboardData";
+import { CYCLE_MAP } from "../utils/constants";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -623,17 +625,6 @@ const ConsoleComponent: React.FC<Props> = ({
     [trades]
   );
   const all = summary.All;
-
-  const cycleMap: Record<string, string> = {
-    "Strong Trend": "强趋势",
-    "Weak Trend": "弱趋势",
-    "Trading Range": "交易区间",
-    "Breakout Mode": "突破模式",
-    Breakout: "突破",
-    Channel: "通道",
-    "Broad Channel": "宽通道",
-    "Tight Channel": "窄通道",
-  };
 
   const liveCyclePerf = React.useMemo(() => {
     const normalizeCycle = (raw: unknown): string => {
@@ -2527,7 +2518,7 @@ short mode\n\
                               color: "var(--text-muted)",
                             }}
                           >
-                            {cycleMap[cy.name] ?? cy.name}
+                            {CYCLE_MAP[cy.name] || cy.name}
                           </div>
                           <div
                             style={{
