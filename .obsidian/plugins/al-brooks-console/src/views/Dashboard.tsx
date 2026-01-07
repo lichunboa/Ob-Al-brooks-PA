@@ -750,23 +750,9 @@ const ConsoleComponent: React.FC<Props> = ({
     return rows;
   }, [strategyPerf, strategyIndex]);
 
-  React.useEffect(() => {
-    if (!todayContext?.onChanged) return;
-    const onUpdate = () =>
-      setTodayMarketCycle(todayContext.getTodayMarketCycle());
-    const unsubscribe = todayContext.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [todayContext]);
 
-  React.useEffect(() => {
-    if (!index.onStatusChanged) return;
-    const onStatus = () =>
-      setStatus(index.getStatus ? index.getStatus() : { phase: "ready" });
-    const unsubscribe = index.onStatusChanged(onStatus);
-    onStatus();
-    return unsubscribe;
-  }, [index]);
+
+
 
   const onRebuild = React.useCallback(async () => {
     if (!index.rebuild) return;
