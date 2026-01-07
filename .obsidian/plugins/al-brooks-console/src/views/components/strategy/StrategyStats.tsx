@@ -1,5 +1,7 @@
 import * as React from "react";
-import type { StrategyStatsProps } from "./types";
+import { GlassCard, StatusBadge } from "../../../ui/components/DesignSystem";
+import { COLORS, SPACE, TYPO } from "../../../ui/styles/theme";
+import type { StrategyStatsProps } from "../../../types";
 
 const StatCard: React.FC<{
   label: string;

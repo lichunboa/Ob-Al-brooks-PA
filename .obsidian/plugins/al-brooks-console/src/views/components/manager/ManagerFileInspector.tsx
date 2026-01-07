@@ -1,6 +1,5 @@
-import * as React from "react";
-import { HeadingM, GlassInset, ButtonGhost } from "../../ui/components/DesignSystem";
-import { FrontmatterFile } from "../../core/manager";
+import { HeadingM, GlassInset, ButtonGhost } from "../../../ui/components/DesignSystem";
+import { FrontmatterFile } from "../../../core/manager";
 
 export interface ManagerFileInspectorProps {
     files: FrontmatterFile[];

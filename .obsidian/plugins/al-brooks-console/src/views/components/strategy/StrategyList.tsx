@@ -1,12 +1,12 @@
 import * as React from "react";
-import type { StrategyCard } from "../../core/strategy-index";
+import type { StrategyCard } from "../../../core/strategy-index";
 import {
     GlassCard,
     StatusBadge,
     HeadingM,
     Label
-} from "../../ui/components/DesignSystem";
-import { COLORS, SPACE, TYPO } from "../../ui/styles/theme";
+} from "../../../ui/components/DesignSystem";
+import { COLORS, SPACE, TYPO } from "../../../ui/styles/theme";
 
 interface Props {
     strategies: StrategyCard[];
@@ -19,7 +19,7 @@ interface Props {
     showControls?: boolean;
 }
 
-export const StrategyListFinal: React.FC<Props> = ({
+export const StrategyList: React.FC<Props> = ({
     strategies,
     onOpenFile,
     perf,

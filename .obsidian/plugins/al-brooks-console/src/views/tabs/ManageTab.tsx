@@ -6,8 +6,8 @@ import { COLORS, TYPO } from "../../ui/styles/theme";
 import { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { FixPlan } from "../../core/inspector";
 import { ManagerApplyResult, FrontmatterInventory, FrontmatterFile } from "../../core/manager";
-import { ManagerInventoryGrid } from "../components/ManagerInventoryGrid";
-import { ManagerFileInspector } from "../components/ManagerFileInspector";
+import { ManagerInventoryGrid } from "../components/manager/ManagerInventoryGrid";
+import { ManagerFileInspector } from "../components/manager/ManagerFileInspector";
 
 export interface ManageTabProps {
     schemaIssues: SchemaIssueItem[];

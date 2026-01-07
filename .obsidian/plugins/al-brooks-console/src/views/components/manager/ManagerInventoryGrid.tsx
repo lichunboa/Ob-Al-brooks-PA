@@ -1,7 +1,6 @@
-import * as React from "react";
-import { ButtonGhost, GlassInset } from "../../ui/components/DesignSystem";
-import { FrontmatterInventory } from "../../core/manager";
-import { COLORS } from "../../ui/styles/theme";
+import { ButtonGhost, GlassInset } from "../../../ui/components/DesignSystem";
+import { FrontmatterInventory } from "../../../core/manager";
+import { COLORS } from "../../../ui/styles/theme";
 
 export interface ManagerInventoryGridProps {
     inventory?: FrontmatterInventory;
