@@ -4,7 +4,7 @@ import { SPACE } from "../../ui/styles/theme";
 import { V5_COLORS } from "../../ui/tokens";
 import { textButtonNoWrapStyle, textButtonStyle } from "../../ui/styles/dashboardPrimitives";
 import { StrategyStats } from "../components";
-import { StrategyList } from "../components/StrategyList";
+import { StrategyList } from "../components/strategy/StrategyList";
 import { matchStrategies } from "../../core/strategy-matcher";
 import { StrategyIndex } from "../../core/strategy-index";
 import { CourseSnapshot } from "../../core/course";

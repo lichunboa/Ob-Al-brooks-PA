@@ -14,7 +14,7 @@ const StatCard: React.FC<{
   </button>
 );
 
-const StrategyStats: React.FC<StrategyStatsProps> = ({
+export const StrategyStats: React.FC<StrategyStatsProps> = ({
   total,
   activeCount,
   learningCount,
@@ -47,4 +47,4 @@ const StrategyStats: React.FC<StrategyStatsProps> = ({
   );
 };
 
-export default StrategyStats;
+
