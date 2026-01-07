@@ -58,7 +58,8 @@
     "//Daily/Daily/Trades",
     "//Notion/Notion/Export-a20dfcba-7295-4373-a3db-f22ce99e1e95",
     "//copilot",
-    "//Templates/Templates/版本对比"
+    "//Templates/Templates/版本对比",
+    "//🦁 交易员控制台 (Trader Command)"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
@@ -70,6 +71,8 @@
     "_assets",
     "_blocks"
   ],
+  "newFileLocation": "root",
+  "newFileFolderPath": "",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,
