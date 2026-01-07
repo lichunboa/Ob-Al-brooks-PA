@@ -4,7 +4,8 @@
  */
 
 import * as React from "react";
-import type { FixPlan, ManagerApplyResult } from "../core/manager";
+import type { FixPlan } from "../core/inspector";
+import type { ManagerApplyResult } from "../core/manager";
 
 export interface UseManagerStateReturn {
     // Plan & Result
