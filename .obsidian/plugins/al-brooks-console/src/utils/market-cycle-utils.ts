@@ -2,7 +2,7 @@
  * 市场周期相关工具函数
  */
 
-import { normalizeMarketCycleForAnalytics } from "../core/enum-presets";
+import { normalizeMarketCycleForAnalytics } from "../core/analytics";
 
 /**
  * 规范化市场周期字符串
