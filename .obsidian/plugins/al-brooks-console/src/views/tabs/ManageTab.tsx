@@ -688,14 +688,9 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                             </button>
                         </div>
                     </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                        <ButtonGhost onClick={onExport}>
-                            📥 备份数据库 (Export)
-                        </ButtonGhost>
-                        <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
-                            {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
-                        </ButtonGhost>
-                    </div>
+                    <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
+                        {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
+                    </ButtonGhost>
                 </div>
 
                 {/* Manager Inventory Grid */}
@@ -759,6 +754,15 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                     </div>
                 )}
             </GlassCard >
+
+            <div style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "12px", borderTop: "1px solid var(--background-modifier-border)", paddingTop: "16px" }}>
+                <div style={{ fontSize: "0.85em", color: "var(--text-muted)" }}>
+                    数据安全与迁移
+                </div>
+                <ButtonGhost onClick={onExport}>
+                    📥 备份数据库 (Export)
+                </ButtonGhost>
+            </div>
         </>
     );
 };

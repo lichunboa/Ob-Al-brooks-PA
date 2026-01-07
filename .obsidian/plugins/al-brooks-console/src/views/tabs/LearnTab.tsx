@@ -244,18 +244,18 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                         </div>
 
                                         {isFocus && (
-                                            <div style={{ display: "flex", gap: "8px", marginTop: "4px", borderTop: "1px solid var(--background-modifier-border)", paddingTop: "10px" }}>
-                                                <button type="button" onClick={() => onMemoryRate(rec.path, 0)} style={{ ...buttonSmStyle, color: V5_COLORS.loss }} title="重来 (Again)">
-                                                    重来
+                                            <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--background-modifier-border)" }}>
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 0)} style={{ ...buttonSmStyle, color: V5_COLORS.loss, border: `1px solid ${V5_COLORS.loss}` }} title="重来 (Again)">
+                                                    🔴 重来
                                                 </button>
-                                                <button type="button" onClick={() => onMemoryRate(rec.path, 1)} style={{ ...buttonSmStyle, color: "var(--text-normal)" }} title="困难 (Hard)">
-                                                    困难
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 1)} style={{ ...buttonSmStyle, color: "var(--text-normal)", border: "1px solid var(--background-modifier-border)" }} title="困难 (Hard)">
+                                                    🟠 困难
                                                 </button>
-                                                <button type="button" onClick={() => onMemoryRate(rec.path, 2)} style={{ ...buttonSmStyle, color: V5_COLORS.win }} title="良好 (Good)">
-                                                    良好
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 2)} style={{ ...buttonSmStyle, color: V5_COLORS.win, border: `1px solid ${V5_COLORS.win}` }} title="良好 (Good)">
+                                                    🟢 良好
                                                 </button>
-                                                <button type="button" onClick={() => onMemoryRate(rec.path, 3)} style={{ ...buttonSmStyle, color: V5_COLORS.accent }} title="简单 (Easy)">
-                                                    简单
+                                                <button type="button" onClick={() => onMemoryRate(rec.path, 3)} style={{ ...buttonSmStyle, color: V5_COLORS.accent, border: `1px solid ${V5_COLORS.accent}` }} title="简单 (Easy)">
+                                                    🔵 简单
                                                 </button>
                                             </div>
                                         )}

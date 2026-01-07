@@ -177,25 +177,31 @@ export const ManagerInventoryGrid: React.FC<ManagerInventoryGridProps> = ({
                                             </td>
                                             <td style={{ padding: "8px 12px", textAlign: "right" }}>
                                                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
-                                                    <button
+                                                    <ButtonGhost
                                                         onClick={() => {
+                                                            console.log("Renaming value:", v.val);
                                                             const newVal = window.prompt("修改属性值 (Rename Value):", v.val);
                                                             if (newVal !== null && newVal !== v.val) {
                                                                 onUpdateVal(selectedKey, v.val, newVal);
                                                             }
                                                         }}
-                                                        style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.6, fontSize: "1.1em" }}
+                                                        style={{ color: "var(--text-normal)", opacity: 0.8 }}
                                                         title="Rename Value"
                                                     >
                                                         ✏️
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onDeleteVal(selectedKey, v.val)}
-                                                        style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.6, fontSize: "1.1em" }}
+                                                    </ButtonGhost>
+                                                    <ButtonGhost
+                                                        onClick={() => {
+                                                            console.log("Deleting value:", v.val);
+                                                            if (window.confirm(`确认删除值 "${v.val}" 吗？`)) {
+                                                                onDeleteVal(selectedKey, v.val);
+                                                            }
+                                                        }}
+                                                        style={{ color: COLORS.loss, opacity: 0.8 }}
                                                         title="Delete Value"
                                                     >
                                                         🗑
-                                                    </button>
+                                                    </ButtonGhost>
                                                 </div>
                                             </td>
                                         </tr>
