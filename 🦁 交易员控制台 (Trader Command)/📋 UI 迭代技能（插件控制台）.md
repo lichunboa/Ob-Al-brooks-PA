@@ -51,3 +51,94 @@
 - 顶部动作区自动靠右：`.pa-dashboard-title-actions { margin-left: auto; }`
 - 移除顶部“刷新 DV”按钮（减少噪音/提升精致度）。
 - 卡片系统收敛为主题风格：去 blur/去 hover 位移/去阴影，背景改 `--background-secondary`。
+
+🎨 交易员控制台设计规范 (Trader Command Design System) v3.0
+核心理念 (Core Philosophy): 打造一个像高级金融终端（如 Bloomberg Terminal）一样专业，又像现代 SaaS 产品（如 Notion/Linear）一样精致的交互界面。 关键词：秩序 (Order)、层级 (Hierarchy)、通透 (Translucency)。
+
+1. 色彩体系 (Color System)
+我们严格保留了原有的功能色相（Hue），但在饱和度（Saturation）和亮度（Lightness）上做了微调，以适应玻璃拟态的通透感。
+
+1.1 功能色盘 (Functional Palette) - 语义化
+所有涉决策、状态的颜色必须严格遵循此表。
+
+代号 (Token)	原始值 (Ref)	微调用途 (Usage)	语义 (Semantics)
+Success / Win	#10B981 (Emerald)	Primary Win	盈利、正收益、系统健康、任务完成。
+Error / Loss	#EF4444 (Red)	Primary Loss	亏损、错误、严重警告、负修正。
+Info / Demo	#3B82F6 (Blue)	Accent Info	模拟盘、信息提示、主要操作按钮（CTA）。
+Warn / Backtest	#F59E0B (Amber)	Warning	回测数据、非实盘警告、次要提醒。
+Accent / Brand	#60A5FA (Light Blue)	Highlight	选中状态、鼠标悬停高亮、聚焦边框。
+Purple	#A78BFA (Purple)	Secondary	特殊标记、学习模块/记忆卡片高亮。
+1.2 中性色盘 (Neutral Palette) - 玻璃质感
+用于构建界面的“骨骼”和“容器”。基于 Obsidian 主题变量进行透明度混合。
+
+层级	亮色模式 (Light)	深色模式 (Dark)	物理隐喻
+Glass L1 (Card)	rgba(255,255,255, 0.7)	rgba(20,20,20, 0.6)	悬浮在桌面上的磨砂玻璃板。
+Glass L2 (Panel)	rgba(255,255,255, 0.4)	rgba(255,255,255, 0.03)	玻璃板上的蚀刻区域或凸起区域。
+Glass L3 (Inset)	rgba(0,0,0, 0.04)	rgba(0,0,0, 0.15)	玻璃板上的凹槽（用于承载数据）。
+Border	rgba(0,0,0, 0.08)	rgba(255,255,255, 0.08)	玻璃边缘的高光反射。
+2. 字体排版 (Typography)
+建立了严格的 Type Scale，拒绝随意字号。
+
+Font-Family: 遵循 Obsidian 系统默认（Inter / San Francisco / Segoe UI）。 Monospace: JetBrains Mono 或系统等宽字体（用于所有金融数据）。
+
+角色 (Role)	尺寸 (Size)	字重 (Weight)	行高 (Height)	间距 (Spacing)	应用场景
+Display XL	32px (2.0em)	Heavy (850)	1.1	-0.02em	核心 KPI（如今日总盈亏）。
+Display L	24px (1.5em)	Bold (700)	1.2	-0.01em	页面主标题、模块大标题。
+Heading M	18px (1.125em)	SemiBold (600)	1.3	0	卡片标题、功能区标题。
+Heading S	16px (1.0em)	SemiBold (600)	1.4	0	子板块标题、强调文字。
+Body M	15px (0.93em)	Regular (400)	1.5	0	默认正文、列表内容。
+Body S	13px (0.85em)	Medium (500)	1.5	0	辅助说明、次级信息。
+Caption	12px (0.75em)	Regular (400)	1.4	0.01em	底部备注、时间戳、标签。
+特别规定 (Numeric Data): 所有涉及金钱、比例的数字，必须使用 font-variant-numeric: tabular-nums，确保数字像表格一样整齐对齐。
+
+3. 布局与网格 (Layout & Grid)
+所有间距必须严格遵守 4px 网格系统。
+
+Spacing Tokens
+xs (4px): 图标与文字的间距、紧密元素的间隔。
+sm (8px): 组件内部 Padding、相关联元素的间距。
+md
+ (12px): 标准 Card Padding、列表项间距。
+lg (20px): 模块与模块的间距、Header title 与内容的间距。
+xl (32px): 大区块分隔。
+Corner Radius (圆角)
+L1 Card: 16px (现代、圆润)。
+L2 Panel / Button: 8px (标准)。
+L3 Tag / Chip: 999px (全圆角)。
+4. 组件规范 (Symbol Library)
+4.1 按钮 (Button)
+Primary (CTA):
+Bg: Gradient(Accent) 或 Solid Accent。
+Text: White (or adequate contrast).
+Shadow: 0 2px 8px rgba(Accent, 0.4) (Glow effect).
+Secondary (Ghost):
+Bg: Transparent.
+Border: 1px solid Color(Border).
+Hover: Bg: Color(Neutral, 0.05).
+Tertiary (Text):
+Bg: Transparent.
+Text: 
+Color(Muted)
+.
+Hover: 
+Color(Text)
+.
+4.2 状态标签 (Status Badge)
+结构：Bg(Color, 10%) + Border(Color, 20%) + 
+Text(Color, 100%)
+。
+形状：Pill (圆角无穷大)。
+字号：Caption (12px), Weight: 600.
+4.3 数据卡片 (Metric Card)
+结构：
+Top: Label (Body S, Muted).
+Middle: Value (Display XL, Tabular).
+Bottom: Trend/Meta (Caption, Colored).
+背景：Glass L2 (Panel).
+5. 交互动效 (Micro-Interactions)
+拒绝生硬的跳变。
+
+Hover: 必须有 transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1)。
+卡片 Hover: transform: translateY(-2px) + box-shadow 加深。
+按钮 Hover: 亮度提高 10%。
+Click: transform: scale(0.98)。
