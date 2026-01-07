@@ -120,6 +120,11 @@ import {
   prettyManagerVal,
   prettyVal,
 } from "../utils/format-utils";
+import {
+  canonicalizeSearch,
+  matchesSearch,
+  matchKeyToGroup,
+} from "../utils/search-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { useLearnState } from "../hooks/useLearnState";
@@ -5852,49 +5857,11 @@ short mode\n\
                     {(() => {
                       const q = managerSearch.trim().toLowerCase();
 
-                      const canonicalizeSearch = (s: string) => {
-                        const raw = (s ?? "").toString().trim();
-                        if (!raw) return "";
-                        const low = raw.toLowerCase();
-                        if (low === "n/a" || low === "na") return "unknown";
-                        if (low.includes("unknown") || raw.includes("未知"))
-                          return "unknown";
-                        if (low === "null" || raw.includes("空/null"))
-                          return "null";
-                        if (
-                          low.includes("empty") ||
-                          raw === "空" ||
-                          raw.includes("空/empty")
-                        )
-                          return "empty";
-                        return low;
-                      };
-
+                      // canonicalizeSearch 和 matchKeyToGroup 已移至 utils/search-utils.ts
                       const qCanon = canonicalizeSearch(q);
 
                       const groups = MANAGER_GROUPS;
                       const othersTitle = "📂 其他属性 (Other)";
-
-                      // prettyVal 已移至 utils/format-utils.ts
-                      const matchKeyToGroup = (key: string) => {
-                        const tokens = managerKeyTokens(key);
-                        for (const g of groups) {
-                          for (const kw of g.keywords) {
-                            const needle = String(kw ?? "")
-                              .trim()
-                              .toLowerCase();
-                            if (!needle) continue;
-                            if (
-                              tokens.some(
-                                (t) => t === needle || t.includes(needle)
-                              )
-                            ) {
-                              return g.title;
-                            }
-                          }
-                        }
-                        return othersTitle;
-                      };
 
                       const renderInventoryGrid = (
                         inv: FrontmatterInventory | undefined,
