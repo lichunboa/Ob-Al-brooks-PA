@@ -140,31 +140,16 @@ export class ObsidianTradeIndex implements TradeIndex {
 
   private normalizeDateIso(dateRaw: unknown, file: TFile): string {
     // 1) frontmatter date
-    let s = "";
     if (typeof dateRaw === "string") {
-      s = dateRaw.trim();
+      const s = dateRaw.trim();
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m && this.isValidDateIso(m[1])) return m[1];
+      const dt = new Date(s);
+      if (!Number.isNaN(dt.getTime())) return this.toLocalDateIso(dt);
     } else if (dateRaw instanceof Date) {
       return this.toLocalDateIso(dateRaw);
     } else if (typeof dateRaw === "number" && Number.isFinite(dateRaw)) {
       const dt = new Date(dateRaw);
-      if (!Number.isNaN(dt.getTime())) return this.toLocalDateIso(dt);
-    }
-
-    // Handle WikiLinks [[2025-01-01]] or [[2025-01-01|Alias]]
-    if (s.startsWith("[[") && s.endsWith("]]")) {
-      const content = s.slice(2, -2).split("|")[0].trim();
-      // If content is a date string, use it
-      const m = content.match(/^(\d{4}-\d{2}-\d{2})/);
-      if (m && this.isValidDateIso(m[1])) return m[1];
-      // If content is a file path like "2025-01-01", parse basename
-      const fromLinkName = this.parseDateIsoFromBasename(content);
-      if (fromLinkName) return fromLinkName;
-    }
-
-    if (s) {
-      const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
-      if (m && this.isValidDateIso(m[1])) return m[1];
-      const dt = new Date(s);
       if (!Number.isNaN(dt.getTime())) return this.toLocalDateIso(dt);
     }
 
@@ -491,11 +476,6 @@ export class ObsidianTradeIndex implements TradeIndex {
 
     const pnlRaw = getFirstFieldValue(fm, FIELD_ALIASES.pnl);
     const rRaw = getFirstFieldValue(fm, FIELD_ALIASES.r);
-    const initialRiskRaw = getFirstFieldValue(fm, FIELD_ALIASES.initialRisk);
-    const entryRaw = getFirstFieldValue(fm, FIELD_ALIASES.entry);
-    const exitRaw = getFirstFieldValue(fm, FIELD_ALIASES.exit);
-    const stopRaw = getFirstFieldValue(fm, FIELD_ALIASES.stop);
-
     const tickerRaw = getFirstFieldValue(fm, FIELD_ALIASES.ticker);
     const outcomeRaw = getFirstFieldValue(fm, FIELD_ALIASES.outcome);
     const dateRaw = getFirstFieldValue(fm, FIELD_ALIASES.date);
@@ -528,36 +508,8 @@ export class ObsidianTradeIndex implements TradeIndex {
     );
     const coverRaw = getFirstFieldValue(fm, FIELD_ALIASES.cover);
 
-    // v5 对齐：Pnl/R logic parity with pa-core.js
-    const pnl = parseNumber(pnlRaw);
-
-    // R值计算 (Logic ported from pa-core.js)
-    const initialRisk = parseNumber(initialRiskRaw) ?? 0;
-    const entry = parseNumber(entryRaw) ?? 0;
-    const exit = parseNumber(exitRaw) ?? 0;
-    const stop = parseNumber(stopRaw) ?? 0;
-
-    let r = 0;
-    if (initialRisk !== 0 && pnl !== undefined) {
-      // 修复: 即使初始风险写成负数(如 -16.6), 也取绝对值作为分母
-      r = pnl / Math.abs(initialRisk);
-    } else {
-      // 尝试从 rRaw 读取 (pa-core.js actually prioritizes calc if Risk/Pnl missing, but uses rRaw as fallback? No, pa-core does: )
-      // pa-core.js logic:
-      // if initRisk != 0: r = pnl / abs(initRisk)
-      // else: calc from entry/stop/exit
-
-      let rawR = this.calculateR(entry, stop, exit || entry);
-      if (pnl !== undefined && pnl < 0 && rawR > 0) rawR = -rawR;
-      if (pnl !== undefined && pnl > 0 && rawR < 0) rawR = -rawR;
-
-      // If calculated R is 0, try falling back to manual 'r' field if exists
-      if (rawR === 0) {
-        rawR = parseNumber(rRaw) ?? 0;
-      }
-      r = rawR;
-    }
-
+    // v5 对齐：旧数据可能只填 r；当 pnl/net_profit 缺失时，用 r 兜底。
+    const pnl = parseNumber(pnlRaw) ?? parseNumber(rRaw);
     const ticker = normalizeTicker(tickerRaw);
     const outcome = normalizeOutcome(outcomeRaw);
     const dateIso = this.normalizeDateIso(dateRaw, file);
@@ -581,7 +533,6 @@ export class ObsidianTradeIndex implements TradeIndex {
       dateIso,
       ticker,
       pnl,
-      r,
       outcome,
       accountType,
       marketCycle,
@@ -602,11 +553,5 @@ export class ObsidianTradeIndex implements TradeIndex {
 
     this.db.set(file.path, trade);
     return !prev || JSON.stringify(prev) !== JSON.stringify(trade);
-  }
-
-  private calculateR(entry: number, stop: number, exit: number): number {
-    const risk = Math.abs(entry - stop);
-    if (risk === 0) return 0;
-    return (exit - entry) / risk;
   }
 }

@@ -1,10 +1,9 @@
 import * as React from "react";
 import type { StrategyCard } from "../../core/strategy-index";
-import type { StrategyPerformance } from "../../types";
 import {
     GlassCard,
     StatusBadge,
-    HeadingM,
+    HeadingS,
     Label
 } from "../../ui/components/DesignSystem";
 import { COLORS, SPACE, TYPO } from "../../ui/styles/theme";
@@ -12,7 +11,10 @@ import { COLORS, SPACE, TYPO } from "../../ui/styles/theme";
 interface Props {
     strategies: StrategyCard[];
     onOpenFile: (path: string) => void;
-    perf?: Map<string, StrategyPerformance>;
+    perf?: Map<
+        string,
+        { total: number; wins: number; pnl: number; lastDateIso: string }
+    >;
     showTitle?: boolean;
     showControls?: boolean;
 }
@@ -130,7 +132,7 @@ export const StrategyListFinal: React.FC<Props> = ({
         const perfOf = (s: StrategyCard) =>
             perf?.get(s.canonicalName) ??
             perf?.get(s.name) ??
-            ({ total: 0, wins: 0, pnl: 0, lastDateIso: undefined } as unknown as StrategyPerformance);
+            ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
 
         const sorted = [...filtered].sort((a, b) => {
             const aActive = isActive((a as any).statusRaw) ? 1 : 0;
@@ -240,7 +242,7 @@ export const StrategyListFinal: React.FC<Props> = ({
                                 }}
                             >
                                 {items.map((s) => {
-                                    const p = perf?.get(s.canonicalName) ?? perf?.get(s.name) ?? ({ total: 0, wins: 0, pnl: 0, lastDateIso: undefined } as unknown as StrategyPerformance);
+                                    const p = perf?.get(s.canonicalName) ?? perf?.get(s.name) ?? { total: 0, wins: 0, pnl: 0, lastDateIso: "" };
                                     const wr = p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                                     const active = isActive((s as any).statusRaw);
                                     const statusLabel = statusToCn((s as any).statusRaw);
@@ -279,14 +281,14 @@ export const StrategyListFinal: React.FC<Props> = ({
                                                     marginBottom: "2px",
                                                 }}
                                             >
-                                                <HeadingM style={{
+                                                <HeadingS style={{
                                                     fontSize: "1.05em",
                                                     lineHeight: "1.3",
                                                     flex: "1",
                                                     wordBreak: "break-word"
                                                 }}>
                                                     {s.canonicalName || s.name}
-                                                </HeadingM>
+                                                </HeadingS>
 
                                                 <div style={{
                                                     textAlign: "right",

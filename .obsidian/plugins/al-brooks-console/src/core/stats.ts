@@ -37,16 +37,7 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
 
   const winRatePct =
     countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
-
-  let netR = 0;
-  for (const trade of trades) {
-    if (typeof trade.r === "number") netR += trade.r;
-  }
-
-  const expectancy = countCompleted > 0 ? Number((netR / countCompleted).toFixed(2)) : 0;
-  netR = Number(netR.toFixed(2));
-
-  return { countTotal, countCompleted, countWins, countLosses, countScratch, winRatePct, netProfit, netR, expectancy };
+  return { countTotal, countCompleted, countWins, countLosses, countScratch, winRatePct, netProfit };
 }
 
 export type StatsByAccountType = Record<AccountType | "All", TradeStats>;
