@@ -115,6 +115,9 @@ import { safePct } from "../utils/trade-calculations";
 import { isActive } from "../utils/trade-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
+import { useLearnState } from "../hooks/useLearnState";
+import { useAnalyticsState } from "../hooks/useAnalyticsState";
+import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
 import { normalizeCycle } from "../utils/market-cycle-utils";
 
@@ -274,15 +277,21 @@ const ConsoleComponent: React.FC<Props> = ({
     strategyIndex,
     todayContext,
   });
-  const [analyticsScope, setAnalyticsScope] =
-    React.useState<AnalyticsScope>("Live");
-  const [galleryScope, setGalleryScope] = React.useState<AnalyticsScope>("All");
-  const [showFixPlan, setShowFixPlan] = React.useState(false);
-  const [paTagSnapshot, setPaTagSnapshot] = React.useState<PaTagSnapshot>();
-  const [schemaIssues, setSchemaIssues] = React.useState<SchemaIssueItem[]>([]);
-  const [schemaScanNote, setSchemaScanNote] = React.useState<
-    string | undefined
-  >(undefined);
+  // 使用 useAnalyticsState Hook 管理 Analytics Tab 状态
+  const { analyticsScope, setAnalyticsScope, galleryScope, setGalleryScope } =
+    useAnalyticsState();
+
+  // 使用 useSchemaState Hook 管理 Schema 检查状态
+  const {
+    showFixPlan,
+    setShowFixPlan,
+    paTagSnapshot,
+    setPaTagSnapshot,
+    schemaIssues,
+    setSchemaIssues,
+    schemaScanNote,
+    setSchemaScanNote,
+  } = useSchemaState();
 
 
   React.useEffect(() => {
@@ -600,23 +609,25 @@ const ConsoleComponent: React.FC<Props> = ({
     return subscribeSettings((s) => setSettings(s));
   }, [subscribeSettings]);
 
-  const [course, setCourse] = React.useState<CourseSnapshot | undefined>(
-    undefined
-  );
-  const [courseBusy, setCourseBusy] = React.useState(false);
-  const [courseError, setCourseError] = React.useState<string | undefined>(
-    undefined
-  );
-
-  const [memory, setMemory] = React.useState<MemorySnapshot | undefined>(
-    undefined
-  );
-  const [memoryBusy, setMemoryBusy] = React.useState(false);
-  const [memoryError, setMemoryError] = React.useState<string | undefined>(
-    undefined
-  );
-  const [memoryIgnoreFocus, setMemoryIgnoreFocus] = React.useState(false);
-  const [memoryShakeIndex, setMemoryShakeIndex] = React.useState(0);
+  // 使用 useLearnState Hook 管理 Learn Tab 状态
+  const {
+    course,
+    setCourse,
+    courseBusy,
+    setCourseBusy,
+    courseError,
+    setCourseError,
+    memory,
+    setMemory,
+    memoryBusy,
+    setMemoryBusy,
+    memoryError,
+    setMemoryError,
+    memoryIgnoreFocus,
+    setMemoryIgnoreFocus,
+    memoryShakeIndex,
+    setMemoryShakeIndex,
+  } = useLearnState();
 
   const summary = React.useMemo(
     () => computeTradeStatsByAccountType(trades),
