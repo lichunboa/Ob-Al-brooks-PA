@@ -6,3 +6,16 @@ export interface TradeIndexStats {
 	lastScan: number;
 	dirty: boolean;
 }
+
+export type PaTagSnapshot = {
+	files: number;
+	tagMap: Record<string, number>;
+};
+
+export type SchemaIssueItem = {
+	path: string;
+	name: string;
+	key: string;
+	type: string;
+	val?: string;
+};

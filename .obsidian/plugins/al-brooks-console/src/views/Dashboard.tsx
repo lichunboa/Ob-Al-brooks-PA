@@ -149,18 +149,7 @@ function getRColorByAccountType(accountType: AccountType): string {
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
-type PaTagSnapshot = {
-  files: number;
-  tagMap: Record<string, number>;
-};
-
-type SchemaIssueItem = {
-  path: string;
-  name: string;
-  key: string;
-  type: string;
-  val?: string;
-};
+import { PaTagSnapshot, SchemaIssueItem } from "../types";
 
 interface Props {
   index: TradeIndex;
