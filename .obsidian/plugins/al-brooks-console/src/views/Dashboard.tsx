@@ -59,11 +59,11 @@ import {
   buildTradeNormalizationPlan,
   buildRenameKeyPlan,
   buildDeleteKeyPlan,
-  buildDeleteValPlan,
   buildUpdateValPlan,
   buildAppendValPlan,
   buildInjectPropPlan,
   buildFrontmatterInventory,
+  buildDeleteValPlan,
   type FrontmatterFile,
   type FrontmatterInventory,
   type ManagerApplyResult,
@@ -634,6 +634,78 @@ const ConsoleComponent: React.FC<Props> = ({
       setManagerInspectorTab,
     ]
   );
+
+  const handleExport = React.useCallback(async () => {
+    if (!app?.vault?.adapter?.write) {
+      window.alert("无法导出：Vault Adapter 不可用");
+      return;
+    }
+    const data = {
+      generatedAt: new Date().toISOString(),
+      trades,
+      stats: summary,
+      course: course,
+      memory: memory,
+      inventory: {
+        trade: managerTradeInventory,
+        strategy: managerStrategyInventory
+      }
+    };
+    const path = "pa-db-export.json";
+    try {
+      await app.vault.adapter.write(path, JSON.stringify(data, null, 2));
+      window.alert(`导出成功！\n文件路径: ${path}`);
+    } catch (e) {
+      console.error(e);
+      window.alert(`导出失败: ${String(e)}`);
+    }
+  }, [app, trades, summary, course, memory, managerTradeInventory, managerStrategyInventory]);
+
+  const handleManagerRenameKey = React.useCallback(async (oldKey: string, newKey: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    const plan = buildRenameKeyPlan(files, oldKey, newKey);
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
+
+  const handleManagerDeleteKey = React.useCallback(async (key: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    if (!await confirmDialog(`确定要删除属性键 "${key}" 吗？\n这将从 ${files.length} 个文件中移除该字段。\n该操作不可逆（除非手动恢复备份）。`)) {
+      return;
+    }
+
+    const plan = buildDeleteKeyPlan(files, key);
+    // forceDeleteKeys must be true for actual deletion as per manager logic safety
+    await runManagerPlan(plan, { forceDeleteKeys: true, refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
+
+  const handleManagerUpdateVal = React.useCallback(async (key: string, oldVal: string, newVal: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    const plan = buildUpdateValPlan(files, key, oldVal, newVal);
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan]);
+
+  const handleManagerDeleteVal = React.useCallback(async (key: string, val: string) => {
+    const scope = managerScope === "strategy" ? "strategy" : "trade";
+    const files = scope === "strategy" ? managerStrategyInventoryFiles : managerTradeInventoryFiles;
+    if (!files) return;
+
+    if (!await confirmDialog(`确定要删除属性 "${key}" 的值 "${val}" 吗？`)) {
+      return;
+    }
+
+    const plan = buildDeleteValPlan(files, key, val, { deleteKeyIfEmpty: false });
+    await runManagerPlan(plan, { refreshInventory: true });
+  }, [managerScope, managerTradeInventoryFiles, managerStrategyInventoryFiles, runManagerPlan, confirmDialog]);
+
 
   const [settings, setSettings] =
     React.useState<AlBrooksConsoleSettings>(initialSettings);
@@ -3922,6 +3994,11 @@ short mode\n\
           }}
           runManagerPlan={runManagerPlan}
           runCommand={runCommand}
+          onExport={handleExport}
+          onRenameKey={handleManagerRenameKey}
+          onDeleteKey={handleManagerDeleteKey}
+          onUpdateVal={handleManagerUpdateVal}
+          onDeleteVal={handleManagerDeleteVal}
           onTextBtnMouseEnter={onTextBtnMouseEnter}
           onTextBtnMouseLeave={onTextBtnMouseLeave}
           onTextBtnFocus={onTextBtnFocus}
