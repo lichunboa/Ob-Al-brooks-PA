@@ -103,47 +103,13 @@ import {
   glassInsetStyle,
   glassStatusStyle,
 } from "../ui/styles/dashboardPrimitives";
-
-function toLocalDateIso(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function getLastLocalDateIsos(days: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < Math.max(1, days); i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(toLocalDateIso(d));
-  }
-  return out;
-}
-
-function getDayOfMonth(dateIso: string): string {
-  const parts = dateIso.split("-");
-  const d = parts[2] ?? "";
-  return d.startsWith("0") ? d.slice(1) : d;
-}
-
-function getYearMonth(dateIso: string | undefined): string | undefined {
-  if (!dateIso) return undefined;
-  const m = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return undefined;
-  return `${m[1]}-${m[2]}`;
-}
-
-function getRColorByAccountType(accountType: AccountType): string {
-  switch (accountType) {
-    case "Live":
-      return V5_COLORS.live;
-    case "Demo":
-      return V5_COLORS.demo;
-    case "Backtest":
-      return V5_COLORS.back;
-  }
-}
+import {
+  toLocalDateIso,
+  getLastLocalDateIsos,
+  getDayOfMonth,
+  getYearMonth,
+} from "../utils/date-utils";
+import { getRColorByAccountType } from "../utils/color-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
