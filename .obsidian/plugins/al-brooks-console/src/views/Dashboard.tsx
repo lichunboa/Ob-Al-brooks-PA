@@ -3828,6 +3828,22 @@ short mode\n\
         </>
       ) : null}
 
+      {/* Adapters for ManageTab */
+      const handlePromptText = async (msg: string, def?: string) => {
+        if (!promptText) return null;
+        return promptText({ title: msg, defaultValue: def });
+      };
+
+      const handleConfirmDialog = async (msg: string) => {
+        if (!confirmDialog) return false;
+        // confirmDialog expects output boolean, but definition is void? Check definition. 
+        // Definition in Props: confirmDialog?: (options: { ... }) => Promise<boolean>;
+        // Wait, lint error said "Type ... => Promise<boolean> is not assignable to ...". 
+        // ManageTab needs (msg: string) => Promise<boolean>.
+        // Dashboard provides (options) => Promise<boolean>.
+        return confirmDialog({ title: "确认", message: msg });
+      };
+
       {activePage === "learn" ? (
         <LearnTab
           course={course}

@@ -19,3 +19,29 @@ export type SchemaIssueItem = {
 	type: string;
 	val?: string;
 };
+
+export interface StrategyPerformance {
+	total: number;
+	wins: number;
+	pnl: number;
+	lastDateIso?: string;
+	// Optional fields
+	losses?: number;
+	winRate?: number;
+	profitFactor?: number;
+	avgWin?: number;
+	avgLoss?: number;
+	maxDrawdown?: number;
+	currStreak?: number;
+	maxWinStreak?: number;
+	maxLossStreak?: number;
+}
+
+export interface PlaybookPerformanceRow {
+	canonical: string;
+	path?: string;
+	total: number;
+	wins: number;
+	pnl: number;
+	winRate: number;
+}

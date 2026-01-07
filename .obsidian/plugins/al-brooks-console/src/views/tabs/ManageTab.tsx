@@ -1,11 +1,13 @@
-import React from "react";
+import * as React from "react";
 import { HeadingM, GlassCard, GlassPanel, ButtonGhost, DisplayXL, StatusBadge } from "../../ui/components/DesignSystem";
 import { SPACE, glassCardStyle, glassPanelStyle } from "../../ui/styles/dashboardPrimitives";
 import { V5_COLORS } from "../../ui/tokens";
 import { COLORS } from "../../ui/styles/theme";
 import { PaTagSnapshot, SchemaIssueItem } from "../../types";
+import { TradeRecord } from "../../core/contracts";
 import { FixPlan } from "../../core/inspector";
-import { ManagerApplyResult, FrontmatterInventory, FrontmatterFile } from "../../core/manager";
+import { FrontmatterFile, FrontmatterInventory, ManagerApplyResult } from "../../core/manager";
+import { EnumPresets } from "../../core/enum-presets";
 
 export interface ManageTabProps {
     schemaIssues: SchemaIssueItem[];
@@ -21,14 +23,14 @@ export interface ManageTabProps {
     distTicker: [string, number][];
     distSetup: [string, number][];
     distExec: [string, number][];
-    sortedRecent: any[]; // Ideally type this with TradeRecord generic
+    sortedRecent: TradeRecord[];
     prettySchemaVal: (val?: string) => string;
     prettyExecVal: (val?: string) => string;
     openFile: (path: string) => void;
     openGlobalSearch: (query: string) => void;
 
     // Inspector & Manager Props
-    enumPresets?: string[];
+    enumPresets?: EnumPresets;
     schemaScanNote?: string;
     showFixPlan: boolean;
     setShowFixPlan: React.Dispatch<React.SetStateAction<boolean>>;
@@ -61,14 +63,14 @@ export interface ManageTabProps {
     runCommand: (cmd: string) => void;
 
     // UI Handlers
-    onTextBtnMouseEnter?: () => void;
-    onTextBtnMouseLeave?: () => void;
-    onTextBtnFocus?: () => void;
-    onTextBtnBlur?: () => void;
-    onBtnMouseEnter?: () => void;
-    onBtnMouseLeave?: () => void;
-    onBtnFocus?: () => void;
-    onBtnBlur?: () => void;
+    onTextBtnMouseEnter?: (e: React.MouseEvent) => void;
+    onTextBtnMouseLeave?: (e: React.MouseEvent) => void;
+    onTextBtnFocus?: (e: React.FocusEvent) => void;
+    onTextBtnBlur?: (e: React.FocusEvent) => void;
+    onBtnMouseEnter?: (e: React.MouseEvent) => void;
+    onBtnMouseLeave?: (e: React.MouseEvent) => void;
+    onBtnFocus?: (e: React.FocusEvent) => void;
+    onBtnBlur?: (e: React.FocusEvent) => void;
 }
 
 export const ManageTab: React.FC<ManageTabProps> = ({
@@ -275,7 +277,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                     <div>问题</div>
                                     <div>字段</div>
                                 </div>
-                                {schemaIssues.slice(0, 80).map((item, idx) => (
+                                {schemaIssues.slice(0, 80).map((item: SchemaIssueItem, idx: number) => (
                                     <button
                                         key={`${item.path}:${item.key}:${idx}`}
                                         type="button"
@@ -434,7 +436,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                         </div>
                                     ) : (
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                            {topTags.map(([tag, count]) => (
+                                            {topTags.map(([tag, count]: [string, number]) => (
                                                 <button
                                                     key={tag}
                                                     type="button"
@@ -507,7 +509,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                 <div>执行</div>
                             </div>
 
-                            {sortedRecent.map((t) => (
+                            {sortedRecent.map((t: TradeRecord) => (
                                 <button
                                     key={t.path}
                                     type="button"
@@ -614,7 +616,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                 }}
                             >
                                 <div style={{ fontWeight: 700 }}>检查器问题列表</div>
-                                <ButtonGhost onClick={() => setShowFixPlan((v) => !v)} disabled={!enumPresets}>
+                                <ButtonGhost onClick={() => setShowFixPlan((v: boolean) => !v)} disabled={!enumPresets}>
                                     {showFixPlan ? "隐藏修复方案" : "预览修复方案"}
                                 </ButtonGhost>
                             </div>
