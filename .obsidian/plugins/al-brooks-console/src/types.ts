@@ -1,15 +1,8 @@
+export type { TradeRecord as TradeData } from "./core/contracts";
 
-export interface PaTagSnapshot {
-	[key: string]: number;
+// 兼容旧字段：当前 UI 只需要总数/扫描时间等可在后续迁移中移除。
+export interface TradeIndexStats {
+	totalTrades: number;
+	lastScan: number;
+	dirty: boolean;
 }
-
-export interface SchemaIssueItem {
-	path: string;
-	key: string;
-	issue: string; // inferred
-	expected?: string;
-	actual?: string;
-}
-
-// Temporary alias to fix build if TradeData is not found
-export type TradeData = any;
