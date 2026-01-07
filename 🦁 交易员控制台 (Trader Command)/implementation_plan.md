@@ -80,7 +80,30 @@
 - [ ] **3.3 功能实装**
     - [ ] 完善策略筛选器逻辑。
 
-## 4. 验证计划 (Verification Plan)
+## 4. 功能修复与文档更新 (Feature Restoration & Docs)
+
+### A. 属性管理器 (Property Manager)
+**目标**：恢复 v5 中的属性管理功能，允许用户查看和管理 Frontmatter 属性。
+- **文件**：`src/views/tabs/ManageTab.tsx`
+- **实现**：
+    - 在 `ManageTab` 中实现 `ManagerInventoryGrid`。
+    - 包括：侧边栏（属性键列表）、主内容区（属性值分布/文件列表）。
+    - 利用现有的 `manager*` props (scope, search, inventory, inspectorKey, etc.)。
+
+### B. 数据导出 (Data Export)
+**目标**：恢复数据库备份功能。
+- **文件**：
+    - `src/views/Dashboard.tsx`：添加 `handleExport` 函数，调用 `app.vault.adapter.write`。
+    - `src/views/tabs/ManageTab.tsx`：添加 `onExport` prop 和 UI 按钮。
+
+### C. 模块重组文档 (Module Documentation)
+- 创建 `README.md`，定义 4 大核心模块结构：
+    1. **交易中心 (Trading Hub)**
+    2. **数据中心 (Analytics Hub)**
+    3. **学习模块 (Learning Module)**
+    4. **管理模块 (Management Module)**
+
+## 5. 验证计划 (Verification Plan)
 - **编译检查**: 每次拆分后运行 `npm run build`。
 - **视觉检查**: 确保拆分后的组件与原版像素级一致（Pixel Perfect）。
 - **功能检查**: 点击交互、数据加载无异常。
