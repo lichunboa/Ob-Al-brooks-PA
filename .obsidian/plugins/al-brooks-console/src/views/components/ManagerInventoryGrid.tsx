@@ -84,7 +84,7 @@ export const ManagerInventoryGrid: React.FC<ManagerInventoryGridProps> = ({
                 <Input
                     placeholder="🔍 搜索属性键..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                     style={{ width: "100%" }}
                 />
                 <GlassPanel style={{ flex: 1, overflow: "auto", padding: "0" }}>
@@ -141,7 +141,7 @@ export const ManagerInventoryGrid: React.FC<ManagerInventoryGridProps> = ({
                             <Input
                                 placeholder={`🔍 搜索 ${selectedKey} 的值...`}
                                 value={valSearch}
-                                onChange={(e) => setValSearch(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValSearch(e.target.value)}
                                 style={{ flex: 1 }}
                             />
                         </div>
