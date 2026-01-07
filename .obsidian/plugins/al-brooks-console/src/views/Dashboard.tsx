@@ -266,16 +266,12 @@ const ConsoleComponent: React.FC<Props> = ({
   integrations,
   version,
 }) => {
-  const [trades, setTrades] = React.useState(index.getAll());
-  const [strategies, setStrategies] = React.useState<any[]>(
-    () => strategyIndex && (strategyIndex.list ? strategyIndex.list() : [])
-  );
-  const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
-    index.getStatus ? index.getStatus() : { phase: "ready" }
-  );
-  const [todayMarketCycle, setTodayMarketCycle] = React.useState<
-    string | undefined
-  >(() => todayContext?.getTodayMarketCycle());
+  // 使用 useDashboardData Hook 管理核心数据
+  const { trades, strategies, status, todayMarketCycle } = useDashboardData({
+    index,
+    strategyIndex,
+    todayContext,
+  });
   const [analyticsScope, setAnalyticsScope] =
     React.useState<AnalyticsScope>("Live");
   const [galleryScope, setGalleryScope] = React.useState<AnalyticsScope>("All");
@@ -673,32 +669,7 @@ const ConsoleComponent: React.FC<Props> = ({
     };
   }, [trades]);
 
-  React.useEffect(() => {
-    const onUpdate = () => setTrades(index.getAll());
-    const unsubscribe = index.onChanged(onUpdate);
-    onUpdate();
-    return unsubscribe;
-  }, [index]);
-
-  React.useEffect(() => {
-    if (!strategyIndex) return;
-    const update = () => {
-      try {
-        const list = strategyIndex.list ? strategyIndex.list() : [];
-        setStrategies(list);
-      } catch (e) {
-        console.warn("[al-brooks-console] strategyIndex.list() failed", e);
-        setStrategies([]);
-      }
-    };
-    update();
-    const unsubscribe = strategyIndex.onChanged
-      ? strategyIndex.onChanged(update)
-      : undefined;
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [strategyIndex]);
+  // trades, strategies, todayContext, status 的订阅已移到 useDashboardData Hook 中
 
   const strategyPerf = React.useMemo(() => {
     const perf = new Map<
