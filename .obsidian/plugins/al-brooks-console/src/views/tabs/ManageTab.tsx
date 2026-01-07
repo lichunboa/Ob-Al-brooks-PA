@@ -18,6 +18,8 @@ export interface ManageTabProps {
     issueCount: number;
     topTypes: [string, number][];
     topTags: [string, number][];
+    distTicker: [string, number][];
+    distExec: [string, number][];
     sortedRecent: any[]; // Ideally type this with TradeRecord generic
     prettySchemaVal: (val?: string) => string;
     prettyExecVal: (val?: string) => string;
@@ -70,7 +72,7 @@ export interface ManageTabProps {
 
 export const ManageTab: React.FC<ManageTabProps> = ({
     schemaIssues, paTagSnapshot, tradesCount, filesCount, tagsCount,
-    healthScore, healthColor, issueCount, topTypes, topTags, sortedRecent,
+    healthScore, healthColor, issueCount, topTypes, topTags, distTicker, distExec, sortedRecent,
     prettySchemaVal, prettyExecVal, openFile, openGlobalSearch,
     enumPresets, schemaScanNote, showFixPlan, setShowFixPlan, fixPlanText,
     managerBusy, setManagerBusy, scanManagerInventory,
@@ -377,10 +379,41 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                         marginBottom: "10px",
                                     }}
                                 >
-                                    {/* NOTE: We might need to pass distribution data as props if we want this to be dynamic */}
-                                    <div style={{ padding: "10px", color: "var(--text-muted)" }}>
-                                        (Distribution charts logic to be passed via props if needed, simplified for extraction)
-                                    </div>
+                                    {[
+                                        { title: "Ticker", data: distTicker },
+                                        { title: "Setup", data: topTypes },
+                                        { title: "Exec", data: distExec },
+                                    ].map((col) => (
+                                        <div
+                                            key={col.title}
+                                            style={{
+                                                border: "1px solid var(--background-modifier-border)",
+                                                borderRadius: "10px",
+                                                padding: "10px",
+                                                background: "var(--background-primary)",
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 700, marginBottom: "8px", color: "var(--text-muted)" }}>
+                                                {col.title}
+                                            </div>
+                                            {col.data.length === 0 ? (
+                                                <div style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>无数据</div>
+                                            ) : (
+                                                <div style={{ display: "grid", gap: "6px" }}>
+                                                    {col.data.map(([k, v]) => (
+                                                        <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: "10px", fontSize: "0.9em" }}>
+                                                            <div style={{ color: "var(--text-normal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={k}>
+                                                                {k}
+                                                            </div>
+                                                            <div style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                                                                {v}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
 
                                 <div
