@@ -720,12 +720,12 @@ const ConsoleComponent: React.FC<Props> = ({
       await app.vault.modify(file, newContent);
 
       // Reload memory
-      await loadMemory();
+      if (loadMemory && settings) await loadMemory(settings);
 
     } catch (e) {
       console.error("Failed to update SRS", e);
     }
-  }, [loadMemory]);
+  }, [loadMemory, settings]);
 
   // Handlers for ManageTab (Defined here to access computed stats/state)
   const handleExport = React.useCallback(async () => {

@@ -28,7 +28,6 @@ export interface LearnTabProps {
     memoryError?: string;
     onReloadMemory: () => void;
     onMemoryShake: () => void;
-    onMemoryShake: () => void;
     onMemoryRate: (path: string, rating: number) => void;
     memoryShakeIndex: number;
     // Strategy & Playbook Props
@@ -65,8 +64,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
     memory,
     memoryBusy,
     memoryError,
-    onReloadMemory,
-    onMemoryShake,
     onReloadMemory,
     onMemoryShake,
     onMemoryRate,
