@@ -19,6 +19,7 @@ export interface ManageTabProps {
     topTypes: [string, number][];
     topTags: [string, number][];
     distTicker: [string, number][];
+    distSetup: [string, number][];
     distExec: [string, number][];
     sortedRecent: any[]; // Ideally type this with TradeRecord generic
     prettySchemaVal: (val?: string) => string;
@@ -72,7 +73,7 @@ export interface ManageTabProps {
 
 export const ManageTab: React.FC<ManageTabProps> = ({
     schemaIssues, paTagSnapshot, tradesCount, filesCount, tagsCount,
-    healthScore, healthColor, issueCount, topTypes, topTags, distTicker, distExec, sortedRecent,
+    healthScore, healthColor, issueCount, topTypes, topTags, distTicker, distSetup, distExec, sortedRecent,
     prettySchemaVal, prettyExecVal, openFile, openGlobalSearch,
     enumPresets, schemaScanNote, showFixPlan, setShowFixPlan, fixPlanText,
     managerBusy, setManagerBusy, scanManagerInventory,
@@ -381,7 +382,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                 >
                                     {[
                                         { title: "Ticker", data: distTicker },
-                                        { title: "Setup", data: topTypes },
+                                        { title: "Setup", data: distSetup },
                                         { title: "Exec", data: distExec },
                                     ].map((col) => (
                                         <div

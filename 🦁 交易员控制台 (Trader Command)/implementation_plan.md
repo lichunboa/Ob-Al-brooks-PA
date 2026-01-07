@@ -37,20 +37,20 @@
     - [ ] 创建目录 `src/views/tabs/`。
     - [ ] 确认公共组件引用路径。
 
-- [x] **1.2 拆分 Manage Tab (管理模块)** `[Safe Start]`
-    - [x] 创建 `src/views/tabs/ManageTab.tsx`。
-    - [x] 定义 `ManageTabProps` 接口（明确数据依赖：`schemaIssues`, `healthScore`, `enumPresets` 等）。
-    - [x] 移动 `Manage` 相关的渲染代码。
-    - [x] 在 `Dashboard.tsx` 中引入并替换。
-    - [x] **验证**: 检查 Tab 切换是否正常，数据是否显示。
+- [ ] **1.2 拆分 Manage Tab (管理模块)** `[Safe Start]`
+    - [ ] 创建 `src/views/tabs/ManageTab.tsx`。
+    - [ ] 定义 `ManageTabProps` 接口（明确数据依赖：`schemaIssues`, `healthScore`, `enumPresets` 等）。
+    - [ ] 移动 `Manage` 相关的渲染代码。
+    - [ ] 在 `Dashboard.tsx` 中引入并替换。
+    - [ ] **验证**: 检查 Tab 切换是否正常，数据是否显示。
 
-- [x] **1.3 拆分 Learn Tab (学习模块)**
-    - [x] 创建 `src/views/tabs/LearnTab.tsx`。
-    - [x] 定义 `LearnTabProps` (依赖：`strategies`, `marketCycle`, `playbookPerf` 等)。
-    - [x] 移动代码并修复 `GlassCard` 嵌套结构。
-    - [x] **验证**: 检查策略列表推荐逻辑。
+- [ ] **1.3 拆分 Learn Tab (学习模块)**
+    - [ ] 创建 `src/views/tabs/LearnTab.tsx`。
+    - [ ] 定义 `LearnTabProps` (依赖：`strategies`, `marketCycle`, `playbookPerf` 等)。
+    - [ ] 移动代码并修复 `GlassCard` 嵌套结构。
+    - [ ] **验证**: 检查策略列表推荐逻辑。
 
-- [/] **1.4 拆分 Analytics Tab (数据中心)** `[Complex]`
+- [ ] **1.4 拆分 Analytics Tab (数据中心)** `[Complex]`
     - [ ] 创建 `src/views/tabs/AnalyticsTab.tsx`。
     - [ ] 移动大量图表组件（Account, Market, Mistakes, Lab）。
     - [ ] 确保 `Recharts` 引用正常。
