@@ -5,7 +5,11 @@
 
 import * as React from "react";
 import type { FixPlan } from "../core/inspector";
-import type { ManagerApplyResult } from "../core/manager";
+import type {
+    ManagerApplyResult,
+    FrontmatterInventory,
+    FrontmatterFile
+} from "../core/manager";
 
 export interface UseManagerStateReturn {
     // Plan & Result
@@ -19,16 +23,16 @@ export interface UseManagerStateReturn {
     // Backups & Inventory
     managerDeleteKeys: boolean;
     setManagerDeleteKeys: React.Dispatch<React.SetStateAction<boolean>>;
-    managerBackups: string[] | undefined;
-    setManagerBackups: React.Dispatch<React.SetStateAction<string[] | undefined>>;
-    managerTradeInventory: any[] | undefined;
-    setManagerTradeInventory: React.Dispatch<React.SetStateAction<any[] | undefined>>;
-    managerTradeInventoryFiles: string[] | undefined;
-    setManagerTradeInventoryFiles: React.Dispatch<React.SetStateAction<string[] | undefined>>;
-    managerStrategyInventory: any[] | undefined;
-    setManagerStrategyInventory: React.Dispatch<React.SetStateAction<any[] | undefined>>;
-    managerStrategyInventoryFiles: string[] | undefined;
-    setManagerStrategyInventoryFiles: React.Dispatch<React.SetStateAction<string[] | undefined>>;
+    managerBackups: Record<string, string> | undefined;
+    setManagerBackups: React.Dispatch<React.SetStateAction<Record<string, string> | undefined>>;
+    managerTradeInventory: FrontmatterInventory | undefined;
+    setManagerTradeInventory: React.Dispatch<React.SetStateAction<FrontmatterInventory | undefined>>;
+    managerTradeInventoryFiles: FrontmatterFile[] | undefined;
+    setManagerTradeInventoryFiles: React.Dispatch<React.SetStateAction<FrontmatterFile[] | undefined>>;
+    managerStrategyInventory: FrontmatterInventory | undefined;
+    setManagerStrategyInventory: React.Dispatch<React.SetStateAction<FrontmatterInventory | undefined>>;
+    managerStrategyInventoryFiles: FrontmatterFile[] | undefined;
+    setManagerStrategyInventoryFiles: React.Dispatch<React.SetStateAction<FrontmatterFile[] | undefined>>;
 
     // Search & Inspector
     managerSearch: string;
@@ -37,10 +41,10 @@ export interface UseManagerStateReturn {
     setManagerScope: React.Dispatch<React.SetStateAction<"trade" | "strategy">>;
     managerInspectorKey: string | undefined;
     setManagerInspectorKey: React.Dispatch<React.SetStateAction<string | undefined>>;
-    managerInspectorTab: "raw" | "parsed";
-    setManagerInspectorTab: React.Dispatch<React.SetStateAction<"raw" | "parsed">>;
-    managerInspectorFileFilter: string;
-    setManagerInspectorFileFilter: React.Dispatch<React.SetStateAction<string>>;
+    managerInspectorTab: "vals" | "files";
+    setManagerInspectorTab: React.Dispatch<React.SetStateAction<"vals" | "files">>;
+    managerInspectorFileFilter: { paths: string[]; label?: string } | undefined;
+    setManagerInspectorFileFilter: React.Dispatch<React.SetStateAction<{ paths: string[]; label?: string } | undefined>>;
 }
 
 /**
@@ -54,18 +58,18 @@ export function useManagerState(): UseManagerStateReturn {
 
     // Backups & Inventory
     const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
-    const [managerBackups, setManagerBackups] = React.useState<string[] | undefined>(undefined);
-    const [managerTradeInventory, setManagerTradeInventory] = React.useState<any[] | undefined>(undefined);
-    const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] = React.useState<string[] | undefined>(undefined);
-    const [managerStrategyInventory, setManagerStrategyInventory] = React.useState<any[] | undefined>(undefined);
-    const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] = React.useState<string[] | undefined>(undefined);
+    const [managerBackups, setManagerBackups] = React.useState<Record<string, string> | undefined>(undefined);
+    const [managerTradeInventory, setManagerTradeInventory] = React.useState<FrontmatterInventory | undefined>(undefined);
+    const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] = React.useState<FrontmatterFile[] | undefined>(undefined);
+    const [managerStrategyInventory, setManagerStrategyInventory] = React.useState<FrontmatterInventory | undefined>(undefined);
+    const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] = React.useState<FrontmatterFile[] | undefined>(undefined);
 
     // Search & Inspector
     const [managerSearch, setManagerSearch] = React.useState("");
     const [managerScope, setManagerScope] = React.useState<"trade" | "strategy">("trade");
     const [managerInspectorKey, setManagerInspectorKey] = React.useState<string | undefined>(undefined);
-    const [managerInspectorTab, setManagerInspectorTab] = React.useState<"raw" | "parsed">("raw");
-    const [managerInspectorFileFilter, setManagerInspectorFileFilter] = React.useState("");
+    const [managerInspectorTab, setManagerInspectorTab] = React.useState<"vals" | "files">("vals");
+    const [managerInspectorFileFilter, setManagerInspectorFileFilter] = React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
 
     return {
         managerPlan,

@@ -114,7 +114,9 @@ import { isEmpty, pickVal } from "../utils/validation-utils";
 import { safePct } from "../utils/trade-calculations";
 import { isActive } from "../utils/trade-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
+import { useManagerState } from "../hooks/useManagerState";
 import { CYCLE_MAP } from "../utils/constants";
+import { normalizeCycle } from "../utils/market-cycle-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -281,13 +283,7 @@ const ConsoleComponent: React.FC<Props> = ({
   const [schemaScanNote, setSchemaScanNote] = React.useState<
     string | undefined
   >(undefined);
-  const [managerPlan, setManagerPlan] = React.useState<FixPlan | undefined>(
-    undefined
-  );
-  const [managerResult, setManagerResult] = React.useState<
-    ManagerApplyResult | undefined
-  >(undefined);
-  const [managerBusy, setManagerBusy] = React.useState(false);
+
 
   React.useEffect(() => {
     let cancelled = false;
@@ -431,31 +427,37 @@ const ConsoleComponent: React.FC<Props> = ({
       console.warn("[al-brooks-console] openTodayNote failed", e);
     }
   }, [todayContext]);
-  const [managerDeleteKeys, setManagerDeleteKeys] = React.useState(false);
-  const [managerBackups, setManagerBackups] = React.useState<
-    Record<string, string> | undefined
-  >(undefined);
-  const [managerTradeInventory, setManagerTradeInventory] = React.useState<
-    FrontmatterInventory | undefined
-  >(undefined);
-  const [managerTradeInventoryFiles, setManagerTradeInventoryFiles] =
-    React.useState<FrontmatterFile[] | undefined>(undefined);
-  const [managerStrategyInventory, setManagerStrategyInventory] =
-    React.useState<FrontmatterInventory | undefined>(undefined);
-  const [managerStrategyInventoryFiles, setManagerStrategyInventoryFiles] =
-    React.useState<FrontmatterFile[] | undefined>(undefined);
-  const [managerSearch, setManagerSearch] = React.useState("");
-  const [managerScope, setManagerScope] = React.useState<"trade" | "strategy">(
-    "trade"
-  );
-  const [managerInspectorKey, setManagerInspectorKey] = React.useState<
-    string | undefined
-  >(undefined);
-  const [managerInspectorTab, setManagerInspectorTab] = React.useState<
-    "vals" | "files"
-  >("vals");
-  const [managerInspectorFileFilter, setManagerInspectorFileFilter] =
-    React.useState<{ paths: string[]; label?: string } | undefined>(undefined);
+  // 使用 useManagerState Hook 管理 Manager Tab 状态
+  const {
+    managerPlan,
+    setManagerPlan,
+    managerResult,
+    setManagerResult,
+    managerBusy,
+    setManagerBusy,
+    managerDeleteKeys,
+    setManagerDeleteKeys,
+    managerBackups,
+    setManagerBackups,
+    managerTradeInventory,
+    setManagerTradeInventory,
+    managerTradeInventoryFiles,
+    setManagerTradeInventoryFiles,
+    managerStrategyInventory,
+    setManagerStrategyInventory,
+    managerStrategyInventoryFiles,
+    setManagerStrategyInventoryFiles,
+    managerSearch,
+    setManagerSearch,
+    managerScope,
+    setManagerScope,
+    managerInspectorKey,
+    setManagerInspectorKey,
+    managerInspectorTab,
+    setManagerInspectorTab,
+    managerInspectorFileFilter,
+    setManagerInspectorFileFilter,
+  } = useManagerState();
 
   const scanManagerInventory = React.useCallback(async () => {
     // v5 对齐：默认扫描全库 frontmatter（不只 trades/strategies）。
