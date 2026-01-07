@@ -112,6 +112,7 @@ import {
 import { getRColorByAccountType } from "../utils/color-utils";
 import { isEmpty, pickVal } from "../utils/validation-utils";
 import { safePct } from "../utils/trade-calculations";
+import { isActive } from "../utils/trade-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -757,12 +758,6 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [trades, strategyIndex]);
 
   const strategyStats = React.useMemo(() => {
-    const isActive = (statusRaw: unknown) => {
-      const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
-      if (!s) return false;
-      return s.includes("实战") || s.toLowerCase().includes("active");
-    };
-
     const total = strategies.length;
     const activeCount = strategies.filter((s) =>
       isActive((s as any).statusRaw)
