@@ -562,6 +562,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                         </GlassInset>
                     )}
                 </GlassCard>
-            </>
-            );
+            </div >
+        </>
+    );
 };

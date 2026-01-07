@@ -1,14 +1,12 @@
 import * as React from "react";
 import type { StrategyCard } from "../../core/strategy-index";
+import type { StrategyPerformance } from "../../types";
 
 interface Props {
   strategies: StrategyCard[];
   onOpenFile: (path: string) => void;
   /** Optional perf stats keyed by canonical strategy name (computed from trades). */
-  perf?: Map<
-    string,
-    { total: number; wins: number; pnl: number; lastDateIso: string }
-  >;
+  perf?: Map<string, StrategyPerformance>;
   showTitle?: boolean;
   /** Hide search/filter controls (Dashboard wants to stay close to v5 UX). */
   showControls?: boolean;
@@ -120,7 +118,7 @@ export const StrategyList: React.FC<Props> = ({
     const perfOf = (s: StrategyCard) =>
       perf?.get(s.canonicalName) ??
       perf?.get(s.name) ??
-      ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
+      ({ total: 0, wins: 0, pnl: 0, lastDateIso: undefined } as unknown as StrategyPerformance);
 
     const sorted = [...filtered].sort((a, b) => {
       const aActive = isActive((a as any).statusRaw) ? 1 : 0;
@@ -214,7 +212,7 @@ export const StrategyList: React.FC<Props> = ({
                   const p =
                     perf?.get(s.canonicalName) ??
                     perf?.get(s.name) ??
-                    ({ total: 0, wins: 0, pnl: 0, lastDateIso: "" } as const);
+                    ({ total: 0, wins: 0, pnl: 0, lastDateIso: undefined } as unknown as StrategyPerformance);
                   const wr =
                     p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                   const active = isActive((s as any).statusRaw);
