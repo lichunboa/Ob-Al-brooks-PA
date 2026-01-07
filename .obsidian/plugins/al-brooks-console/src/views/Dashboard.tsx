@@ -4594,12 +4594,6 @@ short mode\n\
                 );
               }
 
-              const isActive = (statusRaw: unknown) => {
-                const s = typeof statusRaw === "string" ? statusRaw.trim() : "";
-                if (!s) return false;
-                return s.includes("实战") || s.toLowerCase().includes("active");
-              };
-
               const picks = matchStrategies(strategyIndex, {
                 marketCycle: cycle,
                 limit: 6,
