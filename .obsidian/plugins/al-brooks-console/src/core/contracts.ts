@@ -17,6 +17,7 @@ export interface TradeRecord {
   dateIso: string;
   ticker?: string;
   pnl?: number;
+  r?: number; // Normalized R-value
   outcome?: TradeOutcome;
   accountType?: AccountType;
 
@@ -48,4 +49,6 @@ export interface TradeStats {
   countScratch: number;
   winRatePct: number;
   netProfit: number;
+  netR: number;
+  expectancy: number; // Avg R per trade
 }

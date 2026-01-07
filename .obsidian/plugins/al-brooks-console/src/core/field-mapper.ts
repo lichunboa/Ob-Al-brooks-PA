@@ -91,6 +91,10 @@ export const FIELD_ALIASES = {
   cover: ["cover", "封面/cover", "封面", "banner"],
   tags: ["tags"],
   fileClass: ["fileClass", "FileClass"],
+  initialRisk: ["initial_risk", "initialRisk", "初始风险/initial_risk", "初始风险"],
+  entry: ["entry", "entry_price", "入场/entry_price", "入场"],
+  exit: ["exit", "exit_price", "离场/exit_price", "离场"],
+  stop: ["stop", "stop_loss", "止损/stop_loss", "止损"],
 } as const;
 
 export const TRADE_TAG = "PA/Trade" as const;

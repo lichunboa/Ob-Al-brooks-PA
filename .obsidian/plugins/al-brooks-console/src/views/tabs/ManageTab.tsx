@@ -9,6 +9,7 @@ import { FixPlan } from "../../core/inspector";
 import { FrontmatterFile, FrontmatterInventory, ManagerApplyResult } from "../../core/manager";
 import { EnumPresets } from "../../core/enum-presets";
 import { ManagerInventoryGrid } from "../components/ManagerInventoryGrid";
+import { ManagerFileInspector } from "../components/ManagerFileInspector";
 
 export interface ManageTabProps {
     schemaIssues: SchemaIssueItem[];
@@ -699,46 +700,59 @@ export const ManageTab: React.FC<ManageTabProps> = ({
 
                 {/* Manager Inventory Grid */}
                 {managerScope === "trade" && managerTradeInventory ? (
-                    <ManagerInventoryGrid
-                        inventory={managerTradeInventory}
-                        onRenameKey={onRenameKey}
-                        onDeleteKey={onDeleteKey}
-                        onUpdateVal={onUpdateVal}
-                        onDeleteVal={onDeleteVal}
-                        onSelectFiles={(paths) => {
-                            const files = selectManagerTradeFiles(paths);
-                            // Set inspector filter
-                            if (files.length > 0) {
-                                // We need a way to bubble up 'setManagerInspectorFileFilter' call?
-                                // ManageTab has 'setManagerInspectorFileFilter' in props.
-                                // But simple select usually implies opening them or listing them.
-                                // For now, let's just open the first file or log.
-                                // Ideally we show them in the Inspector "Files" tab.
-                                // But for now let's use promptText to show paths? No.
-                                // Let's just update the Inspector filter and switch tab.
-                                // But inside ManagerInventoryGrid, onSelectFiles is void.
-                                // We can implement behavior here.
-                                setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
-                                setManagerInspectorTab("files");
-                                // Also scroll to inspector?
-                            }
-                        }}
-                    />
+                    managerInspectorTab === "files" && managerInspectorFileFilter?.paths?.length ? (
+                        <ManagerFileInspector
+                            files={selectManagerTradeFiles(managerInspectorFileFilter.paths)}
+                            label={managerInspectorFileFilter.label}
+                            onClose={() => {
+                                setManagerInspectorTab("vals");
+                                setManagerInspectorFileFilter(undefined);
+                            }}
+                            onOpenFile={openFile}
+                        />
+                    ) : (
+                        <ManagerInventoryGrid
+                            inventory={managerTradeInventory}
+                            onRenameKey={onRenameKey}
+                            onDeleteKey={onDeleteKey}
+                            onUpdateVal={onUpdateVal}
+                            onDeleteVal={onDeleteVal}
+                            onSelectFiles={(paths) => {
+                                const files = selectManagerTradeFiles(paths);
+                                if (files.length > 0) {
+                                    setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
+                                    setManagerInspectorTab("files");
+                                }
+                            }}
+                        />
+                    )
                 ) : managerScope === "strategy" && managerStrategyInventory ? (
-                    <ManagerInventoryGrid
-                        inventory={managerStrategyInventory}
-                        onRenameKey={onRenameKey}
-                        onDeleteKey={onDeleteKey}
-                        onUpdateVal={onUpdateVal}
-                        onDeleteVal={onDeleteVal}
-                        onSelectFiles={(paths) => {
-                            const files = selectManagerStrategyFiles(paths);
-                            if (files.length > 0) {
-                                setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
-                                setManagerInspectorTab("files");
-                            }
-                        }}
-                    />
+                    managerInspectorTab === "files" && managerInspectorFileFilter?.paths?.length ? (
+                        <ManagerFileInspector
+                            files={selectManagerStrategyFiles(managerInspectorFileFilter.paths)}
+                            label={managerInspectorFileFilter.label}
+                            onClose={() => {
+                                setManagerInspectorTab("vals");
+                                setManagerInspectorFileFilter(undefined);
+                            }}
+                            onOpenFile={openFile}
+                        />
+                    ) : (
+                        <ManagerInventoryGrid
+                            inventory={managerStrategyInventory}
+                            onRenameKey={onRenameKey}
+                            onDeleteKey={onDeleteKey}
+                            onUpdateVal={onUpdateVal}
+                            onDeleteVal={onDeleteVal}
+                            onSelectFiles={(paths) => {
+                                const files = selectManagerStrategyFiles(paths);
+                                if (files.length > 0) {
+                                    setManagerInspectorFileFilter({ paths, label: "Selected from Inventory" });
+                                    setManagerInspectorTab("files");
+                                }
+                            }}
+                        />
+                    )
                 ) : (
                     <div style={{ color: "var(--text-muted)", padding: "40px", textAlign: "center" }}>
                         {managerBusy ? "正在扫描索引..." : "索引未加载，请点击“刷新全库索引”。"}
