@@ -730,6 +730,7 @@ const ConsoleComponent: React.FC<Props> = ({
   // Handlers for ManageTab (Defined here to access computed stats/state)
   const handleExport = React.useCallback(async () => {
     const app = (window as any).app;
+    new Notice("开始导出数据库 (Exporting)...");
     if (!app?.vault?.adapter?.write) {
       window.alert("无法导出：Vault Adapter 不可用");
       return;
@@ -4645,7 +4646,7 @@ export class ConsoleView extends ItemView {
       const FLASH_TAG = "flashcards";
       const files = this.app.vault
         .getMarkdownFiles()
-        .filter((f) => !f.path.startsWith("Templates/"));
+        .filter((f) => !f.path.includes("Templates"));
       const picked = files.filter((f) => {
         const cache = this.app.metadataCache.getFileCache(f);
         const cacheTags = (cache?.tags ?? []).map((t) => t.tag);
@@ -4656,10 +4657,13 @@ export class ConsoleView extends ItemView {
           : typeof fmTagsRaw === "string"
             ? [fmTagsRaw]
             : [];
-        const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
-        return normalized.some(
-          (t) => t.toLowerCase() === FLASH_TAG.toLowerCase()
-        );
+
+        // Robust tag matching: normalize by stripping # and lowercasing
+        const allTags = [...cacheTags, ...fmTags];
+        return allTags.some(t => {
+          const clean = t.replace(/^#/, "").toLowerCase().trim();
+          return clean === FLASH_TAG.toLowerCase();
+        });
       });
 
       const fileInputs: Array<{

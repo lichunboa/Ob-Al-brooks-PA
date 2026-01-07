@@ -127,7 +127,12 @@ export const ManagerInventoryGrid: React.FC<ManagerInventoryGridProps> = ({
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACE.sm }}>
                                 <HeadingM>{selectedKey}</HeadingM>
                                 <div style={{ display: "flex", gap: SPACE.xs }}>
-                                    <ButtonGhost onClick={() => onRenameKey(selectedKey, "")}>✏️ 重命名键</ButtonGhost>
+                                    <ButtonGhost onClick={() => {
+                                        const newKey = window.prompt("重命名键 (Rename Key):", selectedKey);
+                                        if (newKey && newKey !== selectedKey) {
+                                            onRenameKey(selectedKey, newKey);
+                                        }
+                                    }}>✏️ 重命名键</ButtonGhost>
                                     <ButtonGhost onClick={() => onDeleteKey(selectedKey)} style={{ color: COLORS.loss }}>🗑 删除键</ButtonGhost>
                                 </div>
                             </div>
@@ -173,7 +178,12 @@ export const ManagerInventoryGrid: React.FC<ManagerInventoryGridProps> = ({
                                             <td style={{ padding: "8px 12px", textAlign: "right" }}>
                                                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
                                                     <button
-                                                        onClick={() => onUpdateVal(selectedKey, v.val, "")}
+                                                        onClick={() => {
+                                                            const newVal = window.prompt("修改属性值 (Rename Value):", v.val);
+                                                            if (newVal !== null && newVal !== v.val) {
+                                                                onUpdateVal(selectedKey, v.val, newVal);
+                                                            }
+                                                        }}
                                                         style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.6, fontSize: "1.1em" }}
                                                         title="Rename Value"
                                                     >
