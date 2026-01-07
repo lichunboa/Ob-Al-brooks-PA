@@ -1,2 +1,2 @@
-export { StrategyStats } from './StrategyStats';
+export { default as StrategyStats } from './StrategyStats';
 export * from './types';

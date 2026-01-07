@@ -14,7 +14,7 @@ export const buttonStyle: CSSProperties = {
   padding: "4px 9px",
   fontSize: "0.8em",
   border: "1px solid var(--background-modifier-border)",
-  borderRadius: "8px",
+  borderRadius: "6px",
   background: "var(--background-primary)",
   color: "var(--text-normal)",
   cursor: "pointer",
@@ -42,9 +42,9 @@ export const buttonSmDisabledStyle: CSSProperties = {
 export const tabButtonStyle: CSSProperties = {
   padding: "5px 9px",
   fontSize: "0.85em",
-  border: "1px solid rgba(var(--mono-rgb-100), 0.15)",
+  border: "1px solid var(--background-modifier-border)",
   borderRadius: "999px",
-  background: "rgba(var(--mono-rgb-100), 0.02)",
+  background: "var(--background-primary)",
   color: "var(--text-muted)",
   cursor: "pointer",
   outline: "none",
@@ -64,7 +64,7 @@ export const selectStyle: CSSProperties = {
   padding: "4px 8px",
   fontSize: "0.85em",
   border: "1px solid var(--background-modifier-border)",
-  borderRadius: "8px",
+  borderRadius: "6px",
   background: "var(--background-primary)",
   color: "var(--text-normal)",
 };
@@ -116,15 +116,6 @@ export const cardSubtleStyle: CSSProperties = {
 export const cardSubtleTightStyle: CSSProperties = {
   ...cardSubtleStyle,
   padding: SPACE.md,
-};
-
-export const ctaButtonStyle: CSSProperties = {
-  ...buttonStyle,
-  background: "var(--interactive-accent)",
-  color: "var(--text-on-accent)",
-  fontWeight: 600,
-  border: "none",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
 };
 
 export * from "./glass";
