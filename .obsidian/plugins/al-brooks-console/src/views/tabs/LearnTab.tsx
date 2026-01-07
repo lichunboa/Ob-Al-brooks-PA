@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { HeadingM, GlassCard, GlassPanel, ButtonGhost, GlassInset, DisplayXL, StatusBadge } from "../../ui/components/DesignSystem";
 import { SPACE } from "../../ui/styles/theme";
 import { V5_COLORS } from "../../ui/tokens";
@@ -124,7 +124,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                 {course.upNext.length > 0 && (
                                     <div style={{ color: "var(--text-muted)", fontSize: "0.9em", marginBottom: "8px" }}>
                                         接下来（窗口={settings.courseRecommendationWindow}）：{" "}
-                                        {course.upNext.map((x, idx) => {
+                                        {course.upNext.map((x: any, idx: number) => {
                                             const label = String(x.item.id);
                                             if (x.link) {
                                                 return (
@@ -159,13 +159,13 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                         展开课程矩阵
                                     </summary>
                                     <div style={{ marginTop: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                                        {course.phases.map((ph) => (
+                                        {course.phases.map((ph: any) => (
                                             <div key={`ph-${ph.phase}`} style={{ marginBottom: "12px" }}>
                                                 <div style={{ fontSize: "0.85em", color: "var(--text-muted)", marginBottom: "6px", borderBottom: "1px solid var(--background-modifier-border)", paddingBottom: "4px" }}>
                                                     {ph.phase}
                                                 </div>
                                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                                    {ph.items.map((c) => {
+                                                    {ph.items.map((c: any) => {
                                                         const bg = c.isDone ? V5_COLORS.win : c.hasNote ? V5_COLORS.accent : "rgba(var(--mono-rgb-100), 0.06)";
                                                         const fg = c.isDone ? "var(--background-primary)" : c.hasNote ? "var(--background-primary)" : "var(--text-faint)";
                                                         const title = `${c.item.id}: ${String(c.item.t ?? "")}`;
@@ -263,7 +263,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                                     {picks.length > 0 ? (
                                         <>
                                             推荐优先关注：{" "}
-                                            {picks.map((s, idx) => (
+                                            {picks.map((s: any, idx: number) => (
                                                 <React.Fragment key={`pb-pick-${s.path}`}>
                                                     {idx > 0 ? " · " : ""}
                                                     <button
@@ -329,7 +329,8 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                             <div>次数</div>
                         </div>
 
-                        {playbookPerfRows.map((r) => {
+
+                        {playbookPerfRows.map((r: any) => {
                             const pnlColor = r.pnl > 0 ? V5_COLORS.win : r.pnl < 0 ? V5_COLORS.loss : "var(--text-muted)";
                             return (
                                 <div key={`pb-perf-${r.canonical}`} style={{ display: "grid", gridTemplateColumns: "1fr 72px 88px 60px", padding: "8px 10px", borderBottom: "1px solid var(--background-modifier-border)", fontSize: "0.9em", alignItems: "center" }}>
@@ -360,7 +361,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
                         })}
                     </GlassInset>
                 )}
-            </GlassCard>
+            </GlassCard >
         </>
     );
 };

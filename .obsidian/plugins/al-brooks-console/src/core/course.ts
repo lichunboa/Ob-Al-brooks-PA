@@ -1,8 +1,23 @@
 export type CourseHybridRec = {
   type: "New" | "Review";
   data: SyllabusItem;
+  link?: CourseLink;
 };
+// ...
+const hybridRecLink = next ? (linksById[next.id] || linksById[simpleCourseId(next.id)]) : undefined;
+const hybridRec = next ? { type: nextType, data: next, link: hybridRecLink } : null;
 
+return {
+  syllabus,
+  doneIds: Array.from(doneSet),
+  linksById,
+  progress: { doneCount, totalCount: syllabus.length },
+  current: hybridRec ? [hybridRec] : [],
+  hybridRec,
+  phases: phaseGroups,
+  upNext,
+};
+}
 export type SyllabusItem = {
   id: string;
   /** title */
@@ -32,6 +47,7 @@ export type CourseSnapshot = {
   doneIds: string[];
   linksById: Record<string, CourseLink>;
   progress: { doneCount: number; totalCount: number };
+  current: CourseHybridRec[];
   hybridRec: CourseHybridRec | null;
   phases: CoursePhaseGroup[];
   upNext: CourseMatrixItem[];
@@ -157,12 +173,15 @@ export function buildCourseSnapshot(args: {
     });
   }
 
+  const hybridRec = next ? { type: nextType, data: next } : null;
+
   return {
     syllabus,
     doneIds: Array.from(doneSet),
     linksById,
     progress: { doneCount, totalCount: syllabus.length },
-    hybridRec: next ? { type: nextType, data: next } : null,
+    current: hybridRec ? [hybridRec] : [],
+    hybridRec,
     phases: phaseGroups,
     upNext,
   };

@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { HeadingM, GlassCard, GlassPanel, ButtonGhost, DisplayXL, StatusBadge } from "../../ui/components/DesignSystem";
 import { SPACE, glassCardStyle, glassPanelStyle } from "../../ui/styles/dashboardPrimitives";
 import { V5_COLORS } from "../../ui/tokens";
@@ -68,7 +68,7 @@ export interface ManageTabProps {
     onBtnBlur?: () => void;
 }
 
-export const ManageTab: React.FC<ManageTabProps> = ({
+export const ManageTab = ({
     schemaIssues, paTagSnapshot, tradesCount, filesCount, tagsCount,
     healthScore, healthColor, issueCount, topTypes, topTags, sortedRecent,
     prettySchemaVal, prettyExecVal, openFile, openGlobalSearch,
@@ -83,7 +83,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
     promptText, confirmDialog, runManagerPlan, runCommand,
     onTextBtnMouseEnter, onTextBtnMouseLeave, onTextBtnFocus, onTextBtnBlur,
     onBtnMouseEnter, onBtnMouseLeave, onBtnFocus, onBtnBlur
-}) => {
+}: ManageTabProps) => {
     return (
         <>
             <div style={{ marginBottom: SPACE.xl }}>
@@ -139,7 +139,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                         fontSize: "0.9em",
                                     }}
                                 >
-                                    {topTypes.map(([t, c]) => (
+                                    {topTypes.map(([t, c]: [string, number]) => (
                                         <div
                                             key={t}
                                             style={{
@@ -272,7 +272,7 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                     <div>问题</div>
                                     <div>字段</div>
                                 </div>
-                                {schemaIssues.slice(0, 80).map((item, idx) => (
+                                {schemaIssues.slice(0, 80).map((item: any, idx: number) => (
                                     <button
                                         key={`${item.path}:${item.key}:${idx}`}
                                         type="button"
@@ -472,166 +472,164 @@ export const ManageTab: React.FC<ManageTabProps> = ({
                                 <div>执行</div>
                             </div>
 
-                        </div>
-
-                        {sortedRecent.map((t: any) => (
-                            <button
-                                key={t.path}
-                                type="button"
-                                onClick={() => openFile(t.path)}
-                                title={t.path}
-                                onMouseEnter={onTextBtnMouseEnter}
-                                onMouseLeave={onTextBtnMouseLeave}
-                                onFocus={onTextBtnFocus}
-                                onBlur={onTextBtnBlur}
-                                style={{
-                                    width: "100%",
-                                    textAlign: "left",
-                                    padding: 0,
-                                    border: "none",
-                                    borderBottom: "1px solid var(--background-modifier-border)",
-                                    background: "transparent",
-                                    cursor: "pointer",
-                                    outline: "none",
-                                }}
-                            >
-                                <div
+                            {sortedRecent.map((t: any) => (
+                                <button
+                                    key={t.path}
+                                    type="button"
+                                    onClick={() => openFile(t.path)}
+                                    title={t.path}
+                                    onMouseEnter={onTextBtnMouseEnter}
+                                    onMouseLeave={onTextBtnMouseLeave}
+                                    onFocus={onTextBtnFocus}
+                                    onBlur={onTextBtnBlur}
                                     style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "90px 110px 120px 1fr 100px 120px",
-                                        gap: "10px",
-                                        padding: "10px",
-                                        alignItems: "baseline",
-                                        fontSize: "0.9em",
+                                        width: "100%",
+                                        textAlign: "left",
+                                        padding: 0,
+                                        border: "none",
+                                        borderBottom: "1px solid var(--background-modifier-border)",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        outline: "none",
                                     }}
                                 >
-                                    <div style={{ color: "var(--text-muted)" }}>{t.dateIso}</div>
-                                    <div style={{ fontWeight: 650 }}>{t.ticker ?? "—"}</div>
-                                    <div style={{ color: "var(--text-muted)" }}>{t.timeframe ?? "—"}</div>
                                     <div
                                         style={{
-                                            color: "var(--text-muted)",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
+                                            display: "grid",
+                                            gridTemplateColumns: "90px 110px 120px 1fr 100px 120px",
+                                            gap: "10px",
+                                            padding: "10px",
+                                            alignItems: "baseline",
+                                            fontSize: "0.9em",
                                         }}
-                                        title={t.setupKey ?? t.setupCategory ?? ""}
                                     >
-                                        {prettySchemaVal(t.setupKey ?? t.setupCategory) || "—"}
+                                        <div style={{ color: "var(--text-muted)" }}>{t.dateIso}</div>
+                                        <div style={{ fontWeight: 650 }}>{t.ticker ?? "—"}</div>
+                                        <div style={{ color: "var(--text-muted)" }}>{t.timeframe ?? "—"}</div>
+                                        <div
+                                            style={{
+                                                color: "var(--text-muted)",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                            title={t.setupKey ?? t.setupCategory ?? ""}
+                                        >
+                                            {prettySchemaVal(t.setupKey ?? t.setupCategory) || "—"}
+                                        </div>
+                                        <div style={{ color: "var(--text-muted)" }}>{t.outcome ?? "unknown"}</div>
+                                        <div style={{ color: "var(--text-muted)" }}>
+                                            {prettyExecVal(t.executionQuality) || "—"}
+                                        </div>
                                     </div>
-                                    <div style={{ color: "var(--text-muted)" }}>{t.outcome ?? "unknown"}</div>
-                                    <div style={{ color: "var(--text-muted)" }}>
-                                        {prettyExecVal(t.executionQuality) || "—"}
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                    </GlassPanel>
-            </GlassCard>
+                                </button>
+                            ))}
+                        </GlassPanel>
+                    </GlassCard>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                    gap: SPACE.md,
-                    marginBottom: SPACE.md,
-                }}
-            >
-                {[
-                    { title: "系统健康度", value: String(healthScore), color: healthColor },
-                    { title: "待修异常", value: String(issueCount), color: issueCount > 0 ? COLORS.loss : COLORS.text.muted },
-                    { title: "标签总数", value: String(tagsCount), color: COLORS.accent },
-                    { title: "笔记档案", value: String(filesCount), color: COLORS.accent },
-                ].map((c) => (
-                    <GlassPanel key={c.title} style={{ textAlign: "center" }}>
-                        <div style={{ color: COLORS.text.muted, fontSize: "0.9em", marginBottom: SPACE.xs }}>
-                            {c.title}
-                        </div>
-                        <DisplayXL style={{ color: c.color }}>{c.value}</DisplayXL>
-                    </GlassPanel>
-                ))}
-            </div>
-
-            <GlassPanel style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: SPACE.md }}>
-                <div style={{ fontWeight: 800, color: healthColor, display: "flex", alignItems: "center", gap: SPACE.md }}>
-                    <span>{issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}</span>
-                    <StatusBadge
-                        label={issueCount === 0 ? "AI Clear" : "Needs Attention"}
-                        tone={issueCount === 0 ? "success" : "warn"}
-                    />
-                </div>
-                <div style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>
-                    {issueCount === 0 ? "所有关键属性已规范填写" : "建议优先处理异常详情中的缺失字段"}
-                </div>
-            </GlassPanel>
-
-            <details style={{ marginTop: "12px" }}>
-                <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontWeight: 700 }}>
-                    🔎 检查器（Inspector）与修复方案预览（可展开）
-                </summary>
-
-                <div style={{ marginTop: "12px" }}>
                     <div
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "12px",
-                            marginBottom: "8px",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                            gap: SPACE.md,
+                            marginBottom: SPACE.md,
                         }}
                     >
-                        <div style={{ fontWeight: 700 }}>检查器问题列表</div>
-                        <ButtonGhost onClick={() => setShowFixPlan((v: boolean) => !v)} disabled={!enumPresets}>
-                            {showFixPlan ? "隐藏修复方案" : "预览修复方案"}
-                        </ButtonGhost>
+                        {[
+                            { title: "系统健康度", value: String(healthScore), color: healthColor },
+                            { title: "待修异常", value: String(issueCount), color: issueCount > 0 ? COLORS.loss : COLORS.text.muted },
+                            { title: "标签总数", value: String(tagsCount), color: COLORS.accent },
+                            { title: "笔记档案", value: String(filesCount), color: COLORS.accent },
+                        ].map((c) => (
+                            <GlassPanel key={c.title} style={{ textAlign: "center" }}>
+                                <div style={{ color: COLORS.text.muted, fontSize: "0.9em", marginBottom: SPACE.xs }}>
+                                    {c.title}
+                                </div>
+                                <DisplayXL style={{ color: c.color }}>{c.value}</DisplayXL>
+                            </GlassPanel>
+                        ))}
                     </div>
 
-                    {/* Inspector Logic Here (Simplified for extraction - you would pass children or keep it here if not too complex) */}
+                    <GlassPanel style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: SPACE.md }}>
+                        <div style={{ fontWeight: 800, color: healthColor, display: "flex", alignItems: "center", gap: SPACE.md }}>
+                            <span>{issueCount === 0 ? "✅ 系统非常健康" : "⚠️ 系统需要修复"}</span>
+                            <StatusBadge
+                                label={issueCount === 0 ? "AI Clear" : "Needs Attention"}
+                                tone={issueCount === 0 ? "success" : "warn"}
+                            />
+                        </div>
+                        <div style={{ color: COLORS.text.muted, fontSize: "0.9em" }}>
+                            {issueCount === 0 ? "所有关键属性已规范填写" : "建议优先处理异常详情中的缺失字段"}
+                        </div>
+                    </GlassPanel>
 
-                    {showFixPlan && enumPresets ? (
+                    <details style={{ marginTop: "12px" }}>
+                        <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontWeight: 700 }}>
+                            🔎 检查器（Inspector）与修复方案预览（可展开）
+                        </summary>
+
                         <div style={{ marginTop: "12px" }}>
-                            <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-                                修复方案预览（FixPlan）
-                            </div>
-                            <pre
+                            <div
                                 style={{
-                                    ...glassPanelStyle,
-                                    margin: 0,
-                                    padding: "10px",
-                                    maxHeight: "220px",
-                                    overflow: "auto",
-                                    whiteSpace: "pre-wrap",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: "12px",
+                                    marginBottom: "8px",
                                 }}
                             >
-                                {fixPlanText ?? ""}
-                            </pre>
+                                <div style={{ fontWeight: 700 }}>检查器问题列表</div>
+                                <ButtonGhost onClick={() => setShowFixPlan((v: boolean) => !v)} disabled={!enumPresets}>
+                                    {showFixPlan ? "隐藏修复方案" : "预览修复方案"}
+                                </ButtonGhost>
+                            </div>
+
+                            {/* Inspector Logic Here (Simplified for extraction - you would pass children or keep it here if not too complex) */}
+
+                            {showFixPlan && enumPresets ? (
+                                <div style={{ marginTop: "12px" }}>
+                                    <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                                        修复方案预览（FixPlan）
+                                    </div>
+                                    <pre
+                                        style={{
+                                            ...glassPanelStyle,
+                                            margin: 0,
+                                            padding: "10px",
+                                            maxHeight: "220px",
+                                            overflow: "auto",
+                                            whiteSpace: "pre-wrap",
+                                        }}
+                                    >
+                                        {fixPlanText ?? ""}
+                                    </pre>
+                                </div>
+                            ) : !enumPresets ? (
+                                <div style={{ marginTop: "12px", color: "var(--text-faint)", fontSize: "0.9em" }}>
+                                    枚举预设不可用，已禁用修复方案生成。
+                                </div>
+                            ) : null}
                         </div>
-                    ) : !enumPresets ? (
-                        <div style={{ marginTop: "12px", color: "var(--text-faint)", fontSize: "0.9em" }}>
-                            枚举预设不可用，已禁用修复方案生成。
-                        </div>
-                    ) : null}
-                </div>
-            </details>
-        </div >
+                    </details>
+                </div >
             </GlassCard >
 
-    <GlassCard style={{ marginBottom: SPACE.lg }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.md, marginBottom: SPACE.md }}>
-            <HeadingM>🛠 资源管理器 (Manager)</HeadingM>
-            <div style={{ display: "flex", gap: "10px" }}>
-                <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
-                    {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
-                </ButtonGhost>
-            </div>
-        </div>
+            <GlassCard style={{ marginBottom: SPACE.lg }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.md, marginBottom: SPACE.md }}>
+                    <HeadingM>🛠 资源管理器 (Manager)</HeadingM>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <ButtonGhost onClick={scanManagerInventory} disabled={managerBusy}>
+                            {managerBusy ? "扫描中..." : "🔄 刷新全库索引"}
+                        </ButtonGhost>
+                    </div>
+                </div>
 
-        {/* Manager Inventory Table - To be fully refactored or passed via props */}
-        {/* Placeholder for now to keep it safe */}
-        <div style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>
-            (Manager Inventory Grid Logic - Can be passed as children or extracted separately)
-        </div>
-    </GlassCard >
+                {/* Manager Inventory Table - To be fully refactored or passed via props */}
+                {/* Placeholder for now to keep it safe */}
+                <div style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>
+                    (Manager Inventory Grid Logic - Can be passed as children or extracted separately)
+                </div>
+            </GlassCard >
         </>
     );
 };

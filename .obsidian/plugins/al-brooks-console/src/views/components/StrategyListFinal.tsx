@@ -3,7 +3,7 @@ import type { StrategyCard } from "../../core/strategy-index";
 import {
     GlassCard,
     StatusBadge,
-    HeadingS,
+    HeadingM,
     Label
 } from "../../ui/components/DesignSystem";
 import { COLORS, SPACE, TYPO } from "../../ui/styles/theme";
@@ -281,14 +281,14 @@ export const StrategyListFinal: React.FC<Props> = ({
                                                     marginBottom: "2px",
                                                 }}
                                             >
-                                                <HeadingS style={{
+                                                <HeadingM style={{
                                                     fontSize: "1.05em",
                                                     lineHeight: "1.3",
                                                     flex: "1",
                                                     wordBreak: "break-word"
                                                 }}>
                                                     {s.canonicalName || s.name}
-                                                </HeadingS>
+                                                </HeadingM>
 
                                                 <div style={{
                                                     textAlign: "right",
