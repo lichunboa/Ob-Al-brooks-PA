@@ -1052,7 +1052,7 @@ const ConsoleComponent: React.FC<Props> = ({
   ]);
 
   const strategyLab = React.useMemo(
-    () => computeStrategyLab(trades, (t) => identifyStrategyForAnalytics(t, strategyIndex)),
+    () => computeStrategyLab(trades, (t) => ({ name: identifyStrategyForAnalytics(t, strategyIndex).name })),
     [trades, strategyIndex]
   );
 
