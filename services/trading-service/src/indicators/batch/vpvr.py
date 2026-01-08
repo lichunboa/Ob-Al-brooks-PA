@@ -250,7 +250,7 @@ def compute_vpvr_ridge_data(
         logger.warning("不支持的 interval: %s", interval)
         return None
     
-    total_candles = periods * lookback
+    total_candles = lookback + periods  # 需要 lookback + periods 根 K 线
     logger.debug("VPVR ridge: symbol=%s, interval=%s, periods=%s, lookback=%s, bins=%s, total=%s",
                  symbol, interval, periods, lookback, bins, total_candles)
     
@@ -273,22 +273,32 @@ def compute_vpvr_ridge_data(
         logger.error("数据库查询失败: %s", e)
         return None
     
-    if len(rows) < lookback:
+    if len(rows) < total_candles:
         logger.warning("数据不足: 需要 %s 条，实际 %s 条", total_candles, len(rows))
         return None
     
-    # rows 已按时间倒序，直接从头切片（最新在前）
+    # rows 已按时间倒序：rows[0] = 最新，rows[1] = 次新...
+    # T-0: OHLC = rows[0], VPVR = rows[1:1+lookback]
+    # T-1: OHLC = rows[1], VPVR = rows[2:2+lookback]
+    # T-i: OHLC = rows[i], VPVR = rows[i+1:i+1+lookback]
     result_periods = []
     for i in range(periods):
-        start = i * lookback
-        end = start + lookback
-        if end > len(rows):
+        if i + 1 + lookback > len(rows):
             break
         
-        # 切片内按时间倒序，需要反转为正序计算 VPVR
-        chunk = rows[start:end][::-1]  # 反转为时间正序
+        # 当前周期的 K 线（用于 OHLC）
+        kline_row = rows[i]
+        ohlc = {
+            "open": float(kline_row[1]),
+            "high": float(kline_row[2]),
+            "low": float(kline_row[3]),
+            "close": float(kline_row[4]),
+        }
         
-        df = pd.DataFrame(chunk, columns=["bucket_ts", "open", "high", "low", "close", "volume"])
+        # 该 K 线之前的 lookback 根 K 线（用于 VPVR）
+        vpvr_rows = rows[i+1 : i+1+lookback][::-1]  # 反转为时间正序
+        
+        df = pd.DataFrame(vpvr_rows, columns=["bucket_ts", "open", "high", "low", "close", "volume"])
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = df[col].astype(float)
         
@@ -301,14 +311,7 @@ def compute_vpvr_ridge_data(
         dist = compute_vpvr_distribution(df, bins)
         if dist:
             dist["label"] = f"T-{i}"
-            # OHLC 使用该周期最后一根 K 线（而非整个窗口聚合）
-            last_row = df.iloc[-1]
-            dist["ohlc"] = {
-                "open": float(last_row["open"]),
-                "high": float(last_row["high"]),
-                "low": float(last_row["low"]),
-                "close": float(last_row["close"]),
-            }
+            dist["ohlc"] = ohlc  # 使用该周期对应的单根 K 线 OHLC
             result_periods.append(dist)
     
     if not result_periods:
