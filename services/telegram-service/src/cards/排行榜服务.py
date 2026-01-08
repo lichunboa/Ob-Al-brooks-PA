@@ -14,7 +14,7 @@ import logging
 from typing import Dict, List, Sequence
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -176,24 +176,25 @@ class VolumeRankingService(BaseService):
 
         aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
         time_info = self.handler.get_current_time_display()
-        title = f"🎪 热币排行 - {market_text}{period_text}交易量"
-        header_parts = ["排名", "币种"]
+        lang = resolve_lang(lang=None)
+        title = _t("card.volume.title", lang=lang)
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)]
         if show_quote_volume:
-            header_parts.append(f"{period_text}交易量(±)")
+            header_parts.append(f"{period_text}Vol(±)")
         if show_price:
-            header_parts.append("价格")
-        header_parts.append(f"{period_text}涨跌(±)")
+            header_parts.append(_t("field.price", lang=lang))
+        header_parts.append(f"{period_text}Chg(±)")
         header = "/".join(header_parts)
 
         return f"""{title}
-⏰ 更新 {time_info['full']}
-📊 排序 {period_text}交易量(USDT)({sort_symbol}) / {sort_text}
+{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}
+{_t('card.common.sort_info', lang=lang).format(period=period_text, field='volume', symbol=sort_symbol)}
 {header}
 ```
 {aligned}
 ```
-💡 交易量反映市场活跃度和流动性
-⏰ 最后更新 {time_info['full']}"""
+{_t('card.volume.hint', lang=lang)}
+{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"""
 
     @staticmethod
     def _format_volume(value: float) -> str:
@@ -537,7 +538,9 @@ def build_standard_keyboard(
         btn("升序", f"{prefix}sort_asc", active=current_sort_order == "asc"),
     ]
     for lim in limits:
-        sort_limit_row.append(btn(f"{lim}条", f"{prefix}limit_{lim}", active=lim == current_limit))
+        # 使用固定的中文标签，通过 BUTTON_KEY_MAP 自动翻译
+        limit_label = {10: "10条", 20: "20条", 30: "30条"}.get(lim, f"{lim}")
+        sort_limit_row.append(btn(limit_label, f"{prefix}limit_{lim}", active=lim == current_limit))
     if show_sort_limit:
         keyboard.append(sort_limit_row)
 
@@ -594,15 +597,15 @@ class BuySellRatioService(BaseService):
         aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
         time_info = self.handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        sort_text = "降序" if sort_order == "desc" else "升序"
+        lang = resolve_lang(lang=None)
         return (
-            f"🧾 主动买卖比排行榜\n"
-            f"⏰ 更新 {time_info['full']}\n"
-            f"📊 排序 {period} 内买盘占比({sort_symbol}) / {sort_text}\n"
-            f"排名/币种/买卖比/主动买额/主动卖额/成交额/价格\n"
+            f"{_t('card.taker_ratio.title', lang=lang)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field='taker_ratio', symbol=sort_symbol)}\n"
+            f"{_t('card.header.rank', lang=lang)}/{_t('card.header.symbol', lang=lang)}/Ratio/Buy/Sell/Vol/Price\n"
             f"```\n{aligned}\n```\n"
-            f"💡 买卖比 = 主动买成交额 ÷ 总成交额，越高代表买盘越强\n"
-            f"⏰ 最后更新 {time_info['full']}"
+            f"{_t('card.taker_ratio.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
 
     # ---------- 数据加载 ----------

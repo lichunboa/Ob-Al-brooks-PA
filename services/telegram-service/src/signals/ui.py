@@ -8,7 +8,7 @@ import logging
 from typing import Dict
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from cards.i18n import btn as _btn, resolve_lang
+from cards.i18n import btn as _btn, gettext as _t, resolve_lang
 
 from .rules import RULES_BY_TABLE
 
@@ -236,9 +236,11 @@ def get_signal_push_kb(symbol: str) -> InlineKeyboardMarkup:
     """信号推送消息的内联键盘，带币种分析和AI分析跳转"""
     # 去掉USDT后缀用于显示
     coin = symbol.replace("USDT", "")
+    analyze_text = f"🔍 {coin}{_t('btn.analyze', None)}"
+    ai_text = f"🤖 {_t('btn.ai_analyze', None)}"
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(f"🔍 {coin}分析", callback_data=f"single_query_{symbol}"),
-            InlineKeyboardButton("🤖 AI分析", callback_data=f"ai_coin_{symbol}"),
+            InlineKeyboardButton(analyze_text, callback_data=f"single_query_{symbol}"),
+            InlineKeyboardButton(ai_text, callback_data=f"ai_coin_{symbol}"),
         ]
     ])
