@@ -260,18 +260,30 @@ def compute_vpvr_ridge_data(
         """, (symbol, total_candles))
         rows_1m = cur.fetchall()
         
-        # 获取对应 interval 的 K 线用于 OHLC（每个周期取最后一根）
-        cur.execute("""
-            SELECT bucket_ts, open, high, low, close
-            FROM market_data.candles_1m
-            WHERE symbol = %s
-            ORDER BY bucket_ts DESC
-            LIMIT %s
-        """, (symbol, periods * minutes))
+        # 获取对应 interval 的真实 K 线 OHLC（按时间边界聚合）
+        cur.execute(f"""
+            WITH hourly AS (
+                SELECT 
+                    date_trunc('hour', bucket_ts) + 
+                        (FLOOR(EXTRACT(MINUTE FROM bucket_ts) / {minutes}) * INTERVAL '{minutes} minutes') as period_ts,
+                    (array_agg(open ORDER BY bucket_ts))[1] as open,
+                    MAX(high) as high,
+                    MIN(low) as low,
+                    (array_agg(close ORDER BY bucket_ts DESC))[1] as close
+                FROM market_data.candles_1m
+                WHERE symbol = %s
+                GROUP BY period_ts
+                ORDER BY period_ts DESC
+                LIMIT %s
+            )
+            SELECT period_ts, open, high, low, close FROM hourly ORDER BY period_ts
+        """, (symbol, periods))
         rows_interval = cur.fetchall()
         
         conn.close()
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return None
     
     if len(rows_1m) < candles_per_period:
@@ -279,23 +291,16 @@ def compute_vpvr_ridge_data(
     
     # 按时间正序
     rows_1m = rows_1m[::-1]
-    rows_interval = rows_interval[::-1]
     
-    # 聚合 interval K 线的 OHLC（每 minutes 根 1m 聚合成一根）
+    # interval K 线 OHLC 已经按时间边界聚合好了
     interval_ohlc = []
-    for i in range(periods):
-        start = i * minutes
-        end = start + minutes
-        if end > len(rows_interval):
-            break
-        chunk = rows_interval[start:end]
-        if chunk:
-            interval_ohlc.append({
-                "open": float(chunk[0][1]),
-                "high": float(max(r[2] for r in chunk)),
-                "low": float(min(r[3] for r in chunk)),
-                "close": float(chunk[-1][4]),
-            })
+    for row in rows_interval:
+        interval_ohlc.append({
+            "open": float(row[1]),
+            "high": float(row[2]),
+            "low": float(row[3]),
+            "close": float(row[4]),
+        })
     
     # 分割成 periods 个周期计算 VPVR
     result_periods = []
@@ -313,7 +318,7 @@ def compute_vpvr_ridge_data(
         dist = compute_vpvr_distribution(df, bins)
         if dist:
             dist["label"] = f"T-{i}"
-            # 使用对应 interval 的 K 线 OHLC，而不是 VPVR 窗口聚合的
+            # 使用对应 interval 的真实 K 线 OHLC
             if i < len(interval_ohlc):
                 dist["ohlc"] = interval_ohlc[i]
             result_periods.append(dist)
