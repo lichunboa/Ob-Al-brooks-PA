@@ -250,7 +250,7 @@ def compute_vpvr_ridge_data(
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
         
-        # 获取原始 1m K 线
+        # 获取原始 1m K 线用于 VPVR 计算
         cur.execute("""
             SELECT bucket_ts, open, high, low, close, volume
             FROM market_data.candles_1m
@@ -258,34 +258,64 @@ def compute_vpvr_ridge_data(
             ORDER BY bucket_ts DESC
             LIMIT %s
         """, (symbol, total_candles))
-        rows = cur.fetchall()
+        rows_1m = cur.fetchall()
+        
+        # 获取对应 interval 的 K 线用于 OHLC（每个周期取最后一根）
+        cur.execute("""
+            SELECT bucket_ts, open, high, low, close
+            FROM market_data.candles_1m
+            WHERE symbol = %s
+            ORDER BY bucket_ts DESC
+            LIMIT %s
+        """, (symbol, periods * minutes))
+        rows_interval = cur.fetchall()
+        
         conn.close()
     except Exception:
         return None
     
-    if len(rows) < candles_per_period:
+    if len(rows_1m) < candles_per_period:
         return None
     
     # 按时间正序
-    rows = rows[::-1]
+    rows_1m = rows_1m[::-1]
+    rows_interval = rows_interval[::-1]
     
-    # 分割成 periods 个周期
+    # 聚合 interval K 线的 OHLC（每 minutes 根 1m 聚合成一根）
+    interval_ohlc = []
+    for i in range(periods):
+        start = i * minutes
+        end = start + minutes
+        if end > len(rows_interval):
+            break
+        chunk = rows_interval[start:end]
+        if chunk:
+            interval_ohlc.append({
+                "open": float(chunk[0][1]),
+                "high": float(max(r[2] for r in chunk)),
+                "low": float(min(r[3] for r in chunk)),
+                "close": float(chunk[-1][4]),
+            })
+    
+    # 分割成 periods 个周期计算 VPVR
     result_periods = []
     for i in range(periods):
         start = i * candles_per_period
         end = start + candles_per_period
-        if end > len(rows):
+        if end > len(rows_1m):
             break
         
-        chunk = rows[start:end]
+        chunk = rows_1m[start:end]
         df = pd.DataFrame(chunk, columns=["bucket_ts", "open", "high", "low", "close", "volume"])
-        # 转换 Decimal 为 float
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = df[col].astype(float)
         
         dist = compute_vpvr_distribution(df, bins)
         if dist:
             dist["label"] = f"T-{i}"
+            # 使用对应 interval 的 K 线 OHLC，而不是 VPVR 窗口聚合的
+            if i < len(interval_ohlc):
+                dist["ohlc"] = interval_ohlc[i]
             result_periods.append(dist)
     
     return {
