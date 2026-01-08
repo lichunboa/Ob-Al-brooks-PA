@@ -206,126 +206,117 @@ def compute_vpvr_ridge_data(
     """
     计算 VPVR 山脊图数据，供可视化使用。
     
+    直接读取对应 interval 的物化视图（如 candles_1h），避免从 1m 聚合。
+    
     Args:
         symbol: 交易对，如 BTCUSDT
-        interval: K线周期，如 1h, 4h, 1d
-        periods: 山脊周期数量
-        lookback: 每个周期的 K 线数量（默认 200，与指标一致）
+        interval: K线周期，如 1h, 4h, 1d（需有对应物化视图）
+        periods: 山脊周期数量（T-0 为最新）
+        lookback: 每个周期的 K 线数量（默认 200）
         bins: 价格分桶数量（默认 48）
-        db_url: 数据库连接串，默认从环境变量读取
+        db_url: 数据库连接串
     
     Returns:
-        {
-            "symbol": str,
-            "interval": str,
-            "periods": [{
-                "label": "T-0",
-                "bin_centers": [...],
-                "volumes": [...],
-                "poc_price": float,
-                "va_low": float,
-                "va_high": float,
-                "ohlc": {"open", "high", "low", "close"}
-            }, ...]
-        }
+        periods[0] = T-0 = 最新周期，periods[1] = T-1 = 更早，以此类推
+        每个 period 的 OHLC 与其分布使用同一时间窗口
     """
     import os
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # 参数校验
+    if periods <= 0 or lookback <= 0 or bins <= 0:
+        logger.warning("参数无效: periods=%s, lookback=%s, bins=%s", periods, lookback, bins)
+        return None
+    
     try:
         import psycopg2
     except ImportError:
+        logger.error("psycopg2 未安装")
         return None
     
     if db_url is None:
         db_url = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/market_data")
     
-    # interval 转分钟数
-    interval_map = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
-    minutes = interval_map.get(interval, 60)
+    # interval 对应的物化视图表名
+    table_map = {
+        "1m": "candles_1m", "5m": "candles_5m", "15m": "candles_15m", 
+        "30m": "candles_30m", "1h": "candles_1h", "2h": "candles_2h",
+        "4h": "candles_4h", "6h": "candles_6h", "8h": "candles_8h",
+        "12h": "candles_12h", "1d": "candles_1d", "3d": "candles_3d", "1w": "candles_1w",
+    }
+    table_name = table_map.get(interval)
+    if not table_name:
+        logger.warning("不支持的 interval: %s", interval)
+        return None
     
-    # 每个周期需要的 1m K 线数 = lookback * interval分钟数
-    candles_per_period = lookback * minutes
-    total_candles = periods * candles_per_period
+    total_candles = periods * lookback
+    logger.debug("VPVR ridge: symbol=%s, interval=%s, periods=%s, lookback=%s, bins=%s, total=%s",
+                 symbol, interval, periods, lookback, bins, total_candles)
     
     try:
-        conn = psycopg2.connect(db_url)
-        cur = conn.cursor()
-        
-        # 获取原始 1m K 线用于 VPVR 计算
-        cur.execute("""
-            SELECT bucket_ts, open, high, low, close, volume
-            FROM market_data.candles_1m
-            WHERE symbol = %s
-            ORDER BY bucket_ts DESC
-            LIMIT %s
-        """, (symbol, total_candles))
-        rows_1m = cur.fetchall()
-        
-        # 获取对应 interval 的真实 K 线 OHLC（按时间边界聚合）
-        cur.execute(f"""
-            WITH hourly AS (
-                SELECT 
-                    date_trunc('hour', bucket_ts) + 
-                        (FLOOR(EXTRACT(MINUTE FROM bucket_ts) / {minutes}) * INTERVAL '{minutes} minutes') as period_ts,
-                    (array_agg(open ORDER BY bucket_ts))[1] as open,
-                    MAX(high) as high,
-                    MIN(low) as low,
-                    (array_agg(close ORDER BY bucket_ts DESC))[1] as close
-                FROM market_data.candles_1m
-                WHERE symbol = %s
-                GROUP BY period_ts
-                ORDER BY period_ts DESC
-                LIMIT %s
-            )
-            SELECT period_ts, open, high, low, close FROM hourly ORDER BY period_ts
-        """, (symbol, periods))
-        rows_interval = cur.fetchall()
-        
-        conn.close()
+        # 连接超时 3s，查询超时 5s
+        with psycopg2.connect(db_url, connect_timeout=3) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SET statement_timeout = '5s'")
+                
+                # 直接读物化视图，按时间倒序（最新在前）
+                cur.execute(f"""
+                    SELECT bucket_ts, open, high, low, close, volume
+                    FROM market_data.{table_name}
+                    WHERE symbol = %s
+                    ORDER BY bucket_ts DESC
+                    LIMIT %s
+                """, (symbol, total_candles))
+                rows = cur.fetchall()
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error("数据库查询失败: %s", e)
         return None
     
-    if len(rows_1m) < candles_per_period:
+    if len(rows) < lookback:
+        logger.warning("数据不足: 需要 %s 条，实际 %s 条", total_candles, len(rows))
         return None
     
-    # 按时间正序
-    rows_1m = rows_1m[::-1]
-    
-    # interval K 线 OHLC 已经按时间边界聚合好了
-    interval_ohlc = []
-    for row in rows_interval:
-        interval_ohlc.append({
-            "open": float(row[1]),
-            "high": float(row[2]),
-            "low": float(row[3]),
-            "close": float(row[4]),
-        })
-    
-    # 分割成 periods 个周期计算 VPVR
+    # rows 已按时间倒序，直接从头切片（最新在前）
     result_periods = []
     for i in range(periods):
-        start = i * candles_per_period
-        end = start + candles_per_period
-        if end > len(rows_1m):
+        start = i * lookback
+        end = start + lookback
+        if end > len(rows):
             break
         
-        chunk = rows_1m[start:end]
+        # 切片内按时间倒序，需要反转为正序计算 VPVR
+        chunk = rows[start:end][::-1]  # 反转为时间正序
+        
         df = pd.DataFrame(chunk, columns=["bucket_ts", "open", "high", "low", "close", "volume"])
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = df[col].astype(float)
         
+        # 检查成交量是否为 0
+        total_vol = df["volume"].sum()
+        if total_vol <= 0:
+            logger.debug("周期 T-%s 成交量为 0，跳过", i)
+            continue
+        
         dist = compute_vpvr_distribution(df, bins)
         if dist:
             dist["label"] = f"T-{i}"
-            # 使用对应 interval 的真实 K 线 OHLC
-            if i < len(interval_ohlc):
-                dist["ohlc"] = interval_ohlc[i]
+            # OHLC 直接从同一切片计算（与分布同一时间窗口）
+            dist["ohlc"] = {
+                "open": float(df["open"].iloc[0]),      # 首条 open
+                "high": float(df["high"].max()),        # 窗口最高
+                "low": float(df["low"].min()),          # 窗口最低
+                "close": float(df["close"].iloc[-1]),   # 末条 close
+            }
             result_periods.append(dist)
+    
+    if not result_periods:
+        logger.warning("无有效周期数据")
+        return None
     
     return {
         "symbol": symbol,
         "interval": interval,
         "lookback": lookback,
-        "periods": result_periods,
+        "periods": result_periods,  # T-0 在前（最新），T-n 在后（更早）
     }
