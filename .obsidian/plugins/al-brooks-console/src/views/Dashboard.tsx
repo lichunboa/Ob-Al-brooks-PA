@@ -1291,48 +1291,51 @@ const ConsoleComponent: React.FC<Props> = ({
           MarkdownBlock={MarkdownBlock}
         />
       ) : null}
-      <AnalyticsTab
-        summary={summary}
-        strategyLab={strategyLab}
-        contextAnalysis={contextAnalysis}
-        analyticsSuggestion={analyticsSuggestion}
-        analyticsRecentLiveTradesAsc={analyticsRecentLiveTradesAsc}
-        analyticsRMultiples={analyticsRMultiples}
-        analyticsMind={analyticsMind}
-        analyticsTopStrats={analyticsTopStrats}
-        liveCyclePerf={liveCyclePerf}
-        tuition={tuition}
-        calendarCells={calendarCells}
-        calendarMaxAbs={calendarMaxAbs}
-        calendarDays={calendarDays}
-        strategyAttribution={strategyAttribution}
-        analyticsScope={analyticsScope}
-        gallery={gallery}
-        galleryScope={galleryScope}
-        gallerySearchHref={gallerySearchHref}
-        allTradesDateRange={allTradesDateRange}
-        setAnalyticsScope={setAnalyticsScope}
-        setGalleryScope={setGalleryScope}
-        openFile={openFile}
-        getResourceUrl={getResourceUrl}
-        textButtonStyle={textButtonStyle}
-        cardTightStyle={cardTightStyle}
-        cardSubtleTightStyle={cardSubtleTightStyle}
-        selectStyle={selectStyle}
-        SPACE={SPACE}
-        onTextBtnMouseEnter={onTextBtnMouseEnter}
-        onTextBtnMouseLeave={onTextBtnMouseLeave}
-        onTextBtnFocus={onTextBtnFocus}
-        onTextBtnBlur={onTextBtnBlur}
-        onCoverMouseEnter={onCoverMouseEnter}
-        onCoverMouseLeave={onCoverMouseLeave}
-        onCoverFocus={onCoverFocus}
-        onCoverBlur={onCoverBlur}
-        getDayOfMonth={getDayOfMonth}
-        getRColorByAccountType={getRColorByAccountType}
-        getPoints={getPoints}
-        CYCLE_MAP={CYCLE_MAP}
-      />
+
+      {activePage === "analytics" ? (
+        <AnalyticsTab
+          summary={summary}
+          strategyLab={strategyLab}
+          contextAnalysis={contextAnalysis}
+          analyticsSuggestion={analyticsSuggestion}
+          analyticsRecentLiveTradesAsc={analyticsRecentLiveTradesAsc}
+          analyticsRMultiples={analyticsRMultiples}
+          analyticsMind={analyticsMind}
+          analyticsTopStrats={analyticsTopStrats}
+          liveCyclePerf={liveCyclePerf}
+          tuition={tuition}
+          calendarCells={calendarCells}
+          calendarMaxAbs={calendarMaxAbs}
+          calendarDays={calendarDays}
+          strategyAttribution={strategyAttribution}
+          analyticsScope={analyticsScope}
+          gallery={gallery}
+          galleryScope={galleryScope}
+          gallerySearchHref={gallerySearchHref}
+          allTradesDateRange={allTradesDateRange}
+          setAnalyticsScope={setAnalyticsScope}
+          setGalleryScope={setGalleryScope}
+          openFile={openFile}
+          getResourceUrl={getResourceUrl}
+          textButtonStyle={textButtonStyle}
+          cardTightStyle={cardTightStyle}
+          cardSubtleTightStyle={cardSubtleTightStyle}
+          selectStyle={selectStyle}
+          SPACE={SPACE}
+          onTextBtnMouseEnter={onTextBtnMouseEnter}
+          onTextBtnMouseLeave={onTextBtnMouseLeave}
+          onTextBtnFocus={onTextBtnFocus}
+          onTextBtnBlur={onTextBtnBlur}
+          onCoverMouseEnter={onCoverMouseEnter}
+          onCoverMouseLeave={onCoverMouseLeave}
+          onCoverFocus={onCoverFocus}
+          onCoverBlur={onCoverBlur}
+          getDayOfMonth={getDayOfMonth}
+          getRColorByAccountType={getRColorByAccountType}
+          getPoints={getPoints}
+          CYCLE_MAP={CYCLE_MAP}
+        />
+      ) : null}
 
       {activePage === "learn" ? (
         <>
