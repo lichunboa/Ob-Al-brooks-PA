@@ -59,7 +59,7 @@ export function calculateTodayKpi(
 }
 
 /**
- * 计算策略统计数据
+ * 策略统计数据计算
  */
 export function calculateStrategyStats(
     strategies: any[],
@@ -81,4 +81,19 @@ export function calculateStrategyStats(
     strategyPerf.forEach((p) => (totalUses += p.total));
 
     return { total, activeCount, learningCount, totalUses };
+}
+
+/**
+ * 计算所有交易的日期范围(使用calculateDateRange的结果)
+ * 返回min和max字段
+ */
+export function calculateAllTradesDateRange(trades: TradeRecord[]): {
+    min: string | undefined;
+    max: string | undefined;
+} {
+    const { minDate, maxDate } = calculateDateRange(trades);
+    return {
+        min: minDate || undefined,
+        max: maxDate || undefined,
+    };
 }

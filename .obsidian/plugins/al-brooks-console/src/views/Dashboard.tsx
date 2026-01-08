@@ -133,6 +133,7 @@ import {
   calculateDateRange,
   calculateTodayKpi,
   calculateStrategyStats,
+  calculateAllTradesDateRange,
 } from "../utils/data-calculation-utils";
 import {
   calculateLiveCyclePerformance,
@@ -950,17 +951,11 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const latestTrade = trades.length > 0 ? trades[0] : undefined;
 
-  const allTradesDateRange = React.useMemo(() => {
-    let min: string | undefined;
-    let max: string | undefined;
-    for (const t of trades) {
-      const d = (t.dateIso ?? "").toString().trim();
-      if (!d) continue;
-      if (!min || d < min) min = d;
-      if (!max || d > max) max = d;
-    }
-    return { min, max };
-  }, [trades]);
+  // allTradesDateRange 已移至 utils/data-calculation-utils.ts
+  const allTradesDateRange = React.useMemo(
+    () => calculateAllTradesDateRange(trades),
+    [trades]
+  );
   const todayIso = React.useMemo(() => toLocalDateIso(new Date()), []);
   const todayTrades = React.useMemo(
     () => trades.filter((t) => t.dateIso === todayIso),
