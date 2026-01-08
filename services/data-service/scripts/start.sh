@@ -99,12 +99,30 @@ COMPONENTS=(backfill metrics ws)
 
 # 启动命令
 declare -A START_CMDS=(
-    [backfill]="python3 -c \"
-import time, logging
+[backfill]="python3 -c \"
+import time, logging, sys
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger('backfill.patrol')
-from collectors.backfill import DataBackfiller
-bf = DataBackfiller(lookback_days=3)
+from collectors.backfill import DataBackfiller, get_backfill_config, compute_lookback
+
+mode, env_days, on_start, start_date = get_backfill_config()
+lookback = compute_lookback(mode, env_days, start_date)
+
+if lookback <= 0:
+    logger.info('BACKFILL_MODE=none，跳过巡检')
+    sys.exit(0)
+
+logger.info('补齐巡检启动: mode=%s lookback=%d days', mode, lookback)
+bf = DataBackfiller(lookback_days=lookback)
+
+if on_start:
+    try:
+        logger.info('启动时执行一次全量补齐...')
+        result = bf.run_all()
+        logger.info('启动补齐完成: %s', result)
+    except Exception as e:
+        logger.error('启动补齐异常: %s', e, exc_info=True)
+
 while True:
     try:
         logger.info('开始缺口巡检...')

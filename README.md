@@ -32,7 +32,7 @@ bsc：0x8a99b8d53eff6bc331af529af74ad267f3167777
 ---
 
 <p>
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/PostgreSQL-TimescaleDB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="TimescaleDB">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Pandas-数据处理-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas">
@@ -168,6 +168,7 @@ vim config/.env
   - `HTTP_PROXY` / `HTTPS_PROXY`（需要代理时填写）  
   - 币种/周期：`SYMBOLS_GROUPS`、`SYMBOLS_EXTRA`、`SYMBOLS_EXCLUDE`、`INTERVALS`、`KLINE_INTERVALS`、`FUTURES_INTERVALS`  
   - 采集/计算开关：`BACKFILL_MODE`/`BACKFILL_DAYS`/`BACKFILL_ON_START`、`MAX_CONCURRENT`、`RATE_LIMIT_PER_MINUTE`  
+  - 默认值：`BACKFILL_MODE=all`（全量回填，若设置 `BACKFILL_START_DATE` 则按起始日计算天数；否则约 10 年）、`SYMBOLS_GROUPS=main4`（只拉 BTC/ETH/SOL/BNB，如需全市场改为 `all` 或自定义分组）  
   - 计算后端：`COMPUTE_BACKEND`、`MAX_WORKERS`、`HIGH_PRIORITY_TOP_N`、`INDICATORS_ENABLED`/`INDICATORS_DISABLED`  
   - 展示过滤：`BINANCE_API_DISABLED`、`DISABLE_SINGLE_TOKEN_QUERY`、`SNAPSHOT_HIDDEN_FIELDS`、`BLOCKED_SYMBOLS`  
   - AI/交易：`AI_INDICATOR_TABLES`、`AI_INDICATOR_TABLES_DISABLED`、`BINANCE_API_KEY`、`BINANCE_API_SECRET`
@@ -226,7 +227,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 | 依赖 | 版本 | 说明 |
 |:---|:---|:---|
-| Python | 3.10+ | 推荐 3.12 |
+| Python | 3.12+ | CI 使用 3.12 |
 | PostgreSQL | 16+ | 需安装 TimescaleDB 扩展 |
 | TA-Lib | 0.4+ | 系统级库，需单独安装 |
 | SQLite | 3.x | 系统自带 |
@@ -455,6 +456,8 @@ graph TD
 | **trading-service** | - | 38个技术指标计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
 | **telegram-service** | - | Bot 交互、排行榜展示、信号推送 | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI 分析、Wyckoff 方法论（作为 telegram-service 子模块） | Gemini/OpenAI/Claude/DeepSeek |
+| **predict-service** | - | 预测市场信号（Polymarket/Kalshi/Opinion） | Node.js, Telegram Bot |
+| **vis-service** | 8087 | 可视化渲染（K线图/指标图/VPVR） | FastAPI, matplotlib, mplfinance |
 | **order-service** | - | 交易执行、Avellaneda-Stoikov 做市 | Python, ccxt, cryptofeed |
 | **TimescaleDB** | 5433 | K线存储、期货数据存储、时序查询优化 | PostgreSQL 16 + TimescaleDB |
 
@@ -822,7 +825,9 @@ tradecat/
 │   │   └── requirements.lock.txt
 │   │
 │   ├── 📂 predict-service/         # 预测市场信号微服务
-│   │   └── 📂 docs/                # 需求/设计/ADR/Prompt 文档
+│   │   ├── 📂 services/            # 子服务 (polymarket/kalshi/opinion)
+│   │   ├── 📂 docs/                # 需求/设计/ADR/Prompt 文档
+│   │   └── 📂 libs/                # 共享库
 │   │
 │   ├── 📂 vis-service/             # 可视化渲染服务
 │   │   ├── 📂 src/                 # FastAPI 入口与模板渲染
@@ -840,6 +845,7 @@ tradecat/
 │   │   └── 📂 services/telegram-service/
 │   │       └── market_data.db      # SQLite 指标数据
 │   └── 📂 common/                  # 共享工具
+│       ├── i18n.py                 # 国际化模块
 │       ├── symbols.py              # 币种管理模块
 │       └── proxy_manager.py        # 代理管理器
 │

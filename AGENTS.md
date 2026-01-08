@@ -99,9 +99,9 @@ ruff check services/
 
 | 命令 | 说明 | 前置条件 |
 |:---|:---|:---|
-| `./scripts/install.sh` | 一键安装所有依赖 | Python 3.10+ |
-| `./scripts/init.sh` | 初始化所有服务虚拟环境 | Python 3.10+ |
-| `./scripts/init.sh <service>` | 初始化单个服务 | Python 3.10+ |
+| `./scripts/install.sh` | 一键安装所有依赖 | Python 3.12+ |
+| `./scripts/init.sh` | 初始化所有服务虚拟环境 | Python 3.12+ |
+| `./scripts/init.sh <service>` | 初始化单个服务 | Python 3.12+ |
 
 ### 3.2 服务管理
 
@@ -195,7 +195,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 ### 4.4 兼容性要求
 
-- Python >= 3.10
+- Python >= 3.12
 - 保持与现有数据库 schema 兼容
 - 新增指标需注册到 `indicators/__init__.py`
 - 新增卡片需注册到 `cards/registry.py`
@@ -306,7 +306,9 @@ tradecat/
 │   │   └── requirements.lock.txt
 │   │
 │   ├── predict-service/        # 预测市场信号微服务
-│   │   └── docs/               # 需求/设计/ADR/Prompt 文档
+│   │   ├── services/           # 子服务 (polymarket/kalshi/opinion)
+│   │   ├── docs/               # 需求/设计/ADR/Prompt 文档
+│   │   └── libs/               # 共享库
 │   │
 │   ├── vis-service/            # 可视化渲染服务（FastAPI）
 │   │   ├── src/                # 模板注册与渲染
@@ -324,6 +326,7 @@ tradecat/
 │   │   └── services/telegram-service/
 │   │       └── market_data.db  # SQLite 指标数据
 │   └── common/                 # 共享工具库
+│       ├── i18n.py             # 国际化模块
 │       ├── symbols.py          # 币种管理模块
 │       └── proxy_manager.py    # 代理管理器
 │
@@ -547,7 +550,7 @@ docs: 更新 README 快速开始指南
 
 | 变量 | 说明 | 示例 |
 |:---|:---|:---|
-| `SYMBOLS_GROUPS` | 使用的分组 | `auto`, `all`, `main6`, `defi,meme` |
+| `SYMBOLS_GROUPS` | 使用的分组（默认 `main4`=BTC/ETH/SOL/BNB） | `main4`, `main6`, `main20`, `auto`, `all`, `defi,meme` |
 | `SYMBOLS_GROUP_xxx` | 自定义分组 | `BTCUSDT,ETHUSDT,...` |
 | `SYMBOLS_EXTRA` | 额外添加 | `NEWUSDT` |
 | `SYMBOLS_EXCLUDE` | 强制排除 | `BADUSDT` |
@@ -556,6 +559,10 @@ docs: 更新 README 快速开始指南
 
 | 变量 | 服务 | 说明 |
 |:---|:---|:---|
+| `BACKFILL_MODE` | data-service | 回填模式，默认 `all`（全量）；可选 `days`/`none`，`full` 等价 `all` |
+| `BACKFILL_START_DATE` | data-service | 全量起始日（可选），设定后按起始日计算回溯天数 |
+| `BACKFILL_DAYS` | data-service | `BACKFILL_MODE=days` 时的回溯天数，默认 30 |
+| `BACKFILL_ON_START` | data-service | 启动时先跑一次补齐（true/false） |
 | `MAX_CONCURRENT` | data-service | 最大并发请求 |
 | `MAX_WORKERS` | trading-service | 计算线程数 |
 | `COMPUTE_BACKEND` | trading-service | 计算后端 (thread/process) |

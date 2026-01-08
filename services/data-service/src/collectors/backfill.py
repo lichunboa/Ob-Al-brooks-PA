@@ -741,10 +741,43 @@ class GapFiller:
 def get_backfill_config():
     """从环境变量获取补齐配置"""
     import os
-    mode = os.environ.get("BACKFILL_MODE", "days").lower()
-    days = int(os.environ.get("BACKFILL_DAYS", "30"))
+
+    mode_raw = os.environ.get("BACKFILL_MODE", "days").lower()
+    # 兼容历史写法 full → all
+    mode = "all" if mode_raw == "full" else mode_raw
+
+    try:
+        days = int(os.environ.get("BACKFILL_DAYS", "30"))
+    except ValueError:
+        days = 30
+
+    start_date = None
+    start_date_raw = os.environ.get("BACKFILL_START_DATE")
+    if start_date_raw:
+        try:
+            start_date = datetime.fromisoformat(start_date_raw).date()
+        except ValueError:
+            logger.warning("无效的 BACKFILL_START_DATE: %s", start_date_raw)
+
     on_start = os.environ.get("BACKFILL_ON_START", "false").lower() in ("true", "1", "yes")
-    return mode, days, on_start
+    return mode, days, on_start, start_date
+
+
+def compute_lookback(mode: str, days: int, start_date: Optional[date] = None) -> int:
+    """根据模式与起始日计算回溯天数"""
+    mode = (mode or "days").lower()
+
+    if mode == "none":
+        return 0
+
+    if mode == "all":
+        if start_date:
+            delta = (date.today() - start_date).days
+            return max(delta, 1)
+        return 3650  # 默认 10 年
+
+    # 默认 days 模式
+    return max(days, 1)
 
 
 def main() -> None:
@@ -762,18 +795,17 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     # 从环境变量获取配置
-    mode, env_days, _ = get_backfill_config()
+    mode, env_days, _, start_date = get_backfill_config()
 
     # 确定回溯天数
     if args.lookback:
         lookback = args.lookback
-    elif mode == "all":
-        lookback = 3650  # 约10年
-    elif mode == "none":
+    else:
+        lookback = compute_lookback(mode, env_days, start_date)
+
+    if lookback <= 0:
         logger.info("BACKFILL_MODE=none，跳过补齐")
         return
-    else:
-        lookback = env_days
 
     logger.info("补齐模式: %s, 回溯: %d 天", mode, lookback)
 
