@@ -961,39 +961,11 @@ const ConsoleComponent: React.FC<Props> = ({
     () => trades.filter((t) => t.dateIso === todayIso),
     [trades, todayIso]
   );
-  const todayKpi = React.useMemo(() => {
-    const total = todayTrades.length;
-    let wins = 0;
-    let losses = 0;
-    let netR = 0;
-
-    for (const t of todayTrades) {
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      netR += pnl;
-
-      // Prefer explicit outcome (v5 semantics), fall back to pnl sign if missing.
-      const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
-      if (outcome === "win") {
-        wins += 1;
-      } else if (outcome === "loss") {
-        losses += 1;
-      } else if (!outcome || outcome === "unknown") {
-        if (pnl > 0) wins += 1;
-        else if (pnl < 0) losses += 1;
-      }
-    }
-
-    const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
-
-    return {
-      total,
-      wins,
-      losses,
-      winRatePct,
-      netR,
-    };
-  }, [todayTrades]);
+  // todayKpi 已移至 utils/data-calculation-utils.ts
+  const todayKpi = React.useMemo(
+    () => calculateTodayKpi(trades, todayIso),
+    [trades, todayIso]
+  );
   const reviewHints = React.useMemo(() => {
     if (!latestTrade) return [];
     return buildReviewHints(latestTrade);
