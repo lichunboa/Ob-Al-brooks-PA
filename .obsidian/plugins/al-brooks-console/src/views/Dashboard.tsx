@@ -1105,15 +1105,6 @@ const ConsoleComponent: React.FC<Props> = ({
     };
   }, [trades]);
 
-  type GalleryItem = {
-    tradePath: string;
-    tradeName: string;
-    accountType: AccountType;
-    pnl: number;
-    coverPath: string;
-    url?: string;
-  };
-
   const gallery = React.useMemo((): {
     items: GalleryItem[];
     scopeTotal: number;
