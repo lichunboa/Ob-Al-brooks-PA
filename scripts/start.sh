@@ -8,10 +8,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SERVICES=(data-service trading-service telegram-service)
 
 start_all() {
-    echo "=== 启动全部服务 ==="
+    echo "=== 启动全部服务（守护模式）==="
     for svc in "${SERVICES[@]}"; do
         cd "$ROOT/services/$svc"
-        ./scripts/start.sh start 2>&1 | sed "s/^/  [$svc] /"
+        # data-service 使用 daemon 命令启动守护进程
+        if [ "$svc" = "data-service" ]; then
+            ./scripts/start.sh start 2>&1 | sed "s/^/  [$svc] /"
+        else
+            ./scripts/start.sh start 2>&1 | sed "s/^/  [$svc] /"
+        fi
     done
 }
 
