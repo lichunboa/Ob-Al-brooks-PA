@@ -134,6 +134,11 @@ import {
   calculateTodayKpi,
   calculateStrategyStats,
 } from "../utils/data-calculation-utils";
+import {
+  calculateLiveCyclePerformance,
+  sortTradesByDateDesc,
+  getRecentTrades,
+} from "../utils/performance-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { useLearnState } from "../hooks/useLearnState";
@@ -656,20 +661,11 @@ const ConsoleComponent: React.FC<Props> = ({
   );
   const all = summary.All;
 
-  const liveCyclePerf = React.useMemo(() => {
-    const byCycle = new Map<string, number>();
-    for (const t of trades) {
-      if (t.accountType !== "Live") continue;
-      const cycle = normalizeCycle(t.marketCycle ?? "Unknown");
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      byCycle.set(cycle, (byCycle.get(cycle) ?? 0) + pnl);
-    }
-
-    return [...byCycle.entries()]
-      .map(([name, pnl]) => ({ name, pnl }))
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [trades]);
+  // liveCyclePerf 已移至 utils/performance-utils.ts
+  const liveCyclePerf = React.useMemo(
+    () => calculateLiveCyclePerformance(trades),
+    [trades]
+  );
 
   const last30TradesDesc = React.useMemo(() => {
     const sorted = [...trades].sort((a, b) => {
