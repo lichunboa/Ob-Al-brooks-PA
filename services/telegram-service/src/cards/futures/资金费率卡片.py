@@ -22,6 +22,7 @@ class FundingRateCard(RankingCard):
         super().__init__(
             card_id="funding_rate",
             button_text="💱 资金费率",
+            button_key="card.funding_rate.btn",
             category="free",
             description="资金费率/权重排行榜",
             default_state={
@@ -232,7 +233,7 @@ class FundingRateCard(RankingCard):
     def _load_rows(self, service, limit: int, sort_order: str, sort_type: str, period: str, field_state: Dict[str, bool]):
         data = service.handler.get_funding_rate_ranking(limit=limit, sort_order=sort_order, sort_type=sort_type)
         if isinstance(data, str):
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
         items = []
         for r in data or []:
             sym = (r.get("symbol") or "").replace("USDT", "").upper()
@@ -250,7 +251,7 @@ class FundingRateCard(RankingCard):
         items.sort(key=lambda x: x.get(sort_type, 0), reverse=reverse)
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], f[2] or False)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], f[2] or False)]
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
         rows: list[list[str]] = []
         for idx, item in enumerate(items[:limit], 1):
             row = [f"{idx}", item["symbol"]]

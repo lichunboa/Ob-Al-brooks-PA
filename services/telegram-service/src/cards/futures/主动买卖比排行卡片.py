@@ -26,6 +26,7 @@ class 主动买卖比排行卡片(RankingCard):
         super().__init__(
             card_id="buy_sell_ratio_ranking",
             button_text="🧾 主动买卖比",
+            button_key="card.taker_ratio.btn",
             category="free",
             description="按主动买成交额占比排序，洞察买盘强弱",
             default_state={
@@ -291,7 +292,7 @@ class 主动买卖比排行卡片(RankingCard):
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], f[2] or False)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], f[2] or False)]
 
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

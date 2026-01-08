@@ -12,7 +12,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 
 class FuturesTakerStreakCard(RankingCard):
@@ -27,6 +27,7 @@ class FuturesTakerStreakCard(RankingCard):
         super().__init__(
             card_id="futures_taker_streak",
             button_text="↕️ 主动连续",
+            button_key="card.taker_continuous.btn",
             category="free",
             description="主动成交连多/连空根数排行榜，基于期货情绪聚合表",
             default_state={
@@ -137,14 +138,14 @@ class FuturesTakerStreakCard(RankingCard):
         time_info = h.get_current_time_display()
 
         text = (
-            "↕️ 主动连续性榜\n"
+            f'{_t("card.taker_continuous.title", lang=lang)}\n'
             f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
             f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
-            "💡 数据源：期货情绪聚合表（主动连续根数）\n"
+            f'{_t("card.taker_continuous.hint", lang=lang)}\n'
             f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure):
@@ -243,14 +244,14 @@ class FuturesTakerStreakCard(RankingCard):
                 })
         except Exception as exc:  # pragma: no cover
             self._logger.warning("读取期货情绪聚合表失败: %s", exc)
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
 
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
 
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

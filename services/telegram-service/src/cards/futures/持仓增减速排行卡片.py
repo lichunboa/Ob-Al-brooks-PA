@@ -12,7 +12,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 
 class FuturesOIChangeRankingCard(RankingCard):
@@ -28,6 +28,7 @@ class FuturesOIChangeRankingCard(RankingCard):
         super().__init__(
             card_id="futures_oi_change_ranking",
             button_text="⚡ 持仓增减速",
+            button_key="card.oi_change.btn",
             category="free",
             description="持仓变动速度排行榜，基于期货情绪聚合表",
             default_state={
@@ -140,14 +141,14 @@ class FuturesOIChangeRankingCard(RankingCard):
         time_info = h.get_current_time_display()
 
         text = (
-            "⚡ 持仓增减速榜\n"
+            f'{_t("card.oi_change.title", lang=lang)}\n'
             f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
             f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
-            "💡 数据源：期货情绪聚合表（最新一根）\n"
+            f'{_t("card.oi_change.hint", lang=lang)}\n'
             f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure):
@@ -186,11 +187,18 @@ class FuturesOIChangeRankingCard(RankingCard):
             gen_row.append(InlineKeyboardButton(show_label, callback_data=f"field_oichg_toggle_{col_id}"))
         kb.append(gen_row)
 
-        kb.append([
-            InlineKeyboardButton(("持仓变动%" if fields_state.get("oi_change_pct", True) else "❎持仓变动%"), callback_data="field_oichg_toggle_oi_change_pct"),
-            InlineKeyboardButton(("持仓变动" if fields_state.get("oi_change", True) else "❎持仓变动"), callback_data="field_oichg_toggle_oi_change"),
-            InlineKeyboardButton(("持仓金额" if fields_state.get("oi_value", True) else "❎持仓金额"), callback_data="field_oichg_toggle_oi_value"),
-        ])
+        # 专用字段开关行 - 使用 btn_auto 自动 i18n
+        spec_fields = [
+            ("oi_change_pct", "持仓变动%"),
+            ("oi_change", "持仓变动"),
+            ("oi_value", "持仓金额"),
+        ]
+        spec_row = []
+        for col_id, label in spec_fields:
+            state_on = fields_state.get(col_id, True)
+            show_label = label if state_on else f"❎{label}"
+            spec_row.append(_btn_auto(None, show_label, f"field_oichg_toggle_{col_id}"))
+        kb.append(spec_row)
 
         kb.append([
             b(lbl, f"oichg_sort_field_{fid}", active=current_sort_field == fid)
@@ -248,14 +256,14 @@ class FuturesOIChangeRankingCard(RankingCard):
                 })
         except Exception as exc:  # pragma: no cover
             self._logger.warning("读取期货情绪聚合表失败: %s", exc)
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
 
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
 
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

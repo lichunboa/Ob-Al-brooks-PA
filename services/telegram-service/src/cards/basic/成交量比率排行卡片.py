@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 from cards.base import RankingCard
 
@@ -25,6 +25,7 @@ class 成交量比率排行卡片(RankingCard):
         super().__init__(
             card_id="volume_ratio_ranking",
             button_text="📦 成交量比率",
+            button_key="card.volume_ratio.btn",
             category="free",
             description="成交量比率(当前/均量)排行榜",
             default_state={
@@ -160,7 +161,7 @@ class 成交量比率排行卡片(RankingCard):
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
-            f"📦 成交量比率数据\n"
+            f'{_t("card.volume_ratio.title", lang=lang)}\n'
             f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
             f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
@@ -262,14 +263,14 @@ class 成交量比率排行卡片(RankingCard):
                 })
         except Exception as exc:  # pragma: no cover
             self._logger.warning("读取成交量比率榜单失败: %s", exc)
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
 
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
 
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

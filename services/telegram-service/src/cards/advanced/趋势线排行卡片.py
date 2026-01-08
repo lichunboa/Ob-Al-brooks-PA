@@ -24,6 +24,7 @@ class 趋势线排行卡片(RankingCard):
         super().__init__(
             card_id="trendline_ranking",
             button_text="📈 趋势线",
+            button_key="card.trendline.btn",
             category="free",
             description="多/空趋势线距离榜（Pine 趋势线 1:1 复刻）",
             default_state={

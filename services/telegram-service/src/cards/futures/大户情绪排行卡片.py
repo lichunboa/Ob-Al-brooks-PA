@@ -12,7 +12,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 
 class FuturesTopSentimentCard(RankingCard):
@@ -28,6 +28,7 @@ class FuturesTopSentimentCard(RankingCard):
         super().__init__(
             card_id="futures_top_sentiment",
             button_text="🐳 大户情绪",
+            button_key="card.top_sentiment.btn",
             category="free",
             description="大户多空情绪与动量排行榜，基于期货情绪聚合表",
             default_state={
@@ -141,14 +142,14 @@ class FuturesTopSentimentCard(RankingCard):
         time_info = h.get_current_time_display()
 
         text = (
-            "🐳 大户情绪榜\n"
+            f'{_t("card.top_sentiment.title", lang=lang)}\n'
             f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
             f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
-            "💡 数据源：期货情绪聚合表（大户维度）\n"
+            f'{_t("card.top_sentiment.hint", lang=lang)}\n'
             f"{_t('card.common.last_update').format(time=time_info['full'])}"
         )
         if callable(ensure):
@@ -187,12 +188,19 @@ class FuturesTopSentimentCard(RankingCard):
             gen_row.append(InlineKeyboardButton(show_label, callback_data=f"field_top_toggle_{col_id}"))
         kb.append(gen_row)
 
-        kb.append([
-            InlineKeyboardButton(("大户多空比" if fields_state.get("top_ratio", True) else "❎大户多空比"), callback_data="field_top_toggle_top_ratio"),
-            InlineKeyboardButton(("大户偏离" if fields_state.get("top_bias", True) else "❎大户偏离"), callback_data="field_top_toggle_top_bias"),
-            InlineKeyboardButton(("大户动量" if fields_state.get("top_momentum", True) else "❎大户动量"), callback_data="field_top_toggle_top_momentum"),
-            InlineKeyboardButton(("大户波动" if fields_state.get("top_volatility", True) else "❎大户波动"), callback_data="field_top_toggle_top_volatility"),
-        ])
+        # 专用字段开关行 - 使用 btn_auto 自动 i18n
+        spec_fields = [
+            ("top_ratio", "大户多空比"),
+            ("top_bias", "大户偏离"),
+            ("top_momentum", "大户动量"),
+            ("top_volatility", "大户波动"),
+        ]
+        spec_row = []
+        for col_id, label in spec_fields:
+            state_on = fields_state.get(col_id, True)
+            show_label = label if state_on else f"❎{label}"
+            spec_row.append(_btn_auto(None, show_label, f"field_top_toggle_{col_id}"))
+        kb.append(spec_row)
 
         kb.append([
             b(lbl, f"top_sort_field_{fid}", active=current_sort_field == fid)
@@ -249,14 +257,14 @@ class FuturesTopSentimentCard(RankingCard):
                 })
         except Exception as exc:  # pragma: no cover
             self._logger.warning("读取期货情绪聚合表失败: %s", exc)
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
 
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
 
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

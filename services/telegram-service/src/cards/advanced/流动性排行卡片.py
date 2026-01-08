@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
 
 from cards.base import RankingCard
 
@@ -25,6 +25,7 @@ class 流动性排行卡片(RankingCard):
         super().__init__(
             card_id="liquidity_ranking",
             button_text="💧 流动性",
+            button_key="card.liquidity.btn",
             category="free",
             description="流动性危机指数榜 (Amihud/Kyle 综合)",
             default_state={
@@ -279,14 +280,14 @@ class 流动性排行卡片(RankingCard):
                 })
         except Exception as exc:  # pragma: no cover
             self._logger.warning("读取流动性榜单失败: %s", exc)
-            return [], "排名/币种"
+            return [], _t("card.header.rank_symbol", lang=lang)
 
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
 
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):

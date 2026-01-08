@@ -25,6 +25,7 @@ class VolumeRankingCard(RankingCard):
         super().__init__(
             card_id="volume_ranking",
             button_text="📊 成交量",
+            button_key="card.volume.btn",
             category="free",
             description="按成交量排序的榜单",
             default_state={
@@ -143,7 +144,11 @@ class VolumeRankingCard(RankingCard):
         # 修复：使用与 _build_keyboard 相同的默认值计算方式
         active_general = [f for f in self.general_display_fields if fields_state.get(f[0], f[2] or False)]
         active_special = [f for f in self.special_display_fields if fields_state.get(f[0], True)]  # 特殊字段默认True
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        lang = resolve_lang(lang=None)
+        from cards.i18n import translate_field
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)]
+        header_parts += [translate_field(lab, lang=lang) for _, lab, _ in active_special]
+        header_parts += [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):
@@ -180,13 +185,13 @@ class VolumeRankingCard(RankingCard):
         safe_sort_field = str(sort_field).replace("_", "\\_")
 
         text = (
-            "📈 交易量数据\n"
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=safe_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.volume.title', lang=lang)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=safe_sort_field, symbol=sort_symbol)}\n"
             f"{'/'.join(header_parts)}\n"
             f"```\n{aligned}\n```\n"
-            "💡 交易量反映市场活跃度和流动性\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.volume.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))

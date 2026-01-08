@@ -29,6 +29,7 @@ class MoneyFlowCard(RankingCard):
         super().__init__(
             card_id="money_flow",
             button_text="🚰 资金流向",
+            button_key="card.money_flow.btn",
             category="free",
             description="资金净流量榜（Smart Money Flow）",
             default_state={
@@ -315,7 +316,7 @@ class MoneyFlowCard(RankingCard):
         active_special = [f for f in self.special_display_fields if field_state.get(f[0], True)]
         active_general = [f for f in self.general_display_fields if field_state.get(f[0], True)]
 
-        header_parts = ["排名", "币种"] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):
