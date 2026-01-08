@@ -301,12 +301,13 @@ def compute_vpvr_ridge_data(
         dist = compute_vpvr_distribution(df, bins)
         if dist:
             dist["label"] = f"T-{i}"
-            # OHLC 直接从同一切片计算（与分布同一时间窗口）
+            # OHLC 使用该周期最后一根 K 线（而非整个窗口聚合）
+            last_row = df.iloc[-1]
             dist["ohlc"] = {
-                "open": float(df["open"].iloc[0]),      # 首条 open
-                "high": float(df["high"].max()),        # 窗口最高
-                "low": float(df["low"].min()),          # 窗口最低
-                "close": float(df["close"].iloc[-1]),   # 末条 close
+                "open": float(last_row["open"]),
+                "high": float(last_row["high"]),
+                "low": float(last_row["low"]),
+                "close": float(last_row["close"]),
             }
             result_periods.append(dist)
     
