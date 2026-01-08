@@ -2132,3 +2132,212 @@ msgstr "🤖 AI analysis temporarily unavailable"
 
 msgid "ai.retry_hint"
 msgstr "🔄 Please retry later or check technical indicators"
+
+# AI Analysis - Simple Report
+msgid "ai.simple_report.header"
+msgstr "🎯 {symbol} AI Analysis Report"
+
+msgid "ai.simple_report.current_price"
+msgstr "💰 Current Price: ${price}"
+
+msgid "ai.simple_report.price_change"
+msgstr "📊 Price Change: {change}"
+
+msgid "ai.simple_report.risk_level"
+msgstr "⚠️ Risk Level: {risk}"
+
+msgid "ai.simple_report.key_indicators"
+msgstr "🔧 Key Indicators"
+
+# AI Analysis - Error Messages
+msgid "ai.send_failed"
+msgstr "❌ {symbol} analysis result send failed\n\n🆔 Analysis ID: {id}\n📝 Error: {error}\n🔄 Please retry"
+
+msgid "ai.timeout"
+msgstr "⏰ {symbol} AI analysis processing time abnormal\n\n🆔 Analysis ID: {id}\n🔄 May have encountered complex analysis scenario\n💡 Please check results later or retry"
+
+msgid "ai.error"
+msgstr "❌ {symbol} AI analysis failed\n\n🆔 Analysis ID: {id}\n📝 Error: {error}\n🔄 Please retry later"
+
+# AI Analysis - Duration
+msgid "ai.duration.seconds"
+msgstr "{seconds}s"
+
+msgid "ai.duration.unknown"
+msgstr "Unknown"
+
+# TXT Export - New Fields
+msgid "export.field.mid_price"
+msgstr "Mid Price"
+
+msgid "export.field.upper_price"
+msgstr "Upper Price"
+
+msgid "export.field.lower_price"
+msgstr "Lower Price"
+
+msgid "export.field.atr"
+msgstr "ATR"
+
+msgid "export.field.dist_key"
+msgstr "Dist Key%"
+
+msgid "export.field.taker_buy"
+msgstr "Taker Buy"
+
+
+msgid "export.field.harmonic"
+msgstr "Harmonic"
+
+msgid "export.field.oi_contracts"
+msgstr "OI Contracts"
+
+msgid "export.field.oi_change"
+msgstr "OI Change"
+
+msgid "export.field.oi_slope"
+msgstr "OI Slope"
+
+msgid "export.field.oi_zscore"
+msgstr "OI Z-Score"
+
+msgid "export.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "export.field.top_deviation"
+msgstr "Top Deviation"
+
+msgid "export.field.top_momentum"
+msgstr "Top Momentum"
+
+msgid "export.field.top_volatility"
+msgstr "Top Volatility"
+
+msgid "export.field.crowd_deviation"
+msgstr "Crowd Deviation"
+
+msgid "export.field.crowd_volatility"
+msgstr "Crowd Volatility"
+
+msgid "export.field.taker_ls_ratio"
+msgstr "Taker L/S Ratio"
+
+msgid "export.field.taker_deviation"
+msgstr "Taker Deviation"
+
+msgid "export.field.taker_momentum"
+msgstr "Taker Momentum"
+
+msgid "export.field.taker_jump"
+msgstr "Taker Jump"
+
+msgid "export.field.taker_streak"
+msgstr "Taker Streak"
+
+msgid "export.field.sentiment_flip"
+msgstr "Flip Signal"
+
+msgid "export.field.risk_score"
+msgstr "Risk Score"
+
+msgid "export.field.market_share"
+msgstr "Market Share"
+
+msgid "export.field.ema7"
+msgstr "EMA7"
+
+msgid "export.field.ema25"
+msgstr "EMA25"
+
+msgid "export.field.ema99"
+msgstr "EMA99"
+
+msgid "export.field.bandwidth_score"
+msgstr "Bandwidth Score"
+
+msgid "export.field.price"
+msgstr "Price"
+
+msgid "export.field.vpvr_price"
+msgstr "VPVR Price"
+
+msgid "export.field.val_low"
+msgstr "Value Area Low"
+
+msgid "export.field.val_high"
+msgstr "Value Area High"
+
+msgid "export.field.val_width"
+msgstr "Value Area Width%"
+
+msgid "export.field.val_coverage"
+msgstr "Value Area Coverage"
+
+msgid "export.field.val_position"
+msgstr "Value Area Position"
+
+msgid "export.field.vwap_deviation"
+msgstr "Deviation"
+
+msgid "export.field.vwap_weighted"
+msgstr "Weighted Volume"
+
+msgid "export.field.vwap_bandwidth"
+msgstr "VWAP Bandwidth%"
+
+msgid "export.field.vwap_upper"
+msgstr "VWAP Upper"
+
+msgid "export.field.vwap_lower"
+msgstr "VWAP Lower"
+
+msgid "export.field.vwap_price"
+msgstr "VWAP Price"
+
+msgid "export.field.current_price"
+msgstr "Current Price"
+
+msgid "export.field.dist_trendline"
+msgstr "Dist Trendline%"
+
+msgid "export.field.upper"
+msgstr "Upper"
+
+msgid "export.field.mid"
+msgstr "Mid"
+
+msgid "export.field.lower"
+msgstr "Lower"
+
+msgid "export.field.cvd"
+msgstr "CVD"
+
+msgid "export.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "export.field.trend_band"
+msgstr "Trend Band"
+
+msgid "export.field.last_flip"
+msgstr "Last Flip"
+
+msgid "export.field.mfi"
+msgstr "MFI"
+
+msgid "export.field.amihud_score"
+msgstr "Amihud Score"
+
+msgid "export.field.kyle_score"
+msgstr "Kyle Score"
+
+msgid "export.field.vol_score"
+msgstr "Volatility Score"
+
+msgid "export.field.volume_score"
+msgstr "Volume Score"
+
+msgid "export.field.amihud_raw"
+msgstr "Amihud Raw"
+
+msgid "export.field.kyle_raw"
+msgstr "Kyle Raw"

@@ -143,6 +143,7 @@ FUTURES_PERIODS = ("5m", "15m", "1h", "4h", "1d", "1w")
 
 # 面板字段配置: 表名 -> [(字段ID, 显示名i18n键, 格式化函数)]
 # 显示名使用 i18n 键，运行时翻译
+# TXT 版本包含所有字段（无消息长度限制）
 PANEL_CONFIG = {
     "basic": {
         "title_key": "export.panel.basic",
@@ -151,6 +152,26 @@ PANEL_CONFIG = {
                 ("带宽", "export.field.bandwidth", fmt_num),
                 ("百分比b", "export.field.percent_b", fmt_num),
                 ("中轨斜率", "export.field.mid_slope", fmt_num),
+                ("中轨价格", "export.field.mid_price", fmt_num),
+                ("上轨价格", "export.field.upper_price", fmt_num),
+                ("下轨价格", "export.field.lower_price", fmt_num),
+            ],
+            "成交量比率扫描器": [
+                ("量比", "export.field.vol_ratio", fmt_num),
+                ("信号概述", "export.field.signal", str),
+            ],
+            "全量支撑阻力扫描器": [
+                ("支撑位", "export.field.support", fmt_num),
+                ("阻力位", "export.field.resistance", fmt_num),
+                ("ATR", "export.field.atr", fmt_num),
+                ("距支撑百分比", "export.field.dist_support", fmt_pct),
+                ("距阻力百分比", "export.field.dist_resistance", fmt_pct),
+                ("距关键位百分比", "export.field.dist_key", fmt_pct),
+            ],
+            "主动买卖比扫描器": [
+                ("主动买量", "export.field.taker_buy", fmt_num),
+                ("主动卖量", "export.field.taker_sell", fmt_num),
+                ("主动买卖比", "export.field.taker_ratio", fmt_num),
             ],
             "KDJ随机指标扫描器": [
                 ("J值", "export.field.j", fmt_num),
@@ -162,20 +183,15 @@ PANEL_CONFIG = {
                 ("MACD", "export.field.macd", fmt_num),
                 ("DIF", "export.field.dif", fmt_num),
                 ("DEA", "export.field.dea", fmt_num),
+                ("MACD柱状图", "export.field.macd_hist", fmt_num),
                 ("信号概述", "export.field.signal", str),
-            ],
-            "智能RSI扫描器": [
-                ("RSI均值", "export.field.rsi", fmt_num),
-                ("信号", "export.field.signal", str),
-                ("强度", "export.field.strength", fmt_num),
             ],
             "OBV能量潮扫描器": [
                 ("OBV值", "export.field.obv", fmt_num),
                 ("OBV变化率", "export.field.change_rate", fmt_pct),
             ],
-            "成交量比率扫描器": [
-                ("量比", "export.field.vol_ratio", fmt_num),
-                ("信号概述", "export.field.signal", str),
+            "谐波信号扫描器": [
+                ("谐波值", "export.field.harmonic", fmt_num),
             ],
         },
     },
@@ -183,41 +199,107 @@ PANEL_CONFIG = {
         "title_key": "export.panel.futures",
         "periods": FUTURES_PERIODS,
         "tables": {
-            "期货情绪聚合表": [
+            "期货情绪聚合表_持仓": [
                 ("持仓金额", "export.field.oi_value", fmt_num),
+                ("持仓张数", "export.field.oi_contracts", fmt_num),
                 ("持仓变动%", "export.field.oi_change_pct", fmt_pct),
+                ("持仓变动", "export.field.oi_change", fmt_num),
+                ("持仓斜率", "export.field.oi_slope", fmt_num),
+                ("持仓Z分数", "export.field.oi_zscore", fmt_num),
+                ("OI连续根数", "export.field.oi_streak", fmt_num),
+            ],
+            "期货情绪聚合表_大户": [
                 ("大户多空比", "export.field.top_ratio", fmt_num),
+                ("大户偏离", "export.field.top_deviation", fmt_num),
+                ("大户情绪动量", "export.field.top_momentum", fmt_num),
+                ("大户波动", "export.field.top_volatility", fmt_num),
+            ],
+            "期货情绪聚合表_全市场": [
                 ("全体多空比", "export.field.crowd_ratio", fmt_num),
-                ("主动成交多空比", "export.field.taker_ratio", fmt_num),
+                ("全体偏离", "export.field.crowd_deviation", fmt_num),
+                ("全体波动", "export.field.crowd_volatility", fmt_num),
+            ],
+            "期货情绪聚合表_主动": [
+                ("主动成交多空比", "export.field.taker_ls_ratio", fmt_num),
+                ("主动偏离", "export.field.taker_deviation", fmt_num),
+                ("主动情绪动量", "export.field.taker_momentum", fmt_num),
+                ("主动跳变幅度", "export.field.taker_jump", fmt_num),
+                ("主动连续根数", "export.field.taker_streak", fmt_num),
+            ],
+            "期货情绪聚合表_综合": [
                 ("情绪差值", "export.field.sentiment_diff", fmt_num),
-                ("信号", "export.field.signal", str),
+                ("情绪翻转信号", "export.field.sentiment_flip", str),
+                ("波动率", "export.field.volatility", fmt_num),
+                ("风险分", "export.field.risk_score", fmt_num),
+                ("市场占比", "export.field.market_share", fmt_pct),
             ],
         },
     },
     "advanced": {
         "title_key": "export.panel.advanced",
         "tables": {
-            "全量支撑阻力扫描器": [
-                ("支撑位", "export.field.support", fmt_num),
-                ("阻力位", "export.field.resistance", fmt_num),
-                ("距支撑百分比", "export.field.dist_support", fmt_pct),
-                ("距阻力百分比", "export.field.dist_resistance", fmt_pct),
+            "G，C点扫描器": [
+                ("EMA7", "export.field.ema7", fmt_num),
+                ("EMA25", "export.field.ema25", fmt_num),
+                ("EMA99", "export.field.ema99", fmt_num),
+                ("带宽评分", "export.field.bandwidth_score", fmt_num),
+                ("趋势方向", "export.field.direction", str),
+                ("价格", "export.field.price", fmt_num),
+            ],
+            "VPVR排行生成器": [
+                ("VPVR价格", "export.field.vpvr_price", fmt_num),
+                ("价值区下沿", "export.field.val_low", fmt_num),
+                ("价值区上沿", "export.field.val_high", fmt_num),
+                ("价值区宽度百分比", "export.field.val_width", fmt_pct),
+                ("价值区覆盖率", "export.field.val_coverage", fmt_pct),
+                ("价值区位置", "export.field.val_position", str),
+            ],
+            "VWAP离线信号扫描": [
+                ("偏离度", "export.field.vwap_deviation", fmt_num),
+                ("偏离百分比", "export.field.vwap_dev", fmt_pct),
+                ("成交量加权", "export.field.vwap_weighted", fmt_num),
+                ("VWAP带宽百分比", "export.field.vwap_bandwidth", fmt_pct),
+                ("VWAP上轨", "export.field.vwap_upper", fmt_num),
+                ("VWAP下轨", "export.field.vwap_lower", fmt_num),
+                ("VWAP价格", "export.field.vwap_price", fmt_num),
+                ("当前价格", "export.field.current_price", fmt_num),
+            ],
+            "趋势线榜单": [
+                ("趋势方向", "export.field.direction", str),
+                ("距离趋势线%", "export.field.dist_trendline", fmt_pct),
             ],
             "ATR波幅扫描器": [
                 ("ATR百分比", "export.field.atr_pct", fmt_pct),
                 ("波动分类", "export.field.volatility", str),
+                ("上轨", "export.field.upper", fmt_num),
+                ("中轨", "export.field.mid", fmt_num),
+                ("下轨", "export.field.lower", fmt_num),
+                ("当前价格", "export.field.current_price", fmt_num),
+            ],
+            "CVD信号排行榜": [
+                ("CVD值", "export.field.cvd", fmt_num),
+                ("变化率", "export.field.change_rate", fmt_pct),
+            ],
+            "超级精准趋势扫描器": [
+                ("趋势强度", "export.field.strength", fmt_num),
+                ("趋势持续根数", "export.field.duration", fmt_num),
+                ("趋势方向", "export.field.direction", str),
+                ("量能偏向", "export.field.volume_bias", str),
+                ("趋势带", "export.field.trend_band", str),
+                ("最近翻转时间", "export.field.last_flip", str),
+            ],
+            "MFI资金流量扫描器": [
+                ("MFI值", "export.field.mfi", fmt_num),
             ],
             "流动性扫描器": [
                 ("流动性得分", "export.field.liquidity", fmt_num),
                 ("流动性等级", "export.field.level", str),
-            ],
-            "超级精准趋势扫描器": [
-                ("趋势方向", "export.field.direction", str),
-                ("趋势强度", "export.field.strength", fmt_num),
-                ("趋势持续根数", "export.field.duration", fmt_num),
-            ],
-            "VWAP离线信号扫描": [
-                ("偏离百分比", "export.field.vwap_dev", fmt_pct),
+                ("Amihud得分", "export.field.amihud_score", fmt_num),
+                ("Kyle得分", "export.field.kyle_score", fmt_num),
+                ("波动率得分", "export.field.vol_score", fmt_num),
+                ("成交量得分", "export.field.volume_score", fmt_num),
+                ("Amihud原值", "export.field.amihud_raw", fmt_num),
+                ("Kyle原值", "export.field.kyle_raw", fmt_num),
             ],
         },
     },
@@ -234,6 +316,16 @@ PANEL_CONFIG = {
 }
 
 
+# 期货面板表名映射（分组名 -> 实际表名）
+FUTURES_TABLE_ALIAS = {
+    "期货情绪聚合表_持仓": "期货情绪聚合表",
+    "期货情绪聚合表_大户": "期货情绪聚合表",
+    "期货情绪聚合表_全市场": "期货情绪聚合表",
+    "期货情绪聚合表_主动": "期货情绪聚合表",
+    "期货情绪聚合表_综合": "期货情绪聚合表",
+}
+
+
 # ==================== 导出器 ====================
 
 class SingleTokenTxtExporter:
@@ -245,8 +337,10 @@ class SingleTokenTxtExporter:
 
     def _get_data(self, table: str, symbol: str, period: str) -> Optional[Dict]:
         """获取指定表/币种/周期的数据"""
+        # 处理期货面板的表名映射
+        actual_table = FUTURES_TABLE_ALIAS.get(table, table)
         try:
-            return self.provider.fetch_row(table, period, symbol)
+            return self.provider.fetch_row(actual_table, period, symbol)
         except Exception:
             return None
 

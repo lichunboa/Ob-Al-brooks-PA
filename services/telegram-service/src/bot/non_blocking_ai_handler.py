@@ -202,9 +202,9 @@ class NonBlockingAIHandler:
                 # 检查是否来自缓存
                 cache_indicator = ""
                 if ai_analysis.get('from_cache', False):
-                    cache_indicator = " | 🔄 缓存数据"
+                    cache_indicator = _t("ai.cache_indicator")
 
-                chat_message += f"{format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S')} | 周期: {result.get('interval', '15m')}{cache_indicator}\n\n"
+                chat_message += f"{format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S')} | {_t('ai.period')}: {result.get('interval', '15m')}{cache_indicator}\n\n"
 
                 chat_message += f"### {symbol}\n"
                 # 根据价格大小决定小数位数
@@ -218,8 +218,8 @@ class NonBlockingAIHandler:
                     low_format = f"${summary.get('low_24h', current_price):.4f}"
 
                 chat_message += f"## {price_format}\n"
-                chat_message += f"24h高点: {high_format}\n"
-                chat_message += f"24h低点: {low_format}\n"
+                chat_message += f"{_t('ai.24h_high')}: {high_format}\n"
+                chat_message += f"{_t('ai.24h_low')}: {low_format}\n"
 
                 # 获取技术指标
                 indicators = data.get('technical_indicators', {})
@@ -231,13 +231,13 @@ class NonBlockingAIHandler:
                 else:
                     trend_strength = _t("ai.trend.weak")
 
-                chat_message += f"趋势强度: {trend_strength} (ADX: {adx:.1f})\n"
+                chat_message += f"{_t('ai.trend_strength_label')}: {trend_strength} (ADX: {adx:.1f})\n"
                 chat_message += f"{direction} {change_text}\n\n"
 
                 # 只显示AI分析内容的前1000字符
                 if len(ai_content) > 1000:
                     chat_message += ai_content[:1000] + "\n\n..."
-                    chat_message += "\n\n📄 完整分析请查看下方文件"
+                    chat_message += f"\n\n{_t('ai.full_report_hint')}"
                 else:
                     chat_message += ai_content
 
@@ -250,12 +250,12 @@ class NonBlockingAIHandler:
                         import tempfile
                         import os
 
-                        detailed_content = f"{coin_name} AI分析报告\n\n"
+                        detailed_content = f"{_t('ai.report_title', symbol=coin_name)}\n\n"
                         detailed_content += ai_content + "\n\n"
 
-                        detailed_content += f"分析时间: {format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S')}\n"
+                        detailed_content += f"{_t('ai.analysis_time')}: {format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S')}\n"
 
-                        filename = f"{coin_name}_AI分析详细报告_{format_beijing_time(get_beijing_time().isoformat(), '%Y%m%d_%H%M%S')}.txt"
+                        filename = f"{coin_name}_AI_Report_{format_beijing_time(get_beijing_time().isoformat(), '%Y%m%d_%H%M%S')}.txt"
 
                         # 创建临时文件
                         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', encoding='utf-8') as tmp_file:
@@ -267,7 +267,7 @@ class NonBlockingAIHandler:
                             await callback_query.message.reply_document(
                                 document=file,
                                 filename=filename,
-                                caption=f"📄 {coin_name} 完整AI分析报告"
+                                caption=_t("ai.file_caption", symbol=coin_name)
                             )
 
                         # 清理临时文件
@@ -287,21 +287,21 @@ class NonBlockingAIHandler:
                 # RSI信息
                 rsi_value = indicators.get('rsi', 0)
                 if rsi_value >= 70:
-                    rsi_signal = "超买"
+                    rsi_signal = _t("ai.rsi_overbought")
                 elif rsi_value <= 30:
-                    rsi_signal = "超卖"
+                    rsi_signal = _t("ai.rsi_oversold")
                 else:
-                    rsi_signal = "正常"
+                    rsi_signal = _t("ai.rsi_normal")
 
                 # 构建简化报告
-                report = f"🎯 {coin_name} AI分析报告\n\n"
-                report += f"💰 当前价格： ${current_price:.4f}\n"
-                report += f"📊 价格变化： {direction} {change_text}\n"
-                report += f"⚠️ 风险等级： {risk_level}\n\n"
-                report += "🔧 关键技术指标\n"
+                report = _t("ai.simple_report.header", symbol=coin_name) + "\n\n"
+                report += _t("ai.simple_report.current_price", price=f"{current_price:.4f}") + "\n"
+                report += _t("ai.simple_report.price_change", change=f"{direction} {change_text}") + "\n"
+                report += _t("ai.simple_report.risk_level", risk=risk_level) + "\n\n"
+                report += _t("ai.simple_report.key_indicators") + "\n"
                 report += f"- RSI: {rsi_value:.1f} ({rsi_signal})\n\n"
-                report += "🤖 AI分析功能暂时不可用\n"
-                report += "🔄 建议稍后重试或查看技术指标"
+                report += _t("ai.unavailable") + "\n"
+                report += _t("ai.retry_hint")
 
                 await callback_query.message.reply_text(report, parse_mode='Markdown')
 
@@ -309,11 +309,9 @@ class NonBlockingAIHandler:
             logger.error(f"发送完成通知失败: {analysis_id} - {str(e)}")
             # 如果发送结果失败，至少尝试发送错误信息
             try:
+                error_display = str(e)[:100] + "..." if len(str(e)) > 100 else str(e)
                 await callback_query.message.reply_text(
-                    f"❌ {coin_name} 分析结果发送失败\n\n"
-                    f"🆔 分析ID: {analysis_id[-8:]}\n"
-                    f"📝 错误: {str(e)[:100]}...\n"
-                    f"🔄 请尝试重新分析",
+                    _t("ai.send_failed", symbol=coin_name, id=analysis_id[-8:], error=error_display),
                     parse_mode='Markdown'
                 )
             except Exception as fallback_error:
@@ -327,10 +325,7 @@ class NonBlockingAIHandler:
             coin_name = symbol.replace('USDT', '')
 
             await callback_query.message.reply_text(
-                f"⏰ {coin_name} AI分析处理时间异常\n\n"
-                f"🆔 分析ID: {analysis_id[-8:]}\n"
-                f"🔄 可能遇到复杂的分析场景\n"
-                f"💡 请稍后检查分析结果或重新尝试",
+                _t("ai.timeout", symbol=coin_name, id=analysis_id[-8:]),
                 parse_mode='Markdown'
             )
 
@@ -345,16 +340,10 @@ class NonBlockingAIHandler:
             coin_name = symbol.replace('USDT', '')
 
             # 简化错误信息
-            if len(error_msg) > 100:
-                error_display = error_msg[:100] + "..."
-            else:
-                error_display = error_msg
+            error_display = error_msg[:100] + "..." if len(error_msg) > 100 else error_msg
 
             await callback_query.message.reply_text(
-                f"❌ {coin_name} AI分析失败\n\n"
-                f"🆔 分析ID: {analysis_id[-8:]}\n"
-                f"📝 错误: {error_display}\n"
-                f"🔄 建议稍后重试",
+                _t("ai.error", symbol=coin_name, id=analysis_id[-8:], error=error_display),
                 parse_mode='Markdown'
             )
 
@@ -368,10 +357,10 @@ class NonBlockingAIHandler:
             start_time = analysis_info.get('start_time')
             if start_time:
                 duration = datetime.now() - start_time
-                return f"{duration.total_seconds():.1f}秒"
-            return "未知"
+                return _t("ai.duration.seconds", seconds=f"{duration.total_seconds():.1f}")
+            return _t("ai.duration.unknown")
         except Exception:
-            return "未知"
+            return _t("ai.duration.unknown")
 
     def get_active_analyses_count(self) -> int:
         """获取当前活跃分析数量"""

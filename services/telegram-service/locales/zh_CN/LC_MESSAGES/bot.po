@@ -2132,3 +2132,212 @@ msgstr "🤖 AI分析功能暂时不可用"
 
 msgid "ai.retry_hint"
 msgstr "🔄 建议稍后重试或查看技术指标"
+
+# AI 分析 - 简化报告
+msgid "ai.simple_report.header"
+msgstr "🎯 {symbol} AI分析报告"
+
+msgid "ai.simple_report.current_price"
+msgstr "💰 当前价格： ${price}"
+
+msgid "ai.simple_report.price_change"
+msgstr "📊 价格变化： {change}"
+
+msgid "ai.simple_report.risk_level"
+msgstr "⚠️ 风险等级： {risk}"
+
+msgid "ai.simple_report.key_indicators"
+msgstr "🔧 关键技术指标"
+
+# AI 分析 - 错误消息
+msgid "ai.send_failed"
+msgstr "❌ {symbol} 分析结果发送失败\n\n🆔 分析ID: {id}\n📝 错误: {error}\n🔄 请尝试重新分析"
+
+msgid "ai.timeout"
+msgstr "⏰ {symbol} AI分析处理时间异常\n\n🆔 分析ID: {id}\n🔄 可能遇到复杂的分析场景\n💡 请稍后检查分析结果或重新尝试"
+
+msgid "ai.error"
+msgstr "❌ {symbol} AI分析失败\n\n🆔 分析ID: {id}\n📝 错误: {error}\n🔄 建议稍后重试"
+
+# AI 分析 - 时间
+msgid "ai.duration.seconds"
+msgstr "{seconds}秒"
+
+msgid "ai.duration.unknown"
+msgstr "未知"
+
+# TXT 导出 - 新增字段
+msgid "export.field.mid_price"
+msgstr "中轨价格"
+
+msgid "export.field.upper_price"
+msgstr "上轨价格"
+
+msgid "export.field.lower_price"
+msgstr "下轨价格"
+
+msgid "export.field.atr"
+msgstr "ATR"
+
+msgid "export.field.dist_key"
+msgstr "距关键位%"
+
+msgid "export.field.taker_buy"
+msgstr "主动买量"
+
+
+msgid "export.field.harmonic"
+msgstr "谐波值"
+
+msgid "export.field.oi_contracts"
+msgstr "持仓张数"
+
+msgid "export.field.oi_change"
+msgstr "持仓变动"
+
+msgid "export.field.oi_slope"
+msgstr "持仓斜率"
+
+msgid "export.field.oi_zscore"
+msgstr "持仓Z分数"
+
+msgid "export.field.oi_streak"
+msgstr "OI连续根数"
+
+msgid "export.field.top_deviation"
+msgstr "大户偏离"
+
+msgid "export.field.top_momentum"
+msgstr "大户动量"
+
+msgid "export.field.top_volatility"
+msgstr "大户波动"
+
+msgid "export.field.crowd_deviation"
+msgstr "全体偏离"
+
+msgid "export.field.crowd_volatility"
+msgstr "全体波动"
+
+msgid "export.field.taker_ls_ratio"
+msgstr "主动多空比"
+
+msgid "export.field.taker_deviation"
+msgstr "主动偏离"
+
+msgid "export.field.taker_momentum"
+msgstr "主动动量"
+
+msgid "export.field.taker_jump"
+msgstr "主动跳变"
+
+msgid "export.field.taker_streak"
+msgstr "主动连续"
+
+msgid "export.field.sentiment_flip"
+msgstr "翻转信号"
+
+msgid "export.field.risk_score"
+msgstr "风险分"
+
+msgid "export.field.market_share"
+msgstr "市场占比"
+
+msgid "export.field.ema7"
+msgstr "EMA7"
+
+msgid "export.field.ema25"
+msgstr "EMA25"
+
+msgid "export.field.ema99"
+msgstr "EMA99"
+
+msgid "export.field.bandwidth_score"
+msgstr "带宽评分"
+
+msgid "export.field.price"
+msgstr "价格"
+
+msgid "export.field.vpvr_price"
+msgstr "VPVR价格"
+
+msgid "export.field.val_low"
+msgstr "价值区下沿"
+
+msgid "export.field.val_high"
+msgstr "价值区上沿"
+
+msgid "export.field.val_width"
+msgstr "价值区宽度%"
+
+msgid "export.field.val_coverage"
+msgstr "价值区覆盖率"
+
+msgid "export.field.val_position"
+msgstr "价值区位置"
+
+msgid "export.field.vwap_deviation"
+msgstr "偏离度"
+
+msgid "export.field.vwap_weighted"
+msgstr "加权成交额"
+
+msgid "export.field.vwap_bandwidth"
+msgstr "VWAP带宽%"
+
+msgid "export.field.vwap_upper"
+msgstr "VWAP上轨"
+
+msgid "export.field.vwap_lower"
+msgstr "VWAP下轨"
+
+msgid "export.field.vwap_price"
+msgstr "VWAP价格"
+
+msgid "export.field.current_price"
+msgstr "当前价格"
+
+msgid "export.field.dist_trendline"
+msgstr "距趋势线%"
+
+msgid "export.field.upper"
+msgstr "上轨"
+
+msgid "export.field.mid"
+msgstr "中轨"
+
+msgid "export.field.lower"
+msgstr "下轨"
+
+msgid "export.field.cvd"
+msgstr "CVD值"
+
+msgid "export.field.volume_bias"
+msgstr "量能偏向"
+
+msgid "export.field.trend_band"
+msgstr "趋势带"
+
+msgid "export.field.last_flip"
+msgstr "最近翻转"
+
+msgid "export.field.mfi"
+msgstr "MFI"
+
+msgid "export.field.amihud_score"
+msgstr "Amihud得分"
+
+msgid "export.field.kyle_score"
+msgstr "Kyle得分"
+
+msgid "export.field.vol_score"
+msgstr "波动率得分"
+
+msgid "export.field.volume_score"
+msgstr "成交量得分"
+
+msgid "export.field.amihud_raw"
+msgstr "Amihud原值"
+
+msgid "export.field.kyle_raw"
+msgstr "Kyle原值"
