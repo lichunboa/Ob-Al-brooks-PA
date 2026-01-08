@@ -139,6 +139,10 @@ import {
   sortTradesByDateDesc,
   getRecentTrades,
 } from "../utils/performance-utils";
+import {
+  calculateStrategyPerformance,
+  generatePlaybookPerfRows,
+} from "../utils/strategy-performance-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { useLearnState } from "../hooks/useLearnState";
@@ -689,34 +693,11 @@ const ConsoleComponent: React.FC<Props> = ({
 
   // trades, strategies, todayContext, status 的订阅已移到 useDashboardData Hook 中
 
-  const strategyPerf = React.useMemo(() => {
-    const perf = new Map<
-      string,
-      { total: number; wins: number; pnl: number; lastDateIso: string }
-    >();
-
-    // resolveCanonical 已移至 utils/strategy-utils.ts
-
-    for (const t of trades) {
-      const canonical = resolveCanonicalStrategy(t, strategyIndex);
-      if (!canonical) continue;
-      const p = perf.get(canonical) ?? {
-        total: 0,
-        wins: 0,
-        pnl: 0,
-        lastDateIso: "",
-      };
-      p.total += 1;
-      if (typeof t.pnl === "number" && Number.isFinite(t.pnl) && t.pnl > 0)
-        p.wins += 1;
-      if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) p.pnl += t.pnl;
-      if (t.dateIso && (!p.lastDateIso || t.dateIso > p.lastDateIso))
-        p.lastDateIso = t.dateIso;
-      perf.set(canonical, p);
-    }
-
-    return perf;
-  }, [trades, strategyIndex]);
+  // strategyPerf 已移至 utils/strategy-performance-utils.ts
+  const strategyPerf = React.useMemo(
+    () => calculateStrategyPerformance(trades, (t) => resolveCanonicalStrategy(t, strategyIndex)),
+    [trades, strategyIndex]
+  );
 
   const strategyStats = React.useMemo(() => {
     const total = strategies.length;
@@ -729,25 +710,11 @@ const ConsoleComponent: React.FC<Props> = ({
     return { total, activeCount, learningCount, totalUses };
   }, [strategies, strategyPerf]);
 
-  const playbookPerfRows = React.useMemo(() => {
-    const rows = [...strategyPerf.entries()]
-      .map(([canonical, p]) => {
-        const card = strategyIndex?.byName
-          ? strategyIndex.byName(canonical)
-          : undefined;
-        return {
-          canonical,
-          path: card?.path,
-          total: p.total,
-          wins: p.wins,
-          pnl: p.pnl,
-          winRate: safePct(p.wins, p.total),
-        };
-      })
-      .sort((a, b) => (b.pnl || 0) - (a.pnl || 0));
-
-    return rows;
-  }, [strategyPerf, strategyIndex]);
+  // playbookPerfRows 已移至 utils/strategy-performance-utils.ts
+  const playbookPerfRows = React.useMemo(
+    () => generatePlaybookPerfRows(strategyPerf, strategyIndex, safePct),
+    [strategyPerf, strategyIndex]
+  );
 
 
 
