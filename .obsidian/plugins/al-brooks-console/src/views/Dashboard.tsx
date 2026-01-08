@@ -71,7 +71,7 @@ import { MANAGER_GROUPS, managerKeyTokens } from "../core/manager-groups";
 import type { IntegrationCapability } from "../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../integrations/PluginIntegrationRegistry";
 import type { TodayContext } from "../core/today-context";
-import { normalizeTag } from "../core/field-mapper";
+// normalizeTag 已移至 utils/strategy-utils.ts
 import type { AlBrooksConsoleSettings } from "../settings";
 import {
   buildCourseSnapshot,
@@ -125,6 +125,15 @@ import {
   matchesSearch,
   matchKeyToGroup,
 } from "../utils/search-utils";
+import { topN, countFiles } from "../utils/aggregation-utils";
+import { getPoints, calculateRScale, seg } from "../utils/chart-utils";
+import { isImage, normalize, resolveCanonical } from "../utils/string-utils";
+import { resolveCanonicalStrategy, normalizeTag } from "../utils/strategy-utils";
+import {
+  calculateDateRange,
+  calculateTodayKpi,
+  calculateStrategyStats,
+} from "../utils/data-calculation-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { useLearnState } from "../hooks/useLearnState";
@@ -690,29 +699,10 @@ const ConsoleComponent: React.FC<Props> = ({
       { total: number; wins: number; pnl: number; lastDateIso: string }
     >();
 
-    const resolveCanonical = (t: TradeRecord): string | null => {
-      const raw =
-        typeof t.strategyName === "string" ? t.strategyName.trim() : "";
-      if (raw && raw !== "Unknown") {
-        const looked = strategyIndex.lookup
-          ? strategyIndex.lookup(raw)
-          : undefined;
-        return looked?.canonicalName || raw;
-      }
-      const pats = (t.patternsObserved ?? [])
-        .map((p) => String(p).trim())
-        .filter(Boolean);
-      for (const p of pats) {
-        const card = strategyIndex.byPattern
-          ? strategyIndex.byPattern(p)
-          : undefined;
-        if (card?.canonicalName) return card.canonicalName;
-      }
-      return null;
-    };
+    // resolveCanonical 已移至 utils/strategy-utils.ts
 
     for (const t of trades) {
-      const canonical = resolveCanonical(t);
+      const canonical = resolveCanonicalStrategy(t, strategyIndex);
       if (!canonical) continue;
       const p = perf.get(canonical) ?? {
         total: 0,
@@ -1208,7 +1198,7 @@ const ConsoleComponent: React.FC<Props> = ({
   } => {
     if (!getResourceUrl) return { items: [], scopeTotal: 0, candidateCount: 0 };
     const out: GalleryItem[] = [];
-    const isImage = (p: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+    // isImage 已移至 utils/string-utils.ts
 
     const candidates =
       galleryScope === "All"
@@ -1830,7 +1820,7 @@ const ConsoleComponent: React.FC<Props> = ({
                         curSignals.length > 0 || reqSignals.length > 0;
                       if (!hasSignalInfo) return null;
 
-                      const norm = (s: string) => s.toLowerCase();
+                      const norm = normalize; // 使用 utils/string-utils.ts
                       const signalMatch =
                         curSignals.length > 0 && reqSignals.length > 0
                           ? reqSignals.some((r) =>
@@ -3219,22 +3209,11 @@ short mode\n\
                   const zeroY =
                     pad + (1 - (0 - minVal) / range) * (h - pad * 2);
 
-                  const getPoints = (data: number[]) => {
-                    if (data.length < 2) return "";
-                    const xStep = (w - pad * 2) / Math.max(1, data.length - 1);
-                    return data
-                      .map((val, i) => {
-                        const x = pad + i * xStep;
-                        const y =
-                          pad + (1 - (val - minVal) / range) * (h - pad * 2);
-                        return `${x.toFixed(1)},${y.toFixed(1)}`;
-                      })
-                      .join(" ");
-                  };
+                  // getPoints 已移至 utils/chart-utils.ts
 
-                  const ptsLive = getPoints(strategyLab.curves.Live);
-                  const ptsDemo = getPoints(strategyLab.curves.Demo);
-                  const ptsBack = getPoints(strategyLab.curves.Backtest);
+                  const ptsLive = getPoints(strategyLab.curves.Live, w, h, pad);
+                  const ptsDemo = getPoints(strategyLab.curves.Demo, w, h, pad);
+                  const ptsBack = getPoints(strategyLab.curves.Backtest, w, h, pad);
 
                   return (
                     <svg
@@ -3764,8 +3743,7 @@ short mode\n\
                     (memory.cnt?.mNorm ?? 0) + (memory.cnt?.mRev ?? 0) * 2;
                   const cloze = memory.cnt?.cloze ?? 0;
 
-                  const seg = (n: number) =>
-                    `${Math.max(0, (n / pTotal) * 100)}%`;
+                  // seg 已移至 utils/chart-utils.ts
 
                   return (
                     <>
@@ -4834,30 +4812,16 @@ short mode\n\
 
               // 格式化函数已移至 utils/format-utils.ts
 
-              const topN = (
-                getter: (t: TradeRecord) => string | undefined,
-                pretty?: (v?: string) => string
-              ) => {
-                const map = new Map<string, number>();
-                for (const t of trades) {
-                  const raw = getter(t);
-                  const base = (raw ?? "").toString().trim();
-                  const v = (pretty ? pretty(base) : base) || "Unknown";
-                  if (!v) continue;
-                  map.set(v, (map.get(v) ?? 0) + 1);
-                }
-                return [...map.entries()]
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 5);
-              };
+              // topN 已移至 utils/aggregation-utils.ts
 
-              const distTicker = topN((t) => t.ticker, prettySchemaVal);
+              const distTicker = topN((t) => t.ticker, prettySchemaVal, trades);
               // “Setup” 分布优先看 setupKey（v5/legacy 的 setup/setupKey），并兼容 setupCategory。
               const distSetup = topN(
                 (t) => t.setupKey ?? t.setupCategory,
-                prettySchemaVal
+                prettySchemaVal,
+                trades
               );
-              const distExec = topN((t) => t.executionQuality, prettyExecVal);
+              const distExec = topN((t) => t.executionQuality, prettyExecVal, trades);
 
               const sortedRecent = [...trades]
                 .sort((a, b) =>

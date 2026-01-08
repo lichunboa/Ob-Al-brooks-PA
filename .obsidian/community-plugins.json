@@ -7,7 +7,6 @@
   "obsidian-excalidraw-plugin",
   "obsidian-enhancing-mindmap",
   "obsidian-git",
-  "obsidian-spaced-repetition",
   "quickadd",
   "editing-toolbar",
   "obsidian-emoji-toolbar",
@@ -19,5 +18,7 @@
   "obsidian-importer",
   "zenboard",
   "make-md",
-  "dataview"
+  "dataview",
+  "al-brooks-console",
+  "obsidian-spaced-repetition"
 ]
