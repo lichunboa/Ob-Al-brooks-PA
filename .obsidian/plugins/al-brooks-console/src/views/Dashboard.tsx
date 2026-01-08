@@ -156,6 +156,7 @@ import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
 import { normalizeCycle } from "../utils/market-cycle-utils";
 import { sortTradesByDateAsc, findOpenTrade } from "../utils/trade-utils";
+import { buildGalleryItems, type GalleryItem } from "../utils/gallery-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
