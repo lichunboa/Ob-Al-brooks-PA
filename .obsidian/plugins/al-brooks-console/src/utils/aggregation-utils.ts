@@ -38,3 +38,17 @@ export function topN(
 export function countFiles(paths: string[]): number {
     return paths.length;
 }
+
+/**
+ * 将日期聚合数组转换为Map
+ * @param dailyAggs 日期聚合数组
+ * @returns 以dateIso为key的Map
+ */
+export function convertDailyAggToMap<T extends { dateIso: string }>(
+    dailyAggs: T[]
+): Map<string, T> {
+    const m = new Map<string, T>();
+    for (const d of dailyAggs) m.set(d.dateIso, d);
+    return m;
+}
+

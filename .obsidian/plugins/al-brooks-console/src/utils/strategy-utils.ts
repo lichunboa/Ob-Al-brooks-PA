@@ -42,3 +42,32 @@ export function normalizeTag(tag: string): string {
     const t = String(tag ?? "").trim();
     return t.startsWith("#") ? t.slice(1).toLowerCase() : t.toLowerCase();
 }
+
+/**
+ * 计算策略统计信息
+ * @param strategies 策略数组
+ * @param strategyPerf 策略性能数据(Map)
+ * @param isActiveFn 判断策略是否活跃的函数
+ * @returns 策略统计对象
+ */
+export function calculateStrategyStats(
+    strategies: any[],
+    strategyPerf: Map<string, { total: number; wins: number; pnl: number; lastDateIso: string }>,
+    isActiveFn: (statusRaw: unknown) => boolean
+): {
+    total: number;
+    activeCount: number;
+    learningCount: number;
+    totalUses: number;
+} {
+    const total = strategies.length;
+    const activeCount = strategies.filter((s) =>
+        isActiveFn((s as any).statusRaw)
+    ).length;
+    const learningCount = Math.max(0, total - activeCount);
+    let totalUses = 0;
+    strategyPerf.forEach((p) => (totalUses += p.total));
+    return { total, activeCount, learningCount, totalUses };
+}
+
+

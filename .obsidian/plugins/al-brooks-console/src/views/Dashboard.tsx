@@ -125,14 +125,13 @@ import {
   matchesSearch,
   matchKeyToGroup,
 } from "../utils/search-utils";
-import { topN, countFiles } from "../utils/aggregation-utils";
+import { topN, countFiles, convertDailyAggToMap } from "../utils/aggregation-utils";
 import { getPoints, calculateRScale, seg } from "../utils/chart-utils";
 import { isImage, normalize, resolveCanonical } from "../utils/string-utils";
-import { resolveCanonicalStrategy, normalizeTag } from "../utils/strategy-utils";
+import { resolveCanonicalStrategy, normalizeTag, calculateStrategyStats } from "../utils/strategy-utils";
 import {
   calculateDateRange,
   calculateTodayKpi,
-  calculateStrategyStats,
   calculateAllTradesDateRange,
 } from "../utils/data-calculation-utils";
 import {
@@ -705,16 +704,10 @@ const ConsoleComponent: React.FC<Props> = ({
     [trades, strategyIndex]
   );
 
-  const strategyStats = React.useMemo(() => {
-    const total = strategies.length;
-    const activeCount = strategies.filter((s) =>
-      isActive((s as any).statusRaw)
-    ).length;
-    const learningCount = Math.max(0, total - activeCount);
-    let totalUses = 0;
-    strategyPerf.forEach((p) => (totalUses += p.total));
-    return { total, activeCount, learningCount, totalUses };
-  }, [strategies, strategyPerf]);
+  const strategyStats = React.useMemo(
+    () => calculateStrategyStats(strategies, strategyPerf, isActive),
+    [strategies, strategyPerf]
+  );
 
   // playbookPerfRows 已移至 utils/strategy-performance-utils.ts
   const playbookPerfRows = React.useMemo(
@@ -992,11 +985,10 @@ const ConsoleComponent: React.FC<Props> = ({
     () => computeDailyAgg(analyticsTrades, 90),
     [analyticsTrades]
   );
-  const analyticsDailyByDate = React.useMemo(() => {
-    const m = new Map<string, DailyAgg>();
-    for (const d of analyticsDaily) m.set(d.dateIso, d);
-    return m;
-  }, [analyticsDaily]);
+  const analyticsDailyByDate = React.useMemo(
+    () => convertDailyAggToMap(analyticsDaily),
+    [analyticsDaily]
+  );
 
   const calendarDays = 35;
   const calendarDateIsos = React.useMemo(
