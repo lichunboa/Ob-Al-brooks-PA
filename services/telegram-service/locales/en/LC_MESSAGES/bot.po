@@ -2341,3 +2341,184 @@ msgstr "Amihud Raw"
 
 msgid "export.field.kyle_raw"
 msgstr "Kyle Raw"
+
+
+msgid "signal.section.key_levels"
+msgstr "📍 Key Levels"
+
+msgid "signal.section.trend"
+msgstr "📈 Trend"
+
+msgid "signal.section.smart_money"
+msgstr "🏦 Smart Money"
+
+msgid "signal.section.pattern"
+msgstr "🕯️ Pattern"
+
+msgid "signal.section.volatility"
+msgstr "⚡ Volatility"
+
+msgid "signal.section.scalp"
+msgstr "🎯 Scalping"
+
+# Signal formatter - field labels
+msgid "signal.field.price"
+msgstr "Price"
+
+msgid "signal.field.amplitude"
+msgstr "Amplitude"
+
+msgid "signal.field.buy_sell_ratio"
+msgstr "Buy/Sell"
+
+msgid "signal.field.volume"
+msgstr "Volume"
+
+msgid "signal.field.net_inflow"
+msgstr "Net Inflow"
+
+msgid "signal.field.trade_count"
+msgstr "Trades"
+
+msgid "signal.field.position"
+msgstr "OI"
+
+msgid "signal.field.big_ls"
+msgstr "Top L/S"
+
+msgid "signal.field.all_ls"
+msgstr "All L/S"
+
+msgid "signal.field.taker_ls"
+msgstr "Taker L/S"
+
+msgid "signal.field.sentiment_diff"
+msgstr "Sentiment Diff"
+
+msgid "signal.field.risk_score"
+msgstr "Risk Score"
+
+msgid "signal.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "signal.field.sentiment_momentum"
+msgstr "Sentiment Mom"
+
+msgid "signal.field.big"
+msgstr "Top"
+
+msgid "signal.field.taker"
+msgstr "Taker"
+
+msgid "signal.field.bars"
+msgstr " bars"
+
+msgid "signal.field.rsi_position"
+msgstr "RSI Position"
+
+msgid "signal.field.rsi_divergence"
+msgstr "RSI Divergence"
+
+msgid "signal.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "signal.field.bull_bear_power"
+msgstr "Bull/Bear"
+
+msgid "signal.field.bull"
+msgstr "Bull"
+
+msgid "signal.field.bear"
+msgstr "Bear"
+
+msgid "signal.field.support"
+msgstr "Support"
+
+msgid "signal.field.resistance"
+msgstr "Resistance"
+
+msgid "signal.field.distance"
+msgstr "dist"
+
+msgid "signal.field.precise_trend"
+msgstr "Precise Trend"
+
+msgid "signal.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "signal.field.bias"
+msgstr "Bias"
+
+msgid "signal.field.order_block"
+msgstr "Order Block"
+
+msgid "signal.field.gap"
+msgstr "Gap"
+
+msgid "signal.field.structure"
+msgstr "Structure"
+
+msgid "signal.field.score"
+msgstr "Score"
+
+msgid "signal.field.pattern_type"
+msgstr "Pattern"
+
+msgid "signal.field.pattern_count"
+msgstr "Count"
+
+msgid "signal.field.count_unit"
+msgstr ""
+
+msgid "signal.field.strength"
+msgstr "Strength"
+
+msgid "signal.field.atr_pct"
+msgstr "ATR%"
+
+msgid "signal.field.volatility"
+msgstr "Volatility"
+
+msgid "signal.field.liquidity"
+msgstr "Liquidity"
+
+msgid "signal.field.scalp_signal"
+msgstr "Signal"
+
+msgid "signal.field.timeframe"
+msgstr "Timeframe"
+
+msgid "signal.field.last_trigger"
+msgstr "Last Trigger"
+
+msgid "signal.field.ago"
+msgstr " ago"
+
+# Signal formatter - dynamic labels
+msgid "signal.label.buy_dominant"
+msgstr "Buy Dominant"
+
+msgid "signal.label.sell_dominant"
+msgstr "Sell Dominant"
+
+msgid "signal.label.balanced"
+msgstr "Balanced"
+
+msgid "signal.label.high_volume"
+msgstr "High Vol"
+
+msgid "signal.label.low_volume"
+msgstr "Low Vol"
+
+msgid "signal.label.none"
+msgstr "None"
+
+# Signal simple format
+msgid "signal.simple.timeframe"
+msgstr "Timeframe"
+
+msgid "signal.simple.price"
+msgstr "Price"
+
+msgid "signal.simple.strength"
+msgstr "Strength"

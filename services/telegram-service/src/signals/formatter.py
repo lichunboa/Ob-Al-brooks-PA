@@ -2,9 +2,27 @@
 信号模板格式化器
 生成完整的信号推送消息
 """
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Callable
 from datetime import datetime
 import time
+
+# i18n 支持 - 延迟导入避免循环依赖
+_t_func: Optional[Callable] = None
+
+def _get_t():
+    """获取翻译函数"""
+    global _t_func
+    if _t_func is None:
+        try:
+            from libs.common.i18n import I18N
+            _t_func = lambda key, lang=None: I18N.gettext(key, lang=lang) or key
+        except Exception:
+            _t_func = lambda key, lang=None: key
+    return _t_func
+
+def _t(key: str, lang: str = None) -> str:
+    """翻译函数"""
+    return _get_t()(key, lang)
 
 
 def strength_bar(value: float, max_val: float = 100) -> str:
@@ -113,7 +131,8 @@ class SignalFormatter:
         strength: int,
         curr_data: Dict[str, Dict[str, Any]],
         prev_data: Optional[Dict[str, Dict[str, Any]]] = None,
-        rule_message: str = ""
+        rule_message: str = "",
+        lang: str = None
     ) -> str:
         """
         格式化完整信号消息
@@ -127,7 +146,9 @@ class SignalFormatter:
             curr_data: 当前数据 {table: {field: value}}
             prev_data: 前值数据 {table: {field: value}}
             rule_message: 规则消息
+            lang: 语言代码
         """
+        t = lambda k: _t(k, lang)
         icon = {"BUY": "🟢", "SELL": "🔴", "ALERT": "⚠️"}.get(direction, "📊")
 
         # 获取各表数据
@@ -164,44 +185,44 @@ class SignalFormatter:
         # 💰 行情
         price = basic.get("当前价格") or basic.get("收盘价")
         price_prev = basic_prev.get("当前价格") or basic_prev.get("收盘价")
-        lines.append("💰 行情")
-        lines.append(f"├ 价格: {fmt_price(price_prev)} ⏩ {fmt_price(price)} {fmt_change(price_prev, price)}")
-        lines.append(f"├ 振幅: {fmt_pct(basic.get('振幅'), False)}")
+        lines.append(t("signal.section.market"))
+        lines.append(f"├ {t('signal.field.price')}: {fmt_price(price_prev)} ⏩ {fmt_price(price)} {fmt_change(price_prev, price)}")
+        lines.append(f"├ {t('signal.field.amplitude')}: {fmt_pct(basic.get('振幅'), False)}")
 
         ratio = basic.get("主动买卖比")
         ratio_prev = basic_prev.get("主动买卖比")
-        ratio_label = "买盘主导" if (ratio or 1) > 1.1 else ("卖盘主导" if (ratio or 1) < 0.9 else "均衡")
-        lines.append(f"├ 买卖比: {fmt_num(ratio_prev)} ⏩ {fmt_num(ratio)} {fmt_change(ratio_prev, ratio)} {ratio_label}")
-        lines.append(f"├ 成交额: {fmt_vol(basic.get('成交额'))}")
-        lines.append(f"├ 净流入: {fmt_vol(basic.get('资金流向'))}")
-        lines.append(f"└ 交易次数: {fmt_num(basic.get('交易次数'), 0)}")
+        ratio_label = t("signal.label.buy_dominant") if (ratio or 1) > 1.1 else (t("signal.label.sell_dominant") if (ratio or 1) < 0.9 else t("signal.label.balanced"))
+        lines.append(f"├ {t('signal.field.buy_sell_ratio')}: {fmt_num(ratio_prev)} ⏩ {fmt_num(ratio)} {fmt_change(ratio_prev, ratio)} {ratio_label}")
+        lines.append(f"├ {t('signal.field.volume')}: {fmt_vol(basic.get('成交额'))}")
+        lines.append(f"├ {t('signal.field.net_inflow')}: {fmt_vol(basic.get('资金流向'))}")
+        lines.append(f"└ {t('signal.field.trade_count')}: {fmt_num(basic.get('交易次数'), 0)}")
         lines.append("")
 
         # 📊 合约
         if futures:
-            lines.append("📊 合约")
-            lines.append(f"├ 持仓: {fmt_vol(futures.get('持仓金额'))} ({fmt_pct(futures.get('持仓变动%'))})")
+            lines.append(t("signal.section.futures"))
+            lines.append(f"├ {t('signal.field.position')}: {fmt_vol(futures.get('持仓金额'))} ({fmt_pct(futures.get('持仓变动%'))})")
 
             big_ratio = futures.get("大户多空比")
             big_prev = futures_prev.get("大户多空比")
-            lines.append(f"├ 大户多空: {fmt_num(big_prev)} ⏩ {fmt_num(big_ratio)} {fmt_change(big_prev, big_ratio)}")
+            lines.append(f"├ {t('signal.field.big_ls')}: {fmt_num(big_prev)} ⏩ {fmt_num(big_ratio)} {fmt_change(big_prev, big_ratio)}")
 
             all_ratio = futures.get("全体多空比")
             all_prev = futures_prev.get("全体多空比")
-            lines.append(f"├ 全体多空: {fmt_num(all_prev)} ⏩ {fmt_num(all_ratio)} {fmt_change(all_prev, all_ratio)}")
+            lines.append(f"├ {t('signal.field.all_ls')}: {fmt_num(all_prev)} ⏩ {fmt_num(all_ratio)} {fmt_change(all_prev, all_ratio)}")
 
             taker = futures.get("主动成交多空比")
             taker_prev = futures_prev.get("主动成交多空比")
-            lines.append(f"├ 主动多空: {fmt_num(taker_prev)} ⏩ {fmt_num(taker)} {fmt_change(taker_prev, taker)}")
+            lines.append(f"├ {t('signal.field.taker_ls')}: {fmt_num(taker_prev)} ⏩ {fmt_num(taker)} {fmt_change(taker_prev, taker)}")
 
-            lines.append(f"├ 情绪差值: {fmt_num(futures.get('情绪差值'))}")
-            lines.append(f"├ 风险分: {strength_bar(futures.get('风险分'))} {fmt_num(futures.get('风险分'), 0)}")
-            lines.append(f"├ OI连续: {futures.get('OI连续根数')}根")
-            lines.append(f"└ 情绪动量: 大户{fmt_num(futures.get('大户情绪动量'))} 主动{fmt_num(futures.get('主动情绪动量'))}")
+            lines.append(f"├ {t('signal.field.sentiment_diff')}: {fmt_num(futures.get('情绪差值'))}")
+            lines.append(f"├ {t('signal.field.risk_score')}: {strength_bar(futures.get('风险分'))} {fmt_num(futures.get('风险分'), 0)}")
+            lines.append(f"├ {t('signal.field.oi_streak')}: {futures.get('OI连续根数')}{t('signal.field.bars')}")
+            lines.append(f"└ {t('signal.field.sentiment_momentum')}: {t('signal.field.big')}{fmt_num(futures.get('大户情绪动量'))} {t('signal.field.taker')}{fmt_num(futures.get('主动情绪动量'))}")
             lines.append("")
 
         # 📉 动量
-        lines.append("📉 动量")
+        lines.append(t("signal.section.momentum"))
         adx = curr_data.get("ADX.py", {})
         adx_val = adx.get("ADX")
         di_label = "+DI>-DI" if (adx.get("正向DI") or 0) > (adx.get("负向DI") or 0) else "-DI>+DI"
@@ -222,12 +243,12 @@ class SignalFormatter:
             rsi7 = rsi.get("RSI7")
             rsi7_prev = rsi_prev.get("RSI7")
             lines.append(f"├ RSI7: {fmt_num(rsi7_prev)} ⏩ {fmt_num(rsi7)} {fmt_change(rsi7_prev, rsi7)}")
-            lines.append(f"├ RSI位置: {rsi.get('位置', '-')}")
-            lines.append(f"└ RSI背离: {rsi.get('背离', '无')}")
+            lines.append(f"├ {t('signal.field.rsi_position')}: {rsi.get('位置', '-')}")
+            lines.append(f"└ {t('signal.field.rsi_divergence')}: {rsi.get('背离', t('signal.label.none'))}")
         lines.append("")
 
         # 📊 量价
-        lines.append("📊 量价")
+        lines.append(t("signal.section.volume"))
         obv_val = obv.get("OBV值")
         obv_prev_val = obv_prev.get("OBV值")
         lines.append(f"├ OBV: {fmt_num(obv_prev_val)} ⏩ {fmt_num(obv_val)} {fmt_change(obv_prev_val, obv_val)}")
@@ -235,72 +256,72 @@ class SignalFormatter:
 
         vr = vol_ratio.get("量比")
         vr_prev = vol_ratio_prev.get("量比")
-        vr_label = "放量" if (vr or 0) > 1.5 else ("缩量" if (vr or 0) < 0.7 else "")
-        lines.append(f"├ 量比: {fmt_num(vr_prev)} ⏩ {fmt_num(vr)} {fmt_change(vr_prev, vr)} {vr_label}")
+        vr_label = t("signal.label.high_volume") if (vr or 0) > 1.5 else (t("signal.label.low_volume") if (vr or 0) < 0.7 else "")
+        lines.append(f"├ {t('signal.field.vol_ratio')}: {fmt_num(vr_prev)} ⏩ {fmt_num(vr)} {fmt_change(vr_prev, vr)} {vr_label}")
 
         ha = curr_data.get("多空信号扫描器.py", {})
         bull = ha.get("多头比例") or 50
-        lines.append(f"└ 多空力量: {'多' if bull > 50 else '空'}{strength_bar(bull if bull > 50 else 100-bull)} {fmt_num(bull, 0)}%")
+        lines.append(f"└ {t('signal.field.bull_bear_power')}: {t('signal.field.bull') if bull > 50 else t('signal.field.bear')}{strength_bar(bull if bull > 50 else 100-bull)} {fmt_num(bull, 0)}%")
         lines.append("")
 
         # 📍 关键位
-        lines.append("📍 关键位")
-        lines.append(f"├ 支撑: {fmt_price(sr.get('支撑位'))} (距{fmt_pct(sr.get('距支撑百分比'), False)})")
-        lines.append(f"├ 阻力: {fmt_price(sr.get('阻力位'))} (距{fmt_pct(sr.get('距阻力百分比'), False)})")
-        lines.append(f"└ 布林%b: {fmt_num(boll.get('百分比b'))}")
+        lines.append(t("signal.section.key_levels"))
+        lines.append(f"├ {t('signal.field.support')}: {fmt_price(sr.get('支撑位'))} ({t('signal.field.distance')}{fmt_pct(sr.get('距支撑百分比'), False)})")
+        lines.append(f"├ {t('signal.field.resistance')}: {fmt_price(sr.get('阻力位'))} ({t('signal.field.distance')}{fmt_pct(sr.get('距阻力百分比'), False)})")
+        lines.append(f"└ Boll%b: {fmt_num(boll.get('百分比b'))}")
         lines.append("")
 
         # 📈 趋势
-        lines.append("📈 趋势")
+        lines.append(t("signal.section.trend"))
         st_dir = st.get("方向")
         st_prev_dir = st_prev.get("方向")
         lines.append(f"├ SuperTrend: {st_prev_dir} ⏩ {st_dir}" if st_prev_dir != st_dir else f"├ SuperTrend: {st_dir}")
 
-        lines.append(f"├ 精准趋势: {precise.get('趋势方向')} {strength_bar(precise.get('趋势强度'))} {fmt_num(precise.get('趋势强度'), 0)}")
-        lines.append(f"└ 量能偏向: {precise.get('量能偏向', '-')}")
+        lines.append(f"├ {t('signal.field.precise_trend')}: {precise.get('趋势方向')} {strength_bar(precise.get('趋势强度'))} {fmt_num(precise.get('趋势强度'), 0)}")
+        lines.append(f"└ {t('signal.field.volume_bias')}: {precise.get('量能偏向', '-')}")
         lines.append("")
 
         # 🏦 智能资金
         if smc:
-            lines.append("🏦 智能资金")
-            lines.append(f"├ 偏向: {smc.get('偏向', '-')}")
+            lines.append(t("signal.section.smart_money"))
+            lines.append(f"├ {t('signal.field.bias')}: {smc.get('偏向', '-')}")
             ob_up = smc.get("订单块上沿")
             ob_down = smc.get("订单块下沿")
             if ob_up and ob_down:
-                lines.append(f"├ 订单块: {fmt_price(ob_down)}-{fmt_price(ob_up)}")
-            lines.append(f"├ 缺口: {smc.get('缺口类型', '-')}")
-            lines.append(f"├ 结构: {smc.get('结构事件', '-')}")
-            lines.append(f"└ 评分: {strength_bar(smc.get('评分'))} {fmt_num(smc.get('评分'), 0)}")
+                lines.append(f"├ {t('signal.field.order_block')}: {fmt_price(ob_down)}-{fmt_price(ob_up)}")
+            lines.append(f"├ {t('signal.field.gap')}: {smc.get('缺口类型', '-')}")
+            lines.append(f"├ {t('signal.field.structure')}: {smc.get('结构事件', '-')}")
+            lines.append(f"└ {t('signal.field.score')}: {strength_bar(smc.get('评分'))} {fmt_num(smc.get('评分'), 0)}")
             lines.append("")
 
         # 🕯️ K线形态
         if pattern and pattern.get("形态类型"):
-            lines.append("🕯️ K线形态")
-            lines.append(f"├ 形态: {pattern.get('形态类型', '-')}")
-            lines.append(f"├ 数量: {pattern.get('检测数量', 0)}个")
-            lines.append(f"└ 强度: {strength_bar(pattern.get('强度'))} {fmt_num(pattern.get('强度'), 0)}")
+            lines.append(t("signal.section.pattern"))
+            lines.append(f"├ {t('signal.field.pattern_type')}: {pattern.get('形态类型', '-')}")
+            lines.append(f"├ {t('signal.field.pattern_count')}: {pattern.get('检测数量', 0)}{t('signal.field.count_unit')}")
+            lines.append(f"└ {t('signal.field.strength')}: {strength_bar(pattern.get('强度'))} {fmt_num(pattern.get('强度'), 0)}")
             lines.append("")
 
         # ⚡ 波动
-        lines.append("⚡ 波动")
+        lines.append(t("signal.section.volatility"))
         atr_pct = atr.get("ATR百分比")
         atr_pct_prev = atr_prev.get("ATR百分比")
-        lines.append(f"├ ATR%: {fmt_pct(atr_pct_prev, False)} ⏩ {fmt_pct(atr_pct, False)} {fmt_change(atr_pct_prev, atr_pct)}")
-        lines.append(f"├ 波动: {atr.get('波动分类', '-')}")
-        lines.append(f"└ 流动性: {strength_bar(liquidity.get('流动性得分'))} {fmt_num(liquidity.get('流动性得分'), 0)}")
+        lines.append(f"├ {t('signal.field.atr_pct')}: {fmt_pct(atr_pct_prev, False)} ⏩ {fmt_pct(atr_pct, False)} {fmt_change(atr_pct_prev, atr_pct)}")
+        lines.append(f"├ {t('signal.field.volatility')}: {atr.get('波动分类', '-')}")
+        lines.append(f"└ {t('signal.field.liquidity')}: {strength_bar(liquidity.get('流动性得分'))} {fmt_num(liquidity.get('流动性得分'), 0)}")
         lines.append("")
 
         # 🎯 剥头皮
         if scalp:
-            lines.append("🎯 剥头皮")
-            lines.append(f"├ 信号: {scalp.get('剥头皮信号', '-')}")
+            lines.append(t("signal.section.scalp"))
+            lines.append(f"├ {t('signal.field.scalp_signal')}: {scalp.get('剥头皮信号', '-')}")
             lines.append(f"└ RSI: {fmt_num(scalp.get('RSI'))}")
             lines.append("")
 
         # 📌 信号详情
         lines.append(f"📌 {rule_name}")
-        lines.append(f"├ 周期: {timeframe}")
-        lines.append(f"├ 强度: {strength_bar(strength)} {strength}")
+        lines.append(f"├ {t('signal.field.timeframe')}: {timeframe}")
+        lines.append(f"├ {t('signal.field.strength')}: {strength_bar(strength)} {strength}")
         if rule_message:
             lines.append(f"└ 📝 {rule_message}")
         lines.append("")
@@ -316,7 +337,7 @@ class SignalFormatter:
             delta = int(time.time() - last)
             hours = delta // 3600
             mins = (delta % 3600) // 60
-            lines.append(f"🔄 上次触发: {hours}h{mins}m前")
+            lines.append(f"🔄 {t('signal.field.last_trigger')}: {hours}h{mins}m{t('signal.field.ago')}")
 
         self.last_trigger[key] = time.time()
 
@@ -330,18 +351,20 @@ class SignalFormatter:
         timeframe: str,
         strength: int,
         price: float,
-        message: str
+        message: str,
+        lang: str = None
     ) -> str:
         """简化版信号格式"""
+        t = lambda k: _t(k, lang)
         icon = {"BUY": "🟢", "SELL": "🔴", "ALERT": "⚠️"}.get(direction, "📊")
 
         return f"""
 {icon} {direction} | {symbol}
 
 📌 {rule_name}
-⏱ 周期: {timeframe}
-💰 价格: {fmt_price(price)}
-📊 强度: {strength_bar(strength)} {strength}%
+⏱ {t('signal.simple.timeframe')}: {timeframe}
+💰 {t('signal.simple.price')}: {fmt_price(price)}
+📊 {t('signal.simple.strength')}: {strength_bar(strength)} {strength}%
 
 💬 {message}
 """

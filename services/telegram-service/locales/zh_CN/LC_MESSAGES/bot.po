@@ -2341,3 +2341,184 @@ msgstr "Amihud原值"
 
 msgid "export.field.kyle_raw"
 msgstr "Kyle原值"
+
+
+msgid "signal.section.key_levels"
+msgstr "📍 关键位"
+
+msgid "signal.section.trend"
+msgstr "📈 趋势"
+
+msgid "signal.section.smart_money"
+msgstr "🏦 智能资金"
+
+msgid "signal.section.pattern"
+msgstr "🕯️ K线形态"
+
+msgid "signal.section.volatility"
+msgstr "⚡ 波动"
+
+msgid "signal.section.scalp"
+msgstr "🎯 剥头皮"
+
+# Signal formatter - field labels
+msgid "signal.field.price"
+msgstr "价格"
+
+msgid "signal.field.amplitude"
+msgstr "振幅"
+
+msgid "signal.field.buy_sell_ratio"
+msgstr "买卖比"
+
+msgid "signal.field.volume"
+msgstr "成交额"
+
+msgid "signal.field.net_inflow"
+msgstr "净流入"
+
+msgid "signal.field.trade_count"
+msgstr "交易次数"
+
+msgid "signal.field.position"
+msgstr "持仓"
+
+msgid "signal.field.big_ls"
+msgstr "大户多空"
+
+msgid "signal.field.all_ls"
+msgstr "全体多空"
+
+msgid "signal.field.taker_ls"
+msgstr "主动多空"
+
+msgid "signal.field.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "signal.field.risk_score"
+msgstr "风险分"
+
+msgid "signal.field.oi_streak"
+msgstr "OI连续"
+
+msgid "signal.field.sentiment_momentum"
+msgstr "情绪动量"
+
+msgid "signal.field.big"
+msgstr "大户"
+
+msgid "signal.field.taker"
+msgstr "主动"
+
+msgid "signal.field.bars"
+msgstr "根"
+
+msgid "signal.field.rsi_position"
+msgstr "RSI位置"
+
+msgid "signal.field.rsi_divergence"
+msgstr "RSI背离"
+
+msgid "signal.field.vol_ratio"
+msgstr "量比"
+
+msgid "signal.field.bull_bear_power"
+msgstr "多空力量"
+
+msgid "signal.field.bull"
+msgstr "多"
+
+msgid "signal.field.bear"
+msgstr "空"
+
+msgid "signal.field.support"
+msgstr "支撑"
+
+msgid "signal.field.resistance"
+msgstr "阻力"
+
+msgid "signal.field.distance"
+msgstr "距"
+
+msgid "signal.field.precise_trend"
+msgstr "精准趋势"
+
+msgid "signal.field.volume_bias"
+msgstr "量能偏向"
+
+msgid "signal.field.bias"
+msgstr "偏向"
+
+msgid "signal.field.order_block"
+msgstr "订单块"
+
+msgid "signal.field.gap"
+msgstr "缺口"
+
+msgid "signal.field.structure"
+msgstr "结构"
+
+msgid "signal.field.score"
+msgstr "评分"
+
+msgid "signal.field.pattern_type"
+msgstr "形态"
+
+msgid "signal.field.pattern_count"
+msgstr "数量"
+
+msgid "signal.field.count_unit"
+msgstr "个"
+
+msgid "signal.field.strength"
+msgstr "强度"
+
+msgid "signal.field.atr_pct"
+msgstr "ATR%"
+
+msgid "signal.field.volatility"
+msgstr "波动"
+
+msgid "signal.field.liquidity"
+msgstr "流动性"
+
+msgid "signal.field.scalp_signal"
+msgstr "信号"
+
+msgid "signal.field.timeframe"
+msgstr "周期"
+
+msgid "signal.field.last_trigger"
+msgstr "上次触发"
+
+msgid "signal.field.ago"
+msgstr "前"
+
+# Signal formatter - dynamic labels
+msgid "signal.label.buy_dominant"
+msgstr "买盘主导"
+
+msgid "signal.label.sell_dominant"
+msgstr "卖盘主导"
+
+msgid "signal.label.balanced"
+msgstr "均衡"
+
+msgid "signal.label.high_volume"
+msgstr "放量"
+
+msgid "signal.label.low_volume"
+msgstr "缩量"
+
+msgid "signal.label.none"
+msgstr "无"
+
+# Signal simple format
+msgid "signal.simple.timeframe"
+msgstr "周期"
+
+msgid "signal.simple.price"
+msgstr "价格"
+
+msgid "signal.simple.strength"
+msgstr "强度"
