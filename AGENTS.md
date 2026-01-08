@@ -337,12 +337,12 @@ tradecat/
 | 文件 | 说明 |
 |:---|:---|
 | `services/data-service/src/__main__.py` | data-service 入口 |
-| `services/markets-service/src/__main__.py` | markets-service 入口 |
+| `services-preview/markets-service/src/__main__.py` | markets-service 入口 |
 | `services/trading-service/src/simple_scheduler.py` | trading-service 调度器 |
 | `services/telegram-service/src/main.py` | telegram-service 入口 |
 | `services/telegram-service/src/bot/app.py` | Bot 主逻辑 |
 | `services/ai-service/src/bot/handler.py` | AI 分析处理器 |
-| `services/vis-service/src/main.py` | vis-service FastAPI 入口 |
+| `services-preview/vis-service/src/main.py` | vis-service FastAPI 入口 |
 
 ### 6.2 核心模块
 
@@ -445,7 +445,7 @@ chmod 600 config/.env
 
 ### 7.7 新旧库并存（markets-service 相关）
 
-**现象**：`services/markets-service/scripts/init_market_db.sh`、`import_bookdepth.py`、`sync_from_old_db.sh` 及 `scripts/ddl/01_enums_schemas.sql`、`migrate_5434.sql` 默认指向 5434（新库），并包含“5433 -> 5434”迁移脚本；而顶层运维脚本默认 5433。
+**现象**：`services-preview/markets-service/scripts/init_market_db.sh`、`import_bookdepth.py`、`sync_from_old_db.sh` 及 `scripts/ddl/01_enums_schemas.sql`、`migrate_5434.sql` 默认指向 5434（新库），并包含“5433 -> 5434”迁移脚本；而顶层运维脚本默认 5433。
 
 **约束**：
 - 执行 markets-service 脚本前确认目标端口；若全局改回 5433，需同步这些脚本与 SQL 文件。
@@ -598,13 +598,13 @@ cd services/trading-service
 ./scripts/start.sh stop         # 停止
 ./scripts/start.sh status       # 状态
 
-# markets-service（多市场采集）
-cd services/markets-service
+# markets-service（多市场采集，预览版）
+cd services-preview/markets-service
 ./scripts/start.sh start        # 启动
 ./scripts/crypto-daemon.sh      # 加密货币守护进程
 
-# vis-service（可视化渲染）
-cd services/vis-service
+# vis-service（可视化渲染，预览版）
+cd services-preview/vis-service
 source .venv/bin/activate
 uvicorn src.main:app --host 0.0.0.0 --port 8087
 

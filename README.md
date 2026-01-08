@@ -156,7 +156,7 @@ vim config/.env
 ```
 
 > 说明：顶层 `./scripts/start.sh` 仅管理 `data-service`、`trading-service`、`telegram-service`。  
-> 其他服务需手动：`cd services/markets-service && ./scripts/start.sh start`（多市场采集）或 `./scripts/crypto-daemon.sh start`（加密货币守护）；`cd services/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`vis-service` 需手动启动 `uvicorn src.main:app --port 8087`。
+> 预览版服务需手动启动：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`cd services-preview/vis-service && uvicorn src.main:app --port 8087`（可视化）。
 
 ### ⚙️ 配置（必须）
 
@@ -198,7 +198,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 ## 🔍 补充检查（2026-01-06）
 
-- 端口分歧仍需一次性决策：核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 默认 5433；模板 `config/.env.example` 及 `services/markets-service/scripts/init_market_db.sh`/`import_bookdepth.py`/`sync_from_old_db.sh`/`ddl/01_enums_schemas.sql`/`migrate_5434.sql` 默认 5434（新库）。请选定端口后同步修改上述所有文件与 README 示例命令。<!-- TODO: 选择统一端口（5433 或 5434）并执行全局替换 -->
+- 端口分歧仍需一次性决策：核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 默认 5433；模板 `config/.env.example` 及 `services-preview/markets-service/scripts/init_market_db.sh`/`import_bookdepth.py`/`sync_from_old_db.sh`/`ddl/01_enums_schemas.sql`/`migrate_5434.sql` 默认 5434（新库）。请选定端口后同步修改上述所有文件与 README 示例命令。<!-- TODO: 选择统一端口（5433 或 5434）并执行全局替换 -->
 - CI 仅执行 ruff + py_compile 抽样（`.github/workflows/ci.yml`），不会跑 tests；提交前本地仍需 `./scripts/verify.sh`。
 - `scripts/install.sh` 生成各服务 `.env` 但运行时只读 `config/.env`；避免多份配置漂移。
 
