@@ -2486,7 +2486,10 @@ const ConsoleComponent: React.FC<Props> = ({
 
                         for (const key of visibleKeys) {
                           const g = matchKeyToGroup(key);
-                          bucketed.get(g)!.push(key);
+                          const bucket = bucketed.get(g);
+                          if (bucket) {
+                            bucket.push(key);
+                          }
                         }
 
                         const groupEntries: Array<{
