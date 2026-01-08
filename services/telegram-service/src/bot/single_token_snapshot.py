@@ -17,7 +17,7 @@ import unicodedata
 from typing import Dict, List, Literal, Sequence, Tuple
 
 from cards.data_provider import format_symbol, get_ranking_provider
-from cards.i18n import gettext as _t, resolve_lang
+from cards.i18n import gettext as _t, resolve_lang, translate_field
 
 # ==================== 配置 ====================
 
@@ -344,7 +344,9 @@ class SingleTokenSnapshot:
                 # 跳过屏蔽字段
                 if col_id in hidden_fields or label in hidden_fields:
                     continue
-                row = [label]
+                # 翻译字段标签
+                translated_label = translate_field(label, lang=lang)
+                row = [translated_label]
                 for period in columns:
                     row.append(self._fetch_table_value(table, period, (col_id,), panel))
                 rows.append(row)

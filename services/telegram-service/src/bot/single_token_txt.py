@@ -141,92 +141,93 @@ def fmt_str(val: Any, max_len: int = 10) -> str:
 ALL_PERIODS = ("1m", "5m", "15m", "1h", "4h", "1d", "1w")
 FUTURES_PERIODS = ("5m", "15m", "1h", "4h", "1d", "1w")
 
-# 面板字段配置: 表名 -> [(字段ID, 显示名, 格式化函数)]
+# 面板字段配置: 表名 -> [(字段ID, 显示名i18n键, 格式化函数)]
+# 显示名使用 i18n 键，运行时翻译
 PANEL_CONFIG = {
     "basic": {
-        "title": "📊 基础指标",
+        "title_key": "export.panel.basic",
         "tables": {
             "布林带扫描器": [
-                ("带宽", "带宽", fmt_num),
-                ("百分比b", "%B", fmt_num),
-                ("中轨斜率", "中轨斜率", fmt_num),
+                ("带宽", "export.field.bandwidth", fmt_num),
+                ("百分比b", "export.field.percent_b", fmt_num),
+                ("中轨斜率", "export.field.mid_slope", fmt_num),
             ],
             "KDJ随机指标扫描器": [
-                ("J值", "J", fmt_num),
-                ("K值", "K", fmt_num),
-                ("D值", "D", fmt_num),
-                ("信号概述", "信号", str),
+                ("J值", "export.field.j", fmt_num),
+                ("K值", "export.field.k", fmt_num),
+                ("D值", "export.field.d", fmt_num),
+                ("信号概述", "export.field.signal", str),
             ],
             "MACD柱状扫描器": [
-                ("MACD", "MACD", fmt_num),
-                ("DIF", "DIF", fmt_num),
-                ("DEA", "DEA", fmt_num),
-                ("信号概述", "信号", str),
+                ("MACD", "export.field.macd", fmt_num),
+                ("DIF", "export.field.dif", fmt_num),
+                ("DEA", "export.field.dea", fmt_num),
+                ("信号概述", "export.field.signal", str),
             ],
             "智能RSI扫描器": [
-                ("RSI均值", "RSI", fmt_num),
-                ("信号", "信号", str),
-                ("强度", "强度", fmt_num),
+                ("RSI均值", "export.field.rsi", fmt_num),
+                ("信号", "export.field.signal", str),
+                ("强度", "export.field.strength", fmt_num),
             ],
             "OBV能量潮扫描器": [
-                ("OBV值", "OBV", fmt_num),
-                ("OBV变化率", "变化率", fmt_pct),
+                ("OBV值", "export.field.obv", fmt_num),
+                ("OBV变化率", "export.field.change_rate", fmt_pct),
             ],
             "成交量比率扫描器": [
-                ("量比", "量比", fmt_num),
-                ("信号概述", "信号", str),
+                ("量比", "export.field.vol_ratio", fmt_num),
+                ("信号概述", "export.field.signal", str),
             ],
         },
     },
     "futures": {
-        "title": "📈 期货情绪",
+        "title_key": "export.panel.futures",
         "periods": FUTURES_PERIODS,
         "tables": {
             "期货情绪聚合表": [
-                ("持仓金额", "持仓金额", fmt_num),
-                ("持仓变动%", "持仓变动%", fmt_pct),
-                ("大户多空比", "大户多空比", fmt_num),
-                ("全体多空比", "全体多空比", fmt_num),
-                ("主动成交多空比", "主动多空比", fmt_num),
-                ("情绪差值", "情绪差值", fmt_num),
-                ("信号", "信号", str),
+                ("持仓金额", "export.field.oi_value", fmt_num),
+                ("持仓变动%", "export.field.oi_change_pct", fmt_pct),
+                ("大户多空比", "export.field.top_ratio", fmt_num),
+                ("全体多空比", "export.field.crowd_ratio", fmt_num),
+                ("主动成交多空比", "export.field.taker_ratio", fmt_num),
+                ("情绪差值", "export.field.sentiment_diff", fmt_num),
+                ("信号", "export.field.signal", str),
             ],
         },
     },
     "advanced": {
-        "title": "🔬 高级指标",
+        "title_key": "export.panel.advanced",
         "tables": {
             "全量支撑阻力扫描器": [
-                ("支撑位", "支撑位", fmt_num),
-                ("阻力位", "阻力位", fmt_num),
-                ("距支撑百分比", "距支撑%", fmt_pct),
-                ("距阻力百分比", "距阻力%", fmt_pct),
+                ("支撑位", "export.field.support", fmt_num),
+                ("阻力位", "export.field.resistance", fmt_num),
+                ("距支撑百分比", "export.field.dist_support", fmt_pct),
+                ("距阻力百分比", "export.field.dist_resistance", fmt_pct),
             ],
             "ATR波幅扫描器": [
-                ("ATR百分比", "ATR%", fmt_pct),
-                ("波动分类", "波动", str),
+                ("ATR百分比", "export.field.atr_pct", fmt_pct),
+                ("波动分类", "export.field.volatility", str),
             ],
             "流动性扫描器": [
-                ("流动性得分", "流动性", fmt_num),
-                ("流动性等级", "等级", str),
+                ("流动性得分", "export.field.liquidity", fmt_num),
+                ("流动性等级", "export.field.level", str),
             ],
             "超级精准趋势扫描器": [
-                ("趋势方向", "方向", str),
-                ("趋势强度", "强度", fmt_num),
-                ("趋势持续根数", "持续", fmt_num),
+                ("趋势方向", "export.field.direction", str),
+                ("趋势强度", "export.field.strength", fmt_num),
+                ("趋势持续根数", "export.field.duration", fmt_num),
             ],
             "VWAP离线信号扫描": [
-                ("偏离百分比", "VWAP偏离%", fmt_pct),
+                ("偏离百分比", "export.field.vwap_dev", fmt_pct),
             ],
         },
     },
     "pattern": {
-        "title": "🕯️ K线形态",
+        "title_key": "export.panel.pattern",
         "tables": {
             "K线形态扫描器": [
-                ("形态类型", "形态", str),
-                ("检测数量", "数量", fmt_num),
-                ("强度", "强度", fmt_num),
+                ("形态类型", "export.field.pattern", str),
+                ("检测数量", "export.field.count", fmt_num),
+                ("强度", "export.field.strength", fmt_num),
             ],
         },
     },
@@ -240,6 +241,7 @@ class SingleTokenTxtExporter:
 
     def __init__(self):
         self.provider = get_ranking_provider()
+        self.lang = "zh_CN"  # 默认语言
 
     def _get_data(self, table: str, symbol: str, period: str) -> Optional[Dict]:
         """获取指定表/币种/周期的数据"""
@@ -255,16 +257,19 @@ class SingleTokenTxtExporter:
             return ""
 
         periods = config.get("periods", ALL_PERIODS)
+        title = _t(config["title_key"], lang=self.lang)
 
         # K线形态用竖表（周期作为行）
         if panel_name == "pattern":
-            return self._render_pattern_vertical(symbol, periods, config)
+            return self._render_pattern_vertical(symbol, periods, title)
 
-        headers = ["指标\\周期"] + list(periods)
+        header_label = _t("export.header.indicator_period", lang=self.lang)
+        headers = [header_label] + list(periods)
         rows = []
 
         for table_name, fields in config["tables"].items():
-            for field_id, display_name, formatter in fields:
+            for field_id, display_key, formatter in fields:
+                display_name = _t(display_key, lang=self.lang)
                 row = [display_name]
                 for period in periods:
                     data = self._get_data(table_name, symbol, period)
@@ -275,11 +280,16 @@ class SingleTokenTxtExporter:
                         row.append("-")
                 rows.append(row)
 
-        return format_psql_table(headers, rows, config["title"])
+        return format_psql_table(headers, rows, title)
 
-    def _render_pattern_vertical(self, symbol: str, periods: tuple, config: dict) -> str:
+    def _render_pattern_vertical(self, symbol: str, periods: tuple, title: str) -> str:
         """渲染 K线形态竖表（周期作为行）"""
-        headers = ["周期", "形态", "数量", "强度"]
+        headers = [
+            _t("export.header.period", lang=self.lang),
+            _t("export.field.pattern", lang=self.lang),
+            _t("export.field.count", lang=self.lang),
+            _t("export.field.strength", lang=self.lang),
+        ]
         rows = []
 
         for period in periods:
@@ -295,10 +305,11 @@ class SingleTokenTxtExporter:
             else:
                 rows.append([period, "-", "-", "-"])
 
-        return format_psql_table(headers, rows, config["title"])
+        return format_psql_table(headers, rows, title)
 
     def export_full(self, symbol: str, lang: str = "zh_CN") -> str:
         """导出完整的 4 面板 TXT"""
+        self.lang = lang
         sym = format_symbol(symbol)
         if not sym:
             return _t("snapshot.error.no_symbol", lang=lang)
