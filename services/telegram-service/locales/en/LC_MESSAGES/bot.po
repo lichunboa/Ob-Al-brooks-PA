@@ -1839,3 +1839,296 @@ msgstr "Scalping"
 
 msgid "signal.table.basic"
 msgstr "Basic"
+
+# Signal formatting labels
+msgid "signal.label.price"
+msgstr "Price"
+
+msgid "signal.label.amplitude"
+msgstr "Amplitude"
+
+msgid "signal.label.buy_sell_ratio"
+msgstr "Buy/Sell"
+
+msgid "signal.label.volume"
+msgstr "Volume"
+
+msgid "signal.label.net_inflow"
+msgstr "Net Inflow"
+
+msgid "signal.label.trades"
+msgstr "Trades"
+
+msgid "signal.label.position"
+msgstr "Position"
+
+msgid "signal.label.big_ls"
+msgstr "Big L/S"
+
+msgid "signal.label.all_ls"
+msgstr "All L/S"
+
+msgid "signal.label.taker_ls"
+msgstr "Taker L/S"
+
+msgid "signal.label.sentiment_diff"
+msgstr "Sentiment Diff"
+
+msgid "signal.label.risk_score"
+msgstr "Risk Score"
+
+msgid "signal.label.oi_streak"
+msgstr "OI Streak"
+
+msgid "signal.label.sentiment_momentum"
+msgstr "Sentiment Momentum"
+
+msgid "signal.label.support"
+msgstr "Support"
+
+msgid "signal.label.resistance"
+msgstr "Resistance"
+
+msgid "signal.label.trend"
+msgstr "Trend"
+
+msgid "signal.label.volume_bias"
+msgstr "Volume Bias"
+
+msgid "signal.section.market"
+msgstr "💰 Market"
+
+msgid "signal.section.futures"
+msgstr "📊 Futures"
+
+msgid "signal.section.indicator"
+msgstr "📈 Indicators"
+
+msgid "signal.section.structure"
+msgstr "🏗️ Structure"
+
+msgid "signal.ratio.buy_dominant"
+msgstr "Buy Dominant"
+
+msgid "signal.ratio.sell_dominant"
+msgstr "Sell Dominant"
+
+msgid "signal.ratio.balanced"
+msgstr "Balanced"
+
+msgid "signal.vol.high"
+msgstr "High Vol"
+
+msgid "signal.vol.low"
+msgstr "Low Vol"
+
+msgid "signal.vol.normal"
+msgstr "Normal"
+
+# Single token query card names
+msgid "card.name.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "card.name.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "card.name.support_resistance"
+msgstr "S/R"
+
+msgid "card.name.rsi_harmonic"
+msgstr "RSI Harmonic"
+
+msgid "card.name.bollinger"
+msgstr "Bollinger"
+
+msgid "card.name.macd"
+msgstr "MACD"
+
+msgid "card.name.kdj"
+msgstr "KDJ"
+
+msgid "card.name.obv"
+msgstr "OBV"
+
+msgid "card.name.ema"
+msgstr "EMA"
+
+msgid "card.name.atr"
+msgstr "ATR"
+
+msgid "card.name.cvd"
+msgstr "CVD"
+
+msgid "card.name.vwap"
+msgstr "VWAP"
+
+msgid "card.name.vpvr"
+msgstr "VPVR"
+
+msgid "card.name.liquidity"
+msgstr "Liquidity"
+
+msgid "card.name.trendline"
+msgstr "Trendline"
+
+msgid "card.name.supertrend"
+msgstr "SuperTrend"
+
+msgid "card.name.mfi"
+msgstr "MFI"
+
+msgid "card.name.k_pattern"
+msgstr "K Pattern"
+
+msgid "card.name.position"
+msgstr "Position"
+
+msgid "card.name.big_sentiment"
+msgstr "Big Trader"
+
+msgid "card.name.all_sentiment"
+msgstr "All Market"
+
+msgid "card.name.taker"
+msgstr "Taker"
+
+msgid "card.name.sentiment"
+msgstr "Sentiment"
+
+# Signal value translations
+msgid "signal.value.shrink"
+msgstr "Low Vol"
+
+msgid "signal.value.expand"
+msgstr "High Vol"
+
+msgid "signal.value.continue"
+msgstr "Continue"
+
+msgid "signal.value.golden_cross"
+msgstr "Golden X"
+
+msgid "signal.value.death_cross"
+msgstr "Death X"
+
+# Data value translations
+msgid "data.value.shrink"
+msgstr "Low"
+
+msgid "data.value.expand"
+msgstr "High"
+
+msgid "data.value.normal"
+msgstr "Normal"
+
+msgid "data.value.continue"
+msgstr "Continue"
+
+msgid "data.value.golden_cross"
+msgstr "Golden X"
+
+msgid "data.value.death_cross"
+msgstr "Death X"
+
+msgid "data.value.overbought"
+msgstr "Overbought"
+
+msgid "data.value.oversold"
+msgstr "Oversold"
+
+msgid "data.value.up"
+msgstr "Up"
+
+msgid "data.value.down"
+msgstr "Down"
+
+msgid "data.value.sideways"
+msgstr "Sideways"
+
+msgid "data.value.bullish"
+msgstr "Bullish"
+
+msgid "data.value.bearish"
+msgstr "Bearish"
+
+msgid "data.value.strong"
+msgstr "Strong"
+
+msgid "data.value.medium"
+msgstr "Medium"
+
+msgid "data.value.weak"
+msgstr "Weak"
+
+msgid "error.request_failed"
+msgstr "❌ Error processing request, please retry later.\n\nError: {error}"
+
+msgid "pattern.title"
+msgstr "🕯️ {symbol} Candlestick Patterns"
+
+msgid "pattern.period_count"
+msgstr "📊 {period} ({count} patterns)"
+
+msgid "pattern.no_data"
+msgstr "No pattern data"
+
+# AI report detailed content
+msgid "ai.cache_indicator"
+msgstr " | 🔄 Cached"
+
+msgid "ai.period"
+msgstr "Period"
+
+msgid "ai.24h_high"
+msgstr "24h High"
+
+msgid "ai.24h_low"
+msgstr "24h Low"
+
+msgid "ai.trend_strength_label"
+msgstr "Trend Strength"
+
+msgid "ai.full_report_hint"
+msgstr "📄 See full report below"
+
+msgid "ai.report_title"
+msgstr "{symbol} AI Analysis Report"
+
+msgid "ai.analysis_time"
+msgstr "Analysis Time"
+
+msgid "ai.filename"
+msgstr "{symbol}_AI_Report_{time}.txt"
+
+msgid "ai.file_caption"
+msgstr "📄 {symbol} Full AI Report"
+
+msgid "ai.rsi_overbought"
+msgstr "Overbought"
+
+msgid "ai.rsi_oversold"
+msgstr "Oversold"
+
+msgid "ai.rsi_normal"
+msgstr "Normal"
+
+msgid "ai.report_header"
+msgstr "🎯 {symbol} AI Analysis Report"
+
+msgid "ai.current_price"
+msgstr "💰 Current Price"
+
+msgid "ai.price_change"
+msgstr "📊 Price Change"
+
+msgid "ai.risk_level"
+msgstr "⚠️ Risk Level"
+
+msgid "ai.key_indicators"
+msgstr "🔧 Key Indicators"
+
+msgid "ai.unavailable"
+msgstr "🤖 AI analysis temporarily unavailable"
+
+msgid "ai.retry_hint"
+msgstr "🔄 Please retry later or check technical indicators"

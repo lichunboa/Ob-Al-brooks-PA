@@ -11,7 +11,7 @@ import unicodedata
 from typing import Dict, List, Any, Optional
 
 from cards.data_provider import format_symbol, get_ranking_provider
-from cards.i18n import gettext as _t
+from cards.i18n import gettext as _t, translate_value
 
 
 # ==================== psql 表格格式化 ====================
@@ -275,6 +275,9 @@ class SingleTokenTxtExporter:
                     data = self._get_data(table_name, symbol, period)
                     if data:
                         val = data.get(field_id)
+                        # 对字符串值进行翻译（如 "缩量"、"金叉" 等）
+                        if formatter == str and isinstance(val, str):
+                            val = translate_value(val, lang=self.lang)
                         row.append(formatter(val))
                     else:
                         row.append("-")
@@ -296,6 +299,9 @@ class SingleTokenTxtExporter:
             data = self._get_data("K线形态扫描器", symbol, period)
             if data:
                 pattern = data.get("形态类型", "-")
+                # 翻译形态值
+                if pattern and pattern != "-":
+                    pattern = translate_value(str(pattern), lang=self.lang)
                 # 形态可能很长，截断显示
                 if pattern and len(str(pattern)) > 30:
                     pattern = str(pattern)[:28] + ".."
@@ -342,9 +348,11 @@ def get_exporter() -> SingleTokenTxtExporter:
     return _exporter
 
 
-def export_single_token_txt(symbol: str) -> str:
+def export_single_token_txt(symbol: str, lang: str = None) -> str:
     """导出单币种完整 TXT"""
-    return get_exporter().export_full(symbol)
+    from cards.i18n import resolve_lang
+    lang = resolve_lang(lang=lang)
+    return get_exporter().export_full(symbol, lang=lang)
 
 
 __all__ = ["export_single_token_txt", "format_psql_table", "SingleTokenTxtExporter"]

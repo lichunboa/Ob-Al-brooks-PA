@@ -256,6 +256,30 @@ SNAPSHOT_FIELD_MAP = {
     "Kyle得分": "snapshot.field.kyle_score",
 }
 
+# 数据值翻译映射（数据库返回的中文值 -> i18n 键）
+DATA_VALUE_MAP = {
+    # 成交量信号
+    "缩量": "data.value.shrink",
+    "放量": "data.value.expand",
+    "正常": "data.value.normal",
+    # KDJ/MACD 方向
+    "延续": "data.value.continue",
+    "金叉": "data.value.golden_cross",
+    "死叉": "data.value.death_cross",
+    "超买": "data.value.overbought",
+    "超卖": "data.value.oversold",
+    # 趋势方向
+    "上涨": "data.value.up",
+    "下跌": "data.value.down",
+    "震荡": "data.value.sideways",
+    "多头": "data.value.bullish",
+    "空头": "data.value.bearish",
+    # 强度
+    "强": "data.value.strong",
+    "中": "data.value.medium",
+    "弱": "data.value.weak",
+}
+
 
 def translate_field(label: str, lang: str = None) -> str:
     """翻译字段名，优先查 BUTTON_KEY_MAP，再查 SNAPSHOT_FIELD_MAP，未映射则返回原文"""
@@ -265,4 +289,14 @@ def translate_field(label: str, lang: str = None) -> str:
     return label
 
 
-__all__ = ["gettext", "btn", "btn_auto", "resolve_lang", "I18N", "translate_field"]
+def translate_value(value: str, lang: str = None) -> str:
+    """翻译数据值，未映射则返回原文"""
+    if not isinstance(value, str):
+        return value
+    key = DATA_VALUE_MAP.get(value)
+    if key:
+        return gettext(key, lang=lang)
+    return value
+
+
+__all__ = ["gettext", "btn", "btn_auto", "resolve_lang", "I18N", "translate_field", "translate_value"]

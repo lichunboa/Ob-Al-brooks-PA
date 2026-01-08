@@ -1839,3 +1839,296 @@ msgstr "剥头皮"
 
 msgid "signal.table.basic"
 msgstr "基础数据"
+
+# 信号格式化标签
+msgid "signal.label.price"
+msgstr "价格"
+
+msgid "signal.label.amplitude"
+msgstr "振幅"
+
+msgid "signal.label.buy_sell_ratio"
+msgstr "买卖比"
+
+msgid "signal.label.volume"
+msgstr "成交额"
+
+msgid "signal.label.net_inflow"
+msgstr "净流入"
+
+msgid "signal.label.trades"
+msgstr "交易次数"
+
+msgid "signal.label.position"
+msgstr "持仓"
+
+msgid "signal.label.big_ls"
+msgstr "大户多空"
+
+msgid "signal.label.all_ls"
+msgstr "全体多空"
+
+msgid "signal.label.taker_ls"
+msgstr "主动多空"
+
+msgid "signal.label.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "signal.label.risk_score"
+msgstr "风险分"
+
+msgid "signal.label.oi_streak"
+msgstr "OI连续"
+
+msgid "signal.label.sentiment_momentum"
+msgstr "情绪动量"
+
+msgid "signal.label.support"
+msgstr "支撑"
+
+msgid "signal.label.resistance"
+msgstr "阻力"
+
+msgid "signal.label.trend"
+msgstr "精准趋势"
+
+msgid "signal.label.volume_bias"
+msgstr "量能偏向"
+
+msgid "signal.section.market"
+msgstr "💰 行情"
+
+msgid "signal.section.futures"
+msgstr "📊 合约"
+
+msgid "signal.section.indicator"
+msgstr "📈 指标"
+
+msgid "signal.section.structure"
+msgstr "🏗️ 结构"
+
+msgid "signal.ratio.buy_dominant"
+msgstr "买盘主导"
+
+msgid "signal.ratio.sell_dominant"
+msgstr "卖盘主导"
+
+msgid "signal.ratio.balanced"
+msgstr "均衡"
+
+msgid "signal.vol.high"
+msgstr "放量"
+
+msgid "signal.vol.low"
+msgstr "缩量"
+
+msgid "signal.vol.normal"
+msgstr "正常"
+
+# 单币查询卡片名称
+msgid "card.name.vol_ratio"
+msgstr "成交量比率"
+
+msgid "card.name.taker_ratio"
+msgstr "主动买卖比"
+
+msgid "card.name.support_resistance"
+msgstr "支撑阻力"
+
+msgid "card.name.rsi_harmonic"
+msgstr "RSI谐波"
+
+msgid "card.name.bollinger"
+msgstr "布林带"
+
+msgid "card.name.macd"
+msgstr "MACD"
+
+msgid "card.name.kdj"
+msgstr "KDJ"
+
+msgid "card.name.obv"
+msgstr "OBV"
+
+msgid "card.name.ema"
+msgstr "EMA"
+
+msgid "card.name.atr"
+msgstr "ATR"
+
+msgid "card.name.cvd"
+msgstr "CVD"
+
+msgid "card.name.vwap"
+msgstr "VWAP"
+
+msgid "card.name.vpvr"
+msgstr "VPVR"
+
+msgid "card.name.liquidity"
+msgstr "流动"
+
+msgid "card.name.trendline"
+msgstr "线"
+
+msgid "card.name.supertrend"
+msgstr "精趋势"
+
+msgid "card.name.mfi"
+msgstr "MFI"
+
+msgid "card.name.k_pattern"
+msgstr "K线形态"
+
+msgid "card.name.position"
+msgstr "持仓数据"
+
+msgid "card.name.big_sentiment"
+msgstr "大户"
+
+msgid "card.name.all_sentiment"
+msgstr "全市场"
+
+msgid "card.name.taker"
+msgstr "主动成交"
+
+msgid "card.name.sentiment"
+msgstr "情绪综合"
+
+# 信号值翻译
+msgid "signal.value.shrink"
+msgstr "缩量"
+
+msgid "signal.value.expand"
+msgstr "放量"
+
+msgid "signal.value.continue"
+msgstr "延续"
+
+msgid "signal.value.golden_cross"
+msgstr "金叉"
+
+msgid "signal.value.death_cross"
+msgstr "死叉"
+
+# 数据值翻译
+msgid "data.value.shrink"
+msgstr "缩量"
+
+msgid "data.value.expand"
+msgstr "放量"
+
+msgid "data.value.normal"
+msgstr "正常"
+
+msgid "data.value.continue"
+msgstr "延续"
+
+msgid "data.value.golden_cross"
+msgstr "金叉"
+
+msgid "data.value.death_cross"
+msgstr "死叉"
+
+msgid "data.value.overbought"
+msgstr "超买"
+
+msgid "data.value.oversold"
+msgstr "超卖"
+
+msgid "data.value.up"
+msgstr "上涨"
+
+msgid "data.value.down"
+msgstr "下跌"
+
+msgid "data.value.sideways"
+msgstr "震荡"
+
+msgid "data.value.bullish"
+msgstr "多头"
+
+msgid "data.value.bearish"
+msgstr "空头"
+
+msgid "data.value.strong"
+msgstr "强"
+
+msgid "data.value.medium"
+msgstr "中"
+
+msgid "data.value.weak"
+msgstr "弱"
+
+msgid "error.request_failed"
+msgstr "❌ 处理请求时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "pattern.title"
+msgstr "🕯️ {symbol} K线形态分析"
+
+msgid "pattern.period_count"
+msgstr "📊 {period} ({count}个形态)"
+
+msgid "pattern.no_data"
+msgstr "暂无形态数据"
+
+# AI 报告详细内容
+msgid "ai.cache_indicator"
+msgstr " | 🔄 缓存数据"
+
+msgid "ai.period"
+msgstr "周期"
+
+msgid "ai.24h_high"
+msgstr "24h高点"
+
+msgid "ai.24h_low"
+msgstr "24h低点"
+
+msgid "ai.trend_strength_label"
+msgstr "趋势强度"
+
+msgid "ai.full_report_hint"
+msgstr "📄 完整分析请查看下方文件"
+
+msgid "ai.report_title"
+msgstr "{symbol} AI分析报告"
+
+msgid "ai.analysis_time"
+msgstr "分析时间"
+
+msgid "ai.filename"
+msgstr "{symbol}_AI分析详细报告_{time}.txt"
+
+msgid "ai.file_caption"
+msgstr "📄 {symbol} 完整AI分析报告"
+
+msgid "ai.rsi_overbought"
+msgstr "超买"
+
+msgid "ai.rsi_oversold"
+msgstr "超卖"
+
+msgid "ai.rsi_normal"
+msgstr "正常"
+
+msgid "ai.report_header"
+msgstr "🎯 {symbol} AI分析报告"
+
+msgid "ai.current_price"
+msgstr "💰 当前价格"
+
+msgid "ai.price_change"
+msgstr "📊 价格变化"
+
+msgid "ai.risk_level"
+msgstr "⚠️ 风险等级"
+
+msgid "ai.key_indicators"
+msgstr "🔧 关键技术指标"
+
+msgid "ai.unavailable"
+msgstr "🤖 AI分析功能暂时不可用"
+
+msgid "ai.retry_hint"
+msgstr "🔄 建议稍后重试或查看技术指标"

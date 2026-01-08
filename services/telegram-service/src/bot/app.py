@@ -460,6 +460,39 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
         n = n.replace("趋势线", "线")
         return n
 
+    # 卡片名称翻译映射
+    CARD_NAME_MAP = {
+        "成交量比率": "card.name.vol_ratio",
+        "主动买卖比": "card.name.taker_ratio",
+        "支撑阻力": "card.name.support_resistance",
+        "RSI谐波": "card.name.rsi_harmonic",
+        "布林带": "card.name.bollinger",
+        "MACD": "card.name.macd",
+        "KDJ": "card.name.kdj",
+        "OBV": "card.name.obv",
+        "EMA": "card.name.ema",
+        "ATR": "card.name.atr",
+        "CVD": "card.name.cvd",
+        "VWAP": "card.name.vwap",
+        "VPVR": "card.name.vpvr",
+        "流动": "card.name.liquidity",
+        "线": "card.name.trendline",
+        "精趋势": "card.name.supertrend",
+        "MFI": "card.name.mfi",
+        "K线形态": "card.name.k_pattern",
+        "持仓数据": "card.name.position",
+        "大户": "card.name.big_sentiment",
+        "全市场": "card.name.all_sentiment",
+        "主动成交": "card.name.taker",
+        "情绪综合": "card.name.sentiment",
+    }
+
+    def _translate_card_name(name: str, lang: str) -> str:
+        key = CARD_NAME_MAP.get(name)
+        if key:
+            return I18N.gettext(key, lang=lang)
+        return name
+
     def _layout(labels, max_w=35):
         # 宽度优先排布：先按宽度降序，再贪心铺行
         def disp_width(s: str) -> int:
@@ -488,6 +521,7 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
 
     tables = [t for t in TABLE_FIELDS.get(panel, {}).keys()]
     # 自适应分行（期货面板已精简为分组名，无需过滤）
+    lang = _resolve_lang(update) if update else I18N.default_locale
     layout_rows = _layout([_clean(t) for t in tables], max_w=22)
     for row_labels in layout_rows:
         row: list[InlineKeyboardButton] = []
@@ -500,7 +534,9 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
             else:
                 key = lab
             on = enabled_cards.get(key, True)
-            label = lab if on else f"❎{lab}"
+            # 翻译卡片名称
+            translated_lab = _translate_card_name(lab, lang)
+            label = translated_lab if on else f"❎{translated_lab}"
             row.append(InlineKeyboardButton(label, callback_data=f"single_card_{key}"))
         row_cards.append(row)
 
@@ -514,8 +550,7 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
             continue
         row_period.append(InlineKeyboardButton(label, callback_data=data))
 
-    # 面板按钮使用i18n
-    lang = _resolve_lang(update) if update else I18N.default_locale
+    # 面板按钮使用i18n (lang 已在上面定义)
     def panel_btn(key: str, code: str):
         active = (panel == code)
         text = I18N.gettext(key, lang=lang)
@@ -3805,7 +3840,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         states["pattern_periods"] = pattern_periods
 
         from bot.single_token_snapshot import render_pattern_panel
-        text = render_pattern_panel(sym, pattern_periods)
+        text = render_pattern_panel(sym, pattern_periods, lang=_resolve_lang(update))
         keyboard = build_pattern_keyboard_with_periods(pattern_periods)
         try:
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
@@ -3843,7 +3878,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from bot.single_token_snapshot import render_pattern_panel
                 states["single_panel"] = panel
                 pattern_periods = states.get("pattern_periods", {"1m": False, "5m": False, "15m": True, "1h": True, "4h": True, "1d": False, "1w": False})
-                text = render_pattern_panel(sym, pattern_periods)
+                text = render_pattern_panel(sym, pattern_periods, lang=_resolve_lang(update))
                 keyboard = build_pattern_keyboard_with_periods(pattern_periods)
                 try:
                     await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
@@ -3870,7 +3905,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if panel == "pattern":
                 from bot.single_token_snapshot import render_pattern_panel
                 pattern_periods = states.get("pattern_periods", {"1m": False, "5m": False, "15m": True, "1h": True, "4h": True, "1d": False, "1w": False})
-                text = render_pattern_panel(sym, pattern_periods)
+                text = render_pattern_panel(sym, pattern_periods, lang=_resolve_lang(update))
                 keyboard = build_pattern_keyboard_with_periods(pattern_periods)
                 try:
                     await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
@@ -5468,7 +5503,9 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     import io
                     from datetime import datetime
 
-                    txt_content = export_single_token_txt(sym)
+                    # 获取用户语言
+                    lang = _resolve_lang(update)
+                    txt_content = export_single_token_txt(sym, lang=lang)
 
                     # 创建文件对象
                     file_obj = io.BytesIO(txt_content.encode('utf-8'))
@@ -5770,7 +5807,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
     except Exception as e:
         logger.error(f"处理键盘消息错误: {e}")
         await update.message.reply_text(
-            f"❌ 处理请求时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.request_failed", error=str(e)),
             parse_mode='Markdown'
         )
 

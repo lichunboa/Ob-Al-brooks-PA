@@ -17,7 +17,7 @@ import unicodedata
 from typing import Dict, List, Literal, Sequence, Tuple
 
 from cards.data_provider import format_symbol, get_ranking_provider
-from cards.i18n import gettext as _t, resolve_lang, translate_field
+from cards.i18n import gettext as _t, resolve_lang, translate_field, translate_value
 
 # ==================== 配置 ====================
 
@@ -313,6 +313,7 @@ class SingleTokenSnapshot:
         self._index_cache.clear()
         self._target_sym = format_symbol(symbol)
         lang = resolve_lang(lang=lang)
+        self._lang = lang  # 保存语言设置供 _fetch_table_value 使用
         if not self._target_sym:
             return _t("snapshot.error.no_symbol", lang=lang), 1
 
@@ -427,7 +428,8 @@ class SingleTokenSnapshot:
                     try:
                         val = float(val)
                     except ValueError:
-                        pass
+                        # 字符串值需要翻译（如 "缩量"、"金叉" 等）
+                        return translate_value(val, lang=self._lang)
                 if isinstance(val, (int, float)):
                     field_l = field.lower().replace("%", "")
                     # 排除斜率等非百分比字段
@@ -442,7 +444,7 @@ class SingleTokenSnapshot:
                     if abs(val) >= 1e3:
                         return abbreviate_number(float(val))
                     return format_float(val)
-                return str(val)
+                return translate_value(str(val), lang=self._lang)
         return ""
 
     def _get_row(self, table: str, period: str, panel: PanelType) -> Dict:
@@ -502,12 +504,13 @@ def format_float(val: float) -> str:
 
 # ==================== K线形态独立界面 ====================
 
-def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = None) -> str:
+def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = None, lang: str = None) -> str:
     """渲染单币种 K线形态面板（独立界面）"""
+    lang = resolve_lang(lang=lang)
     provider = get_ranking_provider()
     sym = format_symbol(symbol)
     if not sym:
-        return "❌ 未提供有效币种"
+        return _t("snapshot.error.no_symbol", lang=lang)
 
     sym_full = sym + "USDT" if not sym.endswith("USDT") else sym
 
@@ -516,7 +519,7 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
         enabled_periods = {"1m": False, "5m": False, "15m": True, "1h": True, "4h": True, "1d": False, "1w": False}
 
     periods = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
-    lines = [f"🕯️ {sym} K线形态分析"]
+    lines = [_t("pattern.title", lang=lang, symbol=sym)]
 
     for p in periods:
         if not enabled_periods.get(p, False):
@@ -541,6 +544,8 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
             pat = pat.strip()
             if not pat:
                 continue
+            # 翻译形态名称
+            pat = translate_value(pat, lang=lang)
             if any(k in pat for k in bullish_kw):
                 bullish.append(pat)
             elif any(k in pat for k in bearish_kw):
@@ -548,7 +553,7 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
             else:
                 neutral.append(pat)
 
-        lines.append(f"📊 {p} ({count}个形态)")
+        lines.append(_t("pattern.period_count", lang=lang, period=p, count=count))
         lines.append("```")
         if bullish:
             lines.append(f"🟢 {', '.join(bullish)}")
@@ -559,7 +564,7 @@ def render_pattern_panel(symbol: str, enabled_periods: Dict[str, bool] | None = 
         lines.append("```")
 
     if len(lines) == 1:  # 只有标题
-        return f"🕯️ {sym} K线形态分析\n```\n暂无形态数据\n```"
+        return f"{_t('pattern.title', lang=lang, symbol=sym)}\n```\n{_t('pattern.no_data', lang=lang)}\n```"
 
     return "\n".join(lines)
 
