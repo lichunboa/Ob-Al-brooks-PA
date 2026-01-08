@@ -938,3 +938,904 @@ msgstr "• `BTC!` - Interactive query"
 
 msgid "query.usage_export"
 msgstr "• `BTC!!` - Export full TXT file"
+
+# Futures field buttons - Taker direction
+msgid "btn.field.taker_ratio"
+msgstr "Taker L/S"
+
+msgid "btn.field.taker_bias"
+msgstr "Taker Bias"
+
+msgid "btn.field.taker_momentum"
+msgstr "Taker Mom"
+
+# Futures field buttons - Top traders
+msgid "btn.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "btn.field.top_bias"
+msgstr "Top Bias"
+
+msgid "btn.field.top_momentum"
+msgstr "Top Mom"
+
+msgid "btn.field.top_volatility"
+msgstr "Top Vol"
+
+# Futures field buttons - Crowd sentiment
+msgid "btn.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "btn.field.crowd_bias"
+msgstr "Crowd Bias"
+
+msgid "btn.field.crowd_volatility"
+msgstr "Crowd Vol"
+
+# Futures field buttons - OI changes
+msgid "btn.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "btn.field.oi_change"
+msgstr "OI Chg"
+
+msgid "btn.field.oi_value"
+msgstr "OI Value"
+
+# Signal buttons
+msgid "btn.analyze"
+msgstr "Analyze"
+
+msgid "btn.ai_analyze"
+msgstr "AI Analyze"
+
+msgid "btn.back_kdj"
+msgstr "⬅️ Back to KDJ"
+
+# Card button i18n
+msgid "card.atr.btn"
+msgstr "🧭 ATR"
+
+msgid "card.bollinger.btn"
+msgstr "🎗️ Bollinger"
+
+msgid "card.crowd_sentiment.btn"
+msgstr "🌐 Crowd"
+
+msgid "card.cvd.btn"
+msgstr "🌊 CVD"
+
+msgid "card.depth.btn"
+msgstr "🧊 Depth"
+
+msgid "card.ema.btn"
+msgstr "🧮 EMA"
+
+msgid "card.funding_rate.btn"
+msgstr "💱 Funding"
+
+msgid "card.kdj.btn"
+msgstr "🎯 KDJ"
+
+msgid "card.liquidity.btn"
+msgstr "💧 Liquidity"
+
+msgid "card.macd.btn"
+msgstr "🧲 MACD"
+
+msgid "card.mfi.btn"
+msgstr "💰 MFI"
+
+msgid "card.money_flow.btn"
+msgstr "🚰 Flow"
+
+msgid "card.obv.btn"
+msgstr "📡 OBV"
+
+msgid "card.oi_aggregate.btn"
+msgstr "🐋 OI Agg"
+
+msgid "card.oi_change.btn"
+msgstr "⚡ OI Chg"
+
+msgid "card.oi_continuous.btn"
+msgstr "📈 OI Cont"
+
+msgid "card.oi_extreme.btn"
+msgstr "🚩 OI Alert"
+
+msgid "card.oi_ranking.btn"
+msgstr "🐋 OI Rank"
+
+msgid "card.oi_trend.btn"
+msgstr "📐 OI Trend"
+
+msgid "card.pattern.btn"
+msgstr "🕯️ Pattern"
+
+msgid "card.reversal_radar.btn"
+msgstr "🛰️ Reversal"
+
+msgid "card.risk_crowding.btn"
+msgstr "🚨 Risk"
+
+msgid "card.rsi_harmonic.btn"
+msgstr "🔔 RSI Harm"
+
+msgid "card.sentiment_divergence.btn"
+msgstr "⚖️ Diverge"
+
+msgid "card.sentiment_momentum.btn"
+msgstr "🚀 Momentum"
+
+msgid "card.supertrend.btn"
+msgstr "📐 SuperTrend"
+
+msgid "card.support_resistance.btn"
+msgstr "🧱 S/R"
+
+msgid "card.taker_continuous.btn"
+msgstr "↕️ Taker Cont"
+
+msgid "card.taker_direction.btn"
+msgstr "🚦 Taker Dir"
+
+msgid "card.taker_jump.btn"
+msgstr "⚡ Taker Jump"
+
+msgid "card.taker_ratio.btn"
+msgstr "🧾 Taker Ratio"
+
+msgid "card.top_sentiment.btn"
+msgstr "🐳 Top Trader"
+
+msgid "card.trendline.btn"
+msgstr "📈 Trendline"
+
+msgid "card.volatility.btn"
+msgstr "🌊 Volatility"
+
+msgid "card.volume.btn"
+msgstr "📊 Volume"
+
+msgid "card.volume_ratio.btn"
+msgstr "📦 Vol Ratio"
+
+msgid "card.vpvr.btn"
+msgstr "🏛️ VPVR"
+
+msgid "card.vwap.btn"
+msgstr "📏 VWAP"
+
+# Sort field labels
+msgid "field.volume"
+msgstr "Volume"
+
+msgid "field.amplitude"
+msgstr "Amplitude"
+
+msgid "field.trades"
+msgstr "Trades"
+
+msgid "field.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "field.buy_sell_ratio"
+msgstr "B/S Ratio"
+
+msgid "field.price"
+msgstr "Price"
+
+msgid "field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "field.trend"
+msgstr "Trend"
+
+msgid "field.pattern"
+msgstr "Pattern"
+
+msgid "field.direction"
+msgstr "Direction"
+
+msgid "field.slope"
+msgstr "Slope"
+
+msgid "field.volume_ratio"
+msgstr "Vol Ratio"
+
+msgid "field.net_flow"
+msgstr "Net Flow"
+
+msgid "field.inflow"
+msgstr "Inflow"
+
+msgid "field.outflow"
+msgstr "Outflow"
+
+msgid "field.harmonic"
+msgstr "Harmonic"
+
+msgid "field.histogram"
+msgstr "Histogram"
+
+msgid "field.signal_line"
+msgstr "Signal"
+
+# TXT export - Panel titles
+msgid "export.panel.basic"
+msgstr "📊 Basic Indicators"
+
+msgid "export.panel.futures"
+msgstr "📈 Futures Sentiment"
+
+msgid "export.panel.advanced"
+msgstr "🔬 Advanced Indicators"
+
+msgid "export.panel.pattern"
+msgstr "🕯️ Candlestick Patterns"
+
+# TXT export - Headers
+msgid "export.header.indicator_period"
+msgstr "Indicator\\Period"
+
+msgid "export.header.period"
+msgstr "Period"
+
+# TXT export - Field names
+msgid "export.field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "export.field.percent_b"
+msgstr "%B"
+
+msgid "export.field.mid_slope"
+msgstr "Mid Slope"
+
+msgid "export.field.j"
+msgstr "J"
+
+msgid "export.field.k"
+msgstr "K"
+
+msgid "export.field.d"
+msgstr "D"
+
+msgid "export.field.signal"
+msgstr "Signal"
+
+msgid "export.field.macd"
+msgstr "MACD"
+
+msgid "export.field.dif"
+msgstr "DIF"
+
+msgid "export.field.dea"
+msgstr "DEA"
+
+msgid "export.field.rsi"
+msgstr "RSI"
+
+msgid "export.field.strength"
+msgstr "Strength"
+
+msgid "export.field.obv"
+msgstr "OBV"
+
+msgid "export.field.change_rate"
+msgstr "Chg Rate"
+
+msgid "export.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "export.field.oi_value"
+msgstr "OI Value"
+
+msgid "export.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "export.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "export.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "export.field.taker_ratio"
+msgstr "Taker L/S"
+
+msgid "export.field.sentiment_diff"
+msgstr "Sent Diff"
+
+msgid "export.field.support"
+msgstr "Support"
+
+msgid "export.field.resistance"
+msgstr "Resistance"
+
+msgid "export.field.dist_support"
+msgstr "Dist S%"
+
+msgid "export.field.dist_resistance"
+msgstr "Dist R%"
+
+msgid "export.field.atr_pct"
+msgstr "ATR%"
+
+msgid "export.field.volatility"
+msgstr "Volatility"
+
+msgid "export.field.liquidity"
+msgstr "Liquidity"
+
+msgid "export.field.level"
+msgstr "Level"
+
+msgid "export.field.direction"
+msgstr "Direction"
+
+msgid "export.field.duration"
+msgstr "Duration"
+
+msgid "export.field.vwap_dev"
+msgstr "VWAP Dev%"
+
+msgid "export.field.pattern"
+msgstr "Pattern"
+
+msgid "export.field.count"
+msgstr "Count"
+
+# Snapshot field names - Basic
+msgid "snapshot.field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "snapshot.field.percent_b"
+msgstr "%B"
+
+msgid "snapshot.field.mid_slope"
+msgstr "Mid Slope"
+
+msgid "snapshot.field.mid_price"
+msgstr "Mid Price"
+
+msgid "snapshot.field.upper_price"
+msgstr "Upper"
+
+msgid "snapshot.field.lower_price"
+msgstr "Lower"
+
+msgid "snapshot.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "snapshot.field.signal"
+msgstr "Signal"
+
+msgid "snapshot.field.support"
+msgstr "Support"
+
+msgid "snapshot.field.resistance"
+msgstr "Resistance"
+
+msgid "snapshot.field.dist_support"
+msgstr "Dist S%"
+
+msgid "snapshot.field.dist_resistance"
+msgstr "Dist R%"
+
+msgid "snapshot.field.dist_key"
+msgstr "Dist Key%"
+
+msgid "snapshot.field.taker_buy"
+msgstr "Taker Buy"
+
+msgid "snapshot.field.taker_sell"
+msgstr "Taker Sell"
+
+msgid "snapshot.field.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "snapshot.field.j"
+msgstr "J"
+
+msgid "snapshot.field.k"
+msgstr "K"
+
+msgid "snapshot.field.d"
+msgstr "D"
+
+msgid "snapshot.field.direction"
+msgstr "Direction"
+
+msgid "snapshot.field.macd"
+msgstr "MACD"
+
+msgid "snapshot.field.dif"
+msgstr "DIF"
+
+msgid "snapshot.field.dea"
+msgstr "DEA"
+
+msgid "snapshot.field.histogram"
+msgstr "Histogram"
+
+msgid "snapshot.field.obv"
+msgstr "OBV"
+
+msgid "snapshot.field.obv_change"
+msgstr "OBV Chg"
+
+msgid "snapshot.field.harmonic"
+msgstr "Harmonic"
+
+# Snapshot field names - Futures
+msgid "snapshot.field.oi_value"
+msgstr "OI Value"
+
+msgid "snapshot.field.oi_contracts"
+msgstr "OI Contracts"
+
+msgid "snapshot.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "snapshot.field.oi_change"
+msgstr "OI Chg"
+
+msgid "snapshot.field.oi_slope"
+msgstr "OI Slope"
+
+msgid "snapshot.field.z_score"
+msgstr "Z-Score"
+
+msgid "snapshot.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "snapshot.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "snapshot.field.top_bias"
+msgstr "Top Bias"
+
+msgid "snapshot.field.top_momentum"
+msgstr "Top Mom"
+
+msgid "snapshot.field.top_volatility"
+msgstr "Top Vol"
+
+msgid "snapshot.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "snapshot.field.crowd_bias"
+msgstr "Crowd Bias"
+
+msgid "snapshot.field.crowd_volatility"
+msgstr "Crowd Vol"
+
+msgid "snapshot.field.taker_ls_ratio"
+msgstr "Taker L/S"
+
+msgid "snapshot.field.taker_bias"
+msgstr "Taker Bias"
+
+msgid "snapshot.field.taker_momentum"
+msgstr "Taker Mom"
+
+msgid "snapshot.field.taker_jump"
+msgstr "Taker Jump"
+
+msgid "snapshot.field.taker_streak"
+msgstr "Taker Streak"
+
+msgid "snapshot.field.sentiment_diff"
+msgstr "Sent Diff"
+
+msgid "snapshot.field.reversal"
+msgstr "Reversal"
+
+msgid "snapshot.field.volatility"
+msgstr "Volatility"
+
+msgid "snapshot.field.risk_score"
+msgstr "Risk Score"
+
+msgid "snapshot.field.market_share"
+msgstr "Mkt Share"
+
+# Snapshot field names - Advanced
+msgid "snapshot.field.ema7"
+msgstr "EMA7"
+
+msgid "snapshot.field.ema25"
+msgstr "EMA25"
+
+msgid "snapshot.field.ema99"
+msgstr "EMA99"
+
+msgid "snapshot.field.bandwidth_score"
+msgstr "BW Score"
+
+msgid "snapshot.field.trend_dir"
+msgstr "Trend Dir"
+
+msgid "snapshot.field.price"
+msgstr "Price"
+
+msgid "snapshot.field.atr_pct"
+msgstr "ATR%"
+
+msgid "snapshot.field.volatility_type"
+msgstr "Vol Type"
+
+msgid "snapshot.field.upper"
+msgstr "Upper"
+
+msgid "snapshot.field.mid"
+msgstr "Mid"
+
+msgid "snapshot.field.lower"
+msgstr "Lower"
+
+msgid "snapshot.field.cvd"
+msgstr "CVD"
+
+msgid "snapshot.field.change_rate"
+msgstr "Chg Rate"
+
+msgid "snapshot.field.deviation"
+msgstr "Deviation"
+
+msgid "snapshot.field.deviation_pct"
+msgstr "Dev%"
+
+msgid "snapshot.field.distance_pct"
+msgstr "Dist%"
+
+
+msgid "field.base_volume"
+msgstr "Volume"
+
+# Futures card titles
+msgid "card.crowd_sentiment.title"
+msgstr "🌐 Crowd Sentiment"
+
+msgid "card.oi_aggregate.title"
+msgstr "🐋 OI Aggregate"
+
+msgid "card.oi_change.title"
+msgstr "⚡ OI Change Rate"
+
+msgid "card.oi_continuous.title"
+msgstr "📈 OI Streak"
+
+msgid "card.oi_extreme.title"
+msgstr "🚩 OI Extreme Alert"
+
+msgid "card.oi_trend.title"
+msgstr "📐 OI Trend"
+
+msgid "card.reversal_radar.title"
+msgstr "🛰️ Reversal Radar"
+
+msgid "card.risk_crowding.title"
+msgstr "🚨 Risk/Crowding"
+
+msgid "card.sentiment_momentum.title"
+msgstr "🚀 Sentiment Momentum"
+
+msgid "card.taker_continuous.title"
+msgstr "↕️ Taker Streak"
+
+msgid "card.taker_direction.title"
+msgstr "🚦 Taker Direction"
+
+msgid "card.taker_jump.title"
+msgstr "⚡ Taker Jump"
+
+msgid "card.top_sentiment.title"
+msgstr "🐳 Top Trader Sentiment"
+
+msgid "card.volatility.title"
+msgstr "🌊 Volatility"
+
+# Futures card hints
+msgid "card.crowd_sentiment.hint"
+msgstr "💡 Source: Futures sentiment (crowd dimension)"
+
+msgid "card.oi_aggregate.hint"
+msgstr "💡 Source: Futures sentiment (latest bar)"
+
+msgid "card.oi_continuous.hint"
+msgstr "💡 Source: Futures sentiment (OI streak)"
+
+msgid "card.oi_extreme.hint"
+msgstr "💡 Source: Futures sentiment (OI Z-score abs)"
+
+msgid "card.oi_trend.hint"
+msgstr "💡 Source: Futures sentiment (OI slope/Z-score)"
+
+msgid "card.reversal_radar.hint"
+msgstr "💡 Signal +1=short→long, -1=long→short"
+
+msgid "card.risk_crowding.hint"
+msgstr "💡 Source: Futures sentiment (risk score)"
+
+msgid "card.sentiment_momentum.hint"
+msgstr "💡 Source: Futures sentiment (momentum)"
+
+msgid "card.taker_continuous.hint"
+msgstr "💡 Source: Futures sentiment (taker streak)"
+
+msgid "card.taker_direction.hint"
+msgstr "💡 Source: Futures sentiment (taker dimension)"
+
+msgid "card.taker_jump.hint"
+msgstr "💡 Source: Futures sentiment (taker jump)"
+
+msgid "card.top_sentiment.hint"
+msgstr "💡 Source: Futures sentiment (top trader dimension)"
+
+msgid "card.volatility.hint"
+msgstr "💡 Source: Futures sentiment (volatility)"
+
+# Additional snapshot fields
+msgid "snapshot.field.atr"
+msgstr "ATR"
+
+msgid "snapshot.field.mfi"
+msgstr "MFI"
+
+msgid "snapshot.field.vpvr_price"
+msgstr "VPVR Price"
+
+msgid "snapshot.field.vwap_price"
+msgstr "VWAP Price"
+
+msgid "snapshot.field.current_price"
+msgstr "Current Price"
+
+msgid "snapshot.field.value_area_high"
+msgstr "VA High"
+
+msgid "snapshot.field.value_area_low"
+msgstr "VA Low"
+
+msgid "snapshot.field.value_area_pos"
+msgstr "VA Position"
+
+msgid "snapshot.field.value_area_width"
+msgstr "VA Width%"
+
+msgid "snapshot.field.value_area_coverage"
+msgstr "VA Coverage"
+
+msgid "snapshot.field.weighted_volume"
+msgstr "Weighted Vol"
+
+msgid "snapshot.field.bandwidth_pct"
+msgstr "Bandwidth%"
+
+msgid "snapshot.field.trend_strength"
+msgstr "Trend Strength"
+
+msgid "snapshot.field.trend_band"
+msgstr "Trend Band"
+
+msgid "snapshot.field.duration_bars"
+msgstr "Duration Bars"
+
+msgid "snapshot.field.last_reversal"
+msgstr "Last Reversal"
+
+msgid "snapshot.field.liquidity_score"
+msgstr "Liquidity Score"
+
+msgid "snapshot.field.liquidity_level"
+msgstr "Liquidity Level"
+
+msgid "snapshot.field.volume_score"
+msgstr "Volume Score"
+
+msgid "snapshot.field.volatility_score"
+msgstr "Volatility Score"
+
+msgid "snapshot.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "snapshot.field.amihud_raw"
+msgstr "Amihud Raw"
+
+msgid "snapshot.field.amihud_score"
+msgstr "Amihud Score"
+
+msgid "snapshot.field.kyle_raw"
+msgstr "Kyle Raw"
+
+msgid "snapshot.field.kyle_score"
+msgstr "Kyle Score"
+
+# Loading status messages
+msgid "loading.data"
+msgstr "📊 Loading data, please retry later..."
+
+msgid "loading.market"
+msgstr "📊 Loading market data, please retry later..."
+
+msgid "loading.money_flow"
+msgstr "💰 Loading money flow data, please retry later..."
+
+msgid "loading.depth"
+msgstr "📊 Loading market depth data, please retry later..."
+
+msgid "loading.volume_market"
+msgstr "📊 Loading volume/market cap ratio, please retry later..."
+
+msgid "loading.volume_oi"
+msgstr "📊 Loading volume/OI ratio, please retry later..."
+
+msgid "loading.position_market"
+msgstr "📊 Loading position/market cap ratio, please retry later..."
+
+msgid "welcome.title"
+msgstr "⚡️ Welcome to TradeCat"
+
+msgid "welcome.status"
+msgstr "✅ System running normally"
+
+msgid "status.initializing"
+msgstr "🚀 Bot is initializing, please wait...\n\n💡 Contact admin if issue persists"
+
+msgid "status.init_failed"
+msgstr "❌ Bot initialization failed, please contact admin\n\n🔧 Error has been logged"
+
+msgid "feature.overbought_offline"
+msgstr "⚖️ Overbought/Oversold card is offline, stay tuned for alternatives."
+
+msgid "time.hour_min"
+msgstr "{hour}:{min}"
+
+msgid "feature.developing"
+msgstr "🚧 {name} is under development, stay tuned!"
+
+msgid "feature.name.coin_search"
+msgstr "🔍 Coin Search"
+
+msgid "feature.name.help"
+msgstr "ℹ️ Help"
+
+msgid "feature.name.aggregated_alerts"
+msgstr "🚨 Signals"
+
+msgid "feature.name.subscription"
+msgstr "💲 Subscription"
+
+# Error messages
+msgid "error.data_fetch"
+msgstr "❌ Error fetching data, please retry later.\n\nError: {error}"
+
+msgid "error.volume_fetch"
+msgstr "❌ Error fetching volume data, please retry later.\n\nError: {error}"
+
+msgid "error.sentiment_fetch"
+msgstr "❌ Error fetching sentiment data, please retry later.\n\nError: {error}"
+
+msgid "error.market_fetch"
+msgstr "❌ Error fetching market data, please retry later.\n\nError: {error}"
+
+msgid "error.flow_fetch"
+msgstr "❌ Error fetching money flow data, please retry later.\n\nError: {error}"
+
+msgid "error.depth_fetch"
+msgstr "❌ Error fetching market depth data, please retry later.\n\nError: {error}"
+
+msgid "error.ratio_fetch"
+msgstr "❌ Error fetching position/market cap ratio, please retry later.\n\nError: {error}"
+
+msgid "loading.sentiment"
+msgstr "😊 Loading sentiment data, please retry later..."
+
+msgid "data.coinglass_offline"
+msgstr "⏸️ CoinGlass data source is offline, related rankings unavailable"
+
+msgid "lang.zh_CN"
+msgstr "简体中文"
+
+
+msgid "search.coming_soon"
+msgstr "💡 Coming soon:\n- 📊 Price trend analysis\n- 💰 Position change trends\n- 📈 Technical indicator analysis\n- 🔔 Price alerts\n\n📞 Need help? Contact support:\n- Support1: zancy1\n- Support2: xiaocaixing\n- Support3: wangbw123"
+
+# AI analysis messages
+msgid "ai.busy"
+msgstr "🚫 System busy, too many concurrent AI analyses\n⏳ Please retry later\n💡 You can use other features first"
+
+msgid "ai.started"
+msgstr "🤖 {symbol} AI analysis started\n\n⏳ Deep analysis in progress, may take 3-5 minutes\n🔄 Analysis ID: {id}"
+
+msgid "ai.completed"
+msgstr "✅ {symbol} AI analysis completed!\n\n🆔 Analysis ID: {id}\n⏱️ Duration: {duration}\n💰 Current price: ${price}\n📊 Price change: {change}\n⚠️ Risk level: {risk}\n\n📋 See detailed report in next message..."
+
+msgid "ai.detail_title"
+msgstr "🤖 {symbol} Detailed AI Analysis"
+
+msgid "ai.report_failed"
+msgstr "📄 Failed to generate detailed report"
+
+msgid "ai.trend.strong"
+msgstr "Strong"
+
+msgid "ai.trend.medium"
+msgstr "Medium"
+
+msgid "ai.trend.weak"
+msgstr "Weak"
+
+# Signal table names
+msgid "signal.table.rsi"
+msgstr "RSI"
+
+msgid "signal.table.kdj"
+msgstr "KDJ"
+
+msgid "signal.table.harmonic"
+msgstr "Harmonic"
+
+msgid "signal.table.supertrend"
+msgstr "SuperTrend"
+
+msgid "signal.table.ichimoku"
+msgstr "Ichimoku"
+
+msgid "signal.table.zero_lag"
+msgstr "Zero Lag"
+
+msgid "signal.table.trend_cloud"
+msgstr "Trend Cloud"
+
+msgid "signal.table.trendline"
+msgstr "Trendline"
+
+msgid "signal.table.long_short"
+msgstr "Long/Short"
+
+msgid "signal.table.volume_signal"
+msgstr "Volume Signal"
+
+msgid "signal.table.gc_point"
+msgstr "GC Point"
+
+msgid "signal.table.bb"
+msgstr "Bollinger"
+
+msgid "signal.table.donchian"
+msgstr "Donchian"
+
+msgid "signal.table.keltner"
+msgstr "Keltner"
+
+msgid "signal.table.support_resistance"
+msgstr "S/R"
+
+msgid "signal.table.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "signal.table.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "signal.table.futures_sentiment"
+msgstr "Futures"
+
+msgid "signal.table.k_pattern"
+msgstr "K Pattern"
+
+msgid "signal.table.smc"
+msgstr "SMC"
+
+msgid "signal.table.fib"
+msgstr "Fibonacci"
+
+msgid "signal.table.liquidity"
+msgstr "Liquidity"
+
+msgid "signal.table.scalping"
+msgstr "Scalping"
+
+msgid "signal.table.basic"
+msgstr "Basic"
