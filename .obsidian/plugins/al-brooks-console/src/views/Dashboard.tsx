@@ -155,6 +155,7 @@ import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
 import { normalizeCycle } from "../utils/market-cycle-utils";
+import { sortTradesByDateAsc } from "../utils/trade-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -1059,9 +1060,7 @@ const ConsoleComponent: React.FC<Props> = ({
   ]);
 
   const strategyLab = React.useMemo(() => {
-    const tradesAsc = [...trades].sort((a, b) =>
-      a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
-    );
+    const tradesAsc = sortTradesByDateAsc(trades);
 
     const curves: Record<AccountType, number[]> = {
       Live: [0],
@@ -1141,12 +1140,7 @@ const ConsoleComponent: React.FC<Props> = ({
         );
 
     // v5.0 口径：按“最新”取候选。index.getAll() 的顺序不保证，所以这里显式按日期倒序。
-    const candidatesSorted = [...candidates].sort((a, b) => {
-      const da = String((a as any).dateIso ?? "");
-      const db = String((b as any).dateIso ?? "");
-      if (da === db) return 0;
-      return da < db ? 1 : -1;
-    });
+    const candidatesSorted = sortTradesByDateDesc(candidates);
 
     // 从最近交易里取前 20 个候选（用于“最新复盘”瀑布流展示）。
     for (const t of candidatesSorted.slice(0, 20)) {
@@ -4756,10 +4750,7 @@ short mode\n\
               );
               const distExec = topN((t) => t.executionQuality, prettyExecVal, trades);
 
-              const sortedRecent = [...trades]
-                .sort((a, b) =>
-                  a.dateIso < b.dateIso ? 1 : a.dateIso > b.dateIso ? -1 : 0
-                )
+              const sortedRecent = sortTradesByDateDesc(trades)
                 .slice(0, 15);
 
               return (
