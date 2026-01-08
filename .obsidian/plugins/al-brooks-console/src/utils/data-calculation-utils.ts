@@ -121,3 +121,18 @@ export function calculateAllTradesDateRange(trades: TradeRecord[]): {
         max: maxDate || undefined,
     };
 }
+
+/**
+ * 计算最大学费错误的百分比
+ * @param topError 最大错误项
+ * @param totalTuitionR 总学费R
+ * @returns 百分比,如果无法计算则返回undefined
+ */
+export function calculateTopTuitionErrorPct(
+    topError: { costR: number } | undefined,
+    totalTuitionR: number
+): number | undefined {
+    return topError && totalTuitionR > 0
+        ? Math.round((topError.costR / totalTuitionR) * 100)
+        : undefined;
+}

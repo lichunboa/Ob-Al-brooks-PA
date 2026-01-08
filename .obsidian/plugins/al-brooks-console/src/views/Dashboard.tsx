@@ -133,6 +133,7 @@ import {
   calculateDateRange,
   calculateTodayKpi,
   calculateAllTradesDateRange,
+  calculateTopTuitionErrorPct,
 } from "../utils/data-calculation-utils";
 import {
   calculateLiveCyclePerformance,
@@ -154,7 +155,7 @@ import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
 import { normalizeCycle } from "../utils/market-cycle-utils";
-import { sortTradesByDateAsc } from "../utils/trade-utils";
+import { sortTradesByDateAsc, findOpenTrade } from "../utils/trade-utils";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -1030,10 +1031,7 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const analyticsSuggestion = React.useMemo(() => {
     const top = tuition.rows[0];
-    const pct =
-      top && tuition.tuitionR > 0
-        ? Math.round((top.costR / tuition.tuitionR) * 100)
-        : undefined;
+    const pct = calculateTopTuitionErrorPct(top, tuition.tuitionR);
     return computeHubSuggestion({
       topStrategies: analyticsTopStrats,
       mindset: analyticsMind,
@@ -1207,17 +1205,10 @@ const ConsoleComponent: React.FC<Props> = ({
     return JSON.stringify(managerPlan, null, 2);
   }, [managerPlan]);
 
-  const openTrade = React.useMemo(() => {
-    return trades.find((t) => {
-      const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
-      if (!pnlMissing) return false;
-      return (
-        t.outcome === "open" ||
-        t.outcome === undefined ||
-        t.outcome === "unknown"
-      );
-    });
-  }, [trades]);
+  const openTrade = React.useMemo(
+    () => findOpenTrade(trades),
+    [trades]
+  );
 
   const todayStrategyPicks = React.useMemo(() => {
     return computeTodayStrategyPicks({

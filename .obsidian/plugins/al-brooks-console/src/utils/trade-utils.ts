@@ -38,3 +38,22 @@ export function sortTradesByDateDesc<T extends { dateIso?: string | null }>(trad
         return da < db ? 1 : -1;
     });
 }
+
+/**
+ * 查找进行中的交易
+ * @param trades 交易数组
+ * @returns 进行中的交易,如果没有则返回undefined
+ */
+export function findOpenTrade<T extends { pnl?: number | null; outcome?: string | null }>(
+    trades: T[]
+): T | undefined {
+    return trades.find((t) => {
+        const pnlMissing = typeof t.pnl !== "number" || !Number.isFinite(t.pnl);
+        if (!pnlMissing) return false;
+        return (
+            t.outcome === "open" ||
+            t.outcome === undefined ||
+            t.outcome === "unknown"
+        );
+    });
+}
