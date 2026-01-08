@@ -255,22 +255,12 @@ tradecat/
 │   ├── export_timescaledb.sh   # 数据导出
 │   └── timescaledb_compression.sh  # 压缩管理
 │
-├── services/                   # 8个微服务
+├── services/                   # 稳定版微服务 (4个)
 │   ├── data-service/           # 加密货币数据采集服务
 │   │   ├── src/
 │   │   │   ├── collectors/     # 采集器（backfill/ws/metrics）
 │   │   │   ├── adapters/       # 适配器（timescale/ccxt）
 │   │   │   └── config.py
-│   │   ├── scripts/start.sh
-│   │   ├── requirements.txt
-│   │   └── requirements.lock.txt
-│   │
-│   ├── markets-service/        # 全市场数据采集服务（美股/A股/宏观）
-│   │   ├── src/
-│   │   │   ├── providers/      # 数据源适配器 (8个)
-│   │   │   ├── collectors/     # 采集任务调度
-│   │   │   ├── models/         # 标准化数据模型
-│   │   │   └── core/           # 核心框架
 │   │   ├── scripts/start.sh
 │   │   ├── requirements.txt
 │   │   └── requirements.lock.txt
@@ -294,15 +284,26 @@ tradecat/
 │   │   ├── requirements.txt
 │   │   └── requirements.lock.txt
 │   │
-│   ├── ai-service/             # AI 分析服务
+│   └── ai-service/             # AI 分析服务
+│       ├── src/
+│       │   ├── data/           # 数据获取
+│       │   ├── llm/            # LLM 客户端
+│       │   ├── prompt/         # Prompt 管理
+│       │   └── bot/            # Bot 集成
+│       ├── prompts/            # Prompt 模板
+│       ├── scripts/start.sh
+│       └── requirements.txt
+│
+├── services-preview/           # 预览版微服务 (4个，开发中)
+│   ├── markets-service/        # 全市场数据采集（美股/A股/宏观）
 │   │   ├── src/
-│   │   │   ├── data/           # 数据获取
-│   │   │   ├── llm/            # LLM 客户端
-│   │   │   ├── prompt/         # Prompt 管理
-│   │   │   └── bot/            # Bot 集成
-│   │   ├── prompts/            # Prompt 模板
+│   │   │   ├── providers/      # 数据源适配器 (8个)
+│   │   │   ├── collectors/     # 采集任务调度
+│   │   │   ├── models/         # 标准化数据模型
+│   │   │   └── core/           # 核心框架
 │   │   ├── scripts/start.sh
-│   │   └── requirements.txt
+│   │   ├── requirements.txt
+│   │   └── requirements.lock.txt
 │   │
 │   ├── predict-service/        # 预测市场信号微服务
 │   │   └── docs/               # 需求/设计/ADR/Prompt 文档
