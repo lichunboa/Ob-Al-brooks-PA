@@ -143,6 +143,7 @@ import {
 import {
   calculateStrategyPerformance,
   generatePlaybookPerfRows,
+  computeStrategyLab,
 } from "../utils/strategy-performance-utils";
 import {
   generateCalendarCells,
@@ -1050,60 +1051,10 @@ const ConsoleComponent: React.FC<Props> = ({
     tuition,
   ]);
 
-  const strategyLab = React.useMemo(() => {
-    const tradesAsc = sortTradesByDateAsc(trades);
-
-    const curves: Record<AccountType, number[]> = {
-      Live: [0],
-      Demo: [0],
-      Backtest: [0],
-    };
-    const cum: Record<AccountType, number> = {
-      Live: 0,
-      Demo: 0,
-      Backtest: 0,
-    };
-
-    const stats = new Map<string, { win: number; total: number }>();
-
-    for (const t of tradesAsc) {
-      const pnl =
-        typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-      const acct = (t.accountType ?? "Live") as AccountType;
-
-      // 资金曲线：按账户分别累加（口径与 v5.0 接近：只在该账户出现时 push 一点）
-      cum[acct] += pnl;
-      curves[acct].push(cum[acct]);
-
-      // 策略排行：策略名优先；没有则回退到 setupCategory
-      const key =
-        identifyStrategyForAnalytics(t, strategyIndex).name ?? "Unknown";
-
-      const prev = stats.get(key) ?? { win: 0, total: 0 };
-      prev.total += 1;
-      if (pnl > 0) prev.win += 1;
-      stats.set(key, prev);
-    }
-
-    const topSetups = [...stats.entries()]
-      .map(([name, v]) => ({
-        name,
-        total: v.total,
-        wr: v.total > 0 ? Math.round((v.win / v.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-
-    const mostUsed = topSetups[0]?.name ?? "无";
-    const keepIn = cum.Live < 0 ? "回测" : "实盘";
-
-    return {
-      curves,
-      cum,
-      topSetups,
-      suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
-    };
-  }, [trades]);
+  const strategyLab = React.useMemo(
+    () => computeStrategyLab(trades, (t) => identifyStrategyForAnalytics(t, strategyIndex)),
+    [trades, strategyIndex]
+  );
 
   const gallery = React.useMemo((): {
     items: GalleryItem[];
