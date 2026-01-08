@@ -29,6 +29,13 @@ except ImportError:
         beijing_tz = timezone(timedelta(hours=8))
         return datetime.now(beijing_tz)
 
+# 导入 i18n
+try:
+    from cards.i18n import gettext as _t
+except ImportError:
+    def _t(key, **kwargs):
+        return key
+
 logger = logging.getLogger(__name__)
 
 class NonBlockingAIHandler:
@@ -49,9 +56,7 @@ class NonBlockingAIHandler:
         # 检查并发限制
         if len(self.active_analyses) >= self.max_concurrent_analyses:
             await callback_query.edit_message_text(
-                "🚫 系统繁忙，同时进行的AI分析过多\n"
-                "⏳ 请稍等片刻后重试\n"
-                "💡 您可以先使用其他功能",
+                _t("ai.busy"),
                 parse_mode='Markdown'
             )
             return None
@@ -60,10 +65,9 @@ class NonBlockingAIHandler:
         analysis_id = f"ai_{user_id}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
 
         # 立即响应用户，告知分析已开始
+        coin_name = symbol.replace('USDT', '')
         await callback_query.edit_message_text(
-            f"🤖 {symbol.replace('USDT', '')} AI分析已启动\n\n"
-            f"⏳ 深度分析进行中，可能需要3-5分钟\n"
-            f"🔄 分析ID: {analysis_id[-8:]}\n\n",
+            _t("ai.started", symbol=coin_name, id=analysis_id[-8:]),
             parse_mode='Markdown'
         )
 
@@ -139,11 +143,11 @@ class NonBlockingAIHandler:
             if not result.get('success', False):
                 # 分析失败的情况
                 await callback_query.message.reply_text(
-                    f"❌ {coin_name} AI分析失败\n\n"
-                    f"🆔 分析ID: {analysis_id[-8:]}\n"
-                    f"⏱️ 用时: {self._calculate_duration(analysis_id)}\n"
-                    f"📝 错误: {result.get('error', '未知错误')}\n"
-                    f"🔄 建议稍后重试",
+                    _t("ai.failed", 
+                       symbol=coin_name, 
+                       id=analysis_id[-8:],
+                       duration=self._calculate_duration(analysis_id),
+                       error=result.get('error', 'Unknown')),
                     parse_mode='Markdown'
                 )
                 return
@@ -173,15 +177,13 @@ class NonBlockingAIHandler:
             ai_content = ai_analysis.get('analysis', '') if ai_analysis.get('available', False) else ''
 
             # 构建完成通知消息
-            completion_msg = (
-                f"✅ {coin_name} AI分析完成！\n\n"
-                f"🆔 分析ID: {analysis_id[-8:]}\n"
-                f"⏱️ 用时: {self._calculate_duration(analysis_id)}\n"
-                f"💰 当前价格: ${current_price:.4f}\n"
-                f"📊 价格变化: {direction} {change_text}\n"
-                f"⚠️ 风险等级: {risk_level}\n\n"
-                f"📋 详细分析报告请查看下一条消息..."
-            )
+            completion_msg = _t("ai.completed",
+                               symbol=coin_name,
+                               id=analysis_id[-8:],
+                               duration=self._calculate_duration(analysis_id),
+                               price=f"{current_price:.4f}",
+                               change=f"{direction} {change_text}",
+                               risk=risk_level)
 
             # 发送完成通知
             await callback_query.message.reply_text(
@@ -194,8 +196,8 @@ class NonBlockingAIHandler:
                 # 有AI分析内容的情况
 
                 # 构建聊天框消息
-                chat_message = f"🤖 {coin_name} 详细AI分析\n\n"
-                chat_message += f"# {coin_name} 市场分析报告\n"
+                chat_message = f"{_t('ai.detail_title', symbol=coin_name)}\n\n"
+                chat_message += f"# {coin_name} Market Analysis Report\n"
 
                 # 检查是否来自缓存
                 cache_indicator = ""
@@ -223,11 +225,11 @@ class NonBlockingAIHandler:
                 indicators = data.get('technical_indicators', {})
                 adx = indicators.get('adx', 0)
                 if adx > 25:
-                    trend_strength = "强"
+                    trend_strength = _t("ai.trend.strong")
                 elif adx > 20:
-                    trend_strength = "中"
+                    trend_strength = _t("ai.trend.medium")
                 else:
-                    trend_strength = "弱"
+                    trend_strength = _t("ai.trend.weak")
 
                 chat_message += f"趋势强度: {trend_strength} (ADX: {adx:.1f})\n"
                 chat_message += f"{direction} {change_text}\n\n"
@@ -276,7 +278,7 @@ class NonBlockingAIHandler:
 
                     except Exception as file_error:
                         logger.error(f"发送文件失败: {file_error}")
-                        await callback_query.message.reply_text("📄 详细分析报告生成失败")
+                        await callback_query.message.reply_text(_t("ai.report_failed"))
 
             else:
                 # 没有AI分析内容的情况

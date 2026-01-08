@@ -1037,9 +1037,9 @@ class UserRequestHandler:
         """安全获取缓存数据；CoinGlass 数据源已下线直接返回空。"""
         global cache
         if key.startswith("coinglass_"):
-            return [], "⏸️ CoinGlass 数据源已下线，相关榜单暂不可用"
+            return [], I18N.gettext("data.coinglass_offline")
         if not cache:
-            return [], "🔄 数据正在初始化中，请稍后重试"
+            return [], I18N.gettext("data.initializing")
         if key in cache:
             cache_age = time.time() - cache[key]['timestamp']
             logger.info(f"返回内存缓存数据: {key} (缓存年龄: {cache_age:.1f}秒)")
@@ -1083,7 +1083,7 @@ class UserRequestHandler:
         return {
             'full': format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S'),
             'time_only': format_beijing_time(get_beijing_time().isoformat(), '%H:%M'),
-            'hour_min': f"{now.hour}时{now.minute}分"
+            'hour_min': I18N.gettext("time.hour_min", hour=now.hour, min=now.minute)
         }
 
     def get_main_menu_text(self, update: Optional[Update] = None):
@@ -1132,8 +1132,14 @@ class UserRequestHandler:
             ]
         ])
 
-    def _build_card_button(self, card) -> InlineKeyboardButton:
-        return InlineKeyboardButton(card.button_text, callback_data=card.entry_callback)
+    def _build_card_button(self, card, update=None) -> InlineKeyboardButton:
+        # 优先使用 i18n 键，回退到 button_text
+        if card.button_key:
+            lang = _resolve_lang(update) if update else I18N.default_locale
+            text = I18N.gettext(card.button_key, lang=lang)
+        else:
+            text = card.button_text
+        return InlineKeyboardButton(text, callback_data=card.entry_callback)
 
     def _chunk_buttons(self, buttons: List[InlineKeyboardButton], chunk_size: int = 3) -> List[List[InlineKeyboardButton]]:
         rows: List[List[InlineKeyboardButton]] = []
@@ -1164,7 +1170,7 @@ class UserRequestHandler:
         if registry:
             cards = [c for c in registry.iter_cards() if self._card_group(c) == current_group]
             cards.sort(key=lambda c: (c.priority, c.button_text))
-            buttons = [self._build_card_button(card) for card in cards]
+            buttons = [self._build_card_button(card, update) for card in cards]
 
         rows = self._chunk_buttons(buttons, chunk_size=3) if buttons else []
 
@@ -3278,7 +3284,7 @@ class TradeCatBot:
         return {
             'full': format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S'),
             'time_only': format_beijing_time(get_beijing_time().isoformat(), '%H:%M'),
-            'hour_min': f"{now.hour}时{now.minute}分"
+            'hour_min': I18N.gettext("time.hour_min", hour=now.hour, min=now.minute)
         }
 
 
@@ -3929,7 +3935,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if any(button_data.startswith(prefix) for prefix in ratio_callbacks):
         await query.answer(_t("ui.card_offline", update), show_alert=False)
         await query.message.reply_text(
-            "⚖️ 超买超卖卡片已下线，敬请期待替代方案。",
+            _t(query, "feature.overbought_offline"),
             reply_markup=InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]]),
             parse_mode='Markdown'
         )
@@ -3965,7 +3971,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     logger.error("❌ 所有初始化方法都失败")
                     await query.edit_message_text(
-                        "🚀 机器人正在初始化中，请稍等...\n\n💡 如果问题持续，请联系管理员",
+                        _t(update, "status.initializing"),
                         reply_markup=InlineKeyboardMarkup([[
                             _btn(update, "btn.retry", "main_menu")
                         ]])
@@ -3974,7 +3980,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e2:
                 logger.error(f"❌ 异步重新初始化也失败: {e2}")
                 await query.edit_message_text(
-                    "❌ 机器人初始化失败，请联系管理员\n\n🔧 错误信息已记录",
+                    _t(update, "status.init_failed"),
                     reply_markup=InlineKeyboardMarkup([[
                         _btn(update, "btn.retry", "main_menu")
                     ]])
@@ -4003,12 +4009,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # 强制检查：如果文本为空或无效，使用预设文本
                 if not text or len(str(text).strip()) == 0:
                     logger.warning("⚠️ 主菜单文本为空，使用强制默认文本")
-                    text = """⚡️欢迎使用交易猫"""
+                    text = _t(update, "welcome.title")
 
                 # 再次验证文本有效性
-                text = ensure_valid_text(text, """⚡️欢迎使用交易猫
-
-💰 管理您的账户""")
+                text = ensure_valid_text(text, _t(update, "welcome.title"))
 
                 # 强化键盘处理：确保永远有键盘
                 try:
@@ -4040,7 +4044,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # 发送最简单的错误恢复消息
                 try:
                     await query.edit_message_text(
-                        "⚡️欢迎使用交易猫\n\n✅ 系统正常运行",
+                        f"{_t(update, 'welcome.title')}\n\n{_t(update, 'welcome.status')}",
                         reply_markup=InlineKeyboardMarkup([
                             [_btn(update, "btn.retry", "main_menu")]
                         ])
@@ -4063,7 +4067,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # 直接返回主菜单，不显示中间提示
             text = user_handler.get_main_menu_text(update)
             keyboard = user_handler.get_main_menu_keyboard(update)
-            text = ensure_valid_text(text, "⚡️欢迎使用交易猫")
+            text = ensure_valid_text(text, _t(query, "welcome.title"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         elif query.data == "ranking_menu_nop":
@@ -4117,7 +4121,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif query.data == "market_sentiment":
             await query.message.reply_text(
-                "⏸️ 市场情绪榜单已下线，敬请期待新的指标面板。",
+                _t(query, "feature.sentiment_offline"),
                 reply_markup=InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]]),
                 parse_mode='Markdown'
             )
@@ -4141,7 +4145,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 limit=limit,
                 market_type=market_type
             ))
-            text = ensure_valid_text(text, "📊 基础市场数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.market"))
             keyboard = user_handler.get_basic_market_keyboard(
                 current_sort_type=sort_type,
                 current_period=period,
@@ -4173,7 +4177,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_market=user_handler.user_states['money_flow_market'],
                 update=update,
             )
-            text = ensure_valid_text(text, "💰 资金流向数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.money_flow"))
 
             await query.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
@@ -4191,7 +4195,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_sort_type=user_handler.user_states.get('market_depth_sort_type', 'ratio'),
                 current_sort=user_handler.user_states.get('market_depth_sort', 'desc')
             )
-            text = ensure_valid_text(text, "📊 市场深度数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.depth"))
 
             await query.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
@@ -4346,7 +4350,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text = await loop.run_in_executor(None, lambda: user_handler.get_main_menu_text(update))
                 keyboard = user_handler.get_main_menu_keyboard(update)
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
 
@@ -4399,7 +4403,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_ratio_type=ratio_type
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 统一比率排序按钮处理
@@ -4433,7 +4437,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_ratio_type=current_ratio_type
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
 
@@ -4469,7 +4473,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_ratio_type=current_ratio_type
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             await query.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 交易量/市值比排序按钮处理
@@ -4482,7 +4486,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_handler.user_states.get('volume_market_limit', 10), sort_order
             )
             keyboard = user_handler.get_volume_market_ratio_keyboard(current_sort=sort_order, current_limit=user_handler.user_states.get('volume_market_limit', 10))
-            text = ensure_valid_text(text, "📊 交易量/市值比数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.volume_market"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 交易量/市值比数量按钮处理
@@ -4495,7 +4499,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 limit, user_handler.user_states.get('volume_market_sort', 'desc')
             )
             keyboard = user_handler.get_volume_market_ratio_keyboard(current_sort=user_handler.user_states.get('volume_market_sort', 'desc'), current_limit=limit)
-            text = ensure_valid_text(text, "📊 交易量/市值比数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.volume_market"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 交易量/持仓量比排序按钮处理
@@ -4508,7 +4512,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_handler.user_states.get('volume_oi_limit', 10), sort_order
             )
             keyboard = user_handler.get_volume_oi_ratio_keyboard(current_sort=sort_order, current_limit=user_handler.user_states.get('volume_oi_limit', 10))
-            text = ensure_valid_text(text, "📊 交易量/持仓量比数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.volume_oi"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 交易量/持仓量比数量按钮处理
@@ -4521,7 +4525,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 limit, user_handler.user_states.get('volume_oi_sort', 'desc')
             )
             keyboard = user_handler.get_volume_oi_ratio_keyboard(current_sort=user_handler.user_states.get('volume_oi_sort', 'desc'), current_limit=limit)
-            text = ensure_valid_text(text, "📊 交易量/持仓量比数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.volume_oi"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 持仓/市值比数量按钮处理
@@ -4539,7 +4543,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_limit=limit,
                 current_ratio_type='position_market'
             )
-            text = ensure_valid_text(text, "📊 持仓/市值比数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.position_market"))
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         # 资金流向周期选择按钮处理
@@ -4558,7 +4562,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 update=update,
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_money_flow_keyboard(
                 current_period=user_handler.user_states['money_flow_period'],
                 current_sort=user_handler.user_states['money_flow_sort'],
@@ -4585,7 +4589,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 update=update,
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_money_flow_keyboard(
                 current_period=user_handler.user_states['money_flow_period'],
                 current_sort=user_handler.user_states['money_flow_sort'],
@@ -4611,7 +4615,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 update=update,
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_money_flow_keyboard(
                 current_period=user_handler.user_states['money_flow_period'],
                 current_sort=sort_order,
@@ -4637,7 +4641,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 update=update,
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_money_flow_keyboard(
                 current_period=period,
                 current_sort=user_handler.user_states['money_flow_sort'],
@@ -4662,7 +4666,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 market_type=market_type
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_basic_market_keyboard(
                 current_sort_type=user_handler.user_states['basic_market_sort_type'],
                 current_period=user_handler.user_states['basic_market_period'],
@@ -4686,7 +4690,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 market_type=user_handler.user_states['basic_market_type']
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_basic_market_keyboard(
                 current_sort_type=sort_type,
                 current_period=user_handler.user_states['basic_market_period'],
@@ -4710,7 +4714,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 market_type=user_handler.user_states['basic_market_type']
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_basic_market_keyboard(
                 current_sort_type=user_handler.user_states['basic_market_sort_type'],
                 current_period=period,
@@ -4734,7 +4738,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 market_type=user_handler.user_states['basic_market_type']
             ))
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_basic_market_keyboard(
                 current_sort_type=user_handler.user_states['basic_market_sort_type'],
                 current_period=user_handler.user_states['basic_market_period'],
@@ -4757,7 +4761,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_handler.user_states.get('market_depth_sort', 'desc')
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_market_depth_keyboard(
                 current_limit=user_handler.user_states.get('market_depth_limit', 10),
                 current_sort_type=sort_type,
@@ -4778,7 +4782,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 sort_order
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_market_depth_keyboard(
                 current_limit=user_handler.user_states.get('market_depth_limit', 10),
                 current_sort_type=user_handler.user_states.get('market_depth_sort_type', 'ratio'),
@@ -4800,7 +4804,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_handler.user_states['liquidation_type']
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_liquidation_ranking_keyboard(
                 current_limit=user_handler.user_states['liquidation_limit'],
                 current_sort=user_handler.user_states['liquidation_sort'],
@@ -4823,7 +4827,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 liquidation_type
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_liquidation_ranking_keyboard(
                 current_limit=user_handler.user_states['liquidation_limit'],
                 current_sort=user_handler.user_states['liquidation_sort'],
@@ -4846,7 +4850,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_handler.user_states['liquidation_type']
             )
 
-            text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+            text = ensure_valid_text(text, _t(query, "loading.data"))
             keyboard = user_handler.get_liquidation_ranking_keyboard(
                 current_limit=user_handler.user_states['liquidation_limit'],
                 current_sort=sort_order,
@@ -4856,14 +4860,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         elif query.data in ["coin_search", "help", "aggregated_alerts", "subscription"]:
-            feature_names = {
-                "coin_search": "🔍 币种搜索",
-                "help": "ℹ️ 帮助",
-                "aggregated_alerts": "🚨 信号",
-                "subscription": "💲 订阅"
-            }
-
-            feature_name = feature_names.get(query.data, query.data)
+            feature_key = f"feature.name.{query.data}"
 
             if query.data == "help":
                 await send_help_message(update, context, via_query=True)
@@ -4885,39 +4882,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
                 return
             else:
+                feature_name = _t(update, feature_key)
                 await query.message.reply_text(
-                    f"🚧 {feature_name} 功能开发中，敬请期待！\n\n"
-                    f"目前已完成的功能：\n"
-                    f"- 🐋 持仓量排行 (持仓量排行榜)\n"
-                    f"- 💱 资金费率排行 (资金费率排行榜)\n"
-                    f"- 📈 成交量排行 (交易量排行榜)\n"
-                    f"- 💥 爆仓排行 (爆仓风险监控)\n"
-                    f"- 📈 波动性与机会\n"
-                    f"- 🎭 市场情绪 (情绪分析)\n"
-                    f"- 📡 行情总览 (基础行情总览)\n"
-                    f"- 💧 资金流向排行 (资金流向排行榜)\n"
-                    f"- 🧊 市场深度排行 (市场深度分析)\n"
-                    f"- 📈 主动买卖比分析\n\n"
-                    f"其他功能正在快速开发中...",
-                    reply_markup=InlineKeyboardMarkup([[
-                        _btn(update, "btn.back_home", "main_menu")
-                    ]]),
-                    parse_mode='Markdown'
-                )
-                await query.message.reply_text(
-                    f"🚧 {feature_name} 功能开发中，敬请期待！\n\n"
-                    f"目前已完成的功能：\n"
-                    f"- 🐋 持仓量排行 (持仓量排行榜)\n"
-                    f"- 💱 资金费率排行 (资金费率排行榜)\n"
-                    f"- 📈 成交量排行 (交易量排行榜)\n"
-                    f"- 💥 爆仓排行 (爆仓风险监控)\n"
-                    f"- 📈 波动性与机会\n"
-                    f"- 🎭 市场情绪 (情绪分析)\n"
-                    f"- 📡 行情总览 (基础行情总览)\n"
-                    f"- 💧 资金流向排行 (资金流向排行榜)\n"
-                    f"- 🧊 市场深度排行 (市场深度分析)\n"
-                    f"- 📈 主动买卖比分析\n\n"
-                    f"其他功能正在快速开发中...",
+                    _t(update, "feature.developing", name=feature_name),
                     reply_markup=InlineKeyboardMarkup([[
                         _btn(update, "btn.back_home", "main_menu")
                     ]]),
@@ -4944,7 +4911,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 其他按钮处理
         else:
             await query.message.reply_text(
-                "🚧 该功能正在开发中，敬请期待！",
+                _t(update, "feature.developing", name=""),
                 reply_markup=InlineKeyboardMarkup([[
                     _btn(update, "btn.back_home", "main_menu")
                 ]]),
@@ -4979,8 +4946,8 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _save_user_locale(user_id, new_lang)
     context.user_data["lang_preference"] = new_lang
 
-    display_names = {"zh_CN": "简体中文", "en": "English"}
-    msg = I18N.gettext("lang.set", lang=new_lang, lang_name=display_names.get(new_lang, new_lang))
+    lang_name = I18N.gettext(f"lang.{new_lang}", lang=new_lang)
+    msg = I18N.gettext("lang.set", lang=new_lang, lang_name=lang_name)
     main_text = None
     main_keyboard = None
     reply_keyboard = None
@@ -5035,13 +5002,13 @@ async def vol_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
 
-        text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(query, "loading.data"))
         keyboard = user_handler.get_volume_ranking_keyboard(current_period=user_handler.user_states['volume_period'], current_sort=user_handler.user_states['volume_sort'], current_limit=user_handler.user_states['volume_limit'])
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"交易量数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取交易量数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.volume_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5057,13 +5024,13 @@ async def sentiment_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         loop = asyncio.get_event_loop()
         text = await loop.run_in_executor(None, user_handler.get_market_sentiment)
-        text = ensure_valid_text(text, "😊 市场情绪数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(update, "loading.sentiment"))
         keyboard = user_handler.get_market_sentiment_keyboard()
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"市场情绪数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取市场情绪数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.sentiment_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5087,7 +5054,7 @@ async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             market_type=user_handler.user_states['basic_market_type']
         ))
 
-        text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(query, "loading.data"))
         keyboard = user_handler.get_basic_market_keyboard(
             current_sort_type=user_handler.user_states['basic_market_sort_type'],
             current_period=user_handler.user_states['basic_market_period'],
@@ -5099,7 +5066,7 @@ async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"基础行情数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取基础行情数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.market_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5132,7 +5099,7 @@ async def flow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
         )
 
-        text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(query, "loading.data"))
         keyboard = user_handler.get_money_flow_keyboard(
             current_period=mf_period,
             current_sort=mf_sort,
@@ -5145,7 +5112,7 @@ async def flow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"资金流向数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取资金流向数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.flow_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5168,7 +5135,7 @@ async def depth_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_handler.user_states.get('market_depth_sort', 'desc')
         )
 
-        text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(query, "loading.data"))
         keyboard = user_handler.get_market_depth_keyboard(
             current_limit=user_handler.user_states.get('market_depth_limit', 10),
             current_sort_type=user_handler.user_states.get('market_depth_sort_type', 'ratio'),
@@ -5178,7 +5145,7 @@ async def depth_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"市场深度数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取市场深度数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.depth_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5199,13 +5166,13 @@ async def ratio_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_handler.user_states['position_market_sort']
         ))
 
-        text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+        text = ensure_valid_text(text, _t(query, "loading.data"))
         keyboard = user_handler.get_position_market_ratio_keyboard(current_sort=user_handler.user_states['position_market_sort'], current_limit=user_handler.user_states['position_market_limit'])
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"持仓/市值比数据查询错误: {e}")
         await update.message.reply_text(
-            f"❌ 获取持仓/市值比数据时发生错误，请稍后重试。\n\n错误信息: {str(e)}",
+            _t(update, "error.ratio_fetch", error=str(e)),
             parse_mode='Markdown'
         )
 
@@ -5214,15 +5181,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _is_command_allowed(update):
         return
     await update.message.reply_text(
-        "💡 即将支持的功能：\n"
-        "- 📊 价格走势分析\n"
-        "- 💰 持仓量变化趋势\n"
-        "- 📈 技术指标分析\n"
-        "- 🔔 价格预警设置\n\n"
-        "📞 如需帮助请联系客服：\n"
-        "- 客服1: zancy1\n"
-                    "- 客服2: xiaocaixing\n"
-                    "- 客服3: wangbw123",
+        _t(update, "search.coming_soon"),
         reply_markup=InlineKeyboardMarkup([[
             _btn(update, "btn.back_home", "main_menu")
         ]]),
@@ -5266,11 +5225,11 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = user_handler.get_main_menu_keyboard(update)
 
     # 确保文本不为空
-    text = ensure_valid_text(text, "⚡️欢迎使用交易猫")
+    text = ensure_valid_text(text, _t(query, "welcome.title"))
 
     # 先发送简短欢迎消息和常驻键盘来激活常驻键盘
     await update.message.reply_text(
-        "⚡️欢迎使用交易猫",
+        _t(update, "welcome.title"),
         reply_markup=reply_keyboard    # 使用常驻键盘
     )
 
@@ -5627,7 +5586,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     period=user_handler.user_states.get('position_period', '24h'),
                     update=update
                 ))
-                text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+                text = ensure_valid_text(text, _t(query, "loading.data"))
                 keyboard = user_handler.get_position_ranking_keyboard(
                     current_sort=user_handler.user_states.get('position_sort', 'desc'),
                     current_limit=user_handler.user_states.get('position_limit', 10),
@@ -5648,7 +5607,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     sort_order=user_states.get('volume_sort', 'desc'),
                     update=update
                 ))
-                text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+                text = ensure_valid_text(text, _t(query, "loading.data"))
                 keyboard = user_handler.get_volume_ranking_keyboard(
                     current_period=user_states.get('volume_period', '24h'),
                     current_sort=user_states.get('volume_sort', 'desc'),
@@ -5666,7 +5625,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     period=user_states.get('liquidation_period', '24h'),
                     liquidation_type=user_states.get('liquidation_type', 'total')
                 ))
-                text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+                text = ensure_valid_text(text, _t(query, "loading.data"))
                 keyboard = user_handler.get_liquidation_ranking_keyboard(
                     current_limit=user_states.get('liquidation_limit', 10),
                     current_sort=user_states.get('liquidation_sort', 'desc'),
@@ -5677,7 +5636,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
 
             elif action == "market_sentiment":
                 await update.message.reply_text(
-                    "⏸️ 市场情绪榜单已下线，敬请期待新的指标面板。",
+                    _t(query, "feature.sentiment_offline"),
                     reply_markup=user_handler.get_market_sentiment_keyboard(),
                     parse_mode='Markdown'
                 )
@@ -5693,7 +5652,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     limit=user_states.get('basic_market_limit', 10),
                     market_type=user_states.get('basic_market_type', 'futures')
                 ))
-                text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+                text = ensure_valid_text(text, _t(query, "loading.data"))
                 keyboard = user_handler.get_basic_market_keyboard(
                     current_sort_type=user_states.get('basic_market_sort_type', 'change'),
                     current_period=user_states.get('basic_market_period', '24h'),
@@ -5714,7 +5673,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     flow_type=user_states.get('money_flow_type', 'all'),
                     market=user_states.get('money_flow_market', 'spot')
                 ))
-                text = ensure_valid_text(text, "📊 数据加载中，请稍后重试...")
+                text = ensure_valid_text(text, _t(query, "loading.data"))
                 keyboard = user_handler.get_money_flow_keyboard(
                     current_period=user_states.get('money_flow_period', '24h'),
                     current_sort=user_states.get('money_flow_sort', 'net_inflow'),
