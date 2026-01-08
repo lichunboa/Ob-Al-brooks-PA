@@ -144,6 +144,10 @@ import {
   calculateStrategyPerformance,
   generatePlaybookPerfRows,
 } from "../utils/strategy-performance-utils";
+import {
+  generateCalendarCells,
+  calculateCalendarMaxAbs,
+} from "../utils/calendar-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { useLearnState } from "../hooks/useLearnState";
@@ -998,17 +1002,16 @@ const ConsoleComponent: React.FC<Props> = ({
     () => getLastLocalDateIsos(calendarDays),
     []
   );
-  const calendarCells = React.useMemo(() => {
-    return calendarDateIsos.map(
-      (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
-    );
-  }, [calendarDateIsos, analyticsDailyByDate]);
-  const calendarMaxAbs = React.useMemo(() => {
-    let max = 0;
-    for (const c of calendarCells) max = Math.max(max, Math.abs(c.netR));
-    return max;
-  }, [calendarCells]);
+  // calendarCells 已移至 utils/calendar-utils.ts
+  const calendarCells = React.useMemo(
+    () => generateCalendarCells(calendarDateIsos, analyticsDailyByDate),
+    [calendarDateIsos, analyticsDailyByDate]
+  );
+  // calendarMaxAbs 已移至 utils/calendar-utils.ts
+  const calendarMaxAbs = React.useMemo(
+    () => calculateCalendarMaxAbs(calendarCells),
+    [calendarCells]
+  );
 
   // Equity curve removed (keep only multi-account Capital Growth curve).
 
