@@ -18,17 +18,13 @@ export interface TodayKpiData {
  */
 export interface TodayKpiCardProps {
     todayKpi: TodayKpiData;
-    todayMarketCycle?: string;
 }
 
 /**
  * 今日KPI卡片组件
  * 显示今日交易统计:总交易、获胜、亏损、胜率、净利润
  */
-export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({
-    todayKpi,
-    todayMarketCycle,
-}) => {
+export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi }) => {
     return (
         <div
             style={{
@@ -133,20 +129,6 @@ export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({
                     </div>
                 </div>
             </div>
-
-            {!todayMarketCycle && (
-                <div style={{ marginBottom: "12px" }}>
-                    <div
-                        style={{
-                            color: "var(--text-muted)",
-                            fontSize: "0.9em",
-                            marginBottom: "10px",
-                        }}
-                    >
-                        创建今日日记,并设置市场周期以获取策略推荐(旧版同位置)。
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
