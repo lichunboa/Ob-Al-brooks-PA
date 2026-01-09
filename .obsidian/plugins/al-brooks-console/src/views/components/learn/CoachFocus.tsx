@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../../ui/components/Button";
 
 /**
  * CoachFocus Props接口
@@ -381,17 +382,17 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                         {label}
                                     </div>
                                     <div style={{ marginBottom: "6px" }}>
-                                        <button
-                                            type="button"
+                                        <Button
+                                            variant="text"
                                             onClick={() => openFile(String(rec.path))}
-                                            style={textButtonStrongStyle}
                                             onMouseEnter={onTextBtnMouseEnter}
                                             onMouseLeave={onTextBtnMouseLeave}
                                             onFocus={onTextBtnFocus}
                                             onBlur={onTextBtnBlur}
+                                            style={{ fontWeight: 800 }}
                                         >
                                             {String(rec.title)}
-                                        </button>
+                                        </Button>
                                     </div>
                                     <div
                                         style={{
@@ -403,18 +404,17 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="small"
                                     onClick={onShake}
                                     onMouseEnter={onBtnMouseEnter}
                                     onMouseLeave={onBtnMouseLeave}
                                     onFocus={onBtnFocus}
                                     onBlur={onBtnBlur}
-                                    style={buttonSmStyle}
                                     title="摇一摇换题（跳过优先）"
                                 >
                                     🎲
-                                </button>
+                                </Button>
                             </div>
                         );
                     })()}
@@ -428,17 +428,17 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             }}
                         >
                             焦点：{" "}
-                            <button
-                                type="button"
+                            <Button
+                                variant="text"
                                 onClick={() => openFile(memory.focusFile!.path)}
-                                style={textButtonSemiboldStyle}
                                 onMouseEnter={onTextBtnMouseEnter}
                                 onMouseLeave={onTextBtnMouseLeave}
                                 onFocus={onTextBtnFocus}
                                 onBlur={onTextBtnBlur}
+                                style={{ fontWeight: 600 }}
                             >
                                 {memory.focusFile.name.replace(/\.md$/i, "")}
-                            </button>
+                            </Button>
                             <span
                                 style={{ marginLeft: "8px", color: "var(--text-faint)" }}
                             >
@@ -466,17 +466,16 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             <ul style={{ margin: 0, paddingLeft: "18px" }}>
                                 {memory.quizPool.map((q: any, idx: number) => (
                                     <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                                        <button
-                                            type="button"
+                                        <Button
+                                            variant="text"
                                             onClick={() => openFile(q.path)}
-                                            style={textButtonStyle}
                                             onMouseEnter={onTextBtnMouseEnter}
                                             onMouseLeave={onTextBtnMouseLeave}
                                             onFocus={onTextBtnFocus}
                                             onBlur={onTextBtnBlur}
                                         >
                                             {q.q || q.file}
-                                        </button>
+                                        </Button>
                                         <span
                                             style={{
                                                 marginLeft: "8px",
