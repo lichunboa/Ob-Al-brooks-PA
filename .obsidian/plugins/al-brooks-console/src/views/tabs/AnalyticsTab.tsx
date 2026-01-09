@@ -3,6 +3,7 @@ import type { AccountType, TradeRecord } from "../../core/contracts";
 import type { AnalyticsScope } from "../../core/analytics";
 import { V5_COLORS, withHexAlpha } from "../../ui/tokens";
 import { SectionHeader } from "../../ui/components/SectionHeader";
+import { Button } from "../../ui/components/Button";
 import { AccountSummaryCards } from "../components/analytics/AccountSummaryCards";
 import { MarketCyclePerformance } from "../components/analytics/MarketCyclePerformance";
 import { TuitionCostPanel } from "../components/analytics/TuitionCostPanel";
