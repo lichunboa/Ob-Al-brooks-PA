@@ -2527,14 +2527,13 @@ const ConsoleComponent: React.FC<Props> = ({
                                     "1px solid var(--background-modifier-border)",
                                 }}
                               >
-                                <button
-                                  type="button"
+                                <Button
+                                  variant="small"
                                   onClick={() => {
                                     setManagerInspectorTab("vals");
                                     setManagerInspectorFileFilter(undefined);
                                   }}
                                   style={{
-                                    ...buttonSmStyle,
                                     background:
                                       managerInspectorTab === "vals"
                                         ? "rgba(var(--mono-rgb-100), 0.08)"
@@ -2542,7 +2541,7 @@ const ConsoleComponent: React.FC<Props> = ({
                                   }}
                                 >
                                   属性值 ({sortedVals.length})
-                                </button>
+                                </Button>
                                 <Button
                                   variant="small"
                                   onClick={() =>
@@ -2693,24 +2692,23 @@ const ConsoleComponent: React.FC<Props> = ({
                                         }}
                                       >
                                         <span>🔍 筛选: {filterLabel}</span>
-                                        <button
-                                          type="button"
+                                        <Button
+                                          variant="small"
                                           onClick={() =>
                                             setManagerInspectorFileFilter(
                                               undefined
                                             )
                                           }
-                                          style={buttonSmStyle}
                                         >
                                           ✕ 重置
-                                        </button>
+                                        </Button>
                                       </div>
                                     ) : null}
 
                                     {currentPaths.slice(0, 200).map((p) => (
-                                      <button
+                                      <Button
                                         key={`mgr-v5-file-${p}`}
-                                        type="button"
+                                        variant="text"
                                         onClick={() => void openFile?.(p)}
                                         title={p}
                                         onMouseEnter={onTextBtnMouseEnter}
@@ -2725,7 +2723,6 @@ const ConsoleComponent: React.FC<Props> = ({
                                           padding: "10px",
                                           background:
                                             "var(--background-primary)",
-                                          cursor: "pointer",
                                         }}
                                       >
                                         <div style={{ fontWeight: 700 }}>
@@ -2733,14 +2730,14 @@ const ConsoleComponent: React.FC<Props> = ({
                                         </div>
                                         <div
                                           style={{
-                                            color: "var(--text-faint)",
                                             fontSize: "0.85em",
-                                            opacity: 0.8,
+                                            color: "var(--text-faint)",
+                                            marginTop: "4px",
                                           }}
                                         >
                                           {p}
                                         </div>
-                                      </button>
+                                      </Button>
                                     ))}
                                   </div>
                                 )}
