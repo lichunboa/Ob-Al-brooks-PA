@@ -5782,26 +5782,43 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
     lang = _resolve_lang(update)
 
     # =============================================================================
-    # 处理配置编辑的用户输入
+    # 处理配置编辑的用户输入（友好反馈）
     # =============================================================================
     if context.user_data.get("env_editing_key"):
-        from bot.env_manager import set_config, validate_config_value, EDITABLE_CONFIGS
+        from bot.env_manager import set_config, validate_config_value, EDITABLE_CONFIGS, CONFIG_CATEGORIES
         key = context.user_data.pop("env_editing_key")
+        config_info = EDITABLE_CONFIGS.get(key, {})
+        config_name = config_info.get("name", key)
+        category = config_info.get("category", "symbols")
         
-        if message_text.strip() in ("取消", "cancel", "Cancel"):
-            await update.message.reply_text("❌ 已取消修改")
+        # 取消操作 - 友好提示
+        if message_text.strip().lower() in ("取消", "cancel"):
+            keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("⬅️ 返回配置", callback_data=f"env_cat_{category}")
+            ]])
+            await update.message.reply_text(
+                f"👌 好的，{config_name} 保持不变",
+                reply_markup=keyboard
+            )
             return
         
         value = message_text.strip()
         valid, msg = validate_config_value(key, value)
         if not valid:
-            await update.message.reply_text(f"❌ 验证失败: {msg}")
-            # 重新设置编辑状态让用户重试
+            # 验证失败 - 友好提示，保留编辑状态让用户重试
             context.user_data["env_editing_key"] = key
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ 放弃修改", callback_data=f"env_cat_{category}")]
+            ])
+            await update.message.reply_text(msg, reply_markup=keyboard, parse_mode='Markdown')
             return
         
+        # 保存成功 - 提供返回按钮
         success, result_msg = set_config(key, value)
-        await update.message.reply_text(result_msg, parse_mode='Markdown')
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("👍 好的", callback_data=f"env_cat_{category}")
+        ]])
+        await update.message.reply_text(result_msg, reply_markup=keyboard, parse_mode='Markdown')
         return
 
     if user_handler is None:
