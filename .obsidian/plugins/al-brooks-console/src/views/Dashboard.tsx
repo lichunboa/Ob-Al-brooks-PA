@@ -26,6 +26,7 @@ import { TradingHubTab } from "./tabs/TradingHubTab";
 import { AnalyticsTab } from "./tabs/AnalyticsTab";
 import { LearnTab } from "./tabs/LearnTab";
 import { ExportPanel } from "./components/manage/ExportPanel";
+import { HealthStatusPanel } from "./components/manage/HealthStatusPanel";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -1459,166 +1460,16 @@ const ConsoleComponent: React.FC<Props> = ({
 
               return (
                 <div style={{ marginBottom: SPACE.md }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: SPACE.md,
-                      marginBottom: SPACE.md,
-                    }}
-                  >
-                    <div style={cardSubtleTightStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: SPACE.md,
-                          marginBottom: SPACE.sm,
-                        }}
-                      >
-                        <div style={{ fontWeight: 800, color: healthColor }}>
-                          ❤️ 系统健康度：{healthScore}
-                        </div>
-                        <div style={{ color: "var(--text-muted)" }}>
-                          待修异常：{issueCount}
-                        </div>
-                      </div>
-
-                      {topTypes.length ? (
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: `${SPACE.xs} ${SPACE.xl}`,
-                            fontSize: "0.9em",
-                          }}
-                        >
-                          {topTypes.map(([t, c]) => (
-                            <div
-                              key={t}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: SPACE.md,
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                                title={t}
-                              >
-                                {t}
-                              </span>
-                              <span
-                                style={{
-                                  fontVariantNumeric: "tabular-nums",
-                                }}
-                              >
-                                {c}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ color: V5_COLORS.win }}>
-                          ✅ 系统非常健康（All Clear）
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={cardSubtleTightStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: SPACE.md,
-                          marginBottom: SPACE.sm,
-                        }}
-                      >
-                        <div style={{ fontWeight: 800 }}>🧠 系统诊断</div>
-                        <div style={{ color: "var(--text-muted)" }}>
-                          {schemaScanNote ? "已扫描" : "未扫描"}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: `${SPACE.xs} ${SPACE.xl}`,
-                          fontSize: "0.9em",
-                          color: "var(--text-muted)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
-                          }}
-                        >
-                          <span>枚举预设</span>
-                          <span>{enumPresets ? "✅ 已加载" : "—"}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
-                          }}
-                        >
-                          <span>标签扫描</span>
-                          <span>{paTagSnapshot ? "✅ 正常" : "—"}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: SPACE.md,
-                          }}
-                        >
-                          <span>交易记录</span>
-                          <span>{trades.length}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>笔记档案</span>
-                          <span>{files}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>标签总数</span>
-                          <span>{tags}</span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>属性管理器</span>
-                          <span>✅ 可用</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <HealthStatusPanel
+                    schemaIssues={schemaIssues}
+                    paTagSnapshot={paTagSnapshot}
+                    trades={trades}
+                    enumPresets={enumPresets}
+                    schemaScanNote={schemaScanNote}
+                    V5_COLORS={V5_COLORS}
+                    SPACE={SPACE}
+                    cardSubtleTightStyle={cardSubtleTightStyle}
+                  />
 
                   <div style={{ ...cardTightStyle, marginBottom: "10px" }}>
                     <div
