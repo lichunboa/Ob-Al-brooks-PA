@@ -2638,46 +2638,35 @@ const ConsoleComponent: React.FC<Props> = ({
                                               gap: "8px",
                                             }}
                                           >
-                                            <button
-                                              type="button"
+                                            <Button
+                                              variant="small"
                                               disabled={managerBusy}
                                               onClick={() =>
                                                 void doUpdateVal(val, paths)
                                               }
-                                              style={
-                                                managerBusy
-                                                  ? buttonSmDisabledStyle
-                                                  : buttonSmStyle
-                                              }
                                               title="修改"
                                             >
                                               ✏️
-                                            </button>
-                                            <button
-                                              type="button"
+                                            </Button>
+                                            <Button
+                                              variant="small"
                                               disabled={managerBusy}
                                               onClick={() =>
                                                 void doDeleteVal(val, paths)
                                               }
-                                              style={
-                                                managerBusy
-                                                  ? buttonSmDisabledStyle
-                                                  : buttonSmStyle
-                                              }
                                               title="删除"
                                             >
                                               🗑️
-                                            </button>
-                                            <button
-                                              type="button"
+                                            </Button>
+                                            <Button
+                                              variant="small"
                                               onClick={() =>
                                                 showFilesForVal(val, paths)
                                               }
-                                              style={buttonSmStyle}
                                               title="查看文件"
                                             >
                                               👁️
-                                            </button>
+                                            </Button>
                                           </div>
                                         </div>
                                       ))
