@@ -3,6 +3,7 @@ import type { TradeRecord } from "../../core/contracts";
 import type { StrategyCard } from "../../core/strategy-index";
 import type { TradeIndex } from "../../core/trade-index";
 import type { StrategyIndex } from "../../core/strategy-index";
+import { GlassPanel } from "../../ui/components/GlassPanel";
 import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { TradeList } from "../components/TradeList";
@@ -46,7 +47,6 @@ export interface TradingHubTabProps {
   can: (feature: string) => boolean;
 
   // 样式
-  glassPanelStyle: React.CSSProperties;
   textButtonStyle: React.CSSProperties;
   buttonStyle: React.CSSProperties;
   disabledButtonStyle: React.CSSProperties;
@@ -84,7 +84,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
     canOpenTodayNote,
     onOpenTodayNote,
     can,
-    glassPanelStyle,
     textButtonStyle,
     buttonStyle,
     disabledButtonStyle,
@@ -121,15 +120,9 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
       <ReviewHintsPanel
         latestTrade={latestTrade}
         reviewHints={reviewHints}
-        glassPanelStyle={glassPanelStyle}
       />
 
-      <div
-        style={{
-          ...glassPanelStyle,
-          marginBottom: "16px",
-        }}
-      >
+      <GlassPanel style={{ marginBottom: "16px" }}>
         <TodayKpiCard todayKpi={todayKpi} />
 
         <MarketCyclePanel
@@ -171,7 +164,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
 
 
         <TodayTradesSection todayTrades={todayTrades} openFile={openFile} />
-      </div>
+      </GlassPanel>
 
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
 

@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
+import { GlassPanel } from "../../../ui/components/GlassPanel";
 
 /**
  * ReviewHintsPanel Props接口
@@ -7,7 +8,6 @@ import type { TradeRecord } from "../../../core/contracts";
 export interface ReviewHintsPanelProps {
     latestTrade: TradeRecord | null;
     reviewHints: Array<{ id: string; zh: string; en: string }>;
-    glassPanelStyle: React.CSSProperties;
 }
 
 /**
@@ -17,7 +17,6 @@ export interface ReviewHintsPanelProps {
 export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     latestTrade,
     reviewHints,
-    glassPanelStyle,
 }) => {
     if (!latestTrade || reviewHints.length === 0) {
         return null;
@@ -36,7 +35,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             >
                 扩展(不参与旧版对照):复盘提示
             </summary>
-            <div style={glassPanelStyle}>
+            <GlassPanel>
                 <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                     复盘提示
                     <span
@@ -65,7 +64,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                         </li>
                     ))}
                 </ul>
-            </div>
+            </GlassPanel>
         </details>
     );
 };

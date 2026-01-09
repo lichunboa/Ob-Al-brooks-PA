@@ -1,6 +1,7 @@
 import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
-import { glassPanelStyle, glassCardStyle } from "../../../ui/styles/dashboardPrimitives";
+import { glassCardStyle } from "../../../ui/styles/dashboardPrimitives";
+import { GlassPanel } from "../../../ui/components/GlassPanel";
 
 /**
  * 今日KPI数据接口
@@ -26,12 +27,7 @@ export interface TodayKpiCardProps {
  */
 export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi }) => {
     return (
-        <div
-            style={{
-                ...glassPanelStyle,
-                marginBottom: "16px",
-            }}
-        >
+        <GlassPanel style={{ marginBottom: "16px" }}>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
 
             <div style={{ marginBottom: "14px" }}>
@@ -129,6 +125,6 @@ export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </GlassPanel>
     );
 };

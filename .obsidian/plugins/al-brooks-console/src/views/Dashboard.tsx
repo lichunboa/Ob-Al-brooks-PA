@@ -1281,7 +1281,6 @@ const ConsoleComponent: React.FC<Props> = ({
           canOpenTodayNote={canOpenTodayNote}
           onOpenTodayNote={onOpenTodayNote}
           can={can}
-          glassPanelStyle={glassPanelStyle}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
