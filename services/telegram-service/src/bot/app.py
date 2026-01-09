@@ -1247,11 +1247,12 @@ class UserRequestHandler:
             ],
             [
                 KeyboardButton(I18N.gettext("kb.signal", lang=lang)),
+                KeyboardButton(I18N.gettext("kb.vis", lang=lang)),
                 KeyboardButton(I18N.gettext("kb.home", lang=lang)),
-                KeyboardButton(I18N.gettext("kb.help", lang=lang)),
             ],
             [
                 KeyboardButton(I18N.gettext("kb.lang", lang=lang)),
+                KeyboardButton(I18N.gettext("kb.help", lang=lang)),
             ],
         ]
         return ReplyKeyboardMarkup(
@@ -5359,6 +5360,31 @@ async def ai_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def vis_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """可视化指令 /vis"""
+    if not _is_command_allowed(update):
+        return
+    global user_handler
+    if user_handler is None:
+        await update.message.reply_text(_t(update, "start.initializing"))
+        return
+    # 刷新底部键盘
+    await update.message.reply_text(_t(update, "start.greet"), reply_markup=user_handler.get_reply_keyboard(update))
+    # 显示可视化菜单
+    try:
+        from bot.vis_handler import get_vis_handler
+        vis_handler = get_vis_handler()
+        text = _t(update, "vis.menu.title", "📈 选择图表类型")
+        keyboard = vis_handler.build_main_menu(update)
+        await update.message.reply_text(text, reply_markup=keyboard)
+    except Exception as e:
+        logger.error(f"可视化菜单加载失败: {e}")
+        await update.message.reply_text(
+            _t(update, "error.vis_failed", "可视化功能暂不可用"),
+            reply_markup=InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]])
+        )
+
+
 async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """健康检查 /ping"""
     try:
@@ -5475,6 +5501,9 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
         "🤖 AI分析": "start_coin_analysis",
         I18N.gettext("kb.query", lang=lang): "coin_query",
         "🔍 币种查询": "coin_query",
+        I18N.gettext("kb.vis", lang=lang): "vis_menu",
+        "📈 可视化": "vis_menu",
+        "📈 Charts": "vis_menu",
         I18N.gettext("kb.home", lang=lang): "main_menu",
         "🏠 主菜单": "main_menu",
         I18N.gettext("kb.help", lang=lang): "help",
@@ -5804,6 +5833,18 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                 except Exception as e:
                     logger.error(f"AI分析入口失败: {e}")
                     await update.message.reply_text(_t(update, "ai.failed", error=e))
+
+            elif action == "vis_menu":
+                # 可视化入口
+                try:
+                    from bot.vis_handler import get_vis_handler
+                    vis_handler = get_vis_handler()
+                    text = _t(update, "vis.menu.title", "📈 选择图表类型")
+                    keyboard = vis_handler.build_main_menu(update)
+                    await update.message.reply_text(text, reply_markup=keyboard)
+                except Exception as e:
+                    logger.error(f"可视化菜单加载失败: {e}")
+                    await update.message.reply_text(_t(update, "error.vis_failed", "可视化功能暂不可用"))
 
             elif action in {"aggregated_alerts", "coin_search"}:
                 await update.message.reply_text(_t(update, "feature.coming_soon"))
@@ -6138,6 +6179,8 @@ def main():
         logger.info("✅ /query 命令处理器已注册")
         application.add_handler(CommandHandler("ai", ai_command))
         logger.info("✅ /ai 命令处理器已注册")
+        application.add_handler(CommandHandler("vis", vis_command))
+        logger.info("✅ /vis 命令处理器已注册")
         application.add_handler(CommandHandler("lang", lang_command))
         logger.info("✅ /lang 命令处理器已注册")
 

@@ -74,11 +74,21 @@ class OrderBookCollector:
         self._full_buffer: List[dict] = []
         self._buffer_lock = asyncio.Lock()
         
-        # 双时间戳追踪
+        # 时间戳与序号追踪
         self._last_tick: Dict[str, float] = {}
         self._last_full: Dict[str, float] = {}
+        self._last_seq: Dict[str, int] = {}  # lastUpdateId 乱序检测
         
         self._flush_task: Optional[asyncio.Task] = None
+        
+        # 统计指标
+        self._stats = {
+            "received": 0,
+            "written_tick": 0,
+            "written_full": 0,
+            "errors": 0,
+            "out_of_order": 0,
+        }
 
     def _load_symbols(self) -> Dict[str, str]:
         """加载交易对映射"""
@@ -264,6 +274,21 @@ class OrderBookCollector:
         ts = datetime.fromtimestamp(book.timestamp, tz=timezone.utc)
         bids_dict = book.book.bids.to_dict()
         asks_dict = book.book.asks.to_dict()
+        
+        # 提取原始元数据 (cryptofeed: sequence_number = lastUpdateId)
+        last_update_id = getattr(book, 'sequence_number', None)
+        
+        self._stats["received"] += 1
+        
+        # 乱序检测: 如果 lastUpdateId 倒退则跳过
+        if last_update_id is not None:
+            prev_id = self._last_seq.get(sym, 0)
+            if last_update_id < prev_id:
+                self._stats["out_of_order"] += 1
+                metrics.inc("order_book_out_of_order")
+                logger.warning("乱序跳过: %s seq %d < %d", sym, last_update_id, prev_id)
+                return
+            self._last_seq[sym] = last_update_id
 
         async with self._buffer_lock:
             # L1 Tick 层 (高频)
@@ -276,7 +301,10 @@ class OrderBookCollector:
             # L2 Full 层 (低频)
             if now - self._last_full.get(sym, 0) >= self._cfg["full_interval"]:
                 self._last_full[sym] = now
-                full_row = self._build_full_row(sym, ts, bids_dict, asks_dict)
+                full_row = self._build_full_row(
+                    sym, ts, bids_dict, asks_dict,
+                    last_update_id=last_update_id
+                )
                 if full_row:
                     self._full_buffer.append(full_row)
             
@@ -300,18 +328,24 @@ class OrderBookCollector:
         if tick_rows:
             try:
                 n = await asyncio.to_thread(self._write_tick_rows, tick_rows)
+                self._stats["written_tick"] += n
                 metrics.inc("order_book_tick_written", n)
                 logger.debug("写入 %d 条 tick 快照", n)
             except Exception as e:
-                logger.error("tick 写入失败: %s", e)
+                self._stats["errors"] += 1
+                metrics.inc("order_book_write_errors")
+                logger.error("tick 写入失败 (%d 条丢失): %s", len(tick_rows), e, exc_info=True)
 
         if full_rows:
             try:
                 n = await asyncio.to_thread(self._write_full_rows, full_rows)
+                self._stats["written_full"] += n
                 metrics.inc("order_book_full_written", n)
                 logger.info("写入 %d 条 full 快照", n)
             except Exception as e:
-                logger.error("full 写入失败: %s", e)
+                self._stats["errors"] += 1
+                metrics.inc("order_book_write_errors")
+                logger.error("full 写入失败 (%d 条丢失): %s", len(full_rows), e, exc_info=True)
 
     def _write_tick_rows(self, rows: List[dict]) -> int:
         """写入 tick 表"""
@@ -320,7 +354,8 @@ class OrderBookCollector:
         from psycopg import sql
 
         cols = [
-            "timestamp", "exchange", "symbol", "mid_price", "spread_bps",
+            "exchange", "symbol", "timestamp",
+            "mid_price", "spread_bps",
             "bid1_price", "bid1_size", "ask1_price", "ask1_size",
             "bid_depth_1pct", "ask_depth_1pct", "imbalance",
         ]
@@ -433,11 +468,35 @@ class OrderBookCollector:
         handler.add_feed(BinanceFutures(**kw))
         logger.info("启动 OrderBook WSS (双层采样模式)")
 
+        # 定时统计任务
+        async def _stats_reporter():
+            while True:
+                await asyncio.sleep(60)
+                s = self._stats
+                logger.info(
+                    "统计: received=%d, tick=%d, full=%d, errors=%d, out_of_order=%d",
+                    s["received"], s["written_tick"], s["written_full"],
+                    s["errors"], s["out_of_order"]
+                )
+
         try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.create_task(_stats_reporter())
             handler.run()
         finally:
+            self._log_final_stats()
             asyncio.run(self._final_flush())
             self._ts.close()
+    
+    def _log_final_stats(self) -> None:
+        """输出最终统计"""
+        s = self._stats
+        logger.info(
+            "采集结束统计: received=%d, tick=%d, full=%d, errors=%d, out_of_order=%d",
+            s["received"], s["written_tick"], s["written_full"],
+            s["errors"], s["out_of_order"]
+        )
 
     async def _final_flush(self) -> None:
         async with self._buffer_lock:

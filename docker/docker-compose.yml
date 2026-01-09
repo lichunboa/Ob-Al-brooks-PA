@@ -81,9 +81,11 @@ services:
       - sqlite_data:/app/libs/database/services/telegram-service
       # 日志持久化（分离目录避免冲突）
       - logs_data:/app/logs
-    # 健康检查：验证所有 3 个服务进程存活
+    # 健康检查：根据运行模式动态检查进程数
+    # - all 模式: 期望 3 个进程
+    # - 单服务模式 (data/trading/telegram): 期望 1 个进程
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'python.*src' | wc -l | grep -qE '^[3-9]'"]
+      test: ["CMD-SHELL", "MODE=$(cat /app/pids/service_mode 2>/dev/null || echo all); if [ \"$MODE\" = \"all\" ]; then EXPECT=3; else EXPECT=1; fi; COUNT=$(pgrep -f 'python.*src' | wc -l); [ \"$COUNT\" -ge \"$EXPECT\" ]"]
       interval: 30s
       timeout: 10s
       retries: 3
