@@ -25,40 +25,38 @@
     - [ ] 迁移脚本与 README 说明统一到新端口/新 schema；确保数据导出/恢复/压缩脚本可用。  
     - [ ] 验收：使用 restore_*.sh 完成一次全量恢复并通过 ./scripts/verify.sh。
 
-[ ] 可视化微服务 (vis-service)
+[x] 可视化微服务 (vis-service)
 
-    ## 当前状态
+    ## 当前状态（2026-01-09 已完成）
     - ✅ FastAPI 服务框架：`services-preview/vis-service/src/main.py`
     - ✅ REST API 路由：`/health`, `/templates`, `/render`
     - ✅ 配置管理：`core/settings.py` (host/port/token/cache)
-    - ✅ 已注册 **8 个模板**（registry.py）：
-      | 模板 ID | 名称 | 输出 |
-      |:---|:---|:---|
-      | line-basic | 基础折线 | png/json |
-      | kline-basic | K线+均线+量能 | png/json |
-      | macd | 价格+MACD | png/json |
-      | equity-drawdown | 权益+回撤 | png/json |
-      | market-vpvr-heat | 全市场VPVR热力图 | png/json |
-      | vpvr-zone-dot | VPVR价值区点阵 | png/json |
-      | vpvr-zone-grid | VPVR价值区卡片 | png/json |
-      | vpvr-zone-strip | VPVR条带散点 | png/json |
-    - ✅ Telegram Bot 集成模块：`telegram-service/src/bot/vis_handler.py`
+    - ✅ 已注册 **9 个模板**（registry.py）：
+      | 模板 ID | 名称 | 类别 | 输出 |
+      |:---|:---|:---|:---|
+      | line-basic | 基础折线 | 通用 | png/json |
+      | kline-basic | K线+均线+量能 | 单币 | png/json |
+      | macd | 价格+MACD | 单币 | png/json |
+      | equity-drawdown | 权益+回撤 | 通用 | png/json |
+      | vpvr-ridge | VPVR山脊图 | 单币 | png/json |
+      | market-vpvr-heat | 全市场VPVR热力图 | 全市场 | png/json |
+      | vpvr-zone-dot | VPVR价值区点阵 | 全市场 | png/json |
+      | vpvr-zone-grid | VPVR价值区卡片 | 全市场 | png/json |
+      | vpvr-zone-strip | VPVR条带散点 | 全市场 | png/json |
+
+    ## Telegram Bot 集成（已完成）
     - ✅ 主菜单已添加「📈 可视化」入口按钮 (app.py:1141)
+    - ✅ vis_handler.py 完整重写，支持：
+      - 按类别分组显示（单币图表 / 全市场图表）
+      - 单币图表流程：选模板 → 选币种 → 选周期 → 渲染
+      - 全市场图表流程：选模板 → 选周期 → 渲染
+      - 周期快捷切换和刷新
+    - ✅ 模板 ID 统一使用中划线格式
+    - ✅ i18n 词条已添加并编译（vis.template.*, vis.category.*, vis.error.*）
 
-    ## 待修复问题
-    - [ ] **vpvr_ridge 模板未注册**：`render_vpvr_ridge()` 函数已实现 (registry.py:868)，但未调用 `registry.register()`，导致 Bot 无法使用
-    - [ ] **模板 ID 不匹配**：vis_handler.py 使用 `vpvr_ridge`（下划线），registry.py 其他模板用 `vpvr-zone-*`（中划线）
-
-    ## Telegram Bot 接入 TODO
-    - [ ] 注册 vpvr-ridge 模板到 registry，使用统一中划线命名
-    - [ ] vis_handler.py 中 VIS_TEMPLATES 的 template_id 改为中划线格式（`vpvr-ridge`, `vpvr-zone-strip`, `kline-basic`）
-    - [ ] 添加 i18n 词条：`vis.template.*`, `vis.menu.title`, `vis.select_symbol`, `vis.select_interval` 到 locales/en.po 和 zh_CN.po
-    - [ ] 为全市场模板（vpvr-zone-strip, market-vpvr-heat）添加数据源对接，当前仅支持单币种
-    - [ ] 添加错误边界：渲染超时、数据缺失时返回友好提示
-    - [ ] 可选：支持用户自定义 symbols 列表（从 config/.env 读取 SYMBOLS_GROUPS）
-
-    ## 服务端 TODO
-    - [ ] 完善 HTTP API 文档（OpenAPI schema 已自动生成，可添加示例）
-    - [ ] 添加渲染缓存 TTL 配置（当前 diskcache 已引入但未启用）
-    - [ ] 可选：支持 SVG 输出格式
-    - [ ] 可选：添加 `/render/batch` 批量渲染接口
+    ## 后续优化（可选）
+    - [ ] 完善 HTTP API 文档（OpenAPI schema 已自动生成）
+    - [ ] 启用 diskcache 渲染缓存
+    - [ ] 支持 SVG 输出格式
+    - [ ] 添加 `/render/batch` 批量渲染接口
+    - [ ] 从 config/.env 读取 SYMBOLS_GROUPS 自定义币种列表
