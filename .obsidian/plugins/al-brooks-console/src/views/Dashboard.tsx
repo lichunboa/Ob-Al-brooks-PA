@@ -1422,28 +1422,12 @@ const ConsoleComponent: React.FC<Props> = ({
           buildDeleteValPlan={buildDeleteValPlan}
           selectManagerTradeFiles={selectManagerTradeFiles}
           selectManagerStrategyFiles={selectManagerStrategyFiles}
-          runCommand={runCommand}
           // 辅助函数
           openFile={openFile}
           promptText={promptText}
           confirmDialog={confirmDialog}
-          prettyVal={prettyVal}
-          prettyManagerVal={prettyManagerVal}
-          matchKeyToGroup={matchKeyToGroup}
-          canonicalizeSearch={canonicalizeSearch}
-          // 样式Props
-          cardTightStyle={cardTightStyle}
-          buttonStyle={buttonStyle}
-          disabledButtonStyle={disabledButtonStyle}
-          // 事件处理器
-          onBtnMouseEnter={onBtnMouseEnter}
-          onBtnMouseLeave={onBtnMouseLeave}
-          onBtnFocus={onBtnFocus}
-          onBtnBlur={onBtnBlur}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
+          // 管理面板可能需要runCommand以支持导出等功能
+          runCommand={runCommand}
         />
       ) : null}
     </div>
