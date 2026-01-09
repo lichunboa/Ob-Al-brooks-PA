@@ -2560,6 +2560,36 @@ msgstr "🕯️ Candlestick"
 msgid "vis.template.kline_desc"
 msgstr "Candlestick + MA + Volume"
 
+msgid "vis.template.macd"
+msgstr "📈 MACD"
+
+msgid "vis.template.macd_desc"
+msgstr "Price + MACD Indicator"
+
+msgid "vis.template.vpvr_heat"
+msgstr "🔥 VPVR Heatmap"
+
+msgid "vis.template.vpvr_heat_desc"
+msgstr "Market-wide volume distribution heatmap"
+
+msgid "vis.template.vpvr_grid"
+msgstr "📋 VPVR Grid"
+
+msgid "vis.template.vpvr_grid_desc"
+msgstr "Market-wide value area overview"
+
+msgid "vis.category.single"
+msgstr "📊 Single Token Charts"
+
+msgid "vis.category.market"
+msgstr "🌐 Market-wide Charts"
+
+msgid "vis.error.no_data"
+msgstr "Unable to fetch market data"
+
+msgid "vis.error.render_failed"
+msgstr "Render failed"
+
 msgid "error.vis_failed"
 msgstr "Visualization unavailable"
 

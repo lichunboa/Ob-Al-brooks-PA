@@ -1,0 +1,137 @@
+# =============================================================================
+# TradeCat Docker Compose 一键部署
+# 用法:
+#   docker-compose up -d              # 启动所有服务
+#   docker-compose logs -f            # 查看日志
+#   docker-compose down               # 停止所有服务
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # TimescaleDB 数据库（预装扩展 + 自动初始化 schema）
+  # ===========================================================================
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: tradecat-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: market_data
+    ports:
+      - "5433:5432"
+    volumes:
+      # 数据持久化
+      - timescaledb_data:/var/lib/postgresql/data
+      # 初始化脚本（按文件名顺序执行）
+      - ./timescaledb/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ./timescaledb/002_functions.sql:/docker-entrypoint-initdb.d/002_functions.sql:ro
+      - ./timescaledb/003_continuous_aggregates.sql:/docker-entrypoint-initdb.d/003_continuous_aggregates.sql:ro
+      - ./timescaledb/004_policies.sql:/docker-entrypoint-initdb.d/004_policies.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d market_data"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tradecat-network
+
+  # ===========================================================================
+  # TradeCat 主服务（data + trading + telegram）
+  # ===========================================================================
+  tradecat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: tradecat-app
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    env_file:
+      - ../config/.env
+    environment:
+      # 覆盖数据库连接为容器内网络
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+    volumes:
+      # 配置文件
+      - ../config/.env:/app/config/.env:ro
+      # SQLite 数据持久化
+      - sqlite_data:/app/libs/database/services/telegram-service
+      # 日志持久化
+      - logs_data:/app/logs
+    networks:
+      - tradecat-network
+    # 默认启动所有服务
+    command: ["all"]
+
+  # ===========================================================================
+  # 可选：独立启动各服务（按需取消注释）
+  # ===========================================================================
+  
+  # data-service:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #   container_name: tradecat-data
+  #   restart: unless-stopped
+  #   depends_on:
+  #     timescaledb:
+  #       condition: service_healthy
+  #   env_file:
+  #     - ../config/.env
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+  #   networks:
+  #     - tradecat-network
+  #   command: ["data"]
+
+  # trading-service:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #   container_name: tradecat-trading
+  #   restart: unless-stopped
+  #   depends_on:
+  #     timescaledb:
+  #       condition: service_healthy
+  #   env_file:
+  #     - ../config/.env
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+  #   volumes:
+  #     - sqlite_data:/app/libs/database/services/telegram-service
+  #   networks:
+  #     - tradecat-network
+  #   command: ["trading"]
+
+  # telegram-service:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile
+  #   container_name: tradecat-telegram
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - trading-service
+  #   env_file:
+  #     - ../config/.env
+  #   volumes:
+  #     - sqlite_data:/app/libs/database/services/telegram-service
+  #   networks:
+  #     - tradecat-network
+  #   command: ["telegram"]
+
+networks:
+  tradecat-network:
+    driver: bridge
+
+volumes:
+  timescaledb_data:
+    driver: local
+  sqlite_data:
+    driver: local
+  logs_data:
+    driver: local

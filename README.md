@@ -156,7 +156,7 @@ vim config/.env
 ```
 
 > 说明：顶层 `./scripts/start.sh` 仅管理 `data-service`、`trading-service`、`telegram-service`。  
-> 预览版服务需手动启动：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`cd services-preview/vis-service && uvicorn src.main:app --port 8087`（可视化）。
+> 预览版服务需手动启动：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`cd services-preview/vis-service && ./scripts/start.sh start`（可视化，端口 8087）。
 
 ### ⚙️ 配置（必须）
 
@@ -197,10 +197,10 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 > 端口说明：模板默认 5434，但仓库脚本默认 5433。复制后请在 `config/.env` 中把 `DATABASE_URL` 端口改为 5433，或若选择 5434，则务必同步修改 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 与所有示例命令端口。
 
-## 🔍 补充检查（2026-01-06）
+## 🔍 补充检查（2026-01-09）
 
-- 端口分歧仍需一次性决策：核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 默认 5433；模板 `config/.env.example` 及 `services-preview/markets-service/scripts/init_market_db.sh`/`import_bookdepth.py`/`sync_from_old_db.sh`/`ddl/01_enums_schemas.sql`/`migrate_5434.sql` 默认 5434（新库）。请选定端口后同步修改上述所有文件与 README 示例命令。<!-- TODO: 选择统一端口（5433 或 5434）并执行全局替换 -->
-- CI 仅执行 ruff + py_compile 抽样（`.github/workflows/ci.yml`），不会跑 tests；提交前本地仍需 `./scripts/verify.sh`。
+- **端口选择**：`config/.env.example` 默认端口已改为 **5434**（新库，含 raw/agg/quality schema）；核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 仍默认 **5433**（旧库）。请根据实际使用情况选定端口并同步修改。<!-- TODO: 选择统一端口（5433 或 5434）并执行全局替换 -->
+- CI 仅执行 ruff + py_compile 抽样（`.github/workflows/ci.yml`，检查前 50 个 .py 文件），不会跑 tests；提交前本地仍需 `./scripts/verify.sh`。
 - `scripts/install.sh` 生成各服务 `.env` 但运行时只读 `config/.env`；避免多份配置漂移。
 
 ### 🗄️ 双库端口说明（旧库 5433 / 新库 5434）
@@ -314,10 +314,10 @@ vim config/.env
 </td>
 <td width="50%">
 
-### 📊 35个技术指标模块
-- **趋势指标** - EMA/MACD/SuperTrend/趋势云/趋势线
-- **动量指标** - RSI/KDJ/MFI/多空比/斐波那契狙击
-- **波动指标** - 布林带/ATR/支撑阻力/VWAP
+### 📊 38个技术指标类
+- **趋势指标** - EMA/MACD/SuperTrend/趋势云/趋势线/ADX/Ichimoku
+- **动量指标** - RSI/KDJ/MFI/多空比/斐波那契狙击/CCI/WilliamsR
+- **波动指标** - 布林带/ATR/支撑阻力/VWAP/Donchian/Keltner
 - **形态识别** - TA-Lib 61种蜡烛 + 价格形态
 
 </td>
@@ -400,7 +400,7 @@ graph TD
 
     subgraph TS["📊 trading-service<br><small>Python, pandas, numpy, TA-Lib</small>"]
         TR_ENG["engine<br>计算引擎"]
-        TR_IND["indicators<br>32个指标"]
+        TR_IND["indicators<br>35个指标"]
         TR_SCH["scheduler<br>定时调度"]
         TR_PRI["priority<br>高优先级币种筛选"]
     end
@@ -453,7 +453,7 @@ graph TD
 |:---|:---:|:---|:---|
 | **data-service** | - | 加密货币 K线采集、期货指标采集、历史数据回填 | Python, asyncio, ccxt, cryptofeed |
 | **markets-service** | - | 全市场数据采集（美股/A股/宏观/衍生品定价） | yfinance, akshare, fredapi, QuantLib |
-| **trading-service** | - | 35个技术指标计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
+| **trading-service** | - | 38个技术指标类计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
 | **telegram-service** | - | Bot 交互、排行榜展示、信号推送 | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI 分析、Wyckoff 方法论（作为 telegram-service 子模块） | Gemini/OpenAI/Claude/DeepSeek |
 | **predict-service** | - | 预测市场信号（Polymarket/Kalshi/Opinion） | Node.js, Telegram Bot |
@@ -474,7 +474,7 @@ graph LR
     end
     
     subgraph 指标计算
-        C --> D["📊 trading-service<br>32个指标计算"]
+        C --> D["📊 trading-service<br>35个指标计算"]
         D --> E[("📁 market_data.db<br>SQLite")]
     end
     
@@ -589,7 +589,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 </details>
 
-### 📈 技术指标 (35个)
+### 📈 技术指标 (38个)
 
 <details>
 <summary><strong>点击展开👉 🔥 趋势指标 (8个)</strong></summary>
@@ -785,7 +785,7 @@ tradecat/
 │   │
 │   ├── 📂 trading-service/         # 指标计算服务
 │   │   ├── 📂 src/
-│   │   │   ├── 📂 indicators/      # 32个指标
+│   │   │   ├── 📂 indicators/      # 38个指标类（9增量+29批量）
 │   │   │   ├── 📂 core/            # 计算引擎
 │   │   │   └── simple_scheduler.py
 │   │   ├── 📂 scripts/
@@ -890,14 +890,17 @@ tradecat/
 <summary><strong>点击展开👉 单服务管理</strong></summary>
 
 ```bash
-# data-service
+# data-service（支持守护模式）
 cd services/data-service
-./scripts/start.sh daemon   # 启动 + 守护
-./scripts/start.sh start    # 仅启动
+./scripts/start.sh start    # 启动（含守护）
 ./scripts/start.sh stop     # 停止
 ./scripts/start.sh status   # 状态
 
-# trading-service / telegram-service 同上
+# trading-service / telegram-service
+cd services/trading-service  # 或 telegram-service
+./scripts/start.sh start    # 启动
+./scripts/start.sh stop     # 停止
+./scripts/start.sh status   # 状态
 ```
 
 </details>

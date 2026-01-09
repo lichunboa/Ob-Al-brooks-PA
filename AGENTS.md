@@ -10,7 +10,7 @@
 
 - 修改 `services/*/src/` 下的业务代码
 - 修改 `config/.env.example` 全局配置模板
-- 添加/修改技术指标 (`services/trading-service/src/indicators/`)
+- 添加/修改技术指标 (`services/trading-service/src/indicators/`，当前 38 个类）
 - 添加/修改排行榜卡片 (`services/telegram-service/src/cards/`)
 - 修改启动脚本 (`services/*/scripts/`, `scripts/`)
 - 更新文档 (`README.md`, `AGENTS.md`)
@@ -58,7 +58,7 @@ vim config/.env
 ```
 
 > 顶层 `./scripts/start.sh` 只管理 data-service / trading-service / telegram-service。  
-> 手动启动：`cd services/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services/order-service && python -m src.market-maker.main`（做市，需 API Key）；ai-service 作为 Telegram 子模块随 Bot 运行。
+> 手动启动预览版服务：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/vis-service && ./scripts/start.sh start`（可视化）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；ai-service 作为 Telegram 子模块随 Bot 运行。
 
 ### 2.2 开发/修改流程
 
@@ -111,21 +111,29 @@ ruff check services/
 | trading-service | `cd services/trading-service && ./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
 | telegram-service | `cd services/telegram-service && ./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
 | ai-service | 作为 telegram-service 子模块运行 | - | - |
-| order-service | `cd services/order-service && python -m src.market-maker.main` | Ctrl+C | - |
-| 全部 | `./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
+| markets-service | `cd services-preview/markets-service && ./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
+| vis-service | `cd services-preview/vis-service && ./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
+| order-service | `cd services-preview/order-service && python -m src.market-maker.main` | Ctrl+C | - |
+| 全部（核心） | `./scripts/start.sh start` | `./scripts/start.sh stop` | `./scripts/start.sh status` |
 
-**注意**: data-service 默认以守护模式启动，自动重启挂掉的服务（30秒检查一次）。
+**注意**: 
+- 顶层 `./scripts/start.sh` 仅管理 data-service / trading-service / telegram-service 三个核心服务
+- 预览版服务（markets/vis/order）需手动进入目录启动
 
 ### 3.3 Make 快捷命令
 
 | 命令 | 说明 |
 |:---|:---|
 | `make init` | 初始化所有服务 |
+| `make install` | 一键安装（等价 `./scripts/install.sh`） |
 | `make start` | 启动所有服务 |
 | `make stop` | 停止所有服务 |
 | `make status` | 查看服务状态 |
+| `make daemon` | 启动守护进程（自动重启） |
+| `make daemon-stop` | 停止守护进程 |
 | `make verify` | 代码验证（等价 `./scripts/verify.sh`：ruff→py_compile 核心文件与 ai-service 全量→i18n msgfmt 校验与键对齐→可选 pytest） |
 | `make clean` | 清理缓存 |
+| `make export-db` | 导出 TimescaleDB 数据 |
 
 ### 3.4 数据库操作
 
@@ -267,7 +275,7 @@ tradecat/
 │   │
 │   ├── trading-service/        # 指标计算服务
 │   │   ├── src/
-│   │   │   ├── indicators/     # 32个指标
+│   │   │   ├── indicators/     # 38个指标类（9增量+29批量）
 │   │   │   ├── core/engine.py  # 计算引擎
 │   │   │   └── simple_scheduler.py
 │   │   ├── scripts/start.sh
@@ -356,7 +364,7 @@ tradecat/
 | 期货情绪聚合 | `trading-service/src/indicators/batch/futures_aggregate.py` | OI/多空比/情绪 |
 | 数据提供者 | `telegram-service/src/cards/data_provider.py` | 读取 SQLite + 币种过滤 |
 | i18n 国际化 | `libs/common/i18n.py` | gettext 封装，支持 zh_CN/en |
-| 可视化模板 | `vis-service/src/templates/registry.py` | 4 个内置模板（line/kline/macd/vpvr）|
+| 可视化模板 | `vis-service/src/templates/registry.py` | 8 个内置模板（line-basic/kline-basic/macd/equity-drawdown/market-vpvr-heat/vpvr-zone-dot/vpvr-zone-grid/vpvr-zone-strip）|
 | 单币快照 | `telegram-service/src/bot/single_token_snapshot.py` | 单币多周期数据表格 |
 | 共享币种模块 | `libs/common/symbols.py` | 统一币种过滤逻辑 |
 | 代理管理器 | `libs/common/proxy_manager.py` | 运行时代理重试+冷却 |
@@ -434,15 +442,18 @@ pip install -r requirements.txt
 **问题**：TimescaleDB 端口不一致或多份 .env 导致读取错误
 
 **说明**：
-- `config/.env.example` 默认端口 5434，但仓库脚本（`scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 等）默认 5433。
+- `config/.env.example` 默认端口 **5434**（新库，含 raw/agg/quality schema），但仓库脚本（`scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 等）默认 **5433**（旧库）。
 - 服务启动脚本仅读取 `config/.env`，且会校验权限 600；`scripts/install.sh` 生成的各服务 `.env` 不再被读取，可能造成配置漂移。
 
 **解决**：
 ```bash
-# 1) 统一端口为脚本默认 5433
+# 方案 A：统一使用旧库 5433
 sed -i 's@localhost:5434@localhost:5433@' config/.env
 
-# 2) 确保权限符合要求
+# 方案 B：统一使用新库 5434（需同步修改脚本）
+# 修改 scripts/export_timescaledb.sh、scripts/timescaledb_compression.sh 中的端口
+
+# 确保权限符合要求
 chmod 600 config/.env
 ```
 
@@ -539,7 +550,10 @@ docs: 更新 README 快速开始指南
 
 | 变量 | 说明 | 示例 |
 |:---|:---|:---|
-| `DATABASE_URL` | TimescaleDB 连接串 | `postgresql://postgres:postgres@localhost:5433/market_data` |
+| `DATABASE_URL` | TimescaleDB 连接串（模板默认 5434 新库） | `postgresql://postgres:postgres@localhost:5434/market_data` |
+| `MARKET_DB_SCHEMA` | 兼容旧表/视图用 schema | `market_data` |
+| `RAW_DB_SCHEMA` | 1m K线、5m指标真实写入 schema | `raw` |
+| `QUALITY_DB_SCHEMA` | 批次/血缘函数所在 schema | `quality` |
 | `BOT_TOKEN` | Telegram Bot Token | `123456:ABC...` |
 | `HTTP_PROXY` | HTTP 代理 | `http://127.0.0.1:9910` |
 | `DEFAULT_LOCALE` | 默认语言 | `en` |
@@ -575,6 +589,13 @@ docs: 更新 README 快速开始指南
 | `VIS_SERVICE_HOST` | vis-service | 监听地址（默认 0.0.0.0） |
 | `VIS_SERVICE_PORT` | vis-service | 监听端口（默认 8087） |
 | `VIS_SERVICE_TOKEN` | vis-service | 访问令牌（可选） |
+| `VIS_SERVICE_CACHE_TTL_SECONDS` | vis-service | 渲染缓存 TTL（默认 300） |
+| `VIS_SERVICE_CACHE_MAX_ITEMS` | vis-service | 缓存容量上限（默认 128） |
+| `MARKETS_SERVICE_DATABASE_URL` | markets-service | 独立数据库连接（留空复用全局） |
+| `CRYPTO_WRITE_MODE` | markets-service | 加密货币写入模式（raw/legacy） |
+| `ORDER_BOOK_INTERVAL` | markets-service | 逐档盘口采样间隔（默认 10 秒） |
+| `ORDER_BOOK_DEPTH` | markets-service | 每侧档位数（默认 1000） |
+| `ORDER_BOOK_RETENTION_DAYS` | markets-service | 盘口数据保留天数（默认 30） |
 
 ---
 
@@ -612,8 +633,9 @@ cd services-preview/markets-service
 
 # vis-service（可视化渲染，预览版）
 cd services-preview/vis-service
-source .venv/bin/activate
-uvicorn src.main:app --host 0.0.0.0 --port 8087
+./scripts/start.sh start        # 启动
+./scripts/start.sh stop         # 停止
+./scripts/start.sh status       # 状态
 
 # 验证
 ./scripts/verify.sh             # 运行验证

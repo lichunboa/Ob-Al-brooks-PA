@@ -33,7 +33,7 @@ BSC (BEP20): 0x8a99b8d53eff6bc331af529af74ad267f3167777
 ---
 
 <p>
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/PostgreSQL-TimescaleDB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="TimescaleDB">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Pandas-Data-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas">
@@ -73,6 +73,8 @@ BSC (BEP20): 0x8a99b8d53eff6bc331af529af74ad267f3167777
 - [📁 Directory Structure](#-directory-structure)
 - [🔧 Operations Guide](#-operations-guide)
 - [📞 Contact](#-contact)
+
+> 🤖 **Starting from scratch?** Copy this to your AI assistant: `Follow the instructions at https://github.com/tukuaiai/tradecat/blob/main/README.md to install TradeCat`
 
 ---
 
@@ -118,6 +120,8 @@ Requirements:
 
 ### 🪟 Windows WSL2 Users
 
+> 📺 **Video Tutorial**: [WSL2 Installation Guide](https://www.bilibili.com/video/BV1n14y1x7Y7/)
+
 Create `.wslconfig` in Windows user directory:
 
 ```powershell
@@ -144,6 +148,7 @@ Restart WSL: `wsl --shutdown`, then use the AI installation prompt above.
 
 # 2) Fill global config (DB / BOT_TOKEN / proxy)
 cp config/.env.example config/.env && chmod 600 config/.env
+# Change DATABASE_URL port to 5433 to match repo scripts (scripts default 5433, template defaults 5434)
 vim config/.env
 
 # 3) Start core services (data + trading + telegram)
@@ -152,20 +157,23 @@ vim config/.env
 ```
 
 > Note: top-level `./scripts/start.sh` only manages `data-service`, `trading-service`, `telegram-service`.  
-> Others are manual: `cd services/markets-service && ./scripts/start.sh start` (multi-market); `cd services/order-service && python -m src.market-maker.main` (market making, API key required); `ai-service` runs as a Telegram sub-module.
+> Preview services are manual: `cd services-preview/markets-service && ./scripts/start.sh start` (multi-market); `cd services-preview/order-service && python -m src.market-maker.main` (market making, API key required); `ai-service` runs as a Telegram sub-module; `cd services-preview/vis-service && ./scripts/start.sh start` (visualization, port 8087).
 
 ### ⚙️ Configuration (required)
 
-- Location: `config/.env` (copied by init.sh), recommend chmod 600.  
+- Location: `config/.env` (copied by init.sh), must be chmod 600, startup scripts will enforce this.  
+- TimescaleDB port must match scripts: repo scripts default to 5433, template defaults to 5434. After copying, change `DATABASE_URL` to 5433; or if keeping 5434, update `scripts/export_timescaledb.sh`, `scripts/timescaledb_compression.sh` and all example ports below.
 - Key fields:  
   - `DATABASE_URL` (TimescaleDB, see port note below)  
-  - `BOT_TOKEN`  
-  - `HTTP_PROXY` / `HTTPS_PROXY` if needed  
+  - `BOT_TOKEN` (Telegram Bot Token)  
+  - `HTTP_PROXY` / `HTTPS_PROXY` (if proxy needed)  
   - Symbols/intervals: `SYMBOLS_GROUPS`, `SYMBOLS_EXTRA`, `SYMBOLS_EXCLUDE`, `INTERVALS`, `KLINE_INTERVALS`, `FUTURES_INTERVALS`  
   - Collection/compute: `BACKFILL_MODE`/`BACKFILL_DAYS`/`BACKFILL_ON_START`, `MAX_CONCURRENT`, `RATE_LIMIT_PER_MINUTE`  
+  - Defaults: `BACKFILL_MODE=all` (full backfill; if `BACKFILL_START_DATE` is set, calculates days from start date; otherwise ~10 years), `SYMBOLS_GROUPS=main4` (only BTC/ETH/SOL/BNB; for full market use `all` or custom groups)  
   - Compute backend: `COMPUTE_BACKEND`, `MAX_WORKERS`, `HIGH_PRIORITY_TOP_N`, `INDICATORS_ENABLED`/`INDICATORS_DISABLED`  
   - Display/filter: `BINANCE_API_DISABLED`, `DISABLE_SINGLE_TOKEN_QUERY`, `SNAPSHOT_HIDDEN_FIELDS`, `BLOCKED_SYMBOLS`  
   - AI/Trading: `AI_INDICATOR_TABLES`, `AI_INDICATOR_TABLES_DISABLED`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`
+  - i18n: `DEFAULT_LOCALE` (default en), `SUPPORTED_LOCALES` (zh-CN,en), `FALLBACK_LOCALE`
 
 ### 📦 Download Historical Data (Optional)
 
@@ -205,7 +213,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 | Dependency | Version | Notes |
 |:---|:---|:---|
-| Python | 3.10+ | 3.12 recommended |
+| Python | 3.12+ | CI uses 3.12 |
 | PostgreSQL | 16+ | TimescaleDB extension required |
 | TA-Lib | 0.4+ | System library, install separately |
 | SQLite | 3.x | System built-in |
@@ -430,11 +438,13 @@ graph TD
 | Service | Port | Responsibility | Tech Stack |
 |:---|:---:|:---|:---|
 | **data-service** | - | Crypto candlestick collection, futures metrics, historical backfill | Python, asyncio, ccxt, cryptofeed |
-| **markets-service** | - | Multi-market data collection (US/China stocks, macro, derivatives) | yfinance, akshare, fredapi, QuantLib |
-| **trading-service** | - | 38 technical indicators calculation, high-priority token filtering | Python, pandas, numpy, TA-Lib |
+| **trading-service** | - | 38 technical indicator classes calculation, high-priority token filtering | Python, pandas, numpy, TA-Lib |
 | **telegram-service** | - | Bot interaction, rankings display, signal push | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI analysis, Wyckoff methodology (as telegram-service submodule) | Gemini/OpenAI/Claude/DeepSeek |
-| **order-service** | - | Trade execution, Avellaneda-Stoikov market making | Python, ccxt, cryptofeed |
+| **markets-service** | - | Multi-market data collection (US/China stocks, macro) [preview] | yfinance, akshare, fredapi, QuantLib |
+| **predict-service** | - | Prediction market signals (Polymarket/Kalshi/Opinion) [preview] | Node.js, Telegram Bot |
+| **vis-service** | 8087 | Visualization rendering (K-line/indicators/VPVR) [preview] | FastAPI, matplotlib, mplfinance |
+| **order-service** | - | Trade execution, Avellaneda-Stoikov market making [preview] | Python, ccxt, cryptofeed |
 | **TimescaleDB** | 5433 | Candlestick storage, futures data, time-series query optimization | PostgreSQL 16 + TimescaleDB |
 
 ### Data Flow
@@ -748,13 +758,18 @@ tradecat/
 │   ├── export_timescaledb.sh       # Data export
 │   └── timescaledb_compression.sh  # Compression management
 │
-├── 📂 services/                    # Microservices (6)
+├── 📂 services/                    # Stable Microservices (4)
 │   │
 │   ├── 📂 data-service/            # Crypto data collection service
-│   ├── 📂 markets-service/         # Multi-market data collection (US/China stocks, macro)
-│   ├── 📂 trading-service/         # Indicator calculation service
+│   ├── 📂 trading-service/         # Indicator calculation service (38 indicator classes)
 │   ├── 📂 telegram-service/        # Telegram Bot
-│   ├── 📂 ai-service/              # AI analysis service
+│   └── 📂 ai-service/              # AI analysis service
+│
+├── 📂 services-preview/            # Preview Microservices (4, in development)
+│   │
+│   ├── 📂 markets-service/         # Multi-market data collection (US/China stocks, macro)
+│   ├── 📂 predict-service/         # Prediction market signals (Polymarket/Kalshi/Opinion)
+│   ├── 📂 vis-service/             # Visualization rendering service (FastAPI, port 8087)
 │   └── 📂 order-service/           # Trade execution service
 │
 ├── 📂 libs/                        # Shared libraries
@@ -762,6 +777,7 @@ tradecat/
 │   │   └── 📂 services/telegram-service/
 │   │       └── market_data.db      # SQLite indicator data
 │   └── 📂 common/                  # Shared utilities
+│       ├── i18n.py                 # Internationalization module
 │       ├── symbols.py              # Token management module
 │       └── proxy_manager.py        # Proxy manager
 │
@@ -806,14 +822,17 @@ tradecat/
 <summary><strong>Expand👉 Single Service Management</strong></summary>
 
 ```bash
-# data-service
+# data-service (supports daemon mode)
 cd services/data-service
-./scripts/start.sh daemon   # Start + daemon
-./scripts/start.sh start    # Start only
+./scripts/start.sh start    # Start (with daemon)
 ./scripts/start.sh stop     # Stop
 ./scripts/start.sh status   # Status
 
-# trading-service / telegram-service same as above
+# trading-service / telegram-service
+cd services/trading-service  # or telegram-service
+./scripts/start.sh start    # Start
+./scripts/start.sh stop     # Stop
+./scripts/start.sh status   # Status
 ```
 
 </details>
