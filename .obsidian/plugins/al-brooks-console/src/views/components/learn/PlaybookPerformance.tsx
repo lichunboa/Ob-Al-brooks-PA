@@ -7,6 +7,18 @@ export interface PlaybookPerformanceProps {
     // 数据Props
     playbookPerfRows: any[];
 
+    // 函数Props
+    openFile: (path: string) => void;
+
+    // 样式Props
+    textButtonStyle: React.CSSProperties;
+
+    // 事件处理Props
+    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
+    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
+    onTextBtnFocus: (e: React.FocusEvent) => void;
+    onTextBtnBlur: (e: React.FocusEvent) => void;
+
     // 常量Props
     V5_COLORS: any;
 }
@@ -17,6 +29,12 @@ export interface PlaybookPerformanceProps {
  */
 export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
     playbookPerfRows,
+    openFile,
+    textButtonStyle,
+    onTextBtnMouseEnter,
+    onTextBtnMouseLeave,
+    onTextBtnFocus,
+    onTextBtnBlur,
     V5_COLORS,
 }) => {
     return (
@@ -45,113 +63,87 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
                         overflow: "hidden",
                     }}
                 >
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 72px 88px 60px",
+                            gap: "0px",
+                            padding: "8px 10px",
+                            borderBottom:
+                                "1px solid var(--background-modifier-border)",
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                            fontWeight: 700,
+                        }}
+                    >
+                        <div>策略</div>
+                        <div>胜率</div>
+                        <div>盈亏</div>
+                        <div>次数</div>
+                    </div>
+
+                    {playbookPerfRows.map((r) => {
+                        const pnlColor =
+                            r.pnl > 0
+                                ? V5_COLORS.win
+                                : r.pnl < 0
+                                    ? V5_COLORS.loss
+                                    : "var(--text-muted)";
+
+                        return (
+                            <div
+                                key={`pb-perf-${r.canonical}`}
                                 style={{
-                                    background: "rgba(var(--mono-rgb-100), 0.05)",
-                                    fontSize: "0.85em",
-                                    color: "var(--text-muted)",
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 72px 88px 60px",
+                                    padding: "8px 10px",
+                                    borderBottom:
+                                        "1px solid var(--background-modifier-border)",
+                                    fontSize: "0.9em",
+                                    alignItems: "center",
                                 }}
                             >
-                                <th
+                                <div
                                     style={{
-                                        textAlign: "left",
-                                        padding: "8px 10px",
-                                        fontWeight: 700,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
                                     }}
                                 >
-                                    策略
-                                </th>
-                                <th
+                                    {r.path ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => openFile(r.path!)}
+                                            style={textButtonStyle}
+                                            onMouseEnter={onTextBtnMouseEnter}
+                                            onMouseLeave={onTextBtnMouseLeave}
+                                            onFocus={onTextBtnFocus}
+                                            onBlur={onTextBtnBlur}
+                                        >
+                                            {r.canonical}
+                                        </button>
+                                    ) : (
+                                        <span>{r.canonical}</span>
+                                    )}
+                                </div>
+                                <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                                    {r.winRate}%
+                                </div>
+                                <div
                                     style={{
-                                        textAlign: "center",
-                                        padding: "8px 10px",
-                                        fontWeight: 700,
+                                        color: pnlColor,
+                                        fontWeight: 800,
+                                        fontVariantNumeric: "tabular-nums",
                                     }}
                                 >
-                                    笔数
-                                </th>
-                                <th
-                                    style={{
-                                        textAlign: "center",
-                                        padding: "8px 10px",
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    胜率
-                                </th>
-                                <th
-                                    style={{
-                                        textAlign: "right",
-                                        padding: "8px 10px",
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    净盈亏
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {playbookPerfRows.map((row, idx) => {
-                                const color =
-                                    row.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss;
-                                return (
-                                    <tr
-                                        key={`pb-perf-${row.name}-${idx}`}
-                                        style={{
-                                            borderTop:
-                                                idx > 0
-                                                    ? "1px solid var(--background-modifier-border)"
-                                                    : "none",
-                                        }}
-                                    >
-                                        <td
-                                            style={{
-                                                padding: "8px 10px",
-                                                fontSize: "0.9em",
-                                            }}
-                                        >
-                                            {row.name}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "8px 10px",
-                                                textAlign: "center",
-                                                fontSize: "0.9em",
-                                                color: "var(--text-muted)",
-                                            }}
-                                        >
-                                            {row.count}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "8px 10px",
-                                                textAlign: "center",
-                                                fontSize: "0.9em",
-                                                color: "var(--text-muted)",
-                                            }}
-                                        >
-                                            {row.wr}%
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "8px 10px",
-                                                textAlign: "right",
-                                                fontSize: "0.9em",
-                                                fontWeight: 800,
-                                                color,
-                                                fontVariantNumeric: "tabular-nums",
-                                            }}
-                                        >
-                                            {row.netR >= 0 ? "+" : ""}
-                                            {row.netR.toFixed(1)}R
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                    {r.pnl > 0 ? "+" : ""}
+                                    {Math.round(r.pnl)}
+                                </div>
+                                <div style={{ fontVariantNumeric: "tabular-nums" }}>
+                                    {r.total}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

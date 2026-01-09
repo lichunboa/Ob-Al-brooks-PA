@@ -1178,6 +1178,12 @@ export const LearnTab: React.FC<LearnTabProps> = ({
 
         <PlaybookPerformance
           playbookPerfRows={playbookPerfRows}
+          openFile={openFile}
+          textButtonStyle={textButtonStyle}
+          onTextBtnMouseEnter={onTextBtnMouseEnter}
+          onTextBtnMouseLeave={onTextBtnMouseLeave}
+          onTextBtnFocus={onTextBtnFocus}
+          onTextBtnBlur={onTextBtnBlur}
           V5_COLORS={V5_COLORS}
         />
       </div>
