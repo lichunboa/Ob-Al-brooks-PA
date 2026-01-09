@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { AccountType, TradeRecord } from "../../../core/contracts";
 import { V5_COLORS } from "../../../ui/tokens";
+import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
  * RMultiplesChart Props接口
@@ -133,15 +134,7 @@ export const RMultiplesChart: React.FC<RMultiplesChartProps> = ({
                                         0R
                                     </div>
                                     {analyticsRecentLiveTradesAsc.length === 0 ? (
-                                        <div
-                                            style={{
-                                                padding: "18px",
-                                                color: "var(--text-faint)",
-                                                fontSize: "0.9em",
-                                            }}
-                                        >
-                                            暂无数据
-                                        </div>
+                                        <EmptyState message="暂无数据" style={{ padding: "18px" }} />
                                     ) : (
                                         analyticsRecentLiveTradesAsc.map((t, i) => {
                                             const r =
@@ -211,9 +204,7 @@ export const RMultiplesChart: React.FC<RMultiplesChartProps> = ({
             <div style={{ marginTop: "12px" }}>
                 <div style={{ fontWeight: 600, marginBottom: "8px" }}>📊 热门策略</div>
                 {analyticsTopStrats.length === 0 ? (
-                    <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                        暂无数据
-                    </div>
+                    <EmptyState message="暂无数据" />
                 ) : (
                     <div
                         style={{

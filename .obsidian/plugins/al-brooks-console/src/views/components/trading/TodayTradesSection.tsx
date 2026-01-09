@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
 import { TradeList } from "../TradeList";
+import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
  * TodayTradesSection Props接口
@@ -24,9 +25,7 @@ export const TodayTradesSection: React.FC<TodayTradesSectionProps> = ({
             {todayTrades.length > 0 ? (
                 <TradeList trades={todayTrades} onOpenFile={openFile} />
             ) : (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                    今日暂无交易记录
-                </div>
+                <EmptyState message="今日暂无交易记录" />
             )}
         </div>
     );

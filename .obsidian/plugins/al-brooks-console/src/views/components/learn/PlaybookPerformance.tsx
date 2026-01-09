@@ -1,4 +1,5 @@
 import * as React from "react";
+import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
  * PlaybookPerformance Props接口
@@ -52,9 +53,7 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
             </div>
 
             {playbookPerfRows.length === 0 ? (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                    暂无可用的策略表现统计（需要交易记录与策略归因）。
-                </div>
+                <EmptyState message="暂无可用的策略表现统计（需要交易记录与策略归因）。" />
             ) : (
                 <div
                     style={{

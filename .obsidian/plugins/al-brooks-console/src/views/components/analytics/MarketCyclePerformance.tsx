@@ -1,5 +1,6 @@
 import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
+import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
  * MarketCyclePerformance Props接口
@@ -51,11 +52,7 @@ export const MarketCyclePerformance: React.FC<MarketCyclePerformanceProps> = ({
                 </span>
             </div>
             {liveCyclePerf.length === 0 ? (
-                <div
-                    style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
-                >
-                    暂无数据
-                </div>
+                <EmptyState message="暂无数据" />
             ) : (
                 <div
                     style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
