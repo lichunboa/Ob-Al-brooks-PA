@@ -1,0 +1,23 @@
+[project]
+name = "ai-service"
+version = "1.0.0"
+description = "AI analysis service for TradeCat - Wyckoff methodology and multi-model LLM support"
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg[binary]>=3.1.0",
+    "python-dotenv>=1.0.0",
+    "python-telegram-bot>=20.0",
+    "httpx>=0.25.0",
+    "aiohttp>=3.9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "mypy"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
