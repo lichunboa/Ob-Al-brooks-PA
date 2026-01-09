@@ -25,6 +25,7 @@ import { OpenTradeAssistant } from "./components/trading/OpenTradeAssistant";
 import { TradingHubTab } from "./tabs/TradingHubTab";
 import { AnalyticsTab } from "./tabs/AnalyticsTab";
 import { LearnTab } from "./tabs/LearnTab";
+import { ExportPanel } from "./components/manage/ExportPanel";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -3280,70 +3281,11 @@ const ConsoleComponent: React.FC<Props> = ({
             </div>
           </div>
 
-          <div
-            style={{
-              margin: "18px 0 10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>📥 导出</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              导出
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "16px",
-              background: "var(--background-primary)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                flexWrap: "wrap",
-                marginBottom: "10px",
-              }}
-            >
-              <button
-                type="button"
-                disabled={!runCommand}
-                onClick={() =>
-                  runCommand?.("al-brooks-console:export-legacy-snapshot")
-                }
-                style={runCommand ? buttonStyle : disabledButtonStyle}
-              >
-                导出旧版兼容快照 (pa-db-export.json)
-              </button>
-              <button
-                type="button"
-                disabled={!runCommand}
-                onClick={() =>
-                  runCommand?.("al-brooks-console:export-index-snapshot")
-                }
-                style={runCommand ? buttonStyle : disabledButtonStyle}
-              >
-                导出索引快照 (Index Snapshot)
-              </button>
-            </div>
-
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              v5.0 在页面底部提供“一键备份数据库”按钮（写入
-              pa-db-export.json）。插件版 目前提供两类导出：旧版兼容快照（写入
-              vault 根目录 pa-db-export.json）与索引快照（导出到
-              Exports/al-brooks-console/）。
-            </div>
-          </div>
+          <ExportPanel
+            runCommand={runCommand}
+            buttonStyle={buttonStyle}
+            disabledButtonStyle={disabledButtonStyle}
+          />
         </>
       ) : null}
     </div>
