@@ -28,6 +28,7 @@ import { LearnTab } from "./tabs/LearnTab";
 import { ExportPanel } from "./components/manage/ExportPanel";
 import { HealthStatusPanel } from "./components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "./components/manage/SchemaIssuesPanel";
+import { DataStatisticsPanel } from "./components/manage/DataStatisticsPanel";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -1483,175 +1484,19 @@ const ConsoleComponent: React.FC<Props> = ({
                     V5_COLORS={V5_COLORS}
                   />
 
-                  <div
-                    style={{
-                      border: "1px solid var(--background-modifier-border)",
-                      borderRadius: "8px",
-                      padding: "10px",
-                      background: "rgba(var(--mono-rgb-100), 0.03)",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <details>
-                      <summary
-                        style={{
-                          cursor: "pointer",
-                          fontWeight: 800,
-                          listStyle: "none",
-                        }}
-                      >
-                        📊 分布摘要（可展开）
-                        <span
-                          style={{
-                            marginLeft: "10px",
-                            color: "var(--text-faint)",
-                            fontSize: "0.9em",
-                            fontWeight: 600,
-                          }}
-                        >
-                          完整图像建议看 Schema
-                        </span>
-                      </summary>
-
-                      <div style={{ marginTop: "10px" }}>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr",
-                            gap: "10px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          {[
-                            { title: "Ticker", data: distTicker },
-                            { title: "Setup", data: distSetup },
-                            { title: "Exec", data: distExec },
-                          ].map((col) => (
-                            <div
-                              key={col.title}
-                              style={{
-                                border:
-                                  "1px solid var(--background-modifier-border)",
-                                borderRadius: "10px",
-                                padding: "10px",
-                                background: "var(--background-primary)",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  marginBottom: "8px",
-                                  color: "var(--text-muted)",
-                                }}
-                              >
-                                {col.title}
-                              </div>
-                              {col.data.length === 0 ? (
-                                <div
-                                  style={{
-                                    color: "var(--text-faint)",
-                                    fontSize: "0.85em",
-                                  }}
-                                >
-                                  无数据
-                                </div>
-                              ) : (
-                                <div style={{ display: "grid", gap: "6px" }}>
-                                  {col.data.map(([k, v]) => (
-                                    <div
-                                      key={k}
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: "10px",
-                                        fontSize: "0.9em",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          color: "var(--text-normal)",
-                                          overflow: "hidden",
-                                          textOverflow: "ellipsis",
-                                          whiteSpace: "nowrap",
-                                        }}
-                                        title={k}
-                                      >
-                                        {k}
-                                      </div>
-                                      <div
-                                        style={{
-                                          color: "var(--text-muted)",
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {v}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div
-                          style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "10px",
-                            padding: "10px",
-                            background: "var(--background-primary)",
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, marginBottom: "8px" }}>
-                            🏷️ 标签全景（Tag System）
-                          </div>
-                          {!paTagSnapshot ? (
-                            <div
-                              style={{
-                                color: "var(--text-faint)",
-                                fontSize: "0.9em",
-                              }}
-                            >
-                              标签扫描不可用。
-                            </div>
-                          ) : (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: "6px",
-                              }}
-                            >
-                              {topTags.map(([tag, count]) => (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => openGlobalSearch(`tag:${tag}`)}
-                                  onMouseEnter={onTextBtnMouseEnter}
-                                  onMouseLeave={onTextBtnMouseLeave}
-                                  onFocus={onTextBtnFocus}
-                                  onBlur={onTextBtnBlur}
-                                  style={{
-                                    padding: "2px 8px",
-                                    borderRadius: "999px",
-                                    border:
-                                      "1px solid var(--background-modifier-border)",
-                                    background: "var(--background-primary)",
-                                    fontSize: "0.85em",
-                                    color: "var(--text-muted)",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  #{tag} ({count})
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  </div>
+                  <DataStatisticsPanel
+                    distTicker={distTicker}
+                    distSetup={distSetup}
+                    distExec={distExec}
+                    topTags={topTags}
+                    paTagSnapshot={paTagSnapshot}
+                    openGlobalSearch={openGlobalSearch}
+                    onTextBtnMouseEnter={onTextBtnMouseEnter}
+                    onTextBtnMouseLeave={onTextBtnMouseLeave}
+                    onTextBtnFocus={onTextBtnFocus}
+                    onTextBtnBlur={onTextBtnBlur}
+                    SPACE={SPACE}
+                  />
 
                   <div
                     style={{
