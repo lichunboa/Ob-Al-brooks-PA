@@ -1,5 +1,6 @@
 import * as React from "react";
 import { simpleCourseId } from "../../../core/course";
+import { Button } from "../../../ui/components/Button";
 
 /**
  * CourseSuggestion Props接口
@@ -101,22 +102,17 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                         (Course)
                     </span>
                 </div>
-                <button
-                    type="button"
+                <Button
+                    variant="small"
                     onClick={reloadCourse}
                     disabled={!loadCourse || courseBusy}
                     onMouseEnter={onBtnMouseEnter}
                     onMouseLeave={onBtnMouseLeave}
                     onFocus={onBtnFocus}
                     onBlur={onBtnBlur}
-                    style={
-                        !loadCourse || courseBusy
-                            ? buttonSmDisabledStyle
-                            : buttonSmStyle
-                    }
                 >
                     刷新
-                </button>
+                </Button>
             </div>
 
             {courseError ? (
@@ -157,17 +153,17 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                     >
                                         <div>
                                             {link ? (
-                                                <button
-                                                    type="button"
+                                                <Button
+                                                    variant="text"
                                                     onClick={() => openFile(link.path)}
-                                                    style={textButtonSemiboldStyle}
                                                     onMouseEnter={onTextBtnMouseEnter}
                                                     onMouseLeave={onTextBtnMouseLeave}
                                                     onFocus={onTextBtnFocus}
                                                     onBlur={onTextBtnBlur}
+                                                    style={{ fontWeight: 600 }}
                                                 >
                                                     {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                                </button>
+                                                </Button>
                                             ) : (
                                                 <span style={{ color: "var(--text-faint)" }}>
                                                     {prefix}: {String(rec.data.t ?? rec.data.id)}
@@ -230,17 +226,16 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                     return (
                                         <React.Fragment key={`up-${x.item.id}`}>
                                             {idx > 0 ? ", " : ""}
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="text"
                                                 onClick={() => openFile(x.link!.path)}
-                                                style={textButtonStyle}
                                                 onMouseEnter={onTextBtnMouseEnter}
                                                 onMouseLeave={onTextBtnMouseLeave}
                                                 onFocus={onTextBtnFocus}
                                                 onBlur={onTextBtnBlur}
                                             >
                                                 {label}
-                                            </button>
+                                            </Button>
                                         </React.Fragment>
                                     );
                                 }
@@ -314,9 +309,9 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                 c.item.t ?? ""
                                             )}`;
                                             return (
-                                                <button
+                                                <Button
                                                     key={`c-${ph.phase}-${c.item.id}`}
-                                                    type="button"
+                                                    variant="text"
                                                     disabled={!c.link}
                                                     onClick={() => c.link && openFile(c.link.path)}
                                                     title={title}
@@ -333,11 +328,7 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                         border:
                                                             "1px solid var(--background-modifier-border)",
                                                         background: bg,
-                                                        cursor: c.link ? "pointer" : "default",
                                                         opacity: c.link ? 1 : 0.75,
-                                                        outline: "none",
-                                                        transition:
-                                                            "border-color 180ms ease, box-shadow 180ms ease",
                                                     }}
                                                 >
                                                     <div
@@ -355,7 +346,7 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                     >
                                                         {c.shortId}
                                                     </div>
-                                                </button>
+                                                </Button>
                                             );
                                         })}
                                     </div>
