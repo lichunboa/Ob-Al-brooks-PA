@@ -68,7 +68,7 @@ if str(REPO_ROOT) not in sys.path:
 # 延后导入依赖于 sys.path 的模块
 from libs.common.i18n import build_i18n_from_env
 
-# 当以脚本方式运行（__main__）时，为避免 utils.signal_formatter 反向导入失败，显式注册模块别名
+# 当以脚本方式运行时，显式注册模块别名
 if __name__ == "__main__":
     sys.modules.setdefault("main", sys.modules[__name__])
 
@@ -255,18 +255,6 @@ sys.path.insert(0, str(SRC_ROOT))
 sys.path = [p for p in sys.path if not (p.endswith('/src') and not Path(p).exists())]
 
 
-def _load_signal_formatter():
-    """避免与 ai.utils 冲突，按绝对路径加载信号格式化器"""
-    module_name = "telegram_signal_formatter"
-    if module_name in sys.modules:
-        return sys.modules[module_name].SignalFormatter
-    module_path = SRC_ROOT / "bot" / "signal_formatter.py"
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules[module_name] = module
-    return module.SignalFormatter
-
 # 数据库指标服务（可选）
 BINANCE_DB_METRIC_SERVICE = None
 
@@ -370,9 +358,14 @@ BINANCE_FUTURES_URL = 'https://fapi.binance.com'
 BINANCE_SPOT_URL = 'https://api.binance.com'
 BINANCE_API_DISABLED = _require_env('BINANCE_API_DISABLED', default='1') == '1'
 
-# 屏蔽币种（从环境变量读取，逗号分隔）
-_blocked_str = _require_env('BLOCKED_SYMBOLS', default='BNXUSDT,ALPACAUSDT')
-BLOCKED_SYMBOLS = set(s.strip().upper() for s in _blocked_str.split(',') if s.strip())
+# 屏蔽币种（动态获取，支持热更新）
+def get_blocked_symbols() -> set:
+    """动态获取屏蔽币种（支持热更新）"""
+    blocked_str = os.environ.get('BLOCKED_SYMBOLS', 'BNXUSDT,ALPACAUSDT')
+    return set(s.strip().upper() for s in blocked_str.split(',') if s.strip())
+
+# 保留全局变量用于向后兼容，但建议使用 get_blocked_symbols()
+BLOCKED_SYMBOLS = get_blocked_symbols()
 
 # 🔁 策略扫描脚本路径（用于定时刷新 CSV 榜单）
 
@@ -973,8 +966,6 @@ class UserRequestHandler:
     """专门处理用户请求的轻量级处理器 - 只读取缓存，不进行网络请求"""
 
     def __init__(self, card_registry: Optional[RankingRegistry] = None):
-        # 需要屏蔽的币种列表（从全局配置读取）
-        self.blocked_symbols = BLOCKED_SYMBOLS
         # 用户状态管理
         self.user_states = {
             'position_sort': 'desc',
@@ -1386,7 +1377,7 @@ class UserRequestHandler:
         processed = []
         for row in rows:
             symbol = row.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
             volume = float(row.get('quote_volume') or 0)
             price = float(row.get('last_close') or 0)
@@ -1448,7 +1439,7 @@ class UserRequestHandler:
         processed = []
         for row in rows:
             symbol = row.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
             volume = float(row.get('quote_volume') or 0)
             price = float(row.get('last_close') or 0)
@@ -1508,7 +1499,7 @@ class UserRequestHandler:
         ratio_data = []
         for coin in coinglass_data:
             symbol = coin.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
 
             # 使用持仓市值比字段
@@ -1590,7 +1581,7 @@ class UserRequestHandler:
         ratio_data = []
         for coin in coinglass_data:
             symbol = coin.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
 
             # 计算交易量/市值比
@@ -1682,7 +1673,7 @@ class UserRequestHandler:
         ratio_data = []
         for coin in coinglass_data:
             symbol = coin.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
 
             # 使用持仓交易量比字段的倒数
@@ -1975,7 +1966,7 @@ class UserRequestHandler:
         rows = []
         for row in raw_rows:
             symbol = row.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
             net_flow = float(row.get('net_quote_flow') or 0)
             buy_quote = float(row.get('buy_quote') or 0)
@@ -2060,7 +2051,7 @@ class UserRequestHandler:
         rows = []
         for row in raw_rows:
             symbol = row.get('symbol', '')
-            if not symbol or symbol in self.blocked_symbols:
+            if not symbol or symbol in get_blocked_symbols():
                 continue
             net_flow = float(row.get('net_quote_flow') or 0)
             buy_quote = float(row.get('buy_quote') or 0)
@@ -2255,20 +2246,9 @@ class TradeCatBot:
         self.cache_file_secondary = CACHE_FILE_SECONDARY
         self._current_cache_file = self.cache_file_primary  # 当前使用的缓存文件
         self._is_updating = False  # 是否正在更新缓存
-        # 需要屏蔽的币种列表（从全局配置读取）
-        self.blocked_symbols = BLOCKED_SYMBOLS
         self.metric_service = BINANCE_DB_METRIC_SERVICE
         if self.metric_service is None:
             logger.warning("⚠️ 币安数据库指标服务未就绪，部分排行榜将回退至缓存逻辑")
-
-        # 初始化信号格式化器
-        try:
-            SignalFormatter = _load_signal_formatter()
-            self.signal_formatter = SignalFormatter()
-            logger.info("✅ 信号格式化器初始化成功")
-        except Exception as e:
-            logger.error(f"❌ 信号格式化器初始化失败: {e}")
-            self.signal_formatter = None
 
     def filter_blocked_symbols(self, data_list):
         """过滤掉被屏蔽的币种"""
@@ -2278,7 +2258,7 @@ class TradeCatBot:
         filtered_data = []
         for item in data_list:
             symbol = item.get('symbol', '')
-            if symbol not in self.blocked_symbols:
+            if symbol not in get_blocked_symbols():
                 filtered_data.append(item)
 
         return filtered_data
@@ -2934,7 +2914,7 @@ class TradeCatBot:
                     if (symbol_info['status'] == 'TRADING' and
                         symbol_info['symbol'].endswith('USDT') and
                         symbol_info['contractType'] == 'PERPETUAL' and
-                        symbol_info['symbol'] not in self.blocked_symbols):
+                        symbol_info['symbol'] not in get_blocked_symbols()):
                         active_symbols.append(symbol_info['symbol'])
 
                 # 获取24小时交易数据进行排序
@@ -2986,7 +2966,7 @@ class TradeCatBot:
             'ARPAUSDT', 'LPTUSDT', 'ENSUSDT', 'PEOPLEUSDT', 'ROSEUSDT'
         ]
         # 过滤掉被屏蔽的币种
-        filtered_symbols = [symbol for symbol in default_symbols if symbol not in self.blocked_symbols]
+        filtered_symbols = [symbol for symbol in default_symbols if symbol not in get_blocked_symbols()]
         self._active_symbols = filtered_symbols
         logger.info(f"使用默认币种列表: {len(filtered_symbols)} 个币种")
         return filtered_symbols
@@ -3002,12 +2982,12 @@ class TradeCatBot:
                 return None
 
             # 计算市场情绪指标
-            filtered_price = [item for item in price_data if item['symbol'].endswith('USDT') and item['symbol'] not in self.blocked_symbols]
+            filtered_price = [item for item in price_data if item['symbol'].endswith('USDT') and item['symbol'] not in get_blocked_symbols()]
             total_coins = len(filtered_price)
             rising_coins = len([item for item in filtered_price if float(item['priceChangePercent']) > 0])
 
             # 计算资金费率情绪
-            filtered_funding = [item for item in funding_data if item['symbol'].endswith('USDT') and item['symbol'] not in self.blocked_symbols]
+            filtered_funding = [item for item in funding_data if item['symbol'].endswith('USDT') and item['symbol'] not in get_blocked_symbols()]
             avg_funding_rate = sum([float(item['lastFundingRate']) for item in filtered_funding]) / len(filtered_funding) if filtered_funding else 0
 
             return {
@@ -3031,7 +3011,7 @@ class TradeCatBot:
             # 过滤数据
             filtered_data = [
                 item for item in price_data
-                if item['symbol'].endswith('USDT') and float(item['quoteVolume']) > 1000000 and item['symbol'] not in self.blocked_symbols
+                if item['symbol'].endswith('USDT') and float(item['quoteVolume']) > 1000000 and item['symbol'] not in get_blocked_symbols()
             ]
 
             # 排序
@@ -3087,7 +3067,7 @@ class TradeCatBot:
         """获取持仓量历史数据 - 支持不同时间周期"""
         try:
             # 主流币种，过滤掉被屏蔽的币种
-            major_symbols = [symbol for symbol in ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'DOTUSDT'] if symbol not in self.blocked_symbols]
+            major_symbols = [symbol for symbol in ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'DOTUSDT'] if symbol not in get_blocked_symbols()]
             hist_data = []
 
             # 周期映射
@@ -3125,7 +3105,7 @@ class TradeCatBot:
         """获取多空比数据 - 改进版本"""
         try:
             # 获取主流币种的多空比数据，过滤掉被屏蔽的币种
-            major_symbols = [symbol for symbol in ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'] if symbol not in self.blocked_symbols]
+            major_symbols = [symbol for symbol in ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'] if symbol not in get_blocked_symbols()]
             ratio_data = []
 
             for symbol in major_symbols:
@@ -3163,7 +3143,7 @@ class TradeCatBot:
 
             liquidation_risks = []
             for item in price_data:
-                if not item.get('symbol', '').endswith('USDT') or item.get('symbol', '') in self.blocked_symbols:
+                if not item.get('symbol', '').endswith('USDT') or item.get('symbol', '') in get_blocked_symbols():
                     continue
 
                 try:
@@ -3361,7 +3341,7 @@ class TradeCatBot:
         for item in futures_data:
             try:
                 symbol = item.get('symbol', '')
-                if not symbol or symbol in self.blocked_symbols:
+                if not symbol or symbol in get_blocked_symbols():
                     continue
 
                 # 获取基础持仓量数据
@@ -3664,6 +3644,223 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if button_data == "lang_menu":
         await lang_command(update, context)
         return
+
+    # =============================================================================
+    # 配置管理回调 (env_*) - 为"最糟糕的用户"设计
+    # 原则：3步内完成、即时反馈、友好文案、不让用户迷路
+    # =============================================================================
+    if button_data.startswith("env_"):
+        from bot.env_manager import (
+            get_editable_configs_by_category, CONFIG_CATEGORIES,
+            get_config, set_config, EDITABLE_CONFIGS, FRIENDLY_MESSAGES
+        )
+        await query.answer()
+        
+        # 分类按钮 env_cat_<category>
+        if button_data.startswith("env_cat_"):
+            category = button_data.replace("env_cat_", "")
+            cat_info = CONFIG_CATEGORIES.get(category, {})
+            configs = get_editable_configs_by_category().get(category, [])
+            
+            if not configs:
+                await query.edit_message_text("🤔 这个分类暂时没有可配置的项目")
+                return
+            
+            # 友好的分类标题和说明
+            lines = [
+                f"{cat_info.get('icon', '⚙️')} *{cat_info.get('name', category)}*",
+                f"_{cat_info.get('desc', '')}_\n",
+            ]
+            
+            buttons = []
+            for cfg in configs:
+                config_info = EDITABLE_CONFIGS.get(cfg["key"], {})
+                icon = config_info.get("icon", "⚙️")
+                name = config_info.get("name", cfg["key"])
+                value = cfg["value"]
+                
+                # 格式化显示值
+                if not value:
+                    display_value = "未设置"
+                elif len(value) > 15:
+                    display_value = value[:12] + "..."
+                else:
+                    # 对于选项类型，显示友好标签
+                    options = config_info.get("options", [])
+                    if options and isinstance(options[0], dict):
+                        for opt in options:
+                            if opt["value"] == value:
+                                display_value = opt["label"]
+                                break
+                        else:
+                            display_value = value
+                    else:
+                        display_value = value
+                
+                hot_icon = "🚀" if cfg["hot_reload"] else "⏳"
+                lines.append(f"{icon} {name.split(' ', 1)[-1]}：{display_value} {hot_icon}")
+                
+                # 按钮只显示简短名称
+                btn_text = name.split(' ', 1)[-1] if ' ' in name else name
+                buttons.append(InlineKeyboardButton(
+                    f"✏️ {btn_text}",
+                    callback_data=f"env_edit_{cfg['key']}"
+                ))
+            
+            lines.append("\n🚀 = 立即生效  ⏳ = 重启生效")
+            
+            # 每行 1 个按钮，更清晰
+            keyboard_rows = [[btn] for btn in buttons]
+            keyboard_rows.append([InlineKeyboardButton("⬅️ 返回配置中心", callback_data="env_back")])
+            
+            await query.edit_message_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(keyboard_rows),
+                parse_mode='Markdown'
+            )
+            return
+        
+        # 编辑按钮 env_edit_<key>
+        if button_data.startswith("env_edit_"):
+            key = button_data.replace("env_edit_", "")
+            config_info = EDITABLE_CONFIGS.get(key, {})
+            current_value = get_config(key) or ""
+            
+            name = config_info.get("name", key)
+            desc = config_info.get("desc", "")
+            help_text = config_info.get("help", "")
+            category = config_info.get("category", "symbols")
+            
+            # 如果有预设选项，显示友好的选项按钮
+            options = config_info.get("options")
+            if options:
+                buttons = []
+                # 新格式选项 [{value, label, detail}, ...]
+                if isinstance(options[0], dict):
+                    for opt in options:
+                        is_current = (opt["value"] == current_value)
+                        prefix = "✅ " if is_current else ""
+                        label = opt.get("label", opt["value"])
+                        buttons.append(InlineKeyboardButton(
+                            f"{prefix}{label}",
+                            callback_data=f"env_set_{key}_{opt['value']}"
+                        ))
+                else:
+                    # 旧格式选项 ["a", "b", ...]
+                    for opt in options:
+                        prefix = "✅ " if opt == current_value else ""
+                        buttons.append(InlineKeyboardButton(
+                            f"{prefix}{opt}",
+                            callback_data=f"env_set_{key}_{opt}"
+                        ))
+                
+                # 每行 1-2 个按钮
+                if len(buttons) <= 3:
+                    keyboard_rows = [[btn] for btn in buttons]
+                else:
+                    keyboard_rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+                keyboard_rows.append([InlineKeyboardButton("⬅️ 返回", callback_data=f"env_cat_{category}")])
+                
+                # 友好的编辑界面
+                text = f"✏️ *{name}*\n\n"
+                text += f"{desc}\n\n"
+                if current_value:
+                    text += f"📍 当前：`{current_value}`\n\n"
+                else:
+                    text += f"📍 当前：未设置\n\n"
+                text += "👇 点击选择："
+                
+                await query.edit_message_text(
+                    text,
+                    reply_markup=InlineKeyboardMarkup(keyboard_rows),
+                    parse_mode='Markdown'
+                )
+            else:
+                # 无预设选项，提示用户手动输入
+                placeholder = config_info.get("placeholder", "")
+                context.user_data["env_editing_key"] = key
+                
+                text = f"✏️ *{name}*\n\n"
+                text += f"{desc}\n\n"
+                if help_text:
+                    text += f"💡 {help_text}\n\n"
+                if current_value:
+                    text += f"📍 当前值：`{current_value}`\n\n"
+                else:
+                    text += f"📍 当前值：未设置\n\n"
+                text += "📝 请直接发送新的值：\n"
+                if placeholder:
+                    text += f"_例如：{placeholder}_"
+                
+                keyboard_rows = [
+                    [InlineKeyboardButton("🗑️ 清空此项", callback_data=f"env_clear_{key}")],
+                    [InlineKeyboardButton("⬅️ 返回", callback_data=f"env_cat_{category}")],
+                ]
+                
+                await query.edit_message_text(
+                    text,
+                    reply_markup=InlineKeyboardMarkup(keyboard_rows),
+                    parse_mode='Markdown'
+                )
+            return
+        
+        # 清空配置 env_clear_<key>
+        if button_data.startswith("env_clear_"):
+            key = button_data.replace("env_clear_", "")
+            success, msg = set_config(key, "")
+            config_info = EDITABLE_CONFIGS.get(key, {})
+            category = config_info.get("category", "symbols")
+            
+            # 添加返回按钮
+            keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("👍 好的", callback_data=f"env_cat_{category}")
+            ]])
+            await query.edit_message_text(msg, reply_markup=keyboard, parse_mode='Markdown')
+            return
+        
+        # 设置选项 env_set_<key>_<value>
+        if button_data.startswith("env_set_"):
+            parts = button_data.replace("env_set_", "").split("_", 1)
+            if len(parts) == 2:
+                key, value = parts
+                success, msg = set_config(key, value)
+                config_info = EDITABLE_CONFIGS.get(key, {})
+                category = config_info.get("category", "symbols")
+                
+                # 成功后提供返回按钮
+                keyboard = InlineKeyboardMarkup([[
+                    InlineKeyboardButton("👍 好的", callback_data=f"env_cat_{category}")
+                ]])
+                await query.edit_message_text(msg, reply_markup=keyboard, parse_mode='Markdown')
+            return
+        
+        # 返回主配置菜单
+        if button_data == "env_back":
+            # 按优先级排序分类
+            sorted_cats = sorted(CONFIG_CATEGORIES.items(), key=lambda x: x[1].get("priority", 99))
+            
+            text = "⚙️ *配置中心*\n\n"
+            text += "在这里可以调整 Bot 的各项设置~\n\n"
+            text += "👇 选择要配置的类别："
+            
+            buttons = []
+            for cat_id, cat_info in sorted_cats:
+                icon = cat_info.get("icon", "⚙️")
+                name = cat_info.get("name", cat_id)
+                buttons.append(InlineKeyboardButton(
+                    f"{icon} {name.replace(icon, '').strip()}",
+                    callback_data=f"env_cat_{cat_id}"
+                ))
+            
+            # 每行 2 个按钮
+            keyboard_rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+            keyboard_rows.append([InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")])
+            
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard_rows),
+                parse_mode='Markdown'
+            )
 
     # 语言切换
     if button_data.startswith("set_lang_"):
@@ -5028,6 +5225,115 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(msg, reply_markup=reply_keyboard)
             await update.message.reply_text(main_text, reply_markup=main_keyboard)
 
+
+# =============================================================================
+# /env 命令 - 配置管理（为"最糟糕的用户"设计）
+# =============================================================================
+async def env_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """配置管理命令 /env - 友好的可视化配置界面"""
+    from bot.env_manager import (
+        CONFIG_CATEGORIES, get_config, set_config, validate_config_value, EDITABLE_CONFIGS
+    )
+    
+    args = context.args if context.args else []
+    
+    # /env - 显示友好的配置中心（主入口）
+    if not args:
+        # 按优先级排序分类
+        sorted_cats = sorted(CONFIG_CATEGORIES.items(), key=lambda x: x[1].get("priority", 99))
+        
+        text = "⚙️ *配置中心*\n\n"
+        text += "👋 在这里可以轻松调整 Bot 的各项设置\n\n"
+        text += "👇 选择要配置的类别："
+        
+        # 构建分类按钮，带图标和描述
+        buttons = []
+        for cat_id, cat_info in sorted_cats:
+            icon = cat_info.get("icon", "⚙️")
+            name = cat_info.get("name", cat_id).replace(icon, "").strip()
+            buttons.append(InlineKeyboardButton(
+                f"{icon} {name}",
+                callback_data=f"env_cat_{cat_id}"
+            ))
+        
+        # 每行 2 个按钮，更友好的布局
+        keyboard_rows = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+        keyboard_rows.append([InlineKeyboardButton("🏠 返回主菜单", callback_data="main_menu")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
+        return
+    
+    # /env get <key> - 获取配置值（保留命令行方式，但用友好文案）
+    if args[0].lower() == "get" and len(args) >= 2:
+        key = args[1].upper()
+        config_info = EDITABLE_CONFIGS.get(key, {})
+        config_name = config_info.get("name", key)
+        value = get_config(key)
+        
+        if value is not None:
+            # 敏感配置脱敏显示
+            if "TOKEN" in key or "SECRET" in key or "PASSWORD" in key:
+                display_value = value[:4] + "****" + value[-4:] if len(value) > 8 else "****"
+            else:
+                display_value = value
+            await update.message.reply_text(
+                f"📋 *{config_name}*\n\n当前值：`{display_value}`",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(
+                f"📋 *{config_name}*\n\n当前值：未设置",
+                parse_mode='Markdown'
+            )
+        return
+    
+    # /env set <key> <value> - 设置配置值
+    if args[0].lower() == "set" and len(args) >= 3:
+        key = args[1].upper()
+        value = " ".join(args[2:])
+        
+        # 验证配置值
+        valid, msg = validate_config_value(key, value)
+        if not valid:
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+        
+        # 设置配置
+        success, result_msg = set_config(key, value)
+        await update.message.reply_text(result_msg, parse_mode='Markdown')
+        return
+    
+    # /env list - 列出可配置项
+    if args[0].lower() == "list":
+        lines = ["📋 *可配置的项目*\n"]
+        for key, info in EDITABLE_CONFIGS.items():
+            icon = info.get("icon", "⚙️")
+            name = info.get("name", key)
+            hot = "🚀" if info.get("hot_reload") else "⏳"
+            lines.append(f"{icon} {name} {hot}")
+        lines.append("\n🚀 = 立即生效  ⏳ = 重启生效")
+        await update.message.reply_text("\n".join(lines), parse_mode='Markdown')
+        return
+    
+    # 帮助信息 - 友好版
+    help_text = """⚙️ *配置帮助*
+
+最简单的方式：直接发送 `/env`，然后点击按钮操作~
+
+如果你更喜欢命令行：
+
+• `/env` - 打开配置中心
+• `/env list` - 查看所有可配置项
+• `/env get 配置名` - 查看某个配置
+• `/env set 配置名 值` - 修改配置
+
+💡 *小技巧*
+发送 `/env` 后点按钮更方便哦！
+"""
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+
+
 async def vol_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """交易量数据查询指令 /vol"""
     if not _is_command_allowed(update):
@@ -5474,6 +5780,29 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
 
     message_text = update.message.text
     lang = _resolve_lang(update)
+
+    # =============================================================================
+    # 处理配置编辑的用户输入
+    # =============================================================================
+    if context.user_data.get("env_editing_key"):
+        from bot.env_manager import set_config, validate_config_value, EDITABLE_CONFIGS
+        key = context.user_data.pop("env_editing_key")
+        
+        if message_text.strip() in ("取消", "cancel", "Cancel"):
+            await update.message.reply_text("❌ 已取消修改")
+            return
+        
+        value = message_text.strip()
+        valid, msg = validate_config_value(key, value)
+        if not valid:
+            await update.message.reply_text(f"❌ 验证失败: {msg}")
+            # 重新设置编辑状态让用户重试
+            context.user_data["env_editing_key"] = key
+            return
+        
+        success, result_msg = set_config(key, value)
+        await update.message.reply_text(result_msg, parse_mode='Markdown')
+        return
 
     if user_handler is None:
         logger.warning("user_handler 未初始化")
@@ -6183,6 +6512,8 @@ def main():
         logger.info("✅ /vis 命令处理器已注册")
         application.add_handler(CommandHandler("lang", lang_command))
         logger.info("✅ /lang 命令处理器已注册")
+        application.add_handler(CommandHandler("env", env_command))
+        logger.info("✅ /env 命令处理器已注册")
 
         # 保留旧命令兼容性
         application.add_handler(CommandHandler("stats", user_command))
@@ -6243,179 +6574,6 @@ def main():
         logger.error(f"❌ 机器人启动失败: {e}")
         import traceback
         traceback.print_exc()
-
-
-def add_signal_formatting_to_bot():
-    """为TradeCatBot类添加信号格式化方法"""
-
-    def format_signal_message(self, signal_type: str, symbol: str, alert_value: float) -> str:
-        """格式化信号消息"""
-        try:
-            if not self.signal_formatter:
-                return _t("error.signal_not_init", None)
-
-            result = None
-            if signal_type == "funding_rate":
-                result = self.signal_formatter.format_funding_rate_signal(symbol, alert_value)
-            elif signal_type == "open_interest":
-                result = self.signal_formatter.format_open_interest_signal(symbol, alert_value)
-            elif signal_type == "rsi":
-                result = self.signal_formatter.format_rsi_signal(symbol, alert_value)
-            else:
-                return f"❌ 未知信号类型: {signal_type}"
-
-            # 如果信号格式化函数返回None，表示数据不可用，返回None而不是错误消息
-            return result
-
-        except Exception as e:
-            logger.error(f"格式化信号消息错误: {e}")
-            return None  # 异常时也返回None而不是错误消息
-
-    def send_formatted_signal(self, signal_type: str, symbol: str, alert_value: float, chat_id: str = None):
-        """发送格式化的信号消息"""
-        try:
-            message = self.format_signal_message(signal_type, symbol, alert_value)
-
-            # 只有在消息不为None时才发送
-            if message:
-                if chat_id:
-                    # 发送到指定聊天（这里需要实际的发送实现）
-                    logger.info(f"发送信号到 {chat_id}: {signal_type} - {symbol}")
-                    # 实际发送逻辑需要根据具体的bot实现来添加
-                    print(f"📡 发送信号到 {chat_id}:\n{message}")
-                else:
-                    # 发送到所有订阅用户（这里需要实际的广播实现）
-                    logger.info(f"广播信号: {signal_type} - {symbol}")
-                    # 实际广播逻辑需要根据具体的bot实现来添加
-                    print(f"📡 广播信号:\n{message}")
-            else:
-                logger.debug(f"📊 跳过 {symbol} 信号发送，数据不可用")
-
-        except Exception as e:
-            logger.error(f"发送格式化信号错误: {e}")
-
-    def get_formatted_signal_preview(self, signal_type: str, symbol: str, alert_value: float) -> str:
-        """获取格式化信号预览"""
-        try:
-            result = self.format_signal_message(signal_type, symbol, alert_value)
-            if result is None:
-                return _t("data.temporarily_unavailable", None)
-            return result
-        except Exception as e:
-            logger.error(f"获取信号预览错误: {e}")
-            return _t("data.temporarily_unavailable", None)
-
-    # 添加发送消息的方法
-    async def send_message_to_user(self, user_id: int, message: str, parse_mode: str = 'HTML'):
-        """发送消息给指定用户"""
-        try:
-            # 这里需要实际的Telegram Bot API实现
-            # 如果bot有telegram app实例，使用它
-            if hasattr(self, 'app') and self.app:
-                await self.app.bot.send_message(
-                    chat_id=user_id,
-                    text=message,
-                    parse_mode=parse_mode
-                )
-                logger.info(f"✅ 消息发送成功给用户 {user_id}")
-            else:
-                # 如果没有app实例，使用直接的Bot API调用
-                import requests
-                BOT_TOKEN = _require_env('BOT_TOKEN', required=True)
-                url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-                payload = {
-                    'chat_id': user_id,
-                    'text': message,
-                    'parse_mode': parse_mode
-                }
-                # 配置SSL验证
-                verify_ssl = certifi.where() if CERTIFI_AVAILABLE else True
-                response = requests.post(url, json=payload, timeout=10, verify=verify_ssl)
-                if response.status_code == 200:
-                    logger.info(f"✅ 消息发送成功给用户 {user_id}")
-                else:
-                    logger.error(f"❌ 消息发送失败: {response.status_code}")
-        except Exception as e:
-            logger.error(f"❌ 发送消息给用户 {user_id} 失败: {e}")
-            raise e
-
-    async def send_signal_to_user(self, user_id: int, signal_type: str, symbol: str, alert_value: float, custom_message: str = None):
-        """发送格式化信号给指定用户（带GIF动画）"""
-        try:
-            # 如果提供了自定义消息，使用自定义消息，否则格式化信号消息
-            if custom_message:
-                message = custom_message
-            else:
-                message = self.format_signal_message(signal_type, symbol, alert_value)
-                if not message:
-                    logger.warning(f"无法格式化信号 {signal_type} - {symbol}，跳过发送")
-                    return
-
-            # 根据信号类型选择对应的GIF文件
-            gif_file_map = {
-                'funding_rate': str((ANIMATION_DIR / '狙击信号.gif.mp4').resolve()),
-                'open_interest': str((ANIMATION_DIR / '趋势信号.gif.mp4').resolve()),
-                'rsi': str((ANIMATION_DIR / '情绪信号.gif.mp4').resolve())
-            }
-
-            gif_file = gif_file_map.get(signal_type)
-
-            # 发送消息（带GIF动画）
-            if gif_file and os.path.exists(gif_file):
-                try:
-                    if hasattr(self, 'app') and self.app:
-                        with open(gif_file, 'rb') as gif:
-                            await self.app.bot.send_animation(
-                                chat_id=user_id,
-                                animation=gif,
-                                caption=message,  # 将信号文本作为GIF的说明文字
-                                parse_mode='HTML',
-                                duration=3,  # 动画时长
-                                width=320,   # 动画宽度
-                                height=240   # 动画高度
-                            )
-                        logger.info(f"✅ 成功发送带GIF的 {signal_type} 信号给用户 {user_id}")
-                    else:
-                        # 如果没有app实例，回退到纯文本消息
-                        await self.send_message_to_user(user_id, message, 'HTML')
-                        logger.info(f"✅ 成功发送 {signal_type} 信号给用户 {user_id} (纯文本)")
-                except Exception as gif_error:
-                    logger.warning(f"⚠️ 发送GIF失败，使用纯文本: {gif_error}")
-                    # GIF发送失败时，回退到纯文本消息
-                    await self.send_message_to_user(user_id, message, 'HTML')
-            else:
-                # 没有GIF文件时，发送纯文本消息
-                await self.send_message_to_user(user_id, message, 'HTML')
-                logger.info(f"✅ 成功发送 {signal_type} 信号给用户 {user_id}")
-
-        except Exception as e:
-            logger.error(f"❌ 发送信号给用户 {user_id} 失败: {e}")
-            raise e
-
-    async def start_bot(self):
-        """启动机器人（占位符方法）"""
-        logger.info("✅ 机器人启动完成")
-        return True
-
-    async def stop_bot(self):
-        """停止机器人（占位符方法）"""
-        logger.info("🛑 机器人已停止")
-        return True
-
-    # 将方法添加到TradeCatBot类
-    TradeCatBot.format_signal_message = format_signal_message
-    TradeCatBot.send_formatted_signal = send_formatted_signal
-    TradeCatBot.get_formatted_signal_preview = get_formatted_signal_preview
-    TradeCatBot.send_message_to_user = send_message_to_user
-    TradeCatBot.send_signal_to_user = send_signal_to_user
-    TradeCatBot.start_bot = start_bot
-    TradeCatBot.stop_bot = stop_bot
-
-    logger.info("✅ 信号格式化和发送方法已添加到TradeCatBot类")
-
-# 调用函数添加方法
-add_signal_formatting_to_bot()
-
 
 
 if __name__ == "__main__":
