@@ -1,6 +1,6 @@
 {
     "name": "al-brooks-console",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "Bespoke trading console",
     "main": "main.js",
     "scripts": {
