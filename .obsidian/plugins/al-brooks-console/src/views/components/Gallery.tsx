@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../ui/components/Button";
 
 export type GalleryItem = {
   tradePath?: string;
@@ -69,9 +70,9 @@ export const Gallery: React.FC<Props> = ({ items, available, onOpenFile }) => {
           }}
         >
           {items.map((it) => (
-            <button
+            <Button
               key={`gal-${it.coverPath}`}
-              type="button"
+              variant="text"
               onClick={() => onOpenFile(it.coverPath)}
               title={it.coverPath}
               onMouseEnter={onCoverMouseEnter}
@@ -84,10 +85,6 @@ export const Gallery: React.FC<Props> = ({ items, available, onOpenFile }) => {
                 borderRadius: "8px",
                 overflow: "hidden",
                 background: `rgba(var(--mono-rgb-100), 0.03)`,
-                cursor: "pointer",
-                outline: "none",
-                transition:
-                  "background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
               }}
             >
               {it.url ? (
@@ -115,7 +112,7 @@ export const Gallery: React.FC<Props> = ({ items, available, onOpenFile }) => {
                   —
                 </div>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       ) : (
