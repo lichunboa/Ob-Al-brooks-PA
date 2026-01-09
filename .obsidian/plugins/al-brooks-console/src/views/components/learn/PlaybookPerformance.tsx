@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../../ui/components/Button";
 import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
@@ -109,17 +110,16 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
                                     }}
                                 >
                                     {r.path ? (
-                                        <button
-                                            type="button"
+                                        <Button
+                                            variant="text"
                                             onClick={() => openFile(r.path!)}
-                                            style={textButtonStyle}
                                             onMouseEnter={onTextBtnMouseEnter}
                                             onMouseLeave={onTextBtnMouseLeave}
                                             onFocus={onTextBtnFocus}
                                             onBlur={onTextBtnBlur}
                                         >
                                             {r.canonical}
-                                        </button>
+                                        </Button>
                                     ) : (
                                         <span>{r.canonical}</span>
                                     )}

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../../ui/components/Button";
 import { StrategyStats } from "../strategy/StrategyStats";
 import { StrategyList } from "../strategy/StrategyList";
 import { PlaybookPerformance } from "./PlaybookPerformance";
@@ -141,17 +142,17 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                     {picks.map((s, idx) => (
                                         <React.Fragment key={`pb-pick-${s.path}`}>
                                             {idx > 0 ? " · " : ""}
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="text"
                                                 onClick={() => openFile(s.path)}
-                                                style={textButtonNoWrapStyle}
                                                 onMouseEnter={onTextBtnMouseEnter}
                                                 onMouseLeave={onTextBtnMouseLeave}
                                                 onFocus={onTextBtnFocus}
                                                 onBlur={onTextBtnBlur}
+                                                style={{ whiteSpace: "nowrap" }}
                                             >
                                                 {String(s.canonicalName || s.name)}
-                                            </button>
+                                            </Button>
                                         </React.Fragment>
                                     ))}
                                 </>
@@ -185,8 +186,8 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                         const quickPath =
                             "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
                         return (
-                            <button
-                                type="button"
+                            <Button
+                                variant="text"
                                 onClick={() => openFile(quickPath)}
                                 style={{
                                     padding: "4px 10px",
@@ -194,13 +195,12 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                     border: "1px solid var(--background-modifier-border)",
                                     background: "rgba(var(--mono-rgb-100), 0.03)",
                                     color: "var(--text-accent)",
-                                    cursor: "pointer",
                                     fontSize: "0.85em",
                                     fontWeight: 700,
                                 }}
                             >
                                 📚 作战手册（Brooks Playbook）
-                            </button>
+                            </Button>
                         );
                     })()}
 

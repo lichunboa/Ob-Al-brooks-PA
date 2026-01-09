@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../../ui/components/Button";
 
 /**
  * 数据统计面板组件
@@ -177,9 +178,9 @@ export const DataStatisticsPanel: React.FC<DataStatisticsPanelProps> = ({
                                 }}
                             >
                                 {topTags.map(([tag, count]) => (
-                                    <button
+                                    <Button
                                         key={tag}
-                                        type="button"
+                                        variant="text"
                                         onClick={() => openGlobalSearch(`tag:${tag}`)}
                                         onMouseEnter={onTextBtnMouseEnter}
                                         onMouseLeave={onTextBtnMouseLeave}
@@ -192,11 +193,10 @@ export const DataStatisticsPanel: React.FC<DataStatisticsPanelProps> = ({
                                             background: "var(--background-primary)",
                                             fontSize: "0.85em",
                                             color: "var(--text-muted)",
-                                            cursor: "pointer",
                                         }}
                                     >
                                         #{tag} ({count})
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         )}

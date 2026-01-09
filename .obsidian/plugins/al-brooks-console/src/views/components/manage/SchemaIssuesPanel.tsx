@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "../../../ui/components/Button";
 
 /**
  * Schema异常详情面板组件
@@ -95,9 +96,9 @@ export const SchemaIssuesPanel: React.FC<SchemaIssuesPanelProps> = ({
                         <div>字段</div>
                     </div>
                     {schemaIssues.slice(0, 80).map((item, idx) => (
-                        <button
+                        <Button
                             key={`${item.path}:${item.key}:${idx}`}
-                            type="button"
+                            variant="text"
                             onClick={() => openFile(item.path)}
                             title={item.path}
                             onMouseEnter={onTextBtnMouseEnter}
@@ -110,9 +111,6 @@ export const SchemaIssuesPanel: React.FC<SchemaIssuesPanelProps> = ({
                                 padding: 0,
                                 border: "none",
                                 borderBottom: "1px solid var(--background-modifier-border)",
-                                background: "transparent",
-                                cursor: "pointer",
-                                outline: "none",
                             }}
                         >
                             <div
@@ -168,7 +166,7 @@ export const SchemaIssuesPanel: React.FC<SchemaIssuesPanelProps> = ({
                                     {item.key}
                                 </div>
                             </div>
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}
