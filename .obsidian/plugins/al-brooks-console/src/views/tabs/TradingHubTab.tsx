@@ -6,6 +6,7 @@ import type { StrategyIndex } from "../../core/strategy-index";
 import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { TradeList } from "../components/TradeList";
+import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
 
 /**
  * TradingHubTab Props接口
@@ -263,112 +264,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         </div>
       </div>
 
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>✅ 每日行动</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Actions
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "10px",
-          padding: "12px",
-          marginBottom: "16px",
-          background: "var(--background-primary)",
-        }}
-      >
-        {!can("tasks:open") ? (
-          <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-            v5.0 在控制台内联展示 Tasks 查询块；当前未检测到 Tasks
-            集成可用（请安装/启用 Tasks 插件）。
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            marginTop: "12px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "12px",
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🔥 必须解决 (Inbox & Urgent)
-            </div>
-            <MarkdownBlock
-              markdown={`**❓ 疑难杂症 (Questions)**\n\n\`\`\`tasks\nnot done\ntag includes #task/question\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n\n**🚨 紧急事项 (Urgent)**\n\n\`\`\`tasks\nnot done\ntag includes #task/urgent\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🛠️ 持续改进 (Improvement)
-            </div>
-            <MarkdownBlock
-              markdown={`**🧪 回测任务 (Backtest)**\n\n\`\`\`tasks\nnot done\ntag includes #task/backtest\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n\n**📝 复盘任务 (Review)**\n\n\`\`\`tasks\nnot done\ntag includes #task/review\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n\n**📖 待学习/阅读 (Study)**\n\n\`\`\`tasks\nnot done\n(tag includes #task/study) OR (tag includes #task/read) OR (tag includes #task/watch)\npath does not include Templates\nlimit 5\nhide backlink\nshort mode\n\`\`\`\n\n**🔬 待验证想法 (Verify)**\n\n\`\`\`tasks\nnot done\ntag includes #task/verify\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              📅 每日例行 (Routine)
-            </div>
-            <MarkdownBlock
-              markdown={`**📝 手动打卡 (Checklist)**\n\n- [ ] ☀️ **盘前**：阅读新闻，标记关键位 (S/R Levels) 🔁 every day\n- [ ] 🧘 **盘中**：每小时检查一次情绪 (FOMO Check) 🔁 every day\n- [ ] 🌙 **盘后**：填写当日 \`复盘日记\` 🔁 every day\n\n**🧹 杂项待办 (To-Do)**\n\n\`\`\`tasks\nnot done\ntag includes #task/todo\npath does not include Templates\nhide backlink\nshort mode\nlimit 5\n\`\`\`\n`}
-            />
-          </div>
-
-          <div
-            style={{
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "10px",
-              padding: "10px",
-              background: "rgba(var(--mono-rgb-100), 0.03)",
-            }}
-          >
-            <div style={{ fontWeight: 700, marginBottom: "6px" }}>
-              🛠️ 等待任务 (Maintenance)
-            </div>
-            <MarkdownBlock
-              markdown={`**🖨️ 待打印 (Print Queue)**\n\n\`\`\`tasks\nnot done\ntag includes #task/print\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n\n**📂 待整理 (Organize)**\n\n\`\`\`tasks\nnot done\ntag includes #task/organize\npath does not include Templates\nhide backlink\nshort mode\n\`\`\`\n`}
-            />
-          </div>
-        </div>
-      </div>
+      <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
 
       {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
     </>
