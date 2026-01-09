@@ -1,10 +1,10 @@
 {
-	"id": "al-brooks-console",
-	"name": "Al Brooks Trader Console",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "A bespoke trading console for Al Brooks Price Action methodology.",
-	"author": "Antigravity Agent",
-	"authorUrl": "https://github.com/obsidianmd/obsidian-sample-plugin",
-	"isDesktopOnly": false
+        "id": "al-brooks-console",
+        "name": "Al Brooks Trader Console",
+        "version": "2.0.0",
+        "minAppVersion": "0.15.0",
+        "description": "A bespoke trading console for Al Brooks Price Action methodology.",
+        "author": "Antigravity Agent",
+        "authorUrl": "https://github.com/obsidianmd/obsidian-sample-plugin",
+        "isDesktopOnly": false
 }

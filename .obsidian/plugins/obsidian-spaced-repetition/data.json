@@ -4,7 +4,7 @@
       "#flashcards"
     ],
     "convertFoldersToDecks": true,
-    "burySiblingCards": true,
+    "burySiblingCards": false,
     "randomizeCardOrder": null,
     "flashcardCardOrder": "DueFirstRandom",
     "flashcardDeckOrder": "PrevDeckComplete_Sequential",
@@ -27,19 +27,16 @@
     "noteFoldersToIgnore": [
       "**/*.excalidraw.md",
       "Templates",
-      "**/*🦁 交易员控制台 (Trader Command)5.0.md",
-      "Clippings 简报",
-      "Excalidraw",
       "🦁 交易员控制台 (Trader Command)",
-      "node_modules"
+      "**/*.🦁 交易员控制台 (Trader Command)5.0.md"
     ],
-    "openRandomNote": true,
-    "autoNextNote": true,
+    "openRandomNote": false,
+    "autoNextNote": false,
     "disableFileMenuReviewOptions": false,
     "maxNDaysNotesReviewQueue": 365,
     "showRibbonIcon": true,
     "showStatusBar": true,
-    "initiallyExpandAllSubdecksInTree": true,
+    "initiallyExpandAllSubdecksInTree": false,
     "showContextInCards": true,
     "showIntervalInReviewButtons": true,
     "flashcardHeightPercentage": 80,
@@ -62,18 +59,6 @@
     "showParserDebugMessages": false
   },
   "buryDate": "",
-  "buryList": [
-    "e3c2adc28ec9b",
-    "858aae8e96c4c",
-    "1020f77b598afa",
-    "629e16bf7010a",
-    "1a1efece2a1350",
-    "f0795f5f30349",
-    "16c104dc0dc7f8",
-    "9ab5de44ff54a",
-    "1e8331f7096d4c",
-    "197d018f9e0639",
-    "1860c132f099e0"
-  ],
+  "buryList": [],
   "historyDeck": null
 }
