@@ -54,20 +54,6 @@ interface LearnTabProps {
   textButtonSemiboldStyle: React.CSSProperties;
   textButtonNoWrapStyle: React.CSSProperties;
 
-  // 事件处理Props
-  onBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onTextBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onTextBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onTextBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onTextBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onMiniCellMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onMiniCellMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onMiniCellFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onMiniCellBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-
   // 常量/工具Props
   V5_COLORS: any;
   seg: (value: number) => string;
@@ -109,18 +95,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
   textButtonStrongStyle,
   textButtonSemiboldStyle,
   textButtonNoWrapStyle,
-  onBtnMouseEnter,
-  onBtnMouseLeave,
-  onBtnFocus,
-  onBtnBlur,
-  onTextBtnMouseEnter,
-  onTextBtnMouseLeave,
-  onTextBtnFocus,
-  onTextBtnBlur,
-  onMiniCellMouseEnter,
-  onMiniCellMouseLeave,
-  onMiniCellFocus,
-  onMiniCellBlur,
   V5_COLORS,
   seg,
   simpleCourseId,
@@ -148,14 +122,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         textButtonStyle={textButtonStyle}
         textButtonSemiboldStyle={textButtonSemiboldStyle}
         textButtonStrongStyle={textButtonStrongStyle}
-        onBtnMouseEnter={onBtnMouseEnter}
-        onBtnMouseLeave={onBtnMouseLeave}
-        onBtnFocus={onBtnFocus}
-        onBtnBlur={onBtnBlur}
-        onTextBtnMouseEnter={onTextBtnMouseEnter}
-        onTextBtnMouseLeave={onTextBtnMouseLeave}
-        onTextBtnFocus={onTextBtnFocus}
-        onTextBtnBlur={onTextBtnBlur}
         V5_COLORS={V5_COLORS}
       />
 
@@ -171,18 +137,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         buttonSmDisabledStyle={buttonSmDisabledStyle}
         textButtonStyle={textButtonStyle}
         textButtonSemiboldStyle={textButtonSemiboldStyle}
-        onBtnMouseEnter={onBtnMouseEnter}
-        onBtnMouseLeave={onBtnMouseLeave}
-        onBtnFocus={onBtnFocus}
-        onBtnBlur={onBtnBlur}
-        onTextBtnMouseEnter={onTextBtnMouseEnter}
-        onTextBtnMouseLeave={onTextBtnMouseLeave}
-        onTextBtnFocus={onTextBtnFocus}
-        onTextBtnBlur={onTextBtnBlur}
-        onMiniCellMouseEnter={onMiniCellMouseEnter}
-        onMiniCellMouseLeave={onMiniCellMouseLeave}
-        onMiniCellFocus={onMiniCellFocus}
-        onMiniCellBlur={onMiniCellBlur}
         V5_COLORS={V5_COLORS}
       />
 
@@ -197,10 +151,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         isActive={isActive}
         textButtonStyle={textButtonStyle}
         textButtonNoWrapStyle={textButtonNoWrapStyle}
-        onTextBtnMouseEnter={onTextBtnMouseEnter}
-        onTextBtnMouseLeave={onTextBtnMouseLeave}
-        onTextBtnFocus={onTextBtnFocus}
-        onTextBtnBlur={onTextBtnBlur}
         V5_COLORS={V5_COLORS}
       />
 

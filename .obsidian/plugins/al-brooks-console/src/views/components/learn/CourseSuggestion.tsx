@@ -1,6 +1,6 @@
 import * as React from "react";
 import { simpleCourseId } from "../../../core/course";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 
 /**
  * CourseSuggestion Props接口
@@ -23,20 +23,6 @@ export interface CourseSuggestionProps {
     textButtonStyle: React.CSSProperties;
     textButtonSemiboldStyle: React.CSSProperties;
 
-    // 事件处理Props
-    onBtnMouseEnter: (e: React.MouseEvent) => void;
-    onBtnMouseLeave: (e: React.MouseEvent) => void;
-    onBtnFocus: (e: React.FocusEvent) => void;
-    onBtnBlur: (e: React.FocusEvent) => void;
-    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
-    onTextBtnFocus: (e: React.FocusEvent) => void;
-    onTextBtnBlur: (e: React.FocusEvent) => void;
-    onMiniCellMouseEnter: (e: React.MouseEvent) => void;
-    onMiniCellMouseLeave: (e: React.MouseEvent) => void;
-    onMiniCellFocus: (e: React.FocusEvent) => void;
-    onMiniCellBlur: (e: React.FocusEvent) => void;
-
     // 常量Props
     V5_COLORS: any;
 }
@@ -57,18 +43,6 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
     buttonSmDisabledStyle,
     textButtonStyle,
     textButtonSemiboldStyle,
-    onBtnMouseEnter,
-    onBtnMouseLeave,
-    onBtnFocus,
-    onBtnBlur,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
-    onMiniCellMouseEnter,
-    onMiniCellMouseLeave,
-    onMiniCellFocus,
-    onMiniCellBlur,
     V5_COLORS,
 }) => {
     return (
@@ -102,17 +76,13 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                         (Course)
                     </span>
                 </div>
-                <Button
+                <InteractiveButton
                     variant="small"
                     onClick={reloadCourse}
                     disabled={!loadCourse || courseBusy}
-                    onMouseEnter={onBtnMouseEnter}
-                    onMouseLeave={onBtnMouseLeave}
-                    onFocus={onBtnFocus}
-                    onBlur={onBtnBlur}
                 >
                     刷新
-                </Button>
+                </InteractiveButton>
             </div>
 
             {courseError ? (
@@ -153,17 +123,14 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                     >
                                         <div>
                                             {link ? (
-                                                <Button
+                                                <InteractiveButton
+                                                    interaction="text"
                                                     variant="text"
                                                     onClick={() => openFile(link.path)}
-                                                    onMouseEnter={onTextBtnMouseEnter}
-                                                    onMouseLeave={onTextBtnMouseLeave}
-                                                    onFocus={onTextBtnFocus}
-                                                    onBlur={onTextBtnBlur}
                                                     style={{ fontWeight: 600 }}
                                                 >
                                                     {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                                </Button>
+                                                </InteractiveButton>
                                             ) : (
                                                 <span style={{ color: "var(--text-faint)" }}>
                                                     {prefix}: {String(rec.data.t ?? rec.data.id)}
@@ -226,16 +193,13 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                     return (
                                         <React.Fragment key={`up-${x.item.id}`}>
                                             {idx > 0 ? ", " : ""}
-                                            <Button
+                                            <InteractiveButton
+                                                interaction="text"
                                                 variant="text"
                                                 onClick={() => openFile(x.link!.path)}
-                                                onMouseEnter={onTextBtnMouseEnter}
-                                                onMouseLeave={onTextBtnMouseLeave}
-                                                onFocus={onTextBtnFocus}
-                                                onBlur={onTextBtnBlur}
                                             >
                                                 {label}
-                                            </Button>
+                                            </InteractiveButton>
                                         </React.Fragment>
                                     );
                                 }
@@ -309,16 +273,13 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                 c.item.t ?? ""
                                             )}`;
                                             return (
-                                                <Button
+                                                <InteractiveButton
                                                     key={`c-${ph.phase}-${c.item.id}`}
+                                                    interaction="mini-cell"
                                                     variant="text"
                                                     disabled={!c.link}
                                                     onClick={() => c.link && openFile(c.link.path)}
                                                     title={title}
-                                                    onMouseEnter={onMiniCellMouseEnter}
-                                                    onMouseLeave={onMiniCellMouseLeave}
-                                                    onFocus={onMiniCellFocus}
-                                                    onBlur={onMiniCellBlur}
                                                     style={{
                                                         width: "26px",
                                                         height: "26px",
@@ -346,7 +307,7 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                     >
                                                         {c.shortId}
                                                     </div>
-                                                </Button>
+                                                </InteractiveButton>
                                             );
                                         })}
                                     </div>

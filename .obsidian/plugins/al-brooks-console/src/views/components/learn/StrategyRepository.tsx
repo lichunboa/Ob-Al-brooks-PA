@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { StrategyStats } from "../strategy/StrategyStats";
 import { StrategyList } from "../strategy/StrategyList";
 import { PlaybookPerformance } from "./PlaybookPerformance";
@@ -26,12 +26,6 @@ export interface StrategyRepositoryProps {
     textButtonStyle: React.CSSProperties;
     textButtonNoWrapStyle: React.CSSProperties;
 
-    // 事件处理Props
-    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
-    onTextBtnFocus: (e: React.FocusEvent) => void;
-    onTextBtnBlur: (e: React.FocusEvent) => void;
-
     // 常量Props
     V5_COLORS: any;
 }
@@ -51,10 +45,6 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
     isActive,
     textButtonStyle,
     textButtonNoWrapStyle,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
     V5_COLORS,
 }) => {
     return (
@@ -142,17 +132,14 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                     {picks.map((s, idx) => (
                                         <React.Fragment key={`pb-pick-${s.path}`}>
                                             {idx > 0 ? " · " : ""}
-                                            <Button
+                                            <InteractiveButton
+                                                interaction="text"
                                                 variant="text"
                                                 onClick={() => openFile(s.path)}
-                                                onMouseEnter={onTextBtnMouseEnter}
-                                                onMouseLeave={onTextBtnMouseLeave}
-                                                onFocus={onTextBtnFocus}
-                                                onBlur={onTextBtnBlur}
                                                 style={{ whiteSpace: "nowrap" }}
                                             >
                                                 {String(s.canonicalName || s.name)}
-                                            </Button>
+                                            </InteractiveButton>
                                         </React.Fragment>
                                     ))}
                                 </>
@@ -186,7 +173,8 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                         const quickPath =
                             "策略仓库 (Strategy Repository)/太妃方案/太妃方案.md";
                         return (
-                            <Button
+                            <InteractiveButton
+                                interaction="text"
                                 variant="text"
                                 onClick={() => openFile(quickPath)}
                                 style={{
@@ -200,7 +188,7 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                 }}
                             >
                                 📚 作战手册（Brooks Playbook）
-                            </Button>
+                            </InteractiveButton>
                         );
                     })()}
 
@@ -224,10 +212,6 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                 playbookPerfRows={playbookPerfRows}
                 openFile={openFile}
                 textButtonStyle={textButtonStyle}
-                onTextBtnMouseEnter={onTextBtnMouseEnter}
-                onTextBtnMouseLeave={onTextBtnMouseLeave}
-                onTextBtnFocus={onTextBtnFocus}
-                onTextBtnBlur={onTextBtnBlur}
                 V5_COLORS={V5_COLORS}
             />
         </div>

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import type { AnalyticsScope } from "../../../core/analytics";
 import { V5_COLORS } from "../../../ui/tokens";
 
@@ -13,10 +13,6 @@ interface AnalyticsGalleryProps {
     setGalleryScope: (scope: AnalyticsScope) => void;
     openFile: (path: string) => void;
     getResourceUrl?: (path: string) => string;
-    onCoverMouseEnter: any;
-    onCoverMouseLeave: any;
-    onCoverFocus: any;
-    onCoverBlur: any;
     selectStyle: React.CSSProperties;
     cardTightStyle: React.CSSProperties;
     SPACE: any; // Assuming SPACE object structure
@@ -28,10 +24,6 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
     setGalleryScope,
     openFile,
     getResourceUrl,
-    onCoverMouseEnter,
-    onCoverMouseLeave,
-    onCoverFocus,
-    onCoverBlur,
     selectStyle,
     cardTightStyle,
     SPACE,
@@ -114,15 +106,12 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
                     }}
                 >
                     {gallery.items.map((it: any) => (
-                        <Button
+                        <InteractiveButton
                             key={`gal-${it.tradePath}`}
+                            interaction="cover"
                             variant="text"
                             onClick={() => openFile(it.tradePath)}
                             title={`${it.tradeName} • ${it.coverPath}`}
-                            onMouseEnter={onCoverMouseEnter}
-                            onMouseLeave={onCoverMouseLeave}
-                            onFocus={onCoverFocus}
-                            onBlur={onCoverBlur}
                             style={{
                                 display: "block",
                                 width: "100%",
@@ -277,7 +266,7 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
                                     </div>
                                 </div>
                             )}
-                        </Button>
+                        </InteractiveButton>
                     ))}
                 </div>
             ) : (

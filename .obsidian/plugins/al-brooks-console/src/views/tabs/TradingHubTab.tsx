@@ -52,16 +52,6 @@ export interface TradingHubTabProps {
   buttonStyle: React.CSSProperties;
   disabledButtonStyle: React.CSSProperties;
 
-  // 事件处理器
-  onTextBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onTextBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onTextBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onTextBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-  onBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-
   // 组件
   MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }>;
 }
@@ -88,14 +78,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
     textButtonStyle,
     buttonStyle,
     disabledButtonStyle,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
-    onBtnMouseEnter,
-    onBtnMouseLeave,
-    onBtnFocus,
-    onBtnBlur,
     MarkdownBlock,
   } = props;
 
@@ -120,14 +102,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
           textButtonStyle={textButtonStyle}
-          onBtnMouseEnter={onBtnMouseEnter}
-          onBtnMouseLeave={onBtnMouseLeave}
-          onBtnFocus={onBtnFocus}
-          onBtnBlur={onBtnBlur}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
         />
 
         <OpenTradeAssistant
@@ -138,14 +112,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
           onOpenFile={openFile}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
-          onBtnMouseEnter={onBtnMouseEnter}
-          onBtnMouseLeave={onBtnMouseLeave}
-          onBtnFocus={onBtnFocus}
-          onBtnBlur={onBtnBlur}
         />
 
 

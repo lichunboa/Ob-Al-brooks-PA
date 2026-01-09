@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { AnalyticsScope } from "../../../core/analytics";
 import { V5_COLORS, withHexAlpha } from "../../../ui/tokens";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 
 /**
  * DataAnalysisPanel Props接口
@@ -25,12 +26,6 @@ export interface DataAnalysisPanelProps {
 
     // 常量Props
     SPACE: any;
-
-    // 事件处理Props
-    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
-    onTextBtnFocus: (e: React.FocusEvent) => void;
-    onTextBtnBlur: (e: React.FocusEvent) => void;
 }
 
 /**
@@ -50,10 +45,6 @@ export const DataAnalysisPanel: React.FC<DataAnalysisPanelProps> = ({
     textButtonStyle,
     selectStyle,
     SPACE,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
 }) => {
     return (
         <div
@@ -185,17 +176,14 @@ export const DataAnalysisPanel: React.FC<DataAnalysisPanelProps> = ({
                                     style={{ marginBottom: "6px" }}
                                 >
                                     {r.strategyPath ? (
-                                        <button
-                                            type="button"
+                                        <InteractiveButton
+                                            interaction="text"
+                                            variant="text"
                                             onClick={() => openFile(r.strategyPath!)}
                                             style={textButtonStyle}
-                                            onMouseEnter={onTextBtnMouseEnter}
-                                            onMouseLeave={onTextBtnMouseLeave}
-                                            onFocus={onTextBtnFocus}
-                                            onBlur={onTextBtnBlur}
                                         >
                                             {r.strategyName}
-                                        </button>
+                                        </InteractiveButton>
                                     ) : (
                                         <span>{r.strategyName}</span>
                                     )}

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { EmptyState } from "../../../ui/components/EmptyState";
 
 /**
@@ -15,12 +15,6 @@ export interface PlaybookPerformanceProps {
     // 样式Props
     textButtonStyle: React.CSSProperties;
 
-    // 事件处理Props
-    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
-    onTextBtnFocus: (e: React.FocusEvent) => void;
-    onTextBtnBlur: (e: React.FocusEvent) => void;
-
     // 常量Props
     V5_COLORS: any;
 }
@@ -33,10 +27,6 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
     playbookPerfRows,
     openFile,
     textButtonStyle,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
     V5_COLORS,
 }) => {
     return (
@@ -110,16 +100,13 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
                                     }}
                                 >
                                     {r.path ? (
-                                        <Button
+                                        <InteractiveButton
+                                            interaction="text"
                                             variant="text"
                                             onClick={() => openFile(r.path!)}
-                                            onMouseEnter={onTextBtnMouseEnter}
-                                            onMouseLeave={onTextBtnMouseLeave}
-                                            onFocus={onTextBtnFocus}
-                                            onBlur={onTextBtnBlur}
                                         >
                                             {r.canonical}
-                                        </Button>
+                                        </InteractiveButton>
                                     ) : (
                                         <span>{r.canonical}</span>
                                     )}

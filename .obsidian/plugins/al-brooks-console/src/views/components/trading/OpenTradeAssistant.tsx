@@ -4,7 +4,7 @@ import type { StrategyIndex } from "../../../core/strategy-index";
 import { V5_COLORS } from "../../../ui/tokens";
 import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 import { normalize } from "../../../utils/string-utils";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 
 /**
  * 策略卡片数据接口
@@ -33,14 +33,6 @@ export interface OpenTradeAssistantProps {
     // 样式和事件处理器
     textButtonStyle: React.CSSProperties;
     buttonStyle: React.CSSProperties;
-    onTextBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onTextBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onTextBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -55,14 +47,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     onOpenFile,
     textButtonStyle,
     buttonStyle,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
-    onBtnMouseEnter,
-    onBtnMouseLeave,
-    onBtnFocus,
-    onBtnBlur,
 }) => {
     if (!openTrade) return null;
 
@@ -78,32 +62,26 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     marginBottom: "8px",
                 }}
             >
-                <Button
+                <InteractiveButton
+                    interaction="text"
                     variant="text"
                     onClick={() => onOpenFile(openTrade.path)}
-                    onMouseEnter={onTextBtnMouseEnter}
-                    onMouseLeave={onTextBtnMouseLeave}
-                    onFocus={onTextBtnFocus}
-                    onBlur={onTextBtnBlur}
                 >
                     {openTrade.ticker ?? "未知"} • {openTrade.name}
-                </Button>
+                </InteractiveButton>
             </div>
 
             {openTradeStrategy ? (
                 <div>
                     <div style={{ marginBottom: "8px" }}>
                         策略:{" "}
-                        <Button
+                        <InteractiveButton
+                            interaction="text"
                             variant="text"
                             onClick={() => onOpenFile(openTradeStrategy.path)}
-                            onMouseEnter={onTextBtnMouseEnter}
-                            onMouseLeave={onTextBtnMouseLeave}
-                            onFocus={onTextBtnFocus}
-                            onBlur={onTextBtnBlur}
                         >
                             {openTradeStrategy.canonicalName}
-                        </Button>
+                        </InteractiveButton>
                     </div>
 
                     <div
@@ -439,17 +417,13 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 }}
                             >
                                 {scored.map((s) => (
-                                    <Button
+                                    <InteractiveButton
                                         key={`today-fallback-${s.path}`}
                                         variant="default"
                                         onClick={() => onOpenFile(s.path)}
-                                        onMouseEnter={onBtnMouseEnter}
-                                        onMouseLeave={onBtnMouseLeave}
-                                        onFocus={onBtnFocus}
-                                        onBlur={onBtnBlur}
                                     >
                                         {s.canonicalName}
-                                    </Button>
+                                    </InteractiveButton>
                                 ))}
                             </div>
                         </div>

@@ -65,15 +65,6 @@ export interface AnalyticsTabProps {
   cardSubtleTightStyle: React.CSSProperties;
   selectStyle: React.CSSProperties;
   SPACE: any; // 空间常量
-  // 事件处理器
-  onTextBtnMouseEnter: any;
-  onTextBtnMouseLeave: any;
-  onTextBtnFocus: any;
-  onTextBtnBlur: any;
-  onCoverMouseEnter: any;
-  onCoverMouseLeave: any;
-  onCoverFocus: any;
-  onCoverBlur: any;
   // 计算函数
   getDayOfMonth: (dateIso: string) => string;
   getRColorByAccountType: (accountType: AccountType) => string;
@@ -110,14 +101,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   cardSubtleTightStyle,
   selectStyle,
   SPACE,
-  onTextBtnMouseEnter,
-  onTextBtnMouseLeave,
-  onTextBtnFocus,
-  onTextBtnBlur,
-  onCoverMouseEnter,
-  onCoverMouseLeave,
-  onCoverFocus,
-  onCoverBlur,
   getDayOfMonth,
   getRColorByAccountType,
   getPoints,
@@ -215,10 +198,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             textButtonStyle={textButtonStyle}
             selectStyle={selectStyle}
             SPACE={SPACE}
-            onTextBtnMouseEnter={onTextBtnMouseEnter}
-            onTextBtnMouseLeave={onTextBtnMouseLeave}
-            onTextBtnFocus={onTextBtnFocus}
-            onTextBtnBlur={onTextBtnBlur}
           />
 
           <RMultiplesChart
@@ -255,10 +234,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             setGalleryScope={setGalleryScope}
             openFile={openFile}
             getResourceUrl={getResourceUrl}
-            onCoverMouseEnter={onCoverMouseEnter}
-            onCoverMouseLeave={onCoverMouseLeave}
-            onCoverFocus={onCoverFocus}
-            onCoverBlur={onCoverBlur}
             selectStyle={selectStyle}
             cardTightStyle={cardTightStyle}
             SPACE={SPACE}

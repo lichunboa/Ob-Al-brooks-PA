@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "../../../ui/components/Button";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 
 /**
  * CoachFocus Props接口
@@ -23,16 +23,6 @@ export interface CoachFocusProps {
     textButtonSemiboldStyle: React.CSSProperties;
     textButtonStrongStyle: React.CSSProperties;
 
-    // 事件处理Props
-    onBtnMouseEnter: (e: React.MouseEvent) => void;
-    onBtnMouseLeave: (e: React.MouseEvent) => void;
-    onBtnFocus: (e: React.FocusEvent) => void;
-    onBtnBlur: (e: React.FocusEvent) => void;
-    onTextBtnMouseEnter: (e: React.MouseEvent) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent) => void;
-    onTextBtnFocus: (e: React.FocusEvent) => void;
-    onTextBtnBlur: (e: React.FocusEvent) => void;
-
     // 常量Props
     V5_COLORS: any;
 }
@@ -54,14 +44,6 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
     textButtonStyle,
     textButtonSemiboldStyle,
     textButtonStrongStyle,
-    onBtnMouseEnter,
-    onBtnMouseLeave,
-    onBtnFocus,
-    onBtnBlur,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
     V5_COLORS,
 }) => {
     return (
@@ -382,17 +364,14 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                         {label}
                                     </div>
                                     <div style={{ marginBottom: "6px" }}>
-                                        <Button
+                                        <InteractiveButton
+                                            interaction="text"
                                             variant="text"
                                             onClick={() => openFile(String(rec.path))}
-                                            onMouseEnter={onTextBtnMouseEnter}
-                                            onMouseLeave={onTextBtnMouseLeave}
-                                            onFocus={onTextBtnFocus}
-                                            onBlur={onTextBtnBlur}
                                             style={{ fontWeight: 800 }}
                                         >
                                             {String(rec.title)}
-                                        </Button>
+                                        </InteractiveButton>
                                     </div>
                                     <div
                                         style={{
@@ -404,17 +383,13 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     </div>
                                 </div>
 
-                                <Button
+                                <InteractiveButton
                                     variant="small"
                                     onClick={onShake}
-                                    onMouseEnter={onBtnMouseEnter}
-                                    onMouseLeave={onBtnMouseLeave}
-                                    onFocus={onBtnFocus}
-                                    onBlur={onBtnBlur}
                                     title="摇一摇换题（跳过优先）"
                                 >
                                     🎲
-                                </Button>
+                                </InteractiveButton>
                             </div>
                         );
                     })()}
@@ -428,17 +403,14 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             }}
                         >
                             焦点：{" "}
-                            <Button
+                            <InteractiveButton
+                                interaction="text"
                                 variant="text"
                                 onClick={() => openFile(memory.focusFile!.path)}
-                                onMouseEnter={onTextBtnMouseEnter}
-                                onMouseLeave={onTextBtnMouseLeave}
-                                onFocus={onTextBtnFocus}
-                                onBlur={onTextBtnBlur}
                                 style={{ fontWeight: 600 }}
                             >
                                 {memory.focusFile.name.replace(/\.md$/i, "")}
-                            </Button>
+                            </InteractiveButton>
                             <span
                                 style={{ marginLeft: "8px", color: "var(--text-faint)" }}
                             >
@@ -466,16 +438,13 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             <ul style={{ margin: 0, paddingLeft: "18px" }}>
                                 {memory.quizPool.map((q: any, idx: number) => (
                                     <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                                        <Button
+                                        <InteractiveButton
+                                            interaction="text"
                                             variant="text"
                                             onClick={() => openFile(q.path)}
-                                            onMouseEnter={onTextBtnMouseEnter}
-                                            onMouseLeave={onTextBtnMouseLeave}
-                                            onFocus={onTextBtnFocus}
-                                            onBlur={onTextBtnBlur}
                                         >
                                             {q.q || q.file}
-                                        </Button>
+                                        </InteractiveButton>
                                         <span
                                             style={{
                                                 marginLeft: "8px",

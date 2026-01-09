@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { StrategyCard } from "../../../core/strategy-index";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 
 /**
  * MarketCyclePanel Props接口
@@ -15,16 +16,6 @@ export interface MarketCyclePanelProps {
     buttonStyle: React.CSSProperties;
     disabledButtonStyle: React.CSSProperties;
     textButtonStyle: React.CSSProperties;
-
-    // 事件处理器
-    onBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onTextBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onTextBtnMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onTextBtnFocus: (e: React.FocusEvent<HTMLButtonElement>) => void;
-    onTextBtnBlur: (e: React.FocusEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -40,14 +31,6 @@ export const MarketCyclePanel: React.FC<MarketCyclePanelProps> = ({
     buttonStyle,
     disabledButtonStyle,
     textButtonStyle,
-    onBtnMouseEnter,
-    onBtnMouseLeave,
-    onBtnFocus,
-    onBtnBlur,
-    onTextBtnMouseEnter,
-    onTextBtnMouseLeave,
-    onTextBtnFocus,
-    onTextBtnBlur,
 }) => {
     return (
         <>
@@ -62,18 +45,13 @@ export const MarketCyclePanel: React.FC<MarketCyclePanelProps> = ({
                     >
                         创建今日日记,并设置市场周期以获取策略推荐(旧版同位置)。
                     </div>
-                    <button
-                        type="button"
+                    <InteractiveButton
                         disabled={!canOpenTodayNote}
                         onClick={onOpenTodayNote}
-                        onMouseEnter={onBtnMouseEnter}
-                        onMouseLeave={onBtnMouseLeave}
-                        onFocus={onBtnFocus}
-                        onBlur={onBtnBlur}
                         style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
                     >
                         打开/创建今日日记(设置市场周期)
-                    </button>
+                    </InteractiveButton>
                 </div>
             )}
 
@@ -98,17 +76,14 @@ export const MarketCyclePanel: React.FC<MarketCyclePanelProps> = ({
                                 key={`today-pick-${s.path}`}
                                 style={{ marginBottom: "6px" }}
                             >
-                                <button
-                                    type="button"
+                                <InteractiveButton
+                                    interaction="text"
+                                    variant="text"
                                     onClick={() => openFile(s.path)}
                                     style={textButtonStyle}
-                                    onMouseEnter={onTextBtnMouseEnter}
-                                    onMouseLeave={onTextBtnMouseLeave}
-                                    onFocus={onTextBtnFocus}
-                                    onBlur={onTextBtnBlur}
                                 >
                                     {s.canonicalName}
-                                </button>
+                                </InteractiveButton>
                             </li>
                         ))}
                     </ul>

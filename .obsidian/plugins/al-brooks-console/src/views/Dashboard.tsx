@@ -32,6 +32,7 @@ import { SchemaIssuesPanel } from "./components/manage/SchemaIssuesPanel";
 import { DataStatisticsPanel } from "./components/manage/DataStatisticsPanel";
 import { SectionHeader } from "../ui/components/SectionHeader";
 import { Button } from "../ui/components/Button";
+import { InteractiveButton } from "../ui/components/InteractiveButton";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -163,13 +164,13 @@ import {
 } from "../utils/calendar-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
-import { useLearnState } from "../hooks/useLearnState";
 import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
 import { normalizeCycle } from "../utils/market-cycle-utils";
 import { sortTradesByDateAsc, findOpenTrade } from "../utils/trade-utils";
 import { buildGalleryItems, type GalleryItem } from "../utils/gallery-utils";
+import { useLearnData } from "../hooks/useLearnData";
 
 export const VIEW_TYPE_CONSOLE = "al-brooks-console-view";
 
@@ -223,78 +224,8 @@ interface Props {
   version: string;
 }
 
-class ConsoleErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; message?: string }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: unknown) {
-    return {
-      hasError: true,
-      message: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.warn("[al-brooks-console] Dashboard render error", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div
-          style={{
-            padding: "16px",
-            fontFamily: "var(--font-interface)",
-            maxWidth: "1200px",
-            margin: "0 auto",
-          }}
-        >
-          <h2
-            style={{
-              borderBottom: "1px solid var(--background-modifier-border)",
-              paddingBottom: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            🦁 交易员控制台
-          </h2>
-          <div style={{ color: "var(--text-error)", marginBottom: "8px" }}>
-            控制台渲染失败：{this.state.message ?? "未知错误"}
-          </div>
-          <div style={{ color: "var(--text-muted)" }}>
-            建议重新打开视图后，在顶部使用“重建索引”。
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-const MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }> = ({
-  markdown,
-  sourcePath = "",
-}) => {
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.innerHTML = "";
-
-    const component = new Component();
-    void MarkdownRenderer.renderMarkdown(markdown, el, sourcePath, component);
-    return () => component.unload();
-  }, [markdown, sourcePath]);
-
-  return <div ref={ref} />;
-};
+import { ConsoleErrorBoundary } from "../ui/components/ConsoleErrorBoundary";
+import { MarkdownBlock } from "../ui/components/MarkdownBlock";
 
 const ConsoleComponent: React.FC<Props> = ({
   index,
@@ -660,25 +591,7 @@ const ConsoleComponent: React.FC<Props> = ({
   }, [subscribeSettings]);
 
   // 使用 useLearnState Hook 管理 Learn Tab 状态
-  const {
-    course,
-    setCourse,
-    courseBusy,
-    setCourseBusy,
-    courseError,
-    setCourseError,
-    memory,
-    setMemory,
-    memoryBusy,
-    setMemoryBusy,
-    memoryError,
-    setMemoryError,
-    memoryIgnoreFocus,
-    setMemoryIgnoreFocus,
-    memoryShakeIndex,
-    setMemoryShakeIndex,
-  } = useLearnState();
-
+  // State defined via hooks now
   const summary = React.useMemo(
     () => computeTradeStatsByAccountType(trades),
     [trades]
@@ -765,14 +678,7 @@ const ConsoleComponent: React.FC<Props> = ({
   type DashboardPage = "trading" | "analytics" | "learn" | "manage";
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
 
-  const onBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
+
 
   const onBtnMouseLeave = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -793,14 +699,6 @@ const ConsoleComponent: React.FC<Props> = ({
   const onBtnBlur = React.useCallback(
     (e: React.FocusEvent<HTMLButtonElement>) => {
       e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onTextBtnMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.background = "var(--background-modifier-hover)";
     },
     []
   );
@@ -827,14 +725,6 @@ const ConsoleComponent: React.FC<Props> = ({
     []
   );
 
-  const onMiniCellMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (e.currentTarget.disabled) return;
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-    },
-    []
-  );
-
   const onMiniCellMouseLeave = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.currentTarget.style.borderColor = "var(--background-modifier-border)";
@@ -853,14 +743,6 @@ const ConsoleComponent: React.FC<Props> = ({
   const onMiniCellBlur = React.useCallback(
     (e: React.FocusEvent<HTMLButtonElement>) => {
       e.currentTarget.style.boxShadow = "none";
-    },
-    []
-  );
-
-  const onCoverMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.borderColor = "var(--interactive-accent)";
-      e.currentTarget.style.background = "rgba(var(--mono-rgb-100), 0.06)";
     },
     []
   );
@@ -916,51 +798,27 @@ const ConsoleComponent: React.FC<Props> = ({
 
   const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
 
-  const reloadCourse = React.useCallback(async () => {
-    if (!loadCourse) return;
-    setCourseBusy(true);
-    setCourseError(undefined);
-    try {
-      const next = await loadCourse(settings);
-      setCourse(next);
-    } catch (e) {
-      setCourseError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCourseBusy(false);
-    }
-  }, [loadCourse, settingsKey]);
-
-  const reloadMemory = React.useCallback(async () => {
-    if (!loadMemory) return;
-    setMemoryIgnoreFocus(false);
-    setMemoryShakeIndex(0);
-    setMemoryBusy(true);
-    setMemoryError(undefined);
-    try {
-      const next = await loadMemory(settings);
-      setMemory(next);
-    } catch (e) {
-      setMemoryError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setMemoryBusy(false);
-    }
-  }, [loadMemory, settingsKey]);
-
-  const hardRefreshMemory = React.useCallback(async () => {
-    // Align with legacy semantics: reset local state + best-effort trigger DV refresh + reload snapshot.
-    if (can("dataview:force-refresh")) {
-      void action("dataview:force-refresh");
-    }
-    await reloadMemory();
-  }, [action, can, reloadMemory]);
-
-  React.useEffect(() => {
-    void reloadCourse();
-  }, [reloadCourse]);
-
-  React.useEffect(() => {
-    void reloadMemory();
-  }, [reloadMemory]);
+  // useLearnData hook handles course and memory loading
+  const {
+    course,
+    courseBusy,
+    courseError,
+    memory,
+    memoryBusy,
+    memoryError,
+    memoryShakeIndex,
+    memoryIgnoreFocus,
+    setMemoryShakeIndex,
+    setMemoryIgnoreFocus,
+    reloadCourse,
+    reloadMemory,
+    hardRefreshMemory,
+  } = useLearnData({
+    loadCourse,
+    loadMemory,
+    settings,
+    integrations,
+  });
 
   const latestTrade = trades.length > 0 ? trades[0] : undefined;
 
@@ -1198,42 +1056,33 @@ const ConsoleComponent: React.FC<Props> = ({
         <span className="pa-dashboard-title-meta">v{version}</span>
         <span className="pa-dashboard-title-meta">{statusText}</span>
         <span className="pa-dashboard-title-actions">
-          <Button
+          <InteractiveButton
+            interaction="lift"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
-            onMouseEnter={onBtnMouseEnter}
-            onMouseLeave={onBtnMouseLeave}
-            onFocus={onBtnFocus}
-            onBlur={onBtnBlur}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
             新建交易
-          </Button>
+          </InteractiveButton>
 
           {integrations ? (
             <>
-              <Button
+              <InteractiveButton
+                interaction="lift"
                 disabled={!can("srs:review-flashcards")}
                 onClick={() => action("srs:review-flashcards")}
-                onMouseEnter={onBtnMouseEnter}
-                onMouseLeave={onBtnMouseLeave}
-                onFocus={onBtnFocus}
-                onBlur={onBtnBlur}
               >
                 ⚡️ 开始复习
-              </Button>
+              </InteractiveButton>
             </>
           ) : null}
 
           {index.rebuild ? (
-            <Button
+            <InteractiveButton
+              interaction="lift"
               onClick={onRebuild}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
             >
               重建索引
-            </Button>
+            </InteractiveButton>
           ) : null}
         </span>
       </h2>
@@ -1277,14 +1126,6 @@ const ConsoleComponent: React.FC<Props> = ({
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
-          onBtnMouseEnter={onBtnMouseEnter}
-          onBtnMouseLeave={onBtnMouseLeave}
-          onBtnFocus={onBtnFocus}
-          onBtnBlur={onBtnBlur}
           MarkdownBlock={MarkdownBlock}
         />
       ) : null}
@@ -1319,14 +1160,6 @@ const ConsoleComponent: React.FC<Props> = ({
           cardSubtleTightStyle={cardSubtleTightStyle}
           selectStyle={selectStyle}
           SPACE={SPACE}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
-          onCoverMouseEnter={onCoverMouseEnter}
-          onCoverMouseLeave={onCoverMouseLeave}
-          onCoverFocus={onCoverFocus}
-          onCoverBlur={onCoverBlur}
           getDayOfMonth={getDayOfMonth}
           getRColorByAccountType={getRColorByAccountType}
           getPoints={getPoints}
@@ -1368,18 +1201,6 @@ const ConsoleComponent: React.FC<Props> = ({
           textButtonStrongStyle={textButtonStrongStyle}
           textButtonSemiboldStyle={textButtonSemiboldStyle}
           textButtonNoWrapStyle={textButtonNoWrapStyle}
-          onBtnMouseEnter={onBtnMouseEnter}
-          onBtnMouseLeave={onBtnMouseLeave}
-          onBtnFocus={onBtnFocus}
-          onBtnBlur={onBtnBlur}
-          onTextBtnMouseEnter={onTextBtnMouseEnter}
-          onTextBtnMouseLeave={onTextBtnMouseLeave}
-          onTextBtnFocus={onTextBtnFocus}
-          onTextBtnBlur={onTextBtnBlur}
-          onMiniCellMouseEnter={onMiniCellMouseEnter}
-          onMiniCellMouseLeave={onMiniCellMouseLeave}
-          onMiniCellFocus={onMiniCellFocus}
-          onMiniCellBlur={onMiniCellBlur}
           V5_COLORS={V5_COLORS}
           seg={seg}
           simpleCourseId={simpleCourseId}
