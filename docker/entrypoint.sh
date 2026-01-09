@@ -40,6 +40,7 @@ if [ ! -f /app/config/.env ]; then
 fi
 
 # 白名单加载环境变量（只导入已知安全的变量）
+# 修复：正确解析 KEY=VALUE 格式，支持值中包含 = 的情况
 load_env_whitelist() {
     local env_file="$1"
     local whitelist=(
@@ -50,20 +51,46 @@ load_env_whitelist() {
         "POSTGRES_USER" "POSTGRES_PASSWORD"
     )
     
-    while IFS='=' read -r key value; do
-        # 跳过注释和空行
-        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
-        # 去除前后空格
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
+    local loaded_count=0
+    
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # 跳过空行和注释
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # 去除行首空格
+        line="${line#"${line%%[![:space:]]*}"}"
+        
+        # 必须包含 = 才是有效的键值对
+        [[ "$line" != *"="* ]] && continue
+        
+        # 分割 KEY 和 VALUE（VALUE 可能包含 =）
+        local key="${line%%=*}"
+        local value="${line#*=}"
+        
+        # 去除 key 的空格
+        key="${key%"${key##*[![:space:]]}"}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        
+        # 去除 value 首尾空格和引号
+        value="${value%"${value##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        # 去除首尾引号（单引号或双引号）
+        if [[ "$value" =~ ^\"(.*)\"$ ]] || [[ "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+        
         # 只导入白名单中的变量
         for allowed in "${whitelist[@]}"; do
             if [[ "$key" == "$allowed" ]]; then
                 export "$key=$value"
+                ((loaded_count++))
+                log_info "  Loaded: $key"
                 break
             fi
         done
     done < "$env_file"
+    
+    log_info "Loaded $loaded_count whitelisted variables from $env_file"
 }
 
 log_info "Loading config/.env (whitelist mode)"
@@ -74,15 +101,32 @@ load_env_whitelist /app/config/.env
 # =============================================================================
 validate_required_vars() {
     local missing=()
+    local service="${1:-all}"
     
     # BOT_TOKEN 是 telegram-service 必需的
-    if [ -z "${BOT_TOKEN:-}" ]; then
-        missing+=("BOT_TOKEN")
+    if [[ "$service" == "all" || "$service" == "telegram" ]]; then
+        if [ -z "${BOT_TOKEN:-}" ]; then
+            missing+=("BOT_TOKEN")
+        fi
     fi
     
     # DATABASE_URL 是 data-service 和 trading-service 必需的
-    if [ -z "${DATABASE_URL:-}" ]; then
-        missing+=("DATABASE_URL")
+    if [[ "$service" == "all" || "$service" == "data" || "$service" == "trading" ]]; then
+        if [ -z "${DATABASE_URL:-}" ]; then
+            missing+=("DATABASE_URL")
+        fi
+    fi
+    
+    # 检查 POSTGRES_PASSWORD 不能是默认弱密码
+    if [[ -n "${POSTGRES_PASSWORD:-}" ]]; then
+        local weak_passwords=("postgres" "password" "123456" "tradecat_change_me_in_production")
+        for weak in "${weak_passwords[@]}"; do
+            if [[ "${POSTGRES_PASSWORD}" == "$weak" ]]; then
+                log_error "POSTGRES_PASSWORD is set to a weak default value: '$weak'"
+                log_error "Please set a strong password via: export POSTGRES_PASSWORD=your_secure_password"
+                exit 1
+            fi
+        done
     fi
     
     if [ ${#missing[@]} -gt 0 ]; then
@@ -91,7 +135,7 @@ validate_required_vars() {
         exit 1
     fi
     
-    log_info "Required variables validated"
+    log_info "Required variables validated for service: $service"
 }
 
 # =============================================================================
@@ -117,6 +161,7 @@ wait_for_db() {
     
     log_info "Database: $DB_HOST:$DB_PORT"
     
+    # 阶段 1：等待 TCP 连通
     for i in $(seq 1 60); do
         if python -c "
 import socket
@@ -129,15 +174,46 @@ try:
 except:
     exit(1)
 " 2>/dev/null; then
-            log_info "Database is ready!"
-            return 0
+            log_info "Database TCP connection ready!"
+            break
         fi
-        log_info "Waiting for database... ($i/60)"
+        log_info "Waiting for database TCP... ($i/60)"
         sleep 2
+        
+        if [ "$i" -eq 60 ]; then
+            log_error "Database TCP connection timeout"
+            return 1
+        fi
     done
     
-    log_error "Database connection timeout"
-    return 1
+    # 阶段 2：等待 schema 就绪（验证核心表存在）
+    log_info "Waiting for database schema initialization..."
+    for i in $(seq 1 30); do
+        if python -c "
+import psycopg
+import os
+try:
+    conn = psycopg.connect(os.environ.get('DATABASE_URL'))
+    cur = conn.cursor()
+    # 验证核心表存在
+    cur.execute(\"SELECT 1 FROM information_schema.tables WHERE table_schema='market_data' AND table_name='candles_1m'\")
+    if cur.fetchone():
+        conn.close()
+        exit(0)
+    conn.close()
+except Exception as e:
+    pass
+exit(1)
+" 2>/dev/null; then
+            log_info "Database schema is ready!"
+            return 0
+        fi
+        log_info "Waiting for schema initialization... ($i/30)"
+        sleep 3
+    done
+    
+    log_warn "Database schema not fully initialized, proceeding anyway..."
+    return 0
 }
 
 # =============================================================================
@@ -247,15 +323,18 @@ main() {
     shift || true
 
     log_info "TradeCat Docker Container Starting..."
-    log_info "Service: $SERVICE"
+    log_info "Service mode: $SERVICE"
     
-    # 校验必需变量（仅 all 模式需要全部变量）
-    if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "telegram" ]; then
-        validate_required_vars
+    # 记录运行模式（供健康检查使用）
+    echo "$SERVICE" > /app/pids/service_mode
+    
+    # 校验必需变量（根据服务类型）
+    validate_required_vars "$SERVICE"
+    
+    # 等待数据库（telegram-only 模式可跳过）
+    if [[ "$SERVICE" != "telegram" ]]; then
+        wait_for_db || exit 1
     fi
-    
-    # 等待数据库
-    wait_for_db || exit 1
 
     # 捕获信号，优雅退出
     trap 'log_info "Received shutdown signal"; cleanup_and_exit 0' SIGTERM SIGINT

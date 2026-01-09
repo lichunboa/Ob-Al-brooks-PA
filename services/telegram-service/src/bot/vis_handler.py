@@ -9,7 +9,6 @@ UI 流程：
 
 import io
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -23,6 +22,52 @@ if str(VIS_SERVICE_PATH) not in sys.path:
     sys.path.insert(0, str(VIS_SERVICE_PATH))
 
 logger = logging.getLogger(__name__)
+
+# 延迟导入 app 模块的 i18n 工具，避免循环导入
+_app_module = None
+
+
+def _get_app():
+    """延迟获取 app 模块"""
+    global _app_module
+    if _app_module is None:
+        from bot import app as _app
+        _app_module = _app
+    return _app_module
+
+
+def _resolve_lang(update) -> str:
+    """解析用户语言 - 委托给 app 模块"""
+    try:
+        app = _get_app()
+        return app._resolve_lang(update)
+    except Exception:
+        return "zh_CN"
+
+
+def _t(update, key: str, fallback: str = "", **kwargs) -> str:
+    """获取翻译文本 - 使用 app 模块的 I18N 实例"""
+    try:
+        app = _get_app()
+        lang = _resolve_lang(update)
+        text = app.I18N.gettext(key, lang=lang, **kwargs)
+        if text and text != key:
+            return text
+    except Exception:
+        pass
+    return fallback or key
+
+
+def _btn(update, key: str, callback: str, active: bool = False, prefix: str = "✅") -> InlineKeyboardButton:
+    """创建翻译按钮 - 使用 app 模块的标准方法"""
+    try:
+        app = _get_app()
+        return app._btn(update, key, callback, active, prefix)
+    except Exception:
+        text = key
+        if active:
+            text = f"{prefix}{text}"
+        return InlineKeyboardButton(text, callback_data=callback)
 
 
 # ============================================================
@@ -92,54 +137,6 @@ DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEU
 
 
 # ============================================================
-# I18N 辅助
-# ============================================================
-def _get_i18n():
-    """获取 i18n 实例"""
-    try:
-        from libs.common.i18n import build_i18n_from_env
-        return build_i18n_from_env()
-    except Exception:
-        return None
-
-
-def _resolve_lang(update) -> str:
-    """解析用户语言"""
-    try:
-        from bot.app import _resolve_lang as app_resolve_lang
-        return app_resolve_lang(update)
-    except Exception:
-        return "zh_CN"
-
-
-def _t(update, key: str, fallback: str = "", **kwargs) -> str:
-    """获取翻译文本"""
-    i18n = _get_i18n()
-    if i18n:
-        try:
-            lang = _resolve_lang(update)
-            text = i18n.gettext(key, lang=lang, **kwargs)
-            if text and text != key:
-                return text
-        except Exception:
-            pass
-    return fallback or key
-
-
-def _btn(update, key: str, callback: str, active: bool = False, prefix: str = "✅") -> InlineKeyboardButton:
-    """创建翻译按钮，参考 app.py 风格"""
-    i18n = _get_i18n()
-    lang = _resolve_lang(update)
-    if i18n:
-        text = i18n.gettext(key, lang=lang)
-    else:
-        text = key
-    if active:
-        text = f"{prefix}{text}"
-    return InlineKeyboardButton(text, callback_data=callback)
-
-
-# ============================================================
 # 可视化处理器
 # ============================================================
 class VisHandler:
@@ -181,7 +178,7 @@ class VisHandler:
             if tpl["category"] == "single":
                 name = _t(update, tpl["name_key"], tpl["name_fallback"])
                 single_row.append(InlineKeyboardButton(name, callback_data=f"vis_tpl_{tid}"))
-                if len(single_row) == 2:
+                if len(single_row) == 3:
                     rows.append(single_row)
                     single_row = []
         if single_row:
@@ -197,24 +194,20 @@ class VisHandler:
             if tpl["category"] == "market":
                 name = _t(update, tpl["name_key"], tpl["name_fallback"])
                 market_row.append(InlineKeyboardButton(name, callback_data=f"vis_tpl_{tid}"))
-                if len(market_row) == 2:
+                if len(market_row) == 3:
                     rows.append(market_row)
                     market_row = []
         if market_row:
             rows.append(market_row)
 
         # 返回主菜单
-        rows.append([
-            InlineKeyboardButton(_t(update, "btn.back_home", "🏠 返回"), callback_data="main_menu"),
-        ])
+        rows.append([_btn(update, "btn.back_home", "main_menu")])
 
         return InlineKeyboardMarkup(rows)
 
     def build_symbol_keyboard(self, template_id: str, update=None) -> InlineKeyboardMarkup:
         """构建币种选择键盘"""
         rows: List[List[InlineKeyboardButton]] = []
-        tpl = VIS_TEMPLATES.get(template_id, {})
-        name = _t(update, tpl.get("name_key", ""), tpl.get("name_fallback", template_id))
 
         # 币种按钮（每行 3 个）
         row = []
@@ -229,8 +222,8 @@ class VisHandler:
 
         # 导航行
         rows.append([
-            InlineKeyboardButton(_t(update, "btn.back", "⬅️ 返回"), callback_data="vis_menu"),
-            InlineKeyboardButton(_t(update, "btn.back_home", "🏠 主菜单"), callback_data="main_menu"),
+            _btn(update, "btn.back", "vis_menu"),
+            _btn(update, "btn.back_home", "main_menu"),
         ])
 
         return InlineKeyboardMarkup(rows)
@@ -263,8 +256,8 @@ class VisHandler:
             back_cb = "vis_menu"
 
         rows.append([
-            InlineKeyboardButton(_t(update, "btn.back", "⬅️ 返回"), callback_data=back_cb),
-            InlineKeyboardButton(_t(update, "btn.back_home", "🏠 主菜单"), callback_data="main_menu"),
+            _btn(update, "btn.back", back_cb),
+            _btn(update, "btn.back_home", "main_menu"),
         ])
 
         return InlineKeyboardMarkup(rows)
@@ -284,11 +277,12 @@ class VisHandler:
         if row:
             rows.append(row)
 
-        # 控制行
+        # 控制行：刷新使用当前周期的回调
+        refresh_cb = f"vis_itv_{template_id}_{symbol}_{interval}"
         rows.append([
-            InlineKeyboardButton(_t(update, "btn.refresh", "🔄 刷新"), callback_data=f"vis_itv_{template_id}_{symbol}_{interval}"),
-            InlineKeyboardButton(_t(update, "btn.back", "⬅️ 返回"), callback_data="vis_menu"),
-            InlineKeyboardButton(_t(update, "btn.back_home", "🏠 主菜单"), callback_data="main_menu"),
+            InlineKeyboardButton(_t(update, "btn.refresh", "🔄"), callback_data=refresh_cb),
+            _btn(update, "btn.back", "vis_menu"),
+            _btn(update, "btn.back_home", "main_menu"),
         ])
 
         return InlineKeyboardMarkup(rows)

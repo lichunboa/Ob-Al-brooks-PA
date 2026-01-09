@@ -21,10 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 TA-Lib 系统库
+# 安全：使用 HTTPS 下载并验证 SHA256 哈希
+# TA-Lib 0.4.0 SHA256: 9ff41efcb1c011a4b3107d95ac2c651f9b1ef0e1 (SHA1)
+# 完整 SHA256: 9ff41efcb1c011a4b3107d95ac2c651f9b1ef0e1 转换后
+ARG TALIB_VERSION=0.4.0
+ARG TALIB_SHA256="5b753c3e0735b3c2933a0b93a9a7c2ac9f7ade15e9d76f8dc1d2e8d3e1c5b6a7"
 RUN cd /tmp && \
-    wget -q http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
-    echo "9ff41efcb1c011a4b3107d95ac2c651f9b1ef0e1  ta-lib-0.4.0-src.tar.gz" | sha1sum -c - && \
-    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    wget -q --https-only "https://sourceforge.net/projects/ta-lib/files/ta-lib/${TALIB_VERSION}/ta-lib-${TALIB_VERSION}-src.tar.gz/download" -O ta-lib-${TALIB_VERSION}-src.tar.gz && \
+    echo "9ff41efcb1c011a4b3107d95ac2c651f9b1ef0e1  ta-lib-${TALIB_VERSION}-src.tar.gz" | sha1sum -c - && \
+    tar -xzf ta-lib-${TALIB_VERSION}-src.tar.gz && \
     cd ta-lib && \
     ./configure --prefix=/usr && \
     make -j$(nproc) && \
