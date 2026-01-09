@@ -2562,3 +2562,6 @@ msgstr "Candlestick + MA + Volume"
 
 msgid "error.vis_failed"
 msgstr "Visualization unavailable"
+
+msgid "error.unknown_template"
+msgstr "Unknown template"

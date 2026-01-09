@@ -314,7 +314,7 @@ vim config/.env
 </td>
 <td width="50%">
 
-### 📊 32个技术指标模块
+### 📊 35个技术指标模块
 - **趋势指标** - EMA/MACD/SuperTrend/趋势云/趋势线
 - **动量指标** - RSI/KDJ/MFI/多空比/斐波那契狙击
 - **波动指标** - 布林带/ATR/支撑阻力/VWAP
@@ -453,7 +453,7 @@ graph TD
 |:---|:---:|:---|:---|
 | **data-service** | - | 加密货币 K线采集、期货指标采集、历史数据回填 | Python, asyncio, ccxt, cryptofeed |
 | **markets-service** | - | 全市场数据采集（美股/A股/宏观/衍生品定价） | yfinance, akshare, fredapi, QuantLib |
-| **trading-service** | - | 32个技术指标计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
+| **trading-service** | - | 35个技术指标计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
 | **telegram-service** | - | Bot 交互、排行榜展示、信号推送 | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI 分析、Wyckoff 方法论（作为 telegram-service 子模块） | Gemini/OpenAI/Claude/DeepSeek |
 | **predict-service** | - | 预测市场信号（Polymarket/Kalshi/Opinion） | Node.js, Telegram Bot |
@@ -589,7 +589,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 </details>
 
-### 📈 技术指标
+### 📈 技术指标 (35个)
 
 <details>
 <summary><strong>点击展开👉 🔥 趋势指标 (8个)</strong></summary>
