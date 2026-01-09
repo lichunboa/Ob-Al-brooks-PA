@@ -1,4 +1,5 @@
 import * as React from "react";
+import { SectionHeader } from "../../ui/components/SectionHeader";
 import { StrategyStats } from "../components/strategy/StrategyStats";
 import { StrategyList } from "../components/strategy/StrategyList";
 import { matchStrategies } from "../../core/strategy-matcher";
@@ -127,22 +128,12 @@ export const LearnTab: React.FC<LearnTabProps> = ({
 }) => {
   return (
     <>
-      <div
-        style={{
-          margin: "18px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>📚 学习模块</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Learning
-        </div>
-      </div>
+      <SectionHeader
+        title="学习模块"
+        subtitle="Learning"
+        icon="📚"
+        style={{ margin: "18px 0 10px" }}
+      />
 
       <CoachFocus
         memory={memory}

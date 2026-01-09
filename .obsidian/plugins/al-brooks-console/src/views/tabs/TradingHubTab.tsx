@@ -4,6 +4,7 @@ import type { StrategyCard } from "../../core/strategy-index";
 import type { TradeIndex } from "../../core/trade-index";
 import type { StrategyIndex } from "../../core/strategy-index";
 import { GlassPanel } from "../../ui/components/GlassPanel";
+import { SectionHeader } from "../../ui/components/SectionHeader";
 import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { TradeList } from "../components/TradeList";
@@ -100,22 +101,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
 
   return (
     <>
-      <div
-        style={{
-          margin: "12px 0 10px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>⚔️ 交易中心</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Trading Hub
-        </div>
-      </div>
+      <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
 
       <ReviewHintsPanel
         latestTrade={latestTrade}

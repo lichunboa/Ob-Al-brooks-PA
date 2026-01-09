@@ -2,6 +2,7 @@ import * as React from "react";
 import type { AccountType, TradeRecord } from "../../core/contracts";
 import type { AnalyticsScope } from "../../core/analytics";
 import { V5_COLORS, withHexAlpha } from "../../ui/tokens";
+import { SectionHeader } from "../../ui/components/SectionHeader";
 import { AccountSummaryCards } from "../components/analytics/AccountSummaryCards";
 import { MarketCyclePerformance } from "../components/analytics/MarketCyclePerformance";
 import { TuitionCostPanel } from "../components/analytics/TuitionCostPanel";
@@ -139,22 +140,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   return (
     <>
-      <div
+      <SectionHeader
+        title="数据中心"
+        subtitle="Analytics Hub"
+        icon="📊"
         style={{
           margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
           paddingBottom: SPACE.xs,
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
           gap: SPACE.sm,
-          flexWrap: "wrap",
         }}
-      >
-        <div style={{ fontWeight: 700 }}>📊 数据中心</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-          Analytics Hub
-        </div>
-      </div>
+      />
 
       <div
         style={{

@@ -29,6 +29,7 @@ import { ExportPanel } from "./components/manage/ExportPanel";
 import { HealthStatusPanel } from "./components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "./components/manage/SchemaIssuesPanel";
 import { DataStatisticsPanel } from "./components/manage/DataStatisticsPanel";
+import { SectionHeader } from "../ui/components/SectionHeader";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -1396,22 +1397,16 @@ const ConsoleComponent: React.FC<Props> = ({
 
       {activePage === "manage" ? (
         <>
-          <div
+          <SectionHeader
+            title="管理模块"
+            subtitle="管理（Management）"
+            icon="📉"
             style={{
               margin: `${SPACE.xxl} 0 ${SPACE.sm}`,
               paddingBottom: SPACE.xs,
-              borderBottom: "1px solid var(--background-modifier-border)",
-              display: "flex",
-              alignItems: "baseline",
               gap: SPACE.sm,
-              flexWrap: "wrap",
             }}
-          >
-            <div style={{ fontWeight: 700 }}>📉 管理模块</div>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-              管理（Management）
-            </div>
-          </div>
+          />
 
           <div style={{ ...cardTightStyle, marginBottom: SPACE.xl }}>
             {(() => {
