@@ -3652,7 +3652,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if button_data.startswith("env_"):
         from bot.env_manager import (
             get_editable_configs_by_category, CONFIG_CATEGORIES,
-            get_config, set_config, EDITABLE_CONFIGS, FRIENDLY_MESSAGES
+            get_config, set_config, EDITABLE_CONFIGS
         )
         await query.answer()
         
@@ -3675,7 +3675,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             buttons = []
             for cfg in configs:
                 config_info = EDITABLE_CONFIGS.get(cfg["key"], {})
-                icon = config_info.get("icon", "⚙️")
                 name = config_info.get("name", cfg["key"])
                 value = cfg["value"]
                 
@@ -3698,12 +3697,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         display_value = value
                 
                 hot_icon = "🚀" if cfg["hot_reload"] else "⏳"
-                lines.append(f"{icon} {name.split(' ', 1)[-1]}：{display_value} {hot_icon}")
+                # name 已包含图标，如 "💰 监控币种"
+                lines.append(f"{name}：{display_value} {hot_icon}")
                 
-                # 按钮只显示简短名称
-                btn_text = name.split(' ', 1)[-1] if ' ' in name else name
+                # 按钮显示完整名称
                 buttons.append(InlineKeyboardButton(
-                    f"✏️ {btn_text}",
+                    f"✏️ {name}",
                     callback_data=f"env_edit_{cfg['key']}"
                 ))
             
@@ -3845,10 +3844,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             buttons = []
             for cat_id, cat_info in sorted_cats:
-                icon = cat_info.get("icon", "⚙️")
                 name = cat_info.get("name", cat_id)
                 buttons.append(InlineKeyboardButton(
-                    f"{icon} {name.replace(icon, '').strip()}",
+                    name,
                     callback_data=f"env_cat_{cat_id}"
                 ))
             
@@ -3861,6 +3859,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(keyboard_rows),
                 parse_mode='Markdown'
             )
+            return
 
     # 语言切换
     if button_data.startswith("set_lang_"):
@@ -5246,13 +5245,12 @@ async def env_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += "👋 在这里可以轻松调整 Bot 的各项设置\n\n"
         text += "👇 选择要配置的类别："
         
-        # 构建分类按钮，带图标和描述
+        # 构建分类按钮
         buttons = []
         for cat_id, cat_info in sorted_cats:
-            icon = cat_info.get("icon", "⚙️")
-            name = cat_info.get("name", cat_id).replace(icon, "").strip()
+            name = cat_info.get("name", cat_id)
             buttons.append(InlineKeyboardButton(
-                f"{icon} {name}",
+                name,
                 callback_data=f"env_cat_{cat_id}"
             ))
         
