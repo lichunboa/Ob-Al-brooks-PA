@@ -2,6 +2,15 @@
 
 一键部署 TradeCat 全栈服务，包含 TimescaleDB 数据库（预装完整 schema）和所有微服务。
 
+## 安全注意事项
+
+> **重要**: 生产环境部署前必须完成以下安全配置
+
+1. **数据库密码**: 必须修改默认密码，通过环境变量设置
+2. **配置文件权限**: `config/.env` 必须设置 `chmod 600`
+3. **端口暴露**: 数据库端口默认只绑定 `127.0.0.1`，不对外暴露
+4. **非 root 运行**: 应用容器以 UID 1000 用户运行
+
 ## 快速开始
 
 ### 1. 配置环境变量
@@ -10,11 +19,24 @@
 # 复制配置模板
 cp config/.env.example config/.env
 
+# 设置安全权限（重要！）
+chmod 600 config/.env
+
 # 编辑配置（必填：BOT_TOKEN）
 vim config/.env
 ```
 
-### 2. 一键启动
+### 2. 设置数据库密码（生产环境必须）
+
+```bash
+# 方式一：环境变量（推荐）
+export POSTGRES_PASSWORD="your_strong_password_here"
+
+# 方式二：在 docker/.env 中设置
+echo "POSTGRES_PASSWORD=your_strong_password_here" > docker/.env
+```
+
+### 3. 一键启动
 
 ```bash
 cd docker
