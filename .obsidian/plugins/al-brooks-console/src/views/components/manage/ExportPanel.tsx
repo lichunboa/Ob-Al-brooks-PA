@@ -57,26 +57,24 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                         marginBottom: "10px",
                     }}
                 >
-                    <button
-                        type="button"
+                    <Button
+                        variant="default"
                         disabled={!runCommand}
                         onClick={() =>
                             runCommand?.("al-brooks-console:export-legacy-snapshot")
                         }
-                        style={runCommand ? buttonStyle : disabledButtonStyle}
                     >
                         导出旧版兼容快照 (pa-db-export.json)
-                    </button>
-                    <button
-                        type="button"
+                    </Button>
+                    <Button
+                        variant="default"
                         disabled={!runCommand}
                         onClick={() =>
                             runCommand?.("al-brooks-console:export-index-snapshot")
                         }
-                        style={runCommand ? buttonStyle : disabledButtonStyle}
                     >
                         导出索引快照 (Index Snapshot)
-                    </button>
+                    </Button>
                 </div>
 
                 <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
