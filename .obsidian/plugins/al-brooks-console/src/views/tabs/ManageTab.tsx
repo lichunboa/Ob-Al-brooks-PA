@@ -41,10 +41,11 @@ export interface ManageTabProps {
     schemaIssues: SchemaIssueItem[];
     paTagSnapshot: PaTagSnapshot | undefined;
     trades: TradeRecord[];
-    enumPresets: EnumPresets | undefined;
-    schemaScanNote: string;
+    strategyIndex: any; // StrategyIndex类型
+    enumPresets?: EnumPresets | undefined;
+    schemaScanNote?: string;
     inspectorIssues: any[];
-    fixPlanText: string | null;
+    fixPlanText?: string | null;
 
     // Manager状态
     managerBusy: boolean;
@@ -55,9 +56,9 @@ export interface ManageTabProps {
     managerInspectorKey: string | undefined;
     managerInspectorTab: "vals" | "files";
     managerInspectorFileFilter:
-    | { paths: string[]; label: string }
+    | { paths: string[]; label?: string }
     | undefined;
-    showFixPlan: boolean;
+    showFixPlan?: boolean;
 
     // 方法
     setManagerBusy: (busy: boolean) => void;
@@ -68,7 +69,7 @@ export interface ManageTabProps {
     setManagerInspectorFileFilter: (
         filter: { paths: string[]; label: string } | undefined
     ) => void;
-    setShowFixPlan: (show: (prev: boolean) => boolean) => void;
+    setShowFixPlan?: (show: (prev: boolean) => boolean) => void;
     scanManagerInventory: () => Promise<void>;
     runManagerPlan: (
         plan: any,
@@ -78,12 +79,18 @@ export interface ManageTabProps {
             refreshInventory?: boolean;
         }
     ) => Promise<void>;
+    buildRenameKeyPlan: (files: any[], oldKey: string, newKey: string, options?: any) => any;
+    buildDeleteKeyPlan: (files: any[], key: string) => any;
+    buildAppendValPlan: (files: any[], key: string, valueToAppend: string) => any;
+    buildInjectPropPlan: (files: any[], newKey: string, newVal: string) => any;
+    buildUpdateValPlan: (files: any[], key: string, oldVal: string, newVal: string) => any;
+    buildDeleteValPlan: (files: any[], key: string, valueToDelete: string, options?: any) => any;
     selectManagerTradeFiles: (paths: string[]) => any[];
     selectManagerStrategyFiles: (paths: string[]) => any[];
 
     // 辅助函数
     openFile: (path: string) => void;
-    openGlobalSearch: (query: string) => void;
+    openGlobalSearch?: (query: string) => void;
     promptText?: (options: {
         title: string;
         defaultValue?: string;
@@ -97,13 +104,17 @@ export interface ManageTabProps {
         okText?: string;
         cancelText?: string;
     }) => Promise<boolean>;
+    prettyVal: (val: any) => string;
+    prettyManagerVal: (val: any) => string;
+    matchKeyToGroup: (key: string) => string;
+    canonicalizeSearch: (search: string) => string;
 
     // 样式
     cardTightStyle: React.CSSProperties;
-    cardSubtleTightStyle: React.CSSProperties;
+    cardSubtleTightStyle?: React.CSSProperties;
     buttonStyle: React.CSSProperties;
     disabledButtonStyle: React.CSSProperties;
-    textButtonStyle: React.CSSProperties;
+    textButtonStyle?: React.CSSProperties;
 
     // 事件处理器
     onTextBtnMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
