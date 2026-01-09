@@ -223,7 +223,7 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                     })()}
 
                     {(() => {
-                        const topN = memory.topSeries.slice(0, 10);
+                        const topN = (memory.topSeries || []).slice(0, 10);
                         if (topN.length === 0) return null;
                         const maxVal = Math.max(...topN.map((x: any) => x.count));
                         return (
