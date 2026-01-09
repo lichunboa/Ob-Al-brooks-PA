@@ -30,6 +30,7 @@ import { HealthStatusPanel } from "./components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "./components/manage/SchemaIssuesPanel";
 import { DataStatisticsPanel } from "./components/manage/DataStatisticsPanel";
 import { SectionHeader } from "../ui/components/SectionHeader";
+import { Button } from "../ui/components/Button";
 import {
   computeDailyAgg,
   computeStrategyAttribution,
@@ -1196,52 +1197,42 @@ const ConsoleComponent: React.FC<Props> = ({
         <span className="pa-dashboard-title-meta">v{version}</span>
         <span className="pa-dashboard-title-meta">{statusText}</span>
         <span className="pa-dashboard-title-actions">
-          <button
-            type="button"
+          <Button
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
             onMouseEnter={onBtnMouseEnter}
             onMouseLeave={onBtnMouseLeave}
             onFocus={onBtnFocus}
             onBlur={onBtnBlur}
-            style={buttonStyle}
             title={TRADE_NOTE_TEMPLATE_PATH}
           >
             新建交易
-          </button>
+          </Button>
 
           {integrations ? (
             <>
-              <button
-                type="button"
+              <Button
                 disabled={!can("srs:review-flashcards")}
                 onClick={() => action("srs:review-flashcards")}
                 onMouseEnter={onBtnMouseEnter}
                 onMouseLeave={onBtnMouseLeave}
                 onFocus={onBtnFocus}
                 onBlur={onBtnBlur}
-                style={
-                  can("srs:review-flashcards")
-                    ? buttonStyle
-                    : disabledButtonStyle
-                }
               >
                 ⚡️ 开始复习
-              </button>
+              </Button>
             </>
           ) : null}
 
           {index.rebuild ? (
-            <button
-              type="button"
+            <Button
               onClick={onRebuild}
               onMouseEnter={onBtnMouseEnter}
               onMouseLeave={onBtnMouseLeave}
               onFocus={onBtnFocus}
               onBlur={onBtnBlur}
-              style={buttonStyle}
             >
               重建索引
-            </button>
+            </Button>
           ) : null}
         </span>
       </h2>
@@ -1255,14 +1246,14 @@ const ConsoleComponent: React.FC<Props> = ({
             { id: "manage", label: "管理/维护" },
           ] as const
         ).map((t) => (
-          <button
+          <Button
             key={t.id}
-            type="button"
+            variant="tab"
+            active={t.id === activePage}
             onClick={() => setActivePage(t.id)}
-            style={t.id === activePage ? activeTabButtonStyle : tabButtonStyle}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
