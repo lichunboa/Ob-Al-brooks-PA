@@ -10,9 +10,11 @@ from .volume import VOLUME_RULES
 from .futures import FUTURES_RULES
 from .pattern import PATTERN_RULES
 from .misc import MISC_RULES
+from .core import CORE_RULES
 
 # 所有规则汇总
 ALL_RULES: list[SignalRule] = (
+    CORE_RULES +  # 核心规则优先
     MOMENTUM_RULES +
     TREND_RULES +
     VOLATILITY_RULES +
@@ -24,6 +26,7 @@ ALL_RULES: list[SignalRule] = (
 
 # 按分类索引
 RULES_BY_CATEGORY = {
+    "core": CORE_RULES,
     "momentum": MOMENTUM_RULES,
     "trend": TREND_RULES,
     "volatility": VOLATILITY_RULES,
