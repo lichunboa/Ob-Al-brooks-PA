@@ -4,6 +4,7 @@ import type { StrategyIndex } from "../../../core/strategy-index";
 import { V5_COLORS } from "../../../ui/tokens";
 import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 import { normalize } from "../../../utils/string-utils";
+import { Button } from "../../../ui/components/Button";
 
 /**
  * 策略卡片数据接口
@@ -77,34 +78,32 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     marginBottom: "8px",
                 }}
             >
-                <button
-                    type="button"
+                <Button
+                    variant="text"
                     onClick={() => onOpenFile(openTrade.path)}
-                    style={textButtonStyle}
                     onMouseEnter={onTextBtnMouseEnter}
                     onMouseLeave={onTextBtnMouseLeave}
                     onFocus={onTextBtnFocus}
                     onBlur={onTextBtnBlur}
                 >
                     {openTrade.ticker ?? "未知"} • {openTrade.name}
-                </button>
+                </Button>
             </div>
 
             {openTradeStrategy ? (
                 <div>
                     <div style={{ marginBottom: "8px" }}>
                         策略:{" "}
-                        <button
-                            type="button"
+                        <Button
+                            variant="text"
                             onClick={() => onOpenFile(openTradeStrategy.path)}
-                            style={textButtonStyle}
                             onMouseEnter={onTextBtnMouseEnter}
                             onMouseLeave={onTextBtnMouseLeave}
                             onFocus={onTextBtnFocus}
                             onBlur={onTextBtnBlur}
                         >
                             {openTradeStrategy.canonicalName}
-                        </button>
+                        </Button>
                     </div>
 
                     <div
@@ -440,18 +439,17 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 }}
                             >
                                 {scored.map((s) => (
-                                    <button
+                                    <Button
                                         key={`today-fallback-${s.path}`}
-                                        type="button"
+                                        variant="default"
                                         onClick={() => onOpenFile(s.path)}
-                                        style={buttonStyle}
                                         onMouseEnter={onBtnMouseEnter}
                                         onMouseLeave={onBtnMouseLeave}
                                         onFocus={onBtnFocus}
                                         onBlur={onBtnBlur}
                                     >
                                         {s.canonicalName}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
