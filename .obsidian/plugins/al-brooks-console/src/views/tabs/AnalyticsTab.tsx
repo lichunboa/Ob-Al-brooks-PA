@@ -5,6 +5,7 @@ import { V5_COLORS, withHexAlpha } from "../../ui/tokens";
 import { AccountSummaryCards } from "../components/analytics/AccountSummaryCards";
 import { MarketCyclePerformance } from "../components/analytics/MarketCyclePerformance";
 import { TuitionCostPanel } from "../components/analytics/TuitionCostPanel";
+import { AnalyticsSuggestion } from "../components/analytics/AnalyticsSuggestion";
 // 样式常量通过Props传递
 
 // Props接口
@@ -213,54 +214,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             SPACE={SPACE}
           />
 
-          <div
-            style={{
-              ...cardTightStyle,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 700,
-                opacity: 0.75,
-                marginBottom: SPACE.sm,
-              }}
-            >
-              💡 系统建议{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  opacity: 0.6,
-                  fontSize: "0.85em",
-                }}
-              >
-                (Actions)
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "0.95em",
-                lineHeight: 1.6,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                background:
-                  analyticsSuggestion.tone === "danger"
-                    ? withHexAlpha(V5_COLORS.loss, "1F")
-                    : analyticsSuggestion.tone === "warn"
-                      ? withHexAlpha(V5_COLORS.back, "1F")
-                      : withHexAlpha(V5_COLORS.win, "1A"),
-                border: "1px solid var(--background-modifier-border)",
-                color:
-                  analyticsSuggestion.tone === "danger"
-                    ? V5_COLORS.loss
-                    : analyticsSuggestion.tone === "warn"
-                      ? V5_COLORS.back
-                      : V5_COLORS.win,
-                fontWeight: 700,
-              }}
-            >
-              {analyticsSuggestion.text}
-            </div>
-          </div>
+          <AnalyticsSuggestion
+            analyticsSuggestion={analyticsSuggestion}
+            cardTightStyle={cardTightStyle}
+            SPACE={SPACE}
+          />
 
           <div
             style={{
