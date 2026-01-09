@@ -1952,8 +1952,9 @@ const ConsoleComponent: React.FC<Props> = ({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <button
-                  type="button"
+                <Button
+                  variant="small"
+                  disabled={managerBusy}
                   onClick={async () => {
                     setManagerBusy(true);
                     try {
@@ -1966,10 +1967,9 @@ const ConsoleComponent: React.FC<Props> = ({
                   onMouseLeave={onBtnMouseLeave}
                   onFocus={onBtnFocus}
                   onBlur={onBtnBlur}
-                  style={managerBusy ? buttonSmDisabledStyle : buttonSmStyle}
                 >
                   扫描属性（v5.0）
-                </button>
+                </Button>
               </div>
             </div>
             <div style={{ marginTop: "12px" }}>
@@ -2502,25 +2502,19 @@ const ConsoleComponent: React.FC<Props> = ({
                                   </span>
                                 </div>
                                 <div style={{ display: "flex", gap: "8px" }}>
-                                  <button
-                                    type="button"
+                                  <Button
+                                    variant="small"
                                     disabled={managerBusy}
                                     onClick={doDeleteKey}
-                                    style={
-                                      managerBusy
-                                        ? buttonSmDisabledStyle
-                                        : buttonSmStyle
-                                    }
                                   >
                                     🗑️ 删除属性
-                                  </button>
-                                  <button
-                                    type="button"
+                                  </Button>
+                                  <Button
+                                    variant="small"
                                     onClick={close}
-                                    style={buttonSmStyle}
                                   >
                                     关闭
-                                  </button>
+                                  </Button>
                                 </div>
                               </div>
 
@@ -2549,13 +2543,12 @@ const ConsoleComponent: React.FC<Props> = ({
                                 >
                                   属性值 ({sortedVals.length})
                                 </button>
-                                <button
-                                  type="button"
+                                <Button
+                                  variant="small"
                                   onClick={() =>
                                     setManagerInspectorTab("files")
                                   }
                                   style={{
-                                    ...buttonSmStyle,
                                     background:
                                       managerInspectorTab === "files"
                                         ? "rgba(var(--mono-rgb-100), 0.08)"
@@ -2563,7 +2556,7 @@ const ConsoleComponent: React.FC<Props> = ({
                                   }}
                                 >
                                   关联文件 ({allPaths.length})
-                                </button>
+                                </Button>
                               </div>
 
                               <div
