@@ -3781,6 +3781,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(_t("error.signal_failed", update), show_alert=True)
             return
 
+    # 可视化菜单
+    if button_data == "vis_menu" or button_data.startswith("vis_"):
+        try:
+            from bot.vis_handler import vis_callback_handler
+            handled = await vis_callback_handler(update, context)
+            if handled:
+                return
+        except Exception as e:
+            logger.error(f"可视化界面失败: {e}")
+            await query.answer(_t(update, "error.vis_failed", fallback="可视化功能暂不可用"), show_alert=True)
+            return
+
     # 信号推送的币种分析跳转
     if button_data.startswith("single_query_"):
         symbol = button_data.replace("single_query_", "")
