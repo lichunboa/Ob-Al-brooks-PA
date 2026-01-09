@@ -2560,6 +2560,36 @@ msgstr "🕯️ K线图"
 msgid "vis.template.kline_desc"
 msgstr "K线+均线+量能"
 
+msgid "vis.template.macd"
+msgstr "📈 MACD"
+
+msgid "vis.template.macd_desc"
+msgstr "价格+MACD指标"
+
+msgid "vis.template.vpvr_heat"
+msgstr "🔥 VPVR热力图"
+
+msgid "vis.template.vpvr_heat_desc"
+msgstr "全市场成交量分布热力图"
+
+msgid "vis.template.vpvr_grid"
+msgstr "📋 VPVR卡片"
+
+msgid "vis.template.vpvr_grid_desc"
+msgstr "全市场价值区卡片概览"
+
+msgid "vis.category.single"
+msgstr "📊 单币图表"
+
+msgid "vis.category.market"
+msgstr "🌐 全市场图表"
+
+msgid "vis.error.no_data"
+msgstr "无法获取市场数据"
+
+msgid "vis.error.render_failed"
+msgstr "渲染失败"
+
 msgid "error.vis_failed"
 msgstr "可视化功能暂不可用"
 

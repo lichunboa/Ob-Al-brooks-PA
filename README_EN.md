@@ -196,7 +196,22 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
   -c "COPY market_data.binance_futures_metrics_5m FROM STDIN WITH (FORMAT binary)"
 ```
 
-> Port note: ops scripts `scripts/export_timescaledb.sh` / `scripts/timescaledb_compression.sh` default to port 5433, while `config/.env.example` uses 5434. Align them to one port (recommend set `.env` to 5433 or edit scripts accordingly).<!-- TODO: if keeping 5434, update all scripts and examples -->
+> Port note: template defaults to 5434, but repo scripts default to 5433. After copying, change `DATABASE_URL` port to 5433 in `config/.env`, or if choosing 5434, update `scripts/export_timescaledb.sh`, `scripts/timescaledb_compression.sh` and all example command ports.
+
+## 🔍 Additional Checks (2026-01-09)
+
+- **Port selection**: `config/.env.example` defaults to port **5434** (new DB with raw/agg/quality schema); core scripts `scripts/export_timescaledb.sh`, `scripts/timescaledb_compression.sh` still default to **5433** (old DB). Choose one port based on your needs and sync all scripts.<!-- TODO: choose unified port (5433 or 5434) and do global replace -->
+- CI only runs ruff + py_compile sampling (`.github/workflows/ci.yml`, checks first 50 .py files), doesn't run tests; still need `./scripts/verify.sh` locally before commit.
+- `scripts/install.sh` generates per-service `.env` but runtime only reads `config/.env`; avoid config drift.
+
+### 🗄️ Dual Database Port Explanation (Old DB 5433 / New DB 5434)
+
+- Old DB (5433, single schema `market_data`): Compatible with early data collection chain, still used by `scripts/export_timescaledb.sh` / `scripts/timescaledb_compression.sh` and most example commands.
+- New DB (5434, multi-schema `raw` / `agg` / `quality`): `config/.env.example` and markets-service init/migration scripts (`init_market_db.sh`, `sync_from_old_db.sh`, `migrate_5434.sql` etc.) default to this.
+- Usage principles:  
+  - Continue with old DB: Keep `DATABASE_URL` at 5433, change markets-service script ports to 5433.  
+  - Switch to new DB: Keep 5434, update top-level ops scripts and README example ports to 5434, ensure storage/compression/export scripts are consistent.  
+- Mixed use risk: If scripts and services point to different ports, data will fork; backup `./scripts/export_timescaledb.sh` (currently defaults to 5433) before changes.<!-- TODO: if migrating to 5434, provide unified replacement list and execution order -->
 
 ### ✅ Verify Installation
 
@@ -761,16 +776,70 @@ tradecat/
 ├── 📂 services/                    # Stable Microservices (4)
 │   │
 │   ├── 📂 data-service/            # Crypto data collection service
-│   ├── 📂 trading-service/         # Indicator calculation service (38 indicator classes)
+│   │   ├── 📂 src/
+│   │   │   ├── 📂 collectors/      # Collectors
+│   │   │   ├── 📂 adapters/        # Adapters
+│   │   │   └── config.py
+│   │   ├── 📂 scripts/
+│   │   ├── requirements.txt
+│   │   └── requirements.lock.txt
+│   │
+│   ├── 📂 trading-service/         # Indicator calculation service
+│   │   ├── 📂 src/
+│   │   │   ├── 📂 indicators/      # 38 indicator classes (9 incremental + 29 batch)
+│   │   │   ├── 📂 core/            # Compute engine
+│   │   │   └── simple_scheduler.py
+│   │   ├── 📂 scripts/
+│   │   ├── requirements.txt
+│   │   └── requirements.lock.txt
+│   │
 │   ├── 📂 telegram-service/        # Telegram Bot
+│   │   ├── 📂 src/
+│   │   │   ├── 📂 cards/           # Ranking cards
+│   │   │   ├── 📂 signals/         # Signal detection engine
+│   │   │   ├── 📂 bot/             # Bot main program
+│   │   │   └── main.py
+│   │   ├── 📂 scripts/
+│   │   ├── requirements.txt
+│   │   └── requirements.lock.txt
+│   │
 │   └── 📂 ai-service/              # AI analysis service
+│       ├── 📂 src/
+│       │   ├── 📂 data/            # Data fetching
+│       │   ├── 📂 llm/             # LLM client
+│       │   ├── 📂 prompt/          # Prompt management
+│       │   └── 📂 bot/             # Bot integration
+│       ├── 📂 prompts/             # Prompt templates
+│       ├── 📂 scripts/
+│       └── requirements.txt
 │
 ├── 📂 services-preview/            # Preview Microservices (4, in development)
 │   │
 │   ├── 📂 markets-service/         # Multi-market data collection (US/China stocks, macro)
-│   ├── 📂 predict-service/         # Prediction market signals (Polymarket/Kalshi/Opinion)
-│   ├── 📂 vis-service/             # Visualization rendering service (FastAPI, port 8087)
+│   │   ├── 📂 src/
+│   │   │   ├── 📂 providers/       # Data source adapters (8)
+│   │   │   ├── 📂 collectors/      # Collection task scheduling
+│   │   │   ├── 📂 models/          # Standardized data models
+│   │   │   └── 📂 core/            # Core framework
+│   │   ├── 📂 scripts/
+│   │   ├── requirements.txt
+│   │   └── requirements.lock.txt
+│   │
+│   ├── 📂 predict-service/         # Prediction market signals
+│   │   ├── 📂 services/            # Sub-services (polymarket/kalshi/opinion)
+│   │   ├── 📂 docs/                # Requirements/design/ADR/Prompt docs
+│   │   └── 📂 libs/                # Shared libraries
+│   │
+│   ├── 📂 vis-service/             # Visualization rendering service
+│   │   ├── 📂 src/                 # FastAPI entry & template rendering
+│   │   ├── 📂 scripts/             # Start scripts
+│   │   └── requirements.txt
+│   │
 │   └── 📂 order-service/           # Trade execution service
+│       ├── 📂 src/
+│       │   └── 📂 market-maker/    # A-S market making system
+│       ├── requirements.txt
+│       └── requirements.lock.txt
 │
 ├── 📂 libs/                        # Shared libraries
 │   ├── 📂 database/                # Database files
