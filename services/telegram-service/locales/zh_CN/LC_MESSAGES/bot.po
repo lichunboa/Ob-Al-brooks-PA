@@ -2522,3 +2522,46 @@ msgstr "价格"
 
 msgid "signal.simple.strength"
 msgstr "强度"
+
+# Visualization module
+msgid "kb.vis"
+msgstr "📈 可视化"
+
+msgid "vis.menu.title"
+msgstr "📈 选择图表类型"
+
+msgid "vis.select_symbol"
+msgstr "{name}\n选择币种："
+
+msgid "vis.select_interval"
+msgstr "{name}\n选择周期："
+
+msgid "vis.rendering"
+msgstr "正在渲染..."
+
+msgid "vis.render_error"
+msgstr "渲染失败: {error}"
+
+msgid "vis.template.vpvr_ridge"
+msgstr "📊 VPVR山脊图"
+
+msgid "vis.template.vpvr_ridge_desc"
+msgstr "成交量分布随时间演变"
+
+msgid "vis.template.vpvr_strip"
+msgstr "🎯 VPVR条带图"
+
+msgid "vis.template.vpvr_strip_desc"
+msgstr "全市场价值区位置分布"
+
+msgid "vis.template.kline"
+msgstr "🕯️ K线图"
+
+msgid "vis.template.kline_desc"
+msgstr "K线+均线+量能"
+
+msgid "error.vis_failed"
+msgstr "可视化功能暂不可用"
+
+msgid "btn.back"
+msgstr "⬅️ 返回"
