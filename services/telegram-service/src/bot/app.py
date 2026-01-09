@@ -1425,7 +1425,7 @@ class UserRequestHandler:
         return (
             f"""{_t(update, "ranking.volume")}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 {period_text}交易量(USDT)({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.volume", period=period_text, symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```
@@ -1487,7 +1487,7 @@ class UserRequestHandler:
         return (
             f"""{_t(update, "ranking.spot_volume", period=period_text)}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 {period_text}交易量(USDT)({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.volume", period=period_text, symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```
@@ -1568,11 +1568,11 @@ class UserRequestHandler:
 
         text = f"""{_t(update, "ranking.ratio.position_market")}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 比率({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.ratio", symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```
-💡 持仓/市值比 = 持仓量 / 市值
+{_t(update, "ranking.hint.position_market")}
 {_t(update, "time.last_update", time=time_info['full'])}"""
 
         return text
@@ -1660,11 +1660,11 @@ class UserRequestHandler:
 
         text = f"""{_t(update, "ranking.ratio.volume_market")}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 比率({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.ratio", symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```
-💡 交易量/市值比 = 24h交易量 / 市值
+{_t(update, "ranking.hint.volume_market")}
 {_t(update, "time.last_update", time=time_info['full'])}"""
 
         return text
@@ -1748,11 +1748,11 @@ class UserRequestHandler:
 
         text = f"""{_t(update, "ranking.ratio.volume_oi")}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 比率({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.ratio", symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```
-💡 交易量/持仓量比 = 24h交易量 / 持仓量
+{_t(update, "ranking.hint.volume_oi")}
 {_t(update, "time.last_update", time=time_info['full'])}"""
 
         return text
@@ -3461,7 +3461,7 @@ class TradeCatBot:
         cache_info = ""
         text = f"""{_t(update, "ranking.position")}
 {_t(update, "time.update", time=time_info['full'])}
-📊 排序 {period_text}变化金额({sort_symbol}) / {sort_text}
+{_t(update, "ranking.sort.change", period=period_text, symbol=sort_symbol, sort=sort_text)}
 ```
 {aligned_data}
 ```

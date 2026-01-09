@@ -2565,3 +2565,22 @@ msgstr "可视化功能暂不可用"
 
 msgid "error.unknown_template"
 msgstr "未知模板"
+
+# Ranking sort labels
+msgid "ranking.sort.volume"
+msgstr "📊 排序 {period}交易量(USDT)({symbol}) / {sort}"
+
+msgid "ranking.sort.ratio"
+msgstr "📊 排序 比率({symbol}) / {sort}"
+
+msgid "ranking.sort.change"
+msgstr "📊 排序 {period}变化金额({symbol}) / {sort}"
+
+msgid "ranking.hint.position_market"
+msgstr "💡 持仓/市值比 = 持仓量 / 市值"
+
+msgid "ranking.hint.volume_market"
+msgstr "💡 交易量/市值比 = 24h交易量 / 市值"
+
+msgid "ranking.hint.volume_oi"
+msgstr "💡 交易量/持仓量比 = 24h交易量 / 持仓量"

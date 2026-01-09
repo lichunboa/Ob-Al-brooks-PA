@@ -2565,3 +2565,22 @@ msgstr "Visualization unavailable"
 
 msgid "error.unknown_template"
 msgstr "Unknown template"
+
+# Ranking sort labels
+msgid "ranking.sort.volume"
+msgstr "📊 Sort {period} Volume(USDT)({symbol}) / {sort}"
+
+msgid "ranking.sort.ratio"
+msgstr "📊 Sort Ratio({symbol}) / {sort}"
+
+msgid "ranking.sort.change"
+msgstr "📊 Sort {period} Change({symbol}) / {sort}"
+
+msgid "ranking.hint.position_market"
+msgstr "💡 OI/MCap Ratio = Open Interest / Market Cap"
+
+msgid "ranking.hint.volume_market"
+msgstr "💡 Vol/MCap Ratio = 24h Volume / Market Cap"
+
+msgid "ranking.hint.volume_oi"
+msgstr "💡 Vol/OI Ratio = 24h Volume / Open Interest"
