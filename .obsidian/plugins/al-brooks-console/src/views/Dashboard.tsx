@@ -1546,9 +1546,9 @@ const ConsoleComponent: React.FC<Props> = ({
                       </div>
 
                       {sortedRecent.map((t) => (
-                        <button
+                        <Button
                           key={t.path}
-                          type="button"
+                          variant="text"
                           onClick={() => openFile(t.path)}
                           title={t.path}
                           onMouseEnter={onTextBtnMouseEnter}
@@ -1559,12 +1559,8 @@ const ConsoleComponent: React.FC<Props> = ({
                             width: "100%",
                             textAlign: "left",
                             padding: 0,
-                            border: "none",
                             borderBottom:
                               "1px solid var(--background-modifier-border)",
-                            background: "transparent",
-                            cursor: "pointer",
-                            outline: "none",
                           }}
                         >
                           <div
@@ -1606,7 +1602,7 @@ const ConsoleComponent: React.FC<Props> = ({
                               {prettyExecVal(t.executionQuality) || "—"}
                             </div>
                           </div>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -1814,9 +1810,9 @@ const ConsoleComponent: React.FC<Props> = ({
                           }}
                         >
                           {inspectorIssues.slice(0, 50).map((issue) => (
-                            <button
+                            <Button
                               key={issue.id}
-                              type="button"
+                              variant="text"
                               onClick={() => openFile(issue.path)}
                               title={issue.path}
                               onMouseEnter={onTextBtnMouseEnter}
@@ -1827,14 +1823,8 @@ const ConsoleComponent: React.FC<Props> = ({
                                 width: "100%",
                                 textAlign: "left",
                                 padding: "8px 10px",
-                                border: "none",
                                 borderBottom:
                                   "1px solid var(--background-modifier-border)",
-                                background: "transparent",
-                                cursor: "pointer",
-                                outline: "none",
-                                transition:
-                                  "background-color 180ms ease, box-shadow 180ms ease",
                               }}
                             >
                               <div
@@ -1868,14 +1858,14 @@ const ConsoleComponent: React.FC<Props> = ({
                                     style={{
                                       color: "var(--text-faint)",
                                       fontSize: "0.85em",
+                                      marginTop: "4px",
                                     }}
                                   >
                                     {issue.path}
-                                    {issue.detail ? ` — ${issue.detail}` : ""}
                                   </div>
                                 </div>
                               </div>
-                            </button>
+                            </Button>
                           ))}
                           {inspectorIssues.length > 50 ? (
                             <div
