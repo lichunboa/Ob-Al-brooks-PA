@@ -2758,44 +2758,29 @@ const ConsoleComponent: React.FC<Props> = ({
                               >
                                 {managerInspectorTab === "vals" ? (
                                   <>
-                                    <button
-                                      type="button"
+                                    <Button
+                                      variant="small"
                                       disabled={managerBusy}
                                       onClick={() => void doRenameKey()}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
                                     >
-                                      ✏️ 重命名
-                                    </button>
-                                    <button
-                                      type="button"
+                                      重命名
+                                    </Button>
+                                    <Button
+                                      variant="small"
                                       disabled={managerBusy}
                                       onClick={() => void doAppendVal()}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
                                     >
-                                      ➕ 追加新值
-                                    </button>
+                                      追加值
+                                    </Button>
                                   </>
                                 ) : (
-                                  <button
-                                    type="button"
+                                  <Button
+                                    variant="small"
                                     disabled={managerBusy}
                                     onClick={() => void doInjectProp()}
-                                    style={
-                                      managerBusy
-                                        ? buttonSmDisabledStyle
-                                        : buttonSmStyle
-                                    }
                                   >
                                     💉 注入属性
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             </div>
