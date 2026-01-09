@@ -479,8 +479,228 @@ export function ManageTab(props: ManageTabProps): JSX.Element {
                         </div>
                     </div>
 
-                    {/* 检查器与修复方案 - 待添加 */}
-                    <div>检查器部分 - 待实现</div>
+                    {/* 检查器与修复方案 */}
+                    <details style={{ marginTop: "12px" }}>
+                        <summary
+                            style={{
+                                cursor: "pointer",
+                                color: "var(--text-muted)",
+                                fontWeight: 700,
+                            }}
+                        >
+                            🔎 检查器（Inspector）与修复方案预览（可展开）
+                        </summary>
+
+                        <div style={{ marginTop: "12px" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: "12px",
+                                    marginBottom: "8px",
+                                }}
+                            >
+                                <div style={{ fontWeight: 700 }}>检查器问题列表</div>
+                                <Button
+                                    variant="small"
+                                    onClick={() => setShowFixPlan((v) => !v)}
+                                    disabled={!enumPresets}
+                                    onMouseEnter={onBtnMouseEnter}
+                                    onMouseLeave={onBtnMouseLeave}
+                                    onFocus={onBtnFocus}
+                                    onBlur={onBtnBlur}
+                                    title={
+                                        !enumPresets ? "枚举预设不可用" : "切换修复方案预览"
+                                    }
+                                >
+                                    {showFixPlan ? "隐藏修复方案" : "显示修复方案"}
+                                </Button>
+                            </div>
+
+                            <div
+                                style={{
+                                    color: "var(--text-faint)",
+                                    fontSize: "0.9em",
+                                    marginBottom: "10px",
+                                }}
+                            >
+                                只读：仅报告问题；修复方案（FixPlan）仅预览（不会写入
+                                vault）。
+                                <span style={{ marginLeft: "8px" }}>
+                                    枚举预设：{enumPresets ? "已加载" : "不可用"}
+                                </span>
+                            </div>
+
+                            {schemaScanNote ? (
+                                <div
+                                    style={{
+                                        color: "var(--text-faint)",
+                                        fontSize: "0.85em",
+                                        marginBottom: "10px",
+                                    }}
+                                >
+                                    {schemaScanNote}
+                                </div>
+                            ) : null}
+
+                            {(() => {
+                                const errorCount = inspectorIssues.filter(
+                                    (i) => i.severity === "error"
+                                ).length;
+                                const warnCount = inspectorIssues.filter(
+                                    (i) => i.severity === "warn"
+                                ).length;
+                                return (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: "12px",
+                                            flexWrap: "wrap",
+                                            marginBottom: "10px",
+                                        }}
+                                    >
+                                        <div style={{ color: V5_COLORS.loss }}>
+                                            错误：{errorCount}
+                                        </div>
+                                        <div style={{ color: V5_COLORS.back }}>
+                                            警告：{warnCount}
+                                        </div>
+                                        <div style={{ color: "var(--text-muted)" }}>
+                                            总计：{inspectorIssues.length}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {inspectorIssues.length === 0 ? (
+                                <div
+                                    style={{
+                                        color: "var(--text-faint)",
+                                        fontSize: "0.9em",
+                                    }}
+                                >
+                                    未发现问题。
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        maxHeight: "240px",
+                                        overflow: "auto",
+                                        border:
+                                            "1px solid var(--background-modifier-border)",
+                                        borderRadius: "8px",
+                                    }}
+                                >
+                                    {inspectorIssues.slice(0, 50).map((issue) => (
+                                        <Button
+                                            key={issue.id}
+                                            variant="text"
+                                            onClick={() => openFile(issue.path)}
+                                            title={issue.path}
+                                            onMouseEnter={onTextBtnMouseEnter}
+                                            onMouseLeave={onTextBtnMouseLeave}
+                                            onFocus={onTextBtnFocus}
+                                            onBlur={onTextBtnBlur}
+                                            style={{
+                                                width: "100%",
+                                                textAlign: "left",
+                                                padding: "8px 10px",
+                                                borderBottom:
+                                                    "1px solid var(--background-modifier-border)",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: "10px",
+                                                    alignItems: "baseline",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        width: "60px",
+                                                        color:
+                                                            issue.severity === "error"
+                                                                ? V5_COLORS.loss
+                                                                : V5_COLORS.back,
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    {issue.severity === "error"
+                                                        ? "错误"
+                                                        : issue.severity === "warn"
+                                                            ? "警告"
+                                                            : "—"}
+                                                </div>
+                                                <div style={{ flex: "1 1 auto" }}>
+                                                    <div style={{ fontWeight: 600 }}>
+                                                        {issue.title}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            color: "var(--text-faint)",
+                                                            fontSize: "0.85em",
+                                                            marginTop: "4px",
+                                                        }}
+                                                    >
+                                                        {issue.path}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Button>
+                                    ))}
+                                    {inspectorIssues.length > 50 ? (
+                                        <div
+                                            style={{
+                                                padding: "8px 10px",
+                                                color: "var(--text-faint)",
+                                                fontSize: "0.85em",
+                                            }}
+                                        >
+                                            仅显示前 50 条问题。
+                                        </div>
+                                    ) : null}
+                                </div>
+                            )}
+
+                            {showFixPlan && enumPresets ? (
+                                <div style={{ marginTop: "12px" }}>
+                                    <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                                        修复方案预览（FixPlan）
+                                    </div>
+                                    <pre
+                                        style={{
+                                            margin: 0,
+                                            padding: "10px",
+                                            border:
+                                                "1px solid var(--background-modifier-border)",
+                                            borderRadius: "8px",
+                                            background: "rgba(var(--mono-rgb-100), 0.03)",
+                                            maxHeight: "220px",
+                                            overflow: "auto",
+                                            whiteSpace: "pre-wrap",
+                                        }}
+                                    >
+                                        {fixPlanText ?? ""}
+                                    </pre>
+                                </div>
+                            ) : !enumPresets ? (
+                                <div
+                                    style={{
+                                        marginTop: "12px",
+                                        color: "var(--text-faint)",
+                                        fontSize: "0.9em",
+                                    }}
+                                >
+                                    枚举预设不可用，已禁用修复方案生成。
+                                </div>
+                            ) : null}
+                        </div>
+                    </details>
+
+                    {/* 属性管理器 - 待添加 */}
+                    <div>属性管理器 - 待实现</div>
                 </div>
             </div>
 
