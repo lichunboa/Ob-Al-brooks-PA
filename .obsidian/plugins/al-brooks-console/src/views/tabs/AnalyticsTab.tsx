@@ -670,7 +670,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         </div>
                       </div>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
