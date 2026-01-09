@@ -1138,8 +1138,11 @@ class UserRequestHandler:
             ],
             [
                 InlineKeyboardButton(I18N.gettext("kb.signal", lang=lang), callback_data="signal_menu"),
-                InlineKeyboardButton(I18N.gettext("kb.help", lang=lang), callback_data="help"),
+                InlineKeyboardButton(I18N.gettext("kb.vis", lang=lang, fallback="📈 可视化"), callback_data="vis_menu"),
                 InlineKeyboardButton(I18N.gettext("kb.lang", lang=lang), callback_data="lang_menu"),
+            ],
+            [
+                InlineKeyboardButton(I18N.gettext("kb.help", lang=lang), callback_data="help"),
             ],
         ]
         return InlineKeyboardMarkup(keyboard)
