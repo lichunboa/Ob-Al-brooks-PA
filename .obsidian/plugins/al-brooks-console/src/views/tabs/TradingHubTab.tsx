@@ -7,6 +7,9 @@ import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { TradeList } from "../components/TradeList";
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
+import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
+import { MarketCyclePanel } from "../components/trading/MarketCyclePanel";
+import { TodayTradesSection } from "../components/trading/TodayTradesSection";
 
 /**
  * TradingHubTab Props接口
@@ -115,51 +118,11 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         </div>
       </div>
 
-      {latestTrade && reviewHints.length > 0 && (
-        <details style={{ marginBottom: "16px" }}>
-          <summary
-            style={{
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              fontSize: "0.95em",
-              userSelect: "none",
-              marginBottom: "8px",
-            }}
-          >
-            扩展（不参与旧版对照）：复盘提示
-          </summary>
-          <div style={glassPanelStyle}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              复盘提示
-              <span
-                style={{
-                  fontWeight: 400,
-                  marginLeft: "8px",
-                  color: "var(--text-muted)",
-                  fontSize: "0.85em",
-                }}
-              >
-                {latestTrade.name}
-              </span>
-            </div>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {reviewHints.slice(0, 4).map((h) => (
-                <li key={h.id} style={{ marginBottom: "6px" }}>
-                  <div>{h.zh}</div>
-                  <div
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: "0.85em",
-                    }}
-                  >
-                    {h.en}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
-      )}
+      <ReviewHintsPanel
+        latestTrade={latestTrade}
+        reviewHints={reviewHints}
+        glassPanelStyle={glassPanelStyle}
+      />
 
       <div
         style={{
@@ -169,69 +132,24 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
       >
         <TodayKpiCard todayKpi={todayKpi} />
 
-        {!todayMarketCycle && (
-          <div style={{ marginBottom: "12px" }}>
-            <div
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "0.9em",
-                marginBottom: "10px",
-              }}
-            >
-              创建今日日记，并设置市场周期以获取策略推荐（旧版同位置）。
-            </div>
-            <button
-              type="button"
-              disabled={!canOpenTodayNote}
-              onClick={onOpenTodayNote}
-              onMouseEnter={onBtnMouseEnter}
-              onMouseLeave={onBtnMouseLeave}
-              onFocus={onBtnFocus}
-              onBlur={onBtnBlur}
-              style={canOpenTodayNote ? buttonStyle : disabledButtonStyle}
-            >
-              打开/创建今日日记（设置市场周期）
-            </button>
-          </div>
-        )}
-
-        <div
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "0.9em",
-            marginBottom: "10px",
-          }}
-        >
-          市场周期：{todayMarketCycle ?? "—"}
-        </div>
-
-        {todayStrategyPicks.length > 0 && (
-          <div style={{ marginBottom: "12px" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-              周期 → 策略推荐
-            </div>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {todayStrategyPicks.map((s) => (
-                <li
-                  key={`today-pick-${s.path}`}
-                  style={{ marginBottom: "6px" }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => openFile(s.path)}
-                    style={textButtonStyle}
-                    onMouseEnter={onTextBtnMouseEnter}
-                    onMouseLeave={onTextBtnMouseLeave}
-                    onFocus={onTextBtnFocus}
-                    onBlur={onTextBtnBlur}
-                  >
-                    {s.canonicalName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <MarketCyclePanel
+          todayMarketCycle={todayMarketCycle}
+          todayStrategyPicks={todayStrategyPicks}
+          canOpenTodayNote={canOpenTodayNote}
+          onOpenTodayNote={onOpenTodayNote}
+          openFile={openFile}
+          buttonStyle={buttonStyle}
+          disabledButtonStyle={disabledButtonStyle}
+          textButtonStyle={textButtonStyle}
+          onBtnMouseEnter={onBtnMouseEnter}
+          onBtnMouseLeave={onBtnMouseLeave}
+          onBtnFocus={onBtnFocus}
+          onBtnBlur={onBtnBlur}
+          onTextBtnMouseEnter={onTextBtnMouseEnter}
+          onTextBtnMouseLeave={onTextBtnMouseLeave}
+          onTextBtnFocus={onTextBtnFocus}
+          onTextBtnBlur={onTextBtnBlur}
+        />
 
         <OpenTradeAssistant
           openTrade={openTrade}
@@ -252,16 +170,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         />
 
 
-        <div style={{ marginTop: "16px" }}>
-          <h3 style={{ marginBottom: "12px" }}>今日交易</h3>
-          {todayTrades.length > 0 ? (
-            <TradeList trades={todayTrades} onOpenFile={openFile} />
-          ) : (
-            <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-              今日暂无交易记录
-            </div>
-          )}
-        </div>
+        <TodayTradesSection todayTrades={todayTrades} openFile={openFile} />
       </div>
 
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
