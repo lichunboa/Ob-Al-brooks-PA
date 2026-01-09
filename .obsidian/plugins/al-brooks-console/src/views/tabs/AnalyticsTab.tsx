@@ -472,9 +472,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 }}
               >
                 {gallery.items.map((it) => (
-                  <button
+                  <Button
                     key={`gal-${it.tradePath}`}
-                    type="button"
+                    variant="text"
                     onClick={() => openFile(it.tradePath)}
                     title={`${it.tradeName} • ${it.coverPath}`}
                     onMouseEnter={onCoverMouseEnter}
@@ -491,10 +491,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       borderRadius: "8px",
                       overflow: "hidden",
                       background: `rgba(var(--mono-rgb-100), 0.03)`,
-                      cursor: "pointer",
-                      outline: "none",
-                      transition:
-                        "background-color 180ms ease, border-color 180ms ease",
                       position: "relative",
                       aspectRatio: "16 / 9",
                     }}
