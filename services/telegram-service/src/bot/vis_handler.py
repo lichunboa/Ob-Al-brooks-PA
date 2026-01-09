@@ -11,9 +11,9 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Tuple, Dict, List
+from typing import Dict, List, Optional, Tuple
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Update
 from telegram.ext import ContextTypes
 
 # 添加 vis-service 路径
@@ -126,7 +126,7 @@ class VisHandler:
 
     def build_vis_menu_keyboard(self, update=None) -> InlineKeyboardMarkup:
         """构建可视化菜单键盘"""
-        lang = _resolve_lang(update)
+        _resolve_lang(update)
         rows: List[List[InlineKeyboardButton]] = []
 
         # 图表类型按钮
