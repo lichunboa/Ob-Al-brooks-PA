@@ -1,8 +1,8 @@
 {
   "meta": {
     "schemaVersion": 3,
-    "exportedAt": "2026-01-09T00:08:52.288Z",
-    "pluginVersion": "2.0.0"
+    "exportedAt": "2026-01-09T13:48:48.787Z",
+    "pluginVersion": "2.2.0"
   },
   "trades": [
     {
@@ -11,12 +11,12 @@
       "dateIso": "2026-01-09",
       "ticker": "ES (标普)",
       "accountType": "Backtest",
-      "marketCycle": "强趋势 (Strong Trend)",
+      "marketCycle": "交易区间 (Trading Range)",
       "patternsObserved": [],
       "signalBarQuality": [],
       "timeframe": "5m",
       "managementPlan": [],
-      "mtime": 1767912878530,
+      "mtime": 1767932416336,
       "tags": [
         "PA/Trade"
       ],
@@ -32,7 +32,7 @@
         "品种/ticker": "ES (标普)",
         "时间周期/timeframe": "5m",
         "市场周期/market_cycle": [
-          "强趋势 (Strong Trend)"
+          "交易区间 (Trading Range)"
         ],
         "总是方向/always_in": null,
         "日内类型/day_type": null,
@@ -67,7 +67,7 @@
       "signalBarQuality": [],
       "timeframe": "5m",
       "managementPlan": [],
-      "mtime": 1767914289852,
+      "mtime": 1767932416335,
       "tags": [
         "PA/Trade"
       ],
@@ -388,27 +388,19 @@
     }
   },
   "today": {
-    "marketCycle": "强趋势",
+    "marketCycle": "交易区间",
     "strategyPicks": [
       {
-        "strategyName": "策略卡片_20均线缺口.md",
-        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_20均线缺口.md"
+        "strategyName": "策略卡片_急赴磁体.md",
+        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_急赴磁体.md"
       },
       {
-        "strategyName": "策略卡片_第一均线缺口.md",
-        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_第一均线缺口.md"
+        "strategyName": "策略卡片_看衰突破.md",
+        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_看衰突破.md"
       },
       {
-        "strategyName": "策略卡片_逆1顺1.md",
-        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_逆1顺1.md"
-      },
-      {
-        "strategyName": "策略卡片_区间突破回调.md",
-        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_区间突破回调.md"
-      },
-      {
-        "strategyName": "策略卡片_收线追进.md",
-        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_收线追进.md"
+        "strategyName": "策略卡片_双重顶底.md",
+        "strategyPath": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_双重顶底.md"
       }
     ]
   },
