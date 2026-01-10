@@ -340,12 +340,25 @@ class PGSignalRules:
         return None
 
 
+def _get_default_symbols() -> List[str]:
+    """从统一配置获取监控币种"""
+    try:
+        from libs.common.symbols import get_configured_symbols
+        symbols = get_configured_symbols()
+        if symbols:
+            return symbols
+    except Exception as e:
+        logger.warning(f"获取配置币种失败，使用默认: {e}")
+    # 默认 main4
+    return ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+
+
 class PGSignalEngine:
     """基于 TimescaleDB 的信号检测引擎"""
     
     def __init__(self, db_url: str = None, symbols: List[str] = None, lang: str = None):
         self.db_url = db_url or _get_db_url()
-        self.symbols = symbols or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+        self.symbols = symbols or _get_default_symbols()
         self.lang = lang
         self.callbacks: List[Callable] = []
         self.baseline_candles: Dict[str, Dict] = {}

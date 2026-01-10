@@ -6803,12 +6803,12 @@ def main():
                 loop.run_until_complete(push())
                 loop.close()
 
-            # 注册回调并启动
-            engine = get_pg_engine(symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+            # 注册回调并启动（币种从 SYMBOLS_GROUPS 配置继承）
+            engine = get_pg_engine()  # 自动从 libs/common/symbols 获取配置
             engine.register_callback(on_pg_signal)
-            start_pg_signal_loop(interval=60, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
-            logger.info("✅ PG实时信号检测服务已启动")
-            print("🔔 PG实时信号检测服务已启动，间隔60秒")
+            start_pg_signal_loop(interval=60)
+            logger.info(f"✅ PG实时信号检测服务已启动，监控: {engine.symbols}")
+            print(f"🔔 PG实时信号检测服务已启动，监控 {len(engine.symbols)} 个币种")
         except Exception as e:
             logger.warning(f"⚠️ PG信号服务启动失败: {e}")
 
