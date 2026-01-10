@@ -1,5 +1,6 @@
 import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * TuitionCostPanel Props接口
@@ -11,9 +12,6 @@ export interface TuitionCostPanelProps {
         rows: any[];
     };
 
-    // 样式Props
-    cardTightStyle: React.CSSProperties;
-
     // 常量Props
     SPACE: any;
 }
@@ -24,15 +22,10 @@ export interface TuitionCostPanelProps {
  */
 export const TuitionCostPanel: React.FC<TuitionCostPanelProps> = ({
     tuition,
-    cardTightStyle,
     SPACE,
 }) => {
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     fontWeight: 700,
@@ -144,6 +137,6 @@ export const TuitionCostPanel: React.FC<TuitionCostPanelProps> = ({
                     </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 };

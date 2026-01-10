@@ -1,5 +1,6 @@
 import * as React from "react";
 import { V5_COLORS, withHexAlpha } from "../../../ui/tokens";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * AnalyticsSuggestion Props接口
@@ -11,9 +12,6 @@ export interface AnalyticsSuggestionProps {
         tone: "success" | "warn" | "danger" | "ok";
     };
 
-    // 样式Props
-    cardTightStyle: React.CSSProperties;
-
     // 常量Props
     SPACE: any;
 }
@@ -24,15 +22,10 @@ export interface AnalyticsSuggestionProps {
  */
 export const AnalyticsSuggestion: React.FC<AnalyticsSuggestionProps> = ({
     analyticsSuggestion,
-    cardTightStyle,
     SPACE,
 }) => {
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     fontWeight: 700,
@@ -75,6 +68,6 @@ export const AnalyticsSuggestion: React.FC<AnalyticsSuggestionProps> = ({
             >
                 {analyticsSuggestion.text}
             </div>
-        </div>
+        </Card>
     );
 };

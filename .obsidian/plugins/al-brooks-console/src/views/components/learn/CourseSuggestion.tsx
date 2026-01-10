@@ -77,7 +77,7 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                     </span>
                 </div>
                 <InteractiveButton
-                    variant="small"
+                    className="pa-btn--small"
                     onClick={reloadCourse}
                     disabled={!loadCourse || courseBusy}
                 >
@@ -125,7 +125,6 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                             {link ? (
                                                 <InteractiveButton
                                                     interaction="text"
-                                                    variant="text"
                                                     onClick={() => openFile(link.path)}
                                                     style={{ fontWeight: 600 }}
                                                 >
@@ -195,7 +194,6 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                             {idx > 0 ? ", " : ""}
                                             <InteractiveButton
                                                 interaction="text"
-                                                variant="text"
                                                 onClick={() => openFile(x.link!.path)}
                                             >
                                                 {label}
@@ -276,7 +274,6 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                 <InteractiveButton
                                                     key={`c-${ph.phase}-${c.item.id}`}
                                                     interaction="mini-cell"
-                                                    variant="text"
                                                     disabled={!c.link}
                                                     onClick={() => c.link && openFile(c.link.path)}
                                                     title={title}

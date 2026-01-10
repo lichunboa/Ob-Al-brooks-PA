@@ -1,12 +1,12 @@
 import * as React from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { AccountType } from "../../../core/contracts";
-import { getPoints } from "../../../utils/chart-utils";
+import { Card } from "../../../ui/components/Card";
 
 interface CapitalGrowthChartProps {
     strategyLab: any; // StrategyLabAnalysis
     allTradesDateRange: { min: string; max: string };
     getRColorByAccountType: (type: AccountType) => string;
-    cardTightStyle: React.CSSProperties;
     SPACE: any; // Assuming SPACE object structure
 }
 
@@ -14,15 +14,31 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     strategyLab,
     allTradesDateRange,
     getRColorByAccountType,
-    cardTightStyle,
     SPACE,
 }) => {
+    // Transform data for Recharts
+    const data = React.useMemo(() => {
+        // Find longest curve length to base index on
+        const len = Math.max(
+            strategyLab.curves.Live.length,
+            strategyLab.curves.Demo.length,
+            strategyLab.curves.Backtest.length
+        );
+
+        const chartData = [];
+        for (let i = 0; i < len; i++) {
+            chartData.push({
+                index: i,
+                Live: strategyLab.curves.Live[i] ?? null,
+                Demo: strategyLab.curves.Demo[i] ?? null,
+                Backtest: strategyLab.curves.Backtest[i] ?? null,
+            });
+        }
+        return chartData;
+    }, [strategyLab]);
+
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     display: "flex",
@@ -33,8 +49,8 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                     flexWrap: "wrap",
                 }}
             >
-                <div style={{ fontWeight: 700, fontSize: "1.05em" }}>
-                    🧬 资金增长曲线{" "}
+                <div>
+                    <span style={{ fontWeight: 700, fontSize: "1.05em" }}>🧬 资金增长曲线</span>{" "}
                     <span
                         style={{
                             fontWeight: 600,
@@ -75,81 +91,60 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                 </div>
             </div>
 
-            {(() => {
-                const w = 520;
-                const h = 150;
-                const pad = 14;
-                const allValues = [
-                    ...strategyLab.curves.Live,
-                    ...strategyLab.curves.Demo,
-                    ...strategyLab.curves.Backtest,
-                ];
-                const maxVal = Math.max(...allValues, 5);
-                const minVal = Math.min(...allValues, -5);
-                const range = Math.max(1e-6, maxVal - minVal);
-                const zeroY =
-                    pad + (1 - (0 - minVal) / range) * (h - pad * 2);
-
-                const ptsLive = getPoints(strategyLab.curves.Live, w, h, pad);
-                const ptsDemo = getPoints(strategyLab.curves.Demo, w, h, pad);
-                const ptsBack = getPoints(strategyLab.curves.Backtest, w, h, pad);
-
-                return (
-                    <svg
-                        viewBox={`0 0 ${w} ${h}`}
-                        width="100%"
-                        height="150"
-                        style={{
-                            border: "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            background: `rgba(var(--mono-rgb-100), 0.03)`,
-                        }}
-                    >
-                        <line
-                            x1={0}
-                            y1={zeroY}
-                            x2={w}
-                            y2={zeroY}
-                            stroke="rgba(var(--mono-rgb-100), 0.18)"
-                            strokeDasharray="4"
+            <div style={{ width: "100%", height: 250 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} stroke="var(--text-muted)" />
+                        <XAxis dataKey="index" type="category" hide={true} />
+                        <YAxis
+                            domain={['auto', 'auto']}
+                            tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(val) => `${val}R`}
                         />
-
-                        {ptsBack && (
-                            <polyline
-                                points={ptsBack}
-                                fill="none"
-                                stroke={getRColorByAccountType("Backtest")}
-                                strokeWidth="1.6"
-                                opacity={0.65}
-                                strokeDasharray="2"
-                                strokeLinejoin="round"
-                                strokeLinecap="round"
-                            />
-                        )}
-                        {ptsDemo && (
-                            <polyline
-                                points={ptsDemo}
-                                fill="none"
-                                stroke={getRColorByAccountType("Demo")}
-                                strokeWidth="1.8"
-                                opacity={0.8}
-                                strokeLinejoin="round"
-                                strokeLinecap="round"
-                            />
-                        )}
-                        {ptsLive && (
-                            <polyline
-                                points={ptsLive}
-                                fill="none"
-                                stroke={getRColorByAccountType("Live")}
-                                strokeWidth="2.6"
-                                strokeLinejoin="round"
-                                strokeLinecap="round"
-                            />
-                        )}
-                    </svg>
-                );
-            })()}
-        </div>
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: "var(--background-primary)",
+                                border: "1px solid var(--background-modifier-border)",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                padding: "8px",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                            }}
+                            itemStyle={{ padding: 0 }}
+                            labelStyle={{ display: "none" }}
+                            formatter={(value: number) => [`${value?.toFixed(2)}R`, null]}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="Backtest"
+                            stroke={getRColorByAccountType("Backtest")}
+                            strokeWidth={1.5}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            connectNulls
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="Demo"
+                            stroke={getRColorByAccountType("Demo")}
+                            strokeWidth={1.5}
+                            dot={false}
+                            connectNulls
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="Live"
+                            stroke={getRColorByAccountType("Live")}
+                            strokeWidth={2.5}
+                            dot={{ r: 1 }}
+                            activeDot={{ r: 4 }}
+                            connectNulls
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </Card>
     );
 };

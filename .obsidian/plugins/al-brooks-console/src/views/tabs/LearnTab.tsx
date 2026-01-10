@@ -56,7 +56,6 @@ interface LearnTabProps {
 
   // 常量/工具Props
   V5_COLORS: any;
-  seg: (value: number) => string;
   simpleCourseId: (id: string) => string;
   isActive: (status: string) => boolean;
 }
@@ -96,7 +95,6 @@ export const LearnTab: React.FC<LearnTabProps> = ({
   textButtonSemiboldStyle,
   textButtonNoWrapStyle,
   V5_COLORS,
-  seg,
   simpleCourseId,
   isActive,
 }) => {

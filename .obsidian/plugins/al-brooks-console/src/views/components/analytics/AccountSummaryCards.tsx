@@ -1,5 +1,6 @@
 import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * AccountSummaryCards Props接口
@@ -12,9 +13,6 @@ export interface AccountSummaryCardsProps {
         Backtest: any;
     };
 
-    // 样式Props
-    cardSubtleTightStyle: React.CSSProperties;
-
     // 常量Props
     SPACE: any;
 }
@@ -25,7 +23,6 @@ export interface AccountSummaryCardsProps {
  */
 export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
     summary,
-    cardSubtleTightStyle,
     SPACE,
 }) => {
     return (
@@ -55,10 +52,10 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                     },
                 ] as const
             ).map((card) => (
-                <div
+                <Card
                     key={card.key}
+                    variant="subtle-tight"
                     style={{
-                        ...cardSubtleTightStyle,
                         flex: "1 1 260px",
                         minWidth: "240px",
                     }}
@@ -140,7 +137,7 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                         <div>📦 {card.stats.countTotal} 笔交易</div>
                         <div>🎯 {card.stats.winRatePct}% 胜率</div>
                     </div>
-                </div>
+                </Card>
             ))}
         </div>
     );

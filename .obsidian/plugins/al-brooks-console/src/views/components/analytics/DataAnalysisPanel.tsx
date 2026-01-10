@@ -2,6 +2,7 @@ import * as React from "react";
 import type { AnalyticsScope } from "../../../core/analytics";
 import { V5_COLORS, withHexAlpha } from "../../../ui/tokens";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * DataAnalysisPanel Props接口
@@ -20,7 +21,6 @@ export interface DataAnalysisPanelProps {
     getDayOfMonth: (dateIso: string) => string;
 
     // 样式Props
-    cardTightStyle: React.CSSProperties;
     textButtonStyle: React.CSSProperties;
     selectStyle: React.CSSProperties;
 
@@ -41,17 +41,12 @@ export const DataAnalysisPanel: React.FC<DataAnalysisPanelProps> = ({
     setAnalyticsScope,
     openFile,
     getDayOfMonth,
-    cardTightStyle,
     textButtonStyle,
     selectStyle,
     SPACE,
 }) => {
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     display: "flex",
@@ -178,7 +173,6 @@ export const DataAnalysisPanel: React.FC<DataAnalysisPanelProps> = ({
                                     {r.strategyPath ? (
                                         <InteractiveButton
                                             interaction="text"
-                                            variant="text"
                                             onClick={() => openFile(r.strategyPath!)}
                                             style={textButtonStyle}
                                         >
@@ -223,6 +217,6 @@ export const DataAnalysisPanel: React.FC<DataAnalysisPanelProps> = ({
                     )}
                 </div>
             </div>
-        </div>
+        </Card>
     );
 };

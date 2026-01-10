@@ -1,6 +1,7 @@
 import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
 import { EmptyState } from "../../../ui/components/EmptyState";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * MarketCyclePerformance Props接口
@@ -8,9 +9,6 @@ import { EmptyState } from "../../../ui/components/EmptyState";
 export interface MarketCyclePerformanceProps {
     // 数据Props
     liveCyclePerf: any[];
-
-    // 样式Props
-    cardTightStyle: React.CSSProperties;
 
     // 常量Props
     SPACE: any;
@@ -23,16 +21,11 @@ export interface MarketCyclePerformanceProps {
  */
 export const MarketCyclePerformance: React.FC<MarketCyclePerformanceProps> = ({
     liveCyclePerf,
-    cardTightStyle,
     SPACE,
     CYCLE_MAP,
 }) => {
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     fontWeight: 700,
@@ -102,6 +95,6 @@ export const MarketCyclePerformance: React.FC<MarketCyclePerformanceProps> = ({
                     })}
                 </div>
             )}
-        </div>
+        </Card>
     );
 };

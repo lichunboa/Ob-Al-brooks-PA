@@ -366,7 +366,6 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     <div style={{ marginBottom: "6px" }}>
                                         <InteractiveButton
                                             interaction="text"
-                                            variant="text"
                                             onClick={() => openFile(String(rec.path))}
                                             style={{ fontWeight: 800 }}
                                         >
@@ -384,7 +383,7 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                 </div>
 
                                 <InteractiveButton
-                                    variant="small"
+                                    className="pa-btn--small"
                                     onClick={onShake}
                                     title="摇一摇换题（跳过优先）"
                                 >
@@ -405,7 +404,6 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             焦点：{" "}
                             <InteractiveButton
                                 interaction="text"
-                                variant="text"
                                 onClick={() => openFile(memory.focusFile!.path)}
                                 style={{ fontWeight: 600 }}
                             >
@@ -440,7 +438,6 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
                                         <InteractiveButton
                                             interaction="text"
-                                            variant="text"
                                             onClick={() => openFile(q.path)}
                                         >
                                             {q.q || q.file}

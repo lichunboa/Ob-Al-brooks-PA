@@ -2,6 +2,7 @@ import * as React from "react";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import type { AnalyticsScope } from "../../../core/analytics";
 import { V5_COLORS } from "../../../ui/tokens";
+import { Card } from "../../../ui/components/Card";
 
 interface AnalyticsGalleryProps {
     gallery: {
@@ -14,7 +15,6 @@ interface AnalyticsGalleryProps {
     openFile: (path: string) => void;
     getResourceUrl?: (path: string) => string;
     selectStyle: React.CSSProperties;
-    cardTightStyle: React.CSSProperties;
     SPACE: any; // Assuming SPACE object structure
 }
 
@@ -25,15 +25,10 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
     openFile,
     getResourceUrl,
     selectStyle,
-    cardTightStyle,
     SPACE,
 }) => {
     return (
-        <div
-            style={{
-                ...cardTightStyle,
-            }}
-        >
+        <Card variant="tight">
             <div
                 style={{
                     display: "flex",
@@ -109,7 +104,6 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
                         <InteractiveButton
                             key={`gal-${it.tradePath}`}
                             interaction="cover"
-                            variant="text"
                             onClick={() => openFile(it.tradePath)}
                             title={`${it.tradeName} • ${it.coverPath}`}
                             style={{
@@ -276,6 +270,6 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
                     无图表。
                 </div>
             )}
-        </div>
+        </Card>
     );
 };

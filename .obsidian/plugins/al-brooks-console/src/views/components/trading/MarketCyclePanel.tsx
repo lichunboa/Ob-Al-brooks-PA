@@ -78,7 +78,6 @@ export const MarketCyclePanel: React.FC<MarketCyclePanelProps> = ({
                             >
                                 <InteractiveButton
                                     interaction="text"
-                                    variant="text"
                                     onClick={() => openFile(s.path)}
                                     style={textButtonStyle}
                                 >

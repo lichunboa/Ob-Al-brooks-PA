@@ -102,7 +102,6 @@ export const PlaybookPerformance: React.FC<PlaybookPerformanceProps> = ({
                                     {r.path ? (
                                         <InteractiveButton
                                             interaction="text"
-                                            variant="text"
                                             onClick={() => openFile(r.path!)}
                                         >
                                             {r.canonical}

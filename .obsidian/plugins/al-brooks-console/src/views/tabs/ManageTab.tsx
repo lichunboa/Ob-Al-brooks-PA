@@ -92,15 +92,6 @@ export interface ManageTabProps {
 }
 
 export const ManageTab: React.FC<ManageTabProps> = (props) => {
-    // 准备样式
-    const cardSubtleTightStyle: React.CSSProperties = {
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "10px",
-        padding: "10px",
-        background: "rgba(var(--mono-rgb-100), 0.03)",
-        flex: 1,
-    };
-
     // 准备数据统计
     const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, props.trades, 10), [props.trades]);
     const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, props.trades, 10), [props.trades]);
@@ -139,7 +130,6 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                     schemaScanNote={props.schemaScanNote ?? ""}
                     V5_COLORS={V5_COLORS}
                     SPACE={SPACE}
-                    cardSubtleTightStyle={cardSubtleTightStyle}
                 />
             </div>
 

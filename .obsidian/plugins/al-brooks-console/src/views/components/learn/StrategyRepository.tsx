@@ -134,7 +134,6 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                             {idx > 0 ? " · " : ""}
                                             <InteractiveButton
                                                 interaction="text"
-                                                variant="text"
                                                 onClick={() => openFile(s.path)}
                                                 style={{ whiteSpace: "nowrap" }}
                                             >
@@ -175,7 +174,6 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                         return (
                             <InteractiveButton
                                 interaction="text"
-                                variant="text"
                                 onClick={() => openFile(quickPath)}
                                 style={{
                                     padding: "4px 10px",

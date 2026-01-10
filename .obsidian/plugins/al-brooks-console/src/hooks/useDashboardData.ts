@@ -13,6 +13,8 @@ export interface UseDashboardDataProps {
     index: TradeIndex;
     strategyIndex: StrategyIndex;
     todayContext?: TodayContext;
+    settings: any; // Using any to avoid circular dependency for now, or import AlBrooksConsoleSettings
+    onSaveSettings: (settings: any) => Promise<void>;
 }
 
 export interface UseDashboardDataReturn {
@@ -22,9 +24,15 @@ export interface UseDashboardDataReturn {
     status: TradeIndexStatus;
     todayMarketCycle: string | undefined;
 
+    // Journal Data
+    journalLogs: any[];
+    tradingPlans: any[];
+
     // 方法
     refreshTrades: () => void;
     refreshStrategies: () => void;
+    saveJournalLog: (entry: any) => Promise<void>;
+    saveTradingPlan: (plan: any) => Promise<void>;
 }
 
 /**
@@ -37,6 +45,8 @@ export function useDashboardData({
     index,
     strategyIndex,
     todayContext,
+    settings,
+    onSaveSettings,
 }: UseDashboardDataProps): UseDashboardDataReturn {
     // State
     const [trades, setTrades] = React.useState<TradeRecord[]>(() => index.getAll());
@@ -49,6 +59,34 @@ export function useDashboardData({
     const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(
         () => todayContext?.getTodayMarketCycle()
     );
+
+    // Journal Data Accessors
+    const journalLogs = React.useMemo(() => settings?.journalLogs ?? [], [settings]);
+    const tradingPlans = React.useMemo(() => settings?.tradingPlans ?? [], [settings]);
+
+    const saveJournalLog = React.useCallback(async (entry: any) => {
+        if (!settings) return;
+        const logs = settings.journalLogs ? [...settings.journalLogs] : [];
+        const existingIdx = logs.findIndex((l: any) => l.date === entry.date);
+        if (existingIdx >= 0) {
+            logs[existingIdx] = entry;
+        } else {
+            logs.push(entry);
+        }
+        await onSaveSettings({ ...settings, journalLogs: logs });
+    }, [settings, onSaveSettings]);
+
+    const saveTradingPlan = React.useCallback(async (plan: any) => {
+        if (!settings) return;
+        const plans = settings.tradingPlans ? [...settings.tradingPlans] : [];
+        const existingIdx = plans.findIndex((p: any) => p.date === plan.date);
+        if (existingIdx >= 0) {
+            plans[existingIdx] = plan;
+        } else {
+            plans.push(plan);
+        }
+        await onSaveSettings({ ...settings, tradingPlans: plans });
+    }, [settings, onSaveSettings]);
 
     // 订阅 trades 变化
     React.useEffect(() => {
@@ -107,5 +145,9 @@ export function useDashboardData({
         todayMarketCycle,
         refreshTrades,
         refreshStrategies,
+        journalLogs,
+        tradingPlans,
+        saveJournalLog,
+        saveTradingPlan,
     };
 }

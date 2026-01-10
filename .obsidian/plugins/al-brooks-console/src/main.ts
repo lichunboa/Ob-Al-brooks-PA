@@ -1,3 +1,4 @@
+import './ui/styles/dashboard.css';
 import { Notice, Plugin, WorkspaceLeaf, TFile } from "obsidian";
 import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
 import { ObsidianTradeIndex } from "./platforms/obsidian/obsidian-trade-index";
@@ -78,7 +79,11 @@ export default class AlBrooksConsolePlugin extends Plugin {
           this.integrations,
           this.manifest.version,
           () => this.settings,
-          (cb) => this.onSettingsChanged(cb)
+          (cb) => this.onSettingsChanged(cb),
+          async (s) => {
+            this.settings = s;
+            await this.saveSettings();
+          }
         )
     );
 
@@ -245,3 +250,4 @@ export default class AlBrooksConsolePlugin extends Plugin {
     }
   }
 }
+import './ui/styles/dashboard.css';

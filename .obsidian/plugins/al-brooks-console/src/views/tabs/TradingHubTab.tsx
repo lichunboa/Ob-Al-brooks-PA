@@ -13,10 +13,17 @@ import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
 import { MarketCyclePanel } from "../components/trading/MarketCyclePanel";
 import { TodayTradesSection } from "../components/trading/TodayTradesSection";
 
+import { PlanWidget } from "../components/plan/PlanWidget";
+import { DailyPlan } from "../../types/plan";
+
 /**
  * TradingHubTab Props接口
  */
 export interface TradingHubTabProps {
+  // 计划数据
+  todayPlan?: DailyPlan;
+  onGoToPlan: () => void;
+
   // 交易数据
   latestTrade: TradeRecord | null;
   openTrade: TradeRecord | null;
@@ -62,6 +69,8 @@ export interface TradingHubTabProps {
  */
 export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
   const {
+    todayPlan,
+    onGoToPlan,
     latestTrade,
     openTrade,
     todayTrades,
@@ -84,6 +93,10 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
   return (
     <>
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
+
+      <div style={{ marginBottom: "16px" }}>
+        <PlanWidget plan={todayPlan} onGoToPlan={onGoToPlan} />
+      </div>
 
       <ReviewHintsPanel
         latestTrade={latestTrade}

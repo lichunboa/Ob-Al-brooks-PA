@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Card } from "../../../ui/components/Card";
 
 /**
  * 健康状态面板组件
@@ -16,7 +17,6 @@ interface HealthStatusPanelProps {
     // 样式Props
     V5_COLORS: any;
     SPACE: any;
-    cardSubtleTightStyle: React.CSSProperties;
 }
 
 export const HealthStatusPanel: React.FC<HealthStatusPanelProps> = ({
@@ -27,7 +27,6 @@ export const HealthStatusPanel: React.FC<HealthStatusPanelProps> = ({
     schemaScanNote,
     V5_COLORS,
     SPACE,
-    cardSubtleTightStyle,
 }) => {
     // 计算健康分数
     const issueCount = schemaIssues.length;
@@ -66,7 +65,7 @@ export const HealthStatusPanel: React.FC<HealthStatusPanelProps> = ({
                 }}
             >
                 {/* 系统健康度卡片 */}
-                <div style={cardSubtleTightStyle}>
+                <Card variant="subtle-tight" style={{ flex: 1 }}>
                     <div
                         style={{
                             display: "flex",
@@ -128,10 +127,10 @@ export const HealthStatusPanel: React.FC<HealthStatusPanelProps> = ({
                             ✅ 系统非常健康（All Clear）
                         </div>
                     )}
-                </div>
+                </Card>
 
                 {/* 系统诊断卡片 */}
-                <div style={cardSubtleTightStyle}>
+                <Card variant="subtle-tight" style={{ flex: 1 }}>
                     <div
                         style={{
                             display: "flex",
@@ -217,7 +216,7 @@ export const HealthStatusPanel: React.FC<HealthStatusPanelProps> = ({
                             <span>✅ 可用</span>
                         </div>
                     </div>
-                </div>
+                </Card>
             </div>
         </div>
     );

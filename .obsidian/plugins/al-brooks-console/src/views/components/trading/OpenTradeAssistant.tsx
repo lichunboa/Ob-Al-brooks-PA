@@ -64,7 +64,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             >
                 <InteractiveButton
                     interaction="text"
-                    variant="text"
                     onClick={() => onOpenFile(openTrade.path)}
                 >
                     {openTrade.ticker ?? "未知"} • {openTrade.name}
@@ -77,7 +76,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         策略:{" "}
                         <InteractiveButton
                             interaction="text"
-                            variant="text"
                             onClick={() => onOpenFile(openTradeStrategy.path)}
                         >
                             {openTradeStrategy.canonicalName}
@@ -419,7 +417,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 {scored.map((s) => (
                                     <InteractiveButton
                                         key={`today-fallback-${s.path}`}
-                                        variant="default"
                                         onClick={() => onOpenFile(s.path)}
                                     >
                                         {s.canonicalName}

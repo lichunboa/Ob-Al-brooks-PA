@@ -108,7 +108,6 @@ export const PropertyManager: React.FC<PropertyManagerProps> = (props) => {
                         🛠️ 属性管理器
                     </div>
                     <Button
-                        variant="small"
                         onClick={handleScan}
                         disabled={managerBusy}
                     >

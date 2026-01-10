@@ -100,9 +100,6 @@ import {
   buttonSmDisabledStyle,
   buttonSmStyle,
   buttonStyle,
-  cardStyle,
-  cardSubtleTightStyle,
-  cardTightStyle,
   disabledButtonStyle,
   SPACE,
   selectStyle,
@@ -139,7 +136,6 @@ import {
   matchKeyToGroup,
 } from "../utils/search-utils";
 import { topN, countFiles, convertDailyAggToMap } from "../utils/aggregation-utils";
-import { getPoints, calculateRScale, seg } from "../utils/chart-utils";
 import { isImage, normalize, resolveCanonical } from "../utils/string-utils";
 import { resolveCanonicalStrategy, normalizeTag, calculateStrategyStats } from "../utils/strategy-utils";
 import {
@@ -164,6 +160,8 @@ import {
 } from "../utils/calendar-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
+import { JournalTab } from "./tabs/JournalTab";
+import { PlanTab } from "./tabs/PlanTab";
 import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
@@ -199,6 +197,7 @@ interface Props {
   ) => Promise<ManagerApplyResult>;
   createTradeNote?: () => Promise<void>;
   settings: AlBrooksConsoleSettings;
+  onSaveSettings: (settings: AlBrooksConsoleSettings) => Promise<void>;
   subscribeSettings?: (
     listener: (settings: AlBrooksConsoleSettings) => void
   ) => () => void;
@@ -241,6 +240,7 @@ const ConsoleComponent: React.FC<Props> = ({
   restoreFiles,
   createTradeNote,
   settings: initialSettings,
+  onSaveSettings,
   subscribeSettings,
   loadCourse,
   loadMemory,
@@ -253,10 +253,21 @@ const ConsoleComponent: React.FC<Props> = ({
   version,
 }) => {
   // 使用 useDashboardData Hook 管理核心数据
-  const { trades, strategies, status, todayMarketCycle } = useDashboardData({
+  const {
+    trades,
+    strategies,
+    status,
+    todayMarketCycle,
+    journalLogs,
+    tradingPlans,
+    saveJournalLog,
+    saveTradingPlan,
+  } = useDashboardData({
     index,
     strategyIndex,
     todayContext,
+    settings: initialSettings,
+    onSaveSettings,
   });
   // 使用 useAnalyticsState Hook 管理 Analytics Tab 状态
   const { analyticsScope, setAnalyticsScope, galleryScope, setGalleryScope } =
@@ -675,7 +686,7 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [status]);
 
-  type DashboardPage = "trading" | "analytics" | "learn" | "manage";
+  type DashboardPage = "trading" | "plan" | "journal" | "analytics" | "learn" | "manage";
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
 
 
@@ -1050,12 +1061,14 @@ const ConsoleComponent: React.FC<Props> = ({
 
   return (
     <div className="pa-dashboard">
-      <h2 className="pa-dashboard-title">
-        🦁 交易员控制台
-        <span className="pa-dashboard-title-meta">（Dashboard）</span>
-        <span className="pa-dashboard-title-meta">v{version}</span>
-        <span className="pa-dashboard-title-meta">{statusText}</span>
-        <span className="pa-dashboard-title-actions">
+      <div className="pa-dashboard-header">
+        <div className="pa-dashboard-title">
+          🦁 交易员控制台
+          <span className="pa-dashboard-meta">（Dashboard）</span>
+          <span className="pa-dashboard-meta">v{version}</span>
+          <span className="pa-dashboard-meta">{statusText}</span>
+        </div>
+        <div className="pa-dashboard-actions">
           <InteractiveButton
             interaction="lift"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
@@ -1084,13 +1097,15 @@ const ConsoleComponent: React.FC<Props> = ({
               重建索引
             </InteractiveButton>
           ) : null}
-        </span>
-      </h2>
+        </div>
+      </div>
 
       <div className="pa-tabbar">
         {(
           [
             { id: "trading", label: "交易中心" },
+            { id: "plan", label: "盘前计划" },
+            { id: "journal", label: "交易日志" },
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
             { id: "manage", label: "管理/维护" },
@@ -1112,6 +1127,8 @@ const ConsoleComponent: React.FC<Props> = ({
           latestTrade={latestTrade}
           openTrade={openTrade}
           todayTrades={todayTrades}
+          todayPlan={tradingPlans.find(p => p.date === window.moment().format("YYYY-MM-DD"))}
+          onGoToPlan={() => setActivePage("plan")}
           openTradeStrategy={openTradeStrategy}
           todayStrategyPicks={todayStrategyPicks}
           strategyIndex={strategyIndex}
@@ -1127,6 +1144,22 @@ const ConsoleComponent: React.FC<Props> = ({
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
           MarkdownBlock={MarkdownBlock}
+        />
+      ) : null}
+
+      {activePage === "plan" ? (
+        <PlanTab
+          tradingPlans={tradingPlans}
+          onSavePlan={saveTradingPlan}
+        />
+      ) : null}
+
+      {activePage === "journal" ? (
+        <JournalTab
+          journalLogs={journalLogs}
+          onSaveLog={saveJournalLog}
+          trades={trades}
+          onOpenFile={openFile}
         />
       ) : null}
 
@@ -1156,13 +1189,10 @@ const ConsoleComponent: React.FC<Props> = ({
           openFile={openFile}
           getResourceUrl={getResourceUrl}
           textButtonStyle={textButtonStyle}
-          cardTightStyle={cardTightStyle}
-          cardSubtleTightStyle={cardSubtleTightStyle}
           selectStyle={selectStyle}
           SPACE={SPACE}
           getDayOfMonth={getDayOfMonth}
           getRColorByAccountType={getRColorByAccountType}
-          getPoints={getPoints}
           CYCLE_MAP={CYCLE_MAP}
         />
       ) : null}
@@ -1202,7 +1232,6 @@ const ConsoleComponent: React.FC<Props> = ({
           textButtonSemiboldStyle={textButtonSemiboldStyle}
           textButtonNoWrapStyle={textButtonNoWrapStyle}
           V5_COLORS={V5_COLORS}
-          seg={seg}
           simpleCourseId={simpleCourseId}
           isActive={isActive}
         />
@@ -1267,6 +1296,7 @@ export class ConsoleView extends ItemView {
   private subscribeSettings: (
     listener: (settings: AlBrooksConsoleSettings) => void
   ) => () => void;
+  private saveSettings: (settings: AlBrooksConsoleSettings) => Promise<void>;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -1278,7 +1308,8 @@ export class ConsoleView extends ItemView {
     getSettings: () => AlBrooksConsoleSettings,
     subscribeSettings: (
       listener: (settings: AlBrooksConsoleSettings) => void
-    ) => () => void
+    ) => () => void,
+    saveSettings: (settings: AlBrooksConsoleSettings) => Promise<void>
   ) {
     super(leaf);
     this.index = index;
@@ -1288,6 +1319,7 @@ export class ConsoleView extends ItemView {
     this.version = version;
     this.getSettings = getSettings;
     this.subscribeSettings = subscribeSettings;
+    this.saveSettings = saveSettings;
   }
 
   getViewType() {
@@ -1879,6 +1911,7 @@ export class ConsoleView extends ItemView {
           createTradeNote={createTradeNote}
           settings={this.getSettings()}
           subscribeSettings={this.subscribeSettings}
+          onSaveSettings={this.saveSettings}
           loadCourse={loadCourse}
           loadMemory={loadMemory}
           promptText={promptText}
