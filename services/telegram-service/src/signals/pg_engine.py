@@ -340,13 +340,29 @@ class PGSignalRules:
         return None
 
 
+import re
+
+# 符号白名单正则：仅允许大写字母、数字、下划线，长度2-20
+_SYMBOL_PATTERN = re.compile(r'^[A-Z0-9_]{2,20}$')
+
+def _validate_symbols(symbols: List[str]) -> List[str]:
+    """校验并过滤符号列表，防止SQL注入"""
+    validated = []
+    for s in symbols:
+        if isinstance(s, str) and _SYMBOL_PATTERN.match(s):
+            validated.append(s)
+        else:
+            logger.warning(f"Invalid symbol rejected: {s!r}")
+    return validated
+
+
 def _get_default_symbols() -> List[str]:
     """从统一配置获取监控币种"""
     try:
         from libs.common.symbols import get_configured_symbols
         symbols = get_configured_symbols()
         if symbols:
-            return symbols
+            return _validate_symbols(symbols)
     except Exception as e:
         logger.warning(f"获取配置币种失败，使用默认: {e}")
     # 默认 main4
@@ -358,7 +374,9 @@ class PGSignalEngine:
     
     def __init__(self, db_url: str = None, symbols: List[str] = None, lang: str = None):
         self.db_url = db_url or _get_db_url()
-        self.symbols = symbols or _get_default_symbols()
+        # 传入的符号也需要验证
+        raw_symbols = symbols or _get_default_symbols()
+        self.symbols = _validate_symbols(raw_symbols) if symbols else raw_symbols
         self.lang = lang
         self.callbacks: List[Callable] = []
         self.baseline_candles: Dict[str, Dict] = {}
@@ -403,21 +421,21 @@ class PGSignalEngine:
         
         result = {}
         try:
-            symbols_str = ",".join(f"'{s}'" for s in self.symbols)
-            query = f"""
+            # 参数化查询防止SQL注入
+            query = """
                 WITH ranked AS (
                     SELECT symbol, bucket_ts, open, high, low, close, volume, 
                            quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume,
                            ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY bucket_ts DESC) as rn
                     FROM market_data.candles_1m
-                    WHERE symbol IN ({symbols_str})
+                    WHERE symbol = ANY(%s)
                 )
                 SELECT symbol, bucket_ts, open, high, low, close, volume, 
                        quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume
                 FROM ranked WHERE rn = 1
             """
             with conn.cursor() as cur:
-                cur.execute(query)
+                cur.execute(query, (self.symbols,))
                 for row in cur.fetchall():
                     result[row[0]] = {
                         "symbol": row[0],
@@ -445,15 +463,15 @@ class PGSignalEngine:
         
         result = {}
         try:
-            symbols_str = ",".join(f"'{s}'" for s in self.symbols)
-            query = f"""
+            # 参数化查询防止SQL注入
+            query = """
                 WITH ranked AS (
                     SELECT symbol, create_time, sum_open_interest, sum_open_interest_value,
                            count_toptrader_long_short_ratio, sum_toptrader_long_short_ratio,
                            count_long_short_ratio, sum_taker_long_short_vol_ratio,
                            ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY create_time DESC) as rn
                     FROM market_data.binance_futures_metrics_5m
-                    WHERE symbol IN ({symbols_str})
+                    WHERE symbol = ANY(%s)
                 )
                 SELECT symbol, create_time, sum_open_interest, sum_open_interest_value,
                        count_toptrader_long_short_ratio, sum_toptrader_long_short_ratio,
@@ -461,7 +479,7 @@ class PGSignalEngine:
                 FROM ranked WHERE rn = 1
             """
             with conn.cursor() as cur:
-                cur.execute(query)
+                cur.execute(query, (self.symbols,))
                 for row in cur.fetchall():
                     result[row[0]] = {
                         "symbol": row[0],

@@ -6784,12 +6784,27 @@ def main():
             from signals.pg_engine import start_pg_signal_loop, get_pg_engine
             from signals.pg_formatter import get_pg_formatter
             from signals.ui import get_signal_push_kb, _get_subscribers
+            import asyncio
+            import time
+            from collections import deque
 
             pg_formatter = get_pg_formatter()
+            
+            # 速率限制：最大30条/分钟
+            _pg_push_times = deque(maxlen=30)
+            _PG_RATE_LIMIT = 30
+            _PG_RATE_WINDOW = 60
 
             def on_pg_signal(signal, formatted_msg):
-                """PG信号回调 - 推送给订阅用户"""
-                import asyncio
+                """PG信号回调 - 推送给订阅用户（复用主事件循环+速率限制）"""
+                # 速率限制检查
+                now = time.time()
+                while _pg_push_times and _pg_push_times[0] < now - _PG_RATE_WINDOW:
+                    _pg_push_times.popleft()
+                if len(_pg_push_times) >= _PG_RATE_LIMIT:
+                    logger.warning(f"PG信号推送速率限制，跳过: {signal.symbol} - {signal.signal_type}")
+                    return
+                _pg_push_times.append(now)
 
                 async def push():
                     subscribers = _get_subscribers()
@@ -6804,10 +6819,17 @@ def main():
                         except Exception as e:
                             logger.warning(f"PG信号推送给 {uid} 失败: {e}")
 
-                # 在新事件循环中运行
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(push())
-                loop.close()
+                # 使用 run_coroutine_threadsafe 投递到主事件循环
+                try:
+                    main_loop = asyncio.get_event_loop()
+                    if main_loop.is_running():
+                        asyncio.run_coroutine_threadsafe(push(), main_loop)
+                    else:
+                        # 回退：创建新循环（不推荐，仅兜底）
+                        asyncio.run(push())
+                except RuntimeError:
+                    # 无法获取事件循环时，使用 asyncio.run
+                    asyncio.run(push())
 
             # 注册回调并启动（币种从 SYMBOLS_GROUPS 配置继承）
             engine = get_pg_engine()  # 自动从 libs/common/symbols 获取配置
