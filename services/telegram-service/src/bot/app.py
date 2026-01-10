@@ -6768,10 +6768,49 @@ def main():
 
             init_pusher(send_signal)
             start_signal_loop(interval=60)
-            logger.info("✅ 信号检测服务已启动")
-            print("🔔 信号检测服务已启动，间隔60秒")
+            logger.info("✅ SQLite信号检测服务已启动")
+            print("🔔 SQLite信号检测服务已启动，间隔60秒")
         except Exception as e:
-            logger.warning(f"⚠️ 信号服务启动失败: {e}")
+            logger.warning(f"⚠️ SQLite信号服务启动失败: {e}")
+
+        # 启动 PG 实时信号检测服务
+        try:
+            from signals.pg_engine import start_pg_signal_loop, get_pg_engine
+            from signals.pg_formatter import get_pg_formatter
+            from signals.ui import get_signal_push_kb, _get_subscribers
+
+            pg_formatter = get_pg_formatter()
+
+            def on_pg_signal(signal, formatted_msg):
+                """PG信号回调 - 推送给订阅用户"""
+                import asyncio
+
+                async def push():
+                    subscribers = _get_subscribers()
+                    kb = get_signal_push_kb(signal.symbol)
+                    for uid in subscribers:
+                        try:
+                            await application.bot.send_message(
+                                chat_id=uid,
+                                text=formatted_msg,
+                                reply_markup=kb
+                            )
+                        except Exception as e:
+                            logger.warning(f"PG信号推送给 {uid} 失败: {e}")
+
+                # 在新事件循环中运行
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(push())
+                loop.close()
+
+            # 注册回调并启动
+            engine = get_pg_engine(symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+            engine.register_callback(on_pg_signal)
+            start_pg_signal_loop(interval=60, symbols=["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+            logger.info("✅ PG实时信号检测服务已启动")
+            print("🔔 PG实时信号检测服务已启动，间隔60秒")
+        except Exception as e:
+            logger.warning(f"⚠️ PG信号服务启动失败: {e}")
 
         # 显式阻塞主线程：close_loop=True 交由库关闭事件循环，stop_signals=None 避免额外信号干扰
         application.run_polling(

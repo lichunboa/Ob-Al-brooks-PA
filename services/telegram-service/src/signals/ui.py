@@ -112,6 +112,18 @@ def _save_sub(uid: int, sub: Dict):
 _init_db()
 
 
+def _get_subscribers() -> list:
+    """获取所有启用推送的用户ID列表"""
+    try:
+        conn = sqlite3.connect(SUBS_DB_PATH)
+        rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
+        conn.close()
+        return [r[0] for r in rows]
+    except Exception as e:
+        logger.warning(f"获取订阅用户失败: {e}")
+        return []
+
+
 def get_sub(uid: int) -> Dict:
     if uid not in _subs:
         # 先从数据库加载

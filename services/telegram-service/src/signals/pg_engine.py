@@ -18,19 +18,37 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 
 def _get_db_url() -> str:
     """获取数据库连接URL"""
-    # 优先从环境变量读取
     url = os.environ.get("DATABASE_URL")
     if url:
         return url
-    # 尝试从 config/.env 读取
     env_file = os.path.join(_PROJECT_ROOT, "config", ".env")
     if os.path.exists(env_file):
         with open(env_file) as f:
             for line in f:
                 if line.startswith("DATABASE_URL="):
                     return line.strip().split("=", 1)[1].strip('"\'')
-    # 默认值
     return "postgresql://postgres:postgres@localhost:5433/market_data"
+
+
+def _get_i18n():
+    """获取 i18n 翻译函数"""
+    try:
+        from bot.app import I18N
+        return lambda key, lang=None, **kw: I18N.gettext(key, lang=lang, **kw)
+    except ImportError:
+        return lambda key, lang=None, **kw: key
+
+
+def _t(key: str, lang: Optional[str] = None, **kwargs) -> str:
+    """翻译辅助函数"""
+    i18n_func = _get_i18n()
+    text = i18n_func(key, lang)
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except (KeyError, ValueError):
+            return text
+    return text
 
 
 @dataclass
@@ -54,8 +72,10 @@ class PGSignal:
 class PGSignalRules:
     """基于PG数据的信号规则集"""
     
-    @staticmethod
-    def check_price_surge(curr: Dict, prev: Dict, threshold_pct: float = 3.0) -> Optional[PGSignal]:
+    def __init__(self, lang: str = None):
+        self.lang = lang
+    
+    def check_price_surge(self, curr: Dict, prev: Dict, threshold_pct: float = 3.0) -> Optional[PGSignal]:
         """价格急涨信号 - 5分钟涨幅超过阈值"""
         if not prev or not curr:
             return None
@@ -66,12 +86,13 @@ class PGSignalRules:
                 return None
             change_pct = (curr_close - prev_close) / prev_close * 100
             if change_pct >= threshold_pct:
+                msg = _t("signal.pg.msg.price_surge", self.lang, pct=f"{change_pct:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="price_surge",
                     direction="BUY",
                     strength=min(90, int(50 + change_pct * 10)),
-                    message=f"🚀 价格急涨! 5分钟涨幅 {change_pct:.2f}%",
+                    message=msg,
                     price=curr_close,
                     extra={"change_pct": change_pct}
                 )
@@ -79,8 +100,7 @@ class PGSignalRules:
             logger.warning(f"check_price_surge error: {e}")
         return None
     
-    @staticmethod
-    def check_price_dump(curr: Dict, prev: Dict, threshold_pct: float = 3.0) -> Optional[PGSignal]:
+    def check_price_dump(self, curr: Dict, prev: Dict, threshold_pct: float = 3.0) -> Optional[PGSignal]:
         """价格急跌信号 - 5分钟跌幅超过阈值"""
         if not prev or not curr:
             return None
@@ -91,12 +111,13 @@ class PGSignalRules:
                 return None
             change_pct = (curr_close - prev_close) / prev_close * 100
             if change_pct <= -threshold_pct:
+                msg = _t("signal.pg.msg.price_dump", self.lang, pct=f"{abs(change_pct):.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="price_dump",
                     direction="SELL",
                     strength=min(90, int(50 + abs(change_pct) * 10)),
-                    message=f"💥 价格急跌! 5分钟跌幅 {change_pct:.2f}%",
+                    message=msg,
                     price=curr_close,
                     extra={"change_pct": change_pct}
                 )
@@ -104,8 +125,7 @@ class PGSignalRules:
             logger.warning(f"check_price_dump error: {e}")
         return None
     
-    @staticmethod
-    def check_volume_spike(curr: Dict, prev: Dict, multiplier: float = 5.0) -> Optional[PGSignal]:
+    def check_volume_spike(self, curr: Dict, prev: Dict, multiplier: float = 5.0) -> Optional[PGSignal]:
         """成交量异常放大信号"""
         if not prev or not curr:
             return None
@@ -116,12 +136,14 @@ class PGSignalRules:
                 return None
             vol_ratio = curr_vol / prev_vol
             if vol_ratio >= multiplier:
+                msg = _t("signal.pg.msg.volume_spike", self.lang, 
+                        ratio=f"{vol_ratio:.1f}", vol=f"{curr_vol/1e6:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="volume_spike",
                     direction="ALERT",
                     strength=min(85, int(50 + vol_ratio * 5)),
-                    message=f"📊 成交量暴增! {vol_ratio:.1f}倍 ({curr_vol/1e6:.2f}M)",
+                    message=msg,
                     price=float(curr.get("close", 0)),
                     extra={"vol_ratio": vol_ratio, "quote_volume": curr_vol}
                 )
@@ -129,8 +151,7 @@ class PGSignalRules:
             logger.warning(f"check_volume_spike error: {e}")
         return None
     
-    @staticmethod
-    def check_taker_buy_dominance(curr: Dict, threshold: float = 0.7) -> Optional[PGSignal]:
+    def check_taker_buy_dominance(self, curr: Dict, threshold: float = 0.7) -> Optional[PGSignal]:
         """主动买入占比异常高"""
         if not curr:
             return None
@@ -141,12 +162,14 @@ class PGSignalRules:
                 return None
             buy_ratio = taker_buy / total_vol
             if buy_ratio >= threshold:
+                msg = _t("signal.pg.msg.taker_buy", self.lang, 
+                        pct=f"{buy_ratio*100:.1f}", threshold=f"{threshold*100:.0f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_buy_dominance",
                     direction="BUY",
                     strength=int(60 + buy_ratio * 30),
-                    message=f"🟢 主动买入占比 {buy_ratio*100:.1f}% (>{threshold*100:.0f}%)",
+                    message=msg,
                     price=float(curr.get("close", 0)),
                     extra={"buy_ratio": buy_ratio}
                 )
@@ -154,8 +177,7 @@ class PGSignalRules:
             logger.warning(f"check_taker_buy_dominance error: {e}")
         return None
     
-    @staticmethod
-    def check_taker_sell_dominance(curr: Dict, threshold: float = 0.7) -> Optional[PGSignal]:
+    def check_taker_sell_dominance(self, curr: Dict, threshold: float = 0.7) -> Optional[PGSignal]:
         """主动卖出占比异常高"""
         if not curr:
             return None
@@ -166,12 +188,14 @@ class PGSignalRules:
                 return None
             sell_ratio = 1 - taker_buy / total_vol
             if sell_ratio >= threshold:
+                msg = _t("signal.pg.msg.taker_sell", self.lang,
+                        pct=f"{sell_ratio*100:.1f}", threshold=f"{threshold*100:.0f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_sell_dominance",
                     direction="SELL",
                     strength=int(60 + sell_ratio * 30),
-                    message=f"🔴 主动卖出占比 {sell_ratio*100:.1f}% (>{threshold*100:.0f}%)",
+                    message=msg,
                     price=float(curr.get("close", 0)),
                     extra={"sell_ratio": sell_ratio}
                 )
@@ -179,8 +203,7 @@ class PGSignalRules:
             logger.warning(f"check_taker_sell_dominance error: {e}")
         return None
     
-    @staticmethod
-    def check_oi_surge(curr: Dict, prev: Dict, threshold_pct: float = 5.0) -> Optional[PGSignal]:
+    def check_oi_surge(self, curr: Dict, prev: Dict, threshold_pct: float = 5.0) -> Optional[PGSignal]:
         """持仓量急增信号"""
         if not prev or not curr:
             return None
@@ -191,20 +214,21 @@ class PGSignalRules:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
             if change_pct >= threshold_pct:
+                msg = _t("signal.pg.msg.oi_surge", self.lang,
+                        pct=f"{change_pct:.2f}", oi=f"{curr_oi/1e9:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_surge",
                     direction="ALERT",
                     strength=min(80, int(55 + change_pct * 3)),
-                    message=f"📈 持仓量急增! 5分钟增加 {change_pct:.2f}% (${curr_oi/1e9:.2f}B)",
+                    message=msg,
                     extra={"oi_change_pct": change_pct, "oi_value": curr_oi}
                 )
         except Exception as e:
             logger.warning(f"check_oi_surge error: {e}")
         return None
     
-    @staticmethod
-    def check_oi_dump(curr: Dict, prev: Dict, threshold_pct: float = 5.0) -> Optional[PGSignal]:
+    def check_oi_dump(self, curr: Dict, prev: Dict, threshold_pct: float = 5.0) -> Optional[PGSignal]:
         """持仓量急减信号"""
         if not prev or not curr:
             return None
@@ -215,96 +239,100 @@ class PGSignalRules:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
             if change_pct <= -threshold_pct:
+                msg = _t("signal.pg.msg.oi_dump", self.lang,
+                        pct=f"{abs(change_pct):.2f}", oi=f"{curr_oi/1e9:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_dump",
                     direction="ALERT",
                     strength=min(80, int(55 + abs(change_pct) * 3)),
-                    message=f"📉 持仓量急减! 5分钟减少 {abs(change_pct):.2f}% (${curr_oi/1e9:.2f}B)",
+                    message=msg,
                     extra={"oi_change_pct": change_pct, "oi_value": curr_oi}
                 )
         except Exception as e:
             logger.warning(f"check_oi_dump error: {e}")
         return None
     
-    @staticmethod
-    def check_top_trader_extreme_long(curr: Dict, threshold: float = 3.0) -> Optional[PGSignal]:
+    def check_top_trader_extreme_long(self, curr: Dict, threshold: float = 3.0) -> Optional[PGSignal]:
         """大户极度看多"""
         if not curr:
             return None
         try:
             ratio = float(curr.get("count_toptrader_long_short_ratio", 1))
             if ratio >= threshold:
+                msg = _t("signal.pg.msg.top_long", self.lang,
+                        ratio=f"{ratio:.2f}", threshold=f"{threshold}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_long",
                     direction="ALERT",
                     strength=min(85, int(60 + ratio * 8)),
-                    message=f"⚠️ 大户极度看多! 多空比 {ratio:.2f} (>{threshold})",
+                    message=msg,
                     extra={"top_trader_ratio": ratio}
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_long error: {e}")
         return None
     
-    @staticmethod
-    def check_top_trader_extreme_short(curr: Dict, threshold: float = 0.5) -> Optional[PGSignal]:
+    def check_top_trader_extreme_short(self, curr: Dict, threshold: float = 0.5) -> Optional[PGSignal]:
         """大户极度看空"""
         if not curr:
             return None
         try:
             ratio = float(curr.get("count_toptrader_long_short_ratio", 1))
             if ratio <= threshold:
+                msg = _t("signal.pg.msg.top_short", self.lang,
+                        ratio=f"{ratio:.2f}", threshold=f"{threshold}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_short",
                     direction="ALERT",
                     strength=min(85, int(60 + (1/ratio) * 5)),
-                    message=f"⚠️ 大户极度看空! 多空比 {ratio:.2f} (<{threshold})",
+                    message=msg,
                     extra={"top_trader_ratio": ratio}
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_short error: {e}")
         return None
     
-    @staticmethod
-    def check_taker_ratio_flip_long(curr: Dict, prev: Dict) -> Optional[PGSignal]:
+    def check_taker_ratio_flip_long(self, curr: Dict, prev: Dict) -> Optional[PGSignal]:
         """主动成交多空比翻多"""
         if not prev or not curr:
             return None
         try:
             curr_ratio = float(curr.get("sum_taker_long_short_vol_ratio", 1))
             prev_ratio = float(prev.get("sum_taker_long_short_vol_ratio", 1))
-            # 从小于1翻到大于1.2
             if prev_ratio < 1.0 and curr_ratio >= 1.2:
+                msg = _t("signal.pg.msg.taker_flip_long", self.lang,
+                        prev=f"{prev_ratio:.2f}", curr=f"{curr_ratio:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_long",
                     direction="BUY",
                     strength=70,
-                    message=f"🔄 主动成交翻多! {prev_ratio:.2f} → {curr_ratio:.2f}",
+                    message=msg,
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio}
                 )
         except Exception as e:
             logger.warning(f"check_taker_ratio_flip_long error: {e}")
         return None
     
-    @staticmethod
-    def check_taker_ratio_flip_short(curr: Dict, prev: Dict) -> Optional[PGSignal]:
+    def check_taker_ratio_flip_short(self, curr: Dict, prev: Dict) -> Optional[PGSignal]:
         """主动成交多空比翻空"""
         if not prev or not curr:
             return None
         try:
             curr_ratio = float(curr.get("sum_taker_long_short_vol_ratio", 1))
             prev_ratio = float(prev.get("sum_taker_long_short_vol_ratio", 1))
-            # 从大于1翻到小于0.8
             if prev_ratio > 1.0 and curr_ratio <= 0.8:
+                msg = _t("signal.pg.msg.taker_flip_short", self.lang,
+                        prev=f"{prev_ratio:.2f}", curr=f"{curr_ratio:.2f}")
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_short",
                     direction="SELL",
                     strength=70,
-                    message=f"🔄 主动成交翻空! {prev_ratio:.2f} → {curr_ratio:.2f}",
+                    message=msg,
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio}
                 )
         except Exception as e:
@@ -315,14 +343,15 @@ class PGSignalRules:
 class PGSignalEngine:
     """基于 TimescaleDB 的信号检测引擎"""
     
-    def __init__(self, db_url: str = None, symbols: List[str] = None):
+    def __init__(self, db_url: str = None, symbols: List[str] = None, lang: str = None):
         self.db_url = db_url or _get_db_url()
         self.symbols = symbols or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+        self.lang = lang
         self.callbacks: List[Callable] = []
-        self.baseline_candles: Dict[str, Dict] = {}  # {symbol: last_candle}
-        self.baseline_metrics: Dict[str, Dict] = {}  # {symbol: last_metrics}
-        self.cooldowns: Dict[str, float] = {}  # {signal_key: last_trigger_time}
-        self.cooldown_seconds = 300  # 5分钟冷却
+        self.baseline_candles: Dict[str, Dict] = {}
+        self.baseline_metrics: Dict[str, Dict] = {}
+        self.cooldowns: Dict[str, float] = {}
+        self.cooldown_seconds = 300
         self._conn = None
         self.stats = {"checks": 0, "signals": 0, "errors": 0}
     
@@ -362,7 +391,6 @@ class PGSignalEngine:
         result = {}
         try:
             symbols_str = ",".join(f"'{s}'" for s in self.symbols)
-            # 获取每个币种最新的2条K线（用于对比）
             query = f"""
                 WITH ranked AS (
                     SELECT symbol, bucket_ts, open, high, low, close, volume, 
@@ -405,7 +433,6 @@ class PGSignalEngine:
         result = {}
         try:
             symbols_str = ",".join(f"'{s}'" for s in self.symbols)
-            # 获取每个币种最新的期货指标
             query = f"""
                 WITH ranked AS (
                     SELECT symbol, create_time, sum_open_interest, sum_open_interest_value,
@@ -443,11 +470,10 @@ class PGSignalEngine:
         signals = []
         self.stats["checks"] += 1
         
-        # 获取最新数据
         candles = self._fetch_latest_candles()
         metrics = self._fetch_latest_metrics()
         
-        rules = PGSignalRules()
+        rules = PGSignalRules(lang=self.lang)
         
         for symbol in self.symbols:
             curr_candle = candles.get(symbol)
@@ -458,7 +484,6 @@ class PGSignalEngine:
             if not curr_candle:
                 continue
             
-            # K线相关信号
             checkers = [
                 (rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
                 (rules.check_price_dump, [curr_candle, prev_candle, 2.0]),
@@ -467,7 +492,6 @@ class PGSignalEngine:
                 (rules.check_taker_sell_dominance, [curr_candle, 0.7]),
             ]
             
-            # 期货指标信号
             if curr_metric:
                 checkers.extend([
                     (rules.check_oi_surge, [curr_metric, prev_metric, 3.0]),
@@ -488,11 +512,16 @@ class PGSignalEngine:
                             self._set_cooldown(signal_key)
                             self.stats["signals"] += 1
                             logger.info(f"PG Signal: {signal.symbol} - {signal.signal_type}")
+                            # 保存到历史记录
+                            try:
+                                from .history import get_history
+                                get_history().save(signal, source="pg")
+                            except Exception as he:
+                                logger.warning(f"Save history error: {he}")
                 except Exception as e:
                     logger.warning(f"Check error: {e}")
                     self.stats["errors"] += 1
             
-            # 更新基线
             self.baseline_candles[symbol] = curr_candle
             if curr_metric:
                 self.baseline_metrics[symbol] = curr_metric
@@ -502,10 +531,9 @@ class PGSignalEngine:
     def notify(self, signals: List[PGSignal]):
         """通知回调"""
         from .pg_formatter import get_pg_formatter
-        formatter = get_pg_formatter()
+        formatter = get_pg_formatter(lang=self.lang or "zh")
         
         for signal in signals:
-            # 使用模板格式化消息
             formatted_msg = formatter.format(signal)
             for callback in self.callbacks:
                 try:
@@ -541,24 +569,23 @@ class PGSignalEngine:
         }
 
 
-# 单例
 _pg_engine: Optional[PGSignalEngine] = None
 _pg_engine_lock = threading.Lock()
 
-def get_pg_engine(symbols: List[str] = None) -> PGSignalEngine:
+def get_pg_engine(symbols: List[str] = None, lang: str = None) -> PGSignalEngine:
     """获取PG信号引擎单例"""
     global _pg_engine
     if _pg_engine is None:
         with _pg_engine_lock:
             if _pg_engine is None:
-                _pg_engine = PGSignalEngine(symbols=symbols)
+                _pg_engine = PGSignalEngine(symbols=symbols, lang=lang)
     return _pg_engine
 
 
-def start_pg_signal_loop(interval: int = 60, symbols: List[str] = None):
+def start_pg_signal_loop(interval: int = 60, symbols: List[str] = None, lang: str = None):
     """在后台线程启动PG信号检测循环"""
     def run():
-        engine = get_pg_engine(symbols)
+        engine = get_pg_engine(symbols, lang)
         engine.run_loop(interval=interval)
     
     thread = threading.Thread(target=run, daemon=True, name="PGSignalEngine")

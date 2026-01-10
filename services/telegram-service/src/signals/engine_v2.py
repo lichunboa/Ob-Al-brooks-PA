@@ -262,6 +262,13 @@ class SignalEngine:
                                     self.stats["signals"] += 1
 
                                     logger.info(f"信号触发: {symbol} {rule.direction} - {rule.name} ({timeframe})")
+                                    
+                                    # 保存到历史记录
+                                    try:
+                                        from .history import get_history
+                                        get_history().save(signal, source="sqlite")
+                                    except Exception as he:
+                                        logger.warning(f"保存历史记录失败: {he}")
                         except Exception as e:
                             self.stats["errors"] += 1
                             logger.warning(f"规则检查异常 {rule.name}: {e}")
