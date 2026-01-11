@@ -8,8 +8,12 @@ import os
 import sqlite3
 import threading
 
-from ..config import get_subscription_db_path
-from ..rules import RULES_BY_TABLE
+try:
+    from ..config import get_subscription_db_path
+    from ..rules import RULES_BY_TABLE
+except ImportError:
+    from config import get_subscription_db_path
+    from rules import RULES_BY_TABLE
 
 logger = logging.getLogger(__name__)
 

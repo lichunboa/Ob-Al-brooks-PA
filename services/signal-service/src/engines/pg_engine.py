@@ -14,8 +14,13 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ..config import COOLDOWN_SECONDS, get_database_url
-from ..events import SignalEvent, SignalPublisher
+try:
+    from ..config import COOLDOWN_SECONDS, get_database_url
+    from ..events import SignalEvent, SignalPublisher
+except ImportError:
+    from config import COOLDOWN_SECONDS, get_database_url
+    from events import SignalEvent, SignalPublisher
+
 from .base import BaseEngine
 
 logger = logging.getLogger(__name__)
@@ -52,17 +57,90 @@ def _validate_symbols(symbols: list[str]) -> list[str]:
     return validated
 
 
-def _get_default_symbols() -> list[str]:
-    """从统一配置获取监控币种"""
-    try:
-        from libs.common.symbols import get_configured_symbols
+def _load_env_file() -> dict:
+    """加载 config/.env 文件"""
+    from pathlib import Path
 
-        symbols = get_configured_symbols()
+    # 查找 config/.env
+    current = Path(__file__).resolve()
+    for _ in range(6):  # 最多向上查找 6 层
+        current = current.parent
+        env_file = current / "config" / ".env"
+        if env_file.exists():
+            result = {}
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    result[k.strip()] = v.strip().strip("\"'")
+            return result
+    return {}
+
+
+def _get_default_symbols() -> list[str]:
+    """
+    从全局配置获取监控币种
+
+    读取 config/.env 中的配置：
+    - SIGNAL_SYMBOLS: 直接指定（优先级最高）
+    - SYMBOLS_GROUPS + SYMBOLS_GROUP_*: 分组配置
+    - SYMBOLS_EXTRA / SYMBOLS_EXCLUDE: 额外添加/排除
+    """
+    import os
+
+    env = _load_env_file()
+
+    # 优先读取 SIGNAL_SYMBOLS（signal-service 专用）
+    direct = os.environ.get("SIGNAL_SYMBOLS", env.get("SIGNAL_SYMBOLS", "")).strip()
+    if direct:
+        symbols = [s.strip().upper() for s in direct.split(",") if s.strip()]
         if symbols:
             return _validate_symbols(symbols)
-    except Exception as e:
-        logger.warning(f"获取配置币种失败，使用默认: {e}")
-    return ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+
+    # 读取 SYMBOLS_GROUPS
+    groups_str = os.environ.get("SYMBOLS_GROUPS", env.get("SYMBOLS_GROUPS", "main4")).strip().lower()
+
+    # 加载所有分组定义
+    all_groups = {}
+    for key in list(os.environ.keys()) + list(env.keys()):
+        if key.startswith("SYMBOLS_GROUP_"):
+            name = key[14:].lower()
+            val = os.environ.get(key, env.get(key, ""))
+            if val:
+                all_groups[name] = [s.strip().upper() for s in val.split(",") if s.strip()]
+
+    # 解析选中的分组
+    selected = [g.strip() for g in groups_str.split(",") if g.strip()]
+
+    # auto/all 返回默认
+    if "auto" in selected or "all" in selected:
+        return _DEFAULT_SYMBOLS
+
+    # 收集币种
+    symbols = set()
+    for g in selected:
+        if g in all_groups:
+            symbols.update(all_groups[g])
+
+    # 额外添加
+    extra = os.environ.get("SYMBOLS_EXTRA", env.get("SYMBOLS_EXTRA", ""))
+    if extra:
+        symbols.update(s.strip().upper() for s in extra.split(",") if s.strip())
+
+    # 强制排除
+    exclude = os.environ.get("SYMBOLS_EXCLUDE", env.get("SYMBOLS_EXCLUDE", ""))
+    if exclude:
+        for s in exclude.split(","):
+            symbols.discard(s.strip().upper())
+
+    if symbols:
+        return _validate_symbols(sorted(symbols))
+
+    return _DEFAULT_SYMBOLS
+
+
+# 默认币种（main4）
+_DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
 
 
 class PGSignalRules:

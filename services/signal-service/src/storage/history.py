@@ -11,7 +11,10 @@ import threading
 from contextlib import contextmanager, suppress
 from datetime import datetime, timedelta
 
-from ..config import get_history_db_path
+try:
+    from ..config import get_history_db_path
+except ImportError:
+    from config import get_history_db_path
 
 logger = logging.getLogger(__name__)
 

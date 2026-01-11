@@ -9,9 +9,15 @@ import threading
 import time
 from collections.abc import Callable
 
-from ..config import get_sqlite_path
-from ..events import SignalEvent, SignalPublisher
-from ..rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+try:
+    from ..config import get_sqlite_path
+    from ..events import SignalEvent, SignalPublisher
+    from ..rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+except ImportError:
+    from config import get_sqlite_path
+    from events import SignalEvent, SignalPublisher
+    from rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+
 from .base import BaseEngine, Signal
 
 logger = logging.getLogger(__name__)
