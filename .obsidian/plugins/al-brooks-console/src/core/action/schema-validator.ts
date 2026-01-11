@@ -326,10 +326,20 @@ export class SchemaValidator {
         record: Partial<TradeRecord>,
         schema: RecordSchema
     ): ValidationResult {
-        // TODO: 实现
+        const errors: ValidationError[] = [];
+
+        // 验证所有Schema中定义的字段
+        for (const [fieldName, fieldSchema] of Object.entries(schema)) {
+            const value = record[fieldName as keyof TradeRecord];
+            const error = this.validateField(fieldName, value, fieldSchema);
+            if (error) {
+                errors.push(error);
+            }
+        }
+
         return {
-            valid: true,
-            errors: []
+            valid: errors.length === 0,
+            errors
         };
     }
 
