@@ -80,7 +80,7 @@ services/telegram-service/data/
 libs/database/csv/downloads/
 libs/database/db/state/
 libs/database/telegram-cards/
-libs/external/
+# libs/external/  # fate-service 外部库需要提交
 
 # ====================
 # 配置文件（含凭证）
