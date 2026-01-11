@@ -1,40 +1,42 @@
 """
 事件类型定义
 """
+
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 @dataclass
 class SignalEvent:
     """信号事件 - 解耦的信号数据结构"""
+
     # 基础信息
     symbol: str
     signal_type: str
     direction: str  # BUY / SELL / ALERT
-    strength: int   # 0-100
-    
+    strength: int  # 0-100
+
     # 消息（i18n key + 参数，由消费端翻译）
     message_key: str
-    message_params: Dict[str, Any] = field(default_factory=dict)
-    
+    message_params: dict[str, Any] = field(default_factory=dict)
+
     # 元数据
     timestamp: datetime = field(default_factory=datetime.now)
     timeframe: str = "1h"
     price: float = 0.0
     source: str = "sqlite"  # sqlite / pg
-    
+
     # 规则信息
     rule_name: str = ""
     category: str = ""
     subcategory: str = ""
     table: str = ""
-    
+
     # 扩展数据
-    extra: Dict[str, Any] = field(default_factory=dict)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    extra: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "symbol": self.symbol,
@@ -53,16 +55,16 @@ class SignalEvent:
             "table": self.table,
             "extra": self.extra,
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SignalEvent":
+    def from_dict(cls, data: dict[str, Any]) -> "SignalEvent":
         """从字典创建"""
         ts = data.get("timestamp")
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
         elif ts is None:
             ts = datetime.now()
-        
+
         return cls(
             symbol=data.get("symbol", ""),
             signal_type=data.get("signal_type", ""),

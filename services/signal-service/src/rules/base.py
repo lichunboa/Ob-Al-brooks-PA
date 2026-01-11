@@ -1,47 +1,50 @@
 """
 信号规则基础定义
 """
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class ConditionType(Enum):
     """条件类型枚举"""
-    STATE_CHANGE = "state_change"      # 状态变化 (prev_value → curr_value)
-    THRESHOLD_CROSS_UP = "cross_up"    # 从下方穿越阈值
+
+    STATE_CHANGE = "state_change"  # 状态变化 (prev_value → curr_value)
+    THRESHOLD_CROSS_UP = "cross_up"  # 从下方穿越阈值
     THRESHOLD_CROSS_DOWN = "cross_down"  # 从上方穿越阈值
-    CROSS_UP = "line_cross_up"         # 两值交叉上穿 (a < b → a > b)
-    CROSS_DOWN = "line_cross_down"     # 两值交叉下穿 (a > b → a < b)
-    CONTAINS = "contains"              # 字符串包含
-    RANGE_ENTER = "range_enter"        # 进入区间
-    RANGE_EXIT = "range_exit"          # 离开区间
-    CUSTOM = "custom"                  # 自定义lambda
+    CROSS_UP = "line_cross_up"  # 两值交叉上穿 (a < b → a > b)
+    CROSS_DOWN = "line_cross_down"  # 两值交叉下穿 (a > b → a < b)
+    CONTAINS = "contains"  # 字符串包含
+    RANGE_ENTER = "range_enter"  # 进入区间
+    RANGE_EXIT = "range_exit"  # 离开区间
+    CUSTOM = "custom"  # 自定义lambda
 
 
 @dataclass
 class SignalRule:
     """信号规则数据类"""
-    name: str                          # 规则名称
-    table: str                         # 数据表名
-    category: str                      # 分类: momentum/trend/volatility/volume/futures/pattern/misc
-    subcategory: str                   # 子分类: rsi/kdj/macd 等
-    direction: str                     # 方向: BUY/SELL/ALERT
-    strength: int                      # 强度: 0-100
-    priority: str = "medium"           # 优先级: high/medium/low
-    timeframes: List[str] = field(default_factory=lambda: ["1h", "4h", "1d"])
-    cooldown: int = 3600               # 冷却时间(秒)
-    min_volume: float = 100000         # 最小成交额
+
+    name: str  # 规则名称
+    table: str  # 数据表名
+    category: str  # 分类: momentum/trend/volatility/volume/futures/pattern/misc
+    subcategory: str  # 子分类: rsi/kdj/macd 等
+    direction: str  # 方向: BUY/SELL/ALERT
+    strength: int  # 强度: 0-100
+    priority: str = "medium"  # 优先级: high/medium/low
+    timeframes: list[str] = field(default_factory=lambda: ["1h", "4h", "1d"])
+    cooldown: int = 3600  # 冷却时间(秒)
+    min_volume: float = 100000  # 最小成交额
     condition_type: ConditionType = ConditionType.CUSTOM
-    condition_config: Dict[str, Any] = field(default_factory=dict)
+    condition_config: dict[str, Any] = field(default_factory=dict)
     message_template: str = ""
-    fields: Dict[str, str] = field(default_factory=dict)
+    fields: dict[str, str] = field(default_factory=dict)
     enabled: bool = True
 
-    def check_condition(self, prev: Optional[Dict], curr: Dict) -> bool:
+    def check_condition(self, prev: dict | None, curr: dict) -> bool:
         """检查条件是否满足"""
         if not self.enabled:
             return False
@@ -144,7 +147,7 @@ class SignalRule:
             logger.warning(f"规则检查异常 {self.name}: {e}")
             return False
 
-    def format_message(self, prev: Optional[Dict], curr: Dict) -> str:
+    def format_message(self, prev: dict | None, curr: dict) -> str:
         """格式化消息"""
         try:
             fmt_args = {}

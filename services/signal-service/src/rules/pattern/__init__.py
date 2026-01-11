@@ -1,7 +1,8 @@
 """
 形态/结构类规则
 """
-from ..base import SignalRule, ConditionType
+
+from ..base import ConditionType, SignalRule
 
 CANDLESTICK_RULES = [
     SignalRule(
@@ -16,7 +17,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["头肩顶"], "match_any": True},
         message_template="⚠️ 头肩顶形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="头肩底形态",
@@ -30,7 +31,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["头肩底"], "match_any": True},
         message_template="⚠️ 头肩底形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="双顶形态",
@@ -44,7 +45,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["双顶", "M顶"], "match_any": True},
         message_template="⚠️ 双顶形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="双底形态",
@@ -58,7 +59,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["双底", "W底"], "match_any": True},
         message_template="⚠️ 双底形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="三角形突破",
@@ -71,7 +72,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["三角", "楔形"], "match_any": True},
         message_template="三角/楔形形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="锤子线",
@@ -84,7 +85,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["锤子", "hammer"], "match_any": True},
         message_template="锤子线形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="吞没形态",
@@ -97,7 +98,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["吞没", "engulf"], "match_any": True},
         message_template="吞没形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="十字星",
@@ -110,7 +111,7 @@ CANDLESTICK_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "形态类型", "patterns": ["十字", "doji"], "match_any": True},
         message_template="十字星形态 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
 ]
 
@@ -126,7 +127,7 @@ SMC_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "偏向", "from_values": ["看跌", "中性", ""], "to_values": ["看涨"]},
         message_template="SMC看涨 评分:{score} 结构:{event}",
-        fields={"score": "评分", "event": "结构事件"}
+        fields={"score": "评分", "event": "结构事件"},
     ),
     SignalRule(
         name="SMC看跌",
@@ -139,7 +140,7 @@ SMC_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "偏向", "from_values": ["看涨", "中性", ""], "to_values": ["看跌"]},
         message_template="SMC看跌 评分:{score} 结构:{event}",
-        fields={"score": "评分", "event": "结构事件"}
+        fields={"score": "评分", "event": "结构事件"},
     ),
     SignalRule(
         name="BOS突破",
@@ -152,7 +153,7 @@ SMC_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "结构事件", "patterns": ["BOS"], "match_any": True},
         message_template="BOS结构突破 方向:{dir}",
-        fields={"dir": "方向"}
+        fields={"dir": "方向"},
     ),
     SignalRule(
         name="CHoCH变化",
@@ -165,7 +166,7 @@ SMC_RULES = [
         condition_type=ConditionType.CONTAINS,
         condition_config={"field": "结构事件", "patterns": ["CHoCH", "CHOCH"], "match_any": True},
         message_template="CHoCH结构变化 方向:{dir}",
-        fields={"dir": "方向"}
+        fields={"dir": "方向"},
     ),
 ]
 
@@ -181,7 +182,7 @@ FIBONACCI_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "down", "-1", ""], "to_values": ["多", "up", "1"]},
         message_template="斐波那契多头 区域:{zone} 强度:{strength}",
-        fields={"zone": "价格区域", "strength": "强度"}
+        fields={"zone": "价格区域", "strength": "强度"},
     ),
     SignalRule(
         name="斐波那契空头信号",
@@ -194,7 +195,7 @@ FIBONACCI_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "up", "1", ""], "to_values": ["空", "down", "-1"]},
         message_template="斐波那契空头 区域:{zone} 强度:{strength}",
-        fields={"zone": "价格区域", "strength": "强度"}
+        fields={"zone": "价格区域", "strength": "强度"},
     ),
 ]
 
@@ -210,7 +211,7 @@ VPVR_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "价值区位置", "from_values": ["上方", "下方"], "to_values": ["价值区内"]},
         message_template="进入VPVR价值区 POC:{poc}",
-        fields={"poc": "控制点价格"}
+        fields={"poc": "控制点价格"},
     ),
     SignalRule(
         name="离开VPVR价值区",
@@ -223,7 +224,7 @@ VPVR_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "价值区位置", "from_values": ["价值区内"], "to_values": ["上方", "下方"]},
         message_template="离开VPVR价值区 位置:{pos}",
-        fields={"pos": "价值区位置"}
+        fields={"pos": "价值区位置"},
     ),
 ]
 

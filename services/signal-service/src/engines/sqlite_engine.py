@@ -2,17 +2,17 @@
 SQLite 信号检测引擎
 基于指标数据库检测信号
 """
-import sqlite3
-import time
-import logging
-import threading
-from datetime import datetime
-from typing import Dict, List, Optional, Set, Callable
 
-from .base import BaseEngine, Signal
-from ..rules import ALL_RULES, RULES_BY_TABLE, SignalRule
-from ..config import get_sqlite_path, DEFAULT_TIMEFRAMES, COOLDOWN_SECONDS
+import logging
+import sqlite3
+import threading
+import time
+from collections.abc import Callable
+
+from ..config import get_sqlite_path
 from ..events import SignalEvent, SignalPublisher
+from ..rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+from .base import BaseEngine, Signal
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +28,12 @@ class SQLiteSignalEngine(BaseEngine):
         super().__init__()
         self.db_path = db_path or str(get_sqlite_path())
         self.formatter = formatter  # 可选的格式化器
-        
+
         # 状态
-        self.baseline: Dict[str, Dict] = {}  # {table_symbol_tf: row_data}
-        self.cooldown: Dict[str, float] = {}  # {rule_symbol_tf: last_trigger_time}
+        self.baseline: dict[str, dict] = {}  # {table_symbol_tf: row_data}
+        self.cooldown: dict[str, float] = {}  # {rule_symbol_tf: last_trigger_time}
         self.baseline_loaded = False
-        self.enabled_rules: Set[str] = {r.name for r in ALL_RULES if r.enabled}
+        self.enabled_rules: set[str] = {r.name for r in ALL_RULES if r.enabled}
 
         # 统计
         self.stats = {
@@ -57,7 +57,7 @@ class SQLiteSignalEngine(BaseEngine):
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _get_table_data(self, table: str, timeframe: str) -> Dict[str, Dict]:
+    def _get_table_data(self, table: str, timeframe: str) -> dict[str, dict]:
         """获取表中指定周期的所有数据"""
         if table not in RULES_BY_TABLE:
             logger.warning(f"非法表名: {table}")
@@ -80,10 +80,10 @@ class SQLiteSignalEngine(BaseEngine):
             logger.warning(f"读取表 {table} 失败: {e}")
             return {}
 
-    def _get_symbol_all_tables(self, symbol: str, timeframe: str) -> Dict[str, Dict]:
+    def _get_symbol_all_tables(self, symbol: str, timeframe: str) -> dict[str, dict]:
         """获取单个币种所有表的数据"""
         result = {}
-        for table in RULES_BY_TABLE.keys():
+        for table in RULES_BY_TABLE:
             data = self._get_table_data(table, timeframe)
             if symbol in data:
                 result[table] = data[symbol]
@@ -100,7 +100,7 @@ class SQLiteSignalEngine(BaseEngine):
         key = f"{rule.name}_{symbol}_{timeframe}"
         self.cooldown[key] = time.time()
 
-    def check_signals(self) -> List[Signal]:
+    def check_signals(self) -> list[Signal]:
         """检查所有规则"""
         signals = []
         self.stats["checks"] += 1
@@ -133,54 +133,55 @@ class SQLiteSignalEngine(BaseEngine):
                             continue
 
                         try:
-                            if rule.check_condition(prev_row, curr_row):
-                                if self._is_cooled_down(rule, symbol, timeframe):
-                                    price = curr_row.get("当前价格") or curr_row.get("价格") or curr_row.get("收盘价") or 0
-                                    rule_msg = rule.format_message(prev_row, curr_row)
+                            if rule.check_condition(prev_row, curr_row) and self._is_cooled_down(
+                                rule, symbol, timeframe
+                            ):
+                                price = curr_row.get("当前价格") or curr_row.get("价格") or curr_row.get("收盘价") or 0
+                                rule_msg = rule.format_message(prev_row, curr_row)
 
-                                    # 构建信号
-                                    signal = Signal(
+                                # 构建信号
+                                signal = Signal(
+                                    symbol=symbol,
+                                    direction=rule.direction,
+                                    strength=rule.strength,
+                                    rule_name=rule.name,
+                                    timeframe=timeframe,
+                                    price=price,
+                                    message=rule_msg,
+                                    category=rule.category,
+                                    subcategory=rule.subcategory,
+                                    table=table,
+                                    priority=rule.priority,
+                                )
+
+                                # 格式化完整消息（如果有格式化器）
+                                if self.formatter:
+                                    curr_all = self._get_symbol_all_tables(symbol, timeframe)
+                                    prev_all = {}
+                                    for t in RULES_BY_TABLE:
+                                        pk = f"{t}_{symbol}_{timeframe}"
+                                        if pk in self.baseline:
+                                            prev_all[t] = self.baseline[pk]
+
+                                    signal.full_message = self.formatter(
                                         symbol=symbol,
                                         direction=rule.direction,
-                                        strength=rule.strength,
                                         rule_name=rule.name,
                                         timeframe=timeframe,
-                                        price=price,
-                                        message=rule_msg,
-                                        category=rule.category,
-                                        subcategory=rule.subcategory,
-                                        table=table,
-                                        priority=rule.priority
+                                        strength=rule.strength,
+                                        curr_data=curr_all,
+                                        prev_data=prev_all,
+                                        rule_message=rule_msg,
                                     )
 
-                                    # 格式化完整消息（如果有格式化器）
-                                    if self.formatter:
-                                        curr_all = self._get_symbol_all_tables(symbol, timeframe)
-                                        prev_all = {}
-                                        for t in RULES_BY_TABLE.keys():
-                                            pk = f"{t}_{symbol}_{timeframe}"
-                                            if pk in self.baseline:
-                                                prev_all[t] = self.baseline[pk]
-                                        
-                                        signal.full_message = self.formatter(
-                                            symbol=symbol,
-                                            direction=rule.direction,
-                                            rule_name=rule.name,
-                                            timeframe=timeframe,
-                                            strength=rule.strength,
-                                            curr_data=curr_all,
-                                            prev_data=prev_all,
-                                            rule_message=rule_msg
-                                        )
+                                signals.append(signal)
+                                self._set_cooldown(rule, symbol, timeframe)
+                                self.stats["signals"] += 1
 
-                                    signals.append(signal)
-                                    self._set_cooldown(rule, symbol, timeframe)
-                                    self.stats["signals"] += 1
+                                logger.info(f"信号触发: {symbol} {rule.direction} - {rule.name} ({timeframe})")
 
-                                    logger.info(f"信号触发: {symbol} {rule.direction} - {rule.name} ({timeframe})")
-
-                                    # 发布事件
-                                    self._publish_event(signal, rule)
+                                # 发布事件
+                                self._publish_event(signal, rule)
 
                         except Exception as e:
                             self.stats["errors"] += 1
@@ -236,7 +237,7 @@ class SQLiteSignalEngine(BaseEngine):
 
             time.sleep(interval)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """获取统计"""
         return {
             **self.stats,
@@ -248,7 +249,7 @@ class SQLiteSignalEngine(BaseEngine):
 
 
 # 单例
-_engine: Optional[SQLiteSignalEngine] = None
+_engine: SQLiteSignalEngine | None = None
 _engine_lock = threading.Lock()
 
 

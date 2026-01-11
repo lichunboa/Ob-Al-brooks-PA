@@ -8,6 +8,7 @@ Signal Service 入口
     python -m src --once            # 单次检查
     python -m src --stats           # 显示统计
 """
+
 import argparse
 import logging
 import sys
@@ -18,10 +19,7 @@ SRC_DIR = Path(__file__).parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -37,9 +35,9 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        from config import get_sqlite_path, get_database_url, get_history_db_path
+        from config import get_database_url, get_history_db_path, get_sqlite_path
         from rules import RULE_COUNT, TABLE_COUNT
-        
+
         logger.info("=== Signal Service 配置测试 ===")
         logger.info(f"  SQLite 路径: {get_sqlite_path()}")
         logger.info(f"  PG URL: {get_database_url()[:50]}...")
@@ -50,15 +48,15 @@ def main():
         return
 
     if args.stats:
-        from engines import get_sqlite_engine, get_pg_engine
-        
+        from engines import get_pg_engine, get_sqlite_engine
+
         logger.info("=== 引擎统计 ===")
         try:
             sqlite_engine = get_sqlite_engine()
             logger.info(f"SQLite: {sqlite_engine.get_stats()}")
         except Exception as e:
             logger.warning(f"SQLite 引擎不可用: {e}")
-        
+
         try:
             pg_engine = get_pg_engine()
             logger.info(f"PG: {pg_engine.get_stats()}")
@@ -70,12 +68,14 @@ def main():
         # 单次检查
         if args.sqlite or args.all:
             from engines import get_sqlite_engine
+
             engine = get_sqlite_engine()
             signals = engine.check_signals()
             logger.info(f"SQLite 检测到 {len(signals)} 个信号")
-        
+
         if args.pg or args.all:
             from engines import get_pg_engine
+
             engine = get_pg_engine()
             signals = engine.check_signals()
             logger.info(f"PG 检测到 {len(signals)} 个信号")
@@ -83,15 +83,16 @@ def main():
 
     # 持续运行
     import threading
+
     threads = []
 
     if args.sqlite or args.all:
         from engines import get_sqlite_engine
-        
+
         def run_sqlite():
             engine = get_sqlite_engine()
             engine.run_loop(interval=args.interval)
-        
+
         t = threading.Thread(target=run_sqlite, daemon=True, name="SQLiteEngine")
         t.start()
         threads.append(t)
@@ -99,11 +100,11 @@ def main():
 
     if args.pg or args.all:
         from engines import get_pg_engine
-        
+
         def run_pg():
             engine = get_pg_engine()
             engine.run_loop(interval=args.interval)
-        
+
         t = threading.Thread(target=run_pg, daemon=True, name="PGEngine")
         t.start()
         threads.append(t)

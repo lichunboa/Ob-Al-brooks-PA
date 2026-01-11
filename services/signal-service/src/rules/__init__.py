@@ -2,26 +2,27 @@
 信号规则汇总
 导出所有规则列表
 """
-from .base import SignalRule, ConditionType
+
+from .base import ConditionType, SignalRule
+from .core import CORE_RULES
+from .futures import FUTURES_RULES
+from .misc import MISC_RULES
 from .momentum import MOMENTUM_RULES
+from .pattern import PATTERN_RULES
 from .trend import TREND_RULES
 from .volatility import VOLATILITY_RULES
 from .volume import VOLUME_RULES
-from .futures import FUTURES_RULES
-from .pattern import PATTERN_RULES
-from .misc import MISC_RULES
-from .core import CORE_RULES
 
 # 所有规则汇总
 ALL_RULES: list[SignalRule] = (
-    CORE_RULES +
-    MOMENTUM_RULES +
-    TREND_RULES +
-    VOLATILITY_RULES +
-    VOLUME_RULES +
-    FUTURES_RULES +
-    PATTERN_RULES +
-    MISC_RULES
+    CORE_RULES
+    + MOMENTUM_RULES
+    + TREND_RULES
+    + VOLATILITY_RULES
+    + VOLUME_RULES
+    + FUTURES_RULES
+    + PATTERN_RULES
+    + MISC_RULES
 )
 
 # 按分类索引

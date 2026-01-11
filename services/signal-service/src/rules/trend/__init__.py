@@ -1,7 +1,8 @@
 """
 趋势类规则
 """
-from ..base import SignalRule, ConditionType
+
+from ..base import ConditionType, SignalRule
 
 SUPERTREND_RULES = [
     SignalRule(
@@ -15,7 +16,7 @@ SUPERTREND_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "-1", "down"], "to_values": ["多", "1", "up"]},
         message_template="SuperTrend翻多",
-        fields={}
+        fields={},
     ),
     SignalRule(
         name="SuperTrend翻空",
@@ -28,7 +29,7 @@ SUPERTREND_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "1", "up"], "to_values": ["空", "-1", "down"]},
         message_template="SuperTrend翻空",
-        fields={}
+        fields={},
     ),
 ]
 
@@ -44,7 +45,7 @@ PRECISE_TREND_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="精准趋势翻多 强度:{strength}",
-        fields={"strength": "趋势强度"}
+        fields={"strength": "趋势强度"},
     ),
     SignalRule(
         name="精准趋势翻空",
@@ -57,7 +58,7 @@ PRECISE_TREND_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="精准趋势翻空 强度:{strength}",
-        fields={"strength": "趋势强度"}
+        fields={"strength": "趋势强度"},
     ),
     SignalRule(
         name="精准趋势强度突破",
@@ -70,7 +71,7 @@ PRECISE_TREND_RULES = [
         condition_type=ConditionType.THRESHOLD_CROSS_UP,
         condition_config={"field": "趋势强度", "threshold": 80},
         message_template="精准趋势强度突破80: {strength}",
-        fields={"strength": "趋势强度"}
+        fields={"strength": "趋势强度"},
     ),
 ]
 
@@ -86,7 +87,7 @@ ICHIMOKU_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "信号", "from_values": ["卖出", "中性", "观望"], "to_values": ["买入"]},
         message_template="Ichimoku买入 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="Ichimoku卖出信号",
@@ -99,7 +100,7 @@ ICHIMOKU_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "信号", "from_values": ["买入", "中性", "观望"], "to_values": ["卖出"]},
         message_template="Ichimoku卖出 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
 ]
 
@@ -115,7 +116,7 @@ ZERO_LAG_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="零延迟趋势翻多 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="零延迟趋势翻空",
@@ -128,7 +129,7 @@ ZERO_LAG_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="零延迟趋势翻空 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
 ]
 
@@ -144,7 +145,7 @@ TREND_CLOUD_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="趋势云翻多 形态:{shape}",
-        fields={"shape": "形态"}
+        fields={"shape": "形态"},
     ),
     SignalRule(
         name="趋势云翻空",
@@ -157,7 +158,7 @@ TREND_CLOUD_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="趋势云翻空 形态:{shape}",
-        fields={"shape": "形态"}
+        fields={"shape": "形态"},
     ),
 ]
 
@@ -173,7 +174,7 @@ TRENDLINE_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="趋势线翻多 距离:{dist}%",
-        fields={"dist": "距离趋势线%"}
+        fields={"dist": "距离趋势线%"},
     ),
     SignalRule(
         name="趋势线翻空",
@@ -186,7 +187,7 @@ TRENDLINE_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="趋势线翻空 距离:{dist}%",
-        fields={"dist": "距离趋势线%"}
+        fields={"dist": "距离趋势线%"},
     ),
 ]
 
@@ -202,7 +203,7 @@ HA_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="多空信号翻多 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
     SignalRule(
         name="多空信号翻空",
@@ -215,7 +216,7 @@ HA_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="多空信号翻空 强度:{strength}",
-        fields={"strength": "强度"}
+        fields={"strength": "强度"},
     ),
 ]
 
@@ -231,7 +232,7 @@ VOLUME_SIGNAL_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="量能偏向翻多 多头:{bull}%",
-        fields={"bull": "多头比例"}
+        fields={"bull": "多头比例"},
     ),
     SignalRule(
         name="量能偏向翻空",
@@ -244,7 +245,7 @@ VOLUME_SIGNAL_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="量能偏向翻空 空头:{bear}%",
-        fields={"bear": "空头比例"}
+        fields={"bear": "空头比例"},
     ),
 ]
 
@@ -260,7 +261,7 @@ GC_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["空", "down", "-1"], "to_values": ["多", "up", "1"]},
         message_template="GC点趋势翻多 带宽:{score}",
-        fields={"score": "带宽评分"}
+        fields={"score": "带宽评分"},
     ),
     SignalRule(
         name="GC点趋势翻空",
@@ -273,12 +274,18 @@ GC_RULES = [
         condition_type=ConditionType.STATE_CHANGE,
         condition_config={"field": "趋势方向", "from_values": ["多", "up", "1"], "to_values": ["空", "down", "-1"]},
         message_template="GC点趋势翻空 带宽:{score}",
-        fields={"score": "带宽评分"}
+        fields={"score": "带宽评分"},
     ),
 ]
 
 TREND_RULES = (
-    SUPERTREND_RULES + PRECISE_TREND_RULES + ICHIMOKU_RULES +
-    ZERO_LAG_RULES + TREND_CLOUD_RULES + TRENDLINE_RULES +
-    HA_RULES + VOLUME_SIGNAL_RULES + GC_RULES
+    SUPERTREND_RULES
+    + PRECISE_TREND_RULES
+    + ICHIMOKU_RULES
+    + ZERO_LAG_RULES
+    + TREND_CLOUD_RULES
+    + TRENDLINE_RULES
+    + HA_RULES
+    + VOLUME_SIGNAL_RULES
+    + GC_RULES
 )

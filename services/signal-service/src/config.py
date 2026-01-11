@@ -1,6 +1,7 @@
 """
 Signal Service 配置
 """
+
 import os
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from pathlib import Path
 SRC_DIR = Path(__file__).parent
 PROJECT_ROOT = SRC_DIR.parent
 REPO_ROOT = PROJECT_ROOT.parent.parent
+
 
 # 数据库配置
 def get_database_url() -> str:
@@ -19,7 +21,7 @@ def get_database_url() -> str:
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             if line.startswith("DATABASE_URL="):
-                return line.strip().split("=", 1)[1].strip('"\'')
+                return line.strip().split("=", 1)[1].strip("\"'")
     return "postgresql://postgres:postgres@localhost:5433/market_data"
 
 

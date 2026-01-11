@@ -5,7 +5,8 @@
 2. 极端值异常信号
 3. 关键位突破信号
 """
-from ..base import SignalRule, ConditionType
+
+from ..base import ConditionType, SignalRule
 
 # =============================================================================
 # 多指标共振信号 - 多个指标同时确认，可信度更高
@@ -25,18 +26,21 @@ CONFLUENCE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # RSI从超卖区回升
-                (p.get("位置") in ["超卖区"] and c.get("位置") in ["中性区", "中性"]) and
+                (p.get("位置") in ["超卖区"] and c.get("位置") in ["中性区", "中性"])
+                and
                 # RSI7上穿RSI21
-                (p.get("RSI7") or 50) <= (p.get("RSI21") or 50) and
-                (c.get("RSI7") or 50) > (c.get("RSI21") or 50) and
+                (p.get("RSI7") or 50) <= (p.get("RSI21") or 50)
+                and (c.get("RSI7") or 50) > (c.get("RSI21") or 50)
+                and
                 # RSI均值上升
                 (c.get("RSI均值") or 50) > (p.get("RSI均值") or 50)
             )
         },
         message_template="⚡ 动量趋势共振做多! RSI从超卖回升+金叉",
-        fields={}
+        fields={},
     ),
     # 动量+趋势共振做空
     SignalRule(
@@ -52,18 +56,21 @@ CONFLUENCE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # RSI从超买区回落
-                (p.get("位置") in ["超买区"] and c.get("位置") in ["中性区", "中性"]) and
+                (p.get("位置") in ["超买区"] and c.get("位置") in ["中性区", "中性"])
+                and
                 # RSI7下穿RSI21
-                (p.get("RSI7") or 50) >= (p.get("RSI21") or 50) and
-                (c.get("RSI7") or 50) < (c.get("RSI21") or 50) and
+                (p.get("RSI7") or 50) >= (p.get("RSI21") or 50)
+                and (c.get("RSI7") or 50) < (c.get("RSI21") or 50)
+                and
                 # RSI均值下降
                 (c.get("RSI均值") or 50) < (p.get("RSI均值") or 50)
             )
         },
         message_template="⚡ 动量趋势共振做空! RSI从超买回落+死叉",
-        fields={}
+        fields={},
     ),
 ]
 
@@ -85,12 +92,12 @@ FUTURES_EXTREME_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                (c.get("大户多空比") or 1) > 2.5 and  # 大户多空比>2.5
-                (c.get("风险分") or 0) > 70  # 风险分>70
+                (c.get("大户多空比") or 1) > 2.5  # 大户多空比>2.5
+                and (c.get("风险分") or 0) > 70  # 风险分>70
             )
         },
         message_template="⚠️ 大户极度看多! 多空比:{ratio:.2f} 风险分:{risk:.0f}",
-        fields={"ratio": "大户多空比", "risk": "风险分"}
+        fields={"ratio": "大户多空比", "risk": "风险分"},
     ),
     # 多空比极端失衡 - 大户极度看空
     SignalRule(
@@ -106,12 +113,12 @@ FUTURES_EXTREME_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                (c.get("大户多空比") or 1) < 0.4 and  # 大户多空比<0.4
-                (c.get("风险分") or 0) > 70
+                (c.get("大户多空比") or 1) < 0.4  # 大户多空比<0.4
+                and (c.get("风险分") or 0) > 70
             )
         },
         message_template="⚠️ 大户极度看空! 多空比:{ratio:.2f} 风险分:{risk:.0f}",
-        fields={"ratio": "大户多空比", "risk": "风险分"}
+        fields={"ratio": "大户多空比", "risk": "风险分"},
     ),
     # 持仓量Z分数异常 - 持仓量显著偏离历史均值
     SignalRule(
@@ -125,14 +132,10 @@ FUTURES_EXTREME_RULES = [
         cooldown=7200,
         condition_type=ConditionType.CUSTOM,
         condition_config={
-            "func": lambda p, c: (
-                p and
-                (p.get("持仓Z分数") or 0) < 2.5 and
-                (c.get("持仓Z分数") or 0) >= 2.5
-            )
+            "func": lambda p, c: (p and (p.get("持仓Z分数") or 0) < 2.5 and (c.get("持仓Z分数") or 0) >= 2.5)
         },
         message_template="⚠️ 持仓量异常高! Z分数:{z:.2f} (>2.5σ)",
-        fields={"z": "持仓Z分数"}
+        fields={"z": "持仓Z分数"},
     ),
     # 情绪差值极端
     SignalRule(
@@ -147,14 +150,14 @@ FUTURES_EXTREME_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
-                (p.get("情绪差值") or 0) < 0.5 and
-                (c.get("情绪差值") or 0) >= 0.5 and
-                (c.get("OI连续根数") or 0) >= 3  # OI连续增仓
+                p
+                and (p.get("情绪差值") or 0) < 0.5
+                and (c.get("情绪差值") or 0) >= 0.5
+                and (c.get("OI连续根数") or 0) >= 3  # OI连续增仓
             )
         },
         message_template="情绪差值转正+OI增仓! 差值:{diff:.2f} OI连续:{oi}根",
-        fields={"diff": "情绪差值", "oi": "OI连续根数"}
+        fields={"diff": "情绪差值", "oi": "OI连续根数"},
     ),
     SignalRule(
         name="情绪差值极端看空",
@@ -168,14 +171,14 @@ FUTURES_EXTREME_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
-                (p.get("情绪差值") or 0) > -0.5 and
-                (c.get("情绪差值") or 0) <= -0.5 and
-                (c.get("OI连续根数") or 0) <= -3  # OI连续减仓
+                p
+                and (p.get("情绪差值") or 0) > -0.5
+                and (c.get("情绪差值") or 0) <= -0.5
+                and (c.get("OI连续根数") or 0) <= -3  # OI连续减仓
             )
         },
         message_template="情绪差值转负+OI减仓! 差值:{diff:.2f} OI连续:{oi}根",
-        fields={"diff": "情绪差值", "oi": "OI连续根数"}
+        fields={"diff": "情绪差值", "oi": "OI连续根数"},
     ),
 ]
 
@@ -197,17 +200,20 @@ VOLUME_ANOMALY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 成交额放大2倍以上
-                (c.get("成交额") or 0) > (p.get("成交额") or 1) * 2 and
+                (c.get("成交额") or 0) > (p.get("成交额") or 1) * 2
+                and
                 # 价格上涨
-                (c.get("变化率") or 0) > 1 and
+                (c.get("变化率") or 0) > 1
+                and
                 # 主动买入占优
                 (c.get("主动买卖比") or 1) > 1.2
             )
         },
         message_template="放量上涨! 成交额放大{ratio:.1f}倍 涨幅:{chg:.2f}%",
-        fields={"chg": "变化率"}
+        fields={"chg": "变化率"},
     ),
     # 放量下跌
     SignalRule(
@@ -223,17 +229,20 @@ VOLUME_ANOMALY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 成交额放大2倍以上
-                (c.get("成交额") or 0) > (p.get("成交额") or 1) * 2 and
+                (c.get("成交额") or 0) > (p.get("成交额") or 1) * 2
+                and
                 # 价格下跌
-                (c.get("变化率") or 0) < -1 and
+                (c.get("变化率") or 0) < -1
+                and
                 # 主动卖出占优
                 (c.get("主动买卖比") or 1) < 0.8
             )
         },
         message_template="放量下跌! 成交额放大 跌幅:{chg:.2f}%",
-        fields={"chg": "变化率"}
+        fields={"chg": "变化率"},
     ),
     # 大额资金净流入
     SignalRule(
@@ -249,15 +258,17 @@ VOLUME_ANOMALY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 资金流向显著为正
-                (c.get("资金流向") or 0) > (c.get("成交额") or 1) * 0.3 and
+                (c.get("资金流向") or 0) > (c.get("成交额") or 1) * 0.3
+                and
                 # 相比前值大幅增加
                 (c.get("资金流向") or 0) > (p.get("资金流向") or 0) * 2
             )
         },
         message_template="大额资金净流入! 流入:{flow:.0f}",
-        fields={"flow": "资金流向"}
+        fields={"flow": "资金流向"},
     ),
     # 大额资金净流出
     SignalRule(
@@ -273,15 +284,17 @@ VOLUME_ANOMALY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 资金流向显著为负
-                (c.get("资金流向") or 0) < -(c.get("成交额") or 1) * 0.3 and
+                (c.get("资金流向") or 0) < -(c.get("成交额") or 1) * 0.3
+                and
                 # 相比前值大幅减少
                 (c.get("资金流向") or 0) < (p.get("资金流向") or 0) * 2
             )
         },
         message_template="大额资金净流出! 流出:{flow:.0f}",
-        fields={"flow": "资金流向"}
+        fields={"flow": "资金流向"},
     ),
 ]
 
@@ -303,13 +316,11 @@ SMC_STRUCTURE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                "BOS" in str(c.get("结构事件", "")) and
-                c.get("偏向") == "看涨" and
-                (c.get("评分") or 0) >= 60
+                "BOS" in str(c.get("结构事件", "")) and c.get("偏向") == "看涨" and (c.get("评分") or 0) >= 60
             )
         },
         message_template="⚡ BOS多头突破! 评分:{score:.0f} 事件:{event}",
-        fields={"score": "评分", "event": "结构事件"}
+        fields={"score": "评分", "event": "结构事件"},
     ),
     # BOS空头突破
     SignalRule(
@@ -325,13 +336,11 @@ SMC_STRUCTURE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                "BOS" in str(c.get("结构事件", "")) and
-                c.get("偏向") == "看跌" and
-                (c.get("评分") or 0) >= 60
+                "BOS" in str(c.get("结构事件", "")) and c.get("偏向") == "看跌" and (c.get("评分") or 0) >= 60
             )
         },
         message_template="⚡ BOS空头突破! 评分:{score:.0f} 事件:{event}",
-        fields={"score": "评分", "event": "结构事件"}
+        fields={"score": "评分", "event": "结构事件"},
     ),
     # CHoCH趋势变化
     SignalRule(
@@ -347,12 +356,12 @@ SMC_STRUCTURE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                ("CHoCH" in str(c.get("结构事件", "")) or "CHOCH" in str(c.get("结构事件", ""))) and
-                c.get("偏向") == "看涨"
+                ("CHoCH" in str(c.get("结构事件", "")) or "CHOCH" in str(c.get("结构事件", "")))
+                and c.get("偏向") == "看涨"
             )
         },
         message_template="⚡ CHoCH趋势变化看涨! 事件:{event}",
-        fields={"event": "结构事件"}
+        fields={"event": "结构事件"},
     ),
     SignalRule(
         name="CHoCH趋势变化看跌",
@@ -367,12 +376,12 @@ SMC_STRUCTURE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                ("CHoCH" in str(c.get("结构事件", "")) or "CHOCH" in str(c.get("结构事件", ""))) and
-                c.get("偏向") == "看跌"
+                ("CHoCH" in str(c.get("结构事件", "")) or "CHOCH" in str(c.get("结构事件", "")))
+                and c.get("偏向") == "看跌"
             )
         },
         message_template="⚡ CHoCH趋势变化看跌! 事件:{event}",
-        fields={"event": "结构事件"}
+        fields={"event": "结构事件"},
     ),
 ]
 
@@ -393,17 +402,19 @@ MACD_KEY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # DIF上穿DEA
-                (p.get("DIF") or 0) <= (p.get("DEA") or 0) and
-                (c.get("DIF") or 0) > (c.get("DEA") or 0) and
+                (p.get("DIF") or 0) <= (p.get("DEA") or 0)
+                and (c.get("DIF") or 0) > (c.get("DEA") or 0)
+                and
                 # 在零轴上方
-                (c.get("DIF") or 0) > 0 and
-                (c.get("DEA") or 0) > 0
+                (c.get("DIF") or 0) > 0
+                and (c.get("DEA") or 0) > 0
             )
         },
         message_template="MACD强势金叉! 零轴上方 DIF:{dif:.4f} DEA:{dea:.4f}",
-        fields={"dif": "DIF", "dea": "DEA"}
+        fields={"dif": "DIF", "dea": "DEA"},
     ),
     # MACD零轴下方死叉(强势死叉)
     SignalRule(
@@ -418,17 +429,19 @@ MACD_KEY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # DIF下穿DEA
-                (p.get("DIF") or 0) >= (p.get("DEA") or 0) and
-                (c.get("DIF") or 0) < (c.get("DEA") or 0) and
+                (p.get("DIF") or 0) >= (p.get("DEA") or 0)
+                and (c.get("DIF") or 0) < (c.get("DEA") or 0)
+                and
                 # 在零轴下方
-                (c.get("DIF") or 0) < 0 and
-                (c.get("DEA") or 0) < 0
+                (c.get("DIF") or 0) < 0
+                and (c.get("DEA") or 0) < 0
             )
         },
         message_template="MACD强势死叉! 零轴下方 DIF:{dif:.4f} DEA:{dea:.4f}",
-        fields={"dif": "DIF", "dea": "DEA"}
+        fields={"dif": "DIF", "dea": "DEA"},
     ),
     # MACD柱状图由负转正且放大
     SignalRule(
@@ -443,14 +456,14 @@ MACD_KEY_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
-                (p.get("MACD柱状图") or 0) < 0 and
-                (c.get("MACD柱状图") or 0) > 0 and
-                abs(c.get("MACD柱状图") or 0) > abs(p.get("MACD柱状图") or 0) * 1.5
+                p
+                and (p.get("MACD柱状图") or 0) < 0
+                and (c.get("MACD柱状图") or 0) > 0
+                and abs(c.get("MACD柱状图") or 0) > abs(p.get("MACD柱状图") or 0) * 1.5
             )
         },
         message_template="MACD柱状放大转多! 柱状图:{hist:.4f}",
-        fields={"hist": "MACD柱状图"}
+        fields={"hist": "MACD柱状图"},
     ),
 ]
 
@@ -471,15 +484,17 @@ SUPPORT_RESISTANCE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 距支撑位小于1%
-                (c.get("距支撑百分比") or 100) < 1.0 and
+                (c.get("距支撑百分比") or 100) < 1.0
+                and
                 # 从更远的位置接近
                 (p.get("距支撑百分比") or 0) > (c.get("距支撑百分比") or 100)
             )
         },
         message_template="接近强支撑位! 距离:{dist:.2f}% 支撑:{support}",
-        fields={"dist": "距支撑百分比", "support": "支撑位"}
+        fields={"dist": "距支撑百分比", "support": "支撑位"},
     ),
     # 接近强阻力位
     SignalRule(
@@ -494,15 +509,17 @@ SUPPORT_RESISTANCE_RULES = [
         condition_type=ConditionType.CUSTOM,
         condition_config={
             "func": lambda p, c: (
-                p and
+                p
+                and
                 # 距阻力位小于1%
-                (c.get("距阻力百分比") or 100) < 1.0 and
+                (c.get("距阻力百分比") or 100) < 1.0
+                and
                 # 从更远的位置接近
                 (p.get("距阻力百分比") or 0) > (c.get("距阻力百分比") or 100)
             )
         },
         message_template="接近强阻力位! 距离:{dist:.2f}% 阻力:{resistance}",
-        fields={"dist": "距阻力百分比", "resistance": "阻力位"}
+        fields={"dist": "距阻力百分比", "resistance": "阻力位"},
     ),
 ]
 
@@ -510,12 +527,12 @@ SUPPORT_RESISTANCE_RULES = [
 # 汇总
 # =============================================================================
 CORE_RULES = (
-    CONFLUENCE_RULES +
-    FUTURES_EXTREME_RULES +
-    VOLUME_ANOMALY_RULES +
-    SMC_STRUCTURE_RULES +
-    MACD_KEY_RULES +
-    SUPPORT_RESISTANCE_RULES
+    CONFLUENCE_RULES
+    + FUTURES_EXTREME_RULES
+    + VOLUME_ANOMALY_RULES
+    + SMC_STRUCTURE_RULES
+    + MACD_KEY_RULES
+    + SUPPORT_RESISTANCE_RULES
 )
 
 __all__ = ["CORE_RULES"]

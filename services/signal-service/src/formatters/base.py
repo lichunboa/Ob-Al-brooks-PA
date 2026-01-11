@@ -1,7 +1,9 @@
 """
 基础格式化工具
 """
-from typing import Any, Dict, Optional, Callable
+
+from collections.abc import Callable
+from typing import Any
 
 
 def strength_bar(value: float, max_val: float = 100) -> str:
@@ -49,11 +51,11 @@ def fmt_vol(val: Any) -> str:
     try:
         v = float(val)
         if v >= 1e9:
-            return f"${v/1e9:.2f}B"
+            return f"${v / 1e9:.2f}B"
         elif v >= 1e6:
-            return f"${v/1e6:.1f}M"
+            return f"${v / 1e6:.1f}M"
         elif v >= 1e3:
-            return f"${v/1e3:.0f}K"
+            return f"${v / 1e3:.0f}K"
         return f"${v:.0f}"
     except Exception:
         return str(val)
@@ -75,27 +77,27 @@ def fmt_num(val: Any, decimals: int = 2) -> str:
 class BaseFormatter:
     """
     基础格式化器
-    
+
     设计原则：
     - 不依赖 i18n，由消费端翻译
     - 返回结构化数据或通用格式
     """
-    
-    def __init__(self, translator: Callable[[str, Dict], str] = None):
+
+    def __init__(self, translator: Callable[[str, dict], str] = None):
         """
         Args:
             translator: 可选的翻译函数 (key, params) -> text
         """
         self._t = translator or (lambda key, params: key)
-    
+
     def translate(self, key: str, **params) -> str:
         """翻译消息"""
         return self._t(key, params)
-    
+
     def format_direction_icon(self, direction: str) -> str:
         """获取方向图标"""
         return {"BUY": "🟢", "SELL": "🔴", "ALERT": "⚠️"}.get(direction, "📊")
-    
+
     def format_basic(
         self,
         symbol: str,
@@ -109,7 +111,7 @@ class BaseFormatter:
         """基础格式化"""
         icon = self.format_direction_icon(direction)
         bar = strength_bar(strength)
-        
+
         return f"""{icon} {direction} | {symbol}
 
 📌 {signal_type}

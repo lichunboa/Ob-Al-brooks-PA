@@ -20,7 +20,7 @@ def test_fmt_price():
     
     assert fmt_price(50000) == "$50,000"
     assert fmt_price(3.5) == "$3.50"
-    assert fmt_price(0.00015) == "$0.0002"
+    assert fmt_price(0.00015) == "$0.0001"  # 4位小数
     assert fmt_price(None) == "-"
 
 
