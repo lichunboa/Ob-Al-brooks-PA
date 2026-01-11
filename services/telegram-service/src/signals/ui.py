@@ -2,15 +2,23 @@
 信号开关管理 - 按表开关
 """
 import os
+import sys
 import json
 import sqlite3
 import logging
+from pathlib import Path
 from typing import Dict
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.i18n import btn as _btn, gettext as _t, resolve_lang
 
-from .rules import RULES_BY_TABLE
+# 从 signal-service 导入
+_SIGNAL_SERVICE_SRC = Path(__file__).resolve().parents[4] / "services" / "signal-service" / "src"
+if str(_SIGNAL_SERVICE_SRC) not in sys.path:
+    sys.path.insert(0, str(_SIGNAL_SERVICE_SRC))
+
+from rules import RULES_BY_TABLE
+from storage.history import SignalHistory, get_history
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +279,6 @@ def get_signal_push_kb(symbol: str) -> InlineKeyboardMarkup:
 def get_history_text(limit: int = 20, symbol: str = None) -> str:
     """获取信号历史文本"""
     try:
-        from .history import get_history
         history = get_history()
         records = history.get_recent(limit=limit, symbol=symbol)
         return history.format_history_text(records, "信号历史")
@@ -283,7 +290,6 @@ def get_history_text(limit: int = 20, symbol: str = None) -> str:
 def get_history_stats_text(days: int = 7) -> str:
     """获取信号统计文本"""
     try:
-        from .history import get_history
         history = get_history()
         stats = history.get_stats(days=days)
         
