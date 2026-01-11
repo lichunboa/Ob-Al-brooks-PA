@@ -355,8 +355,9 @@ vim config/.env
 <td width="50%">
 
 ### 🔔 信号检测引擎
-- **109条规则** - 覆盖35张指标表
+- **129条规则** - 覆盖35张指标表（独立 signal-service）
 - **多维度检测** - 趋势/动量/形态/期货
+- **事件驱动** - SignalPublisher 发布信号事件
 - **订阅管理** - 用户自定义推送偏好
 - **冷却机制** - 防止重复推送
 
@@ -419,17 +420,29 @@ graph TD
         AI_MOD["多模型支持<br>Gemini / OpenAI / Claude / DeepSeek"]
     end
 
+    subgraph SIG["🔔 signal-service<br><small>独立信号检测服务</small>"]
+        SIG_RULES["rules<br>129条信号规则"]
+        SIG_ENG["engines<br>SQLite + PG 引擎"]
+        SIG_PUB["events<br>SignalPublisher"]
+    end
+
+    SQLITE --> SIG_ENG
+    TS_CANDLE --> SIG_ENG
+    TS_FUTURE --> SIG_ENG
+    SIG_ENG --> SIG_RULES
+    SIG_RULES --> SIG_PUB
+
     subgraph TG["🤖 telegram-service<br><small>python-telegram-bot, aiohttp</small>"]
         TG_CARD["cards<br>排行卡片 20+"]
-        TG_SIG["signals<br>信号检测引擎<br>109条规则"]
+        TG_ADAPTER["signals/adapter<br>信号服务适配器"]
         TG_HAND["handlers<br>命令处理"]
         TG_BOT["bot<br>主程序"]
     end
 
     SQLITE --> TG_CARD
-    SQLITE --> TG_SIG
+    SIG_PUB --> TG_ADAPTER
+    TG_ADAPTER --> TG_BOT
     TG_CARD --> TG_BOT
-    TG_SIG --> TG_BOT
     TG_HAND --> TG_BOT
     AI_MOD --> TG_BOT
     TS_CANDLE -.-> AI_WY
@@ -454,7 +467,8 @@ graph TD
 | **data-service** | - | 加密货币 K线采集、期货指标采集、历史数据回填 | Python, asyncio, ccxt, cryptofeed |
 | **markets-service** | - | 全市场数据采集（美股/A股/宏观/衍生品定价） | yfinance, akshare, fredapi, QuantLib |
 | **trading-service** | - | 38个技术指标类计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
-| **telegram-service** | - | Bot 交互、排行榜展示、信号推送 | python-telegram-bot, aiohttp |
+| **signal-service** | - | 独立信号检测服务（129条规则、SQLite+PG引擎、事件发布） | Python, SQLite, psycopg2 |
+| **telegram-service** | - | Bot 交互、排行榜展示、信号推送 UI（通过 adapter 调用 signal-service） | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI 分析、Wyckoff 方法论（作为 telegram-service 子模块） | Gemini/OpenAI/Claude/DeepSeek |
 | **predict-service** | - | 预测市场信号（Polymarket/Kalshi/Opinion） | Node.js, Telegram Bot |
 | **vis-service** | 8087 | 可视化渲染（K线图/指标图/VPVR） | FastAPI, matplotlib, mplfinance |
