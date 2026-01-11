@@ -206,11 +206,13 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 | data-service | 加密货币数据采集、存储到 TimescaleDB | 禁止计算指标 |
 | markets-service | 全市场数据采集（美股/A股/宏观） | 禁止计算指标 |
 | trading-service | 指标计算、写入 SQLite | 禁止直接推送消息 |
-| telegram-service | Bot 交互、读取 SQLite | 禁止写入数据库 |
+| telegram-service | Bot 交互、信号推送 UI | 禁止包含信号检测逻辑 |
 | ai-service | AI 分析、Wyckoff 方法论 | 作为 telegram-service 子模块 |
-| signal-service | 信号检测、规则引擎 | 只读数据库 |
+| signal-service | 信号检测、规则引擎（独立服务） | 只读数据库，禁止 Telegram 依赖 |
 | vis-service | 可视化渲染 | 禁止写入数据库 |
 | order-service | 交易执行、做市 | 禁止修改数据采集逻辑 |
+
+> **注意**：telegram-service/signals 模块已解耦，仅保留适配层 (`adapter.py`) 和 UI (`ui.py`)，信号检测逻辑全部在 signal-service 中。
 
 ### 4.4 依赖添加规则
 
@@ -313,9 +315,9 @@ tradecat/
 ├── services/                       # 稳定版微服务 (5个)
 │   ├── data-service/               # 加密货币数据采集
 │   ├── trading-service/            # 指标计算
-│   ├── telegram-service/           # Telegram Bot
+│   ├── telegram-service/           # Telegram Bot（信号 UI 通过 adapter 调用 signal-service）
 │   ├── ai-service/                 # AI 分析
-│   └── signal-service/             # 信号检测
+│   └── signal-service/             # 信号检测（独立服务，129条规则）
 │
 ├── services-preview/               # 预览版微服务 (5个)
 │   ├── markets-service/            # 全市场数据采集
