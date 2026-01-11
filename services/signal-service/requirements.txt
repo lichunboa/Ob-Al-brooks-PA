@@ -1,0 +1,7 @@
+# Signal Service 依赖
+
+# 数据库
+psycopg2-binary>=2.9.9
+
+# 通用
+python-dotenv>=1.0.0
