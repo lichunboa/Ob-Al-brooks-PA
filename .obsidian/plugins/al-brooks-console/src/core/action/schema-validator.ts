@@ -371,15 +371,24 @@ export class SchemaValidator {
 
     /**
      * 获取字段Schema
+     * 
+     * 修复: 支持规范名称(canonicalName)查找
      */
     getFieldSchema(fieldName: string): FieldSchema | undefined {
-        // 首先检查是否是规范名称
+        // 1. 首先检查是否是schema key (如 "date")
         if (TRADE_SCHEMA[fieldName]) {
             return TRADE_SCHEMA[fieldName];
         }
 
-        // 然后检查是否是别名
-        for (const [canonicalName, schema] of Object.entries(TRADE_SCHEMA)) {
+        // 2. 然后检查是否是规范名称 (如 "日期/date")
+        for (const [_, schema] of Object.entries(TRADE_SCHEMA)) {
+            if (schema.canonicalName === fieldName) {
+                return schema;
+            }
+        }
+
+        // 3. 最后检查是否是别名 (如 "日期", "date")
+        for (const [_, schema] of Object.entries(TRADE_SCHEMA)) {
             if (schema.aliases?.includes(fieldName)) {
                 return schema;
             }
