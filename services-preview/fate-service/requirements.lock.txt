@@ -1,0 +1,32 @@
+addressparser==0.2.4
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.0
+bidict==0.23.1
+certifi==2025.11.12
+china-region==0.0.11
+click==8.3.1
+colorama==0.4.6
+fastapi==0.124.4
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.11
+jieba==0.42.1
+# Editable install with no version control (lunar_python==1.4.8)
+-e /home/lenovo/.projects/fate-engine/libs/external/github/lunar-python-master
+numpy==2.3.5
+pandas==2.3.3
+pydantic==2.12.5
+pydantic_core==2.41.5
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
+python-telegram-bot==22.5
+pytz==2025.2
+six==1.17.0
+starlette==0.50.0
+sxtwl==2.0.7
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.3
+uvicorn==0.38.0
