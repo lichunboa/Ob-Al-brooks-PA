@@ -134,10 +134,10 @@ import type { ActionResult } from './core/action/types';
 
 ### Day 2: SchemaValidator 核心实现
 
-#### 任务 2.1: 定义核心字段Schema
-- [ ] 定义交易笔记核心Schema (TRADE_SCHEMA)
-- [ ] 包含必填字段: date, pnl, outcome, accountType
-- [ ] 包含可选字段: ticker, marketCycle, setupKey等
+#### 任务 2.1: 定义核心字段Schema ✅
+- [x] 定义交易笔记核心Schema (TRADE_SCHEMA)
+- [x] 包含必填字段: date, pnl, outcome, accountType
+- [x] 包含可选字段: ticker, marketCycle, setupKey等
 
 **代码位置**: `src/core/action/schema-validator.ts`
 
@@ -196,6 +196,12 @@ describe('TRADE_SCHEMA', () => {
 npm run test
 ```
 
+**验证结果**: ✅ 已通过
+- 17个字段全部定义 (4个必填 + 13个可选)
+- 所有字段包含规范名称和别名
+- getFieldSchema支持别名查找
+- 提交: a532e8c
+
 **反馈修改规则**:
 - 如果字段定义不完整 → 补充字段
 - 如果别名不正确 → 参考Templates更新
@@ -203,11 +209,11 @@ npm run test
 
 ---
 
-#### 任务 2.2: 实现字段验证逻辑
-- [ ] 实现 `validateField()` 方法
-- [ ] 实现类型验证 (string, number, enum, array, date)
-- [ ] 实现必填验证
-- [ ] 实现枚举值验证
+#### 任务 2.2: 实现字段验证逻辑 ✅
+- [x] 实现 `validateField()` 方法
+- [x] 实现类型验证 (string, number, enum, array, date)
+- [x] 实现必填验证
+- [x] 实现枚举值验证
 
 **代码位置**: `src/core/action/schema-validator.ts`
 
@@ -311,6 +317,14 @@ describe('SchemaValidator.validateField', () => {
 // 运行测试
 npm run test
 ```
+
+**验证结果**: ✅ 已通过
+- 完整的字段验证逻辑
+- 支持5种类型验证 (string, number, enum, array, date)
+- 数字范围验证 (min, max)
+- 字符串正则验证 (pattern)
+- 清晰的错误消息
+- 提交: cc022cf
 
 **反馈修改规则**:
 - 如果验证逻辑不正确 → 修复验证代码
