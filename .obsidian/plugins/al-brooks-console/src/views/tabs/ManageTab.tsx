@@ -13,6 +13,8 @@ import { InspectorPanel } from "../components/manage/InspectorPanel";
 import { ActionServiceTestPanel } from "../components/manage/ActionServiceTestPanel";
 import { BatchUpdateTestPanel } from "../components/manage/BatchUpdateTestPanel";
 import { BatchEditPanel } from "../components/manage/BatchEditPanel";
+import { HistoryViewer } from "../components/manage/HistoryViewer";
+import { QuickActionsPanel } from "../components/manage/QuickActionsPanel";
 import type { InspectorIssue } from "../../core/inspector";
 import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";
@@ -128,6 +130,12 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                 <>
                     {/* Week 3: 批量修改面板 */}
                     <BatchEditPanel index={props.index} trades={props.trades} />
+
+                    {/* Week 3: 操作历史查看器 */}
+                    <HistoryViewer index={props.index} />
+
+                    {/* Week 3: 快捷操作面板 */}
+                    <QuickActionsPanel index={props.index} trades={props.trades} />
 
                     <BatchUpdateTestPanel index={props.index} />
                     {/* 保留旧的测试面板，暂时折叠或放在后面 */}
