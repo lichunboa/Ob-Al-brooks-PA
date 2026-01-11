@@ -48,10 +48,13 @@ export class ActionService {
             const content = await this.app.vault.read(file);
             const { frontmatter, body } = this.updater.parseFrontmatter(content);
 
-            // 3. 验证更新数据 (如果启用验证)
+            // 3. 应用更新 (使用规范名称)
+            const updated = this.updater.applyUpdates(frontmatter, updates);
+
+            // 4. 验证合并后的记录 (如果启用验证)
             if (options.validate !== false) {
                 const validation = this.validator.validateRecord(
-                    updates,
+                    updated,  // 验证合并后的完整记录
                     TRADE_SCHEMA
                 );
                 if (!validation.valid) {
@@ -62,9 +65,6 @@ export class ActionService {
                     };
                 }
             }
-
-            // 4. 应用更新 (使用规范名称)
-            const updated = this.updater.applyUpdates(frontmatter, updates);
 
             // 5. 序列化
             const newContent = this.updater.serializeFrontmatter(updated, body);
