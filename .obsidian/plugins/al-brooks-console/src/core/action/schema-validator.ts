@@ -194,6 +194,62 @@ export const TRADE_SCHEMA: RecordSchema = {
         required: false,
         canonicalName: "封面/cover",
         aliases: ["cover", "封面/cover", "封面", "banner"]
+    },
+
+    // 新增字段 (Day 10)
+    entryPrice: {
+        type: "number",
+        required: false,
+        canonicalName: "入场/entry_price",
+        aliases: ["entry_price", "entry", "入场", "入场价", "entryPrice"]
+    },
+    stopLoss: {
+        type: "number",
+        required: false,
+        canonicalName: "止损/stop_loss",
+        aliases: ["stop_loss", "stop", "止损", "止损价", "stopLoss", "sl"]
+    },
+    takeProfit: {
+        type: "number",
+        required: false,
+        canonicalName: "目标位/take_profit",
+        aliases: ["take_profit", "target", "目标位", "目标价", "takeProfit", "tp"]
+    },
+    initialRisk: {
+        type: "number",
+        required: false,
+        canonicalName: "初始风险/initial_risk",
+        aliases: ["initial_risk", "risk", "初始风险", "风险", "initialRisk"]
+    },
+    alwaysIn: {
+        type: "string",
+        required: false,
+        canonicalName: "总是方向/always_in",
+        aliases: ["always_in", "总是方向", "AI方向", "alwaysIn", "ai"]
+    },
+    dayType: {
+        type: "string",
+        required: false,
+        canonicalName: "日内类型/day_type",
+        aliases: ["day_type", "日内类型", "日类型", "dayType"]
+    },
+    probability: {
+        type: "string",
+        required: false,
+        canonicalName: "概率/probability",
+        aliases: ["probability", "prob", "概率", "胜率"]
+    },
+    confidence: {
+        type: "string",
+        required: false,
+        canonicalName: "信心/confidence",
+        aliases: ["confidence", "信心", "信心度", "确信度"]
+    },
+    orderType: {
+        type: "string",
+        required: false,
+        canonicalName: "订单类型/order_type",
+        aliases: ["order_type", "订单类型", "订单", "orderType", "order"]
     }
 };
 

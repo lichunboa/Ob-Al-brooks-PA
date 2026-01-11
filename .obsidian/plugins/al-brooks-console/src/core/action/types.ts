@@ -35,6 +35,8 @@ export interface BatchActionResult {
     failed: number;
     /** 每个操作的结果 */
     results: ActionResult[];
+    /** 执行时间(ms) */
+    duration: number;
 }
 
 /**
@@ -87,6 +89,39 @@ export interface FieldSchema {
  * 记录Schema (字段名 -> 字段Schema)
  */
 export type RecordSchema = Record<string, FieldSchema>;
+
+/**
+ * 批量更新项
+ */
+export interface BatchUpdateItem {
+    path: string;                    // 文件路径
+    updates: Partial<TradeRecord>;   // 更新内容
+}
+
+/**
+ * 操作记录
+ */
+export interface ChangeLogEntry {
+    id: string;              // 唯一ID
+    timestamp: number;       // 时间戳
+    operation: 'update' | 'batchUpdate'; // 操作类型
+    files: string[];         // 影响的文件
+    changes: {
+        path: string;
+        before: Record<string, unknown>;
+        after: Record<string, unknown>;
+    }[];
+    success: boolean;        // 是否成功
+    canUndo: boolean;        // 是否可撤销
+}
+
+/**
+ * 操作历史
+ */
+export interface ChangeLog {
+    entries: ChangeLogEntry[];
+    maxEntries: number;      // 最大保留数量
+}
 
 /**
  * 验证结果

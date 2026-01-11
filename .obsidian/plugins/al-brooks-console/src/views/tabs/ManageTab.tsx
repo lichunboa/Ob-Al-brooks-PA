@@ -11,6 +11,8 @@ import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
 import { ActionServiceTestPanel } from "../components/manage/ActionServiceTestPanel";
+import { BatchUpdateTestPanel } from "../components/manage/BatchUpdateTestPanel";
+import { BatchEditPanel } from "../components/manage/BatchEditPanel";
 import type { InspectorIssue } from "../../core/inspector";
 import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";
@@ -121,10 +123,20 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                 全面的数据健康监控、属性管理及导出工具。
             </div>
 
-            {/* ActionService 测试面板 (Day 5) */}
+            {/* ActionService 测试面板 (Day 7: BatchUpdate) */}
             {props.index && (
-                <ActionServiceTestPanel index={props.index} />
+                <>
+                    {/* Week 3: 批量修改面板 */}
+                    <BatchEditPanel index={props.index} trades={props.trades} />
+
+                    <BatchUpdateTestPanel index={props.index} />
+                    {/* 保留旧的测试面板，暂时折叠或放在后面 */}
+                    <div style={{ opacity: 0.7 }}>
+                        <ActionServiceTestPanel index={props.index} />
+                    </div>
+                </>
             )}
+
 
             {/* 原始数据明细 (恢复) */}
             <RawDataPanel trades={props.trades} openFile={props.openFile} />

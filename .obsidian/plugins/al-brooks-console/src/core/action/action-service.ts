@@ -14,16 +14,20 @@ import type { TradeRecord } from "../contracts";
 import type { ActionResult, ActionOptions, BatchActionResult } from "./types";
 import { SchemaValidator, TRADE_SCHEMA } from "./schema-validator";
 import { FrontmatterUpdater } from "./frontmatter-updater";
+import { ChangeLogManager } from "./change-log";
+import type { ChangeLogEntry } from "./types";
 
 export class ActionService {
     private app: App;
     private validator: SchemaValidator;
     private updater: FrontmatterUpdater;
+    private changeLog: ChangeLogManager;
 
     constructor(app: App) {
         this.app = app;
         this.validator = new SchemaValidator();
         this.updater = new FrontmatterUpdater(app, this.validator);
+        this.changeLog = new ChangeLogManager();
     }
 
     /**
@@ -74,8 +78,7 @@ export class ActionService {
                 await this.app.vault.modify(file, newContent);
             }
 
-            // 7. 返回结果
-            return {
+            const result = {
                 success: true,
                 message: options.dryRun ? '预览成功 (未实际修改)' : '更新成功',
                 changes: {
@@ -83,6 +86,23 @@ export class ActionService {
                     after: updated
                 }
             };
+
+            // 7. 记录操作历史 (仅在非 DryRun 且成功时)
+            if (!options.dryRun && options.recordHistory !== false) {
+                this.changeLog.record({
+                    operation: 'update',
+                    files: [path],
+                    changes: [{
+                        path,
+                        before: frontmatter,
+                        after: updated
+                    }],
+                    success: true,
+                    canUndo: true
+                });
+            }
+
+            return result;
         } catch (e) {
             return {
                 success: false,
@@ -92,18 +112,146 @@ export class ActionService {
     }
 
     /**
+     * 获取操作历史
+     */
+    getChangeLog(limit = 20): ChangeLogEntry[] {
+        return this.changeLog.getEntries(limit);
+    }
+
+    /**
+     * 撤销操作
+     * 
+     * @param entryId 操作记录ID
+     */
+    async undo(entryId: string): Promise<ActionResult> {
+        const entry = this.changeLog.getEntry(entryId);
+
+        if (!entry) {
+            return {
+                success: false,
+                message: '未找到操作记录'
+            };
+        }
+
+        if (!entry.canUndo) {
+            return {
+                success: false,
+                message: '该操作不支持撤销'
+            };
+        }
+
+        // 恢复所有文件到之前的状态
+        const results: ActionResult[] = [];
+
+        for (const change of entry.changes) {
+            const result = await this.restoreFile(
+                change.path,
+                change.before
+            );
+            results.push(result);
+        }
+
+        const allSuccess = results.every(r => r.success);
+
+        return {
+            success: allSuccess,
+            message: allSuccess ? '撤销成功' : '部分撤销失败',
+            errors: results
+                .filter(r => !r.success)
+                .flatMap(r => r.errors || [])
+        };
+    }
+
+    /**
+     * 恢复文件到指定状态
+     */
+    private async restoreFile(
+        path: string,
+        frontmatter: Record<string, unknown>
+    ): Promise<ActionResult> {
+        try {
+            // 1. 获取文件
+            const file = this.app.vault.getAbstractFileByPath(path);
+            if (!(file instanceof TFile)) {
+                return {
+                    success: false,
+                    message: `文件不存在: ${path}`
+                };
+            }
+
+            // 2. 读取原始内容
+            const content = await this.app.vault.read(file);
+            const { body } = this.updater.parseFrontmatter(content);
+
+            // 3. 序列化 (直接使用before状态的frontmatter)
+            const newContent = this.updater.serializeFrontmatter(frontmatter, body);
+
+            // 4. 写入文件
+            await this.app.vault.modify(file, newContent);
+
+            return {
+                success: true,
+                message: '恢复成功'
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: `恢复失败: ${e instanceof Error ? e.message : String(e)}`
+            };
+        }
+    }
+
+    /**
      * 批量更新交易记录
+     * 
+     * @param items 批量更新项列表
+     * @param options 操作选项
+     * @returns 批量操作结果
      */
     async batchUpdateTrades(
-        updates: Array<{ path: string; updates: Partial<TradeRecord> }>,
+        items: Array<{ path: string; updates: Partial<TradeRecord> }>,
         options: ActionOptions = {}
     ): Promise<BatchActionResult> {
-        // TODO: 实现
+        const startTime = Date.now();
+        const results: ActionResult[] = [];
+        const chunkSize = 50;
+
+        // 分批处理,避免内存溢出
+        for (let i = 0; i < items.length; i += chunkSize) {
+            const chunk = items.slice(i, i + chunkSize);
+
+            // 并行处理一批
+            const chunkResults = await Promise.all(
+                chunk.map(item =>
+                    this.updateTrade(item.path, item.updates, options)
+                        .catch(error => ({
+                            success: false,
+                            message: `批量更新失败: ${error instanceof Error ? error.message : String(error)}`,
+                            errors: [{
+                                field: 'batch',
+                                message: error instanceof Error ? error.message : String(error)
+                            }]
+                        }))
+                )
+            );
+
+            results.push(...chunkResults);
+
+            // 进度日志
+            const progress = Math.min(100,
+                Math.round((i + chunk.length) / items.length * 100)
+            );
+            console.log(`[ActionService] 批量更新进度: ${progress}% (${i + chunk.length}/${items.length})`);
+        }
+
+        const duration = Date.now() - startTime;
+
         return {
-            total: 0,
-            succeeded: 0,
-            failed: 0,
-            results: []
+            total: items.length,
+            succeeded: results.filter(r => r.success).length,
+            failed: results.filter(r => !r.success).length,
+            results,
+            duration
         };
     }
 
