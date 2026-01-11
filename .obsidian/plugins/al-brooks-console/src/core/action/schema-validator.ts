@@ -206,7 +206,116 @@ export class SchemaValidator {
         value: unknown,
         schema: FieldSchema
     ): ValidationError | null {
-        // TODO: 实现
+        // 1. 必填验证
+        if (schema.required && (value === undefined || value === null)) {
+            return {
+                field: fieldName,
+                message: `字段 ${fieldName} 是必填的`,
+                value
+            };
+        }
+
+        // 如果值为空且不是必填，则通过验证
+        if (value === undefined || value === null) {
+            return null;
+        }
+
+        // 2. 类型验证
+        switch (schema.type) {
+            case "string":
+                if (typeof value !== "string") {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 必须是字符串`,
+                        value
+                    };
+                }
+                // 正则验证
+                if (schema.pattern && !schema.pattern.test(value)) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 格式不正确`,
+                        value
+                    };
+                }
+                break;
+
+            case "number":
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 必须是有效数字`,
+                        value
+                    };
+                }
+                // 最小值验证
+                if (schema.min !== undefined && value < schema.min) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 不能小于 ${schema.min}`,
+                        value
+                    };
+                }
+                // 最大值验证
+                if (schema.max !== undefined && value > schema.max) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 不能大于 ${schema.max}`,
+                        value
+                    };
+                }
+                break;
+
+            case "enum":
+                const stringValue = String(value);
+                if (!schema.enum?.includes(stringValue)) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 必须是以下值之一: ${schema.enum?.join(', ')}`,
+                        value
+                    };
+                }
+                break;
+
+            case "array":
+                if (!Array.isArray(value)) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 必须是数组`,
+                        value
+                    };
+                }
+                break;
+
+            case "date":
+                // 日期验证 - 接受字符串或Date对象
+                if (typeof value === "string") {
+                    const date = new Date(value);
+                    if (isNaN(date.getTime())) {
+                        return {
+                            field: fieldName,
+                            message: `字段 ${fieldName} 必须是有效日期`,
+                            value
+                        };
+                    }
+                } else if (!(value instanceof Date)) {
+                    return {
+                        field: fieldName,
+                        message: `字段 ${fieldName} 必须是日期`,
+                        value
+                    };
+                }
+                break;
+
+            default:
+                // 未知类型
+                return {
+                    field: fieldName,
+                    message: `字段 ${fieldName} 的类型 ${schema.type} 不支持`,
+                    value
+                };
+        }
+
         return null;
     }
 
