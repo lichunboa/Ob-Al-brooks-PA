@@ -321,6 +321,8 @@ export class SchemaValidator {
 
     /**
      * 验证整个记录
+     * 
+     * 修复: 支持规范名称和别名
      */
     validateRecord(
         record: Partial<TradeRecord>,
@@ -328,9 +330,33 @@ export class SchemaValidator {
     ): ValidationResult {
         const errors: ValidationError[] = [];
 
-        // 验证所有Schema中定义的字段
+        // 1. 收集record中所有字段对应的schema字段
+        const fieldMap = new Map<string, { schemaKey: string; schema: FieldSchema; value: unknown }>();
+
+        for (const [recordKey, recordValue] of Object.entries(record)) {
+            // 查找这个字段对应的schema
+            const fieldSchema = this.getFieldSchema(recordKey);
+            if (fieldSchema) {
+                // 找到对应的schema字段名
+                const schemaKey = Object.entries(schema).find(
+                    ([_, s]) => s === fieldSchema
+                )?.[0];
+
+                if (schemaKey) {
+                    fieldMap.set(schemaKey, {
+                        schemaKey,
+                        schema: fieldSchema,
+                        value: recordValue
+                    });
+                }
+            }
+        }
+
+        // 2. 验证所有Schema中定义的字段
         for (const [fieldName, fieldSchema] of Object.entries(schema)) {
-            const value = record[fieldName as keyof TradeRecord];
+            const fieldData = fieldMap.get(fieldName);
+            const value = fieldData?.value;
+
             const error = this.validateField(fieldName, value, fieldSchema);
             if (error) {
                 errors.push(error);
