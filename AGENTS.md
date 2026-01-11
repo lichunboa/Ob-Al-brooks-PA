@@ -494,9 +494,13 @@ chore: standardize project structure for all services
 
 | 变量 | 服务 | 说明 |
 |:---|:---|:---|
-| `BACKFILL_MODE` | data-service | 回填模式 |
+| `BACKFILL_MODE` | data-service | 回填模式（all/days/none） |
 | `MAX_WORKERS` | trading-service | 计算线程数 |
 | `VIS_SERVICE_PORT` | vis-service | 监听端口（默认 8087） |
+| `FATE_BOT_TOKEN` | fate-service | 命理 Bot Token |
+| `FATE_SERVICE_PORT` | fate-service | API 端口（默认 8001） |
+| `MARKETS_SERVICE_DATABASE_URL` | markets-service | 独立数据库连接 |
+| `CRYPTO_WRITE_MODE` | markets-service | 写入模式（raw/legacy） |
 
 ---
 
