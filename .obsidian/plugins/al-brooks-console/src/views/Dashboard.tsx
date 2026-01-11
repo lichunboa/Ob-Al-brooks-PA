@@ -1240,6 +1240,8 @@ const ConsoleComponent: React.FC<Props> = ({
 
       {activePage === "manage" ? (
         <ManageTab
+          // TradeIndex (用于ActionService测试)
+          index={index}
           // 数据Props
           schemaIssues={schemaIssues}
           paTagSnapshot={paTagSnapshot}

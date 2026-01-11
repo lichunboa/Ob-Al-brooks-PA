@@ -10,6 +10,7 @@ import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
+import { ActionServiceTestPanel } from "../components/manage/ActionServiceTestPanel";
 import type { InspectorIssue } from "../../core/inspector";
 import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";
@@ -20,6 +21,9 @@ import { topN } from "../../utils/aggregation-utils";
  * ManageTab Props接口
  */
 export interface ManageTabProps {
+    // TradeIndex (用于ActionService测试)
+    index?: any;
+
     // 数据
     schemaIssues: SchemaIssueItem[];
     paTagSnapshot: PaTagSnapshot | undefined;
@@ -116,6 +120,11 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
             <div style={{ padding: "0 12px 12px", color: "var(--text-faint)", fontSize: "0.9em", marginTop: "-10px" }}>
                 全面的数据健康监控、属性管理及导出工具。
             </div>
+
+            {/* ActionService 测试面板 (Day 5) */}
+            {props.index && (
+                <ActionServiceTestPanel index={props.index} />
+            )}
 
             {/* 原始数据明细 (恢复) */}
             <RawDataPanel trades={props.trades} openFile={props.openFile} />
