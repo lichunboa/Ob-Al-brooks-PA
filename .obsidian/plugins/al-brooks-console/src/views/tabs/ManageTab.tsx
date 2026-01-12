@@ -10,8 +10,7 @@ import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
-import { ActionServiceTestPanel } from "../components/manage/ActionServiceTestPanel";
-import { BatchUpdateTestPanel } from "../components/manage/BatchUpdateTestPanel";
+
 import type { InspectorIssue } from "../../core/inspector";
 import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";

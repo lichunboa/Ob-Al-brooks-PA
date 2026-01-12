@@ -33,7 +33,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
         executionQuality: trade.executionQuality || "",
         setupCategory: trade.setupCategory || "",
         marketCycle: trade.marketCycle || "",
-        notes: trade.notes || "",
+        notes: "",
     });
 
     const [isSaving, setIsSaving] = React.useState(false);
@@ -71,7 +71,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
             if (formData.executionQuality !== trade.executionQuality) updates.executionQuality = formData.executionQuality;
             if (formData.setupCategory !== trade.setupCategory) updates.setupCategory = formData.setupCategory;
             if (formData.marketCycle !== trade.marketCycle) updates.marketCycle = formData.marketCycle;
-            if (formData.notes !== trade.notes) updates.notes = formData.notes;
+            if (formData.notes) updates.notes = formData.notes;
 
             if (Object.keys(updates).length === 0) {
                 new Notice("没有修改");
@@ -210,7 +210,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择结果 --</option>
-                                {enumPresets?.outcome?.map((val) => (
+                                {enumPresets?.getCanonicalValues("outcome").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -226,7 +226,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择品种 --</option>
-                                {enumPresets?.ticker?.map((val) => (
+                                {enumPresets?.getCanonicalValues("ticker").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -239,8 +239,8 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 onChange={(e) => handleChange("direction", e.target.value)}
                                 style={inputStyle}
                             >
-                                <option value="">做多 (Long)</option>
-                                {enumPresets?.direction?.map((val) => (
+                                <option value="">-- 选择方向 --</option>
+                                {enumPresets?.getCanonicalValues("direction").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -261,7 +261,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择账户类型 --</option>
-                                {enumPresets?.accountType?.map((val) => (
+                                {enumPresets?.getCanonicalValues("account_type").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -275,7 +275,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择策略 --</option>
-                                {enumPresets?.strategyName?.map((val) => (
+                                {enumPresets?.getCanonicalValues("strategy_name").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -291,7 +291,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择设置 --</option>
-                                {enumPresets?.setupKey?.map((val) => (
+                                {enumPresets?.getCanonicalValues("setup_key").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -304,8 +304,8 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 onChange={(e) => handleChange("timeframe", e.target.value)}
                                 style={inputStyle}
                             >
-                                <option value="">5m</option>
-                                {enumPresets?.timeframe?.map((val) => (
+                                <option value="">-- 选择周期 --</option>
+                                {enumPresets?.getCanonicalValues("timeframe").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -326,7 +326,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择质量 --</option>
-                                {enumPresets?.executionQuality?.map((val) => (
+                                {enumPresets?.getCanonicalValues("execution_quality").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -340,7 +340,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择分类 --</option>
-                                {enumPresets?.setupCategory?.map((val) => (
+                                {enumPresets?.getCanonicalValues("setup_category").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -354,7 +354,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                                 style={inputStyle}
                             >
                                 <option value="">-- 选择周期 --</option>
-                                {enumPresets?.marketCycle?.map((val) => (
+                                {enumPresets?.getCanonicalValues("market_cycle").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
                             </select>
@@ -396,7 +396,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                     <Button variant="default" onClick={onClose} disabled={isSaving}>
                         取消
                     </Button>
-                    <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+                    <Button variant="default" onClick={handleSave} disabled={isSaving}>
                         {isSaving ? "保存中..." : "保存"}
                     </Button>
                 </div>
