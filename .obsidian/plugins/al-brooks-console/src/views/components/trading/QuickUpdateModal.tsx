@@ -77,10 +77,10 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                 return;
             }
 
-            // 执行更新
+            // 执行更新 (禁用严格验证,允许更新不完整的记录)
             const result = await actionService.updateTrade(trade.path, updates, {
                 dryRun: false,
-                validate: true,
+                validate: false,  // 禁用验证,允许更新不完整的交易记录
             });
 
             if (result.success) {
