@@ -28,10 +28,9 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
         direction: trade.direction || "",
         accountType: trade.accountType || "",
         strategyName: trade.strategyName || "",
-        setupKey: trade.setupKey || "",
+        setupCategory: trade.setupCategory || "",
         timeframe: trade.timeframe || "",
         executionQuality: trade.executionQuality || "",
-        setupCategory: trade.setupCategory || "",
         marketCycle: trade.marketCycle || "",
         notes: "",
     });
@@ -66,10 +65,9 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
             if (formData.direction !== trade.direction) updates.direction = formData.direction;
             if (formData.accountType !== trade.accountType) updates.accountType = formData.accountType;
             if (formData.strategyName !== trade.strategyName) updates.strategyName = formData.strategyName;
-            if (formData.setupKey !== trade.setupKey) updates.setupKey = formData.setupKey;
+            if (formData.setupCategory !== trade.setupCategory) updates.setupCategory = formData.setupCategory;
             if (formData.timeframe !== trade.timeframe) updates.timeframe = formData.timeframe;
             if (formData.executionQuality !== trade.executionQuality) updates.executionQuality = formData.executionQuality;
-            if (formData.setupCategory !== trade.setupCategory) updates.setupCategory = formData.setupCategory;
             if (formData.marketCycle !== trade.marketCycle) updates.marketCycle = formData.marketCycle;
             if (formData.notes) updates.notes = formData.notes;
 
@@ -120,16 +118,6 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
 
     const fieldGroupStyle: React.CSSProperties = {
         marginBottom: "16px",
-    };
-
-    const sectionTitleStyle: React.CSSProperties = {
-        fontSize: "14px",
-        fontWeight: 600,
-        color: "var(--text-normal)",
-        marginBottom: "12px",
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
     };
 
     return (
@@ -184,14 +172,99 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                         <div style={{ fontSize: "11px", color: "var(--text-faint)", marginTop: "4px" }}>📅 {trade.dateIso}</div>
                     </div>
 
-                    {/* 核心字段 */}
-                    <div style={sectionTitleStyle}>
-                        🎯 核心字段
+                    {/* 按照单笔交易模版顺序 */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>账户类型/account_type</label>
+                            <select value={formData.accountType} onChange={(e) => handleChange("accountType", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("account_type").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>品种/ticker</label>
+                            <select value={formData.ticker} onChange={(e) => handleChange("ticker", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("ticker").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                         <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>盈亏 (R) *</label>
+                            <label style={labelStyle}>时间周期/timeframe</label>
+                            <select value={formData.timeframe} onChange={(e) => handleChange("timeframe", e.target.value)} style={inputStyle}>
+                                <option value="">5m</option>
+                                {enumPresets?.getCanonicalValues("timeframe").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>市场周期/market_cycle</label>
+                            <select value={formData.marketCycle} onChange={(e) => handleChange("marketCycle", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("market_cycle").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>方向/direction</label>
+                            <select value={formData.direction} onChange={(e) => handleChange("direction", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("direction").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>设置类别/setup_category</label>
+                            <select value={formData.setupCategory} onChange={(e) => handleChange("setupCategory", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("setup_category").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>执行评价/execution_quality</label>
+                            <select value={formData.executionQuality} onChange={(e) => handleChange("executionQuality", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("execution_quality").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>策略名称/strategy_name</label>
+                            <select value={formData.strategyName} onChange={(e) => handleChange("strategyName", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
+                                {enumPresets?.getCanonicalValues("strategy_name").map((val) => (
+                                    <option key={val} value={val}>{val}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* 净利润与结果 */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>净利润/net_profit (R)</label>
                             <input
                                 type="number"
                                 step="0.1"
@@ -203,13 +276,9 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                         </div>
 
                         <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>结果 *</label>
-                            <select
-                                value={formData.outcome}
-                                onChange={(e) => handleChange("outcome", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择结果 --</option>
+                            <label style={labelStyle}>结果/outcome</label>
+                            <select value={formData.outcome} onChange={(e) => handleChange("outcome", e.target.value)} style={inputStyle}>
+                                <option value="">没有值</option>
                                 {enumPresets?.getCanonicalValues("outcome").map((val) => (
                                     <option key={val} value={val}>{val}</option>
                                 ))}
@@ -217,155 +286,7 @@ export const QuickUpdateModal: React.FC<QuickUpdateModalProps> = ({
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>品种</label>
-                            <select
-                                value={formData.ticker}
-                                onChange={(e) => handleChange("ticker", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择品种 --</option>
-                                {enumPresets?.getCanonicalValues("ticker").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>方向</label>
-                            <select
-                                value={formData.direction}
-                                onChange={(e) => handleChange("direction", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择方向 --</option>
-                                {enumPresets?.getCanonicalValues("direction").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* 交易设置 */}
-                    <div style={sectionTitleStyle}>
-                        ⚙️ 交易设置
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>账户类型</label>
-                            <select
-                                value={formData.accountType}
-                                onChange={(e) => handleChange("accountType", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择账户类型 --</option>
-                                {enumPresets?.getCanonicalValues("account_type").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>策略名称</label>
-                            <select
-                                value={formData.strategyName}
-                                onChange={(e) => handleChange("strategyName", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择策略 --</option>
-                                {enumPresets?.getCanonicalValues("strategy_name").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>设置</label>
-                            <select
-                                value={formData.setupKey}
-                                onChange={(e) => handleChange("setupKey", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择设置 --</option>
-                                {enumPresets?.getCanonicalValues("setup_key").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>时间周期</label>
-                            <select
-                                value={formData.timeframe}
-                                onChange={(e) => handleChange("timeframe", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择周期 --</option>
-                                {enumPresets?.getCanonicalValues("timeframe").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* 执行质量 */}
-                    <div style={sectionTitleStyle}>
-                        📝 执行质量
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>执行质量</label>
-                            <select
-                                value={formData.executionQuality}
-                                onChange={(e) => handleChange("executionQuality", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择质量 --</option>
-                                {enumPresets?.getCanonicalValues("execution_quality").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>设置分类</label>
-                            <select
-                                value={formData.setupCategory}
-                                onChange={(e) => handleChange("setupCategory", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择分类 --</option>
-                                {enumPresets?.getCanonicalValues("setup_category").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>市场周期</label>
-                            <select
-                                value={formData.marketCycle}
-                                onChange={(e) => handleChange("marketCycle", e.target.value)}
-                                style={inputStyle}
-                            >
-                                <option value="">-- 选择周期 --</option>
-                                {enumPresets?.getCanonicalValues("market_cycle").map((val) => (
-                                    <option key={val} value={val}>{val}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
                     {/* 备注 */}
-                    <div style={sectionTitleStyle}>
-                        📌 备注
-                    </div>
-
                     <div style={fieldGroupStyle}>
                         <label style={labelStyle}>备注</label>
                         <textarea
