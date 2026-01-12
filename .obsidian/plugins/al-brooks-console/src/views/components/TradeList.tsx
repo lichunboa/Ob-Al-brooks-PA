@@ -1,213 +1,85 @@
 import * as React from "react";
+import type { App } from "obsidian";
 import type { TradeData } from "../../types";
+import type { EnumPresets } from "../../core/enum-presets";
+import { QuickUpdateModal } from "./trading/QuickUpdateModal";
 
 interface TradeListProps {
   trades: TradeData[];
   onOpenFile: (path: string) => void;
+  app?: App;
+  enumPresets?: EnumPresets;
+  onUpdate?: () => void;
 }
 
-export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
+export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, enumPresets, onUpdate }) => {
+  const [selectedTrade, setSelectedTrade] = React.useState<TradeData | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = React.useState(false);
+
   const activateRow = React.useCallback((el: HTMLDivElement) => {
     el.style.borderColor = "var(--interactive-accent)";
     el.style.background = "var(--background-modifier-hover)";
-    el.style.boxShadow = "0 0 0 2px var(--background-modifier-border)";
+    el.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
   }, []);
 
   const deactivateRow = React.useCallback((el: HTMLDivElement) => {
     el.style.borderColor = "var(--background-modifier-border)";
-    el.style.background = "var(--background-secondary)";
+    el.style.background = "var(--background-primary)";
     el.style.boxShadow = "none";
   }, []);
 
-  if (trades.length <= 200) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {trades.map((t) => {
-          const pnl = typeof t.pnl === "number" ? t.pnl : 0;
-          const isWin = pnl > 0;
-          const isLoss = pnl < 0;
-          const pnlColor = isWin
-            ? "var(--text-success)"
-            : isLoss
-              ? "var(--text-error)"
-              : "var(--text-muted)";
-
-          return (
-            <div
-              key={t.path}
-              style={{
-                padding: "12px",
-                background: "var(--background-secondary)",
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
-                transition:
-                  "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
-                outline: "none",
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""
-                }）`}
-              onClick={() => {
-                onOpenFile(t.path);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenFile(t.path);
-                }
-              }}
-              onMouseEnter={(e) => activateRow(e.currentTarget)}
-              onMouseLeave={(e) => deactivateRow(e.currentTarget)}
-              onFocus={(e) => activateRow(e.currentTarget)}
-              onBlur={(e) => deactivateRow(e.currentTarget)}
-            >
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-              >
-                <div style={{ fontWeight: "600", fontSize: "1rem" }}>
-                  {t.ticker ?? "未知"}
-                </div>
-                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                  {t.dateIso}
-                </div>
-              </div>
-
-              <div style={{ textAlign: "right" }}>
-                <div
-                  style={{
-                    fontWeight: "700",
-                    color: pnlColor,
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  {pnl > 0 ? "+" : ""}
-                  {pnl}R
-                </div>
-                <div style={{ fontSize: "0.8rem", color: "var(--text-faint)" }}>
-                  {t.outcome ?? ""}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {trades.length === 0 && (
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              color: "var(--text-faint)",
-            }}
-          >
-            未找到交易记录。开始记录吧！
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [scrollTop, setScrollTop] = React.useState(0);
-  const [viewportHeight, setViewportHeight] = React.useState(0);
-
-  const rowHeight = 74;
-  const overscan = 6;
-
-  React.useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => setViewportHeight(el.clientHeight);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  const onScroll = React.useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    setScrollTop(el.scrollTop);
-  }, []);
-
-  const totalHeight = trades.length * rowHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
-  const endIndex = Math.min(
-    trades.length,
-    Math.ceil((scrollTop + viewportHeight) / rowHeight) + overscan
-  );
-  const visible = trades.slice(startIndex, endIndex);
-  const topSpacer = startIndex * rowHeight;
-  const bottomSpacer = Math.max(
-    0,
-    totalHeight - topSpacer - visible.length * rowHeight
-  );
+  const bottomSpacer = 200;
 
   return (
-    <div
-      ref={containerRef}
-      onScroll={onScroll}
-      style={{
-        display: "block",
-        overflowY: "auto",
-        maxHeight: "600px",
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "8px",
-        background: "var(--background-primary)",
-        padding: "8px",
-      }}
-    >
-      <div style={{ height: topSpacer }} />
+    <div>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {visible.map((t) => {
-          const pnl = typeof t.pnl === "number" ? t.pnl : 0;
-          const isWin = pnl > 0;
-          const isLoss = pnl < 0;
-          const pnlColor = isWin
-            ? "var(--text-success)"
-            : isLoss
-              ? "var(--text-error)"
-              : "var(--text-muted)";
+        {trades.map((t, idx) => {
+          const pnl = t.pnl ?? 0;
+          const pnlColor =
+            pnl > 0
+              ? "var(--text-success)"
+              : pnl < 0
+                ? "var(--text-error)"
+                : "var(--text-muted)";
 
           return (
             <div
-              key={t.path}
+              key={idx}
               style={{
-                padding: "12px",
-                background: "var(--background-primary)",
+                padding: "12px 16px",
                 border: "1px solid var(--background-modifier-border)",
-                borderRadius: "8px",
+                borderRadius: "6px",
+                background: "var(--background-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                cursor: "pointer",
                 transition:
                   "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
                 outline: "none",
               }}
-              role="button"
-              tabIndex={0}
-              aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""
-                }）`}
-              onClick={() => {
-                // Open file
-                onOpenFile(t.path);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenFile(t.path);
-                }
-              }}
-              onMouseEnter={(e) => activateRow(e.currentTarget)}
-              onMouseLeave={(e) => deactivateRow(e.currentTarget)}
-              onFocus={(e) => activateRow(e.currentTarget)}
-              onBlur={(e) => deactivateRow(e.currentTarget)}
             >
               <div
-                style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                  flex: 1,
+                  cursor: "pointer"
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`打开交易：${t.ticker ?? "未知"}（${t.dateIso ?? ""}）`}
+                onClick={() => onOpenFile(t.path)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenFile(t.path);
+                  }
+                }}
+                onMouseEnter={(e) => activateRow(e.currentTarget.parentElement as HTMLDivElement)}
+                onMouseLeave={(e) => deactivateRow(e.currentTarget.parentElement as HTMLDivElement)}
+                onFocus={(e) => activateRow(e.currentTarget.parentElement as HTMLDivElement)}
+                onBlur={(e) => deactivateRow(e.currentTarget.parentElement as HTMLDivElement)}
               >
                 <div style={{ fontWeight: "600", fontSize: "1rem" }}>
                   {t.ticker ?? "未知"}
@@ -217,31 +89,51 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
                 </div>
               </div>
 
-              <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-                <div
-                  style={{
-                    fontWeight: "800",
-                    color: pnlColor,
-                    fontSize: "1.1rem",
-                    background: isWin ? "rgba(var(--color-green-rgb), 0.1)" : isLoss ? "rgba(var(--color-red-rgb), 0.1)" : "rgba(var(--mono-rgb-100), 0.05)",
-                    padding: "2px 8px",
-                    borderRadius: "6px",
-                  }}
-                >
-                  {pnl > 0 ? "+" : ""}
-                  {pnl}R
-                </div>
-                {t.outcome && (
-                  <div style={{
-                    fontSize: "0.75rem",
-                    color: "var(--text-faint)",
-                    padding: "2px 6px",
-                    background: "var(--background-secondary-alt)",
-                    borderRadius: "4px",
-                    display: "inline-block"
-                  }}>
-                    {t.outcome}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ textAlign: "right" }}>
+                  <div
+                    style={{
+                      fontWeight: "700",
+                      color: pnlColor,
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    {pnl > 0 ? "+" : ""}
+                    {pnl}R
                   </div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-faint)" }}>
+                    {t.outcome ?? ""}
+                  </div>
+                </div>
+
+                {/* 更新按钮 */}
+                {app && enumPresets && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTrade(t);
+                      setShowUpdateModal(true);
+                    }}
+                    style={{
+                      background: "var(--interactive-accent)",
+                      color: "var(--text-on-accent)",
+                      border: "none",
+                      borderRadius: "4px",
+                      padding: "6px 12px",
+                      fontSize: "0.85em",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.8";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                    }}
+                  >
+                    更新
+                  </button>
                 )}
               </div>
             </div>
@@ -260,6 +152,24 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile }) => {
         )}
       </div>
       <div style={{ height: bottomSpacer }} />
+
+      {/* QuickUpdateModal */}
+      {showUpdateModal && selectedTrade && app && (
+        <QuickUpdateModal
+          trade={selectedTrade}
+          enumPresets={enumPresets}
+          app={app}
+          onClose={() => {
+            setShowUpdateModal(false);
+            setSelectedTrade(null);
+          }}
+          onSuccess={() => {
+            if (onUpdate) {
+              onUpdate();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

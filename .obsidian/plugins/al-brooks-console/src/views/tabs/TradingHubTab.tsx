@@ -1,8 +1,10 @@
 import * as React from "react";
+import type { App } from "obsidian";
 import type { TradeRecord } from "../../core/contracts";
 import type { StrategyCard } from "../../core/strategy-index";
 import type { TradeIndex } from "../../core/trade-index";
 import type { StrategyIndex } from "../../core/strategy-index";
+import type { EnumPresets } from "../../core/enum-presets";
 import { GlassPanel } from "../../ui/components/GlassPanel";
 import { SectionHeader } from "../../ui/components/SectionHeader";
 import { TodayKpiCard } from "../components/trading/TodayKpiCard";
@@ -53,6 +55,9 @@ export interface TradingHubTabProps {
   canOpenTodayNote: boolean;
   onOpenTodayNote: () => void;
   can: (feature: string) => boolean;
+  app: App;
+  enumPresets?: EnumPresets;
+  onRefreshData?: () => void;
 
   // 样式
   textButtonStyle: React.CSSProperties;
@@ -128,7 +133,14 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         />
 
 
-        <TodayTradesSection todayTrades={todayTrades} openFile={openFile} />
+        <TodayTradesSection
+          todayTrades={todayTrades}
+          openFile={openFile}
+          index={props.index}
+          app={props.app}
+          enumPresets={props.enumPresets}
+          onUpdate={props.onRefreshData}
+        />
       </GlassPanel>
 
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />

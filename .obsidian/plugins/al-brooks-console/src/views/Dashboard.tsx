@@ -184,6 +184,7 @@ interface Props {
   resolveLink?: (linkText: string, fromPath: string) => string | undefined;
   getResourceUrl?: (path: string) => string | undefined;
   enumPresets?: EnumPresets;
+  app?: any;
   loadStrategyNotes?: () => Promise<StrategyNoteFrontmatter[]>;
   loadPaTagSnapshot?: () => Promise<PaTagSnapshot>;
   /** v5 属性管理器：扫描全库 frontmatter（不依赖 Dataview） */
@@ -233,6 +234,7 @@ const ConsoleComponent: React.FC<Props> = ({
   resolveLink,
   getResourceUrl,
   enumPresets,
+  app,
   loadStrategyNotes,
   loadPaTagSnapshot,
   loadAllFrontmatterFiles,
@@ -1140,6 +1142,13 @@ const ConsoleComponent: React.FC<Props> = ({
           canOpenTodayNote={canOpenTodayNote}
           onOpenTodayNote={onOpenTodayNote}
           can={can}
+          app={app}
+          enumPresets={enumPresets}
+          onRefreshData={async () => {
+            if (index.rebuild) {
+              await index.rebuild();
+            }
+          }}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
@@ -1905,6 +1914,7 @@ export class ConsoleView extends ItemView {
           resolveLink={resolveLink}
           getResourceUrl={getResourceUrl}
           enumPresets={enumPresets}
+          app={this.app}
           loadStrategyNotes={loadStrategyNotes}
           loadPaTagSnapshot={loadPaTagSnapshot}
           loadAllFrontmatterFiles={loadAllFrontmatterFiles}

@@ -100,7 +100,7 @@ export interface ManageTabProps {
 }
 
 export const ManageTab: React.FC<ManageTabProps> = (props) => {
-    // 准备数据统计
+    // 准备数据统计 - 必须在所有条件渲染之前调用
     const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, props.trades, 10), [props.trades]);
     const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, props.trades, 10), [props.trades]);
     const distExec = React.useMemo(() => topN((t) => (t as any).executionType ?? t.executionQuality, undefined, props.trades, 10), [props.trades]);
@@ -125,25 +125,15 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                 全面的数据健康监控、属性管理及导出工具。
             </div>
 
-            {/* ActionService 测试面板 (Day 7: BatchUpdate) */}
-            {props.index && (
-                <>
-                    {/* Week 3: 批量修改面板 */}
-                    <BatchEditPanel index={props.index} trades={props.trades} />
+            {/* Week 3: 批量修改面板 */}
+            {props.index && <BatchEditPanel index={props.index} trades={props.trades} />}
 
-                    {/* Week 3: 操作历史查看器 */}
-                    <HistoryViewer index={props.index} />
+            {/* Week 3: 操作历史查看器 */}
+            {props.index && <HistoryViewer index={props.index} />}
 
-                    {/* Week 3: 快捷操作面板 */}
-                    <QuickActionsPanel index={props.index} trades={props.trades} />
+            {/* Week 3: 快捷操作面板 */}
+            {props.index && <QuickActionsPanel index={props.index} trades={props.trades} />}
 
-                    <BatchUpdateTestPanel index={props.index} />
-                    {/* 保留旧的测试面板，暂时折叠或放在后面 */}
-                    <div style={{ opacity: 0.7 }}>
-                        <ActionServiceTestPanel index={props.index} />
-                    </div>
-                </>
-            )}
 
 
             {/* 原始数据明细 (恢复) */}
