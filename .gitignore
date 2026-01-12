@@ -134,3 +134,9 @@ book/
 # 最好可以关注一下
 # 我的湿件工程仓库呀
 # https://github.com/tukuaiai/wetware-engineeringdroid
+.venv-pypi/
+.coverage
+
+# Large external libraries
+libs/external/
+dist/
