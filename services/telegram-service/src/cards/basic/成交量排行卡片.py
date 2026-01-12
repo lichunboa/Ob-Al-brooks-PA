@@ -137,14 +137,14 @@ class VolumeRankingCard(RankingCard):
         period = normalize_period(period, DEFAULT_PERIODS, default="15m")
         h.user_states["volume_period"] = period
 
-        items = self._load_rows(period)
+        items = self._load_rows(period, lang)
         reverse = sort_order != "asc"
         items.sort(key=lambda x: x.get(sort_field, 0), reverse=reverse)
 
         # 修复：使用与 _build_keyboard 相同的默认值计算方式
         active_general = [f for f in self.general_display_fields if fields_state.get(f[0], f[2] or False)]
         active_special = [f for f in self.special_display_fields if fields_state.get(f[0], True)]  # 特殊字段默认True
-        lang = resolve_lang(lang=None)
+        lang = resolve_lang(update, lang)
         from cards.i18n import translate_field
         header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)]
         header_parts += [translate_field(lab, lang=lang) for _, lab, _ in active_special]
@@ -178,7 +178,7 @@ class VolumeRankingCard(RankingCard):
                     row.append(str(val) if val not in (None, "") else "-")
             rows.append(row)
 
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         # Markdown 模式下需转义下划线，避免出现“Can't parse entities”错误
@@ -270,7 +270,7 @@ class VolumeRankingCard(RankingCard):
         return InlineKeyboardMarkup(kb)
 
     # ---------- 数据读取 ----------
-    def _load_rows(self, period: str) -> List[Dict]:
+    def _load_rows(self, period: str, lang: str | None = None) -> List[Dict]:
         items: List[Dict] = []
         try:
             base_map = self.provider.fetch_base(period)

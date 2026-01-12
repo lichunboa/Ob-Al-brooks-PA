@@ -133,19 +133,19 @@ class VPVR排行卡片(RankingCard):
             h.user_states["vpvr_sort_field"] = sort_field
         fields_state = self._ensure_field_state(h)
 
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
             f'{_t("card.vpvr.title", lang=lang)}\n'
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.vpvr.hint')}\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.vpvr.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))
@@ -223,7 +223,7 @@ class VPVR排行卡片(RankingCard):
         return InlineKeyboardMarkup(kb)
 
     # ===== 数据 =====
-    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool]) -> Tuple[List[List[str]], str]:
+    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool], lang: str | None = None) -> Tuple[List[List[str]], str]:
         items: List[Dict] = []
         try:
             metrics = self.provider.merge_with_base("VPVR榜单", period, base_fields=["当前价格", "成交额"])

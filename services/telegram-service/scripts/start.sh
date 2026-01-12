@@ -78,7 +78,6 @@ check_proxy() {
     echo "⚠️  代理不可用（重试${retries}次失败），已禁用: $proxy"
     unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
 }
-check_proxy
 
 # ==================== 工具函数 ====================
 log() {
@@ -159,17 +158,19 @@ status_bot() {
         echo ""
         echo "=== 最近日志 ==="
         tail -10 "$BOT_LOG" 2>/dev/null
+        return 0
     else
         echo "✗ Bot 未运行"
+        return 1
     fi
 }
 
 # ==================== 入口 ====================
 case "${1:-status}" in
-    start)   start_bot ;;
+    start)   check_proxy; start_bot ;;
     stop)    stop_bot ;;
     status)  status_bot ;;
-    restart) stop_bot; sleep 2; start_bot ;;
+    restart) check_proxy; stop_bot; sleep 2; start_bot ;;
     *)
         echo "用法: $0 {start|stop|status|restart}"
         exit 1

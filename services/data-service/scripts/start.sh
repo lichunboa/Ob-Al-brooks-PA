@@ -96,7 +96,6 @@ check_proxy() {
     echo "⚠️  代理不可用（重试${retries}次失败），已禁用: $proxy"
     unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
 }
-check_proxy
 
 # 组件定义
 COMPONENTS=(backfill metrics ws)
@@ -238,8 +237,10 @@ status_component() {
     if is_running "$pid"; then
         local uptime=$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')
         echo "  ✓ $name: 运行中 (PID: $pid, 运行: $uptime)"
+        return 0
     else
         echo "  ✗ $name: 未运行"
+        return 1
     fi
 }
 
@@ -310,6 +311,7 @@ cmd_start() {
 
 cmd_status() {
     echo "=== 服务状态 ==="
+    local all_running=0
     
     # 守护进程状态
     if [ -f "$DAEMON_PID" ]; then
@@ -318,14 +320,20 @@ cmd_status() {
             echo "  ✓ daemon: 运行中 (PID: $dpid)"
         else
             echo "  ✗ daemon: 未运行"
+            all_running=1
         fi
     else
         echo "  ✗ daemon: 未运行"
+        all_running=1
     fi
     
     for name in "${COMPONENTS[@]}"; do
-        status_component "$name"
+        if ! status_component "$name"; then
+            all_running=1
+        fi
     done
+    
+    return $all_running
 }
 
 cmd_restart() {
@@ -336,10 +344,10 @@ cmd_restart() {
 
 # ==================== 入口 ====================
 case "${1:-status}" in
-    start)   cmd_start ;;
+    start)   check_proxy; cmd_start ;;
     stop)    cmd_stop ;;
     status)  cmd_status ;;
-    restart) cmd_restart ;;
+    restart) check_proxy; cmd_restart ;;
     *)
         echo "用法: $0 {start|stop|status|restart}"
         exit 1

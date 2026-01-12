@@ -147,7 +147,9 @@ class MoneyFlowCard(RankingCard):
         text, keyboard = await self._build_payload(user_handler, ensure_valid_text)
         await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
-    async def _build_payload(self, user_handler, ensure_valid_text) -> Tuple[str, object]:
+    async def _build_payload(self, user_handler, ensure_valid_text, lang=None, query=None) -> Tuple[str, object]:
+        if lang is None and query is not None:
+            lang = resolve_lang(query)
         loop = asyncio.get_event_loop()
         limit = user_handler.user_states.get('money_flow_limit', 10)
         period = user_handler.user_states.get('money_flow_period', '15m')
@@ -176,18 +178,18 @@ class MoneyFlowCard(RankingCard):
             fields_state,
         )
 
-        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = flow_type.replace("_", "\\_")
         text = (
-            f"{_t('card.flow.title')}\n"
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.flow.title', lang=lang)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.flow.hint')}\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.flow.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
 
         if callable(ensure_valid_text):
@@ -286,6 +288,7 @@ class MoneyFlowCard(RankingCard):
         flow_type: str,
         market: str,
         field_state: Dict[str, bool],
+        lang: str | None = None,
     ) -> Tuple[List[List[str]], str]:
         allowed = MONEY_FLOW_SPOT_PERIODS if market == "spot" else MONEY_FLOW_FUTURES_PERIODS
         period = normalize_period(period, allowed, default="15m")

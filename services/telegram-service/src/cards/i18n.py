@@ -18,9 +18,9 @@ I18N = build_i18n_from_env()
 
 _user_locale_map: dict[str, str] = {}
 
-def _load_user_locale_map() -> dict[str, str]:
+def _load_user_locale_map(force_reload: bool = False) -> dict[str, str]:
     global _user_locale_map
-    if _user_locale_map:
+    if _user_locale_map and not force_reload:
         return _user_locale_map
     if LOCALE_STORE.exists():
         try:
@@ -30,6 +30,11 @@ def _load_user_locale_map() -> dict[str, str]:
     else:
         _user_locale_map = {}
     return _user_locale_map
+
+
+def reload_user_locale():
+    """强制重新加载用户语言偏好（供外部调用）"""
+    _load_user_locale_map(force_reload=True)
 
 
 def resolve_lang(update=None, lang: Optional[str] = None) -> str:
@@ -49,6 +54,13 @@ def resolve_lang(update=None, lang: Optional[str] = None) -> str:
 
 
 def gettext(message_id: str, update=None, lang: Optional[str] = None, **kwargs) -> str:
+    # 防护：如果 message_id 不是字符串，说明调用方参数顺序错误
+    if not isinstance(message_id, str):
+        import traceback
+        logger.error("❌ i18n.gettext 参数错误: message_id=%r (type=%s)\n调用栈:\n%s", 
+                     str(message_id)[:100], type(message_id).__name__, 
+                     ''.join(traceback.format_stack()[-6:-1]))
+        return str(message_id)
     resolved = resolve_lang(update, lang)
     try:
         return I18N.gettext(message_id, lang=resolved, **kwargs)

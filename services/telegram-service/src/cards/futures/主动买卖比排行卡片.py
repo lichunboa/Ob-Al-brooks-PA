@@ -123,7 +123,9 @@ class 主动买卖比排行卡片(RankingCard):
         text, kb = await self._build_payload(handler, ensure_valid_text)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, handler, ensure_valid_text) -> Tuple[str, object]:
+    async def _build_payload(self, handler, ensure_valid_text, lang=None, query=None) -> Tuple[str, object]:
+        if lang is None and query is not None:
+            lang = resolve_lang(query)
         limit = handler.user_states.get("bsr_limit", 10)
         period = handler.user_states.get("bsr_period", "15m")
         period = normalize_period(period, DEFAULT_PERIODS, default="15m")
@@ -132,19 +134,19 @@ class 主动买卖比排行卡片(RankingCard):
         sort_field = handler.user_states.get("bsr_sort_field", "buy_ratio")
         fields_state = self._ensure_field_state(handler)
 
-        rows, header = self._load_rows(handler, period, sort_order, limit, sort_field, fields_state)
-        aligned = handler.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(handler, period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = handler.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
-            f"{_t('card.taker_ratio.title')}\n"
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.taker_ratio.title', lang=lang)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.taker_ratio.hint')}\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.taker_ratio.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
 
         if callable(ensure_valid_text):
@@ -243,6 +245,7 @@ class 主动买卖比排行卡片(RankingCard):
         limit: int,
         sort_field: str,
         field_state: Dict[str, bool],
+        lang: str | None = None,
     ) -> Tuple[List[List[str]], str]:
         items: List[Dict] = []
         # 优先 metric_service

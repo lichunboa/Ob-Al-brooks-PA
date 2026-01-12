@@ -124,15 +124,17 @@ class FuturesSentimentMomentumCard(RankingCard):
         text, kb = await self._build_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, h, ensure):
+    async def _build_payload(self, h, ensure, lang=None, query=None):
+        if lang is None and query is not None:
+            lang = resolve_lang(query)
         period = h.user_states.get("sm_period", "15m")
         sort_order = h.user_states.get("sm_sort", "desc")
         limit = h.user_states.get("sm_limit", 10)
         sort_field = h.user_states.get("sm_sort_field", "top_momentum")
         fields_state = self._ensure_field_state(h)
 
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
 
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
@@ -140,14 +142,14 @@ class FuturesSentimentMomentumCard(RankingCard):
 
         text = (
             f'{_t("card.sentiment_momentum.title", lang=lang)}\n'
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
             f'{_t("card.sentiment_momentum.hint", lang=lang)}\n'
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))

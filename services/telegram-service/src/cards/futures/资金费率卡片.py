@@ -130,7 +130,9 @@ class FundingRateCard(RankingCard):
         text, keyboard = await self._build_payload(user_handler, ensure_valid_text)
         await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
-    async def _build_payload(self, user_handler, ensure_valid_text) -> Tuple[str, object]:
+    async def _build_payload(self, user_handler, ensure_valid_text, lang=None, query=None) -> Tuple[str, object]:
+        if lang is None and query is not None:
+            lang = resolve_lang(query)
         loop = asyncio.get_event_loop()
         limit = user_handler.user_states.get('funding_limit', 10)
         sort_order = user_handler.user_states.get('funding_sort', 'desc')
@@ -144,17 +146,17 @@ class FundingRateCard(RankingCard):
         rows, header = await loop.run_in_executor(
             None, self._load_rows, service, limit, sort_order, sort_type, period, fields_state
         )
-        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data")
+        aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"{_t('card.funding.title')}\n"
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
+            f"{_t('card.funding.title', lang=lang)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.funding.hint')}\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.funding.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure_valid_text):
             text = ensure_valid_text(text, _t(self.FALLBACK))

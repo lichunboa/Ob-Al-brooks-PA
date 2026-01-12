@@ -98,7 +98,6 @@ check_proxy() {
     echo "⚠️  代理不可用（重试${retries}次失败），已禁用: $proxy"
     unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
 }
-check_proxy
 
 # 启动命令
 MODE="${MODE:-simple}"
@@ -185,17 +184,19 @@ status_service() {
         echo ""
         echo "=== 最近日志 ==="
         tail -10 "$SERVICE_LOG" 2>/dev/null
+        return 0
     else
         echo "✗ 服务未运行"
+        return 1
     fi
 }
 
 # ==================== 入口 ====================
 case "${1:-status}" in
-    start)   start_service ;;
+    start)   check_proxy; start_service ;;
     stop)    stop_service ;;
     status)  status_service ;;
-    restart) stop_service; sleep 2; start_service ;;
+    restart) check_proxy; stop_service; sleep 2; start_service ;;
     *)
         echo "用法: $0 {start|stop|status|restart}"
         exit 1

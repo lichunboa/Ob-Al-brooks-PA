@@ -65,6 +65,18 @@ if str(REPO_SRC_ROOT) not in sys.path:
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# ================== 提前加载 .env（必须在 cards 导入前）==================
+# cards/i18n.py 在导入时会初始化 I18N，需要先加载环境变量
+_ENV_FILE = REPO_ROOT / "config" / ".env"
+if _ENV_FILE.exists():
+    for _line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _key, _val = _line.split("=", 1)
+        if _key and _key not in os.environ:
+            os.environ[_key] = _val
+
 # 延后导入依赖于 sys.path 的模块
 from libs.common.i18n import build_i18n_from_env
 
@@ -462,7 +474,7 @@ def check_click_rate_limit(user_id: int, button_data: str = "", is_ai_feature: b
     return True, 0.0
 
 # ==================== 单币快照辅助 ====================
-def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_cards: dict, page: int = 0, pages: int = 1, update=None):
+def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_cards: dict, page: int = 0, pages: int = 1, update=None, lang: str = None):
     """构造单币快照按钮：卡片开关/周期开关/面板切换/主控+翻页。"""
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     try:
@@ -558,7 +570,9 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
 
     tables = [t for t in TABLE_FIELDS.get(panel, {}).keys()]
     # 自适应分行（期货面板已精简为分组名，无需过滤）
-    lang = _resolve_lang(update) if update else I18N.default_locale
+    # 优先使用传入的 lang 参数，其次从 update 解析，最后回退默认
+    if not lang:
+        lang = _resolve_lang(update) if update else I18N.default_locale
     layout_rows = _layout([_clean(t) for t in tables], max_w=22)
     for row_labels in layout_rows:
         row: list[InlineKeyboardButton] = []
@@ -660,7 +674,7 @@ def build_pattern_keyboard_with_periods(enabled_periods: dict, update=None) -> I
     ])
 
 
-def render_single_snapshot(symbol: str, panel: str, enabled_periods: dict, enabled_cards: dict, page: int = 0, lang: str | None = None) -> tuple[str, object, int, int]:
+def render_single_snapshot(symbol: str, panel: str, enabled_periods: dict, enabled_cards: dict, page: int = 0, lang: str | None = None, update=None) -> tuple[str, object, int, int]:
     """封装渲染 + 键盘构建，便于重用。返回(text, keyboard, pages, page_used)。"""
     from bot.single_token_snapshot import SingleTokenSnapshot
     snap = SingleTokenSnapshot()
@@ -672,7 +686,7 @@ def render_single_snapshot(symbol: str, panel: str, enabled_periods: dict, enabl
         page=page,
         lang=lang,
     )
-    keyboard = build_single_snapshot_keyboard(enabled_periods, panel, enabled_cards, page=page, pages=pages)
+    keyboard = build_single_snapshot_keyboard(enabled_periods, panel, enabled_cards, page=page, pages=pages, update=update, lang=lang)
     return text, keyboard, pages, page
 
 # 🤖 AI分析模块已下线（历史依赖 pandas/numpy/pandas-ta）。
@@ -3917,6 +3931,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_lang = button_data.replace("set_lang_", "")
         new_lang = I18N.resolve(new_lang)
         _save_user_locale(user_id, new_lang)
+        # 同步刷新 cards/i18n 模块的缓存
+        try:
+            from cards.i18n import reload_user_locale
+            reload_user_locale()
+        except Exception:
+            pass
         display_names = {
             "zh_CN": I18N.gettext("lang.zh", lang=new_lang),
             "en": I18N.gettext("lang.en", lang=new_lang),
@@ -4137,7 +4157,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 page=0,
                 lang=lang,
             )
-            kb = build_single_snapshot_keyboard(enabled_periods, "basic", {}, page=0, pages=pages)
+            kb = build_single_snapshot_keyboard(enabled_periods, "basic", {}, page=0, pages=pages, update=update, lang=lang)
             await query.edit_message_text(text, reply_markup=kb, parse_mode='Markdown')
         except Exception as e:
             logger.error(f"单币查询跳转失败: {e}")
@@ -4263,12 +4283,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         states["single_page"] = page
 
         lang = _resolve_lang(update)
-        text, keyboard, pages, page_used = render_single_snapshot(sym, panel, enabled, enabled_cards, page=page, lang=lang)
+        text, keyboard, pages, page_used = render_single_snapshot(sym, panel, enabled, enabled_cards, page=page, lang=lang, update=update)
         # 如果翻到超界页，回退最后一页再渲染一次
         if page_used >= pages:
             page_used = max(0, pages - 1)
             states["single_page"] = page_used
-            text, keyboard, pages, page_used = render_single_snapshot(sym, panel, enabled, enabled_cards, page=page_used, lang=lang)
+            text, keyboard, pages, page_used = render_single_snapshot(sym, panel, enabled, enabled_cards, page=page_used, lang=lang, update=update)
         try:
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
         except BadRequest as e:
@@ -4468,7 +4488,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif query.data == "ranking_menu":
             current_group = user_handler.user_states.get("ranking_group", "basic")
-            keyboard = user_handler.get_ranking_menu_keyboard()
+            keyboard = user_handler.get_ranking_menu_keyboard(update)
             await query.edit_message_text(
                 _build_ranking_menu_text(current_group, update),
                 reply_markup=keyboard,
@@ -4480,7 +4500,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if group in {"basic", "futures", "advanced"}:
                 user_handler.user_states["ranking_group"] = group
             current_group = user_handler.user_states.get("ranking_group", "basic")
-            keyboard = user_handler.get_ranking_menu_keyboard()
+            keyboard = user_handler.get_ranking_menu_keyboard(update)
             await query.edit_message_text(
                 _build_ranking_menu_text(current_group, update),
                 reply_markup=keyboard,
@@ -5318,6 +5338,12 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_lang = _resolve_lang(update)
     new_lang = "en" if current_lang == "zh_CN" else "zh_CN"
     _save_user_locale(user_id, new_lang)
+    # 同步刷新 cards/i18n 模块的缓存
+    try:
+        from cards.i18n import reload_user_locale
+        reload_user_locale()
+    except Exception:
+        pass
     context.user_data["lang_preference"] = new_lang
 
     lang_name = I18N.gettext(f"lang.{new_lang}", lang=new_lang)
@@ -5507,7 +5533,7 @@ async def sentiment_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         loop = asyncio.get_event_loop()
         text = await loop.run_in_executor(None, user_handler.get_market_sentiment)
         text = ensure_valid_text(text, _t(update, "loading.sentiment"))
-        keyboard = user_handler.get_market_sentiment_keyboard()
+        keyboard = user_handler.get_market_sentiment_keyboard(update)
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
     except Exception as e:
         logger.error(f"市场情绪数据查询错误: {e}")
@@ -5733,7 +5759,7 @@ async def data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 先发送带键盘的消息刷新底部键盘
     await update.message.reply_text(_t(update, "start.greet"), reply_markup=user_handler.get_reply_keyboard(update))
     text = _build_ranking_menu_text("basic", update)
-    keyboard = user_handler.get_ranking_menu_keyboard()
+    keyboard = user_handler.get_ranking_menu_keyboard(update)
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
 
@@ -6120,9 +6146,9 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
             ustate["single_page"] = 0
             try:
                 from bot.single_token_snapshot import SingleTokenSnapshot
-                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=1)
-                snap = SingleTokenSnapshot()
                 lang = _resolve_lang(update)
+                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=1, update=update, lang=lang)
+                snap = SingleTokenSnapshot()
                 text, pages = snap.render_table(
                     sym,
                     panel="basic",
@@ -6131,7 +6157,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     page=0,
                     lang=lang,
                 )
-                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=pages)
+                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=pages, update=update, lang=lang)
                 try:
                     await update.message.reply_text(text, reply_markup=kb, parse_mode='Markdown')
                 except BadRequest as e:
@@ -6242,7 +6268,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
             elif action == "market_sentiment":
                 await update.message.reply_text(
                     _t(query, "feature.sentiment_offline"),
-                    reply_markup=user_handler.get_market_sentiment_keyboard(),
+                    reply_markup=user_handler.get_market_sentiment_keyboard(update),
                     parse_mode='Markdown'
                 )
 
@@ -6290,15 +6316,15 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
 
             elif action == "market_depth":
                 await update.message.reply_text(
-                    "⏸️ 市场深度排行功能已下线，敬请期待替代方案。",
-                    reply_markup=user_handler.get_market_depth_keyboard(),
+                    _t(update, "feature.depth_offline"),
+                    reply_markup=user_handler.get_market_depth_keyboard(update=update),
                     parse_mode='Markdown'
                 )
 
             elif action == "ranking_menu":
                 # 数据面板入口：显示榜单列表
                 text = _build_ranking_menu_text(user_handler.user_states.get("ranking_group", "basic"), update)
-                keyboard = user_handler.get_ranking_menu_keyboard()
+                keyboard = user_handler.get_ranking_menu_keyboard(update)
                 await update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
             elif action == "main_menu":
@@ -6688,6 +6714,7 @@ def main():
 
         # 全局错误处理
         async def log_error(update, context):
+            import asyncio as _asyncio
             err = context.error
             logger.exception("Telegram handler error", exc_info=err)
             from telegram.error import NetworkError, TimedOut, RetryAfter
@@ -6696,7 +6723,7 @@ def main():
                 delay = min(30, int(getattr(err, "retry_after", 1)) + 1)
             elif isinstance(err, (NetworkError, TimedOut)):
                 delay = 3
-            await asyncio.sleep(delay)
+            await _asyncio.sleep(delay)
 
         application.add_error_handler(log_error)
         logger.info("✅ 全局错误处理器已注册")

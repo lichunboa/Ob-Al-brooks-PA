@@ -123,7 +123,9 @@ class FuturesDivergenceCard(RankingCard):
         text, kb = await self._build_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, h, ensure, lang: str, update=None):
+    async def _build_payload(self, h, ensure, lang: str = None, update=None):
+        if lang is None and update is not None:
+            lang = resolve_lang(update)
         period = h.user_states.get("div_period", "15m")
         sort_order = h.user_states.get("div_sort", "desc")
         limit = h.user_states.get("div_limit", 10)
@@ -131,21 +133,21 @@ class FuturesDivergenceCard(RankingCard):
         fields_state = self._ensure_field_state(h)
 
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
 
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         time_info = h.get_current_time_display()
 
         text = (
-            f"{_t('card.divergence.title')}\n"
+            f"{_t('card.divergence.title', lang=lang)}\n"
             f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"
             f"{_t('card.divergence.sort', update, lang=lang, period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
-            f"{_t('card.divergence.source')}\n"
+            f"{_t('card.divergence.source', lang=lang)}\n"
             f"{_t('time.last_update', update, lang=lang, time=time_info['full'])}"
         )
         if callable(ensure):

@@ -71,6 +71,8 @@ class VolumeRankingService(BaseService):
         market_type: str,
         sort_field: str = "volume",
         fields_state: Dict[str, bool] | None = None,
+        update=None,
+        lang: str | None = None,
     ) -> str:
         allowed = VOLUME_SPOT_PERIODS if market_type == "spot" else VOLUME_FUTURES_PERIODS
         period = normalize_period(period, allowed, default="4h")
@@ -79,7 +81,17 @@ class VolumeRankingService(BaseService):
         try:
             rows = self._load_from_provider(period)
             if rows:
-                return self._render_from_rows(rows, period, sort_order, market_type, sort_field, limit, fields_state)
+                return self._render_from_rows(
+                    rows,
+                    period,
+                    sort_order,
+                    market_type,
+                    sort_field,
+                    limit,
+                    fields_state,
+                    update=update,
+                    lang=lang,
+                )
         except Exception as exc:  # pragma: no cover
             LOGGER.warning("Volume provider 读取失败，回退旧逻辑: %s", exc)
 
@@ -128,6 +140,9 @@ class VolumeRankingService(BaseService):
         sort_field: str,
         limit: int,
         fields_state: Dict[str, bool] | None = None,
+        *,
+        update=None,
+        lang: str | None = None,
     ) -> str:
         sort_symbol = "🔽" if sort_order == 'desc' else "🔼"
         sort_text = "降序" if sort_order == 'desc' else "升序"
@@ -174,9 +189,9 @@ class VolumeRankingService(BaseService):
             row_cells.append(change_str)
             data_rows.append(row_cells)
 
-        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
+        lang = resolve_lang(update, lang)
+        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", lang=lang)
         time_info = self.handler.get_current_time_display()
-        lang = resolve_lang(lang=None)
         title = _t("card.volume.title", lang=lang)
         header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)]
         if show_quote_volume:
@@ -564,7 +579,15 @@ class BuySellRatioService(BaseService):
         self.logger = logging.getLogger(__name__)
         self.provider = get_ranking_provider()
 
-    def render_text(self, limit: int, period: str, sort_order: str, sort_field: str = "buy_ratio") -> str:
+    def render_text(
+        self,
+        limit: int,
+        period: str,
+        sort_order: str,
+        sort_field: str = "buy_ratio",
+        update=None,
+        lang: str | None = None,
+    ) -> str:
         period = normalize_period(period, DEFAULT_PERIODS, default="1h")
         rows = self._load_from_db(period, sort_order, limit, sort_field)
 
@@ -594,10 +617,10 @@ class BuySellRatioService(BaseService):
                 period,
             ])
 
-        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", None)
+        lang = resolve_lang(update, lang)
+        aligned = self.handler.dynamic_align_format(data_rows) if data_rows else _t("data.no_data", lang=lang)
         time_info = self.handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        lang = resolve_lang(lang=None)
         return (
             f"{_t('card.taker_ratio.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"

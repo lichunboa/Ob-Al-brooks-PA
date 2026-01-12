@@ -1,14 +1,103 @@
 [project]
 name = "tradecat"
-version = "1.0.0"
-description = "Toy-level data analysis and trading platform"
-requires-python = ">=3.12"
+version = "0.1.0"
+description = "Quantitative Trading for Everyone - Data, Indicators, Signals, AI Analysis"
 readme = "README.md"
 license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "TradeCat Team", email = "team@tradecat.dev"}
+]
+maintainers = [
+    {name = "tukuaiai"}
+]
+keywords = [
+    "quantitative", "trading", "crypto", "bitcoin", "ethereum",
+    "finance", "technical-analysis", "indicators", "signals",
+    "ai", "backtest", "binance", "ccxt"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "pandas>=1.5.0,<3.0.0",
+    "numpy>=1.22.0,<3.0.0",
+    "requests>=2.25.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "ccxt>=4.0.0,<5.0.0",
+    "TA-Lib>=0.4.0",
+    "sqlalchemy>=2.0.0,<3.0.0",
+    "psycopg[binary]>=3.0.0,<4.0.0",
+]
+ai = [
+    "openai>=1.0.0,<2.0.0",
+    "anthropic>=0.5.0,<1.0.0",
+    "google-generativeai>=0.3.0,<1.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "bump2version>=1.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+all = ["tradecat[full,ai,dev,docs]"]
+
+[project.urls]
+Homepage = "https://tradecat.dev"
+Documentation = "https://docs.tradecat.dev"
+Repository = "https://github.com/tukuaiai/tradecat"
+Changelog = "https://github.com/tukuaiai/tradecat/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/tukuaiai/tradecat/issues"
+
+[project.scripts]
+tradecat = "tradecat.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/tradecat",
+    "/tests",
+    "/README.md",
+    "/README_EN.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tradecat"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py39"
+src = ["src", "tests"]
 exclude = [
     ".venv",
     "__pycache__",
@@ -16,36 +105,63 @@ exclude = [
     "build",
     "dist",
     "*.egg-info",
+    "services",
+    "services-preview",
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+select = ["E", "F", "W", "I", "B", "C4", "UP"]
 ignore = [
     "E501",  # line too long (handled by formatter)
     "F401",  # unused import (often intentional in __init__.py)
     "F403",  # star imports
+    "B008",  # function call in default argument
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
 "**/tests/**" = ["F401", "F811"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["tradecat"]
+
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.9"
+strict = false
 warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
 exclude = [
     ".venv",
     "__pycache__",
+    "services",
+    "services-preview",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --strict-markers -ra"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::FutureWarning",
 ]
+
+[tool.coverage.run]
+source = ["src/tradecat"]
+branch = true
+omit = ["*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+fail_under = 85
