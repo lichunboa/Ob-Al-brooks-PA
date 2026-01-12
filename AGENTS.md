@@ -110,10 +110,13 @@ cd /path/to/tradecat
 
 | 命令 | 说明 |
 |:---|:---|
-| `./scripts/init.sh` | 初始化所有服务虚拟环境 |
+| `./scripts/init.sh` | 初始化所有核心服务虚拟环境 |
 | `./scripts/init.sh <service>` | 初始化单个服务 |
+| `./scripts/init.sh --all` | 初始化全部服务（含 preview） |
 | `./scripts/start.sh start\|stop\|status\|restart` | 核心服务管理 |
-| `./scripts/verify.sh` | 验证脚本（ruff + py_compile + i18n） |
+| `./scripts/start.sh daemon\|daemon-stop` | 守护进程模式（自动重启崩溃服务） |
+| `./scripts/check_env.sh` | 环境检查（Python/依赖/配置/网络/数据库） |
+| `./scripts/verify.sh` | 代码验证（ruff + py_compile + i18n） |
 | `./scripts/export_timescaledb.sh` | 导出 TimescaleDB 数据 |
 | `./scripts/timescaledb_compression.sh` | 压缩管理 |
 
@@ -407,6 +410,59 @@ make reset
 ```bash
 # 服务启动脚本要求 600 权限
 chmod 600 config/.env
+```
+
+### 7.5 环境检查
+
+```bash
+# 部署前运行环境检查，确保所有依赖就绪
+./scripts/check_env.sh
+
+# 检查内容：
+# - Python 版本 (3.10+)
+# - pip/venv 可用性
+# - 虚拟环境完整性
+# - config/.env 配置
+# - 数据库连接 (pg_isready)
+# - 网络连接 (Telegram/Binance API)
+# - 磁盘空间
+```
+
+### 7.6 日志轮转配置
+
+```bash
+# 1. 生成配置文件（替换路径占位符）
+cd /path/to/tradecat
+sed -e "s|{{PROJECT_ROOT}}|$(pwd)|g" \
+    -e "s|{{USER}}|$(whoami)|g" \
+    config/logrotate.conf > /tmp/tradecat-logrotate.conf
+
+# 2. 手动执行轮转
+sudo logrotate -f /tmp/tradecat-logrotate.conf
+
+# 3. 安装到系统（可选，自动每日执行）
+sudo cp /tmp/tradecat-logrotate.conf /etc/logrotate.d/tradecat
+
+# 轮转策略：
+# - 核心服务日志：每天或 50MB，保留 14 天
+# - 预览服务日志：每天或 50MB，保留 7 天
+# - 根目录日志：每天或 20MB，保留 7 天
+```
+
+### 7.7 守护进程模式
+
+```bash
+# 启动守护进程（自动重启崩溃的服务）
+./scripts/start.sh daemon
+
+# 停止守护进程和所有服务
+./scripts/start.sh daemon-stop
+
+# 守护策略：
+# - 检查间隔：30 秒
+# - 最大重试：5 次/5分钟窗口
+# - 指数退避：10s → 20s → 40s → ... → 300s (最大)
+# - 超过上限后暂停重启，告警写入 alerts.log
 ```
 
 ---

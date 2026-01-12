@@ -5,7 +5,13 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# 核心服务（与 init.sh 保持一致）
+# ai-service 作为 telegram-service 子模块运行，signal-service 为独立服务
 SERVICES=(data-service trading-service telegram-service)
+
+# 可选：启用全部核心服务（含 ai-service, signal-service）
+# SERVICES=(data-service trading-service telegram-service ai-service signal-service)
 
 # 守护进程配置
 DAEMON_PID="$ROOT/daemon.pid"
@@ -119,11 +125,13 @@ daemon_all() {
         declare -A restart_counts
         declare -A last_restart_time
         declare -A backoff_time
+        declare -A limit_logged  # 防止日志风暴：是否已记录达到上限
         
         for svc in "${SERVICES[@]}"; do
             restart_counts[$svc]=0
             last_restart_time[$svc]=0
             backoff_time[$svc]=$BASE_BACKOFF
+            limit_logged[$svc]=0
         done
         
         log "守护进程启动 (检查间隔: ${CHECK_INTERVAL}s, 最大重试: $MAX_RESTART_ATTEMPTS)"
@@ -161,13 +169,19 @@ daemon_all() {
                 # 检查是否超过重试上限
                 if [ "${restart_counts[$svc]}" -ge $MAX_RESTART_ATTEMPTS ]; then
                     if [ $time_since_last -lt $RESTART_WINDOW ]; then
-                        log "$svc: 达到重试上限 ($MAX_RESTART_ATTEMPTS)，暂停重启"
+                        # 仅首次记录，防止日志风暴
+                        if [ "${limit_logged[$svc]}" -eq 0 ]; then
+                            log "⚠️ $svc: 达到重试上限 ($MAX_RESTART_ATTEMPTS)，暂停重启 ${RESTART_WINDOW}s"
+                            echo "$(date '+%Y-%m-%d %H:%M:%S') ⚠️ $svc 达到重试上限" >> "$ROOT/alerts.log"
+                            limit_logged[$svc]=1
+                        fi
                         continue
                     else
                         # 重置计数，允许新一轮重试
                         log "$svc: 重试窗口已过，重置计数"
                         restart_counts[$svc]=0
                         backoff_time[$svc]=$BASE_BACKOFF
+                        limit_logged[$svc]=0
                     fi
                 fi
                 
