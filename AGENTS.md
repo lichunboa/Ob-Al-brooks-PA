@@ -117,6 +117,7 @@ cd /path/to/tradecat
 | `./scripts/start.sh daemon\|daemon-stop` | 守护进程模式（自动重启崩溃服务） |
 | `./scripts/check_env.sh` | 环境检查（Python/依赖/配置/网络/数据库） |
 | `./scripts/verify.sh` | 代码验证（ruff + py_compile + i18n） |
+| `python scripts/download_hf_data.py` | 从 HuggingFace 下载历史数据并导入 |
 | `./scripts/export_timescaledb.sh` | 导出 TimescaleDB 数据 |
 | `./scripts/timescaledb_compression.sh` | 压缩管理 |
 

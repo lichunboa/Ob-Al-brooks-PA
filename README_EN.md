@@ -102,8 +102,19 @@ If this project helps you, please consider supporting 🙏
 
 > Copy the prompt below to **Claude / ChatGPT / Cursor / Kiro**, AI will automatically execute installation with zero manual intervention
 
+**Method 1: Complete Deployment Prompt (Recommended)**
+
+📄 **[docs/DEPLOY_PROMPT.md](docs/DEPLOY_PROMPT.md)** - Contains detailed 10-step deployment process:
+- Auto system dependencies installation
+- Service initialization and configuration
+- HuggingFace historical data auto download & import
+- Daemon process and log rotation setup
+- Complete troubleshooting guide
+
+Copy the file content to AI assistant for fully automated deployment.
+
 <details>
-<summary><strong>Expand👉 📋 Installation Prompt</strong></summary>
+<summary><strong>Expand👉 📋 Simplified Installation Prompt</strong></summary>
 
 ```
 Follow the instructions at https://github.com/tukuaiai/tradecat/blob/main/README.md to install TradeCat
@@ -180,6 +191,30 @@ vim config/.env
 Download pre-built datasets from HuggingFace to skip lengthy historical backfill:
 
 🔗 **Dataset**: [huggingface.co/datasets/123olp/binance-futures-ohlcv-2018-2026](https://huggingface.co/datasets/123olp/binance-futures-ohlcv-2018-2026)
+
+**Method 1: Auto Download Script (Recommended)**
+
+```bash
+# Install dependencies
+services/data-service/.venv/bin/pip install pandas psycopg2-binary huggingface_hub
+
+# Download and import main4 symbols (BTC/ETH/BNB/SOL) full history
+python scripts/download_hf_data.py
+
+# Or download only last 365 days
+python scripts/download_hf_data.py --days 365
+
+# Or specify symbols
+python scripts/download_hf_data.py --symbols BTCUSDT,ETHUSDT,BNBUSDT
+```
+
+Script features:
+- Auto download CSV.gz files from HuggingFace
+- Stream reading, memory efficient (handles large files)
+- Filter by symbol and date range
+- Resume support (skips already downloaded files)
+
+**Method 2: Manual Import (Full Data)**
 
 ```bash
 # 0. Load schema (TimescaleDB + continuous aggregates)
