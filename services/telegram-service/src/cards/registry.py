@@ -270,7 +270,8 @@ class RankingRegistry:
             await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
             return
 
-        text, _ = await card._build_payload(h, ensure)  # type: ignore[attr-defined]
+        # 传入 query 以便卡片获取用户语言偏好
+        text, _ = await card._build_payload(h, ensure, None, query)  # type: ignore[attr-defined]
         settings_kb = self._build_settings_keyboard_generic(card, h, toggle_prefix, back_cb)
         await query.edit_message_text(text, reply_markup=settings_kb, parse_mode="Markdown")
 

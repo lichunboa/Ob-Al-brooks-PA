@@ -147,8 +147,8 @@ class FuturesOIRankingCard(RankingCard):
         sort_field = h.user_states.get("oi_sort_field", "oi_value")
         fields_state = self._ensure_field_state(h)
 
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
 
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
@@ -156,14 +156,14 @@ class FuturesOIRankingCard(RankingCard):
 
         text = (
             f'{_t("card.oi_aggregate.title", lang=lang)}\n'
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             "```\n"
             f"{aligned}\n"
             "```\n"
             f'{_t("card.oi_aggregate.hint", lang=lang)}\n'
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))

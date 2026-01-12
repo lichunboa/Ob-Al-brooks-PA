@@ -128,19 +128,19 @@ class 支撑阻力排行卡片(RankingCard):
         limit = h.user_states.get("sr_limit", 10)
         sort_field = h.user_states.get("sr_sort_field", "distance_support")
         fields_state = self._ensure_field_state(h)
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         display_sort_field = sort_field.replace("_", "\\_")
         text = (
             f'{_t("card.support_resistance.title", lang=lang)}\n'
-            f"{_t('card.common.update_time').format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info').format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.sr.hint')}\n"
-            f"{_t('card.common.last_update').format(time=time_info['full'])}"
+            f"{_t('card.sr.hint', lang=lang)}\n"
+            f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))
@@ -222,7 +222,7 @@ class 支撑阻力排行卡片(RankingCard):
 
         return InlineKeyboardMarkup(kb)
 
-    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool]) -> Tuple[List[List[str]], str]:
+    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool], lang: str | None = None) -> Tuple[List[List[str]], str]:
         items: List[Dict] = []
         try:
             metrics = self.provider.merge_with_base("支撑阻力榜单", period, base_fields=["当前价格", "成交额"])

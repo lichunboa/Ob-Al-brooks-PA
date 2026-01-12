@@ -1,32 +1,68 @@
-# 更新日志
+# Changelog
 
-所有重要变更都会记录在此文件中。
+All notable changes to this project will be documented in this file.
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-01-04
+## [Unreleased]
 
-### 🎉 首个正式版本
+### Added
+- Backtest engine (planned)
+- Strategy DSL (planned)
+- Web Dashboard (planned)
 
-#### 新增
-- **data-service** - 加密货币 K线/期货数据采集 (WebSocket + REST)
-- **markets-service** - 全市场数据采集 (美股/A股/宏观/衍生品定价)
-- **trading-service** - 38个技术指标计算引擎
-- **telegram-service** - Telegram Bot 交互 (20+ 排行榜卡片)
-- **ai-service** - AI 分析 (Wyckoff 方法论, 多模型支持)
-- **order-service** - 交易执行 (Avellaneda-Stoikov 做市)
+## [0.1.0] - 2024-01-12
 
-#### 数据规模
-- K线数据: 3.73亿条 (2018-至今)
-- 期货数据: 9457万条 (2021-至今)
+### Added
+- **Data Module** (`tradecat.Data`)
+  - K-line (OHLCV) data fetching from Binance
+  - Support for multiple symbols and intervals
+  - Local database support (PostgreSQL/TimescaleDB)
+  - Ticker and symbols list API
 
-#### 技术栈
-- Python 3.10+
-- TimescaleDB (PostgreSQL 16)
-- TA-Lib, pandas, numpy
-- CCXT, Cryptofeed
-- python-telegram-bot
+- **Indicators Module** (`tradecat.Indicators`)
+  - 17+ technical indicators with pure Python fallback
+  - Trend: SMA, EMA, WMA, MACD, ADX
+  - Momentum: RSI, KDJ, CCI, Williams %R, MFI
+  - Volatility: ATR, Bollinger Bands, Keltner Channel, Donchian Channel
+  - Volume: OBV, VWAP, CVD
+  - Optional TA-Lib acceleration
 
----
+- **Signals Module** (`tradecat.Signals`)
+  - Automated signal detection
+  - RSI overbought/oversold
+  - MACD crossovers and divergences
+  - Bollinger Band touches and squeezes
+  - KDJ crossovers
+  - EMA crossovers
+  - Volume spikes
+  - Signal summary with bias calculation
 
-[1.0.0]: https://github.com/tukuaiai/tradecat/releases/tag/v1.0.0
+- **AI Module** (`tradecat.AI`)
+  - Multi-model support: OpenAI, Anthropic, Google, DeepSeek
+  - Technical analysis with market context
+  - Wyckoff methodology analysis
+  - Structured analysis output
+
+- **Configuration** (`tradecat.Config`)
+  - Database configuration
+  - API credentials management
+  - Proxy support
+  - Environment variable loading
+
+- **Infrastructure**
+  - PyPI package structure (src-layout)
+  - Type hints (PEP 561)
+  - Comprehensive test suite
+  - CI/CD with GitHub Actions
+  - Multi-platform support (Linux, macOS, Windows)
+  - Python 3.9-3.13 compatibility
+
+### Dependencies
+- Core: pandas, numpy, requests
+- Optional: ccxt, TA-Lib, sqlalchemy, psycopg
+- AI: openai, anthropic, google-generativeai
+
+[Unreleased]: https://github.com/tukuaiai/tradecat/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/tukuaiai/tradecat/releases/tag/v0.1.0

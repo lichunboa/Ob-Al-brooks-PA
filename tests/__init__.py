@@ -1,0 +1,1 @@
+"""TradeCat tests."""

@@ -153,24 +153,26 @@ class KDJ排行卡片(RankingCard):
         text, kb = await self._build_settings_payload(h, ensure, lang, query)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
-    async def _build_payload(self, h, ensure, lang: str, update=None) -> Tuple[str, object]:
+    async def _build_payload(self, h, ensure, lang: str = None, update=None) -> Tuple[str, object]:
+        if lang is None and update is not None:
+            lang = resolve_lang(update)
         period = h.user_states.get("kdj_period", "15m")
         sort_order = h.user_states.get("kdj_sort", "desc")
         limit = h.user_states.get("kdj_limit", 10)
         sort_field = h.user_states.get("kdj_sort_field", "quote_volume")
         fields_state = self._ensure_field_state(h)
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         display_sort_field = sort_field.replace("_", "\\_")
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"{_t('card.kdj.title')}\n"
+            f"{_t('card.kdj.title', lang=lang)}\n"
             f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"
             f"{_t('card.common.sort', update, lang=lang, period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.kdj.hint')}\n"
+            f"{_t('card.kdj.hint', lang=lang)}\n"
             f"{_t('time.last_update', update, lang=lang, time=time_info['full'])}"
         )
         if callable(ensure):
@@ -184,18 +186,18 @@ class KDJ排行卡片(RankingCard):
         limit = h.user_states.get("kdj_limit", 10)
         sort_field = h.user_states.get("kdj_sort_field", "quote_volume")
         fields_state = self._ensure_field_state(h)
-        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state)
-        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data")
+        rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
+        aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         display_sort_field = sort_field.replace("_", "\\_")
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
-            f"{_t('card.kdj.settings.title')}\n"
+            f"{_t('card.kdj.settings.title', lang=lang)}\n"
             f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"
             f"{_t('card.common.sort', update, lang=lang, period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
-            f"{_t('card.kdj.settings.hint')}"
+            f"{_t('card.kdj.settings.hint', lang=lang)}"
         )
         if callable(ensure):
             text = ensure(text, _t(self.FALLBACK))
@@ -294,7 +296,7 @@ class KDJ排行卡片(RankingCard):
 
         return InlineKeyboardMarkup(kb)
 
-    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool]) -> Tuple[List[List[str]], str]:
+    def _load_rows(self, period: str, sort_order: str, limit: int, sort_field: str, field_state: Dict[str, bool], lang: str | None = None) -> Tuple[List[List[str]], str]:
         items: List[Dict] = []
         try:
             metrics = self.provider.merge_with_base("KDJ随机指标榜单", period, base_fields=["当前价格", "成交额"])

@@ -22,13 +22,24 @@ logger = logging.getLogger(__name__)
 def normalize_locale(lang: Optional[str]) -> Optional[str]:
     """标准化语言代码，形如 zh-CN / en -> zh_CN / en。
 
-    返回值用于 gettext 目录命名。
+    - 兼容 Telegram 常见的 zh-Hans / zh-Hant / zh-TW / zh-HK 变体，统一折叠到 zh_CN / zh_TW。
+    - 返回值用于 gettext 目录命名。
     """
     if not lang:
         return None
     code = lang.strip().replace("-", "_")
     if not code:
         return None
+
+    lower = code.lower()
+    # ---------- 中文变体兼容 ----------
+    zh_cn_aliases = {"zh", "zh_cn", "zh_hans", "zh_cn_hans", "zh_hans_cn"}
+    zh_tw_aliases = {"zh_tw", "zh_hant", "zh_hk", "zh_hant_tw", "zh_hant_hk"}
+    if lower in zh_cn_aliases:
+        return "zh_CN"
+    if lower in zh_tw_aliases:
+        return "zh_TW"
+
     parts = code.split("_", 1)
     if len(parts) == 1:
         return parts[0].lower()
@@ -72,10 +83,19 @@ class I18nService:
 
     # ---------- 语言解析 ----------
     def resolve(self, lang: Optional[str]) -> str:
-        """选择最合适的语言，不在列表则回退。"""
+        """选择最合适的语言，不在列表则回退。
+
+        兼容 zh-Hans/zh-Hant：若未显式支持该变体但存在 zh_CN/zh_TW，则优先回退到对应的中文翻译。
+        """
         norm = normalize_locale(lang)
         if norm and norm in self.supported_locales:
             return norm
+        # 优先为中文变体寻找最接近的翻译
+        if norm and norm.startswith("zh"):
+            if "zh_CN" in self.supported_locales:
+                return "zh_CN"
+            if "zh_TW" in self.supported_locales:
+                return "zh_TW"
         return self.default_locale if self.default_locale in self.supported_locales else self.supported_locales[0]
 
     # ---------- 翻译对象 ----------
@@ -90,6 +110,14 @@ class I18nService:
 
     def gettext(self, message_id: str, lang: Optional[str] = None, **kwargs) -> str:
         """获取翻译并格式化占位符。"""
+        # 防护：检测调用方参数错误
+        if not isinstance(message_id, str):
+            import traceback
+            logger.error("❌ I18nService.gettext 参数错误: message_id 不是字符串\n"
+                        "  type=%s, value=%s\n调用栈:\n%s",
+                        type(message_id).__name__, str(message_id)[:100],
+                        ''.join(traceback.format_stack()[-8:-1]))
+            return str(message_id)
         resolved = self.resolve(lang)
         text = self._translation(resolved).gettext(message_id)
         if text == message_id:
