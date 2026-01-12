@@ -410,9 +410,8 @@ def format_beijing_time(dt_str, format_str="%Y-%m-%d %H:%M:%S"):
 
 # 配置（全部改由环境变量管理）
 BOT_TOKEN = _require_env('BOT_TOKEN', required=True)
-BINANCE_FUTURES_URL = 'https://fapi.binance.com'
-BINANCE_SPOT_URL = 'https://api.binance.com'
-BINANCE_API_DISABLED = _require_env('BINANCE_API_DISABLED', default='1') == '1'
+# Binance API 已废弃，数据由 data-service 采集
+BINANCE_API_DISABLED = True  # 强制禁用
 
 # 屏蔽币种（动态获取，支持热更新）
 def get_blocked_symbols() -> set:
@@ -855,170 +854,44 @@ class DataManager:
         return {"issues_found": [], "fixes_applied": [], "success": True}
 
 class BinanceFuturesClient:
-    """币安合约API客户端 - 基于官方API文档v1.0"""
+    """币安合约API客户端 - 已废弃，数据由 data-service 采集
+    
+    保留空实现以兼容现有代码，所有方法返回空数据。
+    实际数据应从 SQLite/缓存读取。
+    """
 
     def __init__(self):
-        self.base_url = BINANCE_FUTURES_URL
-        self.spot_url = BINANCE_SPOT_URL
-
-        # 优化连接池配置
-        adapter = requests.adapters.HTTPAdapter(
-            pool_connections=10,  # 连接池数量
-            pool_maxsize=20,      # 最大连接数
-            max_retries=0,        # 禁用自动重试，我们自己控制
-            pool_block=False      # 非阻塞连接池
-        )
-
-        self.session = requests.Session()
-        self.session.mount('https://', adapter)
-        self.session.mount('http://', adapter)
-
-        # 配置SSL验证
-        if CERTIFI_AVAILABLE:
-            self.session.verify = certifi.where()
-        else:
-            self.session.verify = True  # 使用系统默认证书
-
-        # 优化请求头
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Connection': 'keep-alive'  # 保持连接活跃
-        })
-
-        # 缓存交易规则信息
-        self._exchange_info = None
-        self._exchange_info_timestamp = 0
-
-    def make_request_with_retry(self, endpoint, params=None, max_retries=2, timeout=8, fast_mode=False):
-        """带重试机制的请求方法 - 优化版本"""
-        # 如果禁用了 Binance API，直接返回 None
-        if BINANCE_API_DISABLED:
-            logger.debug(f"Binance API 已禁用，跳过请求: {endpoint}")
-            return None
-
-        # 快速模式下使用更短的超时和更少的重试
-        if fast_mode:
-            timeout = min(timeout, 5)
-            max_retries = 1
-
-        for attempt in range(max_retries):
-            try:
-                # 根据endpoint选择正确的base URL
-                if endpoint.startswith('/fapi/'):
-                    url = f"{self.base_url}{endpoint}"
-                elif endpoint.startswith('/futures/'):
-                    url = f"{self.base_url}{endpoint}"
-                else:
-                    url = f"{self.spot_url}{endpoint}"
-
-                logger.info(f"请求 {url} (第{attempt+1}次) - 参数: {params} - 超时: {timeout}s")
-                response = self.session.get(url, params=params, timeout=timeout)
-
-                # 检查响应状态
-                if response.status_code == 429:
-                    # 请求频率限制 - 优化等待时间
-                    retry_after = min(int(response.headers.get('Retry-After', 30)), 30)  # 最大等待30秒
-                    if fast_mode:
-                        retry_after = min(retry_after, 5)  # 快速模式最大等待5秒
-                    logger.warning(f"请求频率限制，等待 {retry_after} 秒")
-                    time.sleep(retry_after)
-                    continue
-
-                response.raise_for_status()
-                data = response.json()
-
-                # 验证返回数据
-                if isinstance(data, dict) and 'code' in data and data['code'] != 200:
-                    logger.warning(f"API返回错误: {data}")
-                    if attempt < max_retries - 1:
-                        time.sleep((attempt + 1) * 2)
-                        continue
-
-                logger.info(f"请求成功，返回 {len(data) if isinstance(data, list) else 1} 条数据")
-                return data
-
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"第{attempt+1}次请求失败: {e}")
-                if attempt < max_retries - 1:
-                    wait_time = min((attempt + 1) * 1, 5)  # 减少等待时间，最大5秒
-                    if fast_mode:
-                        wait_time = min(wait_time, 2)  # 快速模式最大等待2秒
-                    logger.info(f"等待 {wait_time} 秒后重试...")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"所有重试失败，最终错误: {e}")
-
-        return []
+        logger.info("⚠️ BinanceFuturesClient 已废弃，数据由 data-service 提供")
 
     def ping(self):
-        """测试服务器连通性"""
-        return self.make_request_with_retry('/fapi/v1/ping')
+        return {}
 
     def get_exchange_info(self, force_refresh=False):
-        """获取交易规则和交易对信息"""
-        now = time.time()
-        if not force_refresh and self._exchange_info and (now - self._exchange_info_timestamp) < 300:
-            return self._exchange_info
-        data = self.make_request_with_retry('/fapi/v1/exchangeInfo')
-        if data:
-            self._exchange_info = data
-            self._exchange_info_timestamp = now
-        return data
+        return None
 
     def get_depth(self, symbol, limit=500):
-        """获取深度信息"""
-        params = {'symbol': symbol}
-        if limit:
-            params['limit'] = limit
-        return self.make_request_with_retry('/fapi/v1/depth', params)
+        return None
 
     def get_premium_index(self, symbol=None):
-        """获取最新标记价格和资金费率"""
-        params = {}
-        if symbol:
-            params['symbol'] = symbol
-        return self.make_request_with_retry('/fapi/v1/premiumIndex', params)
+        return None
 
     def get_24hr_ticker(self, symbol=None):
-        """获取24小时价格变动情况"""
-        params = {}
-        if symbol:
-            params['symbol'] = symbol
-        return self.make_request_with_retry('/fapi/v1/ticker/24hr', params)
+        return None
 
     def get_open_interest(self, symbol):
-        """获取未平仓合约数"""
-        params = {'symbol': symbol}
-        return self.make_request_with_retry('/fapi/v1/openInterest', params)
+        return None
 
     def get_open_interest_hist(self, symbol, period, limit=30, start_time=None, end_time=None):
-        """获取合约持仓量历史"""
-        params = {'symbol': symbol, 'period': period, 'limit': limit}
-        if start_time:
-            params['startTime'] = start_time
-        if end_time:
-            params['endTime'] = end_time
-        return self.make_request_with_retry('/futures/data/openInterestHist', params)
+        return None
 
     def get_long_short_ratio(self, symbol, period, limit=30, start_time=None, end_time=None):
-        """获取多空持仓人数比"""
-        params = {'symbol': symbol, 'period': period, 'limit': limit}
-        if start_time:
-            params['startTime'] = start_time
-        if end_time:
-            params['endTime'] = end_time
-        return self.make_request_with_retry('/futures/data/globalLongShortAccountRatio', params)
+        return None
+
+    def get_global_long_short_account_ratio(self, symbol, period, limit=30, start_time=None, end_time=None):
+        return None
 
     def get_klines(self, symbol, interval, start_time=None, end_time=None, limit=500):
-        """获取K线数据"""
-        params = {'symbol': symbol, 'interval': interval, 'limit': limit}
-        if start_time:
-            params['startTime'] = start_time
-        if end_time:
-            params['endTime'] = end_time
-        return self.make_request_with_retry('/fapi/v1/klines', params)
+        return None
 
 class UserRequestHandler:
     """专门处理用户请求的轻量级处理器 - 只读取缓存，不进行网络请求"""
@@ -2964,77 +2837,38 @@ class TradeCatBot:
         return "\n".join(info) if info else _t("cache.no_files", None)
 
     def get_active_symbols(self, force_refresh=False):
-        """获取活跃的USDT合约交易对 - 支持更多币种"""
+        """获取活跃的USDT合约交易对 - 从环境变量配置读取
+        
+        优先使用 SYMBOLS_GROUPS 配置，不再从 Binance API 获取。
+        """
         now = time.time()
-        if not force_refresh and self._active_symbols and (now - self._active_symbols_timestamp) < 300:  # 5分钟缓存
+        if not force_refresh and self._active_symbols and (now - self._active_symbols_timestamp) < 300:
             return self._active_symbols
 
-        try:
-            # 获取交易所信息
-            exchange_info = self.futures_client.get_exchange_info()
-            if exchange_info and 'symbols' in exchange_info:
-                # 先收集所有活跃的USDT永续合约
-                active_symbols = []
-                for symbol_info in exchange_info['symbols']:
-                    if (symbol_info['status'] == 'TRADING' and
-                        symbol_info['symbol'].endswith('USDT') and
-                        symbol_info['contractType'] == 'PERPETUAL' and
-                        symbol_info['symbol'] not in get_blocked_symbols()):
-                        active_symbols.append(symbol_info['symbol'])
-
-                # 获取24小时交易数据进行排序
-                try:
-                    ticker_data = self.futures_client.get_24hr_ticker()
-                    if ticker_data:
-                        # 创建交易量映射
-                        volume_map = {}
-                        for ticker in ticker_data:
-                            if ticker['symbol'] in active_symbols:
-                                volume_map[ticker['symbol']] = float(ticker.get('quoteVolume', 0))
-
-                        # 按交易量排序，优先活跃度高的币种
-                        active_symbols.sort(key=lambda x: volume_map.get(x, 0), reverse=True)
-                        logger.info(f"按交易量排序完成，前10名: {active_symbols[:10]}")
-
-                except Exception as e:
-                    logger.warning(f"获取交易量数据失败，使用默认排序: {e}")
-
-                # 增加支持的币种数量到500个（从100个增加）
-                self._active_symbols = active_symbols[:500]  # 支持更多币种
+        # 从环境变量读取配置
+        symbols_groups = os.environ.get('SYMBOLS_GROUPS', 'main4')
+        
+        # 根据分组获取币种列表
+        if symbols_groups.startswith('main'):
+            group_key = f'SYMBOLS_GROUP_{symbols_groups}'
+            symbols_str = os.environ.get(group_key, '')
+            if symbols_str:
+                symbols = [s.strip() for s in symbols_str.split(',') if s.strip()]
+                # 过滤掉被屏蔽的币种
+                filtered = [s for s in symbols if s not in get_blocked_symbols()]
+                self._active_symbols = filtered
                 self._active_symbols_timestamp = now
-                logger.info(f"✅ 获取到 {len(self._active_symbols)} 个活跃交易对（已按交易量排序）")
-                return self._active_symbols
-
-        except Exception as e:
-            logger.error(f"获取活跃交易对失败: {e}")
-
-        # 返回扩展的默认主流币种，过滤掉被屏蔽的币种
-        default_symbols = [
-            # 主流币种
-            'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'SOLUSDT',
-            'DOGEUSDT', 'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'AVAXUSDT', 'LINKUSDT',
-            'UNIUSDT', 'ATOMUSDT', 'ETCUSDT', 'XLMUSDT', 'BCHUSDT', 'FILUSDT',
-            'TRXUSDT', 'EOSUSDT', 'AAVEUSDT', 'GRTUSDT', 'MKRUSDT', 'COMPUSDT',
-            # 添加更多热门币种
-            'SUSHIUSDT', 'YFIUSDT', 'SNXUSDT', 'CRVUSDT', 'ALGOUSDT', 'ZECUSDT',
-            'DASHUSDT', 'NEARUSDT', 'FTMUSDT', 'SANDUSDT', 'MANAUSDT', 'ICPUSDT',
-            'VETUSDT', 'THETAUSDT', 'AXSUSDT', 'FLOWUSDT', 'XTZUSDT', 'EGLDUSDT',
-            'CHZUSDT', 'ENJUSDT', 'HBARUSDT', 'ZILUSDT', 'BATUSDT', 'ZRXUSDT',
-            'OMGUSDT', 'LRCUSDT', 'BANDUSDT', 'STORJUSDT', 'KNCUSDT', 'RENUSDT',
-            'RLCUSDT', 'FETUSDT', 'CTSIUSDT', 'OCEANUSDT', 'CTKUSDT', 'AKROUSDT',
-            'CHRUSDT', 'ANTUSDT', 'RUNEUSDT', 'KAVAUSDT', 'SXPUSDT', 'DEFIUSDT',
-            'TRBUSDT', 'ALPHAUSDT', 'ZENUSDT', 'SKLUSDT', '1INCHUSDT', 'ANKRUSDT',
-            'BELUSDT', 'RVNUSDT', 'SFPUSDT', 'COTIUSDT', 'ALICEUSDT', 'ONEUSDT',
-            'DENTUSDT', 'CELRUSDT', 'HOTUSDT', 'MTLUSDT', 'OGNUSDT', 'NKNUSDT',
-            '1000SHIBUSDT', 'BAKEUSDT', 'GTCUSDT', 'IOTXUSDT', 'C98USDT', 'MASKUSDT',
-            'ATAUSDT', 'DYDXUSDT', '1000XECUSDT', 'GALAUSDT', 'CELOUSDT', 'ARUSDT',
-            'ARPAUSDT', 'LPTUSDT', 'ENSUSDT', 'PEOPLEUSDT', 'ROSEUSDT'
-        ]
-        # 过滤掉被屏蔽的币种
-        filtered_symbols = [symbol for symbol in default_symbols if symbol not in get_blocked_symbols()]
-        self._active_symbols = filtered_symbols
-        logger.info(f"使用默认币种列表: {len(filtered_symbols)} 个币种")
-        return filtered_symbols
+                logger.info(f"✅ 从配置加载币种 ({symbols_groups}): {filtered}")
+                return filtered
+        
+        # 默认回退到 main4
+        default_symbols = os.environ.get('SYMBOLS_GROUP_main4', 'BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT')
+        symbols = [s.strip() for s in default_symbols.split(',') if s.strip()]
+        filtered = [s for s in symbols if s not in get_blocked_symbols()]
+        self._active_symbols = filtered
+        self._active_symbols_timestamp = now
+        logger.info(f"✅ 使用默认币种配置: {filtered}")
+        return filtered
 
     def compute_market_sentiment_data(self):
         """预计算市场情绪数据"""
