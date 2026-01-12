@@ -218,7 +218,7 @@ class AIAnalysisHandler:
             return await self._handle_prompt_selected(update, context)
 
         if data == "ai_cancel":
-            await query.edit_message_text("已取消 AI 分析")
+            await query.edit_message_text(self._t(update, context, "ai.cancelled"))
             return SELECTING_COIN
 
         return SELECTING_COIN
@@ -227,15 +227,14 @@ class AIAnalysisHandler:
         """显示周期选择界面"""
         current_prompt = context.user_data.get("ai_prompt_name", self.default_prompt)
 
-        keyboard = [
-            [
-                InlineKeyboardButton("5m", callback_data="ai_interval_5m"),
-                InlineKeyboardButton("15m", callback_data="ai_interval_15m"),
-                InlineKeyboardButton("1h", callback_data="ai_interval_1h"),
-                InlineKeyboardButton("4h", callback_data="ai_interval_4h"),
-                InlineKeyboardButton("1d", callback_data="ai_interval_1d"),
-            ],
-        ]
+        periods = ["5m", "15m", "1h", "4h", "1d"]
+        row = []
+        for p in periods:
+            label = self._t(update, context, f"period.{p}")
+            if label == f"period.{p}":
+                label = p
+            row.append(InlineKeyboardButton(label, callback_data=f"ai_interval_{p}"))
+        keyboard = [row]
 
         if prompt_registry:
             prompts = prompt_registry.list_prompts(grouped=False)

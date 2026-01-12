@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, format_sort_field
 from cards.排行榜服务 import DEFAULT_PERIODS, get_market_depth_service, normalize_period
 
 
@@ -163,7 +163,7 @@ class MarketDepthCard(RankingCard):
         text = (
             f"{_t('card.depth.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=format_sort_field(sort_type, lang=lang, field_lists=[self.general_display_fields, self.special_display_fields]), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
             f"{_t('card.depth.hint', lang=lang)}\n"

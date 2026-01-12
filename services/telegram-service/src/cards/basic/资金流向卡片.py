@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
 from cards.排行榜服务 import (
     DEFAULT_PERIODS,
     MONEY_FLOW_FUTURES_PERIODS,
@@ -181,7 +181,7 @@ class MoneyFlowCard(RankingCard):
         aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = user_handler.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        display_sort_field = flow_type.replace("_", "\\_")
+        display_sort_field = format_sort_field(flow_type, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         text = (
             f"{_t('card.flow.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"

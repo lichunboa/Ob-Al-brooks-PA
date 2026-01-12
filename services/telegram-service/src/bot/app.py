@@ -562,11 +562,14 @@ def build_single_snapshot_keyboard(enabled_periods: dict, panel: str, enabled_ca
 
     row_period: list[InlineKeyboardButton] = []
     for p in ALL_PERIODS:
-        label = f"❎{p}" if not enabled_periods.get(p, False) else p
+        period_label = I18N.gettext(f"period.{p}", lang=lang)
+        if period_label == f"period.{p}":
+            period_label = p
+        label = f"❎{period_label}" if not enabled_periods.get(p, False) else period_label
         data = f"single_toggle_{p}"
         # 合约面板不允许1m，禁用按钮
         if panel == "futures" and p == "1m":
-            row_period.append(InlineKeyboardButton("❎1m", callback_data="single_nop"))
+            row_period.append(InlineKeyboardButton(f"❎{period_label}", callback_data="single_nop"))
             continue
         row_period.append(InlineKeyboardButton(label, callback_data=data))
 
@@ -625,7 +628,10 @@ def build_pattern_keyboard_with_periods(enabled_periods: dict, update=None) -> I
     row_period = []
     for p in periods:
         on = enabled_periods.get(p, False)
-        label = p if on else f"❎{p}"
+        period_label = I18N.gettext(f"period.{p}", lang=lang)
+        if period_label == f"period.{p}":
+            period_label = p
+        label = period_label if on else f"❎{period_label}"
         row_period.append(InlineKeyboardButton(label, callback_data=f"pattern_toggle_{p}"))
 
     return InlineKeyboardMarkup([
@@ -933,7 +939,7 @@ class UserRequestHandler:
             logger.info(f"返回内存缓存数据: {key} (缓存年龄: {cache_age:.1f}秒)")
             return cache[key]['data'], None
         if fallback_message is None:
-            fallback_message = _t("data.loading_hint", None)
+            fallback_message = _t(None, "data.loading_hint")
         logger.warning(f"缓存中没有数据: {key}")
         return [], fallback_message
 
@@ -942,7 +948,7 @@ class UserRequestHandler:
         数据对齐：默认前 left_align_cols 列左对齐，其余右对齐；支持传入对齐列表 ["L","R",...]
         """
         if not data_rows:
-            return _t("data.no_data", None)
+            return _t(None, "data.no_data")
 
         col_cnt = max(len(row) for row in data_rows)
         if not all(len(row) == col_cnt for row in data_rows):
@@ -1009,7 +1015,7 @@ class UserRequestHandler:
     # ===== 基础行情占位，避免缺失方法导致报错 =====
     def get_basic_market(self, sort_type='change', period='24h', sort_order='desc', limit=10, market_type='futures'):
         """AI分析占位，保持接口不报错"""
-        return _t("feature.ai_unavailable", None)
+        return _t(None, "feature.ai_unavailable")
 
     def get_basic_market_keyboard(
         self,
@@ -1151,7 +1157,7 @@ class UserRequestHandler:
                 return temp_bot.get_position_ranking(limit=limit, sort_order=sort_order, period=period, sort_field=sort_field)
             except Exception as e:
                 logger.error(f"创建临时bot实例失败: {e}")
-                return _t("data.initializing", None)
+                return _t(update, "data.initializing")
 
     def get_position_ranking_keyboard(self, current_sort='desc', current_limit=10, current_period='24h', update=None):
         """获取持仓量排行榜键盘 - 委托给TradeCatBot处理"""
@@ -1176,21 +1182,21 @@ class UserRequestHandler:
             except Exception as e:
                 logger.error(f"创建临时bot实例失败: {e}")
                 # 回退键盘
-                keyboard = [[_btn(None, "btn.back_home", "main_menu")]]
+                keyboard = [[_btn(update, "btn.back_home", "main_menu")]]
                 return InlineKeyboardMarkup(keyboard)
 
     def get_funding_rate_ranking(self, limit=10, sort_order='desc', sort_type='funding_rate'):
         """资金费率排行已下线占位。"""
-        return _t("feature.funding_offline", None)
+        return _t(None, "feature.funding_offline")
 
     def get_coinglass_futures_data(self):
         """CoinGlass 数据源已下线，返回空列表。"""
         return []
 
-    def get_funding_rate_keyboard(self, current_sort='desc', current_limit=10, current_sort_type='funding_rate'):
+    def get_funding_rate_keyboard(self, current_sort='desc', current_limit=10, current_sort_type='funding_rate', update=None):
         """资金费率排行已下线的占位键盘。"""
         return InlineKeyboardMarkup([
-            [_btn(None, "btn.back_home", "main_menu")]
+            [_btn(update, "btn.back_home", "main_menu")]
         ])
 
     def get_volume_ranking(self, limit=10, period='24h', sort_order='desc', market_type='futures', sort_field: str = "volume", update=None):
@@ -1200,7 +1206,7 @@ class UserRequestHandler:
         elif market_type == 'spot':
             return self.get_spot_volume_ranking(limit, period, sort_order, sort_field=sort_field, update=update)
         else:
-            return _t("error.unsupported_market", None)
+            return _t(update, "error.unsupported_market")
 
     @staticmethod
     def _format_usd_value(value: float) -> str:
@@ -1240,7 +1246,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return _t("data.service_unavailable", None)
+            return _t(update, "data.service_unavailable")
 
         rows = service.获取交易量排行('futures', period, sort_order, limit * 2)
         processed = []
@@ -1256,7 +1262,7 @@ class UserRequestHandler:
             processed.append((symbol, volume, price, change_percent))
 
         if not processed:
-            return _t("data.aggregating_futures_volume", None)
+            return _t(update, "data.aggregating_futures_volume")
 
         reverse_sort = (sort_order == 'desc')
 
@@ -1302,7 +1308,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return _t("data.service_unavailable", None)
+            return _t(update, "data.service_unavailable")
 
         rows = service.获取交易量排行('spot', period, sort_order, limit * 2)
         processed = []
@@ -1318,7 +1324,7 @@ class UserRequestHandler:
             processed.append((symbol, volume, price, change_percent))
 
         if not processed:
-            return _t("data.aggregating_spot_volume", None)
+            return _t(update, "data.aggregating_spot_volume")
 
         reverse_sort = (sort_order == 'desc')
 
@@ -1362,7 +1368,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return _t("data.fetch_failed", None)
+            return _t(update, "data.fetch_failed")
 
         # 计算持仓/市值比
         ratio_data = []
@@ -1444,7 +1450,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return _t("data.fetch_failed", None)
+            return _t(update, "data.fetch_failed")
 
         # 计算交易量/市值比
         ratio_data = []
@@ -1536,7 +1542,7 @@ class UserRequestHandler:
         coinglass_data = self.get_coinglass_cache_data()
 
         if not coinglass_data:
-            return _t("data.fetch_failed", None)
+            return _t(update, "data.fetch_failed")
 
         # 计算交易量/持仓量比
         ratio_data = []
@@ -1720,10 +1726,10 @@ class UserRequestHandler:
         option_data, error = self.get_cached_data_safely('coinglass_option_flow_data')
 
         if error:
-            return _t("data.option_failed", None)
+            return _t(update, "data.option_failed")
 
         if not option_data:
-            return _t("data.option_loading", None)
+            return _t(update, "data.option_loading")
 
         # 获取缓存状态信息
         cache_info = ""
@@ -1829,7 +1835,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return _t("data.service_unavailable", None)
+            return _t(update, "data.service_unavailable")
 
         raw_rows = service.获取资金流排行('futures', period, limit * 4, flow_type, sort_order)
         rows = []
@@ -1845,7 +1851,7 @@ class UserRequestHandler:
             rows.append((symbol, net_flow, buy_quote, sell_quote, quote_volume, change_percent))
 
         if not rows:
-            return _t("data.aggregating_futures_cvd", None)
+            return _t(update, "data.aggregating_futures_cvd")
 
         def _filter_by_type(data):
             if flow_type == 'inflow':
@@ -1856,7 +1862,7 @@ class UserRequestHandler:
 
         filtered = _filter_by_type(rows)
         if not filtered:
-            return _t("data.no_flow_data", None)
+            return _t(update, "data.no_flow_data")
 
         if flow_type == 'volume':
             reverse_sort = (sort_order == 'desc')
@@ -1914,7 +1920,7 @@ class UserRequestHandler:
 
         service = getattr(self, 'metric_service', None)
         if service is None:
-            return _t("data.service_unavailable", None)
+            return _t(update, "data.service_unavailable")
 
         raw_rows = service.获取资金流排行('spot', period, limit * 4, flow_type, sort_order)
         rows = []
@@ -1930,7 +1936,7 @@ class UserRequestHandler:
             rows.append((symbol, net_flow, buy_quote, sell_quote, quote_volume, change_percent))
 
         if not rows:
-            return _t("data.aggregating_spot_cvd", None)
+            return _t(update, "data.aggregating_spot_cvd")
 
         def _filter_by_type(data):
             if flow_type == 'inflow':
@@ -1941,7 +1947,7 @@ class UserRequestHandler:
 
         filtered = _filter_by_type(rows)
         if not filtered:
-            return _t("data.no_spot_flow", None)
+            return _t(update, "data.no_spot_flow")
 
         if flow_type == 'volume':
             reverse_sort = (sort_order == 'desc')
@@ -2085,7 +2091,7 @@ class UserRequestHandler:
 
     def get_market_depth(self, limit=10, sort_type='ratio', sort_order='desc'):
         """市场深度排行已下线占位。"""
-        return _t("feature.depth_offline", None)
+        return _t(None, "feature.depth_offline")
 
     def get_market_depth_keyboard(self, current_limit=10, current_sort_type='ratio', current_sort='desc', update=None):
         """市场深度排行已下线的占位键盘。"""
@@ -2095,7 +2101,7 @@ class UserRequestHandler:
 
     def get_market_sentiment(self):
         """市场情绪（基于Binance行情）已下线占位。"""
-        return _t("feature.sentiment_offline", None)
+        return _t(None, "feature.sentiment_offline")
 
     def get_market_sentiment_keyboard(self, update=None):
         """市场情绪占位键盘。"""
@@ -2399,14 +2405,14 @@ class TradeCatBot:
         else:
             logger.warning(f"缓存中没有数据: {key}")
             if fallback_message is None:
-                fallback_message = _t("data.loading_hint", None)
+                fallback_message = _t(None, "data.loading_hint")
             return [], fallback_message
 
     def get_cache_status(self):
         """获取缓存状态信息"""
         global cache
         if not cache:
-            return _t("data.cache_empty", None)
+            return _t(None, "data.cache_empty")
 
         status_info = []
         current_time = time.time()
@@ -2416,7 +2422,7 @@ class TradeCatBot:
             data_count = len(data['data']) if isinstance(data['data'], list) else 1
             status_info.append(f"- {key}: {data_count}条数据, {age:.1f}秒前")
 
-        return _t("cache.status_title", None) + "\n" + "\n".join(status_info)
+        return _t(None, "cache.status_title") + "\n" + "\n".join(status_info)
 
     async def refresh_cache_background(self):
         """🚀 极轻量级后台刷新 - 完全非阻塞，用户体验优先"""
@@ -2554,12 +2560,12 @@ class TradeCatBot:
                 mtime_str = datetime.fromtimestamp(mtime, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
                 size_str = f"{size/1024:.1f}KB" if size < 1024*1024 else f"{size/(1024*1024):.1f}MB"
 
-                status = _t("cache.current_use", None) if file_path == self._current_cache_file else _t("cache.backup_file", None)
+                status = _t(None, "cache.current_use") if file_path == self._current_cache_file else _t(None, "cache.backup_file")
                 info.append(f"- {file_path}: {status}, {mtime_str}, {size_str}")
             except Exception as e:
                 info.append(f"- {file_path}: 读取失败 - {e}")
 
-        return "\n".join(info) if info else _t("cache.no_files", None)
+        return "\n".join(info) if info else _t(None, "cache.no_files")
 
     def get_active_symbols(self, force_refresh=False):
         """获取活跃的USDT合约交易对 - 从环境变量配置读取
@@ -2679,7 +2685,7 @@ class TradeCatBot:
         动态视图对齐：前 left_align_cols 列左对齐，其余右对齐；可传入 align_override=["L","R"...]
         """
         if not data_rows:
-            return _t("data.no_data", None)
+            return _t(None, "data.no_data")
 
         col_cnt = max(len(row) for row in data_rows)
         if not all(len(row) == col_cnt for row in data_rows):
@@ -2724,7 +2730,7 @@ class TradeCatBot:
         futures_data = self.load_latest_futures_data()
 
         if not futures_data:
-            return _t("data.oi_loading", None)
+            return _t(update, "data.oi_loading")
 
         # 映射时间周期到字段
         period_mapping = {
@@ -2951,7 +2957,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def ensure_valid_text(text, fallback=None):
     """确保文本有效，不为空，并且有实际内容"""
     if fallback is None:
-        fallback = _t("data.loading", None)
+        fallback = _t(None, "data.loading")
     try:
         if text and isinstance(text, str) and len(text.strip()) > 0:
             # 进一步检查是否包含有意义的内容
@@ -3315,7 +3321,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer()
                 await query.edit_message_text(
                     signal_ui.get_menu_text(user_id),
-                    reply_markup=signal_ui.get_menu_kb(user_id),
+                    reply_markup=signal_ui.get_menu_kb(user_id, update=update),
                     parse_mode='HTML'
                 )
             else:
@@ -3900,7 +3906,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     None, user_handler.get_funding_rate_ranking,
                     limit, user_handler.user_states['funding_sort']
                 )
-                keyboard = user_handler.get_funding_rate_keyboard(current_sort=user_handler.user_states['funding_sort'], current_limit=limit)
+                keyboard = user_handler.get_funding_rate_keyboard(
+                    current_sort=user_handler.user_states['funding_sort'],
+                    current_limit=limit,
+                    update=update,
+                )
             elif feature_type == "liquidation":
                 user_handler.user_states['liquidation_limit'] = limit
                 text = await loop.run_in_executor(
@@ -5478,7 +5488,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     from signals import ui as signal_ui
                     await update.message.reply_text(
                         signal_ui.get_menu_text(update.effective_user.id),
-                        reply_markup=signal_ui.get_menu_kb(update.effective_user.id),
+                        reply_markup=signal_ui.get_menu_kb(update.effective_user.id, update=update),
                         parse_mode='HTML'
                     )
                 except Exception as e:
@@ -6112,9 +6122,9 @@ def main():
 
                 async def push():
                     subscribers = _get_subscribers()
-                    kb = get_signal_push_kb(signal.symbol)
                     for uid in subscribers:
                         try:
+                            kb = get_signal_push_kb(signal.symbol, uid=uid)
                             await application.bot.send_message(
                                 chat_id=uid,
                                 text=formatted_msg,

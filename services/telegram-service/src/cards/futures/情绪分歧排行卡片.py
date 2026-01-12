@@ -12,7 +12,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import gettext as _t, btn as _btn, resolve_lang, btn_auto as _btn_auto
+from cards.i18n import gettext as _t, btn as _btn, resolve_lang, btn_auto as _btn_auto, format_sort_field
 
 
 class FuturesDivergenceCard(RankingCard):
@@ -136,7 +136,7 @@ class FuturesDivergenceCard(RankingCard):
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
 
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        display_sort_field = sort_field.replace("_", "\\_")
+        display_sort_field = format_sort_field(sort_field, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         time_info = h.get_current_time_display()
 
         text = (
@@ -227,7 +227,7 @@ class FuturesDivergenceCard(RankingCard):
         limit: int,
         sort_field: str,
         field_state: Dict[str, bool],
-        lang: str,
+        lang: str | None = None,
     ):
         items: List[Dict] = []
         try:

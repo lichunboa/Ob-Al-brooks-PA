@@ -1077,6 +1077,9 @@ msgstr "📐 超级趋势"
 msgid "card.support_resistance.btn"
 msgstr "🧱 支撑阻力"
 
+msgid "card.support_resistance.title"
+msgstr "🧱 支撑阻力排行"
+
 msgid "card.taker_continuous.btn"
 msgstr "↕️ 主动连续"
 
@@ -1164,6 +1167,60 @@ msgstr "柱值"
 
 msgid "field.signal_line"
 msgstr "信号线"
+
+msgid "field.change"
+msgstr "涨跌"
+
+msgid "field.position_share"
+msgstr "持仓占比"
+
+msgid "field.position_market"
+msgstr "持仓市占"
+
+msgid "field.volume_market"
+msgstr "量能市占"
+
+msgid "field.volume_oi"
+msgstr "量能OI比"
+
+msgid "field.liquidation_total"
+msgstr "总爆仓"
+
+msgid "field.liquidation_long"
+msgstr "多单"
+
+msgid "field.liquidation_short"
+msgstr "空单"
+
+msgid "field.depth_ratio"
+msgstr "深度比"
+
+msgid "field.spread"
+msgstr "价差"
+
+msgid "field.bid_wall"
+msgstr "买墙"
+
+msgid "field.ask_wall"
+msgstr "卖墙"
+
+msgid "field.funding_rate"
+msgstr "资金费率"
+
+msgid "field.funding_weight"
+msgstr "加权费率"
+
+msgid "field.break_price"
+msgstr "突破价"
+
+msgid "field.break_type"
+msgstr "类型"
+
+msgid "field.stability_pct"
+msgstr "稳定度分位"
+
+msgid "field.sentiment_diff_abs"
+msgstr "情绪差值绝对值"
 
 # TXT 导出 - 面板标题
 msgid "export.panel.basic"
@@ -1505,6 +1562,9 @@ msgstr "🐋 合约持仓榜"
 
 msgid "card.oi_change.title"
 msgstr "⚡ 持仓增减速榜"
+
+msgid "card.oi_change.hint"
+msgstr "💡 数据源：期货情绪聚合表（持仓变动%/持仓变动）"
 
 msgid "card.oi_continuous.title"
 msgstr "📈 OI连续性榜"

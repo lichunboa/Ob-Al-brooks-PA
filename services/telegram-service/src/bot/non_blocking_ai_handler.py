@@ -31,10 +31,19 @@ except ImportError:
 
 # 导入 i18n
 try:
-    from cards.i18n import gettext as _t
+    from cards.i18n import gettext as _t, resolve_lang, lang_context
 except ImportError:
     def _t(key, **kwargs):
         return key
+    def resolve_lang(*_args, **_kwargs):
+        return None
+    class _DummyCtx:
+        def __enter__(self):  # pragma: no cover - fallback
+            return self
+        def __exit__(self, *_args):  # pragma: no cover - fallback
+            return False
+    def lang_context(_lang=None):  # pragma: no cover - fallback
+        return _DummyCtx()
 
 logger = logging.getLogger(__name__)
 
@@ -53,84 +62,88 @@ class NonBlockingAIHandler:
         返回分析ID，用户可以继续使用其他功能
         """
 
-        # 检查并发限制
-        if len(self.active_analyses) >= self.max_concurrent_analyses:
+        lang = resolve_lang(callback_query)
+        with lang_context(lang):
+            # 检查并发限制
+            if len(self.active_analyses) >= self.max_concurrent_analyses:
+                await callback_query.edit_message_text(
+                    _t("ai.busy"),
+                    parse_mode='Markdown'
+                )
+                return None
+
+            # 生成唯一分析ID
+            analysis_id = f"ai_{user_id}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
+
+            # 立即响应用户，告知分析已开始
+            coin_name = symbol.replace('USDT', '')
             await callback_query.edit_message_text(
-                _t("ai.busy"),
+                _t("ai.started", symbol=coin_name, id=analysis_id[-8:]),
                 parse_mode='Markdown'
             )
-            return None
 
-        # 生成唯一分析ID
-        analysis_id = f"ai_{user_id}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
+            # 记录分析信息
+            self.active_analyses[analysis_id] = {
+                'user_id': user_id,
+                'symbol': symbol,
+                'market_type': market_type,
+                'interval': interval,
+                'start_time': datetime.now(),
+                'status': 'running',
+                'chat_id': callback_query.message.chat_id,
+                'message_id': callback_query.message.message_id
+            }
 
-        # 立即响应用户，告知分析已开始
-        coin_name = symbol.replace('USDT', '')
-        await callback_query.edit_message_text(
-            _t("ai.started", symbol=coin_name, id=analysis_id[-8:]),
-            parse_mode='Markdown'
-        )
+            # 在后台启动分析任务
+            asyncio.create_task(self._run_background_analysis(
+                analysis_id, ai_telegram_handler, callback_query
+            ))
 
-        # 记录分析信息
-        self.active_analyses[analysis_id] = {
-            'user_id': user_id,
-            'symbol': symbol,
-            'market_type': market_type,
-            'interval': interval,
-            'start_time': datetime.now(),
-            'status': 'running',
-            'chat_id': callback_query.message.chat_id,
-            'message_id': callback_query.message.message_id
-        }
-
-        # 在后台启动分析任务
-        asyncio.create_task(self._run_background_analysis(
-            analysis_id, ai_telegram_handler, callback_query
-        ))
-
-        return analysis_id
+            return analysis_id
 
     async def _run_background_analysis(self, analysis_id: str, ai_telegram_handler, callback_query):
         """在后台运行AI分析"""
-        try:
-            analysis_info = self.active_analyses[analysis_id]
-            symbol = analysis_info['symbol']
-            market_type = analysis_info['market_type']
-            interval = analysis_info['interval']
-            user_id = analysis_info['user_id']
+        lang = resolve_lang(callback_query)
+        with lang_context(lang):
+            try:
+                analysis_info = self.active_analyses[analysis_id]
+                symbol = analysis_info['symbol']
+                market_type = analysis_info['market_type']
+                interval = analysis_info['interval']
+                user_id = analysis_info['user_id']
 
-            logger.info(f"开始后台AI分析: {analysis_id} - {symbol}")
+                logger.info(f"开始后台AI分析: {analysis_id} - {symbol}")
 
-            # 执行AI分析（移除超时限制）
-            result = await ai_telegram_handler.query_manager.analyze_coin(
-                symbol, market_type, interval, use_ai=True
-            )
+                # 执行AI分析（移除超时限制）
+                result = await ai_telegram_handler.query_manager.analyze_coin(
+                    symbol, market_type, interval, use_ai=True
+                )
 
-            # 分析完成，更新状态
-            self.active_analyses[analysis_id]['status'] = 'completed'
-            self.completed_analyses[analysis_id] = {
-                'result': result,
-                'completion_time': datetime.now(),
-                'user_id': user_id
-            }
+                # 分析完成，更新状态
+                self.active_analyses[analysis_id]['status'] = 'completed'
+                self.completed_analyses[analysis_id] = {
+                    'result': result,
+                    'completion_time': datetime.now(),
+                    'user_id': user_id
+                }
 
-            # 通知用户分析完成
-            await self._notify_analysis_completion(analysis_id, result, callback_query)
+                # 通知用户分析完成
+                await self._notify_analysis_completion(analysis_id, result, callback_query)
 
-        except asyncio.TimeoutError:
-            # 超时处理（理论上不应该发生，因为已移除超时限制）
-            logger.warning(f"AI分析异常超时: {analysis_id}")
-            await self._handle_analysis_timeout(analysis_id, callback_query)
+            except asyncio.TimeoutError:
+                # 超时处理（理论上不应该发生，因为已移除超时限制）
+                logger.warning(f"AI分析异常超时: {analysis_id}")
+                await self._handle_analysis_timeout(analysis_id, callback_query)
 
-        except Exception as e:
-            # 错误处理
-            logger.error(f"AI分析失败: {analysis_id} - {str(e)}")
-            await self._handle_analysis_error(analysis_id, str(e), callback_query)
+            except Exception as e:
+                # 错误处理
+                logger.error(f"AI分析失败: {analysis_id} - {str(e)}")
+                await self._handle_analysis_error(analysis_id, str(e), callback_query)
 
-        finally:
-            # 清理活跃分析记录
-            if analysis_id in self.active_analyses:
-                del self.active_analyses[analysis_id]
+            finally:
+                # 清理活跃分析记录
+                if analysis_id in self.active_analyses:
+                    del self.active_analyses[analysis_id]
 
     async def _notify_analysis_completion(self, analysis_id: str, result: Dict, callback_query):
         """通知用户分析完成"""
@@ -197,7 +210,7 @@ class NonBlockingAIHandler:
 
                 # 构建聊天框消息
                 chat_message = f"{_t('ai.detail_title', symbol=coin_name)}\n\n"
-                chat_message += f"# {coin_name} Market Analysis Report\n"
+                chat_message += f"{_t('ai.report_header', symbol=coin_name)}\n"
 
                 # 检查是否来自缓存
                 cache_indicator = ""

@@ -57,12 +57,12 @@ def init_pusher(send_func: Callable):
 
 💬 {event.message_key}"""
 
-        kb = get_signal_push_kb(event.symbol)
         subscribers = _get_subscribers()
 
         async def push():
             for uid in subscribers:
                 try:
+                    kb = get_signal_push_kb(event.symbol, uid=uid)
                     await _send_func(uid, text, kb)
                 except Exception as e:
                     logger.warning(f"推送给 {uid} 失败: {e}")

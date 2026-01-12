@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field, format_sort_field
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
@@ -163,7 +163,7 @@ class KDJ排行卡片(RankingCard):
         fields_state = self._ensure_field_state(h)
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
-        display_sort_field = sort_field.replace("_", "\\_")
+        display_sort_field = format_sort_field(sort_field, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (
@@ -188,7 +188,7 @@ class KDJ排行卡片(RankingCard):
         fields_state = self._ensure_field_state(h)
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
-        display_sort_field = sort_field.replace("_", "\\_")
+        display_sort_field = format_sort_field(sort_field, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         text = (

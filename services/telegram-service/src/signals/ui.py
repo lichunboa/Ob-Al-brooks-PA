@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from cards.i18n import btn as _btn, gettext as _t, resolve_lang
+from cards.i18n import btn as _btn, gettext as _t, lang_context, resolve_lang, resolve_lang_by_user_id
 
 # 从 signal-service 导入
 _SIGNAL_SERVICE_SRC = Path(__file__).resolve().parents[4] / "services" / "signal-service" / "src"
@@ -171,37 +171,38 @@ def get_menu_text(uid: int) -> str:
     return f"🔔 信号\n<pre>{content}</pre>\n推送: {status} 已选: {enabled}/{total}"
 
 
-def get_menu_kb(uid: int) -> InlineKeyboardMarkup:
+def get_menu_kb(uid: int, update=None, lang: str | None = None) -> InlineKeyboardMarkup:
     sub = get_sub(uid)
-    resolve_lang()
+    resolved = resolve_lang(update, lang)
     rows = []
 
-    # 表开关 每行3个，选中的有✅，未选的只有文字
-    for i in range(0, len(ALL_TABLES), 3):
-        row = []
-        for table in ALL_TABLES[i:i+3]:
-            name = get_short_name(table)
-            if len(name) > 6:
-                name = name[:5] + ".."
-            if table in sub["tables"]:
-                row.append(InlineKeyboardButton(f"✅{name}", callback_data=f"sig_t_{table}"))
-            else:
-                row.append(InlineKeyboardButton(name, callback_data=f"sig_t_{table}"))
-        rows.append(row)
+    with lang_context(resolved):
+        # 表开关 每行3个，选中的有✅，未选的只有文字
+        for i in range(0, len(ALL_TABLES), 3):
+            row = []
+            for table in ALL_TABLES[i:i+3]:
+                name = get_short_name(table)
+                if len(name) > 6:
+                    name = name[:5] + ".."
+                if table in sub["tables"]:
+                    row.append(InlineKeyboardButton(f"✅{name}", callback_data=f"sig_t_{table}"))
+                else:
+                    row.append(InlineKeyboardButton(name, callback_data=f"sig_t_{table}"))
+            rows.append(row)
 
-    # 开启/关闭
-    if sub["enabled"]:
-        rows.append([
-            _btn(None, "signal.push.on", "sig_nop", active=True),
-            _btn(None, "signal.push.off", "sig_toggle"),
-        ])
-    else:
-        rows.append([
-            _btn(None, "signal.push.on", "sig_toggle"),
-            _btn(None, "signal.push.off", "sig_nop", active=True),
-        ])
+        # 开启/关闭
+        if sub["enabled"]:
+            rows.append([
+                _btn(None, "signal.push.on", "sig_nop", active=True),
+                _btn(None, "signal.push.off", "sig_toggle"),
+            ])
+        else:
+            rows.append([
+                _btn(None, "signal.push.on", "sig_toggle"),
+                _btn(None, "signal.push.off", "sig_nop", active=True),
+            ])
 
-    rows.append([_btn(None, "btn.back_home", "main_menu")])
+        rows.append([_btn(None, "btn.back_home", "main_menu")])
 
     return InlineKeyboardMarkup(rows)
 
@@ -252,7 +253,7 @@ async def handle(update, context) -> bool:
     else:
         return False
 
-    await q.edit_message_text(get_menu_text(uid), reply_markup=get_menu_kb(uid), parse_mode='HTML')
+    await q.edit_message_text(get_menu_text(uid), reply_markup=get_menu_kb(uid, update=update), parse_mode='HTML')
     return True
 
 
@@ -262,12 +263,14 @@ def is_table_enabled(uid: int, table: str) -> bool:
     return sub["enabled"] and table in sub["tables"]
 
 
-def get_signal_push_kb(symbol: str) -> InlineKeyboardMarkup:
+def get_signal_push_kb(symbol: str, *, uid: int | None = None, lang: str | None = None) -> InlineKeyboardMarkup:
     """信号推送消息的内联键盘，带币种分析和AI分析跳转"""
     # 去掉USDT后缀用于显示
     coin = symbol.replace("USDT", "")
-    analyze_text = f"🔍 {coin}{_t('btn.analyze', None)}"
-    ai_text = f"🤖 {_t('btn.ai_analyze', None)}"
+    if lang is None:
+        lang = resolve_lang_by_user_id(uid) if uid is not None else resolve_lang()
+    analyze_text = f"🔍 {coin}{_t('btn.analyze', lang=lang)}"
+    ai_text = f"🤖 {_t('btn.ai_analyze', lang=lang)}"
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(analyze_text, callback_data=f"single_query_{symbol}"),

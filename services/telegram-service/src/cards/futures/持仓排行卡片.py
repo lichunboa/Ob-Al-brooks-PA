@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, format_sort_field
 from cards.排行榜服务 import POSITION_PERIODS, normalize_period
 
 
@@ -159,7 +159,7 @@ class PositionRankingCard(RankingCard):
         text = (
             f"{_t('card.oi.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=sort_field.replace('_','\\_'), symbol=sort_symbol)}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=format_sort_field(sort_field, lang=lang, field_lists=[self.general_display_fields, self.special_display_fields]), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
             f"{_t('card.oi.hint', lang=lang)}\n"

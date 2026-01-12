@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
-from cards.i18n import btn as _btn
+from cards.i18n import btn as _btn, lang_context, resolve_lang
 
 
 # 从环境变量读取卡片配置
@@ -135,9 +135,19 @@ class RankingRegistry:
 
         card = self.find_by_callback(query.data)
         if not card:
+            # 统一处理无操作按钮，避免客户端“加载中”卡住
+            data = query.data or ""
+            if data.endswith("nop") or data.endswith("_nop"):
+                try:
+                    await query.answer()
+                except Exception:
+                    pass
+                return True
             return False
 
-        return await card.handle_callback(update, context, services)
+        lang = resolve_lang(update)
+        with lang_context(lang):
+            return await card.handle_callback(update, context, services)
 
     # ---------- 内部工具 ----------
     def _hydrate_field_defaults(self, card: RankingCard) -> None:

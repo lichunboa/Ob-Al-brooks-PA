@@ -13,7 +13,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol, get_ranking_provider
-from cards.i18n import gettext as _t, btn as _btn, resolve_lang, btn_auto as _btn_auto
+from cards.i18n import gettext as _t, btn as _btn, resolve_lang, btn_auto as _btn_auto, format_sort_field
 
 
 class 趋势线排行卡片(RankingCard):
@@ -147,7 +147,7 @@ class 趋势线排行卡片(RankingCard):
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        display_sort_field = sort_field.replace("_", "\\_")
+        display_sort_field = format_sort_field(sort_field, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         text = (
             f"{_t('card.trendline.title', lang=lang)}\n"
             f"{_t('time.update', update, lang=lang, time=time_info['full'])}\n"

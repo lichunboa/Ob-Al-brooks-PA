@@ -14,7 +14,7 @@ import logging
 from typing import Dict, List, Sequence
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field, format_sort_field
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -195,15 +195,15 @@ class VolumeRankingService(BaseService):
         title = _t("card.volume.title", lang=lang)
         header_parts = [_t("card.header.rank", lang=lang), _t("card.header.symbol", lang=lang)]
         if show_quote_volume:
-            header_parts.append(f"{period_text}Vol(±)")
+            header_parts.append(f"{period_text}{_t('field.volume', lang=lang)}(±)")
         if show_price:
             header_parts.append(_t("field.price", lang=lang))
-        header_parts.append(f"{period_text}Chg(±)")
+        header_parts.append(f"{period_text}{_t('field.change', lang=lang)}(±)")
         header = "/".join(header_parts)
 
         return f"""{title}
 {_t('card.common.update_time', lang=lang).format(time=time_info['full'])}
-{_t('card.common.sort_info', lang=lang).format(period=period_text, field='volume', symbol=sort_symbol)}
+{_t('card.common.sort_info', lang=lang).format(period=period_text, field=format_sort_field('volume', lang=lang), symbol=sort_symbol)}
 {header}
 ```
 {aligned}
@@ -624,8 +624,10 @@ class BuySellRatioService(BaseService):
         return (
             f"{_t('card.taker_ratio.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info', lang=lang).format(period=period, field='taker_ratio', symbol=sort_symbol)}\n"
-            f"{_t('card.header.rank', lang=lang)}/{_t('card.header.symbol', lang=lang)}/Ratio/Buy/Sell/Vol/Price\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=format_sort_field('taker_ratio', lang=lang), symbol=sort_symbol)}\n"
+            f"{_t('card.header.rank', lang=lang)}/{_t('card.header.symbol', lang=lang)}/"
+            f"{_t('field.taker_ratio', lang=lang)}/{_t('snapshot.field.taker_buy', lang=lang)}/"
+            f"{_t('snapshot.field.taker_sell', lang=lang)}/{_t('field.volume', lang=lang)}/{_t('field.price', lang=lang)}\n"
             f"```\n{aligned}\n```\n"
             f"{_t('card.taker_ratio.hint', lang=lang)}\n"
             f"{_t('card.common.last_update', lang=lang).format(time=time_info['full'])}"

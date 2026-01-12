@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
 
 from cards.base import RankingCard
 
@@ -137,7 +137,7 @@ class VWAP排行卡片(RankingCard):
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
         period = handler.user_states.get("vwap_period", "15m")
         sort_field = handler.user_states.get("vwap_sort_field", "deviation")
-        display_sort_field = sort_field.replace("_", "\\_")
+        display_sort_field = format_sort_field(sort_field, lang=lang, field_lists=[getattr(self, "general_display_fields", []), getattr(self, "special_display_fields", [])])
         text = (
             f"{_t('card.vwap.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"

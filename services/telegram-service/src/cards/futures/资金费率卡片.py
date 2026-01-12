@@ -9,7 +9,7 @@ from typing import Dict, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
-from cards.i18n import btn_auto as _btn_auto, gettext as _t
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
 from cards.排行榜服务 import DEFAULT_PERIODS, get_funding_service, normalize_period
 
 
@@ -152,7 +152,7 @@ class FundingRateCard(RankingCard):
         text = (
             f"{_t('card.funding.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=sort_type.replace('_','\\_'), symbol=sort_symbol)}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=format_sort_field(sort_type, lang=lang, field_lists=[self.general_display_fields, self.special_display_fields]), symbol=sort_symbol)}\n"
             f"{header}\n"
             f"```\n{aligned}\n```\n"
             f"{_t('card.funding.hint', lang=lang)}\n"
@@ -201,7 +201,8 @@ class FundingRateCard(RankingCard):
         special_sort = [(cid, lab) for cid, lab, _ in self.special_display_fields]
         kb.append([b(lbl, f"funding_sort_field_{cid}", active=(sort_type == cid)) for cid, lbl in special_sort])
         # 行6 周期（固定24h）
-        kb.append([InlineKeyboardButton("✅24h", callback_data="funding_nop")])
+        period_label = _t("period.24h")
+        kb.append([InlineKeyboardButton(f"✅{period_label}", callback_data="funding_nop")])
         # 行7 排序方向 + 条数
         kb.append([
             b("降序", "funding_sort_desc", active=sort_order == "desc"),
@@ -232,7 +233,7 @@ class FundingRateCard(RankingCard):
                 state[_off] = False
         return state
 
-    def _load_rows(self, service, limit: int, sort_order: str, sort_type: str, period: str, field_state: Dict[str, bool]):
+    def _load_rows(self, service, limit: int, sort_order: str, sort_type: str, period: str, field_state: Dict[str, bool], lang: str | None = None):
         data = service.handler.get_funding_rate_ranking(limit=limit, sort_order=sort_order, sort_type=sort_type)
         if isinstance(data, str):
             return [], _t("card.header.rank_symbol", lang=lang)
