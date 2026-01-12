@@ -101,8 +101,19 @@ bsc：0x8a99b8d53eff6bc331af529af74ad267f3167777
 
 > 把下面的提示词复制到 **Claude / ChatGPT / Cursor / Kiro**，AI 会自动执行安装，零人工介入
 
+**方式一：完整部署提示词（推荐）**
+
+📄 **[docs/DEPLOY_PROMPT.md](docs/DEPLOY_PROMPT.md)** - 包含详细的 10 步部署流程，支持：
+- 系统依赖自动安装
+- 服务初始化和配置
+- HuggingFace 历史数据自动下载导入
+- 守护进程和日志轮转配置
+- 完整的故障排查指南
+
+复制该文件内容给 AI 助手即可自动完成全部部署。
+
 <details>
-<summary><strong>点击展开👉 📋 安装提示词</strong></summary>
+<summary><strong>点击展开👉 📋 简化版安装提示词</strong></summary>
 
 ```
 按照 https://github.com/tukuaiai/tradecat/blob/main/README.md 的说明帮我安装 TradeCat
@@ -179,6 +190,30 @@ vim config/.env
 从 HuggingFace 下载预置数据集，跳过漫长的历史回填：
 
 🔗 **数据集**: [huggingface.co/datasets/123olp/binance-futures-ohlcv-2018-2026](https://huggingface.co/datasets/123olp/binance-futures-ohlcv-2018-2026)
+
+**方式一：使用自动下载脚本（推荐）**
+
+```bash
+# 安装依赖
+services/data-service/.venv/bin/pip install pandas psycopg2-binary huggingface_hub
+
+# 下载并导入 main4 币种（BTC/ETH/BNB/SOL）全部历史数据
+python scripts/download_hf_data.py
+
+# 或只下载最近 365 天
+python scripts/download_hf_data.py --days 365
+
+# 或指定币种
+python scripts/download_hf_data.py --symbols BTCUSDT,ETHUSDT,BNBUSDT
+```
+
+脚本特性：
+- 自动从 HuggingFace 下载 CSV.gz 文件
+- 流式读取，内存友好（适合大文件）
+- 按币种和时间过滤，只导入需要的数据
+- 支持断点续传（已下载的文件会跳过）
+
+**方式二：手动导入（完整数据）**
 
 ```bash
 # 0. 创建库并导入 schema（依次执行仓库内 SQL）
