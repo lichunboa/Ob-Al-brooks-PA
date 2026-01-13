@@ -280,7 +280,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             基于{recommendation.filteredCount}个策略推荐:
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            {recommendation.recommendations.slice(0, 3).map(rec => (
+                            {recommendation.recommendations.map(rec => (
                                 <div
                                     key={rec.value}
                                     style={{
