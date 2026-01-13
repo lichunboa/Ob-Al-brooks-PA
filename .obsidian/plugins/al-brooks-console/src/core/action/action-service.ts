@@ -282,4 +282,59 @@ export class ActionService {
             message: "Not implemented yet"
         };
     }
+
+    /**
+     * 切换计划清单项的完成状态
+     */
+    async togglePlanChecklistItem(
+        notePath: string,
+        itemIndex: number
+    ): Promise<void> {
+        const file = this.app.vault.getAbstractFileByPath(notePath);
+        if (!(file instanceof TFile)) {
+            throw new Error(`文件不存在: ${notePath}`);
+        }
+
+        const content = await this.app.vault.read(file);
+        const { frontmatter, body } = this.updater.parseFrontmatter(content);
+
+        // 切换checkbox状态
+        if (!frontmatter.checklist || !Array.isArray(frontmatter.checklist)) {
+            throw new Error("清单不存在");
+        }
+
+        if (itemIndex < 0 || itemIndex >= frontmatter.checklist.length) {
+            throw new Error(`清单项索引越界: ${itemIndex}`);
+        }
+
+        const item = frontmatter.checklist[itemIndex];
+        item.done = !item.done;
+
+        // 写回文件
+        const newContent = this.updater.serializeFrontmatter(frontmatter, body);
+        await this.app.vault.modify(file, newContent);
+    }
+
+    /**
+     * 更新计划的风险限制
+     */
+    async updatePlanRiskLimit(
+        notePath: string,
+        riskLimit: number
+    ): Promise<void> {
+        const file = this.app.vault.getAbstractFileByPath(notePath);
+        if (!(file instanceof TFile)) {
+            throw new Error(`文件不存在: ${notePath}`);
+        }
+
+        const content = await this.app.vault.read(file);
+        const { frontmatter, body } = this.updater.parseFrontmatter(content);
+
+        // 更新风险限制
+        frontmatter.riskLimit = riskLimit;
+
+        // 写回文件
+        const newContent = this.updater.serializeFrontmatter(frontmatter, body);
+        await this.app.vault.modify(file, newContent);
+    }
 }

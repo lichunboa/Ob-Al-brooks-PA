@@ -25,6 +25,8 @@ export interface TradingHubTabProps {
   // 计划数据
   todayPlan?: DailyPlan;
   onGoToPlan: () => void;
+  onToggleChecklistItem?: (index: number) => Promise<void>;
+  onUpdateRiskLimit?: (riskLimit: number) => Promise<void>;
 
   // 交易数据
   latestTrade: TradeRecord | null;
@@ -109,7 +111,12 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
 
       <div style={{ marginBottom: "16px" }}>
-        <PlanWidget plan={todayPlan} onGoToPlan={onGoToPlan} />
+        <PlanWidget
+          plan={todayPlan}
+          onGoToPlan={onGoToPlan}
+          onToggleChecklistItem={props.onToggleChecklistItem}
+          onUpdateRiskLimit={props.onUpdateRiskLimit}
+        />
       </div>
 
       <ReviewHintsPanel

@@ -287,6 +287,72 @@ const ConsoleComponent: React.FC<Props> = ({
     setSchemaScanNote,
   } = useSchemaState();
 
+  // 创建ActionService实例
+  const actionService = React.useMemo(() => {
+    const { ActionService } = require("../core/action/action-service");
+    return new ActionService(app);
+  }, [app]);
+
+  /**
+   * 获取今日笔记路径
+   */
+  const getTodayNotePath = React.useCallback((): string | null => {
+
+    // 或者根据日期构造
+    const today = new Date().toISOString().split('T')[0];
+    return `📓 每日日记/${today}.md`;
+  }, []);
+
+  /**
+   * 处理计划清单项切换
+   */
+  const handleToggleChecklistItem = React.useCallback(async (itemIndex: number): Promise<void> => {
+    try {
+      const todayNote = getTodayNotePath();
+      if (!todayNote) {
+        new (require('obsidian')).Notice('未找到今日笔记');
+        return;
+      }
+
+      await actionService.togglePlanChecklistItem(todayNote, itemIndex);
+
+      // 刷新索引
+      if (index.rebuild) {
+        await index.rebuild();
+      }
+
+      new (require('obsidian')).Notice('✅ 已更新');
+    } catch (error) {
+      console.error('切换清单项失败:', error);
+      new (require('obsidian')).Notice(`❌ 更新失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [actionService, getTodayNotePath, index]);
+
+  /**
+   * 处理风险限制更新
+   */
+  const handleUpdateRiskLimit = React.useCallback(async (riskLimit: number): Promise<void> => {
+    try {
+      const todayNote = getTodayNotePath();
+      if (!todayNote) {
+        new (require('obsidian')).Notice('未找到今日笔记');
+        return;
+      }
+
+      await actionService.updatePlanRiskLimit(todayNote, riskLimit);
+
+      // 刷新索引
+      if (index.rebuild) {
+        await index.rebuild();
+      }
+
+      new (require('obsidian')).Notice(`✅ 风险限制已更新为 ${riskLimit}R`);
+    } catch (error) {
+      console.error('更新风险限制失败:', error);
+      new (require('obsidian')).Notice(`❌ 更新失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [actionService, getTodayNotePath, index]);
+
 
   React.useEffect(() => {
     let cancelled = false;
@@ -1131,6 +1197,8 @@ const ConsoleComponent: React.FC<Props> = ({
           todayTrades={todayTrades}
           todayPlan={tradingPlans.find(p => p.date === window.moment().format("YYYY-MM-DD"))}
           onGoToPlan={() => setActivePage("plan")}
+          onToggleChecklistItem={handleToggleChecklistItem}
+          onUpdateRiskLimit={handleUpdateRiskLimit}
           openTradeStrategy={openTradeStrategy}
           todayStrategyPicks={todayStrategyPicks}
           strategyIndex={strategyIndex}
