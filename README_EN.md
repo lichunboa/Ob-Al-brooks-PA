@@ -9,11 +9,13 @@
 Community-funded open-source project. Thanks for the support!  
 Donations (optional):
 <p>
-Solana: Gysp4iZ6uNuAksAPR37fQwLDRFU9Rz255UjExhiwpump
+Solana(For CA tokens, please do not transfer directly; otherwise, your assets will be lost.)
+: Gysp4iZ6uNuAksAPR37fQwLDRFU9Rz255UjExhiwpump
 </p>
 
 <p>
-BSC (BEP20): 0x8a99b8d53eff6bc331af529af74ad267f3167777
+BSC (BEP20)(For CA tokens, please do not transfer directly; otherwise, your assets will be lost.)
+: 0x8a99b8d53eff6bc331af529af74ad267f3167777
 </p>
 
 **Disclaimer**
