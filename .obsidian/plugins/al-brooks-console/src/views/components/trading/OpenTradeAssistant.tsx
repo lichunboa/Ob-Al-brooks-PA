@@ -339,8 +339,9 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                             {recommendation.recommendations.map(rec => (
-                                <div
+                                <button
                                     key={rec.value}
+                                    onClick={() => handleFillAttribute(rec.attribute, rec.value)}
                                     style={{
                                         padding: "8px",
                                         background: "var(--background-primary)",
@@ -350,6 +351,18 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
+                                        cursor: "pointer",
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "var(--interactive-hover)";
+                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "var(--background-primary)";
+                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                    }}
+                                        transition: "all 0.2s",
+                                        width: "100%",
+                                        textAlign: "left",
                                     }}
                                 >
                                     <span style={{ fontWeight: 500 }}>{rec.value}</span>
