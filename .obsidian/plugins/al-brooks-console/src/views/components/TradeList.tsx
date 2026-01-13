@@ -94,7 +94,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
       if (formData.entryPrice) updates.entryPrice = parseFloat(formData.entryPrice) || 0;
       if (formData.stopLoss) updates.stopLoss = parseFloat(formData.stopLoss) || 0;
       if (formData.takeProfit) updates.takeProfit = parseFloat(formData.takeProfit) || 0;
-      if (formData.initialRisk) updates.initialRisk = parseFloat(formData.initialRisk) || 0;
+      if (formData.initialRisk) updates.initial_risk = parseFloat(formData.initialRisk) || 0;
       if (formData.pnl !== trade.pnl?.toString()) updates.pnl = parseFloat(formData.pnl) || 0;
       if (formData.outcome !== trade.outcome) updates.outcome = formData.outcome;
       if (formData.cover !== t.cover) updates.cover = formData.cover;
@@ -117,7 +117,13 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
         setExpandedTradeIndex(null);
         if (onUpdate) onUpdate();
       } else {
-        new Notice(`❌ 更新失败: ${result.message}`);
+        // 检查是否是风控错误
+        if (result.details?.limit) {
+          // 显示风控警告Modal
+          showRiskWarningModal(result.details);
+        } else {
+          new Notice(`❌ 更新失败: ${result.message}`);
+        }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -125,6 +131,41 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // 风控警告Modal
+  const showRiskWarningModal = (details: any) => {
+    if (!app) return;
+
+    const { Modal } = require('obsidian');
+    const modal = new Modal(app);
+    modal.titleEl.setText('⚠️ 风险警告');
+
+    modal.contentEl.createDiv({}, (div: HTMLDivElement) => {
+      div.style.cssText = 'padding: 16px; line-height: 1.6;';
+      div.innerHTML = `
+        <div style="margin-bottom: 16px; font-weight: 600; color: var(--text-error);">
+          风险超出每日限额!
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>当前风险:</strong> ${details.currentRisk.toFixed(1)}R
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>新增风险:</strong> ${details.newRisk.toFixed(1)}R
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>总计:</strong> ${details.totalRisk.toFixed(1)}R
+        </div>
+        <div style="margin-bottom: 16px; color: var(--text-error); font-weight: 600;">
+          <strong>限额:</strong> ${details.limit}R
+        </div>
+        <div style="font-size: 12px; opacity: 0.7; padding: 12px; background: var(--background-secondary); border-radius: 4px;">
+          💡 <strong>建议:</strong> 降低仓位或等待明日
+        </div>
+      `;
+    });
+
+    modal.open();
   };
 
   const inputStyle: React.CSSProperties = {
