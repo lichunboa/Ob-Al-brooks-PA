@@ -235,8 +235,20 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     alwaysIn: (currentTrade as any).alwaysIn,
                     setupCategory: currentTrade.setupCategory,
                     patterns: currentTrade.patternsObserved,
+                    direction: currentTrade.direction,
                 });
                 console.log('[SmartGuidance] StrategyIndex total:', strategyIndex.list().length);
+
+                // 调试:查看策略卡片的direction字段
+                if (strategyIndex.list().length > 0) {
+                    const firstStrategy = strategyIndex.list()[0];
+                    console.log('[SmartGuidance] First strategy sample:', {
+                        name: (firstStrategy as any).name,
+                        direction: (firstStrategy as any).direction,
+                        marketCycles: (firstStrategy as any).marketCycles,
+                        setupCategories: (firstStrategy as any).setupCategories,
+                    });
+                }
 
                 if (!recommendation || recommendation.recommendations.length === 0) {
                     console.log('[SmartGuidance] No recommendations available');
