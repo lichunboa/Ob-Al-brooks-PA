@@ -275,12 +275,13 @@ class DataWriter:
             # 先删除同一 (交易对, 周期, 数据时间) 的旧数据
             if "交易对" in df_cols and "周期" in df_cols and "数据时间" in df_cols:
                 for _, row in df[["交易对", "周期", "数据时间"]].drop_duplicates().iterrows():
-                    conn.execute(f"DELETE FROM [{table}] WHERE 交易对=? AND 周期=? AND 数据时间=?",
+                    conn.execute(f"DELETE FROM [{table}] WHERE [交易对]=? AND [周期]=? AND [数据时间]=?",
                                  (row["交易对"], row["周期"], row["数据时间"]))
 
-            # 批量 INSERT
+            # 批量 INSERT - 列名用方括号包裹以支持特殊字符
             placeholders = ",".join(["?"] * len(df_cols))
-            sql = f"INSERT INTO [{table}] ({','.join(df_cols)}) VALUES ({placeholders})"
+            cols_escaped = ",".join(f"[{c}]" for c in df_cols)
+            sql = f"INSERT INTO [{table}] ({cols_escaped}) VALUES ({placeholders})"
             data = [tuple(row) for row in df.itertuples(index=False, name=None)]
             conn.executemany(sql, data)
 
@@ -350,9 +351,10 @@ class DataWriter:
                         conn.execute(f"DROP TABLE IF EXISTS [{table}]")
                         df.head(0).to_sql(table, conn, if_exists="replace", index=False)
 
-                    # 批量 INSERT
+                    # 批量 INSERT - 列名用方括号包裹以支持特殊字符
                     placeholders = ",".join(["?"] * len(df_cols))
-                    sql = f"INSERT INTO [{table}] ({','.join(df_cols)}) VALUES ({placeholders})"
+                    cols_escaped = ",".join(f"[{c}]" for c in df_cols)
+                    sql = f"INSERT INTO [{table}] ({cols_escaped}) VALUES ({placeholders})"
                     data_tuples = [tuple(row) for row in df.itertuples(index=False, name=None)]
                     conn.executemany(sql, data_tuples)
 

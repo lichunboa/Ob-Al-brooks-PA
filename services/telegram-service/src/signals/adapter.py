@@ -24,6 +24,21 @@ from formatters.base import BaseFormatter, strength_bar, fmt_price
 _send_func: Optional[Callable] = None
 
 
+def _translate_message(event: SignalEvent) -> str:
+    """翻译信号消息"""
+    try:
+        from bot.app import I18N
+        # 尝试翻译 message_key
+        msg = I18N.gettext(event.message_key, **event.message_params)
+        # 如果翻译后仍是 key（未找到翻译），使用 extra 中的原始消息
+        if msg == event.message_key:
+            return event.extra.get("message", event.message_key)
+        return msg
+    except Exception:
+        # 回退到 extra 中的原始消息
+        return event.extra.get("message", event.message_key)
+
+
 def init_signal_service():
     """初始化"""
     logger.info("signal-service 已连接")
@@ -47,6 +62,7 @@ def init_pusher(send_func: Callable):
 
         icon = {"BUY": "🟢", "SELL": "🔴", "ALERT": "⚠️"}.get(event.direction, "📊")
         bar = strength_bar(event.strength)
+        msg = _translate_message(event)
 
         text = f"""{icon} {event.direction} | {event.symbol}
 
@@ -55,7 +71,7 @@ def init_pusher(send_func: Callable):
 💰 价格: {fmt_price(event.price)}
 📊 强度: [{bar}] {event.strength}%
 
-💬 {event.message_key}"""
+💬 {msg}"""
 
         subscribers = _get_subscribers()
 

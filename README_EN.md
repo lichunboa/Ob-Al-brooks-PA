@@ -220,11 +220,13 @@ Download pre-built datasets from HuggingFace to skip lengthy historical backfill
 
 **Method 1: Auto Download Script (Recommended)**
 
+> **Downloads Main4 compact dataset by default** (415MB, 4 symbols, 11.5M records, 2020-2026 full history)
+
 ```bash
 # Install dependencies
 services/data-service/.venv/bin/pip install pandas psycopg2-binary huggingface_hub
 
-# Download and import main4 symbols (BTC/ETH/BNB/SOL) full history
+# Download Main4 dataset by default (BTC/ETH/BNB/SOL, 415MB)
 python scripts/download_hf_data.py
 
 # Or specify symbols
@@ -232,9 +234,8 @@ python scripts/download_hf_data.py --symbols BTCUSDT,ETHUSDT,BNBUSDT
 ```
 
 Script features:
-- Auto download CSV.gz files from HuggingFace
-- Stream reading, memory efficient (handles large files)
-- Filter by symbol and date range
+- **Downloads Main4 compact dataset by default** (415MB), NOT the full version (13GB)
+- Stream reading, memory efficient
 - Resume support (skips already downloaded files)
 
 **Method 2: Manual Import (Full Data)**
@@ -932,8 +933,11 @@ tradecat/
 │
 ├── 📂 libs/                        # Shared libraries
 │   ├── 📂 database/                # Database files
-│   │   └── 📂 services/telegram-service/
-│   │       └── market_data.db      # SQLite indicator data
+│   │   └── 📂 services/
+│   │       ├── 📂 telegram-service/
+│   │       │   └── market_data.db      # Indicator data (Telegram rendering)
+│   │       └── 📂 signal-service/
+│   │           └── cooldown.db         # Cooldown persistence to dedupe pushes
 │   └── 📂 common/                  # Shared utilities
 │       ├── i18n.py                 # Internationalization module
 │       ├── symbols.py              # Token management module

@@ -13,10 +13,12 @@ try:
     from ..config import get_sqlite_path
     from ..events import SignalEvent, SignalPublisher
     from ..rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+    from ..storage.cooldown import get_cooldown_storage
 except ImportError:
     from config import get_sqlite_path
     from events import SignalEvent, SignalPublisher
     from rules import ALL_RULES, RULES_BY_TABLE, SignalRule
+    from storage.cooldown import get_cooldown_storage
 
 from .base import BaseEngine, Signal
 
@@ -37,9 +39,13 @@ class SQLiteSignalEngine(BaseEngine):
 
         # 状态
         self.baseline: dict[str, dict] = {}  # {table_symbol_tf: row_data}
-        self.cooldown: dict[str, float] = {}  # {rule_symbol_tf: last_trigger_time}
         self.baseline_loaded = False
         self.enabled_rules: set[str] = {r.name for r in ALL_RULES if r.enabled}
+
+        # 冷却状态（从持久化存储加载）
+        self._cooldown_storage = get_cooldown_storage()
+        self.cooldown: dict[str, float] = self._cooldown_storage.load_all()
+        logger.info(f"加载 {len(self.cooldown)} 条冷却记录")
 
         # 统计
         self.stats = {
@@ -102,9 +108,11 @@ class SQLiteSignalEngine(BaseEngine):
         return time.time() - last > rule.cooldown
 
     def _set_cooldown(self, rule: SignalRule, symbol: str, timeframe: str):
-        """设置冷却"""
+        """设置冷却（同时持久化）"""
         key = f"{rule.name}_{symbol}_{timeframe}"
-        self.cooldown[key] = time.time()
+        ts = time.time()
+        self.cooldown[key] = ts
+        self._cooldown_storage.set(key, ts)
 
     def check_signals(self) -> list[Signal]:
         """检查所有规则"""

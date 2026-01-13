@@ -217,6 +217,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 | order-service | 交易执行、做市 | 禁止修改数据采集逻辑 |
 
 > **注意**：telegram-service/signals 模块已解耦，仅保留适配层 (`adapter.py`) 和 UI (`ui.py`)，信号检测逻辑全部在 signal-service 中。
+> 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。
 
 ### 4.4 依赖添加规则
 
@@ -332,8 +333,11 @@ tradecat/
 │
 ├── libs/
 │   ├── database/                   # 数据库文件
-│   │   └── services/telegram-service/
-│   │       └── market_data.db      # SQLite 指标数据
+│   │   └── services/
+│   │       ├── telegram-service/
+│   │       │   └── market_data.db      # 指标数据（Telegram 展示使用）
+│   │       └── signal-service/
+│   │           └── cooldown.db         # 冷却状态持久化（防重复推送）
 │   └── common/                     # 共享工具库
 │       ├── i18n.py                 # 国际化模块
 │       ├── symbols.py              # 币种管理模块

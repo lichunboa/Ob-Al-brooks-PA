@@ -209,11 +209,13 @@ vim config/.env
 
 **方式一：使用自动下载脚本（推荐）**
 
+> **默认下载 Main4 精简数据集**（415MB，4币种，1150万条记录，2020-2026完整历史）
+
 ```bash
 # 安装依赖
 services/data-service/.venv/bin/pip install pandas psycopg2-binary huggingface_hub
 
-# 下载并导入 main4 币种（BTC/ETH/BNB/SOL）全部历史数据
+# 默认下载 Main4 数据集（BTC/ETH/BNB/SOL，415MB）
 python scripts/download_hf_data.py
 
 # 或指定币种
@@ -221,9 +223,8 @@ python scripts/download_hf_data.py --symbols BTCUSDT,ETHUSDT,BNBUSDT
 ```
 
 脚本特性：
-- 自动从 HuggingFace 下载 CSV.gz 文件
-- 流式读取，内存友好（适合大文件）
-- 按币种和时间过滤，只导入需要的数据
+- **默认下载 Main4 精简数据集**（415MB），不是完整版（13GB）
+- 流式读取，内存友好
 - 支持断点续传（已下载的文件会跳过）
 
 **方式二：手动导入（完整数据）**
@@ -935,8 +936,11 @@ tradecat/
 │
 ├── 📂 libs/                        # 共享库
 │   ├── 📂 database/                # 数据库文件
-│   │   └── 📂 services/telegram-service/
-│   │       └── market_data.db      # SQLite 指标数据
+│   │   └── 📂 services/
+│   │       ├── 📂 telegram-service/
+│   │       │   └── market_data.db      # 指标数据（Telegram 展示）
+│   │       └── 📂 signal-service/
+│   │           └── cooldown.db         # 信号冷却持久化（防重复推送）
 │   └── 📂 common/                  # 共享工具
 │       ├── i18n.py                 # 国际化模块
 │       ├── symbols.py              # 币种管理模块
