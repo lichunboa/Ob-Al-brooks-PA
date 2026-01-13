@@ -26,6 +26,7 @@ const STRATEGY_FIELD_ALIASES = {
     "RR",
   ],
   source: ["来源/source", "source"],
+  direction: ["方向/direction", "direction"],
   marketCycle: ["市场周期/market_cycle", "market_cycle", "marketCycle"],
   setupCategory: ["设置类别/setup_category", "setup_category", "setupCategory"],
   patternsObserved: [
@@ -79,8 +80,8 @@ function isStrategyFile(app: App, file: TFile): boolean {
   const fmTags = Array.isArray(fmTagsRaw)
     ? fmTagsRaw.filter((t): t is string => typeof t === "string")
     : typeof fmTagsRaw === "string"
-    ? [fmTagsRaw]
-    : [];
+      ? [fmTagsRaw]
+      : [];
   const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
   return normalized.some((t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase());
 }
@@ -250,6 +251,10 @@ export class ObsidianStrategyIndex implements StrategyIndex {
         getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.source)
       );
 
+      const direction = toStringArray(
+        getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.direction)
+      );
+
       const marketCycles = toStringArray(
         getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.marketCycle)
       );
@@ -292,6 +297,7 @@ export class ObsidianStrategyIndex implements StrategyIndex {
         statusRaw,
         riskReward,
         source,
+        direction,
         marketCycles,
         setupCategories,
         patternsObserved,

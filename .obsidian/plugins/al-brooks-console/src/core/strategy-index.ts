@@ -8,6 +8,8 @@ export interface StrategyCard {
   riskReward?: string;
   /** Optional source field from frontmatter (legacy Playbook: source). */
   source?: string;
+  /** Direction field from frontmatter (e.g. "做多 (Long)", "做空 (Short)"). */
+  direction?: string[];
   marketCycles: string[];
   setupCategories: string[];
   patternsObserved: string[];
