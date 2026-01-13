@@ -971,7 +971,12 @@ class UserRequestHandler:
         return "\n".join(fmt(r) for r in data_rows)
 
     def get_current_time_display(self, data_time=None):
-        """获取时间显示，优先使用数据时间（UTC 或本地均可），回退当前时间"""
+        """
+        获取时间显示：必须且只使用“数据时间”
+        - 优先使用显式传入 data_time
+        - 否则使用 data_provider 记录的最新数据时间
+        - 若仍为空，返回占位符而不是当前时间
+        """
         ts = None
         if data_time is not None:
             ts = data_time
@@ -999,7 +1004,11 @@ class UserRequestHandler:
 
         parsed = _parse(ts)
         if parsed is None:
-            parsed = datetime.now(timezone.utc)
+            return {
+                'full': '-',
+                'time_only': '--:--',
+                'hour_min': I18N.gettext("time.hour_min", hour="--", min="--"),
+            }
 
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
