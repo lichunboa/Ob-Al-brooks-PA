@@ -60,6 +60,89 @@ export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
                 </div>
             </div>
 
+            {/* 快速情绪记录区 - 移到顶部 */}
+            {onQuickLog && (
+                <div
+                    style={{
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        marginBottom: "16px",
+                        background: "var(--background-primary)",
+                    }}
+                >
+                    <div style={{ fontSize: "12px", marginBottom: "8px", fontWeight: 600 }}>
+                        💭 快速记录情绪
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                        <Button
+                            onClick={() => handleQuickLog('FOMO')}
+                            disabled={isLogging}
+                            variant="small"
+                        >
+                            😰 FOMO
+                        </Button>
+                        <Button
+                            onClick={() => handleQuickLog('Fear')}
+                            disabled={isLogging}
+                            variant="small"
+                        >
+                            😨 Fear
+                        </Button>
+                        <Button
+                            onClick={() => handleQuickLog('Revenge')}
+                            disabled={isLogging}
+                            variant="small"
+                        >
+                            😡 Revenge
+                        </Button>
+                        <Button
+                            onClick={() => handleQuickLog('Greed')}
+                            disabled={isLogging}
+                            variant="small"
+                        >
+                            🤑 Greed
+                        </Button>
+                    </div>
+
+                    {/* 自定义笔记 */}
+                    <div style={{ display: "flex", gap: "8px" }}>
+                        <input
+                            type="text"
+                            placeholder="快速笔记..."
+                            value={noteText}
+                            onChange={(e) => setNoteText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && noteText.trim()) {
+                                    handleQuickLog('Note');
+                                } else if (e.key === 'Escape') {
+                                    setNoteText('');
+                                }
+                            }}
+                            disabled={isLogging}
+                            style={{
+                                flex: 1,
+                                padding: "6px 10px",
+                                background: "var(--background-primary)",
+                                border: "1px solid var(--background-modifier-border)",
+                                borderRadius: "6px",
+                                color: "var(--text-normal)",
+                                fontSize: "13px",
+                            }}
+                        />
+                        <Button
+                            onClick={() => handleQuickLog('Note')}
+                            disabled={isLogging || !noteText.trim()}
+                            variant="small"
+                        >
+                            📝 记录
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* 任务列表区域 */}
+
             <div
                 style={{
                     border: "1px solid var(--background-modifier-border)",
@@ -149,85 +232,6 @@ export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
                     </div>
                 </div>
             </div>
-
-                {/* 快速情绪记录区 */}
-                {onQuickLog && (
-                    <div
-                        style={{
-                            marginTop: "16px",
-                            paddingTop: "16px",
-                            borderTop: "1px solid var(--background-modifier-border)",
-                        }}
-                    >
-                        <div style={{ fontSize: "12px", marginBottom: "8px", opacity: 0.7 }}>
-                            💭 快速记录情绪:
-                        </div>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                            <Button
-                                onClick={() => handleQuickLog('FOMO')}
-                                disabled={isLogging}
-                                
-                            >
-                                😰 FOMO
-                            </Button>
-                            <Button
-                                onClick={() => handleQuickLog('Fear')}
-                                disabled={isLogging}
-                                
-                            >
-                                😨 Fear
-                            </Button>
-                            <Button
-                                onClick={() => handleQuickLog('Revenge')}
-                                disabled={isLogging}
-                                
-                            >
-                                😡 Revenge
-                            </Button>
-                            <Button
-                                onClick={() => handleQuickLog('Greed')}
-                                disabled={isLogging}
-                                
-                            >
-                                🤑 Greed
-                            </Button>
-                        </div>
-
-                        {/* 自定义笔记 */}
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <input
-                                type="text"
-                                placeholder="快速笔记..."
-                                value={noteText}
-                                onChange={(e) => setNoteText(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && noteText.trim()) {
-                                        handleQuickLog('Note');
-                                    } else if (e.key === 'Escape') {
-                                        setNoteText('');
-                                    }
-                                }}
-                                disabled={isLogging}
-                                style={{
-                                    flex: 1,
-                                    padding: "6px 10px",
-                                    background: "var(--background-primary)",
-                                    border: "1px solid var(--background-modifier-border)",
-                                    borderRadius: "6px",
-                                    color: "var(--text-normal)",
-                                    fontSize: "13px",
-                                }}
-                            />
-                            <Button
-                                onClick={() => handleQuickLog('Note')}
-                                disabled={isLogging || !noteText.trim()}
-                                
-                            >
-                                📝 记录
-                            </Button>
-                        </div>
-                    </div>
-                )}
         </>
     );
 };
