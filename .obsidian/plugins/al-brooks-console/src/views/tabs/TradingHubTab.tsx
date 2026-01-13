@@ -126,6 +126,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
           strategyIndex={strategyIndex}
           onOpenFile={openFile}
           openTrades={openTrades}
+          trades={todayTrades}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
         />

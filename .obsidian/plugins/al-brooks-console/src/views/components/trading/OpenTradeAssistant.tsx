@@ -6,6 +6,7 @@ import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 import { normalize } from "../../../utils/string-utils";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { matchStrategies } from "../../../core/strategy-matcher";
+import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
 
 /**
  * 策略卡片数据接口
@@ -31,6 +32,7 @@ export interface OpenTradeAssistantProps {
     strategyIndex: StrategyIndex;
     onOpenFile: (path: string) => void;
     openTrades?: TradeRecord[]; // 所有未平仓交易
+    trades?: TradeRecord[]; // 所有交易(用于历史表现)
     // 样式和事件处理器
     textButtonStyle: React.CSSProperties;
     buttonStyle: React.CSSProperties;
@@ -46,6 +48,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     strategyIndex,
     onOpenFile,
     openTrades = [],
+    trades = [],
     textButtonStyle,
     buttonStyle,
 }) => {
@@ -62,7 +65,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
         }
     }, [openTrades.length, selectedIndex]);
 
-    // 基于currentTrade动态计算策略 (复用项目现有逻辑)
+    // 基于currentTrade动态计算策略 (使用V2引擎)
     const currentStrategy = React.useMemo(() => {
         if (!currentTrade) return undefined;
 
@@ -70,17 +73,20 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             .map((p) => String(p).trim())
             .filter(Boolean);
         const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.trim();
-        const marketCycle = (currentTrade.marketCycle ?? todayMarketCycle)?.trim();
+        const marketCycle = currentTrade.marketCycle?.trim();
 
-        const picks = matchStrategies(strategyIndex, {
+        const results = matchStrategiesV2(strategyIndex, {
             marketCycle,
             setupCategory,
             patterns,
+            direction: currentTrade.direction as "Long" | "Short" | undefined,
+            timeframe: currentTrade.timeframe,
+            includeHistoricalPerf: true,
             limit: 3,
-        });
+        }, trades);
 
-        return picks[0];
-    }, [currentTrade, todayMarketCycle, strategyIndex]);
+        return results[0]?.card;
+    }, [currentTrade, strategyIndex, trades]);
 
     if (!currentTrade) return null;
 
@@ -148,7 +154,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             {(() => {
                 // 只使用currentTrade的marketCycle,不回退到todayMarketCycle
                 const marketCycle = currentTrade.marketCycle?.trim();
-                
+
                 return (
                     <div style={{ marginBottom: "12px" }}>
                         <div
@@ -162,15 +168,16 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         </div>
 
                         {marketCycle && (() => {
-                            // 基于currentTrade的市场周期计算策略推荐
-                            const picks = matchStrategies(strategyIndex, {
+                            // 使用V2引擎 - 考虑方向、时间周期、历史表现
+                            const results = matchStrategiesV2(strategyIndex, {
                                 marketCycle,
-                                setupCategory: undefined,
-                                patterns: [],
+                                direction: currentTrade.direction as "Long" | "Short" | undefined,
+                                timeframe: currentTrade.timeframe,
+                                includeHistoricalPerf: true,
                                 limit: 6,
-                            });
+                            }, trades);
 
-                            if (picks.length === 0) return null;
+                            if (results.length === 0) return null;
 
                             return (
                                 <div>
@@ -178,17 +185,26 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         周期 → 策略推荐
                                     </div>
                                     <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {picks.map((s) => (
+                                        {results.map((r) => (
                                             <li
-                                                key={`cycle-pick-${s.path}`}
+                                                key={`cycle-pick-${r.card.path}`}
                                                 style={{ marginBottom: "6px" }}
                                             >
                                                 <InteractiveButton
                                                     interaction="text"
-                                                    onClick={() => onOpenFile(s.path)}
+                                                    onClick={() => onOpenFile(r.card.path)}
                                                 >
-                                                    {s.canonicalName}
+                                                    {r.card.canonicalName}
                                                 </InteractiveButton>
+                                                {r.score > 0 && (
+                                                    <span style={{ 
+                                                        marginLeft: "8px", 
+                                                        fontSize: "0.85em", 
+                                                        color: "var(--text-faint)" 
+                                                    }}>
+                                                        {r.reason}
+                                                    </span>
+                                                )}
                                             </li>
                                         ))}
                                     </ul>
