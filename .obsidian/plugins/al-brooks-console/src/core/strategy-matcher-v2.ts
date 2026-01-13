@@ -340,6 +340,20 @@ export function matchStrategiesV2(
     const wantSetupKey = wantSetup ? normalizeKey(wantSetup) : undefined;
     const wantCycleKey = wantCycle ? normalizeKey(wantCycle) : undefined;
 
+    // 计算用户选择的属性数量,用于动态调整门槛
+    const selectedCount = [
+        input.marketCycle,
+        input.setupCategory,
+        input.direction,
+        input.timeframe
+    ].filter(Boolean).length;
+
+    // 动态门槛: 选择的属性越多,要求越严格
+    const minScore = selectedCount >= 4 ? 8 :  // 4个属性: 至少8分
+        selectedCount >= 3 ? 6 :  // 3个属性: 至少6分
+            selectedCount >= 2 ? 4 :  // 2个属性: 至少4分
+                2;                         // 1个属性: 至少2分
+
     const candidates: StrategyMatchResult[] = [];
 
     for (const card of index.list()) {
@@ -354,20 +368,46 @@ export function matchStrategiesV2(
             setupCategory: 0
         };
 
-        // 市场周期匹配
-        if (wantCycleKey && card.marketCycles && card.marketCycles.some(c => {
+        // 必选项验证: 如果用户提供了这些字段,策略必须匹配
+        // 市场周期必选
+        if (input.marketCycle && breakdown.marketCycle === 0) {
+            // 检查市场周期匹配
+            if (wantCycleKey && card.marketCycles && card.marketCycles.some(c => {
+                const ck = normalizeKey(String(c));
+                return ck.includes(wantCycleKey) || wantCycleKey.includes(ck);
+            })) {
+                breakdown.marketCycle = 2;
+            } else {
+                continue; // 跳过不匹配的策略
+            }
+        } else if (wantCycleKey && card.marketCycles && card.marketCycles.some(c => {
             const ck = normalizeKey(String(c));
             return ck.includes(wantCycleKey) || wantCycleKey.includes(ck);
         })) {
             breakdown.marketCycle = 2;
         }
 
-        // 设置类别匹配
-        if (wantSetupKey && card.setupCategories && card.setupCategories.some(c => {
+        // 设置类别必选
+        if (input.setupCategory && breakdown.setupCategory === 0) {
+            // 检查设置类别匹配
+            if (wantSetupKey && card.setupCategories && card.setupCategories.some(c => {
+                const ck = normalizeKey(String(c));
+                return ck.includes(wantSetupKey) || wantSetupKey.includes(ck);
+            })) {
+                breakdown.setupCategory = 1;
+            } else {
+                continue; // 跳过不匹配的策略
+            }
+        } else if (wantSetupKey && card.setupCategories && card.setupCategories.some(c => {
             const ck = normalizeKey(String(c));
             return ck.includes(wantSetupKey) || wantSetupKey.includes(ck);
         })) {
             breakdown.setupCategory = 1;
+        }
+
+        // 方向必选 (如果方向冲突,直接跳过)
+        if (input.direction && breakdown.direction === 0) {
+            continue; // 方向冲突,跳过
         }
 
         // 计算历史表现
@@ -384,8 +424,8 @@ export function matchStrategiesV2(
             breakdown.marketCycle +
             breakdown.setupCategory;
 
-        // 只保留有分数的候选
-        if (score > 0) {
+        // 只保留达到动态门槛的候选
+        if (score >= minScore) {
             candidates.push({
                 card,
                 score,
