@@ -970,14 +970,45 @@ class UserRequestHandler:
 
         return "\n".join(fmt(r) for r in data_rows)
 
-    def get_current_time_display(self):
-        """获取当前时间显示"""
-        # 北京时间 UTC+8
-        now = datetime.now(timezone(timedelta(hours=8)))
+    def get_current_time_display(self, data_time=None):
+        """获取时间显示，优先使用数据时间（UTC 或本地均可），回退当前时间"""
+        ts = None
+        if data_time is not None:
+            ts = data_time
+        else:
+            try:
+                from cards.data_provider import get_latest_data_time
+                ts = get_latest_data_time()
+            except Exception:
+                ts = None
+
+        def _parse(val):
+            if val is None:
+                return None
+            if isinstance(val, datetime):
+                return val
+            if isinstance(val, (int, float)):
+                return datetime.fromtimestamp(val, tz=timezone.utc)
+            if isinstance(val, str):
+                for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+                    try:
+                        return datetime.strptime(val, fmt).replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        continue
+            return None
+
+        parsed = _parse(ts)
+        if parsed is None:
+            parsed = datetime.now(timezone.utc)
+
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+
+        bj = parsed.astimezone(timezone(timedelta(hours=8)))
         return {
-            'full': format_beijing_time(get_beijing_time().isoformat(), '%Y-%m-%d %H:%M:%S'),
-            'time_only': format_beijing_time(get_beijing_time().isoformat(), '%H:%M'),
-            'hour_min': I18N.gettext("time.hour_min", hour=now.hour, min=now.minute)
+            'full': bj.strftime('%Y-%m-%d %H:%M:%S'),
+            'time_only': bj.strftime('%H:%M'),
+            'hour_min': I18N.gettext("time.hour_min", hour=bj.hour, min=bj.minute)
         }
 
     def get_main_menu_text(self, update: Optional[Update] = None):
