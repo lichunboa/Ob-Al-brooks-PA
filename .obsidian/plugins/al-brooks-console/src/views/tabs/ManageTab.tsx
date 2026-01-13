@@ -10,6 +10,7 @@ import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
+
 import type { InspectorIssue } from "../../core/inspector";
 import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";
@@ -20,6 +21,9 @@ import { topN } from "../../utils/aggregation-utils";
  * ManageTab Props接口
  */
 export interface ManageTabProps {
+    // TradeIndex (用于ActionService测试)
+    index?: any;
+
     // 数据
     schemaIssues: SchemaIssueItem[];
     paTagSnapshot: PaTagSnapshot | undefined;
@@ -92,7 +96,7 @@ export interface ManageTabProps {
 }
 
 export const ManageTab: React.FC<ManageTabProps> = (props) => {
-    // 准备数据统计
+    // 准备数据统计 - 必须在所有条件渲染之前调用
     const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, props.trades, 10), [props.trades]);
     const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, props.trades, 10), [props.trades]);
     const distExec = React.useMemo(() => topN((t) => (t as any).executionType ?? t.executionQuality, undefined, props.trades, 10), [props.trades]);
@@ -116,6 +120,7 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
             <div style={{ padding: "0 12px 12px", color: "var(--text-faint)", fontSize: "0.9em", marginTop: "-10px" }}>
                 全面的数据健康监控、属性管理及导出工具。
             </div>
+
 
             {/* 原始数据明细 (恢复) */}
             <RawDataPanel trades={props.trades} openFile={props.openFile} />

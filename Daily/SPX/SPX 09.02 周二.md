@@ -16,7 +16,6 @@ date: 2025-12-17
 信号K/signal_bar_quality:
   - 强阳收盘 (Strong Bull Close)
 概率/probability:
-信心/confidence:
 执行评价/execution_quality: 🔴 追涨杀跌 (FOMO)
 封面/cover: "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]"
 banner: Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png

@@ -28,6 +28,7 @@
     "TQ_show_urgency": "checkbox",
     "设置类别/setup_category": "multitext",
     "date": "date",
-    "概率/probability": "multitext"
+    "概率/probability": "multitext",
+    "studied": "checkbox"
   }
 }
