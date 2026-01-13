@@ -96,7 +96,40 @@ function scoreDirection(
 ): number {
     if (!direction) return 0;
 
-    // 从策略卡片中提取方向信息
+    // 优先使用direction字段(标准化数据)
+    const cardDirection = (card as any).direction || (card as any)["方向/direction"];
+    if (cardDirection) {
+        const dirStr = Array.isArray(cardDirection)
+            ? cardDirection.join(" ").toLowerCase()
+            : String(cardDirection).toLowerCase();
+
+        // 双向策略
+        if (dirStr.includes("both") || dirStr.includes("双向")) {
+            return 3; // 双向策略给中等分数
+        }
+
+        // 方向匹配
+        if (direction === "Long") {
+            if (dirStr.includes("long") || dirStr.includes("做多")) {
+                return 5; // 完全匹配
+            }
+            if (dirStr.includes("short") || dirStr.includes("做空")) {
+                return 0; // 方向冲突
+            }
+        } else if (direction === "Short") {
+            if (dirStr.includes("short") || dirStr.includes("做空")) {
+                return 5; // 完全匹配
+            }
+            if (dirStr.includes("long") || dirStr.includes("做多")) {
+                return 0; // 方向冲突
+            }
+        }
+
+        // 有字段但未匹配,给保守分数
+        return 2;
+    }
+
+    // 回退到关键词匹配(兼容旧数据)
     const cardName = card.name?.toLowerCase() || "";
     const cardPatterns = (card.patternsObserved || []).map((t: string) => t.toLowerCase()).join(" ");
     const cardSetups = (card.setupCategories || []).map((t: string) => t.toLowerCase()).join(" ");
