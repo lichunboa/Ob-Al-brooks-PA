@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, format_sort_field
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, format_sort_field, translate_field
 from cards.排行榜服务 import DEFAULT_PERIODS, get_market_depth_service, normalize_period
 
 

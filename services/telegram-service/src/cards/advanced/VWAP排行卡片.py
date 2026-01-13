@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang, translate_field
 
 from cards.base import RankingCard
 
@@ -113,19 +113,21 @@ class VWAP排行卡片(RankingCard):
         return False
 
     async def _reply(self, query, handler, ensure_valid_text):
+        await query.answer()
         text, kb = await self._build_payload(handler, ensure_valid_text)
-        await query.message.reply_text(text, reply_markup=kb, parse_mode=None)
+        await query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit(self, query, handler, ensure_valid_text):
+        await query.answer()
         text, kb = await self._build_payload(handler, ensure_valid_text)
-        await query.edit_message_text(text, reply_markup=kb, parse_mode=None)
+        await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _build_payload(self, handler, ensure_valid_text, lang=None, query=None) -> Tuple[str, object]:
         if lang is None and query is not None:
             lang = resolve_lang(query)
         fields_state = self._ensure_field_state(handler)
         rows, header = self._load_rows(
-            handler.user_states.get("vwap_period", "15m", lang),
+            handler.user_states.get("vwap_period", "15m"),
             handler.user_states.get("vwap_sort", "desc"),
             handler.user_states.get("vwap_limit", 10),
             handler.user_states.get("vwap_sort_field", "deviation"),

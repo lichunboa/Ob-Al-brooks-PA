@@ -9,7 +9,7 @@ from typing import Dict, Tuple
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang, translate_field
 from cards.排行榜服务 import DEFAULT_PERIODS, get_funding_service, normalize_period
 
 

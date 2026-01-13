@@ -15,7 +15,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, format_sort_field, resolve_lang, translate_field
 from cards.排行榜服务 import DEFAULT_PERIODS, normalize_period
 
 
@@ -116,10 +116,12 @@ class 主动买卖比排行卡片(RankingCard):
         return False
 
     async def _reply(self, query, handler, ensure_valid_text):
+        await query.answer()
         text, kb = await self._build_payload(handler, ensure_valid_text)
         await query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
 
     async def _edit(self, query, handler, ensure_valid_text):
+        await query.answer()
         text, kb = await self._build_payload(handler, ensure_valid_text)
         await query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
 
