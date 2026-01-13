@@ -36,6 +36,12 @@ BSC (BEP20)(For CA tokens, please do not transfer directly; otherwise, your asse
 
 Markets change rapidly. Invest cautiously. I did not issue the coin. These are publicly disclosed addresses. If you lose money, please don’t insult me—I’m scared; I’m sensitive 🙏🙏🙏. The original dev already ran off with the funds 😅😅😅.
 
+My cryptocurrency address
+
+sol：`HjYhozVf9AQmfv7yv79xSNs6uaEU5oUk2USasYQfUYau`
+
+bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e5568edfb9a3f61f0f`
+
 *Toy-level data analysis / trading data platform*
 
 **Toy-level Data Analysis / Trading Data Platform**
