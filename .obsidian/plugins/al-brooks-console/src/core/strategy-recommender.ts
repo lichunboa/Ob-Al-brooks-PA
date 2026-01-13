@@ -47,14 +47,16 @@ export interface RecommendationResult {
 
 /**
  * 属性填写顺序定义
+ * 注意:根据策略仓库实际情况调整顺序,优先推荐有数据的字段
  */
 const FILL_ORDER = [
     { key: 'marketCycle', label: '市场周期', field: 'marketCycles' },
-    { key: 'alwaysIn', label: '总是方向', field: 'alwaysIn' },
+    { key: 'direction', label: '方向', field: 'direction' },
     { key: 'setupCategory', label: '设置类别', field: 'setupCategories' },
     { key: 'patterns', label: '观察到的形态', field: 'patternsObserved' },
     { key: 'signalBarQuality', label: '信号K', field: 'signalBarQuality' },
-    { key: 'direction', label: '方向', field: 'direction' },
+    // alwaysIn字段在策略卡中普遍缺失,暂时移除
+    // { key: 'alwaysIn', label: '总是方向', field: 'alwaysIn' },
 ] as const;
 
 /**
