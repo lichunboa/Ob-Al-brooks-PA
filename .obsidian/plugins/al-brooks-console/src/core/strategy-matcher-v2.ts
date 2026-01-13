@@ -287,7 +287,7 @@ export function matchStrategiesV2(
     input: StrategyMatchInputV2,
     trades?: TradeRecord[]
 ): StrategyMatchResult[] {
-    const limit = Math.min(6, Math.max(1, input.limit ?? 6));
+    const limit = Math.max(1, input.limit ?? 20); // 移除上限限制
     const patterns = (input.patterns ?? []).map((p) => p.trim()).filter(Boolean);
     const results: StrategyMatchResult[] = [];
     const seen = new Set<string>();
