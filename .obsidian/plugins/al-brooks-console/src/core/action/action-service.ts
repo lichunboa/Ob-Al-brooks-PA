@@ -52,10 +52,20 @@ export class ActionService {
             const content = await this.app.vault.read(file);
             const { frontmatter, body } = this.updater.parseFrontmatter(content);
 
-            // 3. 应用更新 (使用规范名称)
+            // 3. 风控校验 (新增)
+            const riskCheck = await this.validateRisk(updates);
+            if (!riskCheck.passed) {
+                return {
+                    success: false,
+                    message: riskCheck.message,
+                    details: riskCheck.details
+                };
+            }
+
+            // 4. 应用更新 (使用规范名称)
             const updated = this.updater.applyUpdates(frontmatter, updates);
 
-            // 4. 验证合并后的记录 (如果启用验证)
+            // 5. 验证合并后的记录 (如果启用验证)
             if (options.validate !== false) {
                 const validation = this.validator.validateRecord(
                     updated,  // 验证合并后的完整记录
@@ -366,5 +376,107 @@ export class ActionService {
         // 写回文件
         const newContent = this.updater.serializeFrontmatter(frontmatter, body);
         await this.app.vault.modify(file, newContent);
+    }
+
+    /**
+     * 风控校验:检查风险是否超出每日限额
+     */
+    private async validateRisk(
+        updates: Partial<TradeRecord>
+    ): Promise<{ passed: boolean; message?: string; details?: any }> {
+        // 只在有initial_risk时校验
+        const initialRisk = (updates as any).initial_risk;
+        if (!initialRisk || initialRisk <= 0) {
+            return { passed: true };
+        }
+
+        try {
+            // 1. 获取今日计划
+            const todayNote = await this.getTodayNotePath();
+            if (!todayNote) {
+                return { passed: true }; // 无计划,不限制
+            }
+
+            const plan = await this.loadPlan(todayNote);
+            if (!plan?.riskLimit || plan.riskLimit <= 0) {
+                return { passed: true }; // 无限制
+            }
+
+            // 2. 获取今日所有交易
+            const todayTrades = await this.loadTodayTrades();
+
+            // 3. 计算当前总风险
+            const currentRisk = todayTrades.reduce((sum, trade) => {
+                const risk = (trade as any).initial_risk || 0;
+                return sum + risk;
+            }, 0);
+
+            // 4. 计算新增后的总风险
+            const newRisk = initialRisk;
+            const totalRisk = currentRisk + newRisk;
+
+            // 5. 校验
+            if (totalRisk > plan.riskLimit) {
+                return {
+                    passed: false,
+                    message: `风险超限: 当前${currentRisk.toFixed(1)}R + 新增${newRisk.toFixed(1)}R = ${totalRisk.toFixed(1)}R > 限额${plan.riskLimit}R`,
+                    details: {
+                        currentRisk,
+                        newRisk,
+                        totalRisk,
+                        limit: plan.riskLimit
+                    }
+                };
+            }
+
+            return { passed: true };
+        } catch (error) {
+            console.error('风控校验失败:', error);
+            // 校验失败时,保守处理:允许通过
+            return { passed: true };
+        }
+    }
+
+    /**
+     * 获取今日笔记路径
+     */
+    private async getTodayNotePath(): Promise<string | null> {
+        const today = new Date().toISOString().split('T')[0];
+        const path = `📓 每日日记/${today}.md`;
+
+        const file = this.app.vault.getAbstractFileByPath(path);
+        return file ? path : null;
+    }
+
+    /**
+     * 加载计划
+     */
+    private async loadPlan(notePath: string): Promise<any> {
+        const file = this.app.vault.getAbstractFileByPath(notePath);
+        if (!(file instanceof TFile)) return null;
+
+        const content = await this.app.vault.read(file);
+        const { frontmatter } = this.updater.parseFrontmatter(content);
+        return frontmatter;
+    }
+
+    /**
+     * 加载今日交易
+     */
+    private async loadTodayTrades(): Promise<TradeRecord[]> {
+        const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const tradesFolder = 'Daily/Trades';
+
+        const files = this.app.vault.getMarkdownFiles()
+            .filter(f => f.path.startsWith(tradesFolder) && f.basename.startsWith(today));
+
+        const trades: TradeRecord[] = [];
+        for (const file of files) {
+            const content = await this.app.vault.read(file);
+            const { frontmatter } = this.updater.parseFrontmatter(content);
+            trades.push(frontmatter as unknown as TradeRecord);
+        }
+
+        return trades;
     }
 }

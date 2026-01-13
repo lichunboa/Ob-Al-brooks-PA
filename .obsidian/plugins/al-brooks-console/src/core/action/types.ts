@@ -13,7 +13,7 @@ export interface ActionResult {
     /** 操作是否成功 */
     success: boolean;
     /** 结果消息 */
-    message: string;
+    message?: string;
     /** 变更详情 (before/after) */
     changes?: {
         before: Record<string, unknown>;
@@ -21,6 +21,8 @@ export interface ActionResult {
     };
     /** 验证错误列表 */
     errors?: ValidationError[];
+    /** 用于风控等额外信息 */
+    details?: any;
 }
 
 /**
