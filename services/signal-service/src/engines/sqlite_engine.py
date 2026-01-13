@@ -21,6 +21,7 @@ except ImportError:
     from storage.cooldown import get_cooldown_storage
 
 from .base import BaseEngine, Signal
+from .pg_engine import _get_default_symbols  # 复用统一符号选择
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,10 @@ class SQLiteSignalEngine(BaseEngine):
         self._cooldown_storage = get_cooldown_storage()
         self.cooldown: dict[str, float] = self._cooldown_storage.load_all()
         logger.info(f"加载 {len(self.cooldown)} 条冷却记录")
+
+        # 符号白名单：与 PG 引擎一致，遵守 SIGNAL_SYMBOLS / SYMBOLS_GROUPS / EXTRA / EXCLUDE
+        self.allowed_symbols = set(_get_default_symbols())
+        logger.info("符号白名单: %s", sorted(self.allowed_symbols) if self.allowed_symbols else "未设置，默认全量")
 
         # 统计
         self.stats = {
@@ -86,6 +91,8 @@ class SQLiteSignalEngine(BaseEngine):
                 row_dict = dict(row)
                 symbol = row_dict.get("交易对", "")
                 if symbol:
+                    if self.allowed_symbols and symbol.upper() not in self.allowed_symbols:
+                        continue
                     result[symbol] = row_dict
             return result
         except Exception as e:
