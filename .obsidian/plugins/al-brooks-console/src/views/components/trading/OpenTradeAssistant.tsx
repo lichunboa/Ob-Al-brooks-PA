@@ -7,6 +7,7 @@ import { normalize } from "../../../utils/string-utils";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { matchStrategies } from "../../../core/strategy-matcher";
 import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
+import { recommendNextAttribute } from "../../../core/strategy-recommender";
 
 /**
  * 策略卡片数据接口
@@ -197,10 +198,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                     {r.card.canonicalName}
                                                 </InteractiveButton>
                                                 {r.score > 0 && (
-                                                    <span style={{ 
-                                                        marginLeft: "8px", 
-                                                        fontSize: "0.85em", 
-                                                        color: "var(--text-faint)" 
+                                                    <span style={{
+                                                        marginLeft: "8px",
+                                                        fontSize: "0.85em",
+                                                        color: "var(--text-faint)"
                                                     }}>
                                                         {r.reason}
                                                     </span>
@@ -208,6 +209,87 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             </li>
                                         ))}
                                     </ul>
+
+                                    {/* 智能引导推荐 */}
+                                    {(() => {
+                                        const recommendation = recommendNextAttribute(strategyIndex, {
+                                            marketCycle: currentTrade.marketCycle,
+                                            alwaysIn: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"],
+                                            setupCategory: currentTrade.setupCategory,
+                                            patterns: currentTrade.patternsObserved,
+                                            signalBarQuality: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"],
+                                            direction: currentTrade.direction,
+                                            timeframe: currentTrade.timeframe,
+                                        });
+
+                                        if (!recommendation || recommendation.recommendations.length === 0) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <div style={{
+                                                marginTop: "12px",
+                                                padding: "12px",
+                                                background: "var(--background-secondary)",
+                                                borderRadius: "8px",
+                                                border: "1px solid var(--background-modifier-border)",
+                                            }}>
+                                                <div style={{
+                                                    fontSize: "12px",
+                                                    marginBottom: "8px",
+                                                    fontWeight: 600,
+                                                    color: "var(--text-accent)"
+                                                }}>
+                                                    💡 建议下一步填写: {recommendation.nextAttributeLabel}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: "11px",
+                                                    opacity: 0.8,
+                                                    marginBottom: "8px",
+                                                    color: "var(--text-muted)"
+                                                }}>
+                                                    基于{recommendation.filteredCount}个策略推荐:
+                                                </div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                                    {recommendation.recommendations.slice(0, 3).map(rec => (
+                                                        <div
+                                                            key={rec.value}
+                                                            style={{
+                                                                padding: "8px",
+                                                                background: "var(--background-primary)",
+                                                                borderRadius: "6px",
+                                                                border: "1px solid var(--background-modifier-border)",
+                                                                fontSize: "12px",
+                                                                display: "flex",
+                                                                justifyContent: "space-between",
+                                                                alignItems: "center",
+                                                            }}
+                                                        >
+                                                            <span style={{ fontWeight: 500 }}>{rec.value}</span>
+                                                            <span style={{
+                                                                fontSize: "11px",
+                                                                color: "var(--text-muted)",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: "6px"
+                                                            }}>
+                                                                <span>{rec.count}个策略</span>
+                                                                <span style={{
+                                                                    padding: "2px 6px",
+                                                                    background: "var(--interactive-accent)",
+                                                                    color: "var(--text-on-accent)",
+                                                                    borderRadius: "4px",
+                                                                    fontWeight: 600
+                                                                }}>
+                                                                    {rec.percentage}%
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })()}
