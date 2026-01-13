@@ -9,9 +9,9 @@ date:
 时间周期/timeframe: 5m
 市场周期/market_cycle:
 总是方向/always_in:
+方向/direction:
 日内类型/day_type:
 管理计划/management_plan:
-方向/direction:
 设置类别/setup_category:
 观察到的形态/patterns_observed:
 信号K/signal_bar_quality:
