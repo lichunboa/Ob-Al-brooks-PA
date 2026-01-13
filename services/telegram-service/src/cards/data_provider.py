@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -29,6 +29,7 @@ from common.symbols import get_configured_symbols_set
 # 缓存配置的币种（延迟初始化）
 _ALLOWED_SYMBOLS: Optional[Set[str]] = None
 _SYMBOLS_LOADED = False
+_latest_data_time: datetime | None = None
 
 def _get_allowed_symbols() -> Optional[Set[str]]:
     """获取允许的币种集合（延迟加载，首次调用时读取环境变量）"""
@@ -50,6 +51,21 @@ def reset_symbols_cache():
     _ALLOWED_SYMBOLS = None
     _SYMBOLS_LOADED = False
     LOGGER.info("币种缓存已重置，下次请求将重新加载")
+
+_latest_data_time: datetime | None = None
+
+
+def _update_latest(ts: datetime) -> None:
+    """记录最近一次读取到的数据时间（模块级共享）。"""
+    global _latest_data_time
+    if ts and ts != datetime.min:
+        if _latest_data_time is None or ts > _latest_data_time:
+            _latest_data_time = ts
+
+
+def get_latest_data_time() -> Optional[datetime]:
+    """供 UI 查询最新数据时间；如未读取过数据返回 None。"""
+    return _latest_data_time
 
 
 def _parse_timestamp(ts_str: str) -> datetime:
@@ -408,6 +424,8 @@ class RankingDataProvider:
             ts = _parse_timestamp(str(r.get("数据时间", "")))
             if ts > max_ts:
                 max_ts = ts
+
+        _update_latest(max_ts)
         
         if max_ts == datetime.min:
             return {}
