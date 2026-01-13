@@ -10,9 +10,6 @@ export interface DailyActionsPanelProps {
 
     // 组件
     MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }>;
-
-    // 快速情绪记录回调
-    onQuickLog?: (type: string, note?: string) => Promise<void>;
 }
 
 /**
@@ -22,25 +19,7 @@ export interface DailyActionsPanelProps {
 export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
     can,
     MarkdownBlock,
-    onQuickLog,
 }) => {
-    const [isLogging, setIsLogging] = React.useState(false);
-    const [noteText, setNoteText] = React.useState('');
-
-    const handleQuickLog = async (type: string) => {
-        if (!onQuickLog || isLogging) return;
-
-        setIsLogging(true);
-        try {
-            await onQuickLog(type, noteText);
-            setNoteText(''); // 清空输入
-        } catch (error) {
-            console.error('快速记录失败:', error);
-        } finally {
-            setIsLogging(false);
-        }
-    };
-
     return (
         <>
             <div
@@ -59,89 +38,6 @@ export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
                     Actions
                 </div>
             </div>
-
-            {/* 快速情绪记录区 - 移到顶部 */}
-            {onQuickLog && (
-                <div
-                    style={{
-                        border: "1px solid var(--background-modifier-border)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                        marginBottom: "16px",
-                        background: "var(--background-primary)",
-                    }}
-                >
-                    <div style={{ fontSize: "12px", marginBottom: "8px", fontWeight: 600 }}>
-                        💭 快速记录情绪
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                        <Button
-                            onClick={() => handleQuickLog('FOMO')}
-                            disabled={isLogging}
-                            variant="small"
-                        >
-                            😰 FOMO
-                        </Button>
-                        <Button
-                            onClick={() => handleQuickLog('Fear')}
-                            disabled={isLogging}
-                            variant="small"
-                        >
-                            😨 Fear
-                        </Button>
-                        <Button
-                            onClick={() => handleQuickLog('Revenge')}
-                            disabled={isLogging}
-                            variant="small"
-                        >
-                            😡 Revenge
-                        </Button>
-                        <Button
-                            onClick={() => handleQuickLog('Greed')}
-                            disabled={isLogging}
-                            variant="small"
-                        >
-                            🤑 Greed
-                        </Button>
-                    </div>
-
-                    {/* 自定义笔记 */}
-                    <div style={{ display: "flex", gap: "8px" }}>
-                        <input
-                            type="text"
-                            placeholder="快速笔记..."
-                            value={noteText}
-                            onChange={(e) => setNoteText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && noteText.trim()) {
-                                    handleQuickLog('Note');
-                                } else if (e.key === 'Escape') {
-                                    setNoteText('');
-                                }
-                            }}
-                            disabled={isLogging}
-                            style={{
-                                flex: 1,
-                                padding: "6px 10px",
-                                background: "var(--background-primary)",
-                                border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "6px",
-                                color: "var(--text-normal)",
-                                fontSize: "13px",
-                            }}
-                        />
-                        <Button
-                            onClick={() => handleQuickLog('Note')}
-                            disabled={isLogging || !noteText.trim()}
-                            variant="small"
-                        >
-                            📝 记录
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {/* 任务列表区域 */}
 
             <div
                 style={{

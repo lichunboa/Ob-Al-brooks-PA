@@ -349,36 +349,6 @@ export class ActionService {
     }
 
     /**
-     * 追加到session_log数组
-     * 用于记录盘中情绪、笔记等实时信息
-     */
-    async appendToSessionLog(
-        notePath: string,
-        entry: string
-    ): Promise<void> {
-        const file = this.app.vault.getAbstractFileByPath(notePath);
-        if (!(file instanceof TFile)) {
-            throw new Error(`文件不存在: ${notePath}`);
-        }
-
-        const content = await this.app.vault.read(file);
-        const { frontmatter, body } = this.updater.parseFrontmatter(content);
-
-        // 追加到session_log数组
-        if (!frontmatter.session_log) {
-            frontmatter.session_log = [];
-        }
-        if (!Array.isArray(frontmatter.session_log)) {
-            frontmatter.session_log = [frontmatter.session_log];
-        }
-        (frontmatter.session_log as string[]).push(entry);
-
-        // 写回文件
-        const newContent = this.updater.serializeFrontmatter(frontmatter, body);
-        await this.app.vault.modify(file, newContent);
-    }
-
-    /**
      * 风控校验:检查风险是否超出每日限额
      */
     private async validateRisk(

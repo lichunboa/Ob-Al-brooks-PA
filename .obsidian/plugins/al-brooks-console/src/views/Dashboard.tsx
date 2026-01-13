@@ -353,49 +353,6 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [actionService, getTodayNotePath, index]);
 
-  /**
-   * 处理快速情绪记录
-   */
-  const handleQuickLog = React.useCallback(async (
-    type: string,
-    note?: string
-  ): Promise<void> => {
-    try {
-      const todayNote = getTodayNotePath();
-      if (!todayNote) {
-        new (require('obsidian')).Notice('未找到今日笔记');
-        return;
-      }
-
-      // 构造日志条目
-      const timestamp = new Date().toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      let logEntry: string;
-      if (type === 'Note' && note) {
-        logEntry = `[${timestamp}] 📝 ${note}`;
-      } else {
-        const emoji = {
-          'FOMO': '😰',
-          'Fear': '😨',
-          'Revenge': '😡',
-          'Greed': '🤑'
-        }[type] || '📝';
-        logEntry = `[${timestamp}] ${emoji} ${type}`;
-      }
-
-      // 追加到session_log
-      await actionService.appendToSessionLog(todayNote, logEntry);
-
-      new (require('obsidian')).Notice(`✅ 已记录: ${type}`);
-    } catch (error) {
-      console.error('快速记录失败:', error);
-      new (require('obsidian')).Notice(`❌ 记录失败: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }, [actionService, getTodayNotePath]);
-
   React.useEffect(() => {
     let cancelled = false;
 
@@ -1241,7 +1198,6 @@ const ConsoleComponent: React.FC<Props> = ({
           onGoToPlan={() => setActivePage("plan")}
           onToggleChecklistItem={handleToggleChecklistItem}
           onUpdateRiskLimit={handleUpdateRiskLimit}
-          onQuickLog={handleQuickLog}
           openTradeStrategy={openTradeStrategy}
           todayStrategyPicks={todayStrategyPicks}
           strategyIndex={strategyIndex}
