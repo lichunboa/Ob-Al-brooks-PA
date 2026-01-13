@@ -146,7 +146,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
 
             {/* 市场周期和策略推荐 - 基于currentTrade */}
             {(() => {
-                const marketCycle = (currentTrade.marketCycle ?? todayMarketCycle)?.trim();
+                // 只使用currentTrade的marketCycle,不回退到todayMarketCycle
+                const marketCycle = currentTrade.marketCycle?.trim();
                 
                 return (
                     <div style={{ marginBottom: "12px" }}>
