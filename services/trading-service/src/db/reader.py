@@ -266,9 +266,15 @@ class DataWriter:
 
             df_cols = list(df.columns)
 
-            if not existing_cols or set(df_cols) != set(existing_cols):
-                # 表不存在或列不匹配，重建表
-                conn.execute(f"DROP TABLE IF EXISTS [{table}]")
+            if existing_cols:
+                # 对齐列：缺失的补 None，多余的丢弃，避免因列不匹配重建表
+                missing = [c for c in existing_cols if c not in df_cols]
+                for c in missing:
+                    df[c] = None
+                df = df[existing_cols]
+                df_cols = existing_cols
+            else:
+                # 表不存在，按当前列创建
                 df.head(0).to_sql(table, conn, if_exists="replace", index=False)
                 existing_cols = df_cols
 
@@ -297,9 +303,9 @@ class DataWriter:
             '5m': 120,   # 10小时
             '15m': 96,   # 24小时
             '1h': 144,   # 6天
-            '4h': 84,    # 14天
-            '1d': 120,   # 4个月
-            '1w': 48,    # 1年
+            '4h': 120,   # 20天，满足长窗口计算
+            '1d': 180,   # 6个月
+            '1w': 104,   # 2年
         }
 
         if "周期" not in df.columns or "交易对" not in df.columns or "数据时间" not in df.columns:
@@ -347,7 +353,13 @@ class DataWriter:
                     except Exception:
                         existing_cols = []
 
-                    if not existing_cols or set(df_cols) != set(existing_cols):
+                    if existing_cols:
+                        missing = [c for c in existing_cols if c not in df_cols]
+                        for c in missing:
+                            df[c] = None
+                        df = df[existing_cols]
+                        df_cols = existing_cols
+                    else:
                         conn.execute(f"DROP TABLE IF EXISTS [{table}]")
                         df.head(0).to_sql(table, conn, if_exists="replace", index=False)
 
