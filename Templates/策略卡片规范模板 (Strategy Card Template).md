@@ -5,10 +5,13 @@ categories:
   - PA/Strategy
 策略名称/strategy_name:
 策略状态/strategy_status:
+方向/direction:  # 新增: 做多(Long) / 做空(Short) / 双向(Both)
 市场周期/market_cycle: []
+时间周期/timeframe: []  # 新增: 5m / 15m / 1H / 4H / Daily
 设置类别/setup_category:
 观察到的形态/patterns_observed: []
 信号K/signal_bar_quality: []
+风险等级/risk_level:  # 新增: 低(Low) / 中(Medium) / 高(High)
 入场条件/entry_criteria: []
 风险提示/risk_alerts: []
 止损建议/stop_loss_recommendation: []
