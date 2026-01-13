@@ -9,6 +9,19 @@ date: 2025-12-17
 账户类型/account_type:
 市场周期/market_cycle:
 复盘深度/review_depth:
+# 盘前计划字段
+plan_focus_symbols: []
+plan_strategies: []
+plan_risk_limit: 3
+plan_max_trades: 5
+plan_notes: ""
+plan_checklist:
+  - text: "咖啡/水"
+    done: false
+  - text: "手机静音"
+    done: false
+  - text: "只做高胜率架构"
+    done: false
 ---
 
 
@@ -24,6 +37,10 @@ date: 2025-12-17
 - **HOD (昨日高)**:
 - **LOD (昨日低)**:
 - **Magnet (磁力点)**: _(例如：未补缺口、整数关口)_
+
+### ✅ 盘前检查清单
+
+> 💡 提示: 这些检查项会在Trading Hub的Plan Widget中显示,可以直接勾选
 
 - [ ] 咖啡/水
 - [ ] 手机静音

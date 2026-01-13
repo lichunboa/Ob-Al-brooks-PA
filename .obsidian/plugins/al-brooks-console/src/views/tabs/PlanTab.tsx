@@ -58,7 +58,13 @@ export const PlanTab: React.FC<PlanTabProps> = ({
             focusSymbols: focusSymbols.split(",").map(s => s.trim()).filter(Boolean),
             strategies: strategies.split(",").map(s => s.trim()).filter(Boolean),
             riskLimit,
-            notes
+            maxTrades: 5, // 默认值
+            notes,
+            checklist: [ // 默认检查清单
+                { text: "咖啡/水", done: false },
+                { text: "手机静音", done: false },
+                { text: "只做高胜率架构", done: false }
+            ]
         };
         await onSavePlan(newPlan);
         setIsDirty(false);

@@ -95,6 +95,15 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
     MarkdownBlock,
   } = props;
 
+  // 计算所有未平仓交易
+  const openTrades = React.useMemo(() => {
+    return todayTrades.filter(t =>
+      t.outcome !== "win" &&
+      t.outcome !== "loss" &&
+      t.outcome !== "scratch"
+    );
+  }, [todayTrades]);
+
   return (
     <>
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
@@ -124,10 +133,10 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
 
         <OpenTradeAssistant
           openTrade={openTrade}
-          openTradeStrategy={openTradeStrategy}
           todayMarketCycle={todayMarketCycle}
           strategyIndex={strategyIndex}
           onOpenFile={openFile}
+          openTrades={openTrades}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
         />

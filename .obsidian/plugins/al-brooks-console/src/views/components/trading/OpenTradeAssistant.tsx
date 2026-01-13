@@ -5,6 +5,7 @@ import { V5_COLORS } from "../../../ui/tokens";
 import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 import { normalize } from "../../../utils/string-utils";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { matchStrategies } from "../../../core/strategy-matcher";
 
 /**
  * 策略卡片数据接口
@@ -26,10 +27,10 @@ export interface StrategyCard {
  */
 export interface OpenTradeAssistantProps {
     openTrade: TradeRecord | null;
-    openTradeStrategy: StrategyCard | null;
     todayMarketCycle?: string;
     strategyIndex: StrategyIndex;
     onOpenFile: (path: string) => void;
+    openTrades?: TradeRecord[]; // 所有未平仓交易
     // 样式和事件处理器
     textButtonStyle: React.CSSProperties;
     buttonStyle: React.CSSProperties;
@@ -41,20 +42,93 @@ export interface OpenTradeAssistantProps {
  */
 export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     openTrade,
-    openTradeStrategy,
     todayMarketCycle,
     strategyIndex,
     onOpenFile,
+    openTrades = [],
     textButtonStyle,
     buttonStyle,
 }) => {
-    if (!openTrade) return null;
+    // 当前选中的持仓索引
+    const [selectedIndex, setSelectedIndex] = React.useState(0);
+
+    // 当前显示的交易 (优先使用openTrades)
+    const currentTrade = openTrades.length > 0 ? openTrades[selectedIndex] : openTrade;
+
+    // 重置索引当持仓数量变化时
+    React.useEffect(() => {
+        if (selectedIndex >= openTrades.length && openTrades.length > 0) {
+            setSelectedIndex(0);
+        }
+    }, [openTrades.length, selectedIndex]);
+
+    // 基于currentTrade动态计算策略 (复用项目现有逻辑)
+    const currentStrategy = React.useMemo(() => {
+        if (!currentTrade) return undefined;
+
+        const patterns = (currentTrade.patternsObserved ?? [])
+            .map((p) => String(p).trim())
+            .filter(Boolean);
+        const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.trim();
+        const marketCycle = (currentTrade.marketCycle ?? todayMarketCycle)?.trim();
+
+        const picks = matchStrategies(strategyIndex, {
+            marketCycle,
+            setupCategory,
+            patterns,
+            limit: 3,
+        });
+
+        return picks[0];
+    }, [currentTrade, todayMarketCycle, strategyIndex]);
+
+    if (!currentTrade) return null;
 
     return (
         <div>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>
                 进行中交易助手
             </div>
+
+            {/* 多持仓选择器 */}
+            {openTrades.length > 1 && (
+                <div style={{
+                    display: "flex",
+                    gap: "6px",
+                    marginBottom: "12px",
+                    flexWrap: "wrap"
+                }}>
+                    {openTrades.map((trade, idx) => (
+                        <button
+                            key={`${trade.path}-${idx}`}
+                            onClick={() => setSelectedIndex(idx)}
+                            style={{
+                                padding: "6px 12px",
+                                background: idx === selectedIndex
+                                    ? "var(--interactive-accent)"
+                                    : "var(--background-modifier-border)",
+                                color: idx === selectedIndex
+                                    ? "var(--text-on-accent)"
+                                    : "var(--text-muted)",
+                                border: "none",
+                                borderRadius: "12px",
+                                cursor: "pointer",
+                                fontSize: "0.85em",
+                                fontWeight: idx === selectedIndex ? 600 : 400,
+                                transition: "all 0.2s",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px"
+                            }}
+                        >
+                            <span>{trade.direction === "Long" ? "📈" : trade.direction === "Short" ? "📉" : "➡️"}</span>
+                            <span>{trade.ticker || "未知"}</span>
+                            <span style={{ opacity: 0.7, fontSize: "0.9em" }}>#{idx + 1}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div
                 style={{
                     color: "var(--text-muted)",
@@ -64,21 +138,37 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             >
                 <InteractiveButton
                     interaction="text"
-                    onClick={() => onOpenFile(openTrade.path)}
+                    onClick={() => onOpenFile(currentTrade.path)}
                 >
-                    {openTrade.ticker ?? "未知"} • {openTrade.name}
+                    {currentTrade.ticker ?? "未知"} • {currentTrade.name}
                 </InteractiveButton>
             </div>
 
-            {openTradeStrategy ? (
+            {/* 当前持仓的市场周期 */}
+            {currentTrade.marketCycle && (
+                <div style={{
+                    marginBottom: "12px",
+                    padding: "8px 12px",
+                    background: "var(--background-modifier-border)",
+                    borderRadius: "8px",
+                    fontSize: "0.9em"
+                }}>
+                    <span style={{ color: "var(--text-muted)" }}>市场周期: </span>
+                    <span style={{ fontWeight: 600, color: "var(--text-accent)" }}>
+                        {currentTrade.marketCycle}
+                    </span>
+                </div>
+            )}
+
+            {currentStrategy ? (
                 <div>
                     <div style={{ marginBottom: "8px" }}>
                         策略:{" "}
                         <InteractiveButton
                             interaction="text"
-                            onClick={() => onOpenFile(openTradeStrategy.path)}
+                            onClick={() => onOpenFile(currentStrategy.path)}
                         >
-                            {openTradeStrategy.canonicalName}
+                            {currentStrategy.canonicalName}
                         </InteractiveButton>
                     </div>
 
@@ -90,7 +180,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             gap: "8px",
                         }}
                     >
-                        {(openTradeStrategy.entryCriteria?.length ?? 0) > 0 && (
+                        {(currentStrategy.entryCriteria?.length ?? 0) > 0 && (
                             <div>
                                 <div
                                     style={{
@@ -108,7 +198,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     入场
                                 </div>
                                 <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                    {openTradeStrategy
+                                    {currentStrategy
                                         .entryCriteria!.slice(0, 3)
                                         .map((x, i) => (
                                             <li key={`entry-${i}`}>{x}</li>
@@ -116,7 +206,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 </ul>
                             </div>
                         )}
-                        {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
+                        {(currentStrategy.stopLossRecommendation?.length ?? 0) >
                             0 && (
                                 <div>
                                     <div
@@ -135,7 +225,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         止损
                                     </div>
                                     <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {openTradeStrategy
+                                        {currentStrategy
                                             .stopLossRecommendation!.slice(0, 3)
                                             .map((x, i) => (
                                                 <li key={`stop-${i}`}>{x}</li>
@@ -143,7 +233,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     </ul>
                                 </div>
                             )}
-                        {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
+                        {(currentStrategy.riskAlerts?.length ?? 0) > 0 && (
                             <div>
                                 <div
                                     style={{
@@ -161,7 +251,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     风险
                                 </div>
                                 <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                    {openTradeStrategy
+                                    {currentStrategy
                                         .riskAlerts!.slice(0, 3)
                                         .map((x, i) => (
                                             <li key={`risk-${i}`}>{x}</li>
@@ -169,7 +259,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 </ul>
                             </div>
                         )}
-                        {(openTradeStrategy.takeProfitRecommendation?.length ??
+                        {(currentStrategy.takeProfitRecommendation?.length ??
                             0) > 0 && (
                                 <div>
                                     <div
@@ -188,7 +278,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         目标
                                     </div>
                                     <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {openTradeStrategy
+                                        {currentStrategy
                                             .takeProfitRecommendation!.slice(0, 3)
                                             .map((x, i) => (
                                                 <li key={`tp-${i}`}>{x}</li>
@@ -199,11 +289,11 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     </div>
 
                     {(() => {
-                        const curSignals = (openTrade.signalBarQuality ?? [])
+                        const curSignals = (currentTrade.signalBarQuality ?? [])
                             .map((s) => String(s).trim())
                             .filter(Boolean);
                         const reqSignals = (
-                            openTradeStrategy.signalBarQuality ?? []
+                            currentStrategy.signalBarQuality ?? []
                         )
                             .map((s) => String(s).trim())
                             .filter(Boolean);
@@ -310,7 +400,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             ) : (
                 (() => {
                     const marketCycleRaw = (
-                        openTrade.marketCycle ?? todayMarketCycle
+                        currentTrade.marketCycle ?? todayMarketCycle
                     )
                         ?.toString()
                         .trim();
@@ -319,10 +409,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             ? marketCycleRaw.split("(")[0].trim()
                             : marketCycleRaw
                         : undefined;
-                    const setupCategory = openTrade.setupCategory
+                    const setupCategory = currentTrade.setupCategory
                         ?.toString()
                         .trim();
-                    const setupKey = openTrade.setupKey?.toString().trim();
+                    const setupKey = currentTrade.setupKey?.toString().trim();
                     const hasHints = Boolean(marketCycle || setupCategory);
 
                     if (!hasHints) {
