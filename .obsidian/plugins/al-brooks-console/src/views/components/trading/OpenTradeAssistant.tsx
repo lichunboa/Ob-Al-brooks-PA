@@ -175,7 +175,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 direction: currentTrade.direction as "Long" | "Short" | undefined,
                                 timeframe: currentTrade.timeframe,
                                 includeHistoricalPerf: true,
-                                limit: 6,
+                                limit: 20, // 显示所有匹配的策略
                             }, trades);
 
                             if (results.length === 0) return null;
