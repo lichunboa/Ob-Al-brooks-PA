@@ -120,17 +120,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
       <GlassPanel style={{ marginBottom: "16px" }}>
         <TodayKpiCard todayKpi={todayKpi} />
 
-        <MarketCyclePanel
-          todayMarketCycle={todayMarketCycle}
-          todayStrategyPicks={todayStrategyPicks}
-          canOpenTodayNote={canOpenTodayNote}
-          onOpenTodayNote={onOpenTodayNote}
-          openFile={openFile}
-          buttonStyle={buttonStyle}
-          disabledButtonStyle={disabledButtonStyle}
-          textButtonStyle={textButtonStyle}
-        />
-
         <OpenTradeAssistant
           openTrade={openTrade}
           todayMarketCycle={todayMarketCycle}

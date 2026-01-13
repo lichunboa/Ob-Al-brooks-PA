@@ -144,21 +144,60 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 </InteractiveButton>
             </div>
 
-            {/* 当前持仓的市场周期 */}
-            {currentTrade.marketCycle && (
-                <div style={{
-                    marginBottom: "12px",
-                    padding: "8px 12px",
-                    background: "var(--background-modifier-border)",
-                    borderRadius: "8px",
-                    fontSize: "0.9em"
-                }}>
-                    <span style={{ color: "var(--text-muted)" }}>市场周期: </span>
-                    <span style={{ fontWeight: 600, color: "var(--text-accent)" }}>
-                        {currentTrade.marketCycle}
-                    </span>
-                </div>
-            )}
+            {/* 市场周期和策略推荐 - 基于currentTrade */}
+            {(() => {
+                const marketCycle = (currentTrade.marketCycle ?? todayMarketCycle)?.trim();
+                
+                return (
+                    <div style={{ marginBottom: "12px" }}>
+                        <div
+                            style={{
+                                color: "var(--text-muted)",
+                                fontSize: "0.9em",
+                                marginBottom: "10px",
+                            }}
+                        >
+                            市场周期: {marketCycle ?? "—"}
+                        </div>
+
+                        {marketCycle && (() => {
+                            // 基于currentTrade的市场周期计算策略推荐
+                            const picks = matchStrategies(strategyIndex, {
+                                marketCycle,
+                                setupCategory: undefined,
+                                patterns: [],
+                                limit: 6,
+                            });
+
+                            if (picks.length === 0) return null;
+
+                            return (
+                                <div>
+                                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+                                        周期 → 策略推荐
+                                    </div>
+                                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                                        {picks.map((s) => (
+                                            <li
+                                                key={`cycle-pick-${s.path}`}
+                                                style={{ marginBottom: "6px" }}
+                                            >
+                                                <InteractiveButton
+                                                    interaction="text"
+                                                    onClick={() => onOpenFile(s.path)}
+                                                >
+                                                    {s.canonicalName}
+                                                </InteractiveButton>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                );
+            })()}
+
 
             {currentStrategy ? (
                 <div>
