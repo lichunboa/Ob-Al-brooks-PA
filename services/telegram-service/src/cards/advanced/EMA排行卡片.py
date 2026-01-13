@@ -134,6 +134,7 @@ class EMA排行卡片(RankingCard):
             sort_field = "bandwidth"
             h.user_states["ema_sort_field"] = sort_field
         fields_state = self._ensure_field_state(h)
+        # 只使用指定周期的数据；如果没有数据则显示“暂无数据”
         rows, header = self._load_rows(period, sort_order, limit, sort_field, fields_state, lang)
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
