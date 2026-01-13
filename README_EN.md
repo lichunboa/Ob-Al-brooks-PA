@@ -16,6 +16,24 @@ Solana: Gysp4iZ6uNuAksAPR37fQwLDRFU9Rz255UjExhiwpump
 BSC (BEP20): 0x8a99b8d53eff6bc331af529af74ad267f3167777
 </p>
 
+**Disclaimer**
+
+1. **Open-source & non-official statement**: This project is permanently open-source. Anyone may use, distribute, and develop derivatives within the scope of the open-source license. This project is not affiliated with any exchange, fund, market maker, or official organization.
+
+2. **Not investment advice**: This project and its related content are provided solely for technical research and community collaboration/communication. They do not constitute investment advice, financial advice, or trading advice of any kind. Digital asset prices are highly volatile and may fall to zero; please assess risks independently and make your own decisions.
+
+3. **No token issuance / no endorsement**: This project does not issue any tokens. Any issuance, promotion, price manipulation, fundraising, or return guarantees made in this project’s name are unrelated to this project. Any on-chain assets (if any) are third-party actions; participation is at your own risk.
+
+4. **Donation statement (only channels)**: At present, this project accepts donations **only** from two communities: **SOL (Gysp4iZ6uNuAksAPR37fQwLDRFU9Rz255UjExhiwpump)** and **BSC (0x8a99b8d53eff6bc331af529af74ad267f3167777)**. Donations are voluntary and provide no returns or profit promises.
+
+5. **Public addresses & risk notice**: My addresses are publicly disclosed. Please verify the correct chain, network, and address yourself. Transfers are generally irreversible once made. Any losses caused by sending to the wrong address, scams, account compromise, impersonation, etc. are borne solely by the sender.
+
+6. **Limitation of liability**: To the maximum extent permitted by law, the project maintainers/contributors are not liable for any direct or indirect losses, including but not limited to investment losses, trading losses, contract risks, phishing scams, smart contract vulnerabilities, or third-party service failures.
+
+7. **Historical matters**: Any issues involving the original developer (“dev”) or historical fund disputes are actions of historical parties. The current project maintainer bears no responsibility for any third party’s past conduct.
+
+Markets change rapidly. Invest cautiously. I did not issue the coin. These are publicly disclosed addresses. If you lose money, please don’t insult me—I’m scared; I’m sensitive 🙏🙏🙏. The original dev already ran off with the funds 😅😅😅.
+
 *Toy-level data analysis / trading data platform*
 
 **Toy-level Data Analysis / Trading Data Platform**
