@@ -222,7 +222,17 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             timeframe: currentTrade.timeframe,
                                         });
 
+                                        // 调试日志
+                                        console.log('[SmartGuidance] Recommendation:', recommendation);
+                                        console.log('[SmartGuidance] CurrentTrade:', {
+                                            marketCycle: currentTrade.marketCycle,
+                                            alwaysIn: (currentTrade as any).alwaysIn,
+                                            setupCategory: currentTrade.setupCategory,
+                                            patterns: currentTrade.patternsObserved,
+                                        });
+
                                         if (!recommendation || recommendation.recommendations.length === 0) {
+                                            console.log('[SmartGuidance] No recommendations available');
                                             return null;
                                         }
 
