@@ -37,7 +37,25 @@ export interface OpenTradeAssistantProps {
     // 样式和事件处理器
     textButtonStyle: React.CSSProperties;
     buttonStyle: React.CSSProperties;
+    // Obsidian App实例(用于更新frontmatter)
+    app: any;
 }
+
+/**
+ * 字段映射: 推荐引擎字段名 -> frontmatter字段名
+ */
+const FIELD_MAPPING: Record<string, string> = {
+    marketCycle: "市场周期/market_cycle",
+    direction: "方向/direction",
+    setupCategory: "设置类别/setup_category",
+    patterns: "观察到的形态/patterns_observed",
+    signalBarQuality: "信号K/signal_bar_quality",
+};
+
+/**
+ * 数组类型字段(需要特殊处理)
+ */
+const ARRAY_FIELDS = new Set(["patterns", "signalBarQuality"]);
 
 /**
  * 持仓交易助手组件
@@ -52,6 +70,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     trades = [],
     textButtonStyle,
     buttonStyle,
+    app,
 }) => {
     // 当前选中的持仓索引
     const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -88,6 +107,45 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
 
         return results[0]?.card;
     }, [currentTrade, strategyIndex, trades]);
+
+    /**
+     * 处理点击推荐值,自动填写到frontmatter
+     */
+    const handleFillAttribute = React.useCallback(async (attribute: string, value: string) => {
+        if (!currentTrade?.path || !app) return;
+
+        try {
+            const file = app.vault.getAbstractFileByPath(currentTrade.path);
+            if (!file) {
+                console.error('[AutoFill] File not found:', currentTrade.path);
+                return;
+            }
+
+            const fieldName = FIELD_MAPPING[attribute];
+            if (!fieldName) {
+                console.error('[AutoFill] Unknown attribute:', attribute);
+                return;
+            }
+
+            await app.fileManager.processFrontMatter(file, (fm: any) => {
+                if (ARRAY_FIELDS.has(attribute)) {
+                    // 数组字段:添加到数组中
+                    if (!fm[fieldName]) {
+                        fm[fieldName] = [value];
+                    } else if (Array.isArray(fm[fieldName]) && !fm[fieldName].includes(value)) {
+                        fm[fieldName].push(value);
+                    }
+                } else {
+                    // 单值字段:直接赋值
+                    fm[fieldName] = value;
+                }
+            });
+
+            console.log('[AutoFill] Successfully filled:', fieldName, '=', value);
+        } catch (error) {
+            console.error('[AutoFill] Failed to update frontmatter:', error);
+        }
+    }, [currentTrade, app]);
 
     if (!currentTrade) return null;
 
