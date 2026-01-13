@@ -27,6 +27,7 @@ export interface TradingHubTabProps {
   onGoToPlan: () => void;
   onToggleChecklistItem?: (index: number) => Promise<void>;
   onUpdateRiskLimit?: (riskLimit: number) => Promise<void>;
+  onQuickLog?: (type: string, note?: string) => Promise<void>;
 
   // 交易数据
   latestTrade: TradeRecord | null;
@@ -149,7 +150,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         />
       </GlassPanel>
 
-      <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
+      <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} onQuickLog={props.onQuickLog} />
 
       {/* Removed duplicate "recent trades" card; keep only the Today Trades list at top. */}
     </>

@@ -166,28 +166,28 @@ export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
                             <Button
                                 onClick={() => handleQuickLog('FOMO')}
                                 disabled={isLogging}
-                                
+                                size="sm"
                             >
                                 😰 FOMO
                             </Button>
                             <Button
                                 onClick={() => handleQuickLog('Fear')}
                                 disabled={isLogging}
-                                
+                                size="sm"
                             >
                                 😨 Fear
                             </Button>
                             <Button
                                 onClick={() => handleQuickLog('Revenge')}
                                 disabled={isLogging}
-                                
+                                size="sm"
                             >
                                 😡 Revenge
                             </Button>
                             <Button
                                 onClick={() => handleQuickLog('Greed')}
                                 disabled={isLogging}
-                                
+                                size="sm"
                             >
                                 🤑 Greed
                             </Button>
@@ -221,7 +221,7 @@ export const DailyActionsPanel: React.FC<DailyActionsPanelProps> = ({
                             <Button
                                 onClick={() => handleQuickLog('Note')}
                                 disabled={isLogging || !noteText.trim()}
-                                
+                                size="sm"
                             >
                                 📝 记录
                             </Button>
