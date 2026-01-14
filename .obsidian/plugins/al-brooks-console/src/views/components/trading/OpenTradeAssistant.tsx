@@ -419,10 +419,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 );
             })()}
 
-            {/* 交易执行填写面板 - 使用openTrade和handleFillAttribute */}
-            {openTrade && (
+            {/* 交易执行填写面板 - 使用 currentTrade (支持多标签切换和实时更新) */}
+            {currentTrade && (
                 <ExecutionFillPanel
-                    trade={openTrade}
+                    trade={currentTrade}
                     app={app}
                     enumPresets={enumPresets}
                 />

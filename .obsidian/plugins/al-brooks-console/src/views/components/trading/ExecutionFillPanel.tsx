@@ -66,6 +66,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
 
     // 当外部 trade 更新时，我们需要检查乐观锁是否可以释放
     React.useEffect(() => {
+        console.log(`[ExecutionFill] Prop Update: ${trade.path}`, trade);
         setOptimisticValues(prev => {
             const next = new Map(prev);
             let changed = false;
@@ -85,14 +86,24 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                 // 当 props.trade 传来新值时，如果新值 == 乐观值，则移除乐观条目。
                 const serverVal = (trade as any)[getTradeKey(key)];
                 // 简单的相等检查 (如果是数字，注意类型)
-                if (serverVal == optimisticVal) { // 使用双等号允许 100 == "100"
+                // Loose equality check to handle string "100" vs number 100
+                if (serverVal == optimisticVal) {
+                    console.log(`[ExecutionFill] Sync Complete for ${key}. Server=${serverVal}, Optimistic=${optimisticVal}`);
                     next.delete(key);
                     changed = true;
+                } else {
+                    console.log(`[ExecutionFill] Sync Pending for ${key}. Server=${serverVal}, Optimistic=${optimisticVal}`);
                 }
             }
             return changed ? next : prev;
         });
     }, [trade]);
+
+    // Lifecycle Log
+    React.useEffect(() => {
+        console.log("[ExecutionFill] MOUNTED");
+        return () => console.log("[ExecutionFill] UNMOUNTED");
+    }, []);
 
     // 辅助：从 fieldName 映射到 TradeRecord 的 key
     const getTradeKey = (fieldName: string): string => {
@@ -145,11 +156,19 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         }
     }, [trade, app]);
 
-    // 检查字段值 - 增强对数字 0 的支持
+    // 检查字段值 - 增强对数字 0 的支持，排除 NaN
     const isEmpty = (value: any): boolean => {
-        if (typeof value === "number") return false; // 0 is not empty
+        if (typeof value === "number") {
+            // 0 is valid, but NaN is empty
+            return Number.isNaN(value);
+        }
         if (value === undefined || value === null || value === '') return true;
         if (Array.isArray(value) && value.length === 0) return true;
+        // 特殊处理 "open", "unknown" 为空状态（允许用户修改）
+        if (typeof value === "string") {
+            const lower = value.toLowerCase().trim();
+            if (lower === "open" || lower === "unknown" || lower === "ongoing") return true;
+        }
         return false;
     };
 
@@ -223,8 +242,23 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
     // 过滤出需要填写的字段
     const emptyFields = fieldsToFill.filter(f => f.isEmpty);
 
+    // Debug logging
+    console.log("[ExecutionFill] Debug State:", {
+        fields: fieldsToFill.map(f => ({
+            label: f.label,
+            isEmpty: f.isEmpty,
+            val: f.fieldName.includes("numeric") ? "numeric" : getVal(f.fieldName, getTradeKey(f.fieldName))
+        })),
+        optimisticSize: optimisticValues.size,
+        outcomeRaw: (trade as any).outcome,
+        outcomeVal: outcome,
+        executionQualityVal: executionQuality
+    });
+
     // 如果所有字段都已填写,不显示面板
     if (emptyFields.length === 0) {
+        // Show a message or keep it null?
+        // Maybe useful to see why it's empty
         return null;
     }
 

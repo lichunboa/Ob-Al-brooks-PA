@@ -555,18 +555,40 @@ export class ObsidianTradeIndex implements TradeIndex {
       timeframe,
       direction,
       strategyName,
-      managementPlan,
       executionQuality,
       cover,
       entryPrice,
       stopLoss,
       takeProfit,
+
       initialRisk,
       netProfit,
       mtime: file.stat?.mtime,
       tags: normalizedTags,
       rawFrontmatter: fm,
     };
+
+    // [DEBUG] Diagnostic log for numeric fields
+    if (file.path.endsWith(".md")) {
+      console.log(`[TradeIndex] Indexing ${file.name}`, {
+        raw: {
+          entry: entryPriceRaw,
+          sl: stopLossRaw,
+          tp: takeProfitRaw,
+          risk: initialRiskRaw,
+          net: netProfitRaw,
+          outcome: outcomeRaw
+        },
+        parsed: {
+          entry: trade.entryPrice,
+          sl: trade.stopLoss,
+          tp: trade.takeProfit,
+          risk: trade.initialRisk,
+          net: trade.netProfit,
+          outcome: trade.outcome
+        }
+      });
+    }
 
     this.db.set(file.path, trade);
     return !prev || JSON.stringify(prev) !== JSON.stringify(trade);
