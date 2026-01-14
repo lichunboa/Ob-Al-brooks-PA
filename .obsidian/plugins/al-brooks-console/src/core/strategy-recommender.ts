@@ -55,7 +55,6 @@ const FILL_ORDER = [
     { key: 'setupCategory', label: '设置类别', field: 'setupCategories' },
     { key: 'patterns', label: '观察到的形态', field: 'patternsObserved' },
     { key: 'signalBarQuality', label: '信号K', field: 'signalBarQuality' },
-    { key: 'timeframe', label: '时间周期', field: 'timeframe' }, // 新增
     // alwaysIn字段在策略卡中普遍缺失,暂时移除
     // { key: 'alwaysIn', label: '总是方向', field: 'alwaysIn' },
 ] as const;
@@ -196,11 +195,6 @@ function filterStrategies(
 
         // 方向匹配
         if (input.direction && !matchDirection(card, input.direction)) {
-            return false;
-        }
-
-        // 时间周期匹配 (新增)
-        if (input.timeframe && !matchTimeframe(card, input.timeframe)) {
             return false;
         }
 
