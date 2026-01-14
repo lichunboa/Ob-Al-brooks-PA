@@ -118,75 +118,65 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         return null;
     }
 
-    // 渲染单个字段区块
-    const renderFieldSection = (field: typeof fieldsToFill[0]) => {
-        return (
-            <div key={field.fieldName} style={{
-                marginBottom: "12px",
-                padding: "12px",
-                background: "var(--background-secondary)",
-                borderRadius: "8px",
-                border: "1px solid var(--background-modifier-border)",
-            }}>
-                <div style={{
-                    fontSize: "12px",
-                    marginBottom: "8px",
-                    fontWeight: 600,
-                    color: "var(--text-accent)"
-                }}>
-                    {field.label}:
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {field.values.map(value => (
-                        <button
-                            key={value}
-                            onClick={() => handleFillField(field.fieldName, value)}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "var(--interactive-hover)";
-                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "var(--background-primary)";
-                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                            }}
-                            style={{
-                                padding: "8px",
-                                background: "var(--background-primary)",
-                                borderRadius: "6px",
-                                border: "1px solid var(--background-modifier-border)",
-                                fontSize: "12px",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                width: "100%",
-                                textAlign: "left",
-                            }}
-                        >
-                            {value}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        );
-    };
+    // ✅ 关键改动:一次只显示第一个未填写的字段
+    const nextField = emptyFields[0];
 
     return (
         <div style={{
             marginTop: "16px",
             padding: "12px",
-            background: "var(--background-primary-alt)",
+            background: "var(--background-secondary)",
             borderRadius: "8px",
             border: "1px solid var(--background-modifier-border)",
         }}>
             <div style={{
-                fontSize: "13px",
-                marginBottom: "12px",
+                fontSize: "12px",
+                marginBottom: "8px",
                 fontWeight: 600,
                 color: "var(--text-accent)"
             }}>
-                📝 交易执行填写
+                💡 建议下一步填写: {nextField.label}
             </div>
-
-            {emptyFields.map(field => renderFieldSection(field))}
+            <div style={{
+                fontSize: "11px",
+                opacity: 0.8,
+                marginBottom: "8px",
+                color: "var(--text-muted)"
+            }}>
+                还有 {emptyFields.length} 个执行字段待填写
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {nextField.values.map(value => (
+                    <button
+                        key={value}
+                        onClick={() => handleFillField(nextField.fieldName, value)}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--interactive-hover)";
+                            e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "var(--background-primary)";
+                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                        }}
+                        style={{
+                            padding: "8px",
+                            background: "var(--background-primary)",
+                            borderRadius: "6px",
+                            border: "1px solid var(--background-modifier-border)",
+                            fontSize: "12px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            width: "100%",
+                            textAlign: "left",
+                        }}
+                    >
+                        <span style={{ fontWeight: 500 }}>{value}</span>
+                    </button>
+                ))}
+            </div>
         </div>
     );
 };
