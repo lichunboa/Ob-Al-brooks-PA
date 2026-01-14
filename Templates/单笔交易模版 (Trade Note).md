@@ -11,10 +11,10 @@ date:
 总是方向/always_in:
 方向/direction:
 日内类型/day_type:
-管理计划/management_plan:
 设置类别/setup_category:
 观察到的形态/patterns_observed:
 信号K/signal_bar_quality:
+管理计划/management_plan:
 订单类型/order_type:
 入场/entry_price:
 止损/stop_loss:
