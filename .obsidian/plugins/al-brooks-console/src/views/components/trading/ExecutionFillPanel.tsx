@@ -88,8 +88,16 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         values: string[],
         currentValue: any
     ) => {
+        // ✅ 修复:正确判断空值
+        // 空数组、undefined、null、空字符串都应该显示按钮组
+        const isEmpty =
+            currentValue === undefined ||
+            currentValue === null ||
+            currentValue === '' ||
+            (Array.isArray(currentValue) && currentValue.length === 0);
+
         // 如果已填写,不显示这个字段区块
-        if (currentValue) return null;
+        if (!isEmpty) return null;
 
         return (
             <div style={{ marginBottom: "12px" }}>
