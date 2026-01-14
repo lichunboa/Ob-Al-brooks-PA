@@ -1,4 +1,5 @@
 ---
+封面/cover:
 categories:
   - 交易日记
 tags:
@@ -22,7 +23,6 @@ date:
 初始风险/initial_risk:
 净利润/net_profit:
 结果/outcome:
-封面/cover:
 执行评价/execution_quality:
 策略名称/strategy_name:
 ---
