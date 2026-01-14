@@ -13,7 +13,14 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, translate_field, format_sort_field
+from cards.i18n import (
+    btn_auto as _btn_auto,
+    gettext as _t,
+    resolve_lang,
+    translate_field,
+    translate_value,
+    format_sort_field,
+)
 
 
 class K线形态排行卡片(RankingCard):
@@ -256,7 +263,8 @@ class K线形态排行卡片(RankingCard):
                 if isinstance(val, (int, float)):
                     row.append(f"{val:.2f}")
                 else:
-                    row.append(str(val) if val not in (None, "") else "-")
+                    translated = translate_value(val, lang=lang)
+                    row.append(str(translated) if translated not in (None, "") else "-")
             for col_id, _, _ in active_general:
                 val = item.get(col_id)
                 if col_id == "振幅":
@@ -269,7 +277,8 @@ class K线形态排行卡片(RankingCard):
                 elif isinstance(val, (int, float)):
                     row.append(f"{val:.2f}")
                 else:
-                    row.append(str(val) if val not in (None, "") else "-")
+                    translated = translate_value(val, lang=lang)
+                    row.append(str(translated) if translated not in (None, "") else "-")
             rows.append(row)
         return rows, "/".join(header_parts)
 

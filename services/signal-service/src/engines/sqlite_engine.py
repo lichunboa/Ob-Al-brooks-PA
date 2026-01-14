@@ -96,12 +96,20 @@ class SQLiteSignalEngine(BaseEngine):
             "update_time",
             "时间(UTC)",
             "时间_utc",
+            "timestamp",
+            "ts",
+            "created_at",
+            "updated_at",
+            "event_time",
         ):
             if key in row_dict and row_dict[key]:
                 val = row_dict[key]
                 try:
                     if isinstance(val, (int, float)):
-                        return float(val)
+                        v = float(val)
+                        if v > 1e12:  # 可能是毫秒级 epoch
+                            v = v / 1000.0
+                        return v
                     from datetime import datetime
 
                     return datetime.fromisoformat(str(val)).timestamp()
@@ -109,11 +117,34 @@ class SQLiteSignalEngine(BaseEngine):
                     continue
         return 0.0
 
-    def _is_fresh(self, ts_seconds: float) -> bool:
-        """数据是否新鲜"""
+    @staticmethod
+    def _tf_seconds(timeframe: str) -> float:
+        """将 1h/4h/1d 等周期转为秒，无法解析则返回 0"""
+        try:
+            unit = timeframe[-1].lower()
+            val = float(timeframe[:-1])
+            if unit == "m":
+                return val * 60
+            if unit == "h":
+                return val * 3600
+            if unit == "d":
+                return val * 86400
+            if unit == "w":
+                return val * 604800
+        except Exception:
+            return 0
+        return 0
+
+    def _is_fresh(self, ts_seconds: float, timeframe: str) -> bool:
+        """数据是否新鲜：基于周期动态阈值"""
         if ts_seconds <= 0:
             return False
-        return (time.time() - ts_seconds) <= DATA_MAX_AGE_SECONDS
+        tf_secs = self._tf_seconds(timeframe) or 0
+        # 允许的数据年龄：max(全局阈值, 1.5个周期)
+        allowed = max(DATA_MAX_AGE_SECONDS, tf_secs * 1.5 if tf_secs else 0)
+        if allowed <= 0:
+            allowed = DATA_MAX_AGE_SECONDS
+        return (time.time() - ts_seconds) <= allowed
 
     def _get_table_data(self, table: str, timeframe: str) -> dict[str, dict]:
         """获取表中指定周期的所有数据"""
@@ -145,8 +176,9 @@ class SQLiteSignalEngine(BaseEngine):
                         # 已有该符号最新行
                         continue
                     ts_seconds = self._parse_ts(row_dict)
-                    if not self._is_fresh(ts_seconds):
+                    if not self._is_fresh(ts_seconds, timeframe):
                         self.stats["stale"] += 1
+                        logger.debug("跳过陈旧行 %s %s ts=%s", table, symbol, ts_seconds)
                         continue
                     self._maybe_refresh_symbols()
                     if self.allowed_symbols and symbol.upper() not in self.allowed_symbols:
