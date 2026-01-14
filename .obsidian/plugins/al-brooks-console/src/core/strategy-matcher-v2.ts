@@ -348,11 +348,11 @@ export function matchStrategiesV2(
         input.timeframe
     ].filter(Boolean).length;
 
-    // 动态门槛: 选择的属性越多,要求越严格
-    const minScore = selectedCount >= 4 ? 8 :  // 4个属性: 至少8分
-        selectedCount >= 3 ? 6 :  // 3个属性: 至少6分
-            selectedCount >= 2 ? 4 :  // 2个属性: 至少4分
-                2;                         // 1个属性: 至少2分
+    // 动态门槛: 选择的属性越多,要求越严格 (已降低门槛以显示更多策略)
+    const minScore = selectedCount >= 4 ? 6 :  // 4个属性: 至少6分 (降低2分)
+        selectedCount >= 3 ? 4 :  // 3个属性: 至少4分 (降低2分)
+            selectedCount >= 2 ? 2 :  // 2个属性: 至少2分 (降低2分)
+                1;                         // 1个属性: 至少1分 (降低1分)
 
     const candidates: StrategyMatchResult[] = [];
 
@@ -437,6 +437,22 @@ export function matchStrategiesV2(
 
     // 按分数降序排序
     candidates.sort((a, b) => b.score - a.score);
+
+    // 调试日志: 追踪策略过滤情况
+    console.log('[StrategyMatcherV2] Debug Info:', {
+        totalStrategies: index.list().length,
+        candidatesBeforeFilter: candidates.length,
+        selectedCount,
+        minScore,
+        limit,
+        input: {
+            marketCycle: input.marketCycle,
+            setupCategory: input.setupCategory,
+            direction: input.direction,
+            timeframe: input.timeframe,
+            patterns: input.patterns
+        }
+    });
 
     // 填充剩余槽位
     for (const cand of candidates) {

@@ -342,6 +342,14 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 <button
                                     key={rec.value}
                                     onClick={() => handleFillAttribute(rec.attribute, rec.value)}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "var(--interactive-hover)";
+                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "var(--background-primary)";
+                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                    }}
                                     style={{
                                         padding: "8px",
                                         background: "var(--background-primary)",
@@ -352,14 +360,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         justifyContent: "space-between",
                                         alignItems: "center",
                                         cursor: "pointer",
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = "var(--interactive-hover)";
-                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = "var(--background-primary)";
-                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                                    }}
                                         transition: "all 0.2s",
                                         width: "100%",
                                         textAlign: "left",
@@ -384,7 +384,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             {rec.percentage}%
                                         </span>
                                     </span>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
