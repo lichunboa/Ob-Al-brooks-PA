@@ -1,6 +1,5 @@
 import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
-import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 
 /**
  * 预设值常量
@@ -37,83 +36,91 @@ const PRESET_VALUES = {
  */
 export interface ExecutionFillPanelProps {
     trade: TradeRecord;
-    app: any; // Obsidian App实例
+    app: any;
+    onFillAttribute: (attribute: string, value: string) => Promise<void>;
 }
 
 /**
  * 交易执行填写面板组件
- * 用于快速填写管理计划、订单类型、结果和执行评价等字段
+ * 仿照"建议下一步填写"模块的设计
  */
-export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app }) => {
-    // 辅助函数:填写预设值字段
-    const handlePresetFill = async (fieldName: string, value: string) => {
-        console.log('=== handlePresetFill START ===');
-        console.log('Field:', fieldName);
-        console.log('Value:', value);
-        console.log('Trade path:', trade.path);
-
-        try {
-            const file = app.vault.getAbstractFileByPath(trade.path);
-            if (!file) {
-                console.error('[ExecutionFill] File not found:', trade.path);
-                return;
-            }
-
-            console.log('[ExecutionFill] Before processFrontMatter');
-            await app.fileManager.processFrontMatter(file, (frontmatter: any) => {
-                console.log('[ExecutionFill] Frontmatter before:', JSON.parse(JSON.stringify(frontmatter)));
-                frontmatter[fieldName] = value;
-                console.log('[ExecutionFill] Frontmatter after:', JSON.parse(JSON.stringify(frontmatter)));
-            });
-
-            console.log(`[ExecutionFill] Filled ${fieldName} = ${value}`);
-
-            // 等待一下,看看trade对象的变化
-            setTimeout(() => {
-                console.log('=== 500ms later ===');
-                console.log('outcome:', (trade as any).outcome);
-                console.log('executionQuality:', (trade as any).executionQuality);
-            }, 500);
-        } catch (error) {
-            console.error('[ExecutionFill] Error:', error);
-        }
-
-        console.log('=== handlePresetFill END ===');
+export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, onFillAttribute }) => {
+    // 检查字段值 - 使用严格的isEmpty判断
+    const isEmpty = (value: any): boolean => {
+        if (value === undefined || value === null || value === '') return true;
+        if (Array.isArray(value) && value.length === 0) return true;
+        return false;
     };
 
-    // 渲染预设值按钮组
-    const renderPresetButtons = (
-        label: string,
-        fieldName: string,
-        values: string[],
-        currentValue: any
-    ) => {
-        // ✅ 修复:正确判断空值
-        // 空数组、undefined、null、空字符串都应该显示按钮组
-        const isEmpty =
-            currentValue === undefined ||
-            currentValue === null ||
-            currentValue === '' ||
-            (Array.isArray(currentValue) && currentValue.length === 0);
+    const managementPlan = (trade as any).managementPlan || (trade as any)["管理计划/management_plan"];
+    const orderType = (trade as any).orderType || (trade as any)["订单类型/order_type"];
+    const outcome = (trade as any).outcome || (trade as any)["结果/outcome"];
+    const executionQuality = (trade as any).executionQuality || (trade as any)["执行评价/execution_quality"];
 
-        // 如果已填写,不显示这个字段区块
-        if (!isEmpty) return null;
+    // 构建需要填写的字段列表
+    const fieldsToFill: Array<{
+        label: string;
+        fieldName: string;
+        values: string[];
+        isEmpty: boolean;
+    }> = [
+            {
+                label: "管理计划",
+                fieldName: "管理计划/management_plan",
+                values: PRESET_VALUES.management_plan,
+                isEmpty: isEmpty(managementPlan)
+            },
+            {
+                label: "订单类型",
+                fieldName: "订单类型/order_type",
+                values: PRESET_VALUES.order_type,
+                isEmpty: isEmpty(orderType)
+            },
+            {
+                label: "结果",
+                fieldName: "结果/outcome",
+                values: PRESET_VALUES.outcome,
+                isEmpty: isEmpty(outcome)
+            },
+            {
+                label: "执行评价",
+                fieldName: "执行评价/execution_quality",
+                values: PRESET_VALUES.execution_quality,
+                isEmpty: isEmpty(executionQuality)
+            }
+        ];
 
+    // 过滤出需要填写的字段
+    const emptyFields = fieldsToFill.filter(f => f.isEmpty);
+
+    // 如果所有字段都已填写,不显示面板
+    if (emptyFields.length === 0) {
+        return null;
+    }
+
+    // 渲染单个字段区块
+    const renderFieldSection = (field: typeof fieldsToFill[0]) => {
         return (
-            <div style={{ marginBottom: "12px" }}>
+            <div key={field.fieldName} style={{
+                marginBottom: "12px",
+                padding: "12px",
+                background: "var(--background-secondary)",
+                borderRadius: "8px",
+                border: "1px solid var(--background-modifier-border)",
+            }}>
                 <div style={{
                     fontSize: "12px",
-                    marginBottom: "6px",
+                    marginBottom: "8px",
                     fontWeight: 600,
-                    color: "var(--text-muted)"
+                    color: "var(--text-accent)"
                 }}>
-                    {label}:
+                    {field.label}:
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                    {values.map(value => (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {field.values.map(value => (
                         <button
                             key={value}
-                            onClick={() => handlePresetFill(fieldName, value)}
+                            onClick={() => onFillAttribute(field.fieldName, value)}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = "var(--interactive-hover)";
                                 e.currentTarget.style.borderColor = "var(--interactive-accent)";
@@ -123,14 +130,15 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                                 e.currentTarget.style.borderColor = "var(--background-modifier-border)";
                             }}
                             style={{
-                                padding: "6px 10px",
+                                padding: "8px",
                                 background: "var(--background-primary)",
                                 borderRadius: "6px",
                                 border: "1px solid var(--background-modifier-border)",
-                                fontSize: "11px",
+                                fontSize: "12px",
                                 cursor: "pointer",
                                 transition: "all 0.2s",
-                                whiteSpace: "nowrap"
+                                width: "100%",
+                                textAlign: "left",
                             }}
                         >
                             {value}
@@ -141,32 +149,13 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         );
     };
 
-    // 检查字段值
-    const managementPlan = (trade as any).managementPlan || (trade as any)["管理计划/management_plan"];
-    const orderType = (trade as any).orderType || (trade as any)["订单类型/order_type"];
-    const outcome = (trade as any).outcome || (trade as any)["结果/outcome"];
-    const executionQuality = (trade as any).executionQuality || (trade as any)["执行评价/execution_quality"];
-
-    // 🔍 调试日志
-    console.log('=== ExecutionFillPanel Render ===');
-    console.log('Trade path:', trade.path);
-    console.log('managementPlan:', managementPlan);
-    console.log('orderType:', orderType);
-    console.log('outcome:', outcome);
-    console.log('executionQuality:', executionQuality);
-    console.log('Will show managementPlan?', !managementPlan);
-    console.log('Will show orderType?', !orderType);
-    console.log('Will show outcome?', !outcome);
-    console.log('Will show executionQuality?', !executionQuality);
-
-    // ✅ 修复:不隐藏整个面板,让用户可以继续填写其他字段
-    // 原来的代码会在某个字段填写后隐藏整个面板,导致用户无法继续填写
-
     return (
         <div style={{
-            ...glassInsetStyle,
             marginTop: "16px",
-            padding: "12px"
+            padding: "12px",
+            background: "var(--background-primary-alt)",
+            borderRadius: "8px",
+            border: "1px solid var(--background-modifier-border)",
         }}>
             <div style={{
                 fontSize: "13px",
@@ -177,37 +166,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                 📝 交易执行填写
             </div>
 
-            {/* 管理计划 */}
-            {renderPresetButtons(
-                "管理计划",
-                "管理计划/management_plan",
-                PRESET_VALUES.management_plan,
-                managementPlan
-            )}
-
-            {/* 订单类型 */}
-            {renderPresetButtons(
-                "订单类型",
-                "订单类型/order_type",
-                PRESET_VALUES.order_type,
-                orderType
-            )}
-
-            {/* 结果 */}
-            {renderPresetButtons(
-                "结果",
-                "结果/outcome",
-                PRESET_VALUES.outcome,
-                outcome
-            )}
-
-            {/* 执行评价 */}
-            {renderPresetButtons(
-                "执行评价",
-                "执行评价/execution_quality",
-                PRESET_VALUES.execution_quality,
-                executionQuality
-            )}
+            {emptyFields.map(field => renderFieldSection(field))}
         </div>
     );
 };
