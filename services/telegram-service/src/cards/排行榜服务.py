@@ -23,21 +23,21 @@ LOGGER = logging.getLogger(__name__)
 
 # 文档约定的固定周期顺序
 DEFAULT_PERIODS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
-# 各服务可用周期（映射 doc 周期到实际支持）
-VOLUME_FUTURES_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
-VOLUME_SPOT_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "24h", "1w"]
-POSITION_PERIODS = ["5m", "15m", "30m", "1h", "4h", "24h"]
-LIQUIDATION_PERIODS = ["1h", "4h", "12h", "24h"]
-MONEY_FLOW_FUTURES_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
-MONEY_FLOW_SPOT_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "24h", "1w"]
+# 各服务可用周期：统一使用 1d 表示日线，不再使用 24h
+VOLUME_FUTURES_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "1d"]
+VOLUME_SPOT_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "1d", "1w"]
+POSITION_PERIODS = ["5m", "15m", "30m", "1h", "4h", "1d"]
+LIQUIDATION_PERIODS = ["1h", "4h", "12h", "1d"]
+MONEY_FLOW_FUTURES_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "1d"]
+MONEY_FLOW_SPOT_PERIODS = ["5m", "15m", "30m", "1h", "4h", "12h", "1d", "1w"]
 MONEY_FLOW_PERIODS = MONEY_FLOW_SPOT_PERIODS
 
 
 def normalize_period(requested: str, allowed: Sequence[str], default: str = "4h") -> str:
-    """将文档要求的标准周期映射到实际支持的周期"""
+    """将文档要求的标准周期映射到实际支持的周期；日线统一为 1d"""
     alias = {
         "1m": "5m",   # 聚合粒度下限
-        "1d": "24h",  # 同义映射
+        "24h": "1d",  # 兼容旧写法
         "1w": "1w",
     }
     target = alias.get(requested, requested)

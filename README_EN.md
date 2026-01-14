@@ -332,6 +332,10 @@ cd .. && rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
 vim config/.env
 ```
 
+Signal service tips:
+- `SIGNAL_DATA_MAX_AGE`: maximum data age (seconds) used for signals; stale rows are skipped. Default 600.
+- `COOLDOWN_SECONDS` (signal-service PG): global cooldown window (seconds) before repeating the same PG signal.
+
 #### 5. Start Services
 
 ```bash

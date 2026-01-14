@@ -13,7 +13,14 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard
 from cards.data_provider import format_symbol, get_ranking_provider
-from cards.i18n import gettext as _t, btn as _btn, resolve_lang, btn_auto as _btn_auto, format_sort_field
+from cards.i18n import (
+    gettext as _t,
+    btn as _btn,
+    resolve_lang,
+    btn_auto as _btn_auto,
+    translate_value,
+    format_sort_field,
+)
 
 
 class 趋势线排行卡片(RankingCard):
@@ -294,7 +301,8 @@ class 趋势线排行卡片(RankingCard):
                 if col_id == "distance_pct":
                     row.append(f"{val:.2f}%" if isinstance(val, (int, float)) else "-")
                 else:
-                    row.append(str(val) if val not in (None, "") else "-")
+                    translated = translate_value(val, lang=lang)
+                    row.append(str(translated) if translated not in (None, "") else "-")
             # 通用列
             for col_id, _, _ in active_general:
                 val = item.get(col_id)
@@ -303,7 +311,8 @@ class 趋势线排行卡片(RankingCard):
                 elif isinstance(val, (int, float)):
                     row.append(f"{val:.2f}")
                 else:
-                    row.append(str(val) if val not in (None, "") else "-")
+                    translated = translate_value(val, lang=lang)
+                    row.append(str(translated) if translated not in (None, "") else "-")
             rows.append(row)
         return rows, "/".join(header_parts)
 

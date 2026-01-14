@@ -12,6 +12,7 @@ import time
 import json
 import threading
 import importlib.util
+import unicodedata
 
 # 提前初始化 logger
 logger = logging.getLogger(__name__)
@@ -945,7 +946,7 @@ class UserRequestHandler:
 
     def dynamic_align_format(self, data_rows, left_align_cols: int = 2, align_override=None):
         """
-        数据对齐：默认前 left_align_cols 列左对齐，其余右对齐；支持传入对齐列表 ["L","R",...]
+        数据对齐：默认全部右对齐；可传入对齐列表 ["L","R",...] 控制列对齐
         """
         if not data_rows:
             return _t(None, "data.no_data")
@@ -957,15 +958,19 @@ class UserRequestHandler:
         if align_override:
             align = (list(align_override) + ["R"] * (col_cnt - len(align_override)))[:col_cnt]
         else:
-            align = ["L"] * min(left_align_cols, col_cnt) + ["R"] * max(col_cnt - left_align_cols, 0)
+            align = ["R"] * col_cnt
 
-        widths = [max(len(str(row[i])) for row in data_rows) for i in range(col_cnt)]
+        def _disp_width(text: str) -> int:
+            return sum(2 if unicodedata.east_asian_width(ch) in {"F", "W"} else 1 for ch in text)
+
+        widths = [max(_disp_width(str(row[i])) for row in data_rows) for i in range(col_cnt)]
 
         def fmt(row):
             cells = []
             for idx, cell in enumerate(row):
                 cell_str = str(cell)
-                cells.append(cell_str.ljust(widths[idx]) if align[idx] == "L" else cell_str.rjust(widths[idx]))
+                pad = max(widths[idx] - _disp_width(cell_str), 0)
+                cells.append(cell_str + " " * pad if align[idx] == "L" else " " * pad + cell_str)
             return " ".join(cells)
 
         return "\n".join(fmt(r) for r in data_rows)
@@ -2722,7 +2727,7 @@ class TradeCatBot:
 
     def dynamic_align_format(self, data_rows, left_align_cols: int = 2, align_override=None):
         """
-        动态视图对齐：前 left_align_cols 列左对齐，其余右对齐；可传入 align_override=["L","R"...]
+        动态视图对齐：默认全部右对齐；可传入 align_override=["L","R"...] 控制每列
         """
         if not data_rows:
             return _t(None, "data.no_data")
@@ -2734,15 +2739,19 @@ class TradeCatBot:
         if align_override:
             align = (list(align_override) + ["R"] * (col_cnt - len(align_override)))[:col_cnt]
         else:
-            align = ["L"] * min(left_align_cols, col_cnt) + ["R"] * max(col_cnt - left_align_cols, 0)
+            align = ["R"] * col_cnt
 
-        widths = [max(len(str(row[i])) for row in data_rows) for i in range(col_cnt)]
+        def _disp_width(text: str) -> int:
+            return sum(2 if unicodedata.east_asian_width(ch) in {"F", "W"} else 1 for ch in text)
+
+        widths = [max(_disp_width(str(row[i])) for row in data_rows) for i in range(col_cnt)]
 
         def fmt(row):
             cells = []
             for idx, cell in enumerate(row):
                 cell_str = str(cell)
-                cells.append(cell_str.ljust(widths[idx]) if align[idx] == "L" else cell_str.rjust(widths[idx]))
+                pad = max(widths[idx] - _disp_width(cell_str), 0)
+                cells.append(cell_str + " " * pad if align[idx] == "L" else " " * pad + cell_str)
             return " ".join(cells)
 
         return "\n".join(fmt(r) for r in data_rows)
