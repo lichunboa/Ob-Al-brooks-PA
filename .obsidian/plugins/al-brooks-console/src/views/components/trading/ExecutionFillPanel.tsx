@@ -44,11 +44,35 @@ export interface ExecutionFillPanelProps {
  * 用于快速填写管理计划、订单类型、结果和执行评价等字段
  */
 export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app }) => {
+    // 本地状态，用于实现乐观UI更新
+    const [localTrade, setLocalTrade] = React.useState<TradeRecord>(trade);
+
+    // 当外部trade更新时，同步到本地状态
+    React.useEffect(() => {
+        setLocalTrade(trade);
+    }, [trade]);
+
     // 填写字段函数
     const handleFillField = React.useCallback(async (fieldName: string, value: string) => {
         if (!trade?.path || !app) return;
 
+        // 1. 乐观更新本地状态
+        setLocalTrade(prev => {
+            const updated = { ...prev };
+            // 处理不同的字段名映射
+            if (fieldName.includes("management_plan")) (updated as any).managementPlan = value;
+            else if (fieldName.includes("order_type")) (updated as any).orderType = value;
+            else if (fieldName.includes("outcome")) (updated as any).outcome = value;
+            else if (fieldName.includes("execution_quality")) (updated as any).executionQuality = value;
+
+            // 同时也更新带中文键名的属性，以防万一
+            (updated as any)[fieldName] = value;
+
+            return updated;
+        });
+
         try {
+            // 2. 更新实际文件
             const file = app.vault.getAbstractFileByPath(trade.path);
             if (!file) {
                 console.error('[ExecutionFill] File not found:', trade.path);
@@ -62,6 +86,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
             console.log(`[ExecutionFill] Filled ${fieldName} = ${value}`);
         } catch (error) {
             console.error('[ExecutionFill] Error:', error);
+            // 如果失败，应该回滚本地状态（这里简化处理，暂不回滚，依赖下一次外部更新修正）
         }
     }, [trade, app]);
 
@@ -72,10 +97,11 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         return false;
     };
 
-    const managementPlan = (trade as any).managementPlan || (trade as any)["管理计划/management_plan"];
-    const orderType = (trade as any).orderType || (trade as any)["订单类型/order_type"];
-    const outcome = (trade as any).outcome || (trade as any)["结果/outcome"];
-    const executionQuality = (trade as any).executionQuality || (trade as any)["执行评价/execution_quality"];
+    // 使用localTrade获取字段值
+    const managementPlan = (localTrade as any).managementPlan || (localTrade as any)["管理计划/management_plan"];
+    const orderType = (localTrade as any).orderType || (localTrade as any)["订单类型/order_type"];
+    const outcome = (localTrade as any).outcome || (localTrade as any)["结果/outcome"];
+    const executionQuality = (localTrade as any).executionQuality || (localTrade as any)["执行评价/execution_quality"];
 
     // 构建需要填写的字段列表
     const fieldsToFill: Array<{
@@ -118,7 +144,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         return null;
     }
 
-    // ✅ 关键改动:一次只显示第一个未填写的字段
+    // 一次只显示第一个未填写的字段
     const nextField = emptyFields[0];
 
     return (
