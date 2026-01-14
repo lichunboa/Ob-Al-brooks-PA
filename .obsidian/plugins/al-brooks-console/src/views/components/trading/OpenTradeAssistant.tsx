@@ -8,6 +8,7 @@ import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { matchStrategies } from "../../../core/strategy-matcher";
 import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
 import { recommendNextAttribute } from "../../../core/strategy-recommender";
+import { ExecutionFillPanel } from "./ExecutionFillPanel";
 
 /**
  * 策略卡片数据接口
@@ -415,6 +416,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 );
             })()}
 
+            {/* 交易执行填写面板 */}
+            {currentTrade && <ExecutionFillPanel trade={currentTrade} app={app} />}
 
             {currentStrategy ? (
                 <div>
