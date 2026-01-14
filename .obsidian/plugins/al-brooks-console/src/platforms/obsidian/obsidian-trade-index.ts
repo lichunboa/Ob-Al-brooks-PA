@@ -508,6 +508,12 @@ export class ObsidianTradeIndex implements TradeIndex {
     );
     const coverRaw = getFirstFieldValue(fm, FIELD_ALIASES.cover);
 
+    const entryPriceRaw = getFirstFieldValue(fm, FIELD_ALIASES.entryPrice);
+    const stopLossRaw = getFirstFieldValue(fm, FIELD_ALIASES.stopLoss);
+    const takeProfitRaw = getFirstFieldValue(fm, FIELD_ALIASES.takeProfit);
+    const initialRiskRaw = getFirstFieldValue(fm, FIELD_ALIASES.initialRisk);
+    const netProfitRaw = getFirstFieldValue(fm, FIELD_ALIASES.netProfit);
+
     // v5 对齐：旧数据可能只填 r；当 pnl/net_profit 缺失时，用 r 兜底。
     const pnl = parseNumber(pnlRaw) ?? parseNumber(rRaw);
     const ticker = normalizeTicker(tickerRaw);
@@ -526,6 +532,12 @@ export class ObsidianTradeIndex implements TradeIndex {
     const managementPlan = normalizeStringArray(managementPlanRaw);
     const executionQuality = normalizeString(executionQualityRaw);
     const cover = normalizeString(coverRaw);
+
+    const entryPrice = parseNumber(entryPriceRaw);
+    const stopLoss = parseNumber(stopLossRaw);
+    const takeProfit = parseNumber(takeProfitRaw);
+    const initialRisk = parseNumber(initialRiskRaw);
+    const netProfit = parseNumber(netProfitRaw);
 
     const trade: TradeRecord = {
       path: file.path,
@@ -546,6 +558,11 @@ export class ObsidianTradeIndex implements TradeIndex {
       managementPlan,
       executionQuality,
       cover,
+      entryPrice,
+      stopLoss,
+      takeProfit,
+      initialRisk,
+      netProfit,
       mtime: file.stat?.mtime,
       tags: normalizedTags,
       rawFrontmatter: fm,

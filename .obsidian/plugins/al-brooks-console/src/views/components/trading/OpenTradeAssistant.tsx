@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
 import type { StrategyIndex } from "../../../core/strategy-index";
+import type { EnumPresets } from "../../../core/enum-presets";
 import { V5_COLORS } from "../../../ui/tokens";
 import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 import { normalize } from "../../../utils/string-utils";
@@ -40,6 +41,7 @@ export interface OpenTradeAssistantProps {
     buttonStyle: React.CSSProperties;
     // Obsidian App实例(用于更新frontmatter)
     app: any;
+    enumPresets?: EnumPresets;
 }
 
 /**
@@ -72,6 +74,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     textButtonStyle,
     buttonStyle,
     app,
+    enumPresets,
 }) => {
     // 当前选中的持仓索引
     const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -421,6 +424,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 <ExecutionFillPanel
                     trade={openTrade}
                     app={app}
+                    enumPresets={enumPresets}
                 />
             )}
 

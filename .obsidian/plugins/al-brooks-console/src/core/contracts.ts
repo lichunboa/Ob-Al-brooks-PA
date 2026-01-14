@@ -33,6 +33,11 @@ export interface TradeRecord {
   managementPlan?: string[];
   executionQuality?: string;
   cover?: string;
+  entryPrice?: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  initialRisk?: number;
+  netProfit?: number;
 
   mtime?: number;
   tags?: NormalizedTag[];

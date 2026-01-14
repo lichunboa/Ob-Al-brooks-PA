@@ -1,8 +1,11 @@
 import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
 
+import type { EnumPresets } from "../../../core/enum-presets";
+import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+
 /**
- * 预设值常量
+ * 预设值常量 (Fallback)
  */
 const PRESET_VALUES = {
     management_plan: [
@@ -32,43 +35,90 @@ const PRESET_VALUES = {
 };
 
 /**
+ * 数值字段定义
+ */
+const NUMERIC_FIELDS = [
+    { label: "入场价格", fieldName: "入场/entry_price", key: "entry_price", placeholder: "输入入场价格..." },
+    { label: "止损价格", fieldName: "止损/stop_loss", key: "stop_loss", placeholder: "输入止损价格..." },
+    { label: "目标价格", fieldName: "目标位/take_profit", key: "take_profit", placeholder: "输入目标价格..." },
+    { label: "初始风险(R)", fieldName: "初始风险/initial_risk", key: "initial_risk", placeholder: "输入风险额 (如 100)..." },
+    { label: "净利润", fieldName: "净利润/net_profit", key: "net_profit", placeholder: "输入净利润..." }
+];
+
+/**
  * ExecutionFillPanel组件Props
  */
 export interface ExecutionFillPanelProps {
     trade: TradeRecord;
     app: any;
+    enumPresets?: EnumPresets;
 }
 
 /**
  * 交易执行填写面板组件
  * 用于快速填写管理计划、订单类型、结果和执行评价等字段
  */
-export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app }) => {
-    // 本地状态，用于实现乐观UI更新
-    const [localTrade, setLocalTrade] = React.useState<TradeRecord>(trade);
+export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, enumPresets }) => {
+    // 乐观锁：记录用户已经填写的字段及其值
+    // Key: fieldName (e.g., "管理计划/management_plan")
+    // Value: filled value
+    const [optimisticValues, setOptimisticValues] = React.useState<Map<string, any>>(new Map());
 
-    // 当外部trade更新时，同步到本地状态
+    // 当外部 trade 更新时，我们需要检查乐观锁是否可以释放
     React.useEffect(() => {
-        setLocalTrade(trade);
+        setOptimisticValues(prev => {
+            const next = new Map(prev);
+            let changed = false;
+
+            for (const [key, optimisticVal] of prev.entries()) {
+                // 如果外部数据已经追上了我们的乐观值，或者有了更新的值，就可以释放锁了
+                // 这里简化处理：只要外部数据有值，且不为空，我们就认为同步可能完成了。
+                // 但为了防止回滚，最严格的做法是：只有当外部值 == 乐观值时，才移除。
+                // 可是考虑到解析转换（比如 string -> number），严格相等可能很难。
+                // 退一步：我们保留乐观值，直到用户刷新或重新加载组件？
+                // 不，那样会一直无法感知外部修改。
+
+                // 策略：如果 Trade 对象的该字段值与乐观值“大致相等”，则移除乐观锁。
+                // 或者，我们根本不移除，直到组件卸载？不，因为用户可能在 Obsidian 别处改了。
+
+                // 现实策略：我们只用 optimisticValues 来覆盖显示。
+                // 当 props.trade 传来新值时，如果新值 == 乐观值，则移除乐观条目。
+                const serverVal = (trade as any)[getTradeKey(key)];
+                // 简单的相等检查 (如果是数字，注意类型)
+                if (serverVal == optimisticVal) { // 使用双等号允许 100 == "100"
+                    next.delete(key);
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
+        });
     }, [trade]);
+
+    // 辅助：从 fieldName 映射到 TradeRecord 的 key
+    const getTradeKey = (fieldName: string): string => {
+        if (fieldName.includes("management_plan")) return "managementPlan";
+        if (fieldName.includes("order_type")) return "orderType";
+        if (fieldName.includes("outcome")) return "outcome";
+        if (fieldName.includes("execution_quality")) return "executionQuality";
+        if (fieldName.includes("entry_price")) return "entryPrice";
+        if (fieldName.includes("stop_loss")) return "stopLoss";
+        if (fieldName.includes("take_profit")) return "takeProfit";
+        if (fieldName.includes("initial_risk")) return "initialRisk";
+        if (fieldName.includes("net_profit")) return "netProfit";
+        return fieldName;
+    };
 
     // 填写字段函数
     const handleFillField = React.useCallback(async (fieldName: string, value: string) => {
         if (!trade?.path || !app) return;
 
-        // 1. 乐观更新本地状态
-        setLocalTrade(prev => {
-            const updated = { ...prev };
-            // 处理不同的字段名映射
-            if (fieldName.includes("management_plan")) (updated as any).managementPlan = value;
-            else if (fieldName.includes("order_type")) (updated as any).orderType = value;
-            else if (fieldName.includes("outcome")) (updated as any).outcome = value;
-            else if (fieldName.includes("execution_quality")) (updated as any).executionQuality = value;
+        // 1. 设置乐观锁
+        const parsedValue = NUMERIC_FIELDS.some(f => f.fieldName === fieldName) ? parseFloat(value) : value;
 
-            // 同时也更新带中文键名的属性，以防万一
-            (updated as any)[fieldName] = value;
-
-            return updated;
+        setOptimisticValues(prev => {
+            const next = new Map(prev);
+            next.set(fieldName, parsedValue);
+            return next;
         });
 
         try {
@@ -80,58 +130,92 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
             }
 
             await app.fileManager.processFrontMatter(file, (fm: any) => {
-                fm[fieldName] = value;
+                fm[fieldName] = value; // 写入时总是写入 frontmatter key (包含中文)
             });
 
             console.log(`[ExecutionFill] Filled ${fieldName} = ${value}`);
         } catch (error) {
             console.error('[ExecutionFill] Error:', error);
-            // 如果失败，应该回滚本地状态（这里简化处理，暂不回滚，依赖下一次外部更新修正）
+            // 回滚乐观锁
+            setOptimisticValues(prev => {
+                const next = new Map(prev);
+                next.delete(fieldName);
+                return next;
+            });
         }
     }, [trade, app]);
 
-    // 检查字段值 - 使用严格的isEmpty判断
+    // 检查字段值 - 增强对数字 0 的支持
     const isEmpty = (value: any): boolean => {
+        if (typeof value === "number") return false; // 0 is not empty
         if (value === undefined || value === null || value === '') return true;
         if (Array.isArray(value) && value.length === 0) return true;
         return false;
     };
 
-    // 使用localTrade获取字段值
-    const managementPlan = (localTrade as any).managementPlan || (localTrade as any)["管理计划/management_plan"];
-    const orderType = (localTrade as any).orderType || (localTrade as any)["订单类型/order_type"];
-    const outcome = (localTrade as any).outcome || (localTrade as any)["结果/outcome"];
-    const executionQuality = (localTrade as any).executionQuality || (localTrade as any)["执行评价/execution_quality"];
+    // 获取值：优先从乐观锁取，否则从 trade 取
+    const getVal = (fieldName: string, tradeKey: string) => {
+        if (optimisticValues.has(fieldName)) {
+            return optimisticValues.get(fieldName);
+        }
+        return (trade as any)[tradeKey];
+    };
 
-    // 构建需要填写的字段列表
+    const managementPlan = getVal("管理计划/management_plan", "managementPlan");
+    const orderType = getVal("订单类型/order_type", "orderType");
+    const outcome = getVal("结果/outcome", "outcome");
+    const executionQuality = getVal("执行评价/execution_quality", "executionQuality");
+
+    // 获取动态预设值
+    const getOptions = (key: string, fallback: string[]) => {
+        if (!enumPresets) return fallback;
+        const dynamic = enumPresets.getCanonicalValues(key);
+        return dynamic.length > 0 ? dynamic : fallback;
+    };
+
+    const options_management = getOptions("管理计划/management_plan", PRESET_VALUES.management_plan);
+    const options_order = getOptions("订单类型/order_type", PRESET_VALUES.order_type);
+    const options_outcome = getOptions("结果/outcome", PRESET_VALUES.outcome);
+    const options_quality = getOptions("执行评价/execution_quality", PRESET_VALUES.execution_quality);
+
     const fieldsToFill: Array<{
         label: string;
         fieldName: string;
-        values: string[];
+        values?: string[] | readonly string[];
+        isNumeric?: boolean;
+        placeholder?: string;
         isEmpty: boolean;
     }> = [
             {
                 label: "管理计划",
                 fieldName: "管理计划/management_plan",
-                values: PRESET_VALUES.management_plan,
+                values: options_management,
                 isEmpty: isEmpty(managementPlan)
             },
             {
                 label: "订单类型",
                 fieldName: "订单类型/order_type",
-                values: PRESET_VALUES.order_type,
+                values: options_order,
                 isEmpty: isEmpty(orderType)
             },
+            ...NUMERIC_FIELDS.map(nf => ({
+                label: nf.label,
+                fieldName: nf.fieldName,
+                isNumeric: true,
+                placeholder: nf.placeholder,
+                // numeric fields use `key` (e.g. entryPrice) not raw fieldname
+                isEmpty: isEmpty(getVal(nf.fieldName, nf.key.replace(/_([a-z])/g, (g) => g[1].toUpperCase()))) // snake to camel
+            })),
             {
                 label: "结果",
                 fieldName: "结果/outcome",
-                values: PRESET_VALUES.outcome,
+                values: options_outcome,
                 isEmpty: isEmpty(outcome)
             },
             {
                 label: "执行评价",
                 fieldName: "执行评价/execution_quality",
-                values: PRESET_VALUES.execution_quality,
+                values: options_quality,
                 isEmpty: isEmpty(executionQuality)
             }
         ];
@@ -172,36 +256,74 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                 还有 {emptyFields.length} 个执行字段待填写
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {nextField.values.map(value => (
-                    <button
-                        key={value}
-                        onClick={() => handleFillField(nextField.fieldName, value)}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "var(--interactive-hover)";
-                            e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "var(--background-primary)";
-                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                        }}
-                        style={{
-                            padding: "8px",
-                            background: "var(--background-primary)",
-                            borderRadius: "6px",
-                            border: "1px solid var(--background-modifier-border)",
-                            fontSize: "12px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            width: "100%",
-                            textAlign: "left",
-                        }}
-                    >
-                        <span style={{ fontWeight: 500 }}>{value}</span>
-                    </button>
-                ))}
+                {nextField.isNumeric ? (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                        <input
+                            type="number"
+                            placeholder={nextField.placeholder}
+                            style={{
+                                flex: 1,
+                                padding: "8px",
+                                background: "var(--background-primary)",
+                                border: "1px solid var(--background-modifier-border)",
+                                borderRadius: "6px",
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleFillField(nextField.fieldName, e.currentTarget.value);
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                handleFillField(nextField.fieldName, input.value);
+                            }}
+                            style={{
+                                padding: "6px 12px",
+                                background: "var(--interactive-accent)",
+                                color: "var(--text-on-accent)",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontWeight: 600
+                            }}
+                        >
+                            确认
+                        </button>
+                    </div>
+                ) : (
+                    nextField.values?.map(value => (
+                        <button
+                            key={value}
+                            onClick={() => handleFillField(nextField.fieldName, value)}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--interactive-hover)";
+                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "var(--background-primary)";
+                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                            }}
+                            style={{
+                                padding: "8px",
+                                background: "var(--background-primary)",
+                                borderRadius: "6px",
+                                border: "1px solid var(--background-modifier-border)",
+                                fontSize: "12px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                width: "100%",
+                                textAlign: "left",
+                            }}
+                        >
+                            <span style={{ fontWeight: 500 }}>{value}</span>
+                        </button>
+                    ))
+                )}
             </div>
         </div>
     );

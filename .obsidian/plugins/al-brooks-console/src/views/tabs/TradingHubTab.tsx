@@ -137,6 +137,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
           app={props.app}
+          enumPresets={props.enumPresets}
         />
 
 
