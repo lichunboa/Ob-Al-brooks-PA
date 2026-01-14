@@ -15,10 +15,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 try:
-    from ..config import COOLDOWN_SECONDS, get_database_url
+    from ..config import COOLDOWN_SECONDS, DATA_MAX_AGE_SECONDS, get_database_url
     from ..events import SignalEvent, SignalPublisher
 except ImportError:
-    from config import COOLDOWN_SECONDS, get_database_url
+    from config import COOLDOWN_SECONDS, DATA_MAX_AGE_SECONDS, get_database_url
     from events import SignalEvent, SignalPublisher
 
 from .base import BaseEngine
@@ -419,7 +419,7 @@ class PGSignalEngine(BaseEngine):
         self._conn = None
 
         # 统计
-        self.stats = {"checks": 0, "signals": 0, "errors": 0}
+        self.stats = {"checks": 0, "signals": 0, "errors": 0, "stale": 0}
 
     def _get_conn(self):
         """获取数据库连接"""
@@ -484,6 +484,13 @@ class PGSignalEngine(BaseEngine):
             self.stats["errors"] += 1
         return result
 
+    def _is_fresh(self, ts: datetime | None) -> bool:
+        """数据是否新鲜"""
+        if ts is None:
+            return False
+        age = (datetime.now(ts.tzinfo) - ts).total_seconds() if ts else 1e9
+        return age <= DATA_MAX_AGE_SECONDS
+
     def _fetch_latest_metrics(self) -> dict[str, dict]:
         """获取最新期货指标数据"""
         conn = self._get_conn()
@@ -541,6 +548,19 @@ class PGSignalEngine(BaseEngine):
 
             if not curr_candle:
                 continue
+
+            # 数据新鲜度检查
+            ts_candle = curr_candle.get("bucket_ts")
+            if not self._is_fresh(ts_candle):
+                self.stats["stale"] += 1
+                logger.warning("跳过陈旧K线数据 %s ts=%s", symbol, ts_candle)
+                continue
+            if curr_metric:
+                ts_metric = curr_metric.get("create_time")
+                if not self._is_fresh(ts_metric):
+                    self.stats["stale"] += 1
+                    logger.warning("跳过陈旧期货指标 %s ts=%s", symbol, ts_metric)
+                    curr_metric = None
 
             checkers = [
                 (rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
