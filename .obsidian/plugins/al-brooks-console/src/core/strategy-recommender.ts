@@ -55,6 +55,7 @@ const FILL_ORDER = [
     { key: 'setupCategory', label: '设置类别', field: 'setupCategories' },
     { key: 'patterns', label: '观察到的形态', field: 'patternsObserved' },
     { key: 'signalBarQuality', label: '信号K', field: 'signalBarQuality' },
+    { key: 'timeframe', label: '时间周期', field: 'timeframe' }, // 新增
     // alwaysIn字段在策略卡中普遍缺失,暂时移除
     // { key: 'alwaysIn', label: '总是方向', field: 'alwaysIn' },
 ] as const;
@@ -148,6 +149,19 @@ function matchDirection(card: StrategyCard, value: string): boolean {
 }
 
 /**
+ * 检查策略是否匹配指定的时间周期
+ */
+function matchTimeframe(card: StrategyCard, value: string): boolean {
+    const cardValue = (card as any).timeframe || (card as any)["时间周期/timeframe"];
+    if (!cardValue) return false;
+    const normalizedValue = normalizeKey(value);
+    const cardStr = Array.isArray(cardValue)
+        ? cardValue.join(" ").toLowerCase()
+        : String(cardValue).toLowerCase();
+    return cardStr.includes(normalizedValue) || normalizedValue.includes(cardStr);
+}
+
+/**
  * 根据输入筛选策略
  */
 function filterStrategies(
@@ -182,6 +196,11 @@ function filterStrategies(
 
         // 方向匹配
         if (input.direction && !matchDirection(card, input.direction)) {
+            return false;
+        }
+
+        // 时间周期匹配 (新增)
+        if (input.timeframe && !matchTimeframe(card, input.timeframe)) {
             return false;
         }
 

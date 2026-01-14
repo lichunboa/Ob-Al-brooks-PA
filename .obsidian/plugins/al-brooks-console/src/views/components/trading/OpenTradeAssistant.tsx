@@ -244,28 +244,52 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         周期 → 策略推荐
                                     </div>
                                     <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {results.map((r) => (
-                                            <li
-                                                key={`cycle-pick-${r.card.path}`}
-                                                style={{ marginBottom: "6px" }}
-                                            >
-                                                <InteractiveButton
-                                                    interaction="text"
-                                                    onClick={() => onOpenFile(r.card.path)}
-                                                >
-                                                    {r.card.canonicalName}
-                                                </InteractiveButton>
-                                                {r.score > 0 && (
-                                                    <span style={{
-                                                        marginLeft: "8px",
-                                                        fontSize: "0.85em",
-                                                        color: "var(--text-faint)"
-                                                    }}>
-                                                        {r.reason}
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
+                                        {(() => {
+                                            // 计算总评分用于百分比
+                                            const totalScore = results.reduce((sum, r) => sum + r.score, 0);
+
+                                            return results.map((r) => {
+                                                // 计算百分比
+                                                const percentage = totalScore > 0
+                                                    ? Math.round((r.score / totalScore) * 100)
+                                                    : 0;
+
+                                                return (
+                                                    <li
+                                                        key={`cycle-pick-${r.card.path}`}
+                                                        style={{ marginBottom: "6px" }}
+                                                    >
+                                                        <InteractiveButton
+                                                            interaction="text"
+                                                            onClick={() => onOpenFile(r.card.path)}
+                                                        >
+                                                            {r.card.canonicalName}
+                                                        </InteractiveButton>
+                                                        {r.score > 0 && (
+                                                            <span style={{
+                                                                marginLeft: "8px",
+                                                                fontSize: "0.85em",
+                                                                color: "var(--text-faint)"
+                                                            }}>
+                                                                {r.reason}
+                                                            </span>
+                                                        )}
+                                                        {/* 添加百分比显示 */}
+                                                        <span style={{
+                                                            marginLeft: "8px",
+                                                            fontSize: "0.85em",
+                                                            padding: "2px 6px",
+                                                            background: "var(--interactive-accent)",
+                                                            color: "var(--text-on-accent)",
+                                                            borderRadius: "4px",
+                                                            fontWeight: 600
+                                                        }}>
+                                                            {percentage}%
+                                                        </span>
+                                                    </li>
+                                                );
+                                            });
+                                        })()}
                                     </ul>
                                 </div>
                             );
