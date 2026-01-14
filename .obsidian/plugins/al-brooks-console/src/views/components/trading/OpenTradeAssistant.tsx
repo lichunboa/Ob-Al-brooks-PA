@@ -416,8 +416,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 );
             })()}
 
-            {/* 交易执行填写面板 */}
-            {currentTrade && <ExecutionFillPanel trade={currentTrade} app={app} />}
+            {/* 交易执行填写面板 - 使用openTrade避免交易切换问题 */}
+            {openTrade && <ExecutionFillPanel trade={openTrade} app={app} />}
 
             {currentStrategy ? (
                 <div>
