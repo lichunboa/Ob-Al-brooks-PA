@@ -421,7 +421,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 <ExecutionFillPanel
                     trade={openTrade}
                     app={app}
-                    onFillAttribute={handleFillAttribute}
                 />
             )}
 

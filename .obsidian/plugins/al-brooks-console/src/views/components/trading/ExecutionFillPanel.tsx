@@ -37,14 +37,34 @@ const PRESET_VALUES = {
 export interface ExecutionFillPanelProps {
     trade: TradeRecord;
     app: any;
-    onFillAttribute: (attribute: string, value: string) => Promise<void>;
 }
 
 /**
  * 交易执行填写面板组件
- * 仿照"建议下一步填写"模块的设计
+ * 用于快速填写管理计划、订单类型、结果和执行评价等字段
  */
-export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, onFillAttribute }) => {
+export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app }) => {
+    // 填写字段函数
+    const handleFillField = React.useCallback(async (fieldName: string, value: string) => {
+        if (!trade?.path || !app) return;
+
+        try {
+            const file = app.vault.getAbstractFileByPath(trade.path);
+            if (!file) {
+                console.error('[ExecutionFill] File not found:', trade.path);
+                return;
+            }
+
+            await app.fileManager.processFrontMatter(file, (fm: any) => {
+                fm[fieldName] = value;
+            });
+
+            console.log(`[ExecutionFill] Filled ${fieldName} = ${value}`);
+        } catch (error) {
+            console.error('[ExecutionFill] Error:', error);
+        }
+    }, [trade, app]);
+
     // 检查字段值 - 使用严格的isEmpty判断
     const isEmpty = (value: any): boolean => {
         if (value === undefined || value === null || value === '') return true;
@@ -120,7 +140,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                     {field.values.map(value => (
                         <button
                             key={value}
-                            onClick={() => onFillAttribute(field.fieldName, value)}
+                            onClick={() => handleFillField(field.fieldName, value)}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = "var(--interactive-hover)";
                                 e.currentTarget.style.borderColor = "var(--interactive-accent)";
