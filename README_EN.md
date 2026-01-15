@@ -419,7 +419,7 @@ Signal service tips:
 <td width="50%">
 
 ### 🔔 Signal Detection Engine
-- **109 Rules** - Covering 35 indicator tables
+- **129 Rules** - Covering 8 categories (standalone signal-service)
 - **Multi-Dimensional Detection** - Trend/momentum/pattern/futures
 - **Subscription Management** - User-defined push preferences
 - **Cooldown Mechanism** - Prevent duplicate pushes
@@ -464,7 +464,7 @@ graph TD
 
     subgraph TS["📊 trading-service<br><small>Python, pandas, numpy, TA-Lib</small>"]
         TR_ENG["engine<br>Compute Engine"]
-        TR_IND["indicators<br>38 Indicators"]
+        TR_IND["indicators<br>34 Indicators"]
         TR_SCH["scheduler<br>Scheduler"]
         TR_PRI["priority<br>High Priority Filtering"]
     end
@@ -475,7 +475,7 @@ graph TD
     TR_ENG --> TR_IND
     TR_ENG --> TR_PRI
 
-    SQLITE[("📁 market_data.db<br>SQLite Indicator Results 38 Tables")]
+    SQLITE[("📁 market_data.db<br>SQLite Indicator Results")]
     TR_IND --> SQLITE
 
     subgraph AI["🧠 AI Smart Analysis"]
@@ -483,17 +483,29 @@ graph TD
         AI_MOD["Multi-Model Support<br>Gemini / OpenAI / Claude / DeepSeek"]
     end
 
+    subgraph SIG["🔔 signal-service<br><small>Standalone signal detection</small>"]
+        SIG_RULES["rules<br>129 Signal Rules"]
+        SIG_ENG["engines<br>SQLite + PG Engine"]
+        SIG_PUB["events<br>SignalPublisher"]
+    end
+
+    SQLITE --> SIG_ENG
+    TS_CANDLE --> SIG_ENG
+    TS_FUTURE --> SIG_ENG
+    SIG_ENG --> SIG_RULES
+    SIG_RULES --> SIG_PUB
+
     subgraph TG["🤖 telegram-service<br><small>python-telegram-bot, aiohttp</small>"]
         TG_CARD["cards<br>Ranking Cards 20+"]
-        TG_SIG["signals<br>Signal Detection Engine<br>109 Rules"]
+        TG_ADAPTER["signals/adapter<br>Signal Service Adapter"]
         TG_HAND["handlers<br>Command Handlers"]
         TG_BOT["bot<br>Main Program"]
     end
 
     SQLITE --> TG_CARD
-    SQLITE --> TG_SIG
+    SIG_PUB --> TG_ADAPTER
+    TG_ADAPTER --> TG_BOT
     TG_CARD --> TG_BOT
-    TG_SIG --> TG_BOT
     TG_HAND --> TG_BOT
     AI_MOD --> TG_BOT
     TS_CANDLE -.-> AI_WY
@@ -516,9 +528,10 @@ graph TD
 | Service | Port | Responsibility | Tech Stack |
 |:---|:---:|:---|:---|
 | **data-service** | - | Crypto candlestick collection, futures metrics, historical backfill | Python, asyncio, ccxt, cryptofeed |
-| **trading-service** | - | 38 technical indicator classes calculation, high-priority token filtering | Python, pandas, numpy, TA-Lib |
+| **trading-service** | - | 34 technical indicator modules calculation, high-priority token filtering | Python, pandas, numpy, TA-Lib |
 | **telegram-service** | - | Bot interaction, rankings display, signal push | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI analysis, Wyckoff methodology (as telegram-service submodule) | Gemini/OpenAI/Claude/DeepSeek |
+| **signal-service** | - | Standalone signal detection (129 rules, 8 categories, event publishing) | Python, SQLite, psycopg2 |
 | **markets-service** | - | Multi-market data collection (US/China stocks, macro) [preview] | yfinance, akshare, fredapi, QuantLib |
 | **predict-service** | - | Prediction market signals (Polymarket/Kalshi/Opinion) [preview] | Node.js, Telegram Bot |
 | **vis-service** | 8087 | Visualization rendering (K-line/indicators/VPVR) [preview] | FastAPI, matplotlib, mplfinance |
@@ -851,7 +864,7 @@ tradecat/
 │   │
 │   ├── 📂 trading-service/         # Indicator calculation service
 │   │   ├── 📂 src/
-│   │   │   ├── 📂 indicators/      # 38 indicator classes
+│   │   │   ├── 📂 indicators/      # 34 indicator modules
 │   │   │   ├── 📂 core/            # Compute engine
 │   │   │   └── simple_scheduler.py
 │   │   ├── 📂 scripts/
@@ -884,10 +897,12 @@ tradecat/
 │   │   ├── pyproject.toml
 │   │   └── requirements.txt
 │   │
-│   └── 📂 signal-service/          # Signal detection service
+│   └── 📂 signal-service/          # Signal detection service (129 rules)
 │       ├── 📂 src/
-│       │   ├── 📂 engines/         # Detection engines
-│       │   ├── 📂 rules/           # Signal rules
+│       │   ├── 📂 engines/         # Detection engines (SQLite + PG)
+│       │   ├── 📂 rules/           # Signal rules (8 categories)
+│       │   ├── 📂 events/          # Event publishing
+│       │   ├── 📂 storage/         # Cooldown persistence
 │       │   └── 📂 formatters/      # Output formatters
 │       ├── 📂 scripts/
 │       ├── 📂 tests/
@@ -945,7 +960,8 @@ tradecat/
 │   └── 📂 common/                  # Shared utilities
 │       ├── i18n.py                 # Internationalization module
 │       ├── symbols.py              # Token management module
-│       └── proxy_manager.py        # Proxy manager
+│       ├── proxy_manager.py        # Proxy manager
+│       └── utils/                  # Utility functions
 │
 ├── 📂 backups/                     # Backup directory
 │   └── 📂 timescaledb/             # Database backups
