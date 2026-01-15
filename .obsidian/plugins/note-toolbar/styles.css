@@ -1931,6 +1931,18 @@ body {
     
 }
 
+/* on phones, hide the top border when properties is open */
+
+.is-phone .metadata-container:not([data-property-count="0"])[style*="--metadata-display-reading: block"] ~ .cg-note-toolbar-container {
+  & .callout[data-callout="note-toolbar"]:not([data-callout-metadata*="mnbrder"])[data-callout-metadata*="border"],
+  & .callout[data-callout="note-toolbar"][data-callout-metadata*="mbrder"] {
+    border-top: unset;
+    .is-hidden-nav & {
+        border-top: solid 1px var(--cg-nt-tbar-border-color);
+    }
+  }
+}
+
 /* Liquid Glass effect for the Cupertino theme, thanks to @aaaaalexis */
 
 /* Licensed under the MIT License; see the LICENSE file */
@@ -2327,8 +2339,6 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
         }
     }
     & .setting-item-control .clickable-icon:focus-within {
-        /* border-radius: var(--input-radius); */
-        box-shadow: inset 0 0 0 1px var(--background-modifier-border);
         box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
     }
     & .is-disabled {
@@ -2451,7 +2461,6 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
         padding: 1em;
     }
     &:focus-within {
-        box-shadow: inset 0 0 0 1px var(--background-modifier-border);
         box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
     }
     &[data-active="true"] {
@@ -2564,13 +2573,11 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
     }
     &:focus-within {
         border-radius: var(--radius-m);
-        box-shadow: inset 0 0 0 1px var(--background-modifier-border);
         box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
     }
     @media (hover: hover) {
         &:hover {
             border-radius: var(--radius-m);
-            box-shadow: inset 0 0 0 1px var(--background-modifier-border);
             box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
             cursor: text;    
         }
@@ -2941,7 +2948,6 @@ input[type="text"].note-toolbar-setting-error,
         }
         &:focus-within {
             border-radius: var(--input-radius);
-            box-shadow: 0 0 0 1px var(--background-modifier-border);
             box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
             transition: box-shadow 0.15s ease-in-out, border 0.15s ease-in-out;
         }
@@ -3205,7 +3211,6 @@ input[type="text"].note-toolbar-setting-error,
             }
             &:focus-visible {
                 border-radius: var(--input-radius);
-                box-shadow: 0 0 0 1px var(--background-modifier-border);
                 box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
             }
         }
@@ -3266,7 +3271,6 @@ input[type="text"].note-toolbar-setting-error,
                 }
                 &:focus-visible {
                     border-radius: var(--input-radius);
-                    box-shadow: 0 0 0 1px var(--background-modifier-border);
                     box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
                 }
                 & span:last-child {
@@ -4242,5 +4246,12 @@ body[data-ntb-csstheme="Minimal"] {
             width: var(--line-width);
             margin-inline: var(--content-margin) !important;
         }
+    }
+}
+/* Velocity: fix: margins and padding incorrect */
+body[data-ntb-csstheme="Velocity"] {
+    & .callout[data-callout="note-toolbar"] .callout-content {
+        margin-block-end: var(--cg-nt-tbar-margin-y);
+        padding-inline: unset;
     }
 }

@@ -57,8 +57,13 @@
     "//Notion/Notion/Export-a20dfcba-7295-4373-a3db-f22ce99e1e95",
     "//Templates/Templates/assets",
     "//Templates/Templates/assets/Templates/assets/单笔交易模版 (Trade Note)",
-    "//策略仓库 (Strategy Repository)",
-    "//🦁 交易员控制台 (Trader Command)"
+    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/Al Brooks经典",
+    "//Daily/Daily/SPX",
+    "//Daily/Daily/Trades/Daily/Trades/assets",
+    "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260113_0001_实盘_ES",
+    "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260114_1106_实盘_ES",
+    "//Daily",
+    "//copilot"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",

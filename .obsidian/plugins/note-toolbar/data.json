@@ -1,5 +1,6 @@
 {
   "debugEnabled": false,
+  "editorMenuAsToolbar": false,
   "editorMenuToolbar": null,
   "emptyViewToolbar": null,
   "export": {
@@ -17,6 +18,7 @@
   "icon": "circle-ellipsis",
   "keepPropsState": false,
   "lockCallouts": false,
+  "obsidianUiVisibility": {},
   "onboarding": {
     "new-toolbar-mapping": true
   },
@@ -37,6 +39,7 @@
   "showToolbarInFileMenu": true,
   "showToolbarInOther": "",
   "textToolbar": null,
+  "textToolbarOnKeyboard": true,
   "toolbarProp": "notetoolbar",
   "toolbars": [
     {
@@ -851,5 +854,5 @@
     }
   ],
   "version": 20250313.1,
-  "whatsnew_version": "1.26"
+  "whatsnew_version": "1.27"
 }

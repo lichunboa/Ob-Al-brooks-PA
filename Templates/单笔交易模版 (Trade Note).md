@@ -8,13 +8,14 @@ date:
 账户类型/account_type:
 品种/ticker:
 时间周期/timeframe: 5m
-市场周期/market_cycle:
-总是方向/always_in:
-方向/direction:
 日内类型/day_type:
+总是方向/always_in:
+市场周期/market_cycle:
+方向/direction:
 设置类别/setup_category:
 观察到的形态/patterns_observed:
 信号K/signal_bar_quality:
+策略名称/strategy_name:
 管理计划/management_plan:
 订单类型/order_type:
 入场/entry_price:
@@ -24,7 +25,6 @@ date:
 净利润/net_profit:
 结果/outcome:
 执行评价/execution_quality:
-策略名称/strategy_name:
 ---
 
 ---

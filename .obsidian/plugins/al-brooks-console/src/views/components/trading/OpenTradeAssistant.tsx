@@ -76,18 +76,25 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     app,
     enumPresets,
 }) => {
-    // 当前选中的持仓索引
-    const [selectedIndex, setSelectedIndex] = React.useState(0);
+    // 当前选中的持仓路径 (使用路径而非索引，避免列表重排时跳单)
+    const [selectedTradePath, setSelectedTradePath] = React.useState<string | null>(null);
 
-    // 当前显示的交易 (优先使用openTrades)
-    const currentTrade = openTrades.length > 0 ? openTrades[selectedIndex] : openTrade;
-
-    // 重置索引当持仓数量变化时
+    // 初始化或重置选中项
     React.useEffect(() => {
-        if (selectedIndex >= openTrades.length && openTrades.length > 0) {
-            setSelectedIndex(0);
+        // 如果没有选中项，或者当前选中项不在列表中，默认选中第一个
+        const currentExists = openTrades.some(t => t.path === selectedTradePath);
+        if (!currentExists && openTrades.length > 0) {
+            setSelectedTradePath(openTrades[0].path);
         }
-    }, [openTrades.length, selectedIndex]);
+    }, [openTrades, selectedTradePath]);
+
+    // 当前显示的交易 (优先使用 selectedTradePath 查找)
+    const currentTrade = React.useMemo(() => {
+        if (openTrades.length > 0) {
+            return openTrades.find(t => t.path === selectedTradePath) ?? openTrades[0];
+        }
+        return openTrade;
+    }, [openTrades, selectedTradePath, openTrade]);
 
     // 基于currentTrade动态计算策略 (使用V2引擎)
     const currentStrategy = React.useMemo(() => {
@@ -108,6 +115,12 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             includeHistoricalPerf: true,
             limit: 3,
         }, trades);
+
+        // 如果已经有填写的策略名，尝试匹配那个
+        if (currentTrade.strategyName) {
+            const explicit = results.find(r => r.card.canonicalName === currentTrade.strategyName);
+            if (explicit) return explicit.card;
+        }
 
         return results[0]?.card;
     }, [currentTrade, strategyIndex, trades]);
@@ -169,21 +182,21 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 }}>
                     {openTrades.map((trade, idx) => (
                         <button
-                            key={`${trade.path}-${idx}`}
-                            onClick={() => setSelectedIndex(idx)}
+                            key={trade.path}
+                            onClick={() => setSelectedTradePath(trade.path)}
                             style={{
                                 padding: "6px 12px",
-                                background: idx === selectedIndex
+                                background: trade.path === currentTrade.path
                                     ? "var(--interactive-accent)"
                                     : "var(--background-modifier-border)",
-                                color: idx === selectedIndex
+                                color: trade.path === currentTrade.path
                                     ? "var(--text-on-accent)"
                                     : "var(--text-muted)",
                                 border: "none",
                                 borderRadius: "12px",
                                 cursor: "pointer",
                                 fontSize: "0.85em",
-                                fontWeight: idx === selectedIndex ? 600 : 400,
+                                fontWeight: trade.path === currentTrade.path ? 600 : 400,
                                 transition: "all 0.2s",
                                 display: "flex",
                                 alignItems: "center",
@@ -231,9 +244,16 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         </div>
 
                         {marketCycle && (() => {
+                            const patterns = (currentTrade.patternsObserved ?? [])
+                                .map((p) => String(p).trim())
+                                .filter(Boolean);
+                            const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.trim();
+
                             // 使用V2引擎 - 考虑方向、时间周期、历史表现
                             const results = matchStrategiesV2(strategyIndex, {
                                 marketCycle,
+                                setupCategory,
+                                patterns,
                                 direction: currentTrade.direction as "Long" | "Short" | undefined,
                                 timeframe: currentTrade.timeframe,
                                 includeHistoricalPerf: true,
@@ -314,30 +334,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     timeframe: currentTrade.timeframe,
                 });
 
-                // 调试日志
-                console.log('[SmartGuidance] Recommendation:', recommendation);
-                console.log('[SmartGuidance] CurrentTrade:', {
-                    marketCycle: currentTrade.marketCycle,
-                    alwaysIn: (currentTrade as any).alwaysIn,
-                    setupCategory: currentTrade.setupCategory,
-                    patterns: currentTrade.patternsObserved,
-                    direction: currentTrade.direction,
-                });
-                console.log('[SmartGuidance] StrategyIndex total:', strategyIndex.list().length);
-
-                // 调试:查看策略卡片的direction字段
-                if (strategyIndex.list().length > 0) {
-                    const firstStrategy = strategyIndex.list()[0];
-                    console.log('[SmartGuidance] First strategy sample:', {
-                        name: (firstStrategy as any).name,
-                        direction: (firstStrategy as any).direction,
-                        marketCycles: (firstStrategy as any).marketCycles,
-                        setupCategories: (firstStrategy as any).setupCategories,
-                    });
-                }
-
                 if (!recommendation || recommendation.recommendations.length === 0) {
-                    console.log('[SmartGuidance] No recommendations available');
                     return null;
                 }
 
@@ -355,7 +352,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             fontWeight: 600,
                             color: "var(--text-accent)"
                         }}>
-                            💡 建议下一步填写: {recommendation.nextAttributeLabel}
+                            💡 建议完善分析: {recommendation.nextAttributeLabel}
                         </div>
                         <div style={{
                             fontSize: "11px",
@@ -370,14 +367,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 <button
                                     key={rec.value}
                                     onClick={() => handleFillAttribute(rec.attribute, rec.value)}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = "var(--interactive-hover)";
-                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = "var(--background-primary)";
-                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                                    }}
                                     style={{
                                         padding: "8px",
                                         background: "var(--background-primary)",
@@ -388,8 +377,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         justifyContent: "space-between",
                                         alignItems: "center",
                                         cursor: "pointer",
-                                        transition: "all 0.2s",
-                                        width: "100%",
                                         textAlign: "left",
                                     }}
                                 >
@@ -425,6 +412,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     trade={currentTrade}
                     app={app}
                     enumPresets={enumPresets}
+                    suggestedStrategyName={currentStrategy?.canonicalName}
                 />
             )}
 

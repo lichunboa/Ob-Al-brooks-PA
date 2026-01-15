@@ -2,7 +2,9 @@ import * as React from "react";
 import type { TradeRecord } from "../../../core/contracts";
 
 import type { EnumPresets } from "../../../core/enum-presets";
-import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { Button } from "../../../ui/components/Button";
+// 引入基础设计原语，确保透明风格
+import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
 
 /**
  * 预设值常量 (Fallback)
@@ -52,61 +54,47 @@ export interface ExecutionFillPanelProps {
     trade: TradeRecord;
     app: any;
     enumPresets?: EnumPresets;
+    suggestedStrategyName?: string; // Automatically suggested strategy name from engine
 }
 
 /**
  * 交易执行填写面板组件
  * 用于快速填写管理计划、订单类型、结果和执行评价等字段
  */
-export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, enumPresets }) => {
+export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, enumPresets, suggestedStrategyName }) => {
     // 乐观锁：记录用户已经填写的字段及其值
     // Key: fieldName (e.g., "管理计划/management_plan")
     // Value: filled value
     const [optimisticValues, setOptimisticValues] = React.useState<Map<string, any>>(new Map());
 
-    // 当外部 trade 更新时，我们需要检查乐观锁是否可以释放
+    // 当 Trade 路径改变时（即切换了交易），必须清空乐观锁状态，防止上一个交易的状态污染当前交易
     React.useEffect(() => {
-        console.log(`[ExecutionFill] Prop Update: ${trade.path}`, trade);
-        setOptimisticValues(prev => {
-            const next = new Map(prev);
-            let changed = false;
+        setOptimisticValues(new Map());
+    }, [trade.path]);
 
-            for (const [key, optimisticVal] of prev.entries()) {
-                // 如果外部数据已经追上了我们的乐观值，或者有了更新的值，就可以释放锁了
-                // 这里简化处理：只要外部数据有值，且不为空，我们就认为同步可能完成了。
-                // 但为了防止回滚，最严格的做法是：只有当外部值 == 乐观值时，才移除。
-                // 可是考虑到解析转换（比如 string -> number），严格相等可能很难。
-                // 退一步：我们保留乐观值，直到用户刷新或重新加载组件？
-                // 不，那样会一直无法感知外部修改。
-
-                // 策略：如果 Trade 对象的该字段值与乐观值“大致相等”，则移除乐观锁。
-                // 或者，我们根本不移除，直到组件卸载？不，因为用户可能在 Obsidian 别处改了。
-
-                // 现实策略：我们只用 optimisticValues 来覆盖显示。
-                // 当 props.trade 传来新值时，如果新值 == 乐观值，则移除乐观条目。
-                const serverVal = (trade as any)[getTradeKey(key)];
-                // 简单的相等检查 (如果是数字，注意类型)
-                // Loose equality check to handle string "100" vs number 100
-                if (serverVal == optimisticVal) {
-                    console.log(`[ExecutionFill] Sync Complete for ${key}. Server=${serverVal}, Optimistic=${optimisticVal}`);
-                    next.delete(key);
-                    changed = true;
-                } else {
-                    console.log(`[ExecutionFill] Sync Pending for ${key}. Server=${serverVal}, Optimistic=${optimisticVal}`);
-                }
+    // 当外部 trade 更新时，我们只进行 logging，或者在极端情况下（比如 switch trade）才重置。
+    // 这里我们假设组件是受控于 `key={trade.path}` 的，如果切换 trade，整个组件会重刷，optimisticValues 自动清空。
+    // 所以这里的 Effect 只需要处理 "Sync Check" (Debug Only)，或者处理 "Server Set to Empty" (Revert?)
+    // 现在的策略是：【绝对信任本地状态】。只有当用户手动刷新插件，或者我们检测到不可恢复的冲突时才关心。
+    React.useEffect(() => {
+        // Debug Log: Check sync status
+        let syncedCount = 0;
+        for (const [key, optimisticVal] of optimisticValues.entries()) {
+            const serverVal = (trade as any)[getTradeKey(key)];
+            // Loose equality for string/number diffs
+            if (serverVal == optimisticVal) {
+                syncedCount++;
             }
-            return changed ? next : prev;
-        });
-    }, [trade]);
-
-    // Lifecycle Log
-    React.useEffect(() => {
-        console.log("[ExecutionFill] MOUNTED");
-        return () => console.log("[ExecutionFill] UNMOUNTED");
-    }, []);
+        }
+        if (optimisticValues.size > 0) {
+            console.log(`[ExecutionFill] Optimistic State: ${syncedCount}/${optimisticValues.size} synced.`);
+        }
+    }, [trade, optimisticValues]);
 
     // 辅助：从 fieldName 映射到 TradeRecord 的 key
     const getTradeKey = (fieldName: string): string => {
+        // Fix: Map both possible field names to the internal key, prioritizing strategy_name
+        if (fieldName === "策略名称/strategy_name" || fieldName === "策略/strategy") return "strategyName";
         if (fieldName.includes("management_plan")) return "managementPlan";
         if (fieldName.includes("order_type")) return "orderType";
         if (fieldName.includes("outcome")) return "outcome";
@@ -123,8 +111,9 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
     const handleFillField = React.useCallback(async (fieldName: string, value: string) => {
         if (!trade?.path || !app) return;
 
-        // 1. 设置乐观锁
-        const parsedValue = NUMERIC_FIELDS.some(f => f.fieldName === fieldName) ? parseFloat(value) : value;
+        // 1. 设置乐观锁 (Aggressive)
+        const isNumeric = NUMERIC_FIELDS.some(f => f.fieldName === fieldName);
+        const parsedValue = isNumeric ? parseFloat(value) : value;
 
         setOptimisticValues(prev => {
             const next = new Map(prev);
@@ -137,7 +126,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
             const file = app.vault.getAbstractFileByPath(trade.path);
             if (!file) {
                 console.error('[ExecutionFill] File not found:', trade.path);
-                return;
+                return; // Keep optimistic value, maybe user can retry?
             }
 
             await app.fileManager.processFrontMatter(file, (fm: any) => {
@@ -147,12 +136,9 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
             console.log(`[ExecutionFill] Filled ${fieldName} = ${value}`);
         } catch (error) {
             console.error('[ExecutionFill] Error:', error);
-            // 回滚乐观锁
-            setOptimisticValues(prev => {
-                const next = new Map(prev);
-                next.delete(fieldName);
-                return next;
-            });
+            // 这里我们不回滚，因为现在的策略是“信任本地”。
+            // 如果报错了，用户可能会再次点击。或者我们可以加个 "Error" 状态。
+            // 暂不回滚。
         }
     }, [trade, app]);
 
@@ -180,6 +166,7 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         return (trade as any)[tradeKey];
     };
 
+    const strategyName = getVal("策略名称/strategy_name", "strategyName");
     const managementPlan = getVal("管理计划/management_plan", "managementPlan");
     const orderType = getVal("订单类型/order_type", "orderType");
     const outcome = getVal("结果/outcome", "outcome");
@@ -204,7 +191,16 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         isNumeric?: boolean;
         placeholder?: string;
         isEmpty: boolean;
+        isStrategy?: boolean; // Special flag for strategy auto-fill
     }> = [
+            // 0. 策略名称（自动填充）
+            {
+                label: "策略名称",
+                fieldName: "策略名称/strategy_name", // Corrected field name
+                values: suggestedStrategyName ? [suggestedStrategyName] : [],
+                isEmpty: isEmpty(strategyName) && !!suggestedStrategyName, // Only prompt if empty AND we have a suggestion
+                isStrategy: true
+            },
             {
                 label: "管理计划",
                 fieldName: "管理计划/management_plan",
@@ -242,24 +238,33 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
     // 过滤出需要填写的字段
     const emptyFields = fieldsToFill.filter(f => f.isEmpty);
 
-    // Debug logging
-    console.log("[ExecutionFill] Debug State:", {
-        fields: fieldsToFill.map(f => ({
-            label: f.label,
-            isEmpty: f.isEmpty,
-            val: f.fieldName.includes("numeric") ? "numeric" : getVal(f.fieldName, getTradeKey(f.fieldName))
-        })),
-        optimisticSize: optimisticValues.size,
-        outcomeRaw: (trade as any).outcome,
-        outcomeVal: outcome,
-        executionQualityVal: executionQuality
-    });
-
-    // 如果所有字段都已填写,不显示面板
+    // 如果所有字段都已填写, 显示完成状态而不是 null
     if (emptyFields.length === 0) {
-        // Show a message or keep it null?
-        // Maybe useful to see why it's empty
-        return null;
+        return (
+            <div style={{
+                marginTop: "16px",
+                padding: "12px 16px",
+                background: "rgba(var(--background-secondary-rgb), 0.3)",
+                borderRadius: "12px",
+                border: "1px solid var(--background-modifier-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                ...glassInsetStyle
+            }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "16px" }}>✅</span>
+                    <span style={{
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: "var(--text-muted)"
+                    }}>
+                        执行信息已填写完成
+                    </span>
+                </div>
+                {/* Future: Add 'Edit' button here if needed */}
+            </div>
+        );
     }
 
     // 一次只显示第一个未填写的字段
@@ -268,39 +273,72 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
     return (
         <div style={{
             marginTop: "16px",
-            padding: "12px",
-            background: "var(--background-secondary)",
-            borderRadius: "8px",
+            padding: "16px",
+            background: "rgba(var(--background-secondary-rgb), 0.5)", // More transparent
+            borderRadius: "12px", // More rounded like GlassPanel
             border: "1px solid var(--background-modifier-border)",
+            ...glassInsetStyle // Apply inner shadow/texture
         }}>
             <div style={{
-                fontSize: "12px",
+                fontSize: "13px",
                 marginBottom: "8px",
                 fontWeight: 600,
-                color: "var(--text-accent)"
+                color: "var(--text-accent)",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px"
             }}>
-                💡 建议下一步填写: {nextField.label}
+                <span>💡</span>
+                <span>建议补充执行: {nextField.label}</span>
             </div>
+
             <div style={{
                 fontSize: "11px",
                 opacity: 0.8,
-                marginBottom: "8px",
+                marginBottom: "12px",
                 color: "var(--text-muted)"
             }}>
                 还有 {emptyFields.length} 个执行字段待填写
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {nextField.isNumeric ? (
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {nextField.isStrategy ? (
+                    // 特殊渲染：策略确认
+                    <div style={{
+                        padding: "12px",
+                        background: "rgba(var(--interactive-accent-rgb), 0.1)",
+                        border: "1px solid var(--interactive-accent)",
+                        borderRadius: "8px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px"
+                    }}>
+                        <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                            检测到匹配策略：<span style={{ color: "var(--text-accent)", fontWeight: 700 }}>{suggestedStrategyName}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <Button
+                                variant="default"
+                                onClick={() => suggestedStrategyName && handleFillField(nextField.fieldName, suggestedStrategyName)}
+                                style={{ flex: 1 }}
+                            >
+                                ✅ 确认使用此策略
+                            </Button>
+                        </div>
+                    </div>
+                ) : nextField.isNumeric ? (
                     <div style={{ display: "flex", gap: "8px" }}>
                         <input
                             type="number"
                             placeholder={nextField.placeholder}
                             style={{
                                 flex: 1,
-                                padding: "8px",
+                                padding: "8px 12px",
                                 background: "var(--background-primary)",
                                 border: "1px solid var(--background-modifier-border)",
                                 borderRadius: "6px",
+                                outline: "none",
+                                fontSize: "13px"
                             }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -308,39 +346,28 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                                 }
                             }}
                         />
-                        <button
+                        <Button
+                            variant="small"
                             onClick={(e) => {
-                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                handleFillField(nextField.fieldName, input.value);
-                            }}
-                            style={{
-                                padding: "6px 12px",
-                                background: "var(--interactive-accent)",
-                                color: "var(--text-on-accent)",
-                                border: "none",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontWeight: 600
+                                // Find input sibling safely
+                                const wrapper = e.currentTarget.parentElement;
+                                const input = wrapper?.querySelector('input');
+                                if (input) {
+                                    handleFillField(nextField.fieldName, input.value);
+                                }
                             }}
                         >
                             确认
-                        </button>
+                        </Button>
                     </div>
                 ) : (
                     nextField.values?.map(value => (
-                        <button
+                        <div
                             key={value}
                             onClick={() => handleFillField(nextField.fieldName, value)}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "var(--interactive-hover)";
-                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "var(--background-primary)";
-                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                            }}
+                            className="nav-file-title" // Use Obsidian class for hover effect
                             style={{
-                                padding: "8px",
+                                padding: "8px 12px",
                                 background: "var(--background-primary)",
                                 borderRadius: "6px",
                                 border: "1px solid var(--background-modifier-border)",
@@ -350,12 +377,13 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                                 alignItems: "center",
                                 cursor: "pointer",
                                 transition: "all 0.2s",
-                                width: "100%",
-                                textAlign: "left",
                             }}
                         >
                             <span style={{ fontWeight: 500 }}>{value}</span>
-                        </button>
+                            <div style={{ opacity: 0, transition: "opacity 0.2s" }} className="hover-visible">
+                                ↵
+                            </div>
+                        </div>
                     ))
                 )}
             </div>
