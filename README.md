@@ -367,7 +367,7 @@ vim config/.env
 </td>
 <td width="50%">
 
-### 📊 38个技术指标类
+### 📊 34个技术指标模块
 - **趋势指标** - EMA/MACD/SuperTrend/趋势云/趋势线/ADX/Ichimoku
 - **动量指标** - RSI/KDJ/MFI/多空比/斐波那契狙击/CCI/WilliamsR
 - **波动指标** - 布林带/ATR/支撑阻力/VWAP/Donchian/Keltner
@@ -408,7 +408,7 @@ vim config/.env
 <td width="50%">
 
 ### 🔔 信号检测引擎
-- **129条规则** - 覆盖35张指标表（独立 signal-service）
+- **129条规则** - 覆盖8个分类（独立 signal-service）
 - **多维度检测** - 趋势/动量/形态/期货
 - **事件驱动** - SignalPublisher 发布信号事件
 - **订阅管理** - 用户自定义推送偏好
@@ -454,7 +454,7 @@ graph TD
 
     subgraph TS["📊 trading-service<br><small>Python, pandas, numpy, TA-Lib</small>"]
         TR_ENG["engine<br>计算引擎"]
-        TR_IND["indicators<br>35个指标"]
+        TR_IND["indicators<br>34个指标"]
         TR_SCH["scheduler<br>定时调度"]
         TR_PRI["priority<br>高优先级币种筛选"]
     end
@@ -465,7 +465,7 @@ graph TD
     TR_ENG --> TR_IND
     TR_ENG --> TR_PRI
 
-    SQLITE[("📁 market_data.db<br>SQLite 指标结果 38张表")]
+    SQLITE[("📁 market_data.db<br>SQLite 指标结果")]
     TR_IND --> SQLITE
 
     subgraph AI["🧠 AI 智能分析"]
@@ -519,8 +519,8 @@ graph TD
 |:---|:---:|:---|:---|
 | **data-service** | - | 加密货币 K线采集、期货指标采集、历史数据回填 | Python, asyncio, ccxt, cryptofeed |
 | **markets-service** | - | 全市场数据采集（美股/A股/宏观/衍生品定价） | yfinance, akshare, fredapi, QuantLib |
-| **trading-service** | - | 38个技术指标类计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
-| **signal-service** | - | 独立信号检测服务（129条规则、SQLite+PG引擎、事件发布） | Python, SQLite, psycopg2 |
+| **trading-service** | - | 34个技术指标模块计算、高优先级币种筛选、定时调度 | Python, pandas, numpy, TA-Lib |
+| **signal-service** | - | 独立信号检测服务（129条规则、8分类、事件发布） | Python, SQLite, psycopg2 |
 | **telegram-service** | - | Bot 交互、排行榜展示、信号推送 UI（通过 adapter 调用 signal-service） | python-telegram-bot, aiohttp |
 | **ai-service** | - | AI 分析、Wyckoff 方法论（作为 telegram-service 子模块） | Gemini/OpenAI/Claude/DeepSeek |
 | **predict-service** | - | 预测市场信号（Polymarket/Kalshi/Opinion） | Node.js, Telegram Bot |
@@ -656,7 +656,7 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 </details>
 
-### 📈 技术指标 (38个)
+### 📈 技术指标 (34个模块)
 
 <details>
 <summary><strong>点击展开👉 🔥 趋势指标 (8个)</strong></summary>
@@ -854,7 +854,7 @@ tradecat/
 │   │
 │   ├── 📂 trading-service/         # 指标计算服务
 │   │   ├── 📂 src/
-│   │   │   ├── 📂 indicators/      # 38个指标类
+│   │   │   ├── 📂 indicators/      # 34个指标模块
 │   │   │   ├── 📂 core/            # 计算引擎
 │   │   │   └── simple_scheduler.py
 │   │   ├── 📂 scripts/
@@ -887,10 +887,12 @@ tradecat/
 │   │   ├── pyproject.toml
 │   │   └── requirements.txt
 │   │
-│   └── 📂 signal-service/          # 信号检测服务
+│   └── 📂 signal-service/          # 信号检测服务（129条规则）
 │       ├── 📂 src/
-│       │   ├── 📂 engines/         # 检测引擎
-│       │   ├── 📂 rules/           # 信号规则
+│       │   ├── 📂 engines/         # 检测引擎（SQLite + PG）
+│       │   ├── 📂 rules/           # 信号规则（8个分类）
+│       │   ├── 📂 events/          # 事件发布
+│       │   ├── 📂 storage/         # 冷却持久化
 │       │   └── 📂 formatters/      # 格式化输出
 │       ├── 📂 scripts/
 │       ├── 📂 tests/
@@ -948,7 +950,8 @@ tradecat/
 │   └── 📂 common/                  # 共享工具
 │       ├── i18n.py                 # 国际化模块
 │       ├── symbols.py              # 币种管理模块
-│       └── proxy_manager.py        # 代理管理器
+│       ├── proxy_manager.py        # 代理管理器
+│       └── utils/                  # 工具函数
 │
 ├── 📂 backups/                     # 备份目录
 │   └── 📂 timescaledb/             # 数据库备份
