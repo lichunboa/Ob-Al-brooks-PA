@@ -5,17 +5,17 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from src import __version__
-from src.schemas import HealthResponse
+from src.utils.errors import api_response
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+@router.get("/health")
+async def health_check() -> dict:
     """健康检查"""
-    return HealthResponse(
-        status="healthy",
-        service="api-service",
-        version=__version__,
-        timestamp=datetime.now(),
-    )
+    return api_response({
+        "status": "healthy",
+        "service": "api-service",
+        "version": __version__,
+        "timestamp": int(datetime.now().timestamp() * 1000)
+    })

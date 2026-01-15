@@ -2,22 +2,23 @@
 
 import sqlite3
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from src.config import get_settings
-from src.schemas import IndicatorResponse, TablesResponse
+from src.utils.errors import ErrorCode, api_response, error_response
+from src.utils.symbol import normalize_symbol
 
-router = APIRouter(prefix="/api/v1", tags=["indicators"])
+router = APIRouter(tags=["indicator"])
 
 
-@router.get("/indicators/tables", response_model=TablesResponse)
-async def get_indicator_tables() -> TablesResponse:
+@router.get("/indicator/list")
+async def get_indicator_list() -> dict:
     """获取可用的指标表列表"""
     settings = get_settings()
     db_path = settings.SQLITE_INDICATORS_PATH
 
     if not db_path.exists():
-        raise HTTPException(status_code=503, detail="指标数据库不可用")
+        return error_response(ErrorCode.SERVICE_UNAVAILABLE, "指标数据库不可用")
 
     try:
         conn = sqlite3.connect(db_path)
@@ -27,24 +28,24 @@ async def get_indicator_tables() -> TablesResponse:
         conn.close()
 
         tables = [row[0] for row in rows]
-        return TablesResponse(tables=tables, count=len(tables))
+        return api_response(tables)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"查询失败: {e}")
+        return error_response(ErrorCode.INTERNAL_ERROR, f"查询失败: {e}")
 
 
-@router.get("/indicators/{table}", response_model=IndicatorResponse)
+@router.get("/indicator/data")
 async def get_indicator_data(
-    table: str,
+    table: str = Query(..., description="指标表名"),
     symbol: str | None = Query(default=None, description="交易对"),
     interval: str | None = Query(default=None, description="周期"),
     limit: int = Query(default=100, ge=1, le=1000, description="返回数量"),
-) -> IndicatorResponse:
+) -> dict:
     """获取指标数据"""
     settings = get_settings()
     db_path = settings.SQLITE_INDICATORS_PATH
 
     if not db_path.exists():
-        raise HTTPException(status_code=503, detail="指标数据库不可用")
+        return error_response(ErrorCode.SERVICE_UNAVAILABLE, "指标数据库不可用")
 
     try:
         conn = sqlite3.connect(db_path)
@@ -55,7 +56,7 @@ async def get_indicator_data(
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
         if not cursor.fetchone():
             conn.close()
-            raise HTTPException(status_code=404, detail=f"表 '{table}' 不存在")
+            return error_response(ErrorCode.TABLE_NOT_FOUND, f"表 '{table}' 不存在")
 
         # 构建查询
         query = f'SELECT * FROM "{table}"'
@@ -64,7 +65,7 @@ async def get_indicator_data(
 
         if symbol:
             conditions.append('"交易对" = ?')
-            params.append(symbol.upper())
+            params.append(normalize_symbol(symbol))
 
         if interval:
             conditions.append('"周期" = ?')
@@ -80,14 +81,6 @@ async def get_indicator_data(
         conn.close()
 
         data = [dict(row) for row in rows]
-        return IndicatorResponse(
-            table=table,
-            symbol=symbol,
-            interval=interval,
-            data=data,
-            count=len(data),
-        )
-    except HTTPException:
-        raise
+        return api_response(data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"查询失败: {e}")
+        return error_response(ErrorCode.INTERNAL_ERROR, f"查询失败: {e}")
