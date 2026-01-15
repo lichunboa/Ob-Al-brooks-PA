@@ -3038,6 +3038,31 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     button_data = query.data
 
+    # =============================================================================
+    # 全局统一快速响应 - 方案C（详细提示）
+    # =============================================================================
+    try:
+        if button_data.endswith("_nop") or button_data.endswith("nop"):
+            await query.answer()
+        elif button_data.startswith(("ai_", "start_coin_analysis", "start_ai_analysis")):
+            await query.answer(_t(update, "loading.ai", "🤖 启动AI分析..."))
+        elif button_data.startswith("vis_") or button_data == "vis_menu":
+            await query.answer(_t(update, "loading.vis", "📈 正在渲染图表..."))
+        elif button_data.endswith("_refresh") or button_data == "admin_reload":
+            await query.answer(_t(update, "loading.refresh", "🔄 正在刷新..."))
+        elif button_data.startswith("single_query_") or button_data == "coin_query":
+            await query.answer(_t(update, "loading.query", "🔍 正在查询..."))
+        elif button_data.startswith(("set_lang_", "field_")) or button_data.endswith("_toggle_"):
+            await query.answer(_t(update, "loading.switch", "✅ 已切换"))
+        elif button_data.startswith(("ranking_", "single_", "position_", "funding_", "money_flow_")):
+            await query.answer(_t(update, "loading.data", "📊 正在加载数据..."))
+        elif button_data in ("main_menu", "ranking_menu", "help", "lang_menu", "signal_menu", "admin_menu"):
+            await query.answer()
+        else:
+            await query.answer(_t(update, "loading.default", "处理中..."))
+    except Exception:
+        pass  # 忽略 answer 失败（可能已超时）
+
     # 打开语言选择菜单
     if button_data == "lang_menu":
         await lang_command(update, context)
