@@ -3093,7 +3093,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "zh_CN": I18N.gettext("lang.zh", lang=new_lang),
             "en": I18N.gettext("lang.en", lang=new_lang),
         }
-        await query.answer()
+        # 注意: 即时响应已在前面统一处理，此处不再重复 query.answer()
         await query.edit_message_text(
             I18N.gettext("lang.set", lang=new_lang, lang_name=display_names.get(new_lang, new_lang))
         )
@@ -3187,7 +3187,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             from signals import ui as signal_ui
             if button_data == "signal_menu":
-                await query.answer()
+                # 注意: 即时响应已在前面统一处理
                 await query.edit_message_text(
                     signal_ui.get_menu_text(user_id),
                     reply_markup=signal_ui.get_menu_kb(user_id, update=update),
@@ -3207,7 +3207,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not _is_admin(update):
             await query.answer(_t(update, "admin.no_permission", "⛔ 无权限"), show_alert=True)
             return
-        await query.answer()
+        # 注意: 即时响应已在前面统一处理，此处不再重复 query.answer()
         
         if button_data == "admin_menu":
             text = _build_admin_menu_text(update)
@@ -3286,7 +3286,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 信号推送的币种分析跳转
     if button_data.startswith("single_query_"):
         symbol = button_data.replace("single_query_", "")
-        await query.answer()
+        # 注意: 即时响应已在前面统一处理，此处不再重复 query.answer()
         try:
             if os.getenv("DISABLE_SINGLE_TOKEN_QUERY", "1") == "1":
                 await query.edit_message_text(_t(update, "query.disabled"))
@@ -3611,8 +3611,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode='Markdown')
 
         elif query.data == "ranking_menu_nop":
-            # 提示按钮，点击无响应
-            await query.answer()
+            # 提示按钮，点击无响应 (即时响应已在前面统一处理)
+            pass
 
         elif query.data == "coin_query":
             # 币种查询入口 - 显示配置的币种列表
@@ -3660,12 +3660,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         elif query.data == "market_sentiment":
+            # 注意: 即时响应已在前面统一处理
             await query.message.reply_text(
                 _t(query, "feature.sentiment_offline"),
                 reply_markup=InlineKeyboardMarkup([[_btn(update, "btn.back_home", "main_menu")]]),
                 parse_mode='Markdown'
             )
-            await query.answer()
 
         elif query.data == "basic_market":
             # 免费功能 - 直接提供服务

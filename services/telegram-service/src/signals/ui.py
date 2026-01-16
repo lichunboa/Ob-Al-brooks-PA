@@ -216,7 +216,7 @@ async def handle(update, context) -> bool:
     if not data.startswith("sig_"):
         return False
 
-    await q.answer()
+    # 即时响应已在 app.py 统一处理
     sub = get_sub(uid)
 
     if data == "sig_toggle":
