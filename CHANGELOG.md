@@ -17,63 +17,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2026-01-16
 
 ### Added
-- **API Service** - New CoinGlass-compatible REST API
-  - Align with CoinGlass API V4 specification
-  - Inherit global SYMBOLS_GROUPS configuration for supported-coins
-  - Add API call examples documentation
+- **API Service** - New CoinGlass-compatible REST API (`services-preview/api-service`)
+  - **`e591f3df`** feat(api): 添加 api-service 并修复 telegram-service psutil 依赖
+  - **`bdc8c88c`** refactor(api): 对齐 CoinGlass API V4 规范
+  - **`5e25bd7f`** feat(api): 继承全局 SYMBOLS_GROUPS 配置
+  - FastAPI 实现，支持 TimescaleDB (5433) 和 SQLite 数据源
+  - 对齐 CoinGlass API V4 规范，Breaking changes:
+    - 端点路径变更 (移除 /v1/，添加 /futures/ 前缀)
+    - 响应格式: `{code, msg, data, success}`
+    - Symbol 支持 BTC/BTCUSDT 格式
+    - 时间字段使用毫秒，数值字段使用字符串
+  - 新端点:
+    - `GET /api/futures/supported-coins` - 支持的币种列表
+    - `GET /api/futures/ohlc/history` - K线历史数据
+    - `GET /api/futures/open-interest/history` - 持仓量历史
+    - `GET /api/futures/funding-rate/history` - 资金费率历史
+    - `GET /api/futures/metrics` - 市场指标
+    - `GET /api/indicator/list` - 技术指标列表
+    - `GET /api/indicator/data` - 技术指标数据
+    - `GET /api/signal/cooldown` - 信号冷却状态
+  - 继承全局 SYMBOLS_GROUPS 配置
+  - 添加 API 调用示例文档和 CoinGlass V4 对比文档
+
+### Documentation
+- **`c1b90038`** docs(api): 添加变更日志文档 (改动1.md)
+- **`d4d6d1fd`** docs(api): 添加 API 调用示例文档
 
 ### Fixed
-- Unify parameter validation error response format
+- **`06ffd4cd`** fix(telegram): 移除重复的 query.answer() 调用
+  - 修复 app.py: set_lang_, signal_menu, admin_menu, market_sentiment, single_query_, ranking_menu_nop
+  - 修复 vis_handler.py: vis_nop, vis_menu, vis_tpl_, vis_sym_, vis_itv_
+  - 修复 signals/ui.py: sig_* handlers
+  - 修复 ai_integration.py: handle_interval_selection, handle_coin_selection, _handle_prompt_selected
+  - 所有即时响应现在由 app.py callback_query handler 统一处理
+- **`a6cc176a`** fix(api): 统一参数校验错误响应格式
 
 ---
 
 ## [0.4.0] - 2026-01-15
 
 ### Added
-- Unified instant response for all Telegram button callbacks
-- Async full engine for trading-service
+- **`fbb170b6`** feat(telegram): 为所有按钮回调添加统一即时响应
+  - 在 button_callback 入口添加全局 query.answer() 带详细提示
+  - 添加 i18n 键: loading.*, progress.*, done.* (zh_CN/en)
+  - 从 38 个卡片文件中移除冗余的 query.answer()
+  - 响应类型按操作分类:
+    - AI 分析: 🤖 启动AI分析...
+    - 可视化: 📈 正在渲染图表...
+    - 数据加载: 📊 正在加载数据...
+    - 刷新: 🔄 正在刷新...
+    - 查询: 🔍 正在查询...
+    - 切换: ✅ 已切换
+    - 菜单导航: 静默
+- **`d10e33fc`** feat(telegram): 增强 bot handlers 和卡片服务
+  - 更新 en/zh_CN 语言文件
+  - 重构 app.py bot handlers
+  - 改进 non_blocking_ai_handler
+  - 增强 data_provider 和 ranking service
+  - 更新资金费率卡片
+- **`dd1be2c5`** refactor(trading): 更新异步全量引擎
 
 ### Fixed
-- EMA parse_mode and KDJ settings signature
-- Hard switch for env manager security
+- **`77c15a28`** fix(cards): 修复 EMA parse_mode 和 KDJ settings 签名
+- **`173560ac`** fix(security): 添加 env manager 硬开关并改进错误处理
 
 ### Changed
-- Update market analysis prompts for AI service
-- Disable env manager UI and command for security
-- Remove outdated documentation files
+- **`3490919c`** chore(ai): 更新市场分析 prompts
+- **`9e698847`** feat(telegram): 禁用 env manager UI 和命令 (安全考虑)
+- **`ff50679d`** chore(docs): 移除过时的文档文件
+- **`a420461d`** chore: 更新 gitignore 规则
 
 ---
 
 ## [0.3.0] - 2026-01-14
 
 ### Added
-- Data freshness check for signal-service to skip stale data
-- Upgrade default AI model to gemini-3-flash-preview
+- **`25553a45`** feat(signal): 添加数据新鲜度检查，跳过过时数据
+- **`970bf3da`** feat(ai): 升级默认模型至 gemini-3-flash-preview
 
 ### Fixed
-- Telegram callbacks for futures depth/oi/funding cards
-- Signal-service honor env symbol whitelist in sqlite engine
-- Ranking card callbacks hardening
-- Disable markdown parse for EMA/VWAP cards
-- Trading-service align df columns to table
+- **`213aaa9c`** fix(telegram): 修复 futures depth/oi/funding 卡片回调
+- **`7561cadb`** fix(signal): sqlite 引擎遵循环境变量 symbol 白名单
+- **`fda851d4`** fix(telegram): 加固 ranking 卡片回调
+- **`81905f26`** fix(telegram): 禁用 EMA/VWAP 卡片的 markdown 解析避免回调失败
+- **`ee5554fe`** fix(trading): 对齐 df columns 到表，避免丢弃其他周期
+- **`47b7ff24`** fix(predict-service): 修复 orderbook 过滤器并添加测试
+
+### Changed
+- **`63ab0bdb`** chore: 统一 1d 周期和数据修复
+- **`3d360968`** chore: 添加 workflow notes 到 .gitignore
 
 ### Documentation
-- Add Gemini headless guide and ProxyCast config
+- **`3422bd3d`** docs: 添加 Gemini headless 指南和 ProxyCast 配置
 
 ---
 
 ## [0.2.9] - 2026-01-13
 
 ### Fixed
-- Per-symbol latest rows for metrics (avoid drop on staggered timestamps)
-- EMA card uses table data for selected period
-- Refresh last update per fetch not global max
-- Time display uses dataset timestamp
-- Signal-service translate pushes, persist cooldown, escape sqlite columns
+- **`6e9a26af`** fix(telegram): 每个 symbol 独立获取最新行，避免时间戳错开导致丢数据
+- **`1e7b9054`** fix(telegram): EMA 卡片使用表数据获取选定周期
+- **`ce002947`** fix(telegram): 刷新时按单次获取更新时间戳而非全局最大值
+- **`4dd83f60`** fix(telegram): 时间显示仅使用数据集时间戳
+- **`93fdf037`** fix(telegram): 显示最后数据时间戳使用数据集时间
+- **`7a73845d`** fix(signal): 翻译推送、持久化冷却、转义 sqlite 列名
 
 ### Documentation
-- Remove misleading --days 365 option
-- Add cryptocurrency wallet addresses
+- **`89d5fa65`** docs: 移除误导性的 --days 365 选项
+- **`337f0794`** docs(README_EN): 添加加密货币钱包地址
+- **`151471d8`** docs: 更新代币 CA 警告说明，简化钱包地址列表
+- **`91de77ef`** docs: 添加免责声明和捐赠地址说明
 
 ---
 
