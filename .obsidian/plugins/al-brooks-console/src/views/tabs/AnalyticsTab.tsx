@@ -15,12 +15,14 @@ import { AnalyticsInsightPanel } from "../components/analytics/AnalyticsInsightP
 // 新增组件
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
+import { JournalGallery } from "../components/analytics/JournalGallery";
 import { Card } from "../../ui/components/Card";
 
 // 样式常量通过Props传递
 
 // Props接口
 export interface AnalyticsTabProps {
+  trades: TradeRecord[];
   summary: {
     Live: any;
     Demo: any;
@@ -73,6 +75,7 @@ export interface AnalyticsTabProps {
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
+  trades,
   summary,
   strategyLab,
   contextAnalysis,
@@ -113,6 +116,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     analyticsSuggestion: true,
     dataAnalysis: true,
   });
+
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
 
   type WidgetKey = keyof typeof visibleWidgets;
 
@@ -239,10 +244,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           {visibleWidgets.dataAnalysis && (
-            <DataAnalysisPanel
+            <JournalGallery
+              trades={trades}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
               calendarCells={calendarCells}
               calendarDays={calendarDays}
               calendarMaxAbs={calendarMaxAbs}
+              // Fallback to strategy attribution if no date selected
               strategyAttribution={strategyAttribution}
               analyticsScope={analyticsScope}
               setAnalyticsScope={setAnalyticsScope}

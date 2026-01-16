@@ -160,7 +160,7 @@ import {
 } from "../utils/calendar-utils";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
-import { JournalTab } from "./tabs/JournalTab";
+
 import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
@@ -1170,7 +1170,7 @@ const ConsoleComponent: React.FC<Props> = ({
         {(
           [
             { id: "trading", label: "交易中心" },
-            { id: "journal", label: "交易日志" },
+
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
             { id: "manage", label: "管理/维护" },
@@ -1224,17 +1224,11 @@ const ConsoleComponent: React.FC<Props> = ({
 
 
 
-      {activePage === "journal" ? (
-        <JournalTab
-          journalLogs={journalLogs}
-          onSaveLog={saveJournalLog}
-          trades={trades}
-          onOpenFile={openFile}
-        />
-      ) : null}
+
 
       {activePage === "analytics" ? (
         <AnalyticsTab
+          trades={trades}
           summary={summary}
           strategyLab={strategyLab}
           contextAnalysis={contextAnalysis}
