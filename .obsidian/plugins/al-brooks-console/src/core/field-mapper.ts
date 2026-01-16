@@ -78,6 +78,12 @@ export const FIELD_ALIASES = {
     "管理计划/management_plan",
     "管理计划",
   ],
+  orderType: [
+    "order_type",
+    "orderType",
+    "订单类型/order_type",
+    "订单类型",
+  ],
   executionQuality: [
     "execution_quality",
     "executionQuality",

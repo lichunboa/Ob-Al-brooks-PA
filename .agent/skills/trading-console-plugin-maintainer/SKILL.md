@@ -127,6 +127,12 @@ description: This skill should be used when maintaining, upgrading, or UI-polish
 - **UI 样式错乱**：使用了原生的 `<button>` 导致样式与 Design System 不统一。
 - **推荐算法异常**：修改 `strategy-matcher` 时未考虑旧数据的兼容性（如缺失 `direction` 字段）。
 - **构建报错**：修改了 `types.ts` 但没有更新所有引用处。
+- **列表状态跳动（Jumping）**：在渲染可变列表（如 `openTrades`）时，严禁使用 index 作为 `key` 或选中态依据。必须使用稳定唯一标识（如 `file.path`），否则列表重排（如 mtime 变更）会导致选中项意外跳变。
+- **引导文案冲突**：当页面存在多个类似功能模块（如“推荐分析”与“推荐执行”）时，避免使用通用的“建议下一步”，应明确命名上下文（如“建议完善分析” vs “建议补充执行”）。
+- **数据响应性丢失**：UI 组件（如策略百分比列表）必须订阅所有影响计算的 Props（如 `setupCategory`, `patterns`），漏掉一个就会导致数据计算停滞（如死锁在 20%）。
+- **同步失效隐患 (Sync Failures)**：
+    *   **字段遗漏**：如果 UI 显示“未填写”但实际已填写，优先检查 `contracts.ts` 和 `obsidian-trade-index.ts`。若索引层未显式读取该字段，前端永远拿到 `undefined`。
+    *   **分隔符误判**：若预设值包含斜杠（如 "Set/Forget"），默认的 `normalizeStringArray` 会将其拆分为 `["Set", "Forget"]`，导致与前端预设值不匹配。必须使用自定义 Splitter（仅逗号/分号）。
 
 ## 资源
 

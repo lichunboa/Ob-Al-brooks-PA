@@ -161,7 +161,6 @@ import {
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useManagerState } from "../hooks/useManagerState";
 import { JournalTab } from "./tabs/JournalTab";
-import { PlanTab } from "./tabs/PlanTab";
 import { useAnalyticsState } from "../hooks/useAnalyticsState";
 import { useSchemaState } from "../hooks/useSchemaState";
 import { CYCLE_MAP } from "../utils/constants";
@@ -753,7 +752,7 @@ const ConsoleComponent: React.FC<Props> = ({
     }
   }, [status]);
 
-  type DashboardPage = "trading" | "plan" | "journal" | "analytics" | "learn" | "manage";
+  type DashboardPage = "trading" | "journal" | "analytics" | "learn" | "manage";
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
 
 
@@ -1171,7 +1170,6 @@ const ConsoleComponent: React.FC<Props> = ({
         {(
           [
             { id: "trading", label: "交易中心" },
-            { id: "plan", label: "盘前计划" },
             { id: "journal", label: "交易日志" },
             { id: "analytics", label: "数据中心" },
             { id: "learn", label: "学习模块" },
@@ -1195,7 +1193,8 @@ const ConsoleComponent: React.FC<Props> = ({
           openTrade={openTrade}
           todayTrades={todayTrades}
           todayPlan={tradingPlans.find(p => p.date === window.moment().format("YYYY-MM-DD"))}
-          onGoToPlan={() => setActivePage("plan")}
+          onGoToPlan={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onSavePlan={saveTradingPlan}
           onToggleChecklistItem={handleToggleChecklistItem}
           onUpdateRiskLimit={handleUpdateRiskLimit}
           openTradeStrategy={openTradeStrategy}
@@ -1223,12 +1222,7 @@ const ConsoleComponent: React.FC<Props> = ({
         />
       ) : null}
 
-      {activePage === "plan" ? (
-        <PlanTab
-          tradingPlans={tradingPlans}
-          onSavePlan={saveTradingPlan}
-        />
-      ) : null}
+
 
       {activePage === "journal" ? (
         <JournalTab

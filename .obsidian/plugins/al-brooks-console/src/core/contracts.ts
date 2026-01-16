@@ -31,6 +31,7 @@ export interface TradeRecord {
   direction?: string;
   strategyName?: string;
   managementPlan?: string[];
+  orderType?: string;
   executionQuality?: string;
   cover?: string;
   entryPrice?: number;

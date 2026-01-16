@@ -12,6 +12,10 @@ export interface PlanChecklistItem {
 export interface DailyPlan {
     date: string; // YYYY-MM-DD
     focusSymbols: string[]; // e.g., ["BTCUSDT", "ETHUSDT"]
+    focusTimeframes?: string[]; // e.g., ["M5", "H1"]
+    marketCycle?: string; // e.g., "Bull Trend", "Trading Range"
+    dayType?: string; // e.g., "Trend Day", "Trading Range Day"
+    alwaysIn?: string; // e.g., "Long", "Short", "Neutral"
     strategies: string[]; // e.g., ["Trend Pullback", "Wedge"]
     riskLimit: number; // Max loss for the day (R倍数)
     maxTrades: number; // 最大交易数

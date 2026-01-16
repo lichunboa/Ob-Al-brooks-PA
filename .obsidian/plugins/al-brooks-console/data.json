@@ -1,0 +1,37 @@
+{
+  "courseRecommendationWindow": 3,
+  "srsDueThresholdDays": 0,
+  "srsRandomQuizCount": 5,
+  "journalLogs": [],
+  "tradingPlans": [
+    {
+      "date": "2026-01-16",
+      "focusSymbols": [
+        "ES"
+      ],
+      "strategies": [
+        "高1/低1 (High 1/Low 1)",
+        "楔形顶底 (Wedge Top/Bottom)"
+      ],
+      "riskLimit": 1,
+      "maxTrades": 5,
+      "notes": "",
+      "marketCycle": "弱趋势 (Weak Trend)",
+      "focusTimeframes": [],
+      "checklist": [
+        {
+          "text": "咖啡/水",
+          "done": false
+        },
+        {
+          "text": "手机静音",
+          "done": false
+        },
+        {
+          "text": "只做高胜率架构",
+          "done": false
+        }
+      ]
+    }
+  ]
+}

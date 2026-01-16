@@ -28,7 +28,9 @@
       "**/*.excalidraw.md",
       "Templates",
       "🦁 交易员控制台 (Trader Command)",
-      "**/*.🦁 交易员控制台 (Trader Command)5.0.md"
+      "**/*.🦁 交易员控制台 (Trader Command)5.0.md",
+      "node_modules",
+      "Excalidraw"
     ],
     "openRandomNote": false,
     "autoNextNote": false,

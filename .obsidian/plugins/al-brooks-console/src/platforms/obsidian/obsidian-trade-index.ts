@@ -502,6 +502,7 @@ export class ObsidianTradeIndex implements TradeIndex {
       fm,
       FIELD_ALIASES.managementPlan
     );
+    const orderTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.orderType);
     const executionQualityRaw = getFirstFieldValue(
       fm,
       FIELD_ALIASES.executionQuality
@@ -529,7 +530,17 @@ export class ObsidianTradeIndex implements TradeIndex {
     const timeframe = normalizeString(timeframeRaw);
     const direction = normalizeString(directionRaw);
     const strategyName = normalizeString(strategyNameRaw);
-    const managementPlan = normalizeStringArray(managementPlanRaw);
+
+    // FIX: Management Plan values often contain slashes (e.g. "Set/Forget"), 
+    // so we shouldn't use the default normalizeStringArray which splits on '/'.
+    // We only split on commas and semicolons here.
+    const managementPlan = Array.isArray(managementPlanRaw)
+      ? managementPlanRaw.filter((x): x is string => typeof x === "string").map(s => s.trim())
+      : typeof managementPlanRaw === "string"
+        ? managementPlanRaw.split(/[,，;；]/g).map(s => s.trim()).filter(Boolean)
+        : [];
+
+    const orderType = normalizeString(orderTypeRaw);
     const executionQuality = normalizeString(executionQualityRaw);
     const cover = normalizeString(coverRaw);
 
@@ -555,6 +566,8 @@ export class ObsidianTradeIndex implements TradeIndex {
       timeframe,
       direction,
       strategyName,
+      managementPlan,
+      orderType,
       executionQuality,
       cover,
       entryPrice,

@@ -72,24 +72,28 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
         setOptimisticValues(new Map());
     }, [trade.path]);
 
-    // 当外部 trade 更新时，我们只进行 logging，或者在极端情况下（比如 switch trade）才重置。
-    // 这里我们假设组件是受控于 `key={trade.path}` 的，如果切换 trade，整个组件会重刷，optimisticValues 自动清空。
-    // 所以这里的 Effect 只需要处理 "Sync Check" (Debug Only)，或者处理 "Server Set to Empty" (Revert?)
-    // 现在的策略是：【绝对信任本地状态】。只有当用户手动刷新插件，或者我们检测到不可恢复的冲突时才关心。
+    // 状态协调：当 trade 属性更新时，检查是否与 optimisticValues 一致
+    // 如果一致 (Synced)，则清除乐观状态，回归 Single Source of Truth
     React.useEffect(() => {
-        // Debug Log: Check sync status
-        let syncedCount = 0;
-        for (const [key, optimisticVal] of optimisticValues.entries()) {
-            const serverVal = (trade as any)[getTradeKey(key)];
-            // Loose equality for string/number diffs
-            if (serverVal == optimisticVal) {
-                syncedCount++;
+        setOptimisticValues(prev => {
+            const next = new Map(prev);
+            let hasChanges = false;
+
+            for (const [fieldName, optimisticVal] of prev.entries()) {
+                const tradeKey = getTradeKey(fieldName);
+                const serverVal = (trade as any)[tradeKey];
+
+                // 宽松比较 (Loose equality) 以处理 null/undefined/string/number 差异
+                // 1. 如果服务端值已经追上了乐观值，移除乐观锁 (Write Success)
+                if (serverVal == optimisticVal) {
+                    next.delete(fieldName);
+                    hasChanges = true;
+                }
             }
-        }
-        if (optimisticValues.size > 0) {
-            console.log(`[ExecutionFill] Optimistic State: ${syncedCount}/${optimisticValues.size} synced.`);
-        }
-    }, [trade, optimisticValues]);
+
+            return hasChanges ? next : prev;
+        });
+    }, [trade]);
 
     // 辅助：从 fieldName 映射到 TradeRecord 的 key
     const getTradeKey = (fieldName: string): string => {
@@ -222,16 +226,16 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                 isEmpty: isEmpty(getVal(nf.fieldName, nf.key.replace(/_([a-z])/g, (g) => g[1].toUpperCase()))) // snake to camel
             })),
             {
-                label: "结果",
-                fieldName: "结果/outcome",
-                values: options_outcome,
-                isEmpty: isEmpty(outcome)
-            },
-            {
                 label: "执行评价",
                 fieldName: "执行评价/execution_quality",
                 values: options_quality,
                 isEmpty: isEmpty(executionQuality)
+            },
+            {
+                label: "结果",
+                fieldName: "结果/outcome",
+                values: options_outcome,
+                isEmpty: isEmpty(outcome)
             }
         ];
 

@@ -11,11 +11,7 @@ import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { TradeList } from "../components/TradeList";
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
-import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
-import { MarketCyclePanel } from "../components/trading/MarketCyclePanel";
-import { TodayTradesSection } from "../components/trading/TodayTradesSection";
 
-import { PlanWidget } from "../components/plan/PlanWidget";
 import { DailyPlan } from "../../types/plan";
 
 /**
@@ -25,6 +21,7 @@ export interface TradingHubTabProps {
   // 计划数据
   todayPlan?: DailyPlan;
   onGoToPlan: () => void;
+  onSavePlan: (plan: DailyPlan) => Promise<void>;
   onToggleChecklistItem?: (index: number) => Promise<void>;
   onUpdateRiskLimit?: (riskLimit: number) => Promise<void>;
 
@@ -57,17 +54,17 @@ export interface TradingHubTabProps {
   canOpenTodayNote: boolean;
   onOpenTodayNote: () => void;
   can: (feature: string) => boolean;
-  app: App;
+  app?: App;
   enumPresets?: EnumPresets;
-  onRefreshData?: () => void;
+  onRefreshData?: () => Promise<void>;
 
   // 样式
-  textButtonStyle: React.CSSProperties;
-  buttonStyle: React.CSSProperties;
-  disabledButtonStyle: React.CSSProperties;
+  textButtonStyle?: React.CSSProperties;
+  buttonStyle?: React.CSSProperties;
+  disabledButtonStyle?: React.CSSProperties;
 
   // 组件
-  MarkdownBlock: React.FC<{ markdown: string; sourcePath?: string }>;
+  MarkdownBlock?: React.FC<{ markdown: string; sourcePath?: string }>;
 }
 
 /**
@@ -109,21 +106,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
   return (
     <>
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
-
-      <div style={{ marginBottom: "16px" }}>
-        <PlanWidget
-          plan={todayPlan}
-          onGoToPlan={onGoToPlan}
-          onToggleChecklistItem={props.onToggleChecklistItem}
-          onUpdateRiskLimit={props.onUpdateRiskLimit}
-        />
-      </div>
-
-      <ReviewHintsPanel
-        latestTrade={latestTrade}
-        reviewHints={reviewHints}
-      />
-
       <GlassPanel style={{ marginBottom: "16px" }}>
         <TodayKpiCard todayKpi={todayKpi} />
 
@@ -141,14 +123,6 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
         />
 
 
-        <TodayTradesSection
-          todayTrades={todayTrades}
-          openFile={openFile}
-          index={props.index}
-          app={props.app}
-          enumPresets={props.enumPresets}
-          onUpdate={props.onRefreshData}
-        />
       </GlassPanel>
 
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
