@@ -17,6 +17,7 @@ export interface TradeRecord {
   dateIso: string;
   ticker?: string;
   pnl?: number;
+  r?: number; // Explicit R-multiple
   outcome?: TradeOutcome;
   accountType?: AccountType;
 
@@ -53,5 +54,7 @@ export interface TradeStats {
   countLosses: number;
   countScratch: number;
   winRatePct: number;
-  netProfit: number;
+  netMoney: number;
+  netR: number;
+  netProfit: number; // Deprecated: alias for netMoney
 }

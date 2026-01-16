@@ -41,6 +41,7 @@ export interface TradingHubTabProps {
     wins: number;
     losses: number;
     winRatePct: number;
+    netMoney: number;
     netR: number;
   };
 
@@ -65,34 +66,37 @@ export interface TradingHubTabProps {
 
   // 组件
   MarkdownBlock?: React.FC<{ markdown: string; sourcePath?: string }>;
+  currencyMode?: 'USD' | 'CNY';
 }
 
 /**
  * Trading Hub Tab组件
  * 显示交易中心的所有内容:KPI、策略推荐、持仓助手、今日交易、每日行动等
  */
-export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
-  const {
-    todayPlan,
-    onGoToPlan,
-    latestTrade,
-    openTrade,
-    todayTrades,
-    openTradeStrategy,
-    todayStrategyPicks,
-    strategyIndex,
-    todayKpi,
-    todayMarketCycle,
-    reviewHints,
-    openFile,
-    canOpenTodayNote,
-    onOpenTodayNote,
-    can,
-    textButtonStyle,
-    buttonStyle,
-    disabledButtonStyle,
-    MarkdownBlock,
-  } = props;
+export const TradingHubTab: React.FC<TradingHubTabProps> = ({
+  todayPlan,
+  onGoToPlan,
+  latestTrade,
+  openTrade,
+  todayTrades,
+  openTradeStrategy,
+  todayStrategyPicks,
+  strategyIndex,
+  todayKpi,
+  todayMarketCycle,
+  reviewHints,
+  openFile,
+  canOpenTodayNote,
+  onOpenTodayNote,
+  can,
+  textButtonStyle,
+  buttonStyle,
+  disabledButtonStyle,
+  MarkdownBlock,
+  app,
+  enumPresets,
+  currencyMode = 'USD', // Default to USD
+}) => {
 
   // 计算所有未平仓交易
   const openTrades = React.useMemo(() => {
@@ -107,7 +111,7 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
     <>
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
       <GlassPanel style={{ marginBottom: "16px" }}>
-        <TodayKpiCard todayKpi={todayKpi} />
+        <TodayKpiCard todayKpi={todayKpi} currencyMode={currencyMode} />
 
         <OpenTradeAssistant
           openTrade={openTrade}
@@ -118,8 +122,8 @@ export function TradingHubTab(props: TradingHubTabProps): JSX.Element {
           trades={todayTrades}
           textButtonStyle={textButtonStyle}
           buttonStyle={buttonStyle}
-          app={props.app}
-          enumPresets={props.enumPresets}
+          app={app}
+          enumPresets={enumPresets}
         />
 
 

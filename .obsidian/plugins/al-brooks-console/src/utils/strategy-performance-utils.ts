@@ -10,13 +10,17 @@ import { sortTradesByDateAsc } from "./trade-utils";
  * 计算策略性能数据
  * 返回每个策略的总交易数、胜率、盈亏等信息
  */
+/**
+ * 计算策略性能数据
+ * 返回每个策略的总交易数、胜率、盈亏等信息
+ */
 export function calculateStrategyPerformance(
     trades: TradeRecord[],
     resolveCanonical: (t: TradeRecord) => string | null
-): Map<string, { total: number; wins: number; pnl: number; lastDateIso: string }> {
+): Map<string, { total: number; wins: number; pnlMoney: number; pnlR: number; lastDateIso: string }> {
     const perf = new Map<
         string,
-        { total: number; wins: number; pnl: number; lastDateIso: string }
+        { total: number; wins: number; pnlMoney: number; pnlR: number; lastDateIso: string }
     >();
 
     for (const t of trades) {
@@ -26,17 +30,28 @@ export function calculateStrategyPerformance(
         const p = perf.get(canonical) ?? {
             total: 0,
             wins: 0,
-            pnl: 0,
+            pnlMoney: 0,
+            pnlR: 0,
             lastDateIso: "",
         };
 
+        const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+
+        let r = 0;
+        if (typeof t.r === "number" && Number.isFinite(t.r)) {
+            r = t.r;
+        } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+            r = pnl / t.initialRisk;
+        }
+
         p.total += 1;
-        if (typeof t.pnl === "number" && Number.isFinite(t.pnl) && t.pnl > 0) {
+        if (pnl > 0) {
             p.wins += 1;
         }
-        if (typeof t.pnl === "number" && Number.isFinite(t.pnl)) {
-            p.pnl += t.pnl;
-        }
+
+        p.pnlMoney += pnl;
+        p.pnlR += r;
+
         if (t.dateIso && (!p.lastDateIso || t.dateIso > p.lastDateIso)) {
             p.lastDateIso = t.dateIso;
         }
@@ -51,7 +66,7 @@ export function calculateStrategyPerformance(
  * 生成策略手册性能行数据
  */
 export function generatePlaybookPerfRows(
-    strategyPerf: Map<string, { total: number; wins: number; pnl: number; lastDateIso: string }>,
+    strategyPerf: Map<string, { total: number; wins: number; pnlMoney: number; pnlR: number; lastDateIso: string }>,
     strategyIndex: any, // StrategyIndex类型未导出
     safePct: (a: number, b: number) => number
 ): Array<{
@@ -59,7 +74,8 @@ export function generatePlaybookPerfRows(
     path?: string;
     total: number;
     wins: number;
-    pnl: number;
+    pnlMoney: number; // 主要展示 Money
+    pnlR: number;    // 次要展示 R
     winRate: number;
 }> {
     const rows = [...strategyPerf.entries()]
@@ -72,11 +88,12 @@ export function generatePlaybookPerfRows(
                 path: card?.path,
                 total: p.total,
                 wins: p.wins,
-                pnl: p.pnl,
+                pnlMoney: p.pnlMoney,
+                pnlR: p.pnlR,
                 winRate: safePct(p.wins, p.total),
             };
         })
-        .sort((a, b) => (b.pnl || 0) - (a.pnl || 0));
+        .sort((a, b) => (b.pnlMoney || 0) - (a.pnlMoney || 0)); // 按 Money 排序
 
     return rows;
 }
@@ -92,7 +109,7 @@ export function computeStrategyLab(
     identifyStrategy: (t: TradeRecord) => { name: string | null }
 ): {
     curves: Record<AccountType, number[]>;
-    cum: Record<AccountType, number>;
+    cumMoney: Record<AccountType, number>; // Use cumMoney explicitly
     topSetups: Array<{ name: string; total: number; wr: number }>;
     suggestion: string;
 } {
@@ -103,7 +120,7 @@ export function computeStrategyLab(
         Demo: [0],
         Backtest: [0],
     };
-    const cum: Record<AccountType, number> = {
+    const cumMoney: Record<AccountType, number> = {
         Live: 0,
         Demo: 0,
         Backtest: 0,
@@ -114,13 +131,18 @@ export function computeStrategyLab(
     for (const t of tradesAsc) {
         const pnl =
             typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-        const acct = (t.accountType ?? "Live") as AccountType;
 
-        // 资金曲线:按账户分别累加(口径与 v5.0 接近:只在该账户出现时 push 一点)
-        cum[acct] += pnl;
-        curves[acct].push(cum[acct]);
+        // Safety check for account type
+        let acct = (t.accountType ?? "Live") as AccountType;
+        if (!["Live", "Demo", "Backtest"].includes(acct)) {
+            acct = "Live";
+        }
 
-        // 策略排行:策略名优先;没有则回退到 setupCategory
+        // 资金曲线:按账户分别累加
+        cumMoney[acct] += pnl;
+        curves[acct].push(cumMoney[acct]);
+
+        // 策略排行
         const key = identifyStrategy(t).name ?? "Unknown";
 
         const prev = stats.get(key) ?? { win: 0, total: 0 };
@@ -139,11 +161,11 @@ export function computeStrategyLab(
         .slice(0, 5);
 
     const mostUsed = topSetups[0]?.name ?? "无";
-    const keepIn = cum.Live < 0 ? "回测" : "实盘";
+    const keepIn = cumMoney.Live < 0 ? "回测" : "实盘";
 
     return {
         curves,
-        cum,
+        cumMoney,
         topSetups,
         suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
     };

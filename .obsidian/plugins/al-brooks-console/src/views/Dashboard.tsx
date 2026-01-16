@@ -1125,6 +1125,8 @@ const ConsoleComponent: React.FC<Props> = ({
     });
   }, [latestTrade, strategyIndex, todayMarketCycle]);
 
+  const [currencyMode, setCurrencyMode] = React.useState<'USD' | 'CNY'>('USD'); // Add currency state
+
   return (
     <div className="pa-dashboard">
       <div className="pa-dashboard-header">
@@ -1135,6 +1137,39 @@ const ConsoleComponent: React.FC<Props> = ({
           <span className="pa-dashboard-meta">{statusText}</span>
         </div>
         <div className="pa-dashboard-actions">
+          {/* Currency Toggle */}
+          <div style={{ display: 'flex', background: 'var(--background-modifier-form-field)', borderRadius: '6px', padding: '2px' }}>
+            <button
+              onClick={() => setCurrencyMode('USD')}
+              style={{
+                padding: '4px 12px',
+                borderRadius: '4px',
+                border: 'none',
+                background: currencyMode === 'USD' ? 'var(--interactive-accent)' : 'transparent',
+                color: currencyMode === 'USD' ? 'var(--text-on-accent)' : 'var(--text-muted)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+            >
+              USD
+            </button>
+            <button
+              onClick={() => setCurrencyMode('CNY')}
+              style={{
+                padding: '4px 12px',
+                borderRadius: '4px',
+                border: 'none',
+                background: currencyMode === 'CNY' ? 'var(--interactive-accent)' : 'transparent',
+                color: currencyMode === 'CNY' ? 'var(--text-on-accent)' : 'var(--text-muted)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+            >
+              CNY
+            </button>
+          </div>
           <InteractiveButton
             interaction="lift"
             onClick={() => openFile(TRADE_NOTE_TEMPLATE_PATH)}
@@ -1219,6 +1254,7 @@ const ConsoleComponent: React.FC<Props> = ({
           buttonStyle={buttonStyle}
           disabledButtonStyle={disabledButtonStyle}
           MarkdownBlock={MarkdownBlock}
+          currencyMode={currencyMode}
         />
       ) : null}
 
@@ -1258,6 +1294,7 @@ const ConsoleComponent: React.FC<Props> = ({
           getDayOfMonth={getDayOfMonth}
           getRColorByAccountType={getRColorByAccountType}
           CYCLE_MAP={CYCLE_MAP}
+          currencyMode={currencyMode}
         />
       ) : null}
       {activePage === "learn" ? (

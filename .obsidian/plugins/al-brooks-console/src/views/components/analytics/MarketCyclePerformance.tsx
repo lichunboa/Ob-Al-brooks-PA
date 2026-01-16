@@ -2,6 +2,7 @@ import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
 import { EmptyState } from "../../../ui/components/EmptyState";
 import { Card } from "../../../ui/components/Card";
+import { formatCurrency } from "../../../utils/format-utils";
 
 /**
  * MarketCyclePerformance Props接口
@@ -13,6 +14,7 @@ export interface MarketCyclePerformanceProps {
     // 常量Props
     SPACE: any;
     CYCLE_MAP: Record<string, string>;
+    currencyMode?: 'USD' | 'CNY';
 }
 
 /**
@@ -23,6 +25,7 @@ export const MarketCyclePerformance: React.FC<MarketCyclePerformanceProps> = ({
     liveCyclePerf,
     SPACE,
     CYCLE_MAP,
+    currencyMode = 'USD',
 }) => {
     return (
         <Card variant="tight">
@@ -88,7 +91,10 @@ export const MarketCyclePerformance: React.FC<MarketCyclePerformanceProps> = ({
                                     }}
                                 >
                                     {cy.pnl > 0 ? "+" : ""}
-                                    {cy.pnl.toFixed(1)}R
+                                    {formatCurrency(cy.pnl, currencyMode).replace('$', '').replace('¥', '')}
+                                    <span style={{ fontSize: '0.6em', marginLeft: '2px', opacity: 0.7 }}>
+                                        {currencyMode === 'USD' ? '$' : '¥'}
+                                    </span>
                                 </div>
                             </div>
                         );

@@ -20,11 +20,22 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
   let countWins = 0;
   let countLosses = 0;
   let countScratch = 0;
-  let netProfit = 0;
+  let netMoney = 0;
+  let netR = 0;
 
   for (const trade of trades) {
     countTotal += 1;
-    if (typeof trade.pnl === "number") netProfit += trade.pnl;
+    const pnl = typeof trade.pnl === "number" && Number.isFinite(trade.pnl) ? trade.pnl : 0;
+    netMoney += pnl;
+
+    // Calculate R
+    let r = 0;
+    if (typeof trade.r === "number" && Number.isFinite(trade.r)) {
+      r = trade.r;
+    } else if (pnl !== 0 && trade.initialRisk && trade.initialRisk > 0) {
+      r = pnl / trade.initialRisk;
+    }
+    netR += r;
 
     const outcome = classifyOutcome(trade);
     const isCompleted =
@@ -37,7 +48,18 @@ export function computeTradeStats(trades: TradeRecord[]): TradeStats {
 
   const winRatePct =
     countCompleted === 0 ? 0 : Math.round((countWins / countCompleted) * 100);
-  return { countTotal, countCompleted, countWins, countLosses, countScratch, winRatePct, netProfit };
+
+  return {
+    countTotal,
+    countCompleted,
+    countWins,
+    countLosses,
+    countScratch,
+    winRatePct,
+    netMoney,
+    netR,
+    netProfit: netMoney
+  };
 }
 
 export type StatsByAccountType = Record<AccountType | "All", TradeStats>;

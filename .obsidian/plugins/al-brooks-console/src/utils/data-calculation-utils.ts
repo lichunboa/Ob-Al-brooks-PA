@@ -44,17 +44,27 @@ export function calculateTodayKpi(
     wins: number;
     losses: number;
     winRatePct: number;
+    netMoney: number;
     netR: number;
 } {
     const todayTrades = trades.filter((t) => t.dateIso === todayIso);
     const total = todayTrades.length;
     let wins = 0;
     let losses = 0;
+    let netMoney = 0;
     let netR = 0;
 
     for (const t of todayTrades) {
         const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-        netR += pnl;
+        netMoney += pnl;
+
+        let r = 0;
+        if (typeof t.r === "number" && Number.isFinite(t.r)) {
+            r = t.r;
+        } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+            r = pnl / t.initialRisk;
+        }
+        netR += r;
 
         const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
         if (outcome === "win") {
@@ -73,11 +83,12 @@ export function calculateTodayKpi(
         todayTrades,
         todayWins: wins,
         todayLosses: losses,
-        todayPnl: netR,
+        todayPnl: netMoney,
         total,
         wins,
         losses,
         winRatePct,
+        netMoney,
         netR,
     };
 }

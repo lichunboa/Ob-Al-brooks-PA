@@ -124,7 +124,7 @@ export function useDashboardData(
     };
     update();
     // strategyIndex interface does not support onChanged
-    return () => {};
+    return () => { };
   }, [strategyIndex]);
 
   React.useEffect(() => {
@@ -237,7 +237,7 @@ export function useDashboardData(
   const calendarCells = React.useMemo(() => {
     return calendarDateIsos.map(
       (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, netMoney: 0, count: 0 }
     );
   }, [calendarDateIsos, analyticsDailyByDate]);
 
@@ -245,7 +245,7 @@ export function useDashboardData(
     const dateIsosAsc = [...calendarDateIsos].reverse();
     const filled: DailyAgg[] = dateIsosAsc.map(
       (dateIso) =>
-        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, count: 0 }
+        analyticsDailyByDate.get(dateIso) ?? { dateIso, netR: 0, netMoney: 0, count: 0 }
     );
     return computeEquityCurve(filled);
   }, [calendarDateIsos, analyticsDailyByDate]);

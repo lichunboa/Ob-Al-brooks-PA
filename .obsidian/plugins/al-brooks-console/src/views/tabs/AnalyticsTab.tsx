@@ -72,6 +72,7 @@ export interface AnalyticsTabProps {
   getDayOfMonth: (dateIso: string) => string;
   getRColorByAccountType: (accountType: AccountType) => string;
   CYCLE_MAP: Record<string, string>;
+  currencyMode?: 'USD' | 'CNY';
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
@@ -105,7 +106,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   getDayOfMonth,
   getRColorByAccountType,
   CYCLE_MAP,
+  currencyMode = 'USD',
 }) => {
+  // ... existing hooks
+
   // Widget visibility state (local for now, could be persisted)
   const [visibleWidgets, setVisibleWidgets] = React.useState({
     accountSummary: true,
@@ -202,6 +206,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <AccountSummaryCards
                 summary={summary}
                 SPACE={SPACE}
+                currencyMode={currencyMode}
               />
             </Card>
           )}
@@ -212,6 +217,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               allTradesDateRange={allTradesDateRange}
               getRColorByAccountType={getRColorByAccountType}
               SPACE={SPACE}
+              currencyMode={currencyMode}
             />
           )}
 
@@ -226,6 +232,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               liveCyclePerf={liveCyclePerf}
               SPACE={SPACE}
               CYCLE_MAP={CYCLE_MAP}
+              currencyMode={currencyMode}
             />
           )}
 
@@ -260,6 +267,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               textButtonStyle={textButtonStyle}
               selectStyle={selectStyle}
               SPACE={SPACE}
+              currencyMode={currencyMode}
             />
           )}
 

@@ -515,8 +515,18 @@ export class ObsidianTradeIndex implements TradeIndex {
     const initialRiskRaw = getFirstFieldValue(fm, FIELD_ALIASES.initialRisk);
     const netProfitRaw = getFirstFieldValue(fm, FIELD_ALIASES.netProfit);
 
-    // v5 对齐：旧数据可能只填 r；当 pnl/net_profit 缺失时，用 r 兜底。
-    const pnl = parseNumber(pnlRaw) ?? parseNumber(rRaw);
+    // v5 对齐：严格区分金额(pnl)与比率(r)
+    // 1. 优先读取显式的金额字段 (net_profit / pnl)
+    let pnl = parseNumber(pnlRaw);
+    const r = parseNumber(rRaw);
+    const initialRisk = parseNumber(initialRiskRaw);
+
+    // 2. 如果金额缺失，但有 R 和 风险额，则自动推算金额
+    // 注意：严禁直接用 r 填充 pnl (例如 2R != $2.0)
+    if (pnl === undefined && r !== undefined && initialRisk !== undefined) {
+      pnl = r * initialRisk;
+    }
+
     const ticker = normalizeTicker(tickerRaw);
     const outcome = normalizeOutcome(outcomeRaw);
     const dateIso = this.normalizeDateIso(dateRaw, file);
@@ -547,7 +557,6 @@ export class ObsidianTradeIndex implements TradeIndex {
     const entryPrice = parseNumber(entryPriceRaw);
     const stopLoss = parseNumber(stopLossRaw);
     const takeProfit = parseNumber(takeProfitRaw);
-    const initialRisk = parseNumber(initialRiskRaw);
     const netProfit = parseNumber(netProfitRaw);
 
     const trade: TradeRecord = {
@@ -556,6 +565,7 @@ export class ObsidianTradeIndex implements TradeIndex {
       dateIso,
       ticker,
       pnl,
+      r,
       outcome,
       accountType,
       marketCycle,

@@ -92,3 +92,32 @@ export function prettyVal(val: string): string {
     if (low === "unknown" || low === "null") return "未知";
     return s;
 }
+
+/**
+ * 格式化金额显示
+ * @param amount 金额数值
+ * @param currency 货币类型 'USD' | 'CNY'
+ * @param exchangeRate 汇率 (默认 7.25)
+ */
+export function formatCurrency(amount: number, currency: 'USD' | 'CNY' = 'USD', exchangeRate: number = 7.25): string {
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) return '—';
+
+    let val = amount;
+    let symbol = '$';
+
+    if (currency === 'CNY') {
+        val = amount * exchangeRate;
+        symbol = '¥';
+    }
+
+    // Format with commas and 2 decimal places if needed, or integer if it's clean
+    // For consistency with PnL, we usually want explicit signs for positive values if it's PnL, 
+    // but this is a generic formatter. Let's keep it simple value formatting.
+    // PnL components handle signs themselves usually.
+
+    // Check if integer
+    const isInt = Number.isInteger(val);
+    const strVal = isInt ? val.toString() : val.toFixed(2);
+
+    return `${symbol}${strVal}`;
+}

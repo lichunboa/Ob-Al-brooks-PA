@@ -6,12 +6,14 @@ export type AnalyticsScope = AccountType | "All";
 export interface DailyAgg {
   dateIso: string;
   netR: number;
+  netMoney: number;
   count: number;
 }
 
 export interface EquityPoint {
   dateIso: string;
   equityR: number;
+  equityMoney: number;
 }
 
 export interface StrategyAttributionRow {
@@ -19,6 +21,7 @@ export interface StrategyAttributionRow {
   strategyPath?: string;
   count: number;
   netR: number;
+  netMoney: number;
 }
 
 const STRATEGY_FIELD_ALIASES = [
@@ -104,12 +107,12 @@ export function identifyStrategyForAnalytics(
   const pats = patsDirect.length
     ? patsDirect
     : (() => {
-        for (const key of PATTERNS_FIELD_ALIASES) {
-          const got = getStrings((fm as any)[key]);
-          if (got.length) return got;
-        }
-        return [] as string[];
-      })();
+      for (const key of PATTERNS_FIELD_ALIASES) {
+        const got = getStrings((fm as any)[key]);
+        if (got.length) return got;
+      }
+      return [] as string[];
+    })();
 
   for (const p of pats) {
     const card = strategyIndex?.byPattern(p);
@@ -154,23 +157,34 @@ export function computeDailyAgg(
   trades: TradeRecord[],
   days: number
 ): DailyAgg[] {
-  const byDate = new Map<string, { netR: number; count: number }>();
+  const byDate = new Map<string, { netR: number; netMoney: number; count: number }>();
   for (const t of trades) {
     const dateIso = t.dateIso;
     if (!dateIso) continue;
-    const prev = byDate.get(dateIso) ?? { netR: 0, count: 0 };
+    const prev = byDate.get(dateIso) ?? { netR: 0, netMoney: 0, count: 0 };
+
     const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-    prev.netR += pnl;
+
+    // R值优先取 explicit r，否则尝试从 pnl/risk 推算
+    let r = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      r = t.r;
+    } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+      r = pnl / t.initialRisk;
+    }
+
+    prev.netR += r;
+    prev.netMoney += pnl;
     prev.count += 1;
     byDate.set(dateIso, prev);
   }
 
   const keys = Array.from(byDate.keys()).sort((a, b) =>
-    a < b ? 1 : a > b ? -1 : 0
+    a < b ? -1 : a > b ? 1 : 0
   );
   return keys.slice(0, Math.max(1, days)).map((k) => {
     const v = byDate.get(k)!;
-    return { dateIso: k, netR: v.netR, count: v.count };
+    return { dateIso: k, netR: v.netR, netMoney: v.netMoney, count: v.count };
   });
 }
 
@@ -179,9 +193,11 @@ export function computeEquityCurve(dailyDesc: DailyAgg[]): EquityPoint[] {
     a.dateIso < b.dateIso ? -1 : a.dateIso > b.dateIso ? 1 : 0
   );
   let equity = 0;
+  let equityMoney = 0;
   return asc.map((d) => {
     equity += d.netR;
-    return { dateIso: d.dateIso, equityR: equity };
+    equityMoney += d.netMoney;
+    return { dateIso: d.dateIso, equityR: equity, equityMoney };
   });
 }
 
@@ -190,16 +206,25 @@ export function computeStrategyAttribution(
   strategyIndex: StrategyIndex,
   limit: number
 ): StrategyAttributionRow[] {
-  const by = new Map<string, { netR: number; count: number }>();
+  const by = new Map<string, { netR: number; netMoney: number; count: number }>();
 
   for (const t of trades) {
     const ident = identifyStrategyForAnalytics(t, strategyIndex);
     const name = ident.name;
     if (!name) continue;
 
-    const prev = by.get(name) ?? { netR: 0, count: 0 };
+    const prev = by.get(name) ?? { netR: 0, netMoney: 0, count: 0 };
     const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-    prev.netR += pnl;
+
+    let r = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      r = t.r;
+    } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+      r = pnl / t.initialRisk;
+    }
+
+    prev.netR += r;
+    prev.netMoney += pnl;
     prev.count += 1;
     by.set(name, prev);
   }
@@ -212,11 +237,12 @@ export function computeStrategyAttribution(
       strategyName,
       strategyPath: card?.path,
       netR: v.netR,
+      netMoney: v.netMoney,
       count: v.count,
     });
   }
 
-  rows.sort((a, b) => Math.abs(b.netR) - Math.abs(a.netR));
+  rows.sort((a, b) => Math.abs(b.netMoney) - Math.abs(a.netMoney)); // Sort by Money
   return rows.slice(0, Math.min(20, Math.max(1, limit)));
 }
 
@@ -226,6 +252,7 @@ export interface ContextAnalysisRow {
   context: string;
   count: number;
   netR: number;
+  netMoney: number;
   winRate: number;
 }
 
@@ -233,6 +260,7 @@ export interface ErrorAnalysisRow {
   errorTag: string;
   count: number;
   netR: number;
+  netMoney: number; // Cost in money (negative)
 }
 
 const CONTEXT_FIELD_ALIASES = [
@@ -286,7 +314,7 @@ export function normalizeMarketCycleForAnalytics(
 export function computeContextAnalysis(
   trades: TradeRecord[]
 ): ContextAnalysisRow[] {
-  const by = new Map<string, { netR: number; count: number; wins: number }>();
+  const by = new Map<string, { netR: number; netMoney: number; count: number; wins: number }>();
 
   for (const t of trades) {
     // 优先使用索引层规范字段（SSOT），rawFrontmatter 仅作回退。
@@ -303,9 +331,18 @@ export function computeContextAnalysis(
     }
     if (!ctx) continue;
 
-    const prev = by.get(ctx) ?? { netR: 0, count: 0, wins: 0 };
+    const prev = by.get(ctx) ?? { netR: 0, netMoney: 0, count: 0, wins: 0 };
     const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
-    prev.netR += pnl;
+
+    let r = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      r = t.r;
+    } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+      r = pnl / t.initialRisk;
+    }
+
+    prev.netR += r;
+    prev.netMoney += pnl;
     prev.count += 1;
     if (pnl > 0) prev.wins += 1;
     by.set(ctx, prev);
@@ -317,6 +354,7 @@ export function computeContextAnalysis(
       context,
       count: v.count,
       netR: v.netR,
+      netMoney: v.netMoney,
       winRate: v.count > 0 ? (v.wins / v.count) * 100 : 0,
     });
   }
@@ -329,7 +367,7 @@ export function computeErrorAnalysis(
 ): ErrorAnalysisRow[] {
   // v5 对齐：错误分布与“学费统计”同一口径（Live + 亏损 + 执行评价非 Perfect/Valid/None/完美/主动）
   // 这里 netR 表示错误造成的亏损（负值），用于与现有 UI 兼容。
-  const by = new Map<string, { costR: number; count: number }>();
+  const by = new Map<string, { costR: number; costMoney: number; count: number }>();
 
   for (const t of trades) {
     if (t.accountType !== "Live") continue;
@@ -346,8 +384,16 @@ export function computeErrorAnalysis(
     const key = keyRaw.length ? keyRaw : "Unknown";
 
     const cost = Math.abs(pnl);
-    const prev = by.get(key) ?? { costR: 0, count: 0 };
-    prev.costR += cost;
+    let rCost = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      rCost = Math.abs(t.r);
+    } else if (t.initialRisk && t.initialRisk > 0) {
+      rCost = cost / t.initialRisk;
+    }
+
+    const prev = by.get(key) ?? { costR: 0, costMoney: 0, count: 0 };
+    prev.costR += rCost;
+    prev.costMoney += cost;
     prev.count += 1;
     by.set(key, prev);
   }
@@ -356,19 +402,22 @@ export function computeErrorAnalysis(
     errorTag,
     count: v.count,
     netR: -v.costR,
+    netMoney: -v.costMoney,
   }));
 
   // Sort by netR ascending (biggest losses first)
-  return rows.sort((a, b) => a.netR - b.netR);
+  return rows.sort((a, b) => a.netMoney - b.netMoney);
 }
 
 export interface TuitionAnalysisRow {
   error: string;
   costR: number;
+  costMoney: number;
 }
 
 export interface TuitionAnalysis {
   tuitionR: number;
+  tuitionMoney: number;
   rows: TuitionAnalysisRow[];
 }
 
@@ -416,7 +465,8 @@ function isBadExecutionQuality(errStr: string): boolean {
  */
 export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
   let tuitionR = 0;
-  const by = new Map<string, number>();
+  let tuitionMoney = 0;
+  const by = new Map<string, { costR: number; costMoney: number }>();
 
   for (const t of trades) {
     if (t.accountType !== "Live") continue;
@@ -432,14 +482,26 @@ export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
       : errStr.trim();
     const key = keyRaw.length ? keyRaw : "Unknown";
 
-    const cost = Math.abs(pnl);
-    tuitionR += cost;
-    by.set(key, (by.get(key) ?? 0) + cost);
+    const costMoney = Math.abs(pnl);
+    let rCost = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      rCost = Math.abs(t.r);
+    } else if (t.initialRisk && t.initialRisk > 0) {
+      rCost = costMoney / t.initialRisk;
+    }
+
+    tuitionR += rCost;
+    tuitionMoney += costMoney;
+
+    const prev = by.get(key) ?? { costR: 0, costMoney: 0 };
+    prev.costR += rCost;
+    prev.costMoney += costMoney;
+    by.set(key, prev);
   }
 
   const rows = [...by.entries()]
-    .map(([error, costR]) => ({ error, costR }))
-    .sort((a, b) => b.costR - a.costR);
+    .map(([error, v]) => ({ error, costR: v.costR, costMoney: v.costMoney }))
+    .sort((a, b) => b.costMoney - a.costMoney); // Sort by Money cost
 
-  return { tuitionR, rows };
+  return { tuitionR, tuitionMoney, rows };
 }

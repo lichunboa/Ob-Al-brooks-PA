@@ -233,7 +233,7 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontWeight: "700", color: pnlColor, fontSize: "1.1rem" }}>
-                    {pnl > 0 ? "+" : ""}{pnl}R
+                    {pnl > 0 ? "+" : ""}{Number.isInteger(pnl) ? pnl : pnl.toFixed(2)}
                   </div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-faint)" }}>
                     {t.outcome ?? ""}
@@ -441,13 +441,13 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
                   </div>
 
                   <div>
-                    <label style={labelStyle}>净利润/net_profit (R)</label>
+                    <label style={labelStyle}>净利润/net_profit ($)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={formData.pnl}
                       onChange={(e) => handleChange("pnl", e.target.value)}
-                      placeholder="例如: 2.5"
+                      placeholder="例如: 500"
                       style={inputStyle}
                     />
                   </div>

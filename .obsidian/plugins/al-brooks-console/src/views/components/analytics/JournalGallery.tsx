@@ -5,6 +5,7 @@ import { V5_COLORS, withHexAlpha } from "../../../ui/tokens";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { Card } from "../../../ui/components/Card";
 import { normalizeMarketCycleForAnalytics } from "../../../core/analytics";
+import { formatCurrency } from "../../../utils/format-utils";
 
 /**
  * JournalGallery Props接口
@@ -34,6 +35,7 @@ export interface JournalGalleryProps {
 
     // 常量Props
     SPACE: any;
+    currencyMode?: 'USD' | 'CNY';
 }
 
 /**
@@ -53,6 +55,7 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
     textButtonStyle,
     selectStyle,
     SPACE,
+    currencyMode = 'USD',
 }) => {
     // 1. Month Navigation State
     // Default to current month (or selected date's month if exists)
@@ -99,9 +102,9 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
     // 3. Data Aggregation for Current Month
     const currentMonthStats = React.useMemo(() => {
         // Prepare map for O(1) lookup
-        const map = new Map<string, { netR: number, count: number }>();
+        const map = new Map<string, { netMoney: number, netR: number, count: number }>();
 
-        let maxAbsR = 0;
+        let maxAbsMoney = 0;
 
         trades.forEach(t => {
             // Apply Scope Filter
@@ -111,20 +114,22 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
             // Only care about this month
             if (!t.dateIso.startsWith(currentMonthStr)) return;
 
-            const prev = map.get(t.dateIso) ?? { netR: 0, count: 0 };
-            const r = t.netProfit ?? t.pnl ?? 0;
+            const prev = map.get(t.dateIso) ?? { netMoney: 0, netR: 0, count: 0 };
+            const pnl = t.pnl ?? 0; // Money
+            const r = t.r ?? (t.initialRisk ? pnl / t.initialRisk : 0); // R
 
             const nextVal = {
+                netMoney: prev.netMoney + pnl,
                 netR: prev.netR + r,
                 count: prev.count + 1
             };
             map.set(t.dateIso, nextVal);
 
-            // Track max abs for heatmap intensity
-            maxAbsR = Math.max(maxAbsR, Math.abs(nextVal.netR));
+            // Track max abs for heatmap intensity (based on Money now)
+            maxAbsMoney = Math.max(maxAbsMoney, Math.abs(nextVal.netMoney));
         });
 
-        return { map, maxAbsR };
+        return { map, maxAbsMoney };
     }, [trades, analyticsScope, currentMonthStr]);
 
 
@@ -140,11 +145,11 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
     const selectedDayStats = React.useMemo(() => {
         if (!selectedDayTrades.length) return null;
         const count = selectedDayTrades.length;
-        const netR = selectedDayTrades.reduce((acc, t) => acc + (t.netProfit ?? t.pnl ?? 0), 0);
+        const netMoney = selectedDayTrades.reduce((acc, t) => acc + (t.pnl ?? 0), 0);
         // "Win" if outcome is explicitly win OR net profit > 0 (handle scratched but slightly positive)
         const wins = selectedDayTrades.filter(t => (t.outcome === 'win' || (t.netProfit ?? 0) > 0)).length;
         const winRate = (wins / count) * 100;
-        return { count, netR, winRate };
+        return { count, netMoney, winRate };
     }, [selectedDayTrades]);
 
     return (
@@ -265,18 +270,20 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                             const dateIso = `${currentMonthStr}-${String(day).padStart(2, '0')}`;
                             const stats = currentMonthStats.map.get(dateIso);
                             const count = stats?.count ?? 0;
-                            const netR = stats?.netR ?? 0;
+                            const netMoney = stats?.netMoney ?? 0;
 
-                            const absRatio = stats && currentMonthStats.maxAbsR > 0
-                                ? Math.min(1, Math.abs(netR) / currentMonthStats.maxAbsR)
+                            const absRatio = stats && currentMonthStats.maxAbsMoney > 0
+                                ? Math.min(1, Math.abs(netMoney) / currentMonthStats.maxAbsMoney)
                                 : 0;
 
                             // Visuals
                             const bg = count > 0
-                                ? (netR > 0 ? withHexAlpha(V5_COLORS.win, "1A") : netR < 0 ? withHexAlpha(V5_COLORS.loss, "1A") : `rgba(var(--mono-rgb-100), 0.1)`)
+                                ? (netMoney > 0 ? withHexAlpha(V5_COLORS.win, "1A") : netMoney < 0 ? withHexAlpha(V5_COLORS.loss, "1A") : `rgba(var(--mono-rgb-100), 0.1)`)
                                 : 'transparent';
 
                             const isSelected = dateIso === selectedDate;
+
+                            const currencyStr = formatCurrency(netMoney, currencyMode).replace('$', '').replace('¥', '');
 
                             return (
                                 <div
@@ -298,7 +305,7 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                                         transition: "all 0.1s ease",
                                         opacity: (!isSelected && selectedDate) ? 0.6 : 1
                                     }}
-                                    title={count > 0 ? `${dateIso}: ${count} 笔, ${netR.toFixed(1)}R` : dateIso}
+                                    title={count > 0 ? `${dateIso}: ${count} 笔, ${netMoney >= 0 ? "+" : ""}${formatCurrency(netMoney, currencyMode)}` : dateIso}
                                 >
                                     <div style={{ fontSize: '0.8em', color: count > 0 ? 'var(--text-normal)' : 'var(--text-faint)' }}>
                                         {day}
@@ -308,9 +315,12 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                                             fontSize: '0.75em',
                                             textAlign: 'right',
                                             fontWeight: 600,
-                                            color: netR > 0 ? V5_COLORS.win : netR < 0 ? V5_COLORS.loss : 'var(--text-muted)'
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            color: netMoney > 0 ? V5_COLORS.win : netMoney < 0 ? V5_COLORS.loss : 'var(--text-muted)'
                                         }}>
-                                            {netR >= 0 && '+'}{netR.toFixed(1)}
+                                            {netMoney > 0 && '+'}{currencyStr}
                                         </div>
                                     )}
                                 </div>
@@ -330,11 +340,11 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                                     <span style={{ fontSize: "0.85em", color: "var(--text-muted)", fontWeight: 400 }}>
                                         ({selectedDayStats.count} 笔,
                                         <span style={{
-                                            color: selectedDayStats.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                                            color: selectedDayStats.netMoney >= 0 ? V5_COLORS.win : V5_COLORS.loss,
                                             fontWeight: 600,
                                             marginLeft: "4px"
                                         }}>
-                                            {selectedDayStats.netR > 0 ? "+" : ""}{selectedDayStats.netR.toFixed(1)}R
+                                            {selectedDayStats.netMoney > 0 ? "+" : ""}{formatCurrency(selectedDayStats.netMoney, currencyMode)}
                                         </span>
                                         )
                                     </span>
@@ -344,7 +354,8 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                             {selectedDayTrades.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '380px', overflowY: 'auto' }}>
                                     {selectedDayTrades.map(t => {
-                                        const r = t.netProfit ?? t.pnl ?? 0;
+                                        const r = t.r ?? 0;
+                                        const money = t.pnl ?? 0;
                                         const context = t.marketCycle ? normalizeMarketCycleForAnalytics(t.marketCycle) : (t.rawFrontmatter as any)?.market_cycle;
                                         return (
                                             <div
@@ -381,12 +392,12 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                                                 <div style={{ textAlign: 'right' }}>
                                                     <div style={{
                                                         fontWeight: 700,
-                                                        color: r > 0 ? V5_COLORS.win : r < 0 ? V5_COLORS.loss : 'var(--text-muted)'
+                                                        color: money > 0 ? V5_COLORS.win : money < 0 ? V5_COLORS.loss : 'var(--text-muted)'
                                                     }}>
-                                                        {r > 0 ? '+' : ''}{r.toFixed(1)}R
+                                                        {money > 0 ? '+' : ''}{formatCurrency(money, currencyMode).replace('$', '').replace('¥', '')}
                                                     </div>
                                                     <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
-                                                        {t.outcome}
+                                                        {money !== 0 ? `${r > 0 ? '+' : ''}${r.toFixed(1)}R` : t.outcome}
                                                     </div>
                                                 </div>
                                             </div>
@@ -434,14 +445,14 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                                                 <span
                                                     style={{
                                                         color:
-                                                            r.netR >= 0
+                                                            r.netMoney >= 0
                                                                 ? V5_COLORS.win
                                                                 : V5_COLORS.loss,
                                                         fontWeight: 600,
                                                     }}
                                                 >
-                                                    {r.netR >= 0 ? "+" : ""}
-                                                    {r.netR.toFixed(1)}R
+                                                    {r.netMoney >= 0 ? "+" : ""}
+                                                    {formatCurrency(r.netMoney ?? 0, currencyMode)}
                                                 </span>
                                             </span>
                                         </li>

@@ -2,6 +2,7 @@ import * as React from "react";
 import { V5_COLORS } from "../../../ui/tokens";
 import { glassCardStyle } from "../../../ui/styles/dashboardPrimitives";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
+import { formatCurrency } from "../../../utils/format-utils";
 
 /**
  * 今日KPI数据接口
@@ -11,6 +12,7 @@ export interface TodayKpiData {
     wins: number;
     losses: number;
     winRatePct: number;
+    netMoney: number;
     netR: number;
 }
 
@@ -19,13 +21,14 @@ export interface TodayKpiData {
  */
 export interface TodayKpiCardProps {
     todayKpi: TodayKpiData;
+    currencyMode?: 'USD' | 'CNY';
 }
 
 /**
  * 今日KPI卡片组件
  * 显示今日交易统计:总交易、获胜、亏损、胜率、净利润
  */
-export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi }) => {
+export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi, currencyMode = 'USD' }) => {
     return (
         <GlassPanel style={{ marginBottom: "16px" }}>
             <div style={{ fontWeight: 600, marginBottom: "8px" }}>今日</div>
@@ -115,12 +118,15 @@ export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({ todayKpi }) => {
                                 fontWeight: 900,
                                 fontSize: "1.6em",
                                 lineHeight: 1,
-                                color: todayKpi.netR >= 0 ? V5_COLORS.win : V5_COLORS.loss,
+                                color: todayKpi.netMoney >= 0 ? V5_COLORS.win : V5_COLORS.loss,
                                 fontVariantNumeric: "tabular-nums",
                             }}
                         >
-                            {todayKpi.netR >= 0 ? "+" : ""}
-                            {todayKpi.netR.toFixed(1)}R
+                            {todayKpi.netMoney >= 0 ? "+" : ""}
+                            {formatCurrency(todayKpi.netMoney, currencyMode).replace('$', '').replace('¥', '')}
+                            <span style={{ fontSize: '0.5em', marginLeft: '2px', verticalAlign: 'middle', opacity: 0.8 }}>
+                                {currencyMode === 'USD' ? '$' : '¥'}
+                            </span>
                         </div>
                     </div>
                 </div>

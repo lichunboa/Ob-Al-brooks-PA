@@ -2,12 +2,14 @@ import * as React from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { AccountType } from "../../../core/contracts";
 import { Card } from "../../../ui/components/Card";
+import { formatCurrency } from "../../../utils/format-utils";
 
 interface CapitalGrowthChartProps {
     strategyLab: any; // StrategyLabAnalysis
     allTradesDateRange: { min: string; max: string };
     getRColorByAccountType: (type: AccountType) => string;
     SPACE: any; // Assuming SPACE object structure
+    currencyMode?: 'USD' | 'CNY';
 }
 
 export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
@@ -15,6 +17,7 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     allTradesDateRange,
     getRColorByAccountType,
     SPACE,
+    currencyMode = 'USD',
 }) => {
     // Transform data for Recharts
     const data = React.useMemo(() => {
@@ -25,20 +28,27 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
             strategyLab.curves.Backtest.length
         );
 
+        const rate = currencyMode === 'CNY' ? 7.25 : 1;
+
         const chartData = [];
         for (let i = 0; i < len; i++) {
+            const liveVal = strategyLab.curves.Live[i];
+            const demoVal = strategyLab.curves.Demo[i];
+            const backtestVal = strategyLab.curves.Backtest[i];
+
             chartData.push({
                 index: i,
-                Live: strategyLab.curves.Live[i] ?? null,
-                Demo: strategyLab.curves.Demo[i] ?? null,
-                Backtest: strategyLab.curves.Backtest[i] ?? null,
+                Live: typeof liveVal === 'number' ? liveVal * rate : null,
+                Demo: typeof demoVal === 'number' ? demoVal * rate : null,
+                Backtest: typeof backtestVal === 'number' ? backtestVal * rate : null,
             });
         }
         return chartData;
-    }, [strategyLab]);
+    }, [strategyLab, currencyMode]);
 
     return (
-        <Card variant="tight">
+        <Card>
+            {/* Header: Cumulative Stats */}
             <div
                 style={{
                     display: "flex",
@@ -58,7 +68,7 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                             fontSize: "0.85em",
                         }}
                     >
-                        (Capital Growth)
+                        (Cumulative Money)
                     </span>
                 </div>
 
@@ -72,16 +82,16 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                     }}
                 >
                     <span style={{ color: getRColorByAccountType("Live") }}>
-                        ● 实盘 {strategyLab.cum.Live >= 0 ? "+" : ""}
-                        {strategyLab.cum.Live.toFixed(1)}R
+                        ● 实盘 {strategyLab.cumMoney.Live >= 0 ? "+" : ""}
+                        {formatCurrency(strategyLab.cumMoney.Live, currencyMode).replace('$', '').replace('¥', '')}
                     </span>
                     <span style={{ color: getRColorByAccountType("Demo") }}>
-                        ● 模拟 {strategyLab.cum.Demo >= 0 ? "+" : ""}
-                        {strategyLab.cum.Demo.toFixed(1)}R
+                        ● 模拟 {strategyLab.cumMoney.Demo >= 0 ? "+" : ""}
+                        {formatCurrency(strategyLab.cumMoney.Demo, currencyMode).replace('$', '').replace('¥', '')}
                     </span>
                     <span style={{ color: getRColorByAccountType("Backtest") }}>
-                        ● 回测 {strategyLab.cum.Backtest >= 0 ? "+" : ""}
-                        {strategyLab.cum.Backtest.toFixed(1)}R
+                        ● 回测 {strategyLab.cumMoney.Backtest >= 0 ? "+" : ""}
+                        {formatCurrency(strategyLab.cumMoney.Backtest, currencyMode).replace('$', '').replace('¥', '')}
                     </span>
                     <span style={{ color: "var(--text-faint)" }}>
                         {allTradesDateRange.min && allTradesDateRange.max
@@ -101,7 +111,7 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                             tick={{ fontSize: 10, fill: "var(--text-muted)" }}
                             axisLine={false}
                             tickLine={false}
-                            tickFormatter={(val) => `${val}R`}
+                            tickFormatter={(val) => `${val}`}
                         />
                         <Tooltip
                             contentStyle={{
@@ -114,7 +124,10 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                             }}
                             itemStyle={{ padding: 0 }}
                             labelStyle={{ display: "none" }}
-                            formatter={(value: number) => [`${value?.toFixed(2)}R`, null]}
+                            formatter={(value: number) => {
+                                const symbol = currencyMode === 'CNY' ? '¥' : '$';
+                                return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}`, null];
+                            }}
                         />
                         <Line
                             type="monotone"

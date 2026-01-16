@@ -52,7 +52,7 @@ export function normalizeTag(tag: string): string {
  */
 export function calculateStrategyStats(
     strategies: any[],
-    strategyPerf: Map<string, { total: number; wins: number; pnl: number; lastDateIso: string }>,
+    strategyPerf: Map<string, { total: number; wins: number; pnlMoney: number; pnlR: number; lastDateIso: string }>,
     isActiveFn: (statusRaw: unknown) => boolean
 ): {
     total: number;
