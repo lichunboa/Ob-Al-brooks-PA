@@ -260,7 +260,7 @@ class FuturesDivergenceCard(RankingCard):
         header_parts = [
             _t("card.header.rank", lang=lang),
             _t("card.header.symbol", lang=lang),
-        ] + [lab for _, lab, _ in active_special] + [lab for _, lab, _ in active_general]
+        ] + [translate_field(lab, lang=lang) for _, lab, _ in active_special] + [translate_field(lab, lang=lang) for _, lab, _ in active_general]
 
         rows: List[List[str]] = []
         for idx, item in enumerate(items[:limit], 1):
