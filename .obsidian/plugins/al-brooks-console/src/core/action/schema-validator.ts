@@ -16,8 +16,9 @@ import type {
     ValidationError,
     ValidationResult
 } from "./types";
-import { TradeRecordSchema, FieldAliases } from "./zod-schema";
 import { z } from "zod";
+import type { EnumPresets } from "../enum-presets";
+import { createTradeRecordSchema, TradeRecordSchema, FieldAliases } from "./zod-schema";
 
 // 保持 TRADE_SCHEMA 导出以便其他模块(如 UI 提示)使用
 // 但其实最佳实践是 UI 也统一用 Schema。为了兼容旧代码，保留原有的 TRADE_SCHEMA 结构?
@@ -31,24 +32,24 @@ import { z } from "zod";
  */
 export const TRADE_SCHEMA: RecordSchema = {
     // 必填字段
-    date: { type: "date", required: true, canonicalName: "日期/date", aliases: ["date", "日期"] },
-    pnl: { type: "number", required: true, canonicalName: "盈亏/net_profit", aliases: ["pnl", "net_profit", "净利润/net_profit", "净利润", "盈亏", "收益"] },
-    outcome: { type: "enum", required: true, enum: ["win", "loss", "scratch", "open", "unknown"], canonicalName: "结果/outcome", aliases: ["outcome", "result", "结果/outcome", "结果"] },
-    accountType: { type: "enum", required: true, enum: ["Live", "Demo", "Backtest"], canonicalName: "账户类型/account_type", aliases: ["account_type", "accountType", "账户类型/account_type", "账户类型", "账户/account_type", "账户"] },
+    date: { type: "date", required: true, canonicalName: "date", aliases: ["date", "日期"] },
+    pnl: { type: "number", required: true, canonicalName: "pnl", aliases: ["pnl", "net_profit", "净利润/net_profit", "净利润", "盈亏", "收益"] },
+    outcome: { type: "enum", required: true, enum: ["win", "loss", "scratch", "open", "unknown"], canonicalName: "outcome", aliases: ["outcome", "result", "结果/outcome", "结果"] },
+    accountType: { type: "enum", required: true, enum: ["Live", "Demo", "Backtest"], canonicalName: "accountType", aliases: ["account_type", "accountType", "账户类型/account_type", "账户类型", "账户/account_type", "账户"] },
 
     // 可选字段
     ticker: { type: "string", required: false, canonicalName: "品种/ticker", aliases: ["ticker", "symbol", "品种/ticker", "品种", "标的", "代码", "合约"] },
     r: { type: "number", required: false, canonicalName: "R值/r_value", aliases: ["r", "R", "r_value", "r值", "R值"] },
-    marketCycle: { type: "string", required: false, canonicalName: "市场周期/market_cycle", aliases: ["marketCycleKey", "market_cycle_key", "cycle", "market_cycle", "marketCycle", "市场周期/market_cycle", "市场周期"] },
-    setupKey: { type: "string", required: false, canonicalName: "形态/setup", aliases: ["setup", "setupKey", "setup_key", "设置/setup", "设置", "形态/setup", "形态"] },
-    setupCategory: { type: "string", required: false, canonicalName: "设置类别/setup_category", aliases: ["setup_category", "setupCategory", "设置类别/setup_category", "设置类别"] },
+    marketCycle: { type: "string", required: false, canonicalName: "marketCycle", aliases: ["marketCycleKey", "market_cycle_key", "cycle", "market_cycle", "marketCycle", "市场周期/market_cycle", "市场周期"] },
+    setupKey: { type: "string", required: false, canonicalName: "setupKey", aliases: ["setup", "setupKey", "setup_key", "设置/setup", "设置", "形态/setup", "形态"] },
+    setupCategory: { type: "string", required: false, canonicalName: "setupCategory", aliases: ["setup_category", "setupCategory", "设置类别/setup_category", "设置类别"] },
     patternsObserved: { type: "array", required: false, canonicalName: "观察到的形态/patterns_observed", aliases: ["patterns_observed", "patterns", "pattern", "观察到的形态/patterns_observed", "形态/patterns", "形态"] },
     signalBarQuality: { type: "array", required: false, canonicalName: "信号K质量/signal_bar_quality", aliases: ["signal_bar_quality", "signal", "signalBarQuality", "信号K/signal_bar_quality", "信号K", "信号K质量"] },
-    timeframe: { type: "string", required: false, canonicalName: "时间周期/timeframe", aliases: ["tf", "timeframe", "时间周期/timeframe", "时间周期", "周期/tf", "周期"] },
-    direction: { type: "string", required: false, canonicalName: "方向/direction", aliases: ["dir", "direction", "方向/direction", "方向/dir", "方向"] },
-    strategyName: { type: "string", required: false, canonicalName: "策略名称/strategy_name", aliases: ["strategy_name", "strategyName", "策略名称/strategy_name", "策略名称/strategyName", "策略名称", "策略/strategyName", "策略"] },
+    timeframe: { type: "string", required: false, canonicalName: "timeframe", aliases: ["tf", "timeframe", "时间周期/timeframe", "时间周期", "周期/tf", "周期"] },
+    direction: { type: "string", required: false, canonicalName: "direction", aliases: ["dir", "direction", "方向/direction", "方向/dir", "方向"] },
+    strategyName: { type: "string", required: false, canonicalName: "strategyName", aliases: ["strategy_name", "strategyName", "策略名称/strategy_name", "策略名称/strategyName", "策略名称", "策略/strategyName", "策略"] },
     managementPlan: { type: "array", required: false, canonicalName: "管理计划/management_plan", aliases: ["management_plan", "managementPlan", "管理计划/management_plan", "管理计划"] },
-    executionQuality: { type: "string", required: false, canonicalName: "执行评价/execution_quality", aliases: ["execution_quality", "executionQuality", "执行评价/execution_quality", "执行评价", "管理错误/management_error", "management_error", "managementError", "管理错误"] },
+    executionQuality: { type: "string", required: false, canonicalName: "executionQuality", aliases: ["execution_quality", "executionQuality", "执行评价/execution_quality", "执行评价", "管理错误/management_error", "management_error", "managementError", "管理错误"] },
     cover: { type: "string", required: false, canonicalName: "封面/cover", aliases: ["cover", "封面/cover", "封面", "banner"] },
 
     // 新增字段
@@ -63,7 +64,19 @@ export const TRADE_SCHEMA: RecordSchema = {
     orderType: { type: "string", required: false, canonicalName: "订单类型/order_type", aliases: ["order_type", "订单类型", "订单", "orderType", "order"] }
 };
 
+
+
 export class SchemaValidator {
+    private presets?: EnumPresets;
+
+    constructor(presets?: EnumPresets) {
+        this.presets = presets;
+    }
+
+    public setPresets(presets: EnumPresets) {
+        this.presets = presets;
+    }
+
     /**
      * 验证整个记录 (Zod Powered)
      */
@@ -76,30 +89,25 @@ export class SchemaValidator {
         const canonicalRecord: Record<string, unknown> = {};
 
         // 逆向映射别名: Value -> Canonical Key
-        // 为了性能，可以缓存这个反向映射Map，这里先实时计算
         const aliasToCanonical = new Map<string, string>();
         Object.entries(FieldAliases).forEach(([canonical, aliases]) => {
-            aliasToCanonical.set(canonical, canonical); // 自身也是key
+            aliasToCanonical.set(canonical, canonical);
             aliases.forEach(alias => aliasToCanonical.set(alias, canonical));
         });
 
         for (const [key, value] of Object.entries(record)) {
             const canonicalKey = aliasToCanonical.get(key);
             if (canonicalKey) {
-                // 如果同一个标准字段被多个别名赋值，覆盖之（以前面的为准还是后面？这里简单覆盖）
                 canonicalRecord[canonicalKey] = value;
             } else {
-                // 未知字段，保留以便后续可能的处理，或者 Zod 会 strip
-                // TradeRecordSchema 是 strict 还是 loose? 默认 stripUnknown?
-                // Zod object is strip by default.
-                // 但如果我们需要报错未知字段，则需 strict。
-                // 暂时只验证已知字段。
                 canonicalRecord[key] = value;
             }
         }
 
-        // 2. Safely Parse with Zod
-        const result = TradeRecordSchema.safeParse(canonicalRecord);
+        // 2. Safely Parse with Zod (Dynamic)
+        // Create schema with current presets
+        const dynamicSchema = createTradeRecordSchema(this.presets);
+        const result = dynamicSchema.safeParse(canonicalRecord);
 
         if (result.success) {
             return {
@@ -125,23 +133,15 @@ export class SchemaValidator {
      * 获取字段Schema (Legacy Support)
      */
     getFieldSchema(fieldName: string): any {
-        // 1. 首先检查是否是schema key (如 "date")
-        if (TRADE_SCHEMA[fieldName]) {
-            return TRADE_SCHEMA[fieldName];
+        // ... (legacy implementation)
+        if (TRADE_SCHEMA[fieldName]) return TRADE_SCHEMA[fieldName];
+
+        for (const [_, schema] of Object.entries(TRADE_SCHEMA)) {
+            if (schema.canonicalName === fieldName) return schema;
         }
 
-        // 2. 然后检查是否是规范名称 (如 "日期/date")
         for (const [_, schema] of Object.entries(TRADE_SCHEMA)) {
-            if (schema.canonicalName === fieldName) {
-                return schema;
-            }
-        }
-
-        // 3. 最后检查是否是别名 (如 "日期", "date")
-        for (const [_, schema] of Object.entries(TRADE_SCHEMA)) {
-            if (schema.aliases?.includes(fieldName)) {
-                return schema;
-            }
+            if (schema.aliases?.includes(fieldName)) return schema;
         }
 
         return undefined;

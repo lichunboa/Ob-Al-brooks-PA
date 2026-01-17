@@ -6,6 +6,8 @@ import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
 import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
+import { PlanWidget } from "../components/plan/PlanWidget";
+import { useDailyPlan } from "../../hooks/useDailyPlan";
 import { useConsoleContext } from "../../context/ConsoleContext";
 import { calculateTodayKpi } from "../../utils/data-calculation-utils";
 import { findOpenTrade } from "../../utils/trade-utils";
@@ -17,6 +19,9 @@ import {
 } from "../../ui/styles/dashboardPrimitives";
 import { MarkdownBlock } from "../../ui/components/MarkdownBlock";
 import { IntegrationCapability } from "../../integrations/contracts";
+import { SRSQueryService } from "../../services/srs-query-service";
+import { ContextLearnWidget } from "../components/learn/ContextLearnWidget";
+import { TiltAlertModal } from "../components/trading/TiltAlertModal";
 
 export const TradingHubTab: React.FC = () => {
   const {
@@ -29,6 +34,8 @@ export const TradingHubTab: React.FC = () => {
     currencyMode,
     integrations,
   } = useConsoleContext();
+
+  const { plan, savePlan, toggleChecklistItem } = useDailyPlan(app, todayContext);
 
   const todayIso = React.useMemo(() => moment().format("YYYY-MM-DD"), []);
 
@@ -76,7 +83,7 @@ export const TradingHubTab: React.FC = () => {
   // Real-time Active File Metadata Listener
   // We use a ref to track if we should clear it, but generally we want to KEEP the last valid trade note's context
   // so the user can see the prediction for the file they were just editing.
-  const [activeMetadata, setActiveMetadata] = React.useState<{ cycle?: string; direction?: string } | null>(null);
+  const [activeMetadata, setActiveMetadata] = React.useState<{ cycle?: string; direction?: string; setup?: string } | null>(null);
 
   React.useEffect(() => {
     const updateMetadata = () => {
@@ -92,11 +99,13 @@ export const TradingHubTab: React.FC = () => {
       const fm = cache.frontmatter;
 
       // Only update if it *looks* like a trade note (has specific fields)
-      if (fm.market_cycle || fm.marketCycle || fm.direction) {
-        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}. Cycle: ${fm.market_cycle || fm.marketCycle}`);
+      if (fm.market_cycle || fm.marketCycle || fm.direction || fm.setup || fm.setup_category) {
+        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}`);
         setActiveMetadata({
           cycle: fm.market_cycle || fm.marketCycle,
-          direction: fm.direction
+          direction: fm.direction,
+          // @ts-ignore
+          setup: fm.setup || fm.setup_category || fm.setupCategory
         });
       }
       // If it's NOT a trade note (e.g. a settings file), we *might* want to clear it?
@@ -124,10 +133,109 @@ export const TradingHubTab: React.FC = () => {
     };
   }, [app]);
 
+  // --- SRS Integration (Phase 4.1) ---
+  const [srsCards, setSrsCards] = React.useState<any[]>([]);
+  const srsService = React.useMemo(() => new SRSQueryService(app), [app]);
+
+  React.useEffect(() => {
+    // Determine current context for SRS
+    // Priority:
+    // 1. Open Trade (Draft) Setup
+    // 2. Active File Setup
+    // 3. Today's Market Cycle
+
+    const keywords: string[] = [];
+
+    // 1. Active Draft
+    if (openTrade?.setupCategory) keywords.push(openTrade.setupCategory);
+    if (openTrade?.strategyName) keywords.push(openTrade.strategyName);
+
+    // 2. Active File (if not draft)
+    if (!openTrade && activeMetadata) {
+      if (activeMetadata.cycle) keywords.push(activeMetadata.cycle);
+      // We need to add 'setup' to activeMetadata if we want it here, 
+      // but for now let's use cycle which is available.
+    }
+
+    // 3. Market Cycle
+    if (todayContext?.getTodayMarketCycle()) {
+      const c = todayContext.getTodayMarketCycle();
+      if (Array.isArray(c)) keywords.push(...c);
+      else if (typeof c === 'string') keywords.push(c);
+    }
+
+    if (keywords.length === 0) {
+      setSrsCards([]);
+      return;
+    }
+
+    // Dedup
+    const uniqueKeywords = Array.from(new Set(keywords.filter(k => k && k !== 'Unknown')));
+
+    srsService.getDueCards(uniqueKeywords).then(cards => {
+      setSrsCards(cards);
+    });
+
+  }, [openTrade, activeMetadata, todayContext, srsService]);
+
+  // --- Tilt Breaker (Phase 4.2) ---
+  const [isTiltAlertOpen, setIsTiltAlertOpen] = React.useState(false);
+  const [lastAckStreak, setLastAckStreak] = React.useState(0);
+  const { losingStreak } = todayKpi;
+
+  React.useEffect(() => {
+    // Trigger if streak >= 3 AND we haven't acknowledged this specific streak level yet
+    // e.g. streak 3 -> alert -> ack (3). streak 4 -> alert -> ack (4).
+    // resetting streak to 0 will allow future alerts (since 3 > 0).
+    if (losingStreak >= 3 && losingStreak > lastAckStreak) {
+      setIsTiltAlertOpen(true);
+    }
+
+    // Optional: If streak resets (e.g. a win), reset ack?
+    if (losingStreak === 0 && lastAckStreak > 0) {
+      setLastAckStreak(0);
+    }
+  }, [losingStreak, lastAckStreak]);
+
+
   return (
     <>
       <SectionHeader title="交易中心" subtitle="Trading Hub" icon="⚔️" />
+
+      {isTiltAlertOpen && (
+        <TiltAlertModal
+          streak={losingStreak}
+          onClose={() => {
+            setIsTiltAlertOpen(false);
+            setLastAckStreak(losingStreak);
+          }}
+          onOpenChecklist={() => {
+            openFile("Templates/Psychology Checklist (Tilt Management).md");
+            setIsTiltAlertOpen(false);
+            setLastAckStreak(losingStreak);
+          }}
+        />
+      )}
+
       <GlassPanel style={{ marginBottom: "16px" }}>
+        <PlanWidget
+          plan={plan || undefined}
+          onGoToPlan={() => todayContext?.openTodayNote && todayContext.openTodayNote()}
+          onSavePlan={savePlan}
+          onToggleChecklistItem={toggleChecklistItem}
+          onUpdateRiskLimit={async (limit) => {
+            if (plan) {
+              await savePlan({ ...plan, riskLimit: limit });
+            }
+          }}
+          onOpenTodayNote={() => todayContext?.openTodayNote && todayContext.openTodayNote()}
+          enumPresets={enumPresets}
+          strategyIndex={strategyIndex}
+          app={app}
+          targetTrade={null}
+        />
+        <div style={{ height: "16px", borderBottom: "1px solid var(--background-modifier-border)", marginBottom: "16px" }}></div>
+
         <TodayKpiCard todayKpi={todayKpi} currencyMode={currencyMode || "USD"} />
 
         <ReviewHintsPanel
@@ -143,6 +251,12 @@ export const TradingHubTab: React.FC = () => {
             if (rc) rc(id);
           } : undefined}
         />
+
+        <ContextLearnWidget
+          cards={srsCards}
+          onReview={(file) => openFile(file.path)}
+        />
+
 
         <OpenTradeAssistant
           openTrade={openTrade}

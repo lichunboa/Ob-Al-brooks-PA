@@ -26,10 +26,15 @@ import { DataStatisticsPanel } from "../components/manage/DataStatisticsPanel";
 import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
+import { BatchEditPanel } from "../components/batch/BatchEditPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
 import { V5_COLORS } from "../../ui/tokens";
 import { SPACE } from "../../ui/styles/dashboardPrimitives";
 import { topN } from "../../utils/aggregation-utils";
+import { DoctorPanel } from "../components/manage/DoctorPanel";
+import { ArchivePanel } from "../components/manage/ArchivePanel";
+
+
 
 export const ManageTab: React.FC = () => {
     const {
@@ -49,6 +54,8 @@ export const ManageTab: React.FC = () => {
         promptText,
         confirmDialog,
         runCommand,
+        handleBatchUpdateTrades,
+        app,
     } = useConsoleContext();
 
     const {
@@ -270,6 +277,22 @@ export const ManageTab: React.FC = () => {
             </div>
 
             <RawDataPanel trades={trades} openFile={openFile} />
+
+            <div style={{ marginBottom: "24px" }}>
+                <BatchEditPanel
+                    trades={trades}
+                    onBatchUpdate={handleBatchUpdateTrades}
+                    openFile={openFile}
+                />
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+                <DoctorPanel app={app} />
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+                <ArchivePanel app={app} />
+            </div>
 
             <div style={{ marginBottom: "24px" }}>
                 <HealthStatusPanel

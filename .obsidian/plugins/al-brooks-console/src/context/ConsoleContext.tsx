@@ -100,10 +100,15 @@ export interface ConsoleContextValue {
     // 交互动作 (useDashboardActions)
     handleToggleChecklistItem: (index: number) => Promise<void>;
     handleUpdateRiskLimit: (limit: number) => Promise<void>;
+    handleBatchUpdateTrades: (items: any[], options: any) => Promise<any>;
 
     // 全局 UI 状态
     currencyMode: 'USD' | 'CNY';
     setCurrencyMode: (mode: 'USD' | 'CNY') => void;
+
+    // Display Unit (Money vs R)
+    displayUnit: 'money' | 'r';
+    setDisplayUnit: (unit: 'money' | 'r') => void;
 }
 
 // Create Context
@@ -171,7 +176,7 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = (props) => {
     );
 
     // 4. Actions
-    const dashboardActions = useDashboardActions(props.app, props.index);
+    const dashboardActions = useDashboardActions(props.app, props.index, props.enumPresets);
 
     // 5. Learn Data
     const learnData = useLearnData({
@@ -183,6 +188,7 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = (props) => {
 
     // 6. Global UI State
     const [currencyMode, setCurrencyMode] = React.useState<'USD' | 'CNY'>('USD');
+    const [displayUnit, setDisplayUnit] = React.useState<'money' | 'r'>('money');
 
     const value: ConsoleContextValue = {
         // Pass-through Props
@@ -220,7 +226,9 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = (props) => {
 
         // UI State
         currencyMode,
-        setCurrencyMode
+        setCurrencyMode,
+        displayUnit,
+        setDisplayUnit
     };
 
     return (

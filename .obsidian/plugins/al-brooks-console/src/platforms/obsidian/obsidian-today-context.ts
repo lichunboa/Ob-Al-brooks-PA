@@ -110,6 +110,10 @@ export class ObsidianTodayContext implements TodayContext {
     return this.marketCycle;
   }
 
+  public getTodayFile(): TFile | undefined {
+    return this.todayFile;
+  }
+
   public async openTodayNote(): Promise<void> {
     if (this.todayFile) {
       await this.app.workspace.getLeaf(false).openFile(this.todayFile);

@@ -1,14 +1,21 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { Notice, type App } from "obsidian";
 import type { TradeIndex } from "../core/trade-index";
 import { ActionService } from "../core/action/action-service";
+import type { EnumPresets } from "../core/enum-presets";
 
-export const useDashboardActions = (app: any, index: TradeIndex) => {
+export const useDashboardActions = (app: any, index: TradeIndex, presets?: EnumPresets) => {
     const actionService = useMemo(() => {
         // 确保 app 存在
         if (!app) return null;
         return new ActionService(app);
     }, [app]);
+
+    useEffect(() => {
+        if (actionService && presets) {
+            actionService.setPresets(presets);
+        }
+    }, [actionService, presets]);
 
     /**
      * 获取今日笔记路径
@@ -70,8 +77,29 @@ export const useDashboardActions = (app: any, index: TradeIndex) => {
         }
     }, [actionService, getTodayNotePath, index]);
 
+    /**
+     * 处理批量更新交易
+     */
+    const handleBatchUpdateTrades = useCallback(async (
+        items: Array<{ path: string; updates: any }>,
+        options: { dryRun: boolean }
+    ) => {
+        if (!actionService) throw new Error("ActionService not initialized");
+        const res = await actionService.batchUpdateTrades(items, {
+            dryRun: options.dryRun,
+            validateRisk: false // Default to false for batch ops as planned
+        });
+
+        // 仅在非DryRun时刷新索引
+        if (!options.dryRun && index.rebuild) {
+            await index.rebuild();
+        }
+        return res;
+    }, [actionService, index]);
+
     return {
         handleToggleChecklistItem,
-        handleUpdateRiskLimit
+        handleUpdateRiskLimit,
+        handleBatchUpdateTrades
     };
 };

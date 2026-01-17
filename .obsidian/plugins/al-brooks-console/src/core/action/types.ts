@@ -49,6 +49,8 @@ export interface ActionOptions {
     dryRun?: boolean;
     /** 是否验证数据 (默认true) */
     validate?: boolean;
+    /** 是否验证风控 (默认true) */
+    validateRisk?: boolean;
     /** 是否记录历史 (默认true) */
     recordHistory?: boolean;
 }

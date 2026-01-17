@@ -1,4 +1,6 @@
+
 import { z } from "zod";
+import type { EnumPresets } from "../enum-presets";
 
 // Helper to preprocess alias/coercion
 // Note: Logic for aliases is typically handling "input object key mapping" before Zod.
@@ -6,15 +8,6 @@ import { z } from "zod";
 // But usually, standard practice is:
 // 1. Map input object keys to canonical keys.
 // 2. Validate canonical object with Zod.
-// OR
-// 2. Use z.preprocess on individual fields? No, schema defines structure.
-// IF our ActionService logic is "Map keys -> Validate", then we just need a Schema for the canonical TradeRecord.
-
-// Let's look at schema-validator.ts logic: "getFieldSchema" checks aliases. "validateRecord" iterates record keys, finds schema, and validates.
-// So current logic supports "unknown key that matches an alias" being treated as the canonical key.
-
-// Ideally we keep that behavior or standardize it. 
-// "FieldAliases" can be a separate constant map used for preprocessing.
 
 export const FieldAliases: Record<string, string[]> = {
     date: ["date", "日期"],
@@ -45,42 +38,66 @@ export const FieldAliases: Record<string, string[]> = {
     orderType: ["order_type", "订单类型", "订单", "orderType", "order"]
 };
 
-// Canonical Schema
-export const TradeRecordSchema = z.object({
-    // Required
-    date: z.preprocess((arg) => {
-        if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
-        return arg;
-    }, z.date()),
-    pnl: z.preprocess((val) => Number(val), z.number()),
-    outcome: z.enum(["win", "loss", "scratch", "open", "unknown"]),
-    accountType: z.enum(["Live", "Demo", "Backtest"]),
+// Helper: safe enum from string array
+function createEnum(values: readonly string[] | undefined, fallback: readonly string[] = []): z.ZodTypeAny {
+    const list = values && values.length > 0 ? values : fallback;
+    if (list.length === 0) return z.string();
+    // Zod requires non-empty array for enum
+    return z.enum(list as [string, ...string[]]);
+}
 
-    // Optional
-    ticker: z.string().optional(),
-    r: z.preprocess((val) => val === undefined || val === "" ? undefined : Number(val), z.number().optional()),
-    marketCycle: z.string().optional(),
-    setupKey: z.string().optional(),
-    setupCategory: z.string().optional(),
-    patternsObserved: z.array(z.string()).optional(),
-    signalBarQuality: z.array(z.string()).optional(),
-    timeframe: z.string().optional(),
-    direction: z.string().optional(),
-    strategyName: z.string().optional(),
-    managementPlan: z.array(z.string()).optional(),
-    executionQuality: z.string().optional(),
-    cover: z.string().optional(),
+/**
+ * Creates a Zod schema for TradeRecord, optionally using dynamic presets.
+ */
+export function createTradeRecordSchema(presets?: EnumPresets) {
+    const getValues = (key: string) => {
+        if (!presets) return [];
+        return presets.getCanonicalValues(key) || [];
+    };
 
-    // Day 10 extensions
-    entryPrice: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
-    stopLoss: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
-    takeProfit: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
-    initialRisk: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
-    alwaysIn: z.string().optional(),
-    dayType: z.string().optional(),
-    probability: z.string().optional(),
-    confidence: z.string().optional(),
-    orderType: z.string().optional(),
-});
+    return z.object({
+        // Required
+        date: z.preprocess((arg) => {
+            if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+            return arg;
+        }, z.date()),
+        pnl: z.preprocess((val) => Number(val), z.number()),
+        outcome: createEnum(getValues("outcome"), ["win", "loss", "scratch", "open", "unknown"]),
+        accountType: createEnum(getValues("account_type"), ["Live", "Demo", "Backtest"]),
+
+        // Optional
+        ticker: z.string().optional(),
+        r: z.preprocess((val) => val === undefined || val === "" ? undefined : Number(val), z.number().optional()),
+
+        marketCycle: createEnum(getValues("market_cycle")).optional(),
+        setupKey: createEnum(getValues("setup")).optional(),
+        setupCategory: createEnum(getValues("setup_category")).optional(),
+
+        patternsObserved: z.array(z.string()).optional(), // Hard to strictly validate array elements against enum with Zod cleanly without custom refine
+        signalBarQuality: z.array(z.string()).optional(),
+
+        timeframe: createEnum(getValues("timeframe")).optional(),
+        direction: createEnum(getValues("direction")).optional(),
+        strategyName: z.string().optional(),
+        managementPlan: z.array(z.string()).optional(),
+        executionQuality: createEnum(getValues("execution_quality")).optional(),
+        cover: z.string().optional(),
+
+        // Day 10 extensions
+        entryPrice: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+        stopLoss: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+        takeProfit: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+        initialRisk: z.preprocess((val) => val ? Number(val) : undefined, z.number().optional()),
+
+        alwaysIn: createEnum(getValues("always_in")).optional(),
+        dayType: createEnum(getValues("day_type")).optional(),
+        probability: createEnum(getValues("probability")).optional(),
+        confidence: createEnum(getValues("confidence")).optional(),
+        orderType: createEnum(getValues("order_type")).optional(),
+    });
+}
+
+// Canonical Service Schema (Static Fallback)
+export const TradeRecordSchema = createTradeRecordSchema();
 
 export type TradeRecordZod = z.infer<typeof TradeRecordSchema>;

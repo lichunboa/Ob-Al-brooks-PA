@@ -505,3 +505,105 @@ export function computeTuitionAnalysis(trades: TradeRecord[]): TuitionAnalysis {
 
   return { tuitionR, tuitionMoney, rows };
 }
+
+// --- Multi-dimensional Analysis (Phase 3.2) ---
+
+export interface AnalyticsBucket {
+  label: string;
+  count: number;
+  winRate: number;
+  netR: number;
+  netMoney: number;
+}
+
+export type BreakdownDimension = "setup" | "day" | "direction";
+
+export function aggregateTrades(
+  trades: TradeRecord[],
+  dimension: BreakdownDimension
+): AnalyticsBucket[] {
+  const map = new Map<
+    string,
+    { count: number; wins: number; netR: number; netMoney: number }
+  >();
+
+  for (const t of trades) {
+    if (t.accountType !== "Live") continue; // Default to Live for analysis? Or should we let caller filter? 
+    // Usually analytics functions operate on the passed trades array. 
+    // `computeDailyAgg` does NOT filter by account type inside, it expects caller to filter.
+    // `computeStrategyAttribution` does NOT filter.
+    // `computeErrorAnalysis` DOES filter for Live.
+    // Let's NOT filter here, assuming caller filters `trades` before passing.
+  }
+
+  // Re-loop without filter
+  for (const t of trades) {
+    let key = "Unknown";
+
+    if (dimension === "direction") {
+      key = t.direction || (t.rawFrontmatter as any)?.direction || "Unknown";
+    } else if (dimension === "day") {
+      if (t.dateIso) {
+        const date = new Date(t.dateIso);
+        // 0=Sun, 1=Mon ...
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        key = days[date.getDay()];
+      } else {
+        key = "Unknown";
+      }
+    } else if (dimension === "setup") {
+      // Try standard field first
+      let cat = t.setupCategory;
+      // Fallback aliases if not normalized
+      if (!cat) {
+        const fm = (t.rawFrontmatter ?? {}) as any;
+        cat = fm["setup_category"] || fm["setup"] || fm["setupCategory"];
+      }
+      key = cat ? (cat.split("(")[0].trim() || "Unknown") : "Unknown";
+    } else if (dimension === "timeframe" as any) {
+      key = t.timeframe || (t.rawFrontmatter as any)?.timeframe || "Unknown";
+    }
+
+    const prev = map.get(key) ?? { count: 0, wins: 0, netR: 0, netMoney: 0 };
+
+    const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+    let r = 0;
+    if (typeof t.r === "number" && Number.isFinite(t.r)) {
+      r = t.r;
+    } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+      r = pnl / t.initialRisk;
+    }
+
+    prev.count++;
+    prev.netMoney += pnl;
+    prev.netR += r;
+    if ((t.netProfit || pnl) > 0) prev.wins++; // Simple win check
+
+    map.set(key, prev);
+  }
+
+  const buckets: AnalyticsBucket[] = [];
+  for (const [label, data] of map.entries()) {
+    buckets.push({
+      label,
+      count: data.count,
+      netR: data.netR,
+      netMoney: data.netMoney,
+      winRate: data.count > 0 ? (data.wins / data.count) * 100 : 0
+    });
+  }
+
+  // Sort logic:
+  // Day: Sort by Day order? Or value? Usually value is more interesting for "Analysis".
+  // But Day of Week usually expected in order.
+  if (dimension === "day") {
+    const dayOrder = { "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6 };
+    buckets.sort((a, b) => (dayOrder[a.label as keyof typeof dayOrder] ?? 99) - (dayOrder[b.label as keyof typeof dayOrder] ?? 99));
+  } else {
+    // Sort by Net Money desc
+    buckets.sort((a, b) => b.netMoney - a.netMoney);
+  }
+
+  return buckets;
+}
+

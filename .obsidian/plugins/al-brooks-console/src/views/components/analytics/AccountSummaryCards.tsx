@@ -17,6 +17,7 @@ export interface AccountSummaryCardsProps {
     // 常量Props
     SPACE: any;
     currencyMode?: 'USD' | 'CNY';
+    displayUnit?: 'money' | 'r';
 }
 
 /**
@@ -27,6 +28,7 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
     summary,
     SPACE,
     currencyMode = 'USD',
+    displayUnit = 'money',
 }) => {
     return (
         <div style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}>
@@ -56,6 +58,15 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                 ] as const
             ).map((card) => {
                 const netMoney = card.stats.netMoney ?? 0;
+                const netR = card.stats.netR ?? 0;
+                const isR = displayUnit === 'r';
+
+                const displayValue = isR ? netR : netMoney;
+                const displayPrefix = isR
+                    ? (displayValue > 0 ? "+" : "")
+                    : (displayValue > 0 ? "+" : "");
+                const displaySuffix = isR ? "R" : "";
+
                 return (
                     <Card
                         key={card.key}
@@ -111,13 +122,17 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                                     fontWeight: 900,
                                     lineHeight: 1,
                                     color:
-                                        netMoney >= 0
+                                        displayValue >= 0
                                             ? V5_COLORS.win
                                             : V5_COLORS.loss,
                                 }}
                             >
-                                {netMoney > 0 ? "+" : ""}
-                                {formatCurrency(netMoney, currencyMode).replace('$', '').replace('¥', '')}
+                                {displayPrefix}
+                                {isR
+                                    ? displayValue.toFixed(1)
+                                    : formatCurrency(displayValue, currencyMode).replace('$', '').replace('¥', '')
+                                }
+                                {displaySuffix}
                             </div>
                             <div
                                 style={{
@@ -125,7 +140,7 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                                     fontSize: "0.95em",
                                 }}
                             >
-                                {currencyMode === 'USD' ? '$' : '¥'}
+                                {isR ? 'Risk Multiples' : (currencyMode === 'USD' ? '$' : '¥')}
                             </div>
                         </div>
 

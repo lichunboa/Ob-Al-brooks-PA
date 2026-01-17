@@ -124,6 +124,7 @@ export class ConsoleView extends ItemView {
   private strategyIndex: StrategyIndex;
   private todayContext?: TodayContext;
   private integrations?: PluginIntegrationRegistry;
+  private enumPresets?: EnumPresets;
   private version: string;
   private root: Root | null = null;
   private getSettings: () => AlBrooksConsoleSettings;
@@ -138,6 +139,7 @@ export class ConsoleView extends ItemView {
     strategyIndex: StrategyIndex,
     todayContext: TodayContext,
     integrations: PluginIntegrationRegistry,
+    enumPresets: EnumPresets | undefined,
     version: string,
     getSettings: () => AlBrooksConsoleSettings,
     subscribeSettings: (
@@ -150,6 +152,7 @@ export class ConsoleView extends ItemView {
     this.strategyIndex = strategyIndex;
     this.todayContext = todayContext;
     this.integrations = integrations;
+    this.enumPresets = enumPresets;
     this.version = version;
     this.getSettings = getSettings;
     this.subscribeSettings = subscribeSettings;
@@ -190,6 +193,7 @@ export class ConsoleView extends ItemView {
             version={this.version}
             app={this.app}
             integrations={this.integrations}
+            enumPresets={this.enumPresets}
             openFile={async (path) => {
               this.app.workspace.openLinkText(path, "", true);
             }}

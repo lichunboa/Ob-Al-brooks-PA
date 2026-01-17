@@ -56,15 +56,22 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
     const [dayType, setDayType] = React.useState<string>("");
     const [alwaysIn, setAlwaysIn] = React.useState<string>("");
 
+    // Helper to safely join
+    const safeJoin = (val: string[] | string | undefined): string => {
+        if (!val) return "";
+        if (Array.isArray(val)) return val.join(", ");
+        return String(val);
+    };
+
     // Initialize form when entering edit mode or when plan changes
     React.useEffect(() => {
         if (plan) {
-            setFocusSymbols(plan.focusSymbols?.join(", ") || "");
-            setStrategies(plan.strategies?.join(", ") || "");
+            setFocusSymbols(safeJoin(plan.focusSymbols));
+            setStrategies(safeJoin(plan.strategies));
             setRiskLimit(plan.riskLimit ?? 1);
             setNotes(plan.notes || "");
             setMarketCycle(plan.marketCycle || "");
-            setFocusTimeframes(plan.focusTimeframes?.join(", ") || "");
+            setFocusTimeframes(safeJoin(plan.focusTimeframes));
             setDayType(plan.dayType || "");
             setAlwaysIn(plan.alwaysIn || "");
         } else {
@@ -481,7 +488,7 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                             {plan.focusSymbols && plan.focusSymbols.length > 0 && (
                                 <div>
                                     <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Focus:</span>{" "}
-                                    {plan.focusSymbols.join(", ")}
+                                    {Array.isArray(plan.focusSymbols) ? plan.focusSymbols.join(", ") : plan.focusSymbols}
                                 </div>
                             )}
                             {plan.marketCycle && (
@@ -493,7 +500,7 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                             {plan.focusTimeframes && plan.focusTimeframes.length > 0 && (
                                 <div>
                                     <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>TF:</span>{" "}
-                                    {plan.focusTimeframes.join(", ")}
+                                    {Array.isArray(plan.focusTimeframes) ? plan.focusTimeframes.join(", ") : plan.focusTimeframes}
                                 </div>
                             )}
                             <div>

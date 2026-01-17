@@ -104,8 +104,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
         const patterns = (currentTrade.patternsObserved ?? [])
             .map((p) => String(p).trim())
             .filter(Boolean);
-        const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.trim();
-        const marketCycle = currentTrade.marketCycle?.trim();
+        const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.toString().trim();
+        const marketCycle = currentTrade.marketCycle?.toString().trim();
 
         const results = matchStrategiesV2(strategyIndex, {
             marketCycle,
@@ -230,7 +230,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             {/* 市场周期和策略推荐 - 基于currentTrade */}
             {(() => {
                 // 只使用currentTrade的marketCycle,不回退到todayMarketCycle
-                const marketCycle = currentTrade.marketCycle?.trim();
+                const marketCycle = currentTrade.marketCycle?.toString().trim();
 
                 return (
                     <div style={{ marginBottom: "12px" }}>
@@ -248,7 +248,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             const patterns = (currentTrade.patternsObserved ?? [])
                                 .map((p) => String(p).trim())
                                 .filter(Boolean);
-                            const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.trim();
+                            const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.toString().trim();
 
                             // 使用V2引擎 - 考虑方向、时间周期、历史表现
                             const results = matchStrategiesV2(strategyIndex, {

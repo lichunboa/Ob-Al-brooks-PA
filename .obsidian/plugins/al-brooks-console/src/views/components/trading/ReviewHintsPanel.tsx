@@ -70,7 +70,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     // Helper: Find strategy note by name/alias
     const findStrategy = (name: string) => {
         if (!strategies || strategies.length === 0) return null;
-        const target = name.toLowerCase().trim();
+        const target = String(name).toLowerCase().trim();
         return strategies.find(s => {
             if (s.strategy && s.strategy.toLowerCase() === target) return true;
             if (s.aliases && s.aliases.some((a: string) => a.toLowerCase() === target)) return true;

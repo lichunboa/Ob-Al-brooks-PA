@@ -2,6 +2,8 @@ import * as React from "react";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
 import { SectionHeader } from "../../../ui/components/SectionHeader";
 import { Button } from "../../../ui/components/Button";
+import { Toggle } from "../../../ui/components/Toggle";
+
 
 interface AnalyticsConfigModalProps {
     visibleWidgets: Record<string, boolean>;
@@ -34,30 +36,11 @@ export const AnalyticsConfigModal: React.FC<AnalyticsConfigModalProps> = ({
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", margin: "20px 0" }}>
                     {Object.keys(visibleWidgets).map(key => (
                         <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ textTransform: "capitalize" }}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                            <div
-                                onClick={() => onToggle(key)}
-                                style={{
-                                    width: "48px",
-                                    height: "26px",
-                                    borderRadius: "14px",
-                                    background: visibleWidgets[key] ? "var(--interactive-accent)" : "rgba(var(--mono-rgb-100), 0.2)",
-                                    position: "relative",
-                                    cursor: "pointer",
-                                    transition: "background 0.2s"
-                                }}
-                            >
-                                <div style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    borderRadius: "50%",
-                                    background: "#fff",
-                                    position: "absolute",
-                                    top: "3px",
-                                    left: visibleWidgets[key] ? "25px" : "3px",
-                                    transition: "left 0.2s"
-                                }} />
-                            </div>
+                            <span style={{ textTransform: "capitalize" }}>{String(key).replace(/([A-Z])/g, ' $1').trim()}</span>
+                            <Toggle
+                                checked={visibleWidgets[key]}
+                                onChange={() => onToggle(key)}
+                            />
                         </div>
                     ))}
                 </div>

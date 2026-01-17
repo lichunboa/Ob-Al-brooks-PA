@@ -55,7 +55,8 @@ export interface StrategyMatchResult {
  * 辅助函数: 规范化字符串用于匹配
  */
 function normalizeKey(v: string): string {
-    const base = v.includes("(") ? v.split("(")[0].trim() : v.trim();
+    const s = String(v ?? "");
+    const base = s.includes("(") ? s.split("(")[0].trim() : s.trim();
     return base.toLowerCase();
 }
 
@@ -131,8 +132,8 @@ function scoreDirection(
 
     // 回退到关键词匹配(兼容旧数据)
     const cardName = card.name?.toLowerCase() || "";
-    const cardPatterns = (card.patternsObserved || []).map((t: string) => t.toLowerCase()).join(" ");
-    const cardSetups = (card.setupCategories || []).map((t: string) => t.toLowerCase()).join(" ");
+    const cardPatterns = (card.patternsObserved || []).map((t) => String(t).toLowerCase()).join(" ");
+    const cardSetups = (card.setupCategories || []).map((t) => String(t).toLowerCase()).join(" ");
     const combined = `${cardName} ${cardPatterns} ${cardSetups}`;
 
     // 检查是否是双向策略
@@ -174,13 +175,24 @@ function scoreTimeframe(
 ): number {
     if (!timeframe) return 0;
 
-    // 从策略卡片中提取时间周期信息
-    const cardName = card.name?.toLowerCase() || "";
-    const cardPatterns = (card.patternsObserved || []).map((t: string) => t.toLowerCase()).join(" ");
-    const cardSetups = (card.setupCategories || []).map((t: string) => t.toLowerCase()).join(" ");
-    const combined = `${cardName} ${cardPatterns} ${cardSetups}`;
-
     const tfLower = timeframe.toLowerCase();
+
+    // 1. 优先检查 explicitly parsed timeframe
+    if (card.timeframe && card.timeframe.length > 0) {
+        const cardTfs = card.timeframe.map(t => t.toLowerCase());
+        if (cardTfs.includes(tfLower)) {
+            return 3; // Explicit match
+        }
+        // Explicit cross-timeframe logic
+        if (tfLower === "5m" && (cardTfs.includes("15m") || cardTfs.includes("1m"))) return 1;
+        if (tfLower === "15m" && (cardTfs.includes("5m") || cardTfs.includes("1h"))) return 1;
+    }
+
+    // 2. 回退到模糊匹配 (从所有文本中找)
+    const cardName = card.name?.toLowerCase() || "";
+    const cardPatterns = (card.patternsObserved || []).map((t) => String(t).toLowerCase()).join(" ");
+    const cardSetups = (card.setupCategories || []).map((t) => String(t).toLowerCase()).join(" ");
+    const combined = `${cardName} ${cardPatterns} ${cardSetups}`;
 
     // 精确匹配
     if (combined.includes(tfLower)) {
@@ -288,7 +300,7 @@ export function matchStrategiesV2(
     trades?: TradeRecord[]
 ): StrategyMatchResult[] {
     const limit = Math.max(1, input.limit ?? 20); // 移除上限限制
-    const patterns = (input.patterns ?? []).map((p) => p.trim()).filter(Boolean);
+    const patterns = (input.patterns ?? []).map((p) => String(p).trim()).filter(Boolean);
     const results: StrategyMatchResult[] = [];
     const seen = new Set<string>();
 
@@ -334,8 +346,8 @@ export function matchStrategiesV2(
     }
 
     // Phase 2: 上下文评分 (回退)
-    const wantSetup = input.setupCategory?.trim();
-    const wantCycle = input.marketCycle?.trim();
+    const wantSetup = input.setupCategory?.toString().trim();
+    const wantCycle = input.marketCycle?.toString().trim();
 
     const wantSetupKey = wantSetup ? normalizeKey(wantSetup) : undefined;
     const wantCycleKey = wantCycle ? normalizeKey(wantCycle) : undefined;

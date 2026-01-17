@@ -51,6 +51,8 @@ const STRATEGY_FIELD_ALIASES = {
     "take_profit_recommendation",
     "takeProfitRecommendation",
   ],
+  timeframe: ["周期/timeframe", "timeframe", "tf"],
+  riskLevel: ["风险级别/risk_level", "risk_level", "riskLevel", "risk"],
 } as const;
 
 function toStringArray(v: unknown): string[] {
@@ -290,6 +292,13 @@ export class ObsidianStrategyIndex implements StrategyIndex {
         )
       );
 
+      const timeframe = toStringArray(
+        getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.timeframe)
+      );
+      const riskLevel = toStringArray(
+        getFirstFieldValue(fm as any, STRATEGY_FIELD_ALIASES.riskLevel)
+      );
+
       const card: StrategyCard = {
         path: file.path,
         name: file.name,
@@ -306,6 +315,8 @@ export class ObsidianStrategyIndex implements StrategyIndex {
         riskAlerts,
         stopLossRecommendation,
         takeProfitRecommendation,
+        timeframe,
+        riskLevel,
       };
 
       this.cards.push(card);

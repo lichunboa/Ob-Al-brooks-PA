@@ -10,12 +10,19 @@ import { AlBrooksConsoleSettingTab } from "./settings-tab";
 import { computeTradeStatsByAccountType } from "./core/stats";
 import { buildConsoleExportSnapshot } from "./core/export-snapshot";
 import { buildTodaySnapshot } from "./core/console-state";
+import { SchemaLoader } from "./core/schema-loader";
+import { EnumPresets } from "./core/enum-presets";
+import { ActionService } from "./core/action/action-service";
+import { DailyPlanSyncer } from "./core/daily-plan-syncer";
 
 export default class AlBrooksConsolePlugin extends Plugin {
   public index: ObsidianTradeIndex;
   public strategyIndex: ObsidianStrategyIndex;
   public todayContext: ObsidianTodayContext;
   public integrations: PluginIntegrationRegistry;
+  public enumPresets?: EnumPresets;
+  public actionService: ActionService;
+  public dailyPlanSyncer: DailyPlanSyncer;
   public settings: AlBrooksConsoleSettings = DEFAULT_SETTINGS;
   private settingsListeners = new Set<
     (settings: AlBrooksConsoleSettings) => void
@@ -53,13 +60,26 @@ export default class AlBrooksConsolePlugin extends Plugin {
     console.log("🦁 交易员控制台：加载中…");
 
     await this.loadSettings();
+    await this.loadSettings();
     this.addSettingTab(new AlBrooksConsoleSettingTab(this.app, this));
+
+    // Initialize Services
+    this.actionService = new ActionService(this.app);
+    this.dailyPlanSyncer = new DailyPlanSyncer(this.app, this.actionService);
+    this.dailyPlanSyncer.onload();
 
     // 1. Initialize Indexer
     this.index = new ObsidianTradeIndex(this.app);
     this.strategyIndex = new ObsidianStrategyIndex(this.app);
     this.todayContext = new ObsidianTodayContext(this.app);
     this.integrations = new PluginIntegrationRegistry(this.app);
+
+    // Load dynamic schema
+    try {
+      this.enumPresets = await new SchemaLoader(this.app).load();
+    } catch (e) {
+      console.warn("Failed to load schema presets:", e);
+    }
 
     // 2. Start Scanning (Async)
     this.app.workspace.onLayoutReady(() => {
@@ -77,6 +97,7 @@ export default class AlBrooksConsolePlugin extends Plugin {
           this.strategyIndex,
           this.todayContext,
           this.integrations,
+          this.enumPresets,
           this.manifest.version,
           () => this.settings,
           (cb) => this.onSettingsChanged(cb),
@@ -123,6 +144,10 @@ export default class AlBrooksConsolePlugin extends Plugin {
         this.app.workspace.openLinkText(path, "", true);
       },
     });
+  }
+
+  onunload() {
+    this.dailyPlanSyncer?.onunload();
   }
 
   private async exportIndexSnapshot(): Promise<void> {
@@ -259,4 +284,3 @@ export default class AlBrooksConsolePlugin extends Plugin {
     }
   }
 }
-import './ui/styles/dashboard.css';

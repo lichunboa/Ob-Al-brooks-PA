@@ -12,6 +12,7 @@ import type { App } from "obsidian";
 import { TFile } from "obsidian";
 import type { TradeRecord } from "../contracts";
 import type { ActionResult, ActionOptions, BatchActionResult } from "./types";
+import type { EnumPresets } from "../enum-presets";
 import { SchemaValidator, TRADE_SCHEMA } from "./schema-validator";
 import { FrontmatterUpdater } from "./frontmatter-updater";
 import { ChangeLogManager } from "./change-log";
@@ -28,6 +29,10 @@ export class ActionService {
         this.validator = new SchemaValidator();
         this.updater = new FrontmatterUpdater(app, this.validator);
         this.changeLog = new ChangeLogManager();
+    }
+
+    public setPresets(presets: EnumPresets) {
+        this.validator.setPresets(presets);
     }
 
     /**
@@ -53,13 +58,15 @@ export class ActionService {
             const { frontmatter, body } = this.updater.parseFrontmatter(content);
 
             // 3. 风控校验 (新增)
-            const riskCheck = await this.validateRisk(updates);
-            if (!riskCheck.passed) {
-                return {
-                    success: false,
-                    message: riskCheck.message,
-                    details: riskCheck.details
-                };
+            if (options.validateRisk !== false) {
+                const riskCheck = await this.validateRisk(updates);
+                if (!riskCheck.passed) {
+                    return {
+                        success: false,
+                        message: riskCheck.message,
+                        details: riskCheck.details
+                    };
+                }
             }
 
             // 4. 应用更新 (使用规范名称)
@@ -320,8 +327,44 @@ export class ActionService {
         const item = frontmatter.checklist[itemIndex];
         item.done = !item.done;
 
+        // 同步更新 Body 中的 Markdown Checklist
+        // 寻找 "### ✅ 盘前检查清单"
+        let newBody = body;
+        const lines = body.split('\n');
+        const taskHeaderRegex = /###\s*✅\s*盘前检查清单/;
+        let foundHeader = false;
+        let taskCount = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            if (taskHeaderRegex.test(lines[i])) {
+                foundHeader = true;
+                continue;
+            }
+
+            if (foundHeader) {
+                // 如果遇到下一个标题，停止搜索
+                if (lines[i].match(/^#{1,3}\s/)) {
+                    break;
+                }
+
+                // 匹配任务列表项 "- [ ] " or "- [x] "
+                // 注意: 只是简单的正则匹配，不支持嵌套太深
+                const taskMatch = lines[i].match(/^(\s*-\s*\[)([ x])(\]\s.*)/);
+                if (taskMatch) {
+                    if (taskCount === itemIndex) {
+                        const mark = item.done ? 'x' : ' ';
+                        // 替换 [ ] 或 [x]
+                        lines[i] = lines[i].replace(/\[([ x])\]/, `[${mark}]`);
+                        newBody = lines.join('\n');
+                        break;
+                    }
+                    taskCount++;
+                }
+            }
+        }
+
         // 写回文件
-        const newContent = this.updater.serializeFrontmatter(frontmatter, body);
+        const newContent = this.updater.serializeFrontmatter(frontmatter, newBody);
         await this.app.vault.modify(file, newContent);
     }
 

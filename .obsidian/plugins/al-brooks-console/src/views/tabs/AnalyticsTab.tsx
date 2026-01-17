@@ -46,6 +46,7 @@ import { DataAnalysisPanel } from "../components/analytics/DataAnalysisPanel";
 import { DrawdownChart } from "../components/analytics/DrawdownChart";
 import { AnalyticsConfigModal } from "../components/analytics/AnalyticsConfigModal";
 import { AnalyticsInsightPanel } from "../components/analytics/AnalyticsInsightPanel";
+import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPanel";
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { JournalGallery } from "../components/analytics/JournalGallery";
@@ -63,6 +64,8 @@ export const AnalyticsTab: React.FC = () => {
     getResourceUrl,
     resolveLink,
     currencyMode,
+    displayUnit,
+    setDisplayUnit
   } = useConsoleContext();
 
   // Widget visibility state
@@ -74,6 +77,7 @@ export const AnalyticsTab: React.FC = () => {
     tuitionCost: true,
     analyticsSuggestion: true,
     dataAnalysis: true,
+    winLossAnalysis: true,
   });
 
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
@@ -225,10 +229,45 @@ export const AnalyticsTab: React.FC = () => {
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: SPACE.sm,
         }}
       >
+        {/* Unit Toggle */}
+        <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
+          <div
+            onClick={() => setDisplayUnit('money')}
+            style={{
+              padding: "2px 10px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              background: displayUnit === 'money' ? "var(--interactive-accent)" : "transparent",
+              color: displayUnit === 'money' ? "var(--text-on-accent)" : "var(--text-muted)",
+              fontSize: "0.85em",
+              fontWeight: 600,
+              transition: "all 0.2s"
+            }}
+          >
+            $
+          </div>
+          <div
+            onClick={() => setDisplayUnit('r')}
+            style={{
+              padding: "2px 10px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              background: displayUnit === 'r' ? "var(--interactive-accent)" : "transparent",
+              color: displayUnit === 'r' ? "var(--text-on-accent)" : "var(--text-muted)",
+              fontSize: "0.85em",
+              fontWeight: 600,
+              transition: "all 0.2s"
+            }}
+          >
+            R
+          </div>
+        </div>
+
         <Button
           variant="small"
           onClick={() => setShowConfig(true)}
@@ -273,6 +312,7 @@ export const AnalyticsTab: React.FC = () => {
                 summary={summary}
                 SPACE={SPACE}
                 currencyMode={currencyMode}
+                displayUnit={displayUnit}
               />
             </Card>
           )}
@@ -284,6 +324,7 @@ export const AnalyticsTab: React.FC = () => {
               getRColorByAccountType={getRColorByAccountType}
               SPACE={SPACE}
               currencyMode={currencyMode}
+              displayUnit={displayUnit}
             />
           )}
 
@@ -336,6 +377,15 @@ export const AnalyticsTab: React.FC = () => {
             analyticsTopStrats={analyticsTopStrats}
             SPACE={SPACE}
           />
+
+          {visibleWidgets.winLossAnalysis && (
+            <WinLossAnalysisPanel
+              trades={trades}
+              currencyMode={currencyMode}
+              displayUnit={displayUnit}
+            />
+          )}
+
         </div>
 
         <div

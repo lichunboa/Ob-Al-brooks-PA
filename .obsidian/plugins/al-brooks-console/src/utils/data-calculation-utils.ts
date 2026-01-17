@@ -46,6 +46,7 @@ export function calculateTodayKpi(
     winRatePct: number;
     netMoney: number;
     netR: number;
+    losingStreak: number;
 } {
     const todayTrades = trades.filter((t) => t.dateIso === todayIso);
     const total = todayTrades.length;
@@ -79,6 +80,35 @@ export function calculateTodayKpi(
 
     const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
 
+    // Calculate Losing Streak (from latest to earliest)
+    // Assuming trades are somewhat chronological, but we should traverse from end.
+    // If trades are not sorted by time, this might be inaccurate, but usually they are app-managed lists.
+    let currentLosingStreak = 0;
+    // We iterate backwards to find the current active streak
+    for (let i = todayTrades.length - 1; i >= 0; i--) {
+        const t = todayTrades[i];
+        const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
+
+        if (outcome === "loss") {
+            currentLosingStreak++;
+        } else if (outcome === "win" || outcome === "scratch") {
+            // Streak broken
+            break;
+        } else {
+            // 'Open' or 'Unknown'? 
+            // If it's open, it shouldn't count towards realized streak?
+            // Usually we only count closed trades.
+            // If pnl < 0 but open? 
+            // Let's stick to explicit 'loss' outcome for now.
+            if (outcome !== "open") {
+                // If it has a result but not loss, break.
+                if (t.pnl && t.pnl > 0) break; // Win
+                if (t.pnl && t.pnl < 0) currentLosingStreak++; // Assume loss if pnl < 0
+                else break; // Scratch or 0
+            }
+        }
+    }
+
     return {
         todayTrades,
         todayWins: wins,
@@ -90,6 +120,7 @@ export function calculateTodayKpi(
         winRatePct,
         netMoney,
         netR,
+        losingStreak: currentLosingStreak
     };
 }
 

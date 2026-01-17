@@ -6,6 +6,7 @@ import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { Card } from "../../../ui/components/Card";
 import { normalizeMarketCycleForAnalytics } from "../../../core/analytics";
 import { formatCurrency } from "../../../utils/format-utils";
+import { DayDetailPanel } from "./DayDetailPanel";
 
 /**
  * JournalGallery Props接口
@@ -332,84 +333,14 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                 {/* Right: Drilldown Details or Fallback */}
                 <div style={{ flex: "1 1 360px", minWidth: "360px" }}>
                     {selectedDate ? (
-                        /* Case A: Show Selected Date Details */
-                        <>
-                            <div style={{ fontWeight: 600, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                                📅 {selectedDate} 详情
-                                {selectedDayStats && (
-                                    <span style={{ fontSize: "0.85em", color: "var(--text-muted)", fontWeight: 400 }}>
-                                        ({selectedDayStats.count} 笔,
-                                        <span style={{
-                                            color: selectedDayStats.netMoney >= 0 ? V5_COLORS.win : V5_COLORS.loss,
-                                            fontWeight: 600,
-                                            marginLeft: "4px"
-                                        }}>
-                                            {selectedDayStats.netMoney > 0 ? "+" : ""}{formatCurrency(selectedDayStats.netMoney, currencyMode)}
-                                        </span>
-                                        )
-                                    </span>
-                                )}
-                            </div>
-
-                            {selectedDayTrades.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '380px', overflowY: 'auto' }}>
-                                    {selectedDayTrades.map(t => {
-                                        const r = t.r ?? 0;
-                                        const money = t.pnl ?? 0;
-                                        const context = t.marketCycle ? normalizeMarketCycleForAnalytics(t.marketCycle) : (t.rawFrontmatter as any)?.market_cycle;
-                                        return (
-                                            <div
-                                                key={t.path}
-                                                style={{
-                                                    padding: '8px',
-                                                    borderRadius: '6px',
-                                                    background: 'var(--background-primary)',
-                                                    border: '1px solid var(--background-modifier-border)',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <InteractiveButton
-                                                            interaction="text"
-                                                            onClick={() => openFile(t.path)}
-                                                            style={{ fontWeight: 600, ...textButtonStyle }}
-                                                        >
-                                                            {t.ticker || 'Trade'} {t.direction === 'Long' ? '🟢' : t.direction === 'Short' ? '🔴' : ''}
-                                                        </InteractiveButton>
-                                                        <span style={{ fontSize: '0.8em', opacity: 0.7, border: '1px solid var(--background-modifier-border)', padding: '0 4px', borderRadius: '3px' }}>
-                                                            {t.timeframe || '?'}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>
-                                                        {t.strategyName || t.setupCategory || 'No Strategy'}
-                                                        {context ? ` • ${context}` : ''}
-                                                    </div>
-                                                </div>
-
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{
-                                                        fontWeight: 700,
-                                                        color: money > 0 ? V5_COLORS.win : money < 0 ? V5_COLORS.loss : 'var(--text-muted)'
-                                                    }}>
-                                                        {money > 0 ? '+' : ''}{formatCurrency(money, currencyMode).replace('$', '').replace('¥', '')}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
-                                                        {money !== 0 ? `${r > 0 ? '+' : ''}${r.toFixed(1)}R` : t.outcome}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div style={{ color: "var(--text-faint)", padding: "20px", textAlign: "center" }}>
-                                    当日无符合筛选条件的交易。
-                                </div>
-                            )}
-                        </>
+                        /* Case A: Show Selected Date Details using DayDetailPanel */
+                        <DayDetailPanel
+                            date={selectedDate}
+                            trades={selectedDayTrades}
+                            onClose={() => onSelectDate(null)}
+                            onOpenFile={openFile}
+                            style={{ height: '100%', borderLeft: 'none', background: 'transparent' }}
+                        />
                     ) : (
                         /* Case B: Default Strategy Attribution (Fallback) */
                         <>

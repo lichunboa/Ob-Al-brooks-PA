@@ -10,6 +10,7 @@ interface CapitalGrowthChartProps {
     getRColorByAccountType: (type: AccountType) => string;
     SPACE: any; // Assuming SPACE object structure
     currencyMode?: 'USD' | 'CNY';
+    displayUnit?: 'money' | 'r';
 }
 
 export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
@@ -18,23 +19,27 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     getRColorByAccountType,
     SPACE,
     currencyMode = 'USD',
+    displayUnit = 'money',
 }) => {
     // Transform data for Recharts
     const data = React.useMemo(() => {
+        const isR = displayUnit === 'r';
+        const sourceCurves = isR && strategyLab.curvesR ? strategyLab.curvesR : strategyLab.curves;
+
         // Find longest curve length to base index on
         const len = Math.max(
-            strategyLab.curves.Live.length,
-            strategyLab.curves.Demo.length,
-            strategyLab.curves.Backtest.length
+            sourceCurves.Live.length,
+            sourceCurves.Demo.length,
+            sourceCurves.Backtest.length
         );
 
-        const rate = currencyMode === 'CNY' ? 7.25 : 1;
+        const rate = (currencyMode === 'CNY' && !isR) ? 7.25 : 1;
 
         const chartData = [];
         for (let i = 0; i < len; i++) {
-            const liveVal = strategyLab.curves.Live[i];
-            const demoVal = strategyLab.curves.Demo[i];
-            const backtestVal = strategyLab.curves.Backtest[i];
+            const liveVal = sourceCurves.Live[i];
+            const demoVal = sourceCurves.Demo[i];
+            const backtestVal = sourceCurves.Backtest[i];
 
             chartData.push({
                 index: i,
@@ -44,7 +49,17 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
             });
         }
         return chartData;
-    }, [strategyLab, currencyMode]);
+    }, [strategyLab, currencyMode, displayUnit]);
+
+    const isR = displayUnit === 'r';
+    const liveTotal = isR ? (strategyLab.cumR?.Live ?? 0) : (strategyLab.cumMoney?.Live ?? 0);
+    const demoTotal = isR ? (strategyLab.cumR?.Demo ?? 0) : (strategyLab.cumMoney?.Demo ?? 0);
+    const backtestTotal = isR ? (strategyLab.cumR?.Backtest ?? 0) : (strategyLab.cumMoney?.Backtest ?? 0);
+
+    const formatValue = (val: number) => {
+        if (isR) return `${val > 0 ? '+' : ''}${val.toFixed(1)}R`;
+        return formatCurrency(val, currencyMode).replace('$', '').replace('¥', '');
+    }
 
     return (
         <Card>
@@ -68,7 +83,7 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                             fontSize: "0.85em",
                         }}
                     >
-                        (Cumulative Money)
+                        {isR ? '(Cumulative R)' : '(Cumulative Money)'}
                     </span>
                 </div>
 
@@ -82,16 +97,16 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                     }}
                 >
                     <span style={{ color: getRColorByAccountType("Live") }}>
-                        ● 实盘 {strategyLab.cumMoney.Live >= 0 ? "+" : ""}
-                        {formatCurrency(strategyLab.cumMoney.Live, currencyMode).replace('$', '').replace('¥', '')}
+                        ● 实盘 {liveTotal >= 0 ? "+" : ""}
+                        {formatValue(liveTotal)}
                     </span>
                     <span style={{ color: getRColorByAccountType("Demo") }}>
-                        ● 模拟 {strategyLab.cumMoney.Demo >= 0 ? "+" : ""}
-                        {formatCurrency(strategyLab.cumMoney.Demo, currencyMode).replace('$', '').replace('¥', '')}
+                        ● 模拟 {demoTotal >= 0 ? "+" : ""}
+                        {formatValue(demoTotal)}
                     </span>
                     <span style={{ color: getRColorByAccountType("Backtest") }}>
-                        ● 回测 {strategyLab.cumMoney.Backtest >= 0 ? "+" : ""}
-                        {formatCurrency(strategyLab.cumMoney.Backtest, currencyMode).replace('$', '').replace('¥', '')}
+                        ● 回测 {backtestTotal >= 0 ? "+" : ""}
+                        {formatValue(backtestTotal)}
                     </span>
                     <span style={{ color: "var(--text-faint)" }}>
                         {allTradesDateRange.min && allTradesDateRange.max
@@ -125,8 +140,9 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                             itemStyle={{ padding: 0 }}
                             labelStyle={{ display: "none" }}
                             formatter={(value: number) => {
-                                const symbol = currencyMode === 'CNY' ? '¥' : '$';
-                                return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}`, null];
+                                const symbol = isR ? '' : (currencyMode === 'CNY' ? '¥' : '$');
+                                const suffix = isR ? 'R' : '';
+                                return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}${suffix}`, null];
                             }}
                         />
                         <Line

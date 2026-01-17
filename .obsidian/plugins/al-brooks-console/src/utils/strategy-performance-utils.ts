@@ -109,7 +109,9 @@ export function computeStrategyLab(
     identifyStrategy: (t: TradeRecord) => { name: string | null }
 ): {
     curves: Record<AccountType, number[]>;
-    cumMoney: Record<AccountType, number>; // Use cumMoney explicitly
+    curvesR: Record<AccountType, number[]>;
+    cumMoney: Record<AccountType, number>;
+    cumR: Record<AccountType, number>;
     topSetups: Array<{ name: string; total: number; wr: number }>;
     suggestion: string;
 } {
@@ -120,7 +122,18 @@ export function computeStrategyLab(
         Demo: [0],
         Backtest: [0],
     };
+    const curvesR: Record<AccountType, number[]> = {
+        Live: [0],
+        Demo: [0],
+        Backtest: [0],
+    };
+
     const cumMoney: Record<AccountType, number> = {
+        Live: 0,
+        Demo: 0,
+        Backtest: 0,
+    };
+    const cumR: Record<AccountType, number> = {
         Live: 0,
         Demo: 0,
         Backtest: 0,
@@ -132,6 +145,13 @@ export function computeStrategyLab(
         const pnl =
             typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
 
+        let r = 0;
+        if (typeof t.r === "number" && Number.isFinite(t.r)) {
+            r = t.r;
+        } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+            r = pnl / t.initialRisk;
+        }
+
         // Safety check for account type
         let acct = (t.accountType ?? "Live") as AccountType;
         if (!["Live", "Demo", "Backtest"].includes(acct)) {
@@ -141,6 +161,9 @@ export function computeStrategyLab(
         // 资金曲线:按账户分别累加
         cumMoney[acct] += pnl;
         curves[acct].push(cumMoney[acct]);
+
+        cumR[acct] += r;
+        curvesR[acct].push(cumR[acct]);
 
         // 策略排行
         const key = identifyStrategy(t).name ?? "Unknown";
@@ -165,7 +188,9 @@ export function computeStrategyLab(
 
     return {
         curves,
+        curvesR,
         cumMoney,
+        cumR,
         topSetups,
         suggestion: `当前最常用的策略是 ${mostUsed}。建议在 ${keepIn} 中继续保持执行一致性。`,
     };

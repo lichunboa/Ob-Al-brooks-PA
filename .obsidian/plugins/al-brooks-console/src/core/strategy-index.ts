@@ -18,6 +18,10 @@ export interface StrategyCard {
   riskAlerts?: string[];
   stopLossRecommendation?: string[];
   takeProfitRecommendation?: string[];
+  /** Explicit timeframe tags (e.g. "5m", "15m"). */
+  timeframe?: string[];
+  /** Expected risk level (e.g. "High", "Low"). */
+  riskLevel?: string[];
 }
 
 export interface StrategyIndex {
