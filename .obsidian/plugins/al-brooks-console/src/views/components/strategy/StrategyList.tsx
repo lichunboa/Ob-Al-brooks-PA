@@ -328,6 +328,13 @@ export const StrategyList: React.FC<Props> = ({
                                                     tone={statusTone}
                                                 />
 
+                                                {/* [Merged]: Risk Reward Display from Legacy */}
+                                                {s.riskReward ? (
+                                                    <span style={{ ...TYPO.caption, fontSize: "0.8em", color: "var(--text-faint)", marginLeft: "4px" }}>
+                                                        R/R: <strong>{s.riskReward}</strong>
+                                                    </span>
+                                                ) : null}
+
                                                 {lastDate && (
                                                     <span style={{ ...TYPO.caption, color: "var(--text-faint)" }}>
                                                         📅 {lastDate}

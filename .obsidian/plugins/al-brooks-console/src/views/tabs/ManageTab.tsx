@@ -286,9 +286,7 @@ export const ManageTab: React.FC = () => {
                 />
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
-                <DoctorPanel app={app} />
-            </div>
+            {/* [Merged]: DoctorPanel functionality moved into HealthStatusPanel */}
 
             <div style={{ marginBottom: "24px" }}>
                 <ArchivePanel app={app} />
@@ -301,6 +299,7 @@ export const ManageTab: React.FC = () => {
                     paTagSnapshot={paTagSnapshot}
                     enumPresets={enumPresets}
                     schemaScanNote={schemaScanNote ?? ""}
+                    app={app} // [New]: Passed app for embedded Doctor
                     V5_COLORS={V5_COLORS}
                     SPACE={SPACE}
                 />
