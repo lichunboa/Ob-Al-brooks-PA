@@ -122,7 +122,11 @@ export function buildCourseSnapshot(args: {
 
   const phases = Array.from(
     new Set(syllabus.map((s) => String(s.p ?? "")))
-  ).filter(Boolean);
+  ).filter(Boolean).sort((a, b) => {
+    // Sort naturally e.g. "1. ..." < "2. ..."
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
   const phaseGroups: CoursePhaseGroup[] = phases.map((p) => {
     const items = syllabus
       .filter((s) => String(s.p ?? "") === p)
@@ -137,7 +141,10 @@ export function buildCourseSnapshot(args: {
           link,
           shortId,
         } as CourseMatrixItem;
-      });
+      })
+      // Sort items by ID within phase just in case
+      .sort((a, b) => a.item.id.localeCompare(b.item.id, undefined, { numeric: true }));
+
     return { phase: p, items };
   });
 

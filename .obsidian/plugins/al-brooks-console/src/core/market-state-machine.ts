@@ -115,11 +115,20 @@ const STATE_LABELS: Record<MarketState, string> = {
 export class MarketStateMachine {
     /**
      * 从市场周期推断状态
+     * @param marketCycle 市场周期字符串
+     * @param direction 交易方向 (Long/Short) - 用于消除歧义
      */
-    inferState(marketCycle: string | undefined): MarketState {
+    inferState(marketCycle: string | undefined, direction?: string): MarketState {
         if (!marketCycle) return "unknown";
 
         const normalized = marketCycle.trim();
+        const dir = direction?.toLowerCase().trim() || "";
+
+        // Robust Matching: Use includes instead of strict equality to handle "不做 (Long)" or "做多 (Long)" formats
+        const isBull = dir.includes("long") || dir.includes("buy") || dir.includes("bull") || dir.includes("做多") || dir.includes("看涨") || dir.includes("多");
+        const isBear = dir.includes("short") || dir.includes("sell") || dir.includes("bear") || dir.includes("做空") || dir.includes("看跌") || dir.includes("空");
+
+        console.log(`[MarketStateMachine] Inferring state from cycle: "${normalized}", direction: "${dir}" (isBull: ${isBull}, isBear: ${isBear})`);
 
         // 精确匹配
         if (STATE_MAP[normalized]) {
@@ -129,36 +138,45 @@ export class MarketStateMachine {
         // 模糊匹配
         const lower = normalized.toLowerCase();
 
-        // 强趋势
-        if (lower.includes("强") && (lower.includes("多") || lower.includes("牛") || lower.includes("bull"))) {
-            return "strong_trend_bull";
-        }
-        if (lower.includes("强") && (lower.includes("空") || lower.includes("熊") || lower.includes("bear"))) {
-            return "strong_trend_bear";
-        }
-
-        // 弱趋势
-        if (lower.includes("弱") && (lower.includes("多") || lower.includes("牛") || lower.includes("bull"))) {
-            return "weak_trend_bull";
-        }
-        if (lower.includes("弱") && (lower.includes("空") || lower.includes("熊") || lower.includes("bear"))) {
-            return "weak_trend_bear";
+        // 强趋势 (Generic handling with direction)
+        if (lower.includes("强") || lower.includes("strong")) {
+            if (lower.includes("多") || lower.includes("牛") || lower.includes("bull") || isBull) {
+                return "strong_trend_bull";
+            }
+            if (lower.includes("空") || lower.includes("熊") || lower.includes("bear") || isBear) {
+                return "strong_trend_bear";
+            }
+            // If explicit strong trend but unknown direction, assume Breakout Mode or just Unknown?
+            // Better to default to 'unknown' or a generic strong trend guidance?
+            // We'll stick to unknown if we can't tell bull/bear, but usually direction is known.
         }
 
-        // 区间
+        // 弱趋势 / Channel
+        if (lower.includes("弱") || lower.includes("weak") || lower.includes("channel") || lower.includes("通道")) {
+            if (lower.includes("多") || lower.includes("牛") || lower.includes("bull") || isBull) {
+                return "weak_trend_bull";
+            }
+            if (lower.includes("空") || lower.includes("熊") || lower.includes("bear") || isBear) {
+                return "weak_trend_bear";
+            }
+        }
+
+        // 紧密区间
         if (lower.includes("紧密") || lower.includes("窄") || lower.includes("tight")) {
             return "tight_range";
         }
+
+        // 宽幅区间
         if (lower.includes("区间") || lower.includes("震荡") || lower.includes("range")) {
             return "broad_range";
         }
 
-        // 突破
-        if (lower.includes("突破")) {
-            if (lower.includes("多") || lower.includes("牛") || lower.includes("向上") || lower.includes("bull")) {
+        // 突破 (Breakout)
+        if (lower.includes("突破") || lower.includes("breakout") || lower.includes("spike")) {
+            if (lower.includes("多") || lower.includes("牛") || lower.includes("向上") || lower.includes("bull") || isBull) {
                 return "breakout_bull";
             }
-            if (lower.includes("空") || lower.includes("熊") || lower.includes("向下") || lower.includes("bear")) {
+            if (lower.includes("空") || lower.includes("熊") || lower.includes("向下") || lower.includes("bear") || isBear) {
                 return "breakout_bear";
             }
         }
@@ -183,18 +201,18 @@ export class MarketStateMachine {
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 等待H1/H2回调入场,或突破新高后的旗形继续",
+                    expectation: "强势多头: K线重叠少,阳线实体大。预期会出现测量移动(MM)或高潮(Climax)。",
                     warnings: [
-                        "⚠️ 警告: 切勿逆势做空",
-                        "⚠️ 警告: 避免在顶部追多 (等待回调)",
-                        "⚠️ 警告: 不要过早止盈 (趋势可能持续)"
+                        "⚠️ 警告: 80%的反转尝试会失败,切勿摸顶",
+                        "⚠️ 警告: 第一次回调通常会有更低的高点(LH)供二次入场",
+                        "⚠️ 警告: 只有连续的一系列强阴线才能改变Always In状态"
                     ],
-                    recommendedStrategies: ["H1/H2", "Wedge", "Flag", "MTR"],
-                    forbiddenStrategies: ["Counter-trend", "Reversal", "Fade"],
+                    recommendedStrategies: ["H1", "H2", "High 2 Buy", "Micro Wedge", "Gap Pullback"],
+                    forbiddenStrategies: ["Counter-trend Scalp", "Wedge Top Sell"],
                     keyLevels: [
-                        { type: "support", level: "昨日高点 (HOD)", description: "回调支撑位" },
-                        { type: "support", level: "EMA20", description: "趋势支撑" },
-                        { type: "magnet", level: "整数关口", description: "可能的目标位" }
+                        { type: "support", level: "EMA20 (动态支撑)", description: "首次触及必买" },
+                        { type: "support", level: "Gap (缺口)", description: "突破缺口支撑" },
+                        { type: "magnet", level: "Measured Move (MM)", description: "上涨目标位" }
                     ],
                     tone: "success"
                 };
@@ -203,95 +221,95 @@ export class MarketStateMachine {
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 等待L1/L2反弹入场,或跌破新低后的旗形继续",
+                    expectation: "强势空头: 持续创新低,阴线连续。预期会达到下方磁力点或出现抛售高潮。",
                     warnings: [
-                        "⚠️ 警告: 切勿逆势做多",
-                        "⚠️ 警告: 避免在底部追空 (等待反弹)",
-                        "⚠️ 警告: 不要过早止盈 (趋势可能持续)"
+                        "⚠️ 警告: 80%的反转尝试会失败,切勿抄底",
+                        "⚠️ 警告: 第一次反弹通常会有更高低点(HL)供二次做空",
+                        "⚠️ 警告: 不要被单根大阳线欺骗,等待跟随确认"
                     ],
-                    recommendedStrategies: ["L1/L2", "Wedge", "Flag", "MTR"],
-                    forbiddenStrategies: ["Counter-trend", "Reversal", "Fade"],
+                    recommendedStrategies: ["L1", "L2", "Low 2 Sell", "Micro Wedge", "Bear Flag"],
+                    forbiddenStrategies: ["Counter-trend Scalp", "Wedge Bottom Buy"],
                     keyLevels: [
-                        { type: "resistance", level: "昨日低点 (LOD)", description: "反弹阻力位" },
-                        { type: "resistance", level: "EMA20", description: "趋势阻力" },
-                        { type: "magnet", level: "整数关口", description: "可能的目标位" }
+                        { type: "resistance", level: "EMA20 (动态阻力)", description: "首次触及必空" },
+                        { type: "resistance", level: "Breakout Point", description: "突破点回测" },
+                        { type: "magnet", level: "Measured Move (MM)", description: "下跌目标位" }
                     ],
                     tone: "danger"
                 };
 
-            case "weak_trend_bull":
+            case "weak_trend_bull": // Broad Bull Channel
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 趋势较弱,可能转为区间。等待更强信号或回调",
+                    expectation: "通道式上涨: 深度回调(Deep Pullback)常见。双向交易皆可,但顺势胜率更高。",
                     warnings: [
-                        "⚠️ 警告: 趋势不强,避免重仓",
-                        "⚠️ 警告: 随时准备转为区间交易思维",
-                        "⚠️ 警告: 止盈目标不宜过高"
+                        "⚠️ 警告: 回调可能很深(测试EMA或更高低点)",
+                        "⚠️ 警告: 通道线超买区只止盈(Take Profit),不反手",
+                        "⚠️ 警告: 留意变异为宽幅震荡(Trading Range)"
                     ],
-                    recommendedStrategies: ["H1/H2", "Scalp", "Quick Exit"],
-                    forbiddenStrategies: ["Swing", "Position"],
+                    recommendedStrategies: ["Bull Channel Buy", "Wedge Bottom", "H2", "Triangle"],
+                    forbiddenStrategies: ["Chase (追高)", "Breakout Mode"],
                     keyLevels: [
-                        { type: "support", level: "近期低点", description: "关键支撑" },
-                        { type: "resistance", level: "近期高点", description: "突破目标" }
+                        { type: "support", level: "Trendline (趋势线)", description: "通道下沿" },
+                        { type: "resistance", level: "Channel Top", description: "通道上沿(部分止盈)" }
                     ],
                     tone: "warning"
                 };
 
-            case "weak_trend_bear":
+            case "weak_trend_bear": // Broad Bear Channel
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 趋势较弱,可能转为区间。等待更强信号或反弹",
+                    expectation: "通道式下跌: 反弹强劲,K线重叠增多。可做空反弹,也可谨慎做多更低低点。",
                     warnings: [
-                        "⚠️ 警告: 趋势不强,避免重仓",
-                        "⚠️ 警告: 随时准备转为区间交易思维",
-                        "⚠️ 警告: 止盈目标不宜过高"
+                        "⚠️ 警告: 反弹可能测试EMA上方",
+                        "⚠️ 警告: 75%的通道最终会向反方向突破(变为区间)",
+                        "⚠️ 警告: 在通道下沿谨慎追空,等待L1/L2"
                     ],
-                    recommendedStrategies: ["L1/L2", "Scalp", "Quick Exit"],
-                    forbiddenStrategies: ["Swing", "Position"],
+                    recommendedStrategies: ["Bear Channel Sell", "Wedge Top", "L2", "Flag"],
+                    forbiddenStrategies: ["Chase (追空)", "Breakout Mode"],
                     keyLevels: [
-                        { type: "resistance", level: "近期高点", description: "关键阻力" },
-                        { type: "support", level: "近期低点", description: "突破目标" }
+                        { type: "resistance", level: "Trendline (趋势线)", description: "通道上沿" },
+                        { type: "support", level: "Channel Bottom", description: "通道下沿(部分止盈)" }
                     ],
                     tone: "warning"
                 };
 
-            case "tight_range":
+            case "tight_range": // Tight Trading Range (TTR)
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 等待突破或在区间边界交易。避免在中间位置交易",
+                    expectation: "磁力吸附: 价格围绕EMA纠缠。突破尝试多失败。Limit Order市场。",
                     warnings: [
-                        "⚠️ 警告: 趋势交易者应观望,等待突破",
-                        "⚠️ 警告: 假突破频繁,止损要紧",
-                        "⚠️ 警告: 避免频繁交易 (手续费侵蚀利润)"
+                        "⚠️ 警告: 属于突破模式(Breakout Mode),等待明确突破",
+                        "⚠️ 警告: 不要在此状态下使用Stop Order入场(易被止损)",
+                        "⚠️ 警告: 大多数突破会失败并反向运动"
                     ],
-                    recommendedStrategies: ["Range Fade", "Breakout (谨慎)", "Scalp"],
-                    forbiddenStrategies: ["Trend Following", "Swing"],
+                    recommendedStrategies: ["Fade Breakout", "Scalp", "Limit Order Entry"],
+                    forbiddenStrategies: ["Trend Swing", "Stop Entry"],
                     keyLevels: [
-                        { type: "resistance", level: "区间上沿", description: "卖出区域" },
-                        { type: "support", level: "区间下沿", description: "买入区域" }
+                        { type: "resistance", level: "Range Top", description: "假突破卖点" },
+                        { type: "support", level: "Range Bottom", description: "假突破买点" }
                     ],
                     tone: "info"
                 };
 
-            case "broad_range":
+            case "broad_range": // Trading Range
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 在区间边界交易,或等待突破。可以做小趋势",
+                    expectation: "高抛低吸: Buy Low, Sell High, Scalp. 趋势不连续,缺乏动能。",
                     warnings: [
-                        "⚠️ 警告: 不要在区间中间追单",
-                        "⚠️ 警告: 突破可能是假突破,需要确认",
-                        "⚠️ 警告: 止盈目标设在对侧边界"
+                        "⚠️ 警告: 区间中部的信号大多是陷阱",
+                        "⚠️ 警告: 在高位看到大阳线是卖出机会(真空效应)",
+                        "⚠️ 警告: 第二段腿(Second Leg)是常见的获利目标"
                     ],
-                    recommendedStrategies: ["Range Fade", "Mini Trend", "Scalp"],
-                    forbiddenStrategies: ["Large Position", "Swing"],
+                    recommendedStrategies: ["BLSHS (Buy Low Sell High)", "Double Top/Bottom", "Wedge", "Final Flag"],
+                    forbiddenStrategies: ["Breakout Follow", "Swing Holding"],
                     keyLevels: [
-                        { type: "resistance", level: "区间上沿", description: "卖出区域" },
-                        { type: "support", level: "区间下沿", description: "买入区域" },
-                        { type: "magnet", level: "区间中线", description: "磁力点" }
+                        { type: "resistance", level: "Resistance Zone", description: "上方阻力区" },
+                        { type: "support", level: "Support Zone", description: "下方支撑区" },
+                        { type: "magnet", level: "Midpoint", description: "中点磁力(仅参考)" }
                     ],
                     tone: "info"
                 };
@@ -300,17 +318,17 @@ export class MarketStateMachine {
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 突破后回测支撑,或旗形继续。避免追高",
+                    expectation: "多头突破: 出现惊喜棒(Surprise Bar),突破重要阻力。可能开启新趋势。",
                     warnings: [
-                        "⚠️ 警告: 假突破风险高,等待确认",
-                        "⚠️ 警告: 不要在突破K追多,等回测",
-                        "⚠️ 警告: 止损放在突破点下方"
+                        "⚠️ 警告: 突破K线必须收在高位(Close on High)",
+                        "⚠️ 警告: 如果突破后立即出现跟随阳线,胜率大增",
+                        "⚠️ 警告: 小仓位追涨,预留加仓空间应对回调"
                     ],
-                    recommendedStrategies: ["Pullback", "Flag", "Breakout Retest"],
-                    forbiddenStrategies: ["Chase", "Counter-trend"],
+                    recommendedStrategies: ["Breakout Buy", "Gap Buy", "Spike and Channel"],
+                    forbiddenStrategies: ["Fade Breakout", "Top Picking"],
                     keyLevels: [
-                        { type: "support", level: "突破点", description: "回测支撑" },
-                        { type: "magnet", level: "测量目标", description: "突破后目标位" }
+                        { type: "support", level: "Breakout Point", description: "突破缺口" },
+                        { type: "magnet", level: "Measured Move", description: "测量目标(基于突破幅度)" }
                     ],
                     tone: "success"
                 };
@@ -319,17 +337,17 @@ export class MarketStateMachine {
                 return {
                     state,
                     stateLabel,
-                    expectation: "预期: 突破后回测阻力,或旗形继续。避免追空",
+                    expectation: "空头突破: 出现恐慌抛售,跌破重要支撑。多头止损盘涌出。",
                     warnings: [
-                        "⚠️ 警告: 假突破风险高,等待确认",
-                        "⚠️ 警告: 不要在突破K追空,等回测",
-                        "⚠️ 警告: 止损放在突破点上方"
+                        "⚠️ 警告: 突破K线必须收在低位(Close on Low)",
+                        "⚠️ 警告: 留意是否出现更低低点(LL)确认趋势",
+                        "⚠️ 警告: 任何反弹(Pullback)都是首次做空机会"
                     ],
-                    recommendedStrategies: ["Pullback", "Flag", "Breakout Retest"],
-                    forbiddenStrategies: ["Chase", "Counter-trend"],
+                    recommendedStrategies: ["Breakout Sell", "Gap Sell", "Spike and Channel"],
+                    forbiddenStrategies: ["Fade Breakout", "Bottom Picking"],
                     keyLevels: [
-                        { type: "resistance", level: "突破点", description: "回测阻力" },
-                        { type: "magnet", level: "测量目标", description: "突破后目标位" }
+                        { type: "resistance", level: "Breakout Point", description: "突破缺口" },
+                        { type: "magnet", level: "Measured Move", description: "测量目标" }
                     ],
                     tone: "danger"
                 };
@@ -338,14 +356,14 @@ export class MarketStateMachine {
             default:
                 return {
                     state: "unknown",
-                    stateLabel: "❓ 未知状态",
-                    expectation: "建议: 先观察市场,确定市场状态后再交易",
+                    stateLabel: "❓ 市场状态未定义/不明确",
+                    expectation: "无法判断: 缺少明确市场周期或方向。\n建议: 请完善文档属性中的'市场周期'和'方向'。",
                     warnings: [
-                        "⚠️ 警告: 市场状态不明,建议观望",
-                        "⚠️ 警告: 如果必须交易,使用小仓位"
+                        "⚠️ 核心原则: 如果看不清,就假设是区间震荡(Trading Range)",
+                        "⚠️ 观察重点: EMA斜率,是否创新高/新低,重叠程度",
                     ],
-                    recommendedStrategies: [],
-                    forbiddenStrategies: [],
+                    recommendedStrategies: ["Wait for Clarity", "Limit Order Scalp"],
+                    forbiddenStrategies: ["Large Position", "Aggressive Entry"],
                     keyLevels: [],
                     tone: "warning"
                 };

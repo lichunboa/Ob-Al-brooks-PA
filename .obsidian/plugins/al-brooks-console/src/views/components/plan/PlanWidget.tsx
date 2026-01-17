@@ -6,6 +6,7 @@ import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
 import { StrategyIndex } from "../../../core/strategy-index";
 import type { App } from "obsidian";
 import type { TradeRecord } from "../../../core/contracts";
+import { Button } from "../../../ui/components/Button";
 
 const defaultMarketCycles = [
     "Bull Trend",
@@ -248,31 +249,21 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                     <div style={{ fontWeight: 600 }}>{plan ? "✏️ Edit Plan" : "📝 New Plan"}</div>
                     <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                            onClick={() => setIsEditing(false)}
-                            style={{
-                                background: "transparent",
-                                border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                opacity: 0.7
-                            }}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            style={{
-                                background: "var(--interactive-accent)",
-                                color: "var(--text-on-accent)",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontWeight: 600
-                            }}
-                        >
-                            Save
-                        </button>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <Button
+                                onClick={() => setIsEditing(false)}
+                                variant="small"
+                                style={{ opacity: 0.7 }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSave}
+                                variant="default"
+                            >
+                                Save
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -317,17 +308,13 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                                 <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>Recommended for {marketCycle}:</div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                                     {recommendations.map(rec => (
-                                        <button
+                                        <Button
                                             key={rec.card.path}
                                             onClick={() => handleAddStrategy(rec.card.canonicalName)}
+                                            variant="small"
                                             style={{
-                                                padding: "4px 8px",
-                                                background: "var(--background-secondary)",
-                                                border: "1px solid var(--interactive-accent)",
-                                                borderRadius: "4px",
                                                 fontSize: "11px",
-                                                cursor: "pointer",
-                                                color: "var(--text-normal)",
+                                                padding: "4px 8px",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 gap: "4px"
@@ -335,8 +322,7 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                                             title={rec.reason}
                                         >
                                             <span>+ {rec.card.canonicalName}</span>
-                                            {/* Show Score or confident marker if high score? */}
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             </div>
@@ -421,225 +407,219 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                     <span>🗺️</span> Pre-market Plan
                 </div>
                 {plan ? (
-                    <button
+                    <Button
                         onClick={() => setIsEditing(true)}
+                        variant="text"
                         style={{
-                            background: "none",
-                            border: "none",
                             color: "var(--text-muted)",
-                            cursor: "pointer",
                             fontSize: "12px",
                             padding: "4px"
                         }}
                         title="Edit Plan"
                     >
                         ✏️
-                    </button>
+                    </Button>
                 ) : (
-                    <button
+                    <Button
                         onClick={() => setIsEditing(true)}
+                        variant="text"
                         style={{
-                            background: "none",
-                            border: "none",
                             color: "var(--interactive-accent)",
-                            cursor: "pointer",
                             fontSize: "12px",
                             fontWeight: 500
                         }}
                     >
                         Create Plan &gt;
-                    </button>
+                    </Button>
                 )}
             </div>
 
-            {plan ? (
-                <>
-                    {/* Checklist */}
-                    {plan.checklist && plan.checklist.length > 0 && (
-                        <div style={{ marginBottom: "12px" }}>
-                            {plan.checklist.map((item, idx) => (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                        marginBottom: "4px",
-                                        fontSize: "13px"
-                                    }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={item.done}
-                                        onChange={() => handleToggleChecklist(idx)}
-                                        disabled={!onToggleChecklistItem || isTogglingChecklist}
-                                        style={{ cursor: "pointer" }}
-                                    />
-                                    <span style={{
-                                        textDecoration: item.done ? "line-through" : "none",
-                                        opacity: item.done ? 0.6 : 1,
-                                        color: "var(--text-muted)"
-                                    }}>
-                                        {item.text}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 关键指标 */}
-                    <div style={{
-                        display: "flex",
-                        gap: "16px",
-                        fontSize: "12px",
-                        color: "var(--text-muted)",
-                        flexWrap: "wrap"
-                    }}>
-                        {plan.focusSymbols && plan.focusSymbols.length > 0 && (
-                            <div>
-                                <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Focus:</span>{" "}
-                                {plan.focusSymbols.join(", ")}
-                            </div>
-                        )}
-                        {plan.marketCycle && (
-                            <div>
-                                <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Cycle:</span>{" "}
-                                {plan.marketCycle}
-                            </div>
-                        )}
-                        {plan.focusTimeframes && plan.focusTimeframes.length > 0 && (
-                            <div>
-                                <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>TF:</span>{" "}
-                                {plan.focusTimeframes.join(", ")}
-                            </div>
-                        )}
-                        <div>
-                            <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Risk:</span>{" "}
-                            {isEditingRisk ? (
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    value={riskValue}
-                                    onChange={(e) => setRiskValue(Number(e.target.value))}
-                                    onBlur={handleRiskBlur}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            handleRiskBlur();
-                                        } else if (e.key === "Escape") {
-                                            setRiskValue(plan?.riskLimit || 3);
-                                            setIsEditingRisk(false);
-                                        }
-                                    }}
-                                    autoFocus
-                                    style={{
-                                        width: "60px",
-                                        padding: "2px 4px",
-                                        background: "var(--background-primary)",
-                                        border: "1px solid var(--interactive-accent)",
-                                        borderRadius: "3px",
-                                        color: "var(--text-normal)"
-                                    }}
-                                />
-                            ) : (
-                                <span
-                                    onClick={() => onUpdateRiskLimit && setIsEditingRisk(true)}
-                                    style={{
-                                        cursor: onUpdateRiskLimit ? "pointer" : "default",
-                                        textDecoration: onUpdateRiskLimit ? "underline" : "none",
-                                        textDecorationStyle: "dotted"
-                                    }}
-                                    title={onUpdateRiskLimit ? "点击编辑风险限制" : ""}
-                                >
-                                    {plan.riskLimit}R
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Smart Strategy Suggestions (Read Mode) */}
-                    {recommendations.length > 0 && (
-                        <div style={{
-                            marginBottom: "12px",
-                            padding: "8px 12px",
-                            background: "var(--background-secondary)",
-                            borderRadius: "8px",
-                            border: "1px solid var(--background-modifier-border)"
-                        }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-accent)" }}>
-                                    💡 Strategies for {plan.marketCycle}
-                                </div>
-                            </div>
-
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                                {recommendations.map(rec => {
-                                    const isSelected = plan.strategies?.includes(rec.card.canonicalName);
-                                    if (isSelected) return null; // Only show unselected ones
-
-                                    return (
-                                        <button
-                                            key={`read-${rec.card.path}`}
-                                            onClick={() => handleQuickAddStrategy(rec.card.canonicalName)}
-                                            style={{
-                                                padding: "4px 10px",
-                                                background: "var(--background-primary)",
-                                                border: "1px dashed var(--interactive-accent)",
-                                                borderRadius: "4px",
-                                                fontSize: "11px",
-                                                cursor: "pointer",
-                                                color: "var(--text-normal)",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "4px"
-                                            }}
-                                            title="Click to add to plan"
-                                        >
-                                            <span>bv {rec.card.canonicalName}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Strategies Display */}
-                    {plan.strategies && plan.strategies.length > 0 && (
-                        <div style={{ marginBottom: "8px" }}>
-                            <span style={{ fontWeight: "bold", color: "var(--text-normal)", fontSize: "12px" }}>Selected Strategies:</span>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
-                                {plan.strategies.map(s => (
-                                    <span key={s} style={{
-                                        padding: "2px 8px",
-                                        background: "var(--interactive-accent)",
-                                        color: "var(--text-on-accent)",
-                                        borderRadius: "4px",
-                                        fontSize: "11px",
-                                        fontWeight: 500
-                                    }}>
-                                        {s}
-                                    </span>
+            {
+                plan ? (
+                    <>
+                        {/* Checklist */}
+                        {plan.checklist && plan.checklist.length > 0 && (
+                            <div style={{ marginBottom: "12px" }}>
+                                {plan.checklist.map((item, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
+                                            marginBottom: "4px",
+                                            fontSize: "13px"
+                                        }}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={item.done}
+                                            onChange={() => handleToggleChecklist(idx)}
+                                            disabled={!onToggleChecklistItem || isTogglingChecklist}
+                                            style={{ cursor: "pointer" }}
+                                        />
+                                        <span style={{
+                                            textDecoration: item.done ? "line-through" : "none",
+                                            opacity: item.done ? 0.6 : 1,
+                                            color: "var(--text-muted)"
+                                        }}>
+                                            {item.text}
+                                        </span>
+                                    </div>
                                 ))}
                             </div>
+                        )}
+
+                        {/* 关键指标 */}
+                        <div style={{
+                            display: "flex",
+                            gap: "16px",
+                            fontSize: "12px",
+                            color: "var(--text-muted)",
+                            flexWrap: "wrap"
+                        }}>
+                            {plan.focusSymbols && plan.focusSymbols.length > 0 && (
+                                <div>
+                                    <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Focus:</span>{" "}
+                                    {plan.focusSymbols.join(", ")}
+                                </div>
+                            )}
+                            {plan.marketCycle && (
+                                <div>
+                                    <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Cycle:</span>{" "}
+                                    {plan.marketCycle}
+                                </div>
+                            )}
+                            {plan.focusTimeframes && plan.focusTimeframes.length > 0 && (
+                                <div>
+                                    <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>TF:</span>{" "}
+                                    {plan.focusTimeframes.join(", ")}
+                                </div>
+                            )}
+                            <div>
+                                <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Risk:</span>{" "}
+                                {isEditingRisk ? (
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        value={riskValue}
+                                        onChange={(e) => setRiskValue(Number(e.target.value))}
+                                        onBlur={handleRiskBlur}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                handleRiskBlur();
+                                            } else if (e.key === "Escape") {
+                                                setRiskValue(plan?.riskLimit || 3);
+                                                setIsEditingRisk(false);
+                                            }
+                                        }}
+                                        autoFocus
+                                        style={{
+                                            width: "60px",
+                                            padding: "2px 4px",
+                                            background: "var(--background-primary)",
+                                            border: "1px solid var(--interactive-accent)",
+                                            borderRadius: "3px",
+                                            color: "var(--text-normal)"
+                                        }}
+                                    />
+                                ) : (
+                                    <span
+                                        onClick={() => onUpdateRiskLimit && setIsEditingRisk(true)}
+                                        style={{
+                                            cursor: onUpdateRiskLimit ? "pointer" : "default",
+                                            textDecoration: onUpdateRiskLimit ? "underline" : "none",
+                                            textDecorationStyle: "dotted"
+                                        }}
+                                        title={onUpdateRiskLimit ? "点击编辑风险限制" : ""}
+                                    >
+                                        {plan.riskLimit}R
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                    )}
-                    {/* Always show Notes Summary if present */}
-                    {plan.notes && (
-                        <div style={{ width: "100%", marginTop: "8px", fontStyle: "italic", borderLeft: "2px solid var(--text-muted)", paddingLeft: "8px" }}>
-                            {plan.notes}
-                        </div>
-                    )}
-                </>
-            ) : (
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
-                    No plan for today.{" "}
-                    <span
-                        style={{ textDecoration: "underline", cursor: "pointer", color: "var(--interactive-accent)" }}
-                        onClick={() => setIsEditing(true)}
-                    >
-                        Set one now.
-                    </span>
-                </div>
-            )
+
+                        {/* Smart Strategy Suggestions (Read Mode) */}
+                        {recommendations.length > 0 && (
+                            <div style={{
+                                marginBottom: "12px",
+                                padding: "8px 12px",
+                                background: "var(--background-secondary)",
+                                borderRadius: "8px",
+                                border: "1px solid var(--background-modifier-border)"
+                            }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-accent)" }}>
+                                        💡 Strategies for {plan.marketCycle}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                    {recommendations.map(rec => {
+                                        const isSelected = plan.strategies?.includes(rec.card.canonicalName);
+                                        if (isSelected) return null; // Only show unselected ones
+
+                                        return (
+                                            <Button
+                                                key={`read-${rec.card.path}`}
+                                                onClick={() => handleQuickAddStrategy(rec.card.canonicalName)}
+                                                variant="small"
+                                                style={{
+                                                    padding: "4px 10px",
+                                                    fontSize: "11px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "4px",
+                                                    borderStyle: "dashed"
+                                                }}
+                                                title="Click to add to plan"
+                                            >
+                                                <span>bv {rec.card.canonicalName}</span>
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Strategies Display */}
+                        {plan.strategies && plan.strategies.length > 0 && (
+                            <div style={{ marginBottom: "8px" }}>
+                                <span style={{ fontWeight: "bold", color: "var(--text-normal)", fontSize: "12px" }}>Selected Strategies:</span>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+                                    {plan.strategies.map(s => (
+                                        <span key={s} style={{
+                                            padding: "2px 8px",
+                                            background: "var(--interactive-accent)",
+                                            color: "var(--text-on-accent)",
+                                            borderRadius: "4px",
+                                            fontSize: "11px",
+                                            fontWeight: 500
+                                        }}>
+                                            {s}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {/* Always show Notes Summary if present */}
+                        {plan.notes && (
+                            <div style={{ width: "100%", marginTop: "8px", fontStyle: "italic", borderLeft: "2px solid var(--text-muted)", paddingLeft: "8px" }}>
+                                {plan.notes}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                        No plan for today.{" "}
+                        <span
+                            style={{ textDecoration: "underline", cursor: "pointer", color: "var(--interactive-accent)" }}
+                            onClick={() => setIsEditing(true)}
+                        >
+                            Set one now.
+                        </span>
+                    </div>
+                )
             }
         </GlassPanel >
     );

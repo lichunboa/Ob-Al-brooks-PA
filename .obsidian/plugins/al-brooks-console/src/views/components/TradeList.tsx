@@ -4,6 +4,7 @@ import { Notice } from "obsidian";
 import type { TradeData } from "../../types";
 import type { EnumPresets } from "../../core/enum-presets";
 import { ActionService } from "../../core/action/action-service";
+import { Button } from "../../ui/components/Button";
 
 interface TradeListProps {
   trades: TradeData[];
@@ -241,11 +242,12 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
                 </div>
 
                 {app && enumPresets && (
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleEdit(idx, t);
                     }}
+                    variant="small"
                     style={{
                       background: isExpanded ? "var(--interactive-accent-hover)" : "var(--interactive-accent)",
                       color: "var(--text-on-accent)",
@@ -253,12 +255,11 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
                       borderRadius: "4px",
                       padding: "6px 12px",
                       fontSize: "0.85em",
-                      fontWeight: 500,
-                      cursor: "pointer",
+                      fontWeight: 500
                     }}
                   >
                     {isExpanded ? "收起" : "编辑"}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -485,37 +486,32 @@ export const TradeList: React.FC<TradeListProps> = ({ trades, onOpenFile, app, e
 
                 {/* 保存/取消按钮 */}
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
-                  <button
+                  <Button
                     onClick={() => setExpandedTradeIndex(null)}
                     disabled={isSaving}
+                    variant="default" // Using default but overriding style to look "secondary"
                     style={{
                       background: "var(--background-modifier-border)",
                       color: "var(--text-normal)",
                       border: "none",
-                      borderRadius: "4px",
                       padding: "6px 16px",
-                      fontSize: "0.9em",
-                      cursor: "pointer",
+                      fontSize: "0.9em"
                     }}
                   >
                     取消
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleSave(t)}
                     disabled={isSaving}
+                    variant="default"
                     style={{
-                      background: "var(--interactive-accent)",
-                      color: "var(--text-on-accent)",
-                      border: "none",
-                      borderRadius: "4px",
                       padding: "6px 16px",
                       fontSize: "0.9em",
-                      fontWeight: 500,
-                      cursor: "pointer",
+                      fontWeight: 500
                     }}
                   >
                     {isSaving ? "保存中..." : "保存"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

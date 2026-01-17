@@ -13,7 +13,7 @@ export interface CoachFocusProps {
     memoryShakeIndex: number;
 
     // 函数Props
-    openFile: (path: string) => void;
+    openFile: (path: string) => Promise<void>;
     setMemoryIgnoreFocus: (value: boolean) => void;
     setMemoryShakeIndex: (value: number | ((prev: number) => number)) => void;
 
@@ -25,6 +25,9 @@ export interface CoachFocusProps {
 
     // 常量Props
     V5_COLORS: any;
+    onAction?: (actionId: string, param?: any) => void;
+    can?: (actionId: string) => boolean;
+    runCommand?: (commandId: string) => boolean;
 }
 
 /**
@@ -45,7 +48,19 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
     textButtonSemiboldStyle,
     textButtonStrongStyle,
     V5_COLORS,
+    onAction,
+    can,
+    runCommand,
 }) => {
+    // Debug Log for Memory Counts
+    React.useEffect(() => {
+        if (memory && memory.cnt) {
+            console.log("[CoachFocus] Memory Counts:", memory.cnt);
+        } else {
+            console.log("[CoachFocus] Memory or memory.cnt is missing", memory);
+        }
+    }, [memory]);
+
     return (
         <div
             style={{
@@ -63,7 +78,7 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                 </span>
             </div>
 
-            {memory.cnt ? (
+            {memory && memory.cnt ? (
                 <div>
                     {(() => {
                         const sBase = (memory.cnt.sNorm ?? 0) + (memory.cnt.sRev ?? 0);
@@ -366,7 +381,37 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     <div style={{ marginBottom: "6px" }}>
                                         <InteractiveButton
                                             interaction="text"
-                                            onClick={() => openFile(String(rec.path))}
+                                            onClick={async () => {
+                                                // Coach Focus Item Click Handler
+                                                const targetPath = String(rec.path);
+
+                                                if (rec.type === 'Focus' || rec.type === 'Review') {
+                                                    // Targeted Review Logic:
+                                                    // 1. Open the file first (so it becomes active)
+                                                    await openFile(targetPath);
+
+                                                    // 2. Trigger "Review Request" for this specific file
+                                                    // We give a small delay to ensure file is active, then try to trigger "review-note"
+                                                    if (runCommand) {
+                                                        setTimeout(() => {
+                                                            // Try verified commands from main.js source
+                                                            const noteCommands = [
+                                                                "obsidian-spaced-repetition:srs-review-flashcards-in-note", // Correct ID
+                                                                "obsidian-spaced-repetition:srs-open-review-queue-view", // Queue
+                                                                "obsidian-spaced-repetition:review-note", // Legacy/Fallback
+                                                            ];
+                                                            for (const cmd of noteCommands) {
+                                                                console.log(`[CoachFocus] Trying command: ${cmd}`);
+                                                                if (runCommand(cmd)) return;
+                                                            }
+                                                            console.warn("[CoachFocus] Failed to trigger note review command");
+                                                        }, 200);
+                                                    }
+                                                    return;
+                                                }
+                                                // Default: Just open file
+                                                await openFile(targetPath);
+                                            }}
                                             style={{ fontWeight: 800 }}
                                         >
                                             {String(rec.title)}
@@ -404,7 +449,28 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             焦点：{" "}
                             <InteractiveButton
                                 interaction="text"
-                                onClick={() => openFile(memory.focusFile!.path)}
+                                onClick={async () => {
+                                    if (runCommand) {
+                                        // 1. Open File
+                                        if (memory.focusFile) await openFile(memory.focusFile.path);
+
+                                        // 2. Trigger Targeted Chain
+                                        setTimeout(() => {
+                                            const noteCommands = [
+                                                "obsidian-spaced-repetition:srs-review-flashcards-in-note",
+                                                "obsidian-spaced-repetition:srs-open-review-queue-view"
+                                            ];
+                                            for (const cmd of noteCommands) {
+                                                if (runCommand(cmd)) return;
+                                            }
+                                        }, 200);
+                                    }
+                                    if (!runCommand && onAction && can && can("srs:review-flashcards")) {
+                                        onAction("srs:review-flashcards");
+                                        return;
+                                    }
+                                    // Fallback for global review button if needed logic here
+                                }}
                                 style={{ fontWeight: 600 }}
                             >
                                 {memory.focusFile.name.replace(/\.md$/i, "")}
@@ -438,7 +504,10 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                     <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
                                         <InteractiveButton
                                             interaction="text"
-                                            onClick={() => openFile(q.path)}
+                                            onClick={async () => {
+                                                console.log("[CoachFocus] Opening random quiz file:", q.path);
+                                                await openFile(q.path);
+                                            }}
                                         >
                                             {q.q || q.file}
                                         </InteractiveButton>
@@ -467,7 +536,8 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                 <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
                     记忆数据不可用。
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };

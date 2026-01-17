@@ -10,9 +10,13 @@ import { InteractiveButton } from "../../../ui/components/InteractiveButton";
  */
 export interface ReviewHintsPanelProps {
     latestTrade: TradeRecord | null;
+    activeMetadata?: { cycle?: string; direction?: string } | null; // NEW
     reviewHints: Array<{ id: string; zh: string; en: string }>;
     todayMarketCycle?: string; // 新增:今日市场周期
     app?: App; // 用于文件操作
+    strategies?: any[]; // StrategyNoteFrontmatter[]
+    openFile?: (path: string) => void;
+    runCommand?: (id: string) => void;
 }
 
 /**
@@ -21,23 +25,61 @@ export interface ReviewHintsPanelProps {
  */
 export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     latestTrade,
+    activeMetadata,
     reviewHints,
     todayMarketCycle,
     app,
+    strategies = [],
+    openFile,
+    runCommand,
 }) => {
     const stateMachine = React.useMemo(() => new MarketStateMachine(), []);
     const [actionRunning, setActionRunning] = React.useState<string | null>(null);
 
     const guidance = React.useMemo(() => {
-        if (!todayMarketCycle) return null;
-        const state = stateMachine.inferState(todayMarketCycle);
-        return stateMachine.generateGuidance(state);
-    }, [todayMarketCycle, stateMachine]);
+        // Fix: Do NOT mix contexts. If activeMetadata is present (even partially), use it exclusively for the source of truth.
+        let cycle, direction;
 
-    // 如果既没有市场预测也没有复盘提示,不显示
+        if (activeMetadata) {
+            cycle = activeMetadata.cycle || todayMarketCycle; // Fallback to today only if active is partial? No, if active is open, it implies "Current Focus".
+            // Actually, if activeMetadata is detecting a file, we should rely on IT.
+            // If direction is empty in file, it means "Unknown/Neutral".
+            cycle = activeMetadata.cycle;
+            direction = activeMetadata.direction;
+        } else {
+            // Fallback to Latest Trade or Today's Plan
+            cycle = latestTrade?.marketCycle || todayMarketCycle;
+            direction = latestTrade?.direction;
+        }
+
+        // Debug Log
+        console.log(`[ReviewHintsPanel] Guidance Input. Source: ${activeMetadata ? "ActiveFile" : "History/Plan"}. Cycle: "${cycle}", Direction: "${direction}"`);
+
+        // Pass both cycle and direction to inferState
+        return stateMachine.generateGuidance(
+            stateMachine.inferState(cycle, direction)
+        );
+    }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
+
+    // 如果既没有市场预测(unknown且无guidance? impossible, always guidance) 也没有复盘提示
+    // modified: If unknown AND no trade hints, we prefer to Show the "Unknown" state widget to prompt user.
     if (!guidance && (!latestTrade || reviewHints.length === 0)) {
         return null;
     }
+
+    // Helper: Find strategy note by name/alias
+    const findStrategy = (name: string) => {
+        if (!strategies || strategies.length === 0) return null;
+        const target = name.toLowerCase().trim();
+        return strategies.find(s => {
+            if (s.strategy && s.strategy.toLowerCase() === target) return true;
+            if (s.aliases && s.aliases.some((a: string) => a.toLowerCase() === target)) return true;
+            // Fuzzy/Partial match for "H1/H2" if strategy is just "H1" or "H2"?
+            // Or if text says "H1/H2" and we have separate "H1" and "H2" notes?
+            // Complex. For now, strict name/alias match.
+            return false;
+        });
+    };
 
     const handleHintAction = async (hintId: string) => {
         if (!app || !latestTrade || actionRunning) return;
@@ -48,29 +90,9 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             if (!file) throw new Error("File not found");
 
             // Define known actions
-            if (hintId === "setup_missing") {
-                // For setup category, we could use a modal, but for simplicity let's use a standard prompt or just direct link.
-                // Ideally this should use an enum picker, but InteractiveButton typically just triggers functions.
-                // Let's implement a simple text prompt for now as a fallback if no complex UI is available here.
-                // A better UX would be to open the file properties, but we can't easily do that programmatically reliably across Obsidian versions.
-                // Best approach: Open the file and maybe prompt user?
-                // Or, reusing the 'input' modal logic from Dashboard if passed down. 
-                // Since we don't have promptText prop here, we fall back to just opening the file so user can fill it.
-                // Wait, "OpenTradeAssistant" has "smart guidance". 
-                // If the user wants to "fill unfilled attributes", simply clicking to open the file is a good start,
-                // but ideally providing a quick fill like in the ExecutionFillPanel would be better.
-                // However, reproducing the Enum picker here is complex.
-                // Let's just Open the file for now and show a Notice.
+            if (["setup_missing", "cycle_missing", "tf_missing"].includes(hintId)) {
                 await app.workspace.getLeaf(false).openFile(file as TFile);
-                new (require('obsidian')).Notice("请在文档属性中补充 Setups/Setup Category");
-            }
-            else if (hintId === "cycle_missing") {
-                await app.workspace.getLeaf(false).openFile(file as TFile);
-                new (require('obsidian')).Notice("请在文档属性中补充 Market Cycle");
-            }
-            else if (hintId === "tf_missing") {
-                await app.workspace.getLeaf(false).openFile(file as TFile);
-                new (require('obsidian')).Notice("请在文档属性中补充 Timeframe");
+                new (require('obsidian')).Notice(`请在文档属性中补充 ${hintId.split('_')[0]}`);
             }
         } catch (e) {
             console.error(e);
@@ -84,39 +106,58 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
         <div style={{ marginBottom: "16px" }}>
             {/* 市场状态预测 */}
             {guidance && (
-                <GlassPanel style={{ marginBottom: "12px" }}>
+                <GlassPanel style={{ marginBottom: "12px", borderLeft: guidance.state === 'unknown' ? '4px solid var(--text-muted)' : undefined }}>
                     <div style={{
                         fontWeight: 600,
                         marginBottom: "12px",
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px"
+                        gap: "8px",
+                        justifyContent: "space-between"
                     }}>
-                        <span>🔮</span>
-                        <span>智能预测导航</span>
-                        <span style={{
-                            fontSize: "0.85em",
-                            fontWeight: 400,
-                            color: "var(--text-muted)"
-                        }}>
-                            {guidance.stateLabel}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>🔮</span>
+                            <span>智能预测导航</span>
+                            <span style={{
+                                fontSize: "0.85em",
+                                fontWeight: 400,
+                                color: "var(--text-muted)"
+                            }}>
+                                {guidance.stateLabel}
+                            </span>
+                        </div>
+                        {/* Unknown State CTA */}
+                        {guidance.state === 'unknown' && (
+                            <InteractiveButton
+                                interaction="lift"
+                                style={{ fontSize: '0.8em', padding: '2px 8px' }}
+                                onClick={() => {
+                                    // Open Daily Note to set cycle
+                                    if (runCommand) runCommand("daily-notes");
+                                    else new (require('obsidian')).Notice("请打开每日笔记设置 Market Cycle");
+                                }}
+                            >
+                                ✏️ 设置
+                            </InteractiveButton>
+                        )}
                     </div>
 
                     {/* 预期行为 */}
-                    <div style={{
-                        padding: "8px 12px",
-                        background: guidance.tone === "success"
-                            ? "rgba(76, 175, 80, 0.1)"
-                            : guidance.tone === "danger"
-                                ? "rgba(244, 67, 54, 0.1)"
-                                : "rgba(255, 152, 0, 0.1)",
-                        borderRadius: "4px",
-                        marginBottom: "12px",
-                        fontSize: "0.95em"
-                    }}>
-                        {guidance.expectation}
-                    </div>
+                    {guidance.expectation && (
+                        <div style={{
+                            padding: "8px 12px",
+                            background: guidance.tone === "success"
+                                ? "rgba(76, 175, 80, 0.1)"
+                                : guidance.tone === "danger"
+                                    ? "rgba(244, 67, 54, 0.1)"
+                                    : "rgba(255, 152, 0, 0.1)",
+                            borderRadius: "4px",
+                            marginBottom: "12px",
+                            fontSize: "0.95em"
+                        }}>
+                            {guidance.expectation}
+                        </div>
+                    )}
 
                     {/* 警告 */}
                     {guidance.warnings.length > 0 && (
@@ -133,7 +174,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* 推荐策略 */}
+                    {/* 推荐策略 (Smart Linked) */}
                     {guidance.recommendedStrategies.length > 0 && (
                         <div style={{ marginBottom: "8px" }}>
                             <span style={{
@@ -143,20 +184,50 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                             }}>
                                 推荐策略:
                             </span>
-                            {guidance.recommendedStrategies.map((s, i) => (
-                                <span key={i} style={{
-                                    display: "inline-block",
-                                    padding: "2px 8px",
-                                    background: "var(--interactive-accent)",
-                                    color: "var(--text-on-accent)",
-                                    borderRadius: "12px",
-                                    fontSize: "0.85em",
-                                    marginRight: "6px",
-                                    marginBottom: "4px"
-                                }}>
-                                    {s}
-                                </span>
-                            ))}
+                            {guidance.recommendedStrategies.map((sName, i) => {
+                                // Try to find strategy note
+                                const matched = findStrategy(sName);
+                                if (matched && openFile) {
+                                    return (
+                                        <InteractiveButton
+                                            key={i}
+                                            interaction="lift"
+                                            onClick={() => openFile(matched.path)}
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "2px 8px",
+                                                background: "var(--interactive-accent)",
+                                                color: "var(--text-on-accent)",
+                                                borderRadius: "12px",
+                                                fontSize: "0.85em",
+                                                marginRight: "6px",
+                                                marginBottom: "4px",
+                                                border: "none",
+                                                cursor: "pointer"
+                                            }}
+                                            title={`打开策略: ${matched.strategy}`}
+                                        >
+                                            {sName} ↗
+                                        </InteractiveButton>
+                                    );
+                                }
+                                // Fallback static
+                                return (
+                                    <span key={i} style={{
+                                        display: "inline-block",
+                                        padding: "2px 8px",
+                                        background: "var(--background-secondary)", // Neutral background for unlinked
+                                        color: "var(--text-normal)",
+                                        borderRadius: "12px",
+                                        fontSize: "0.85em",
+                                        marginRight: "6px",
+                                        marginBottom: "4px",
+                                        border: "1px solid var(--background-modifier-border)"
+                                    }}>
+                                        {sName}
+                                    </span>
+                                );
+                            })}
                         </div>
                     )}
 

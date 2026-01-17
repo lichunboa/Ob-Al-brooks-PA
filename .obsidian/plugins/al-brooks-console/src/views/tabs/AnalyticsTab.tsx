@@ -1,7 +1,41 @@
 import * as React from "react";
-import type { AccountType, TradeRecord } from "../../core/contracts";
-import type { AnalyticsScope } from "../../core/analytics";
-import { V5_COLORS, withHexAlpha } from "../../ui/tokens";
+import { moment } from "obsidian";
+import { useConsoleContext } from "../../context/ConsoleContext";
+import {
+  computeDailyAgg,
+  computeStrategyAttribution,
+  computeContextAnalysis,
+  computeTuitionAnalysis,
+} from "../../core/analytics";
+import {
+  computeHubSuggestion,
+  computeMindsetFromRecentLive,
+  computeRMultiplesFromPnl,
+  computeRecentLiveTradesAsc,
+  computeTopStrategiesFromTrades,
+} from "../../core/hub-analytics";
+import { computeTradeStatsByAccountType } from "../../core/stats";
+import { computeStrategyLab } from "../../utils/strategy-performance-utils";
+import { calculateLiveCyclePerformance } from "../../utils/performance-utils";
+import {
+  calculateAllTradesDateRange,
+} from "../../utils/data-calculation-utils";
+import {
+  generateCalendarCells,
+  calculateCalendarMaxAbs
+} from "../../utils/calendar-utils";
+import { resolveCanonicalStrategy } from "../../utils/strategy-utils";
+import { buildGalleryItems } from "../../utils/gallery-utils";
+import { getDayOfMonth } from "../../utils/date-utils";
+import { getRColorByAccountType } from "../../utils/color-utils";
+import { CYCLE_MAP } from "../../utils/constants";
+import {
+  SPACE,
+  textButtonStyle,
+  selectStyle,
+} from "../../ui/styles/dashboardPrimitives";
+
+import { V5_COLORS } from "../../ui/tokens";
 import { SectionHeader } from "../../ui/components/SectionHeader";
 import { Button } from "../../ui/components/Button";
 import { AccountSummaryCards } from "../components/analytics/AccountSummaryCards";
@@ -12,109 +46,30 @@ import { DataAnalysisPanel } from "../components/analytics/DataAnalysisPanel";
 import { DrawdownChart } from "../components/analytics/DrawdownChart";
 import { AnalyticsConfigModal } from "../components/analytics/AnalyticsConfigModal";
 import { AnalyticsInsightPanel } from "../components/analytics/AnalyticsInsightPanel";
-// 新增组件
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { JournalGallery } from "../components/analytics/JournalGallery";
 import { Card } from "../../ui/components/Card";
 
-// 样式常量通过Props传递
+export const AnalyticsTab: React.FC = () => {
+  const {
+    trades,
+    strategyIndex,
+    analyticsScope,
+    setAnalyticsScope,
+    galleryScope,
+    setGalleryScope,
+    openFile,
+    getResourceUrl,
+    resolveLink,
+    currencyMode,
+  } = useConsoleContext();
 
-// Props接口
-export interface AnalyticsTabProps {
-  trades: TradeRecord[];
-  summary: {
-    Live: any;
-    Demo: any;
-    Backtest: any;
-  };
-  strategyLab: any;
-  contextAnalysis: any;
-  analyticsSuggestion: {
-    text: string;
-    tone: "success" | "warn" | "danger" | "ok";
-  };
-
-  analyticsRecentLiveTradesAsc: TradeRecord[];
-  analyticsRMultiples: {
-    avg: number;
-    maxAbs: number;
-    rs?: number[];
-  };
-  analyticsMind: any;
-  analyticsTopStrats: any[];
-  liveCyclePerf: any;
-  tuition: any;
-  calendarCells: any[];
-  calendarMaxAbs: number;
-  calendarDays: number;
-  strategyAttribution: any;
-  analyticsScope: AnalyticsScope;
-  gallery: {
-    scopeTotal: number;
-    candidateCount: number;
-    items: any[];
-  };
-  galleryScope: AnalyticsScope;
-  gallerySearchHref: string;
-  allTradesDateRange: { min: string; max: string };
-  // 状态设置函数
-  setAnalyticsScope: (scope: AnalyticsScope) => void;
-  setGalleryScope: (scope: AnalyticsScope) => void;
-  // 辅助函数
-  openFile: (path: string) => void;
-  getResourceUrl?: (path: string) => string;
-  // 样式
-  textButtonStyle: React.CSSProperties;
-  selectStyle: React.CSSProperties;
-  SPACE: any; // 空间常量
-  // 计算函数
-  getDayOfMonth: (dateIso: string) => string;
-  getRColorByAccountType: (accountType: AccountType) => string;
-  CYCLE_MAP: Record<string, string>;
-  currencyMode?: 'USD' | 'CNY';
-}
-
-export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
-  trades,
-  summary,
-  strategyLab,
-  contextAnalysis,
-  analyticsSuggestion,
-  analyticsRecentLiveTradesAsc,
-  analyticsRMultiples,
-  analyticsMind,
-  analyticsTopStrats,
-  liveCyclePerf,
-  tuition,
-  calendarCells,
-  calendarMaxAbs,
-  calendarDays,
-  strategyAttribution,
-  analyticsScope,
-  gallery,
-  galleryScope,
-  gallerySearchHref,
-  allTradesDateRange,
-  setAnalyticsScope,
-  setGalleryScope,
-  openFile,
-  getResourceUrl,
-  textButtonStyle,
-  selectStyle,
-  SPACE,
-  getDayOfMonth,
-  getRColorByAccountType,
-  CYCLE_MAP,
-  currencyMode = 'USD',
-}) => {
-  // ... existing hooks
-
-  // Widget visibility state (local for now, could be persisted)
+  // Widget visibility state
   const [visibleWidgets, setVisibleWidgets] = React.useState({
     accountSummary: true,
     capitalGrowth: true,
-    drawdownAnalysis: false, // User requested to hide "second curve", default off
+    drawdownAnalysis: false,
     marketCycle: true,
     tuitionCost: true,
     analyticsSuggestion: true,
@@ -122,17 +77,120 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   });
 
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const [showConfig, setShowConfig] = React.useState(false);
 
   type WidgetKey = keyof typeof visibleWidgets;
 
-  const [showConfig, setShowConfig] = React.useState(false);
-
   const toggleWidget = (key: string) => {
-    setVisibleWidgets(prev => {
+    setVisibleWidgets((prev) => {
       const k = key as WidgetKey;
       return { ...prev, [k]: !prev[k] };
     });
   };
+
+  // Derived Data
+  const summary = React.useMemo(
+    () => computeTradeStatsByAccountType(trades),
+    [trades]
+  );
+
+  const strategyLab = React.useMemo(
+    () =>
+      computeStrategyLab(trades, (t) => ({
+        name: resolveCanonicalStrategy(t, strategyIndex),
+      })),
+    [trades, strategyIndex]
+  );
+
+  const contextAnalysis = React.useMemo(
+    () => computeContextAnalysis(trades),
+    [trades]
+  );
+
+  const analyticsRecentLiveTradesAsc = React.useMemo(
+    () => computeRecentLiveTradesAsc(trades, 30),
+    [trades]
+  );
+
+  const analyticsRMultiples = React.useMemo(
+    () => computeRMultiplesFromPnl(analyticsRecentLiveTradesAsc),
+    [analyticsRecentLiveTradesAsc]
+  );
+
+  const analyticsMind = React.useMemo(
+    () => computeMindsetFromRecentLive(analyticsRecentLiveTradesAsc, 20),
+    [analyticsRecentLiveTradesAsc]
+  );
+
+  const analyticsTopStrats = React.useMemo(
+    () => computeTopStrategiesFromTrades(trades, 5, strategyIndex),
+    [trades, strategyIndex]
+  );
+
+  const liveCyclePerf = React.useMemo(
+    () => calculateLiveCyclePerformance(trades),
+    [trades]
+  );
+
+  const tuition = React.useMemo(
+    () => computeTuitionAnalysis(trades),
+    [trades]
+  );
+
+  const analyticsSuggestion = React.useMemo(
+    () =>
+      computeHubSuggestion({
+        topStrategies: analyticsTopStrats,
+        mindset: analyticsMind,
+        live: summary.Live,
+        backtest: summary.Backtest,
+        topTuitionError: tuition.rows[0]
+          ? { name: tuition.rows[0].error, costR: tuition.rows[0].costR }
+          : undefined,
+      }),
+    [analyticsTopStrats, analyticsMind, summary, tuition]
+  );
+
+  const strategyAttribution = React.useMemo(
+    () => computeStrategyAttribution(trades, strategyIndex, 20),
+    [trades, strategyIndex]
+  );
+
+  const allTradesDateRange = React.useMemo(
+    () => calculateAllTradesDateRange(trades),
+    [trades]
+  );
+
+  // Calendar Data
+  const { calendarCells, maxAbs: calendarMaxAbs } = React.useMemo(() => {
+    // Generate last 365 days dates
+    const dates = [];
+    const today = moment();
+    for (let i = 0; i < 365; i++) {
+      dates.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
+    }
+    dates.reverse(); // Ascending
+
+    // Compute aggregation map
+    const dailyAggArray = computeDailyAgg(trades, 365);
+    const dailyMap = new Map<string, { dateIso: string; netR: number; count: number }>();
+    dailyAggArray.forEach(d => {
+      dailyMap.set(d.dateIso, d);
+    });
+
+    const cells = generateCalendarCells(dates, dailyMap);
+    const maxAbs = calculateCalendarMaxAbs(cells);
+    return { calendarCells: cells, maxAbs };
+  }, [trades]);
+
+  const calendarDays = calendarCells.length;
+
+  // Gallery Data
+  const gallery = React.useMemo(
+    () =>
+      buildGalleryItems(trades, galleryScope, resolveLink, getResourceUrl),
+    [trades, galleryScope, resolveLink, getResourceUrl]
+  );
 
   // Calculate drawdown data from Live equity curve
   const drawdownData = React.useMemo(() => {
@@ -142,14 +200,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     let highWaterMark = -Infinity;
     const data = [];
 
-    // Assuming curve starts from 0 or initial balance, let's just track relative R
-    // We need dates. Using index for now as we don't have precise dates for each trade point in this view easily
-    // In a real app we'd map trades to dates.
-    // For visualization, we'll just plot the sequence.
-
-    let runningR = 0;
     for (let i = 0; i < curve.length; i++) {
-      // Curve is typically cumulative.
       const eq = curve[i];
       if (eq > highWaterMark) highWaterMark = eq;
       const dd = eq - highWaterMark;
@@ -171,15 +222,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         }}
       />
 
-      {/* Config Button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: SPACE.sm }}>
-        <button
-          className="pa-btn pa-btn--small"
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: SPACE.sm,
+        }}
+      >
+        <Button
+          variant="small"
           onClick={() => setShowConfig(true)}
-          style={{ color: "var(--text-muted)" }}
+          style={{
+            color: "var(--text-muted)",
+            fontSize: "0.85em",
+            padding: "4px 8px",
+          }}
         >
           ⚙️ Configure View
-        </button>
+        </Button>
       </div>
 
       <div
@@ -200,7 +260,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         >
           {visibleWidgets.accountSummary && (
             <Card variant="tight">
-              <div style={{ fontWeight: 700, opacity: 0.75, marginBottom: SPACE.md }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  opacity: 0.75,
+                  marginBottom: SPACE.md,
+                }}
+              >
                 💼 账户资金概览 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Account)</span>
               </div>
               <AccountSummaryCards
@@ -222,9 +288,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           {visibleWidgets.drawdownAnalysis && (
-            <DrawdownChart
-              data={drawdownData}
-            />
+            <DrawdownChart data={drawdownData} />
           )}
 
           {visibleWidgets.marketCycle && (
@@ -237,10 +301,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           )}
 
           {visibleWidgets.tuitionCost && (
-            <TuitionCostPanel
-              tuition={tuition}
-              SPACE={SPACE}
-            />
+            <TuitionCostPanel tuition={tuition} SPACE={SPACE} />
           )}
 
           {visibleWidgets.analyticsSuggestion && (
@@ -258,7 +319,6 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               calendarCells={calendarCells}
               calendarDays={calendarDays}
               calendarMaxAbs={calendarMaxAbs}
-              // Fallback to strategy attribution if no date selected
               strategyAttribution={strategyAttribution}
               analyticsScope={analyticsScope}
               setAnalyticsScope={setAnalyticsScope}

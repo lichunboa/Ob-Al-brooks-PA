@@ -114,6 +114,15 @@ export default class AlBrooksConsolePlugin extends Plugin {
         void this.exportIndexSnapshot();
       },
     });
+
+    this.addCommand({
+      id: "create-trade-note",
+      name: "新建交易笔记",
+      callback: () => {
+        const path = "Templates/单笔交易模版 (Trade Note).md";
+        this.app.workspace.openLinkText(path, "", true);
+      },
+    });
   }
 
   private async exportIndexSnapshot(): Promise<void> {

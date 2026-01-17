@@ -47,6 +47,23 @@ export interface PropertyManagerProps {
     openFile: (path: string) => void;
     promptText?: (options: any) => Promise<string | null>;
     confirmDialog?: (options: any) => Promise<boolean>;
+
+    // Passthrough to Inspector
+    trades?: any[];
+    strategyIndex?: any;
+    schemaIssues?: any[];
+    paTagSnapshot?: any;
+    enumPresets?: any;
+    schemaScanNote?: string;
+    inspectorIssues?: any[];
+    fixPlanText?: string | null;
+    showFixPlan?: boolean;
+    setShowFixPlan?: (fn: any) => void;
+
+    // Actions
+    openGlobalSearch?: (query: string) => void;
+    runCommand?: (id: string) => void;
+    showNotice?: (msg: string) => void;
 }
 
 export const PropertyManager: React.FC<PropertyManagerProps> = (props) => {

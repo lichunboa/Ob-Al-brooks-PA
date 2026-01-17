@@ -1,6 +1,7 @@
 import * as React from "react";
 import { GlassCard, StatusBadge } from "../../../ui/components/DesignSystem";
 import { COLORS, SPACE, TYPO } from "../../../ui/styles/theme";
+import { Button } from "../../../ui/components/Button";
 import type { StrategyStatsProps } from "../../../types";
 
 const StatCard: React.FC<{
@@ -8,10 +9,16 @@ const StatCard: React.FC<{
   value: number | string;
   onClick?: () => void;
 }> = ({ label, value, onClick }) => (
-  <button className="pa-stat-card" onClick={onClick} aria-label={label}>
+  <Button
+    className="pa-stat-card"
+    onClick={onClick}
+    aria-label={label}
+    variant="default"
+    style={{ display: "flex", flexDirection: "column", height: "auto", padding: "8px 12px" }}
+  >
     <div className="pa-stat-value">{value}</div>
     <div className="pa-stat-label">{label}</div>
-  </button>
+  </Button>
 );
 
 export const StrategyStats: React.FC<StrategyStatsProps> = ({

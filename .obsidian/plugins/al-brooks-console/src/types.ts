@@ -10,6 +10,7 @@ export interface TradeIndexStats {
 }
 
 export interface PaTagSnapshot {
+	generatedAtIso?: string;
 	files: number;
 	tagMap: Record<string, number>;
 }

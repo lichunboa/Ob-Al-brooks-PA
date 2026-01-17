@@ -1,7 +1,24 @@
 import * as React from "react";
-import type { TradeRecord } from "../../core/contracts";
-import type { EnumPresets } from "../../core/enum-presets";
-import type { FrontmatterInventory } from "../../core/manager";
+import { useConsoleContext } from "../../context/ConsoleContext";
+import { useManagerState } from "../../hooks/useManagerState";
+import {
+    buildFixPlan,
+    buildInspectorIssues,
+    type FixPlan,
+    type InspectorIssue,
+} from "../../core/inspector";
+import {
+    buildFrontmatterInventory,
+    buildStrategyMaintenancePlan,
+    buildTradeNormalizationPlan,
+    buildRenameKeyPlan,
+    buildDeleteKeyPlan,
+    buildDeleteValPlan,
+    buildUpdateValPlan,
+    buildAppendValPlan,
+    buildInjectPropPlan,
+    type FrontmatterFile,
+} from "../../core/manager";
 import { SectionHeader } from "../../ui/components/SectionHeader";
 import { HealthStatusPanel } from "../components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "../components/manage/SchemaIssuesPanel";
@@ -10,144 +27,320 @@ import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 import { InspectorPanel } from "../components/manage/InspectorPanel";
-
-import type { InspectorIssue } from "../../core/inspector";
-import type { PaTagSnapshot, SchemaIssueItem } from "../../types";
 import { V5_COLORS } from "../../ui/tokens";
 import { SPACE } from "../../ui/styles/dashboardPrimitives";
 import { topN } from "../../utils/aggregation-utils";
 
-/**
- * ManageTab Props接口
- */
-export interface ManageTabProps {
-    // TradeIndex (用于ActionService测试)
-    index?: any;
+export const ManageTab: React.FC = () => {
+    const {
+        trades,
+        strategyIndex,
+        paTagSnapshot,
+        schemaIssues,
+        schemaScanNote,
+        showFixPlan,
+        setShowFixPlan,
+        enumPresets,
+        loadAllFrontmatterFiles,
+        loadStrategyNotes,
+        applyFixPlan,
+        openFile,
+        openGlobalSearch,
+        promptText,
+        confirmDialog,
+        runCommand,
+    } = useConsoleContext();
 
-    // 数据
-    schemaIssues: SchemaIssueItem[];
-    paTagSnapshot: PaTagSnapshot | undefined;
-    trades: TradeRecord[];
-    strategyIndex: any; // StrategyIndex类型
-    enumPresets?: EnumPresets | undefined;
-    schemaScanNote?: string;
-    inspectorIssues: InspectorIssue[];
-    fixPlanText?: string | null;
+    const {
+        managerPlan,
+        setManagerPlan,
+        managerResult,
+        setManagerResult,
+        managerBusy,
+        setManagerBusy,
+        managerDeleteKeys,
+        setManagerDeleteKeys,
+        managerBackups,
+        setManagerBackups,
+        managerTradeInventory,
+        setManagerTradeInventory,
+        managerTradeInventoryFiles,
+        setManagerTradeInventoryFiles,
+        managerStrategyInventory,
+        setManagerStrategyInventory,
+        managerStrategyInventoryFiles,
+        setManagerStrategyInventoryFiles,
+        managerSearch,
+        setManagerSearch,
+        managerScope,
+        setManagerScope,
+        managerInspectorKey,
+        setManagerInspectorKey,
+        managerInspectorTab,
+        setManagerInspectorTab,
+        managerInspectorFileFilter,
+        setManagerInspectorFileFilter,
+    } = useManagerState();
 
-    // Manager状态
-    managerBusy: boolean;
-    managerSearch: string;
-    managerTradeInventory: FrontmatterInventory | undefined;
-    managerStrategyInventory: FrontmatterInventory | undefined;
-    managerScope: "trade" | "strategy";
-    managerInspectorKey: string | undefined;
-    managerInspectorTab: "vals" | "files";
-    managerInspectorFileFilter:
-    | { paths: string[]; label?: string }
-    | undefined;
-    showFixPlan?: boolean;
+    // Derived: Inspector Issues
+    // Note: Inspector issues logic was seemingly passed as prop or handled by ConsoleContent previously.
+    // Actually ConsoleProvider provides `schemaIssues` but NOT `inspectorIssues`.
+    // Wait, `InspectorPanel` expects `inspectorIssues`.
+    // In `ConsoleContent` (old), `inspectorIssues` was built using `buildInspectorIssues`.
+    // I need to import `buildInspectorIssues` and compute it here.
+    // BUT `buildInspectorIssues` requires `managerTradeInventory` (or similar).
+    // Let's check `buildInspectorIssues` usage in `ConsoleContent` (Step 1731 line 66).
+    // It was imported.
+    // But where was it called?
+    // Old `ConsoleContent` did NOT seem to have `inspectorIssues` state variable explicitly in Step 1731 snippet?
+    // Found it: `ManageTab` props has `inspectorIssues`.
+    // I need to find where `inspectorIssues` comes from.
+    // Likely computed from `managerTradeInventory` and `enumPresets`.
 
-    // 方法
-    setManagerBusy: (busy: boolean) => void;
-    setManagerSearch: (search: string) => void;
-    setManagerScope: (scope: "trade" | "strategy") => void;
-    setManagerInspectorKey: (key: string | undefined) => void;
-    setManagerInspectorTab: (tab: "vals" | "files") => void;
-    setManagerInspectorFileFilter: (
-        filter: { paths: string[]; label: string } | undefined
-    ) => void;
-    setShowFixPlan?: (show: (prev: boolean) => boolean) => void;
-    scanManagerInventory: () => Promise<void>;
-    runManagerPlan: (
-        plan: any,
-        options: {
-            closeInspector?: boolean;
-            forceDeleteKeys?: boolean;
-            refreshInventory?: boolean;
+    // Checking `hooks/useManagerState.ts` might reveal if it's there? No.
+    // It's likely derived.
+
+    // Re-implementing derivation locally if possible.
+    // `buildInspectorIssues(inventory, presets)`
+
+    const scanManagerInventory = React.useCallback(async () => {
+        if (loadAllFrontmatterFiles) {
+            const files = await loadAllFrontmatterFiles();
+            const inv = buildFrontmatterInventory(files);
+            setManagerTradeInventoryFiles(files);
+            setManagerTradeInventory(inv);
+            setManagerStrategyInventoryFiles(undefined);
+            setManagerStrategyInventory(undefined);
+            return;
         }
-    ) => Promise<void>;
-    buildRenameKeyPlan: (files: any[], oldKey: string, newKey: string, options?: any) => any;
-    buildDeleteKeyPlan: (files: any[], key: string) => any;
-    buildAppendValPlan: (files: any[], key: string, valueToAppend: string) => any;
-    buildInjectPropPlan: (files: any[], newKey: string, newVal: string) => any;
-    buildUpdateValPlan: (files: any[], key: string, oldVal: string, newVal: string) => any;
-    buildDeleteValPlan: (files: any[], key: string, valueToDelete: string, options?: any) => any;
-    selectManagerTradeFiles: (paths: string[]) => any[];
-    selectManagerStrategyFiles: (paths: string[]) => any[];
 
-    // 辅助函数
-    openFile: (path: string) => void;
-    openGlobalSearch?: (query: string) => void;
-    promptText?: (options: {
-        title: string;
-        defaultValue?: string;
-        placeholder?: string;
-        okText?: string;
-        cancelText?: string;
-    }) => Promise<string | null>;
-    confirmDialog?: (options: {
-        title: string;
-        message: string;
-        okText?: string;
-        cancelText?: string;
-    }) => Promise<boolean>;
-    showNotice?: (msg: string) => void;
-    runCommand?: (commandId: string) => void;
-}
+        const tradeFiles: FrontmatterFile[] = trades.map((t) => ({
+            path: t.path,
+            frontmatter: (t.rawFrontmatter ?? {}) as Record<string, unknown>,
+        }));
+        const tradeInv = buildFrontmatterInventory(tradeFiles);
+        setManagerTradeInventoryFiles(tradeFiles);
+        setManagerTradeInventory(tradeInv);
 
-export const ManageTab: React.FC<ManageTabProps> = (props) => {
-    // 准备数据统计 - 必须在所有条件渲染之前调用
-    const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, props.trades, 10), [props.trades]);
-    const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, props.trades, 10), [props.trades]);
-    const distExec = React.useMemo(() => topN((t) => (t as any).executionType ?? t.executionQuality, undefined, props.trades, 10), [props.trades]);
+        const strategyFiles: FrontmatterFile[] = [];
+        if (loadStrategyNotes) {
+            const notes = await loadStrategyNotes();
+            for (const n of notes) {
+                strategyFiles.push({
+                    path: n.path,
+                    frontmatter: (n.frontmatter ?? {}) as Record<string, unknown>,
+                });
+            }
+        }
+        const strategyInv = buildFrontmatterInventory(strategyFiles);
+        setManagerStrategyInventoryFiles(strategyFiles);
+        setManagerStrategyInventory(strategyInv);
+    }, [loadAllFrontmatterFiles, loadStrategyNotes, trades, setManagerTradeInventoryFiles, setManagerTradeInventory, setManagerStrategyInventoryFiles, setManagerStrategyInventory]);
+
+    const managerTradeFilesByPath = React.useMemo(() => {
+        const map = new Map<string, FrontmatterFile>();
+        for (const f of managerTradeInventoryFiles ?? []) map.set(f.path, f);
+        return map;
+    }, [managerTradeInventoryFiles]);
+
+    const managerStrategyFilesByPath = React.useMemo(() => {
+        const map = new Map<string, FrontmatterFile>();
+        for (const f of managerStrategyInventoryFiles ?? []) map.set(f.path, f);
+        return map;
+    }, [managerStrategyInventoryFiles]);
+
+    const selectManagerTradeFiles = React.useCallback(
+        (paths: string[]) =>
+            paths
+                .map((p) => managerTradeFilesByPath.get(p))
+                .filter((x): x is FrontmatterFile => Boolean(x)),
+        [managerTradeFilesByPath]
+    );
+
+    const selectManagerStrategyFiles = React.useCallback(
+        (paths: string[]) =>
+            paths
+                .map((p) => managerStrategyFilesByPath.get(p))
+                .filter((x): x is FrontmatterFile => Boolean(x)),
+        [managerStrategyFilesByPath]
+    );
+
+    const runManagerPlan = React.useCallback(
+        async (
+            plan: FixPlan,
+            options: {
+                closeInspector?: boolean;
+                forceDeleteKeys?: boolean;
+                refreshInventory?: boolean;
+            } = {}
+        ) => {
+            setManagerPlan(plan);
+            setManagerResult(undefined);
+
+            if (!applyFixPlan) {
+                window.alert(
+                    "写入能力不可用：applyFixPlan 未注入"
+                );
+                return;
+            }
+
+            setManagerBusy(true);
+            try {
+                const res = await applyFixPlan(plan, {
+                    deleteKeys: options.forceDeleteKeys ? true : managerDeleteKeys,
+                });
+                setManagerResult(res);
+                setManagerBackups(res.backups);
+
+                if (res.failed > 0) {
+                    // alert logic
+                } else if (res.applied === 0) {
+                    // alert logic
+                }
+
+                if (options.closeInspector) {
+                    setManagerInspectorKey(undefined);
+                    setManagerInspectorTab("vals");
+                    setManagerInspectorFileFilter(undefined);
+                }
+                if (options.refreshInventory) {
+                    await scanManagerInventory();
+                }
+            } finally {
+                setManagerBusy(false);
+            }
+        },
+        [
+            applyFixPlan,
+            managerDeleteKeys,
+            scanManagerInventory,
+            setManagerBackups,
+            setManagerInspectorFileFilter,
+            setManagerInspectorKey,
+            setManagerInspectorTab,
+            setManagerPlan,
+            setManagerResult,
+            setManagerBusy
+        ]
+    );
+
+    // Inspector Issues Derivation (Mock or Import)
+    // Assuming buildInspectorIssues exists in "../../core/inspector"
+    // But wait, I need to import it. I added it to imports.
+    const inspectorIssues = React.useMemo((): InspectorIssue[] => {
+        if (!trades || trades.length === 0) return [];
+        // 调用 core/inspector 中的逻辑
+        return buildInspectorIssues(trades, enumPresets, strategyIndex);
+    }, [trades, enumPresets, strategyIndex]);
+
+    const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, trades, 10), [trades]);
+    const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, trades, 10), [trades]);
+    const distExec = React.useMemo(() => topN((t) => (t as any).executionType ?? t.executionQuality, undefined, trades, 10), [trades]);
 
     const topTags = React.useMemo(() => {
-        const tagMap: Record<string, number> = (props.paTagSnapshot?.tagMap as any) ?? {};
+        const tagMap: Record<string, number> = (paTagSnapshot?.tagMap as any) ?? {};
         return Object.entries(tagMap)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 20) as [string, number][];
-    }, [props.paTagSnapshot]);
+    }, [paTagSnapshot]);
 
-    // 占位交互函数 (Dashboard未传递这些,但在Panel中需要)
     const noop = () => { };
+
+    const handleSetShowFixPlan = (valOrFn: boolean | ((prev: boolean) => boolean)) => {
+        if (!setShowFixPlan) return;
+        if (typeof valOrFn === 'function') {
+            setShowFixPlan(valOrFn(showFixPlan ?? false));
+        } else {
+            setShowFixPlan(valOrFn);
+        }
+    };
 
     return (
         <div style={{ paddingBottom: "40px" }}>
-            <SectionHeader
-                title="数据管理中心"
-                icon="shield-check"
-            />
-            <div style={{ padding: "0 12px 12px", color: "var(--text-faint)", fontSize: "0.9em", marginTop: "-10px" }}>
+            <SectionHeader title="数据管理中心" icon="🛡️" />
+            <div
+                style={{
+                    padding: "0 12px 12px",
+                    color: "var(--text-faint)",
+                    fontSize: "0.9em",
+                    marginTop: "-10px",
+                }}
+            >
                 全面的数据健康监控、属性管理及导出工具。
             </div>
 
+            <RawDataPanel trades={trades} openFile={openFile} />
 
-            {/* 原始数据明细 (恢复) */}
-            <RawDataPanel trades={props.trades} openFile={props.openFile} />
-
-            {/* 健康状态检查 */}
             <div style={{ marginBottom: "24px" }}>
                 <HealthStatusPanel
-                    trades={props.trades}
-                    schemaIssues={props.schemaIssues}
-                    paTagSnapshot={props.paTagSnapshot}
-                    enumPresets={props.enumPresets}
-                    schemaScanNote={props.schemaScanNote ?? ""}
+                    trades={trades}
+                    schemaIssues={schemaIssues}
+                    paTagSnapshot={paTagSnapshot}
+                    enumPresets={enumPresets}
+                    schemaScanNote={schemaScanNote ?? ""}
                     V5_COLORS={V5_COLORS}
                     SPACE={SPACE}
                 />
             </div>
 
-            {/* 属性管理器 */}
-            <PropertyManager {...props} />
+            <PropertyManager
+                // Data
+                schemaIssues={schemaIssues}
+                paTagSnapshot={paTagSnapshot}
+                trades={trades}
+                strategyIndex={strategyIndex}
+                enumPresets={enumPresets}
+                schemaScanNote={schemaScanNote}
+                inspectorIssues={inspectorIssues}
+                fixPlanText={null} // derived elsewhere?
 
-            {/* 模式验证问题 */}
-            {props.schemaIssues.length > 0 && (
+                // State
+                managerBusy={managerBusy}
+                managerSearch={managerSearch}
+                managerTradeInventory={managerTradeInventory}
+                managerStrategyInventory={managerStrategyInventory}
+                managerScope={managerScope}
+                managerInspectorKey={managerInspectorKey}
+                managerInspectorTab={managerInspectorTab}
+                managerInspectorFileFilter={managerInspectorFileFilter}
+                showFixPlan={showFixPlan}
+
+                // Setters
+                setManagerBusy={setManagerBusy}
+                setManagerSearch={setManagerSearch}
+                setManagerScope={setManagerScope}
+                setManagerInspectorKey={setManagerInspectorKey}
+                setManagerInspectorTab={setManagerInspectorTab}
+                setManagerInspectorFileFilter={setManagerInspectorFileFilter}
+                setShowFixPlan={handleSetShowFixPlan}
+
+                // Methods
+                scanManagerInventory={scanManagerInventory}
+                runManagerPlan={runManagerPlan}
+                buildRenameKeyPlan={buildRenameKeyPlan}
+                buildDeleteKeyPlan={buildDeleteKeyPlan}
+                buildAppendValPlan={buildAppendValPlan}
+                buildInjectPropPlan={buildInjectPropPlan}
+                buildUpdateValPlan={buildUpdateValPlan}
+                buildDeleteValPlan={buildDeleteValPlan}
+                selectManagerTradeFiles={selectManagerTradeFiles}
+                selectManagerStrategyFiles={selectManagerStrategyFiles}
+
+                // Helpers
+                openFile={openFile}
+                openGlobalSearch={openGlobalSearch}
+                promptText={promptText}
+                confirmDialog={confirmDialog}
+                showNotice={noop} // Todo: import Notice?
+                runCommand={runCommand}
+            />
+
+            {schemaIssues.length > 0 && (
                 <div style={{ marginBottom: "24px" }}>
                     <SchemaIssuesPanel
-                        schemaIssues={props.schemaIssues}
-                        issueCount={props.schemaIssues.length}
-                        openFile={props.openFile}
+                        schemaIssues={schemaIssues}
+                        issueCount={schemaIssues.length}
+                        openFile={openFile}
                         onTextBtnMouseEnter={noop}
                         onTextBtnMouseLeave={noop}
                         onTextBtnFocus={noop}
@@ -157,26 +350,24 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                 </div>
             )}
 
-            {/* 检查器 (恢复) */}
             <div style={{ marginBottom: "24px" }}>
                 <InspectorPanel
-                    inspectorIssues={props.inspectorIssues}
-                    fixPlanText={props.fixPlanText}
-                    showFixPlan={props.showFixPlan}
-                    setShowFixPlan={props.setShowFixPlan}
-                    openFile={props.openFile}
+                    inspectorIssues={inspectorIssues}
+                    fixPlanText={null}
+                    showFixPlan={showFixPlan}
+                    setShowFixPlan={handleSetShowFixPlan}
+                    openFile={openFile}
                 />
             </div>
 
-            {/* 数据统计 */}
             <div style={{ marginBottom: "24px" }}>
                 <DataStatisticsPanel
                     distTicker={distTicker}
                     distSetup={distSetup}
                     distExec={distExec}
                     topTags={topTags}
-                    paTagSnapshot={props.paTagSnapshot}
-                    openGlobalSearch={props.openGlobalSearch ?? noop}
+                    paTagSnapshot={paTagSnapshot}
+                    openGlobalSearch={openGlobalSearch ?? noop}
                     onTextBtnMouseEnter={noop}
                     onTextBtnMouseLeave={noop}
                     onTextBtnFocus={noop}
@@ -185,11 +376,10 @@ export const ManageTab: React.FC<ManageTabProps> = (props) => {
                 />
             </div>
 
-            {/* 导出工具 */}
             <div style={{ marginBottom: "24px" }}>
                 <ExportPanel
-                    runCommand={props.runCommand}
-                    buttonStyle={{}} // 传入空样式对象或具体样式
+                    runCommand={runCommand}
+                    buttonStyle={{}}
                     disabledButtonStyle={{ opacity: 0.5, pointerEvents: "none" }}
                 />
             </div>

@@ -118,11 +118,17 @@ export function computeMindsetFromRecentLive(
     return "";
   };
 
+  const getMistakeTags = (t: TradeRecord): string[] => {
+    return getMistakeTagsFromTrade(t).map(x => x.toLowerCase());
+  };
+
   for (const t of recent) {
     const err = getExecutionText(t).toLowerCase();
-    if (err.includes("tilt") || err.includes("上头")) tilt += 1;
-    if (err.includes("fomo") || err.includes("追单")) fomo += 1;
-    if (err.includes("hesitation") || err.includes("犹豫")) hesitation += 1;
+    const tags = getMistakeTags(t);
+
+    if (err.includes("tilt") || err.includes("上头") || tags.some(s => s.includes("tilt") || s.includes("上头"))) tilt += 1;
+    if (err.includes("fomo") || err.includes("追单") || tags.some(s => s.includes("fomo") || s.includes("追单"))) fomo += 1;
+    if (err.includes("hesitation") || err.includes("犹豫") || tags.some(s => s.includes("hesitation") || s.includes("犹豫"))) hesitation += 1;
   }
 
   let status = "🛡️ 状态极佳";
@@ -301,13 +307,12 @@ export function computeHubSuggestion(args: {
     }
   };
   const topErrHint = topErrName
-    ? `最贵错误：${topErrName}${
-        typeof topErrPct === "number"
-          ? `（${topErrPct}%）`
-          : topErrCost
-          ? `（-${topErrCost.toFixed(1)}R）`
-          : ""
-      }。`
+    ? `最贵错误：${topErrName}${typeof topErrPct === "number"
+      ? `（${topErrPct}%）`
+      : topErrCost
+        ? `（-${topErrCost.toFixed(1)}R）`
+        : ""
+    }。`
     : "";
 
   const topErrRule = deriveActionRule(topErrName);

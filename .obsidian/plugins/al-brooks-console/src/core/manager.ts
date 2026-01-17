@@ -7,6 +7,7 @@ import {
 } from "./field-mapper";
 import type { EnumPresets } from "./enum-presets";
 import type { FixPlan, FixPlanFileUpdate } from "./inspector";
+export type { FixPlan, FixPlanFileUpdate };
 
 export interface StrategyNoteFrontmatter {
   path: string;

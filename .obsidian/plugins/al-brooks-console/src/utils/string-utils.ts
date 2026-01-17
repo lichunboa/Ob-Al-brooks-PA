@@ -7,7 +7,7 @@
  * 判断文件路径是否为图片
  */
 export function isImage(p: string): boolean {
-    return /\.(png|jpe?g|gif|webp|svg)$/i.test(p);
+    return /\.(png|jpe?g|gif|webp|svg|bmp|excalidraw|canvas|md)$/i.test(p);
 }
 
 /**

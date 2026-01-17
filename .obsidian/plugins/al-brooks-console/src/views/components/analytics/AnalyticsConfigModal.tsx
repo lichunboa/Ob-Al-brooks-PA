@@ -1,6 +1,7 @@
 import * as React from "react";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
 import { SectionHeader } from "../../../ui/components/SectionHeader";
+import { Button } from "../../../ui/components/Button";
 
 interface AnalyticsConfigModalProps {
     visibleWidgets: Record<string, boolean>;
@@ -62,12 +63,12 @@ export const AnalyticsConfigModal: React.FC<AnalyticsConfigModalProps> = ({
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <button
-                        className="pa-btn pa-btn--primary"
+                    <Button
+                        variant="default"
                         onClick={onClose}
                     >
                         Done
-                    </button>
+                    </Button>
                 </div>
             </GlassPanel>
         </div>

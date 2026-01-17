@@ -4,6 +4,7 @@ import type { StrategyIndex } from "../../../core/strategy-index";
 import type { EnumPresets } from "../../../core/enum-presets";
 import { V5_COLORS } from "../../../ui/tokens";
 import { glassInsetStyle } from "../../../ui/styles/dashboardPrimitives";
+import { Button } from "../../../ui/components/Button";
 import { normalize } from "../../../utils/string-utils";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { matchStrategies } from "../../../core/strategy-matcher";
@@ -181,9 +182,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     flexWrap: "wrap"
                 }}>
                     {openTrades.map((trade, idx) => (
-                        <button
+                        <Button
                             key={trade.path}
                             onClick={() => setSelectedTradePath(trade.path)}
+                            variant="small"
                             style={{
                                 padding: "6px 12px",
                                 background: trade.path === currentTrade.path
@@ -194,7 +196,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     : "var(--text-muted)",
                                 border: "none",
                                 borderRadius: "12px",
-                                cursor: "pointer",
                                 fontSize: "0.85em",
                                 fontWeight: trade.path === currentTrade.path ? 600 : 400,
                                 transition: "all 0.2s",
@@ -206,7 +207,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             <span>{trade.direction === "Long" ? "📈" : trade.direction === "Short" ? "📉" : "➡️"}</span>
                             <span>{trade.ticker || "未知"}</span>
                             <span style={{ opacity: 0.7, fontSize: "0.9em" }}>#{idx + 1}</span>
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}
@@ -364,10 +365,12 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                             {recommendation.recommendations.map(rec => (
-                                <button
+                                <Button
                                     key={rec.value}
                                     onClick={() => handleFillAttribute(rec.attribute, rec.value)}
+                                    variant="default" // Using default base but overriding for custom look
                                     style={{
+                                        width: "100%", // Block button behavior
                                         padding: "8px",
                                         background: "var(--background-primary)",
                                         borderRadius: "6px",
@@ -376,7 +379,6 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        cursor: "pointer",
                                         textAlign: "left",
                                     }}
                                 >
@@ -399,7 +401,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             {rec.percentage}%
                                         </span>
                                     </span>
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>

@@ -22,7 +22,7 @@ export interface UseDashboardDataReturn {
     trades: TradeRecord[];
     strategies: any[];
     status: TradeIndexStatus;
-    todayMarketCycle: string | undefined;
+    todayMarketCycle: string[];
 
     // Journal Data
     journalLogs: any[];
@@ -56,8 +56,12 @@ export function useDashboardData({
     const [status, setStatus] = React.useState<TradeIndexStatus>(() =>
         index.getStatus ? index.getStatus() : { phase: "ready" }
     );
-    const [todayMarketCycle, setTodayMarketCycle] = React.useState<string | undefined>(
-        () => todayContext?.getTodayMarketCycle()
+    const [todayMarketCycle, setTodayMarketCycle] = React.useState<string[]>(
+        () => {
+            const val = todayContext?.getTodayMarketCycle();
+            if (!val) return [];
+            return Array.isArray(val) ? val : [String(val)];
+        }
     );
 
     // Journal Data Accessors
@@ -120,8 +124,10 @@ export function useDashboardData({
     // 订阅 todayContext 变化
     React.useEffect(() => {
         if (!todayContext?.onChanged) return;
-        const onUpdate = () =>
-            setTodayMarketCycle(todayContext.getTodayMarketCycle());
+        const onUpdate = () => {
+            const val = todayContext.getTodayMarketCycle();
+            setTodayMarketCycle(val ? (Array.isArray(val) ? val : [String(val)]) : []);
+        };
         const unsubscribe = todayContext.onChanged(onUpdate);
         onUpdate();
         return unsubscribe;

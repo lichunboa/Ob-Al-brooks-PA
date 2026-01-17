@@ -29,7 +29,8 @@ const testBatchResult: BatchActionResult = {
     total: 10,
     succeeded: 9,
     failed: 1,
-    results: [testResult]
+    results: [testResult],
+    duration: 100
 };
 
 // 测试 ActionOptions
@@ -76,3 +77,9 @@ export const typeTests = {
     testRecordSchema,
     testValidationResult
 };
+
+describe('Type Definitions', () => {
+    test('should compile without errors', () => {
+        expect(typeTests).toBeDefined();
+    });
+});

@@ -95,24 +95,63 @@ export function buildMemorySnapshot(args: {
       .replace(/```[\s\S]*?```/g, "")
       .replace(/`[^`]*`/g, "");
 
-    const c_cloze = (clean.match(/==[^=]+==/g) || []).length;
-    const c_sRev = (clean.match(/(?<!:):{3}(?!:)/g) || []).length;
-    const c_sNorm = (clean.match(/(?<!:):{2}(?!:)/g) || []).length;
-    const c_mRev = (clean.match(/^(?:\>)?\s*\?{2}\s*$/gm) || []).length;
-    const c_mNorm = (clean.match(/^(?:\>)?\s*\?{1}\s*$/gm) || []).length;
+    // --- Card Counting Logic (Consumption Model) ---
+    // We remove matched cards from the buffer to prevent double-counting 
+    // (e.g., preventing a Basic card with a highlight from counting as both Basic and Cloze).
 
-    cnt_cloze += c_cloze;
-    cnt_sRev += c_sRev;
-    cnt_sNorm += c_sNorm;
-    cnt_mRev += c_mRev;
-    cnt_mNorm += c_mNorm;
+    let buffer = clean;
+    let itemsFoundBasic = 0;
 
-    const fileCards = c_cloze + c_sNorm + c_mNorm + c_sRev * 2 + c_mRev * 2;
-    total += fileCards;
+    // 1. Basic Cards (::)
+    const regexBasic = /^(.+?)::(.+)$/gm;
+    const basicMatches = [...buffer.matchAll(regexBasic)];
+    itemsFoundBasic = basicMatches.length;
+    cnt_sNorm += itemsFoundBasic;
+    buffer = buffer.replace(regexBasic, ""); // Remove matched lines
 
-    // Basic quiz pool
-    const singleMatches = [...clean.matchAll(/^(.+?)::(.+)$/gm)];
-    for (const m of singleMatches) {
+    // 2. Multiline Reverse (??)
+    const regexMRev = /^(?:\>)?\s*\?{2}\s*$/gm;
+    cnt_mRev += (buffer.match(regexMRev) || []).length;
+    buffer = buffer.replace(regexMRev, "");
+
+    // 3. Multiline Normal (?)
+    const regexMNorm = /^(?:\>)?\s*\?{1}\s*$/gm;
+    cnt_mNorm += (buffer.match(regexMNorm) || []).length;
+    buffer = buffer.replace(regexMNorm, "");
+
+    // 4. Single Line Reverse (:::)
+    const regexSRev = /(?<!:):{3}(?!:)/g;
+    cnt_sRev += (buffer.match(regexSRev) || []).length;
+    buffer = buffer.replace(regexSRev, "");
+
+    // 5. Basic Inline (::) - Catching any remaining inline basics not caught by start-of-line regex?
+    // Note: Standard SR usually requires :: to separate Q/A. 
+    // To match strict SR logic, we might not need this if line-based is sufficient, 
+    // but to be safe and compatible with previous logic:
+    const regexInlineBasic = /(?<!:):{2}(?!:)/g;
+    const inlineBasicCount = (buffer.match(regexInlineBasic) || []).length;
+    cnt_sNorm += inlineBasicCount;
+    buffer = buffer.replace(regexInlineBasic, "");
+
+    // 6. Cloze Deletions (==) - Only in remaining text
+    const foundClozes = (buffer.match(/==[^=]+==/g) || []).length;
+    cnt_cloze += foundClozes;
+
+    // File Total
+    // Note: Reverse cards typically generate 2 cards (Forward + Backward).
+    // Review count logic usually follows card count.
+    const currentFileCardCount =
+      itemsFoundBasic +
+      inlineBasicCount +
+      (cnt_mRev * 2) +
+      (cnt_sRev * 2) +
+      cnt_mNorm +
+      foundClozes;
+
+    total += currentFileCardCount;
+
+    // --- Quiz Pool Population ---
+    for (const m of basicMatches) {
       quizAll.push({
         q: String(m[1] ?? "").trim(),
         file: f.name,
@@ -121,6 +160,7 @@ export function buildMemorySnapshot(args: {
       });
     }
 
+    // --- SR Metadata Parsing ---
     let fDue = 0;
     let fEaseSum = 0;
     let fEaseCount = 0;
@@ -136,12 +176,12 @@ export function buildMemorySnapshot(args: {
         fEaseCount += 1;
       }
 
-      // loadNext7: count scheduled reviews within next 7 days from today (independent of dueThresholdDays)
+      // loadNext7: count scheduled reviews within next 7 days
       const dDateForLoad = parseIsoDate(d);
       if (dDateForLoad) {
         const diffDays = Math.floor(
           (stripTime(dDateForLoad).getTime() - todayStripped.getTime()) /
-            86400000
+          86400000
         );
         if (diffDays >= 1 && diffDays <= 7) {
           const i = diffDays - 1;
@@ -156,12 +196,12 @@ export function buildMemorySnapshot(args: {
     }
 
     const avgEase = fEaseCount > 0 ? Math.round(fEaseSum / fEaseCount) : 250;
-    if (fileCards > 0) {
+    if (currentFileCardCount > 0) {
       fileStats.push({
         name: f.name,
         path: f.path,
         folder: f.folder,
-        count: fileCards,
+        count: currentFileCardCount,
         due: fDue,
         avgEase,
       });

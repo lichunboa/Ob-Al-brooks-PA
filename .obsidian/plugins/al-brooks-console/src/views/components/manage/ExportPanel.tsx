@@ -34,9 +34,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 }}
             >
                 <div style={{ fontWeight: 700 }}>📥 导出</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.9em" }}>
-                    导出
-                </div>
             </div>
 
             <div

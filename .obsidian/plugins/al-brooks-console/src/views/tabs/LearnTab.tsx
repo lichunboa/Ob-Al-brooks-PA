@@ -1,103 +1,75 @@
 import * as React from "react";
 import { SectionHeader } from "../../ui/components/SectionHeader";
-import { StrategyStats } from "../components/strategy/StrategyStats";
-import { StrategyList } from "../components/strategy/StrategyList";
-import { matchStrategies } from "../../core/strategy-matcher";
-import { PlaybookPerformance } from "../components/learn/PlaybookPerformance";
-import { CourseSuggestion } from "../components/learn/CourseSuggestion";
 import { CoachFocus } from "../components/learn/CoachFocus";
+import { CourseSuggestion } from "../components/learn/CourseSuggestion";
 import { StrategyRepository } from "../components/learn/StrategyRepository";
-
-// LearnTab Props接口
-interface LearnTabProps {
-  // 数据Props
-  memory: any;
-  memoryError: string;
-  memoryBusy: boolean;
-  course: any;
-  courseError: string;
-  courseBusy: boolean;
-  settings: any;
-  strategyStats: {
-    total: number;
-    activeCount: number;
-    learningCount: number;
-    totalUses: number;
-  };
-  strategies: any[];
-  strategyPerf: any;
-  todayMarketCycle: string | null;
-  playbookPerfRows: any[];
-  memoryIgnoreFocus: boolean;
-  memoryShakeIndex: number;
-  strategyIndex: any;
-
-  // 函数Props
-  can: (action: string) => boolean;
-  action: (action: string) => void;
-  loadMemory: any;
-  reloadMemory: () => void;
-  hardRefreshMemory: () => void;
-  loadCourse: any;
-  reloadCourse: () => void;
-  openFile: (path: string) => void;
-  setMemoryIgnoreFocus: (value: boolean) => void;
-  setMemoryShakeIndex: (value: number | ((prev: number) => number)) => void;
-
-  // 样式Props
-  buttonStyle: React.CSSProperties;
-  disabledButtonStyle: React.CSSProperties;
-  buttonSmStyle: React.CSSProperties;
-  buttonSmDisabledStyle: React.CSSProperties;
-  textButtonStyle: React.CSSProperties;
-  textButtonStrongStyle: React.CSSProperties;
-  textButtonSemiboldStyle: React.CSSProperties;
-  textButtonNoWrapStyle: React.CSSProperties;
-
-  // 常量/工具Props
-  V5_COLORS: any;
-  simpleCourseId: (id: string) => string;
-  isActive: (status: string) => boolean;
-}
-
-export const LearnTab: React.FC<LearnTabProps> = ({
-  memory,
-  memoryError,
-  memoryBusy,
-  course,
-  courseError,
-  courseBusy,
-  settings,
-  strategyStats,
-  strategies,
-  strategyPerf,
-  todayMarketCycle,
-  playbookPerfRows,
-  memoryIgnoreFocus,
-  memoryShakeIndex,
-  strategyIndex,
-  can,
-  action,
-  loadMemory,
-  reloadMemory,
-  hardRefreshMemory,
-  loadCourse,
-  reloadCourse,
-  openFile,
-  setMemoryIgnoreFocus,
-  setMemoryShakeIndex,
-  buttonStyle,
-  disabledButtonStyle,
+import { useConsoleContext } from "../../context/ConsoleContext";
+import {
+  calculateStrategyStats,
+  resolveCanonicalStrategy,
+} from "../../utils/strategy-utils";
+import {
+  calculateStrategyPerformance,
+  generatePlaybookPerfRows,
+} from "../../utils/strategy-performance-utils";
+import { V5_COLORS } from "../../ui/tokens";
+import { simpleCourseId } from "../../core/course";
+import { isActive } from "../../utils/trade-utils";
+import { safePct } from "../../utils/trade-calculations";
+import {
   buttonSmStyle,
   buttonSmDisabledStyle,
   textButtonStyle,
   textButtonStrongStyle,
   textButtonSemiboldStyle,
   textButtonNoWrapStyle,
-  V5_COLORS,
-  simpleCourseId,
-  isActive,
-}) => {
+} from "../../ui/styles/dashboardPrimitives";
+
+export const LearnTab: React.FC = () => {
+  const {
+    strategies,
+    trades,
+    memory,
+    memoryError,
+    memoryBusy,
+    course,
+    courseError,
+    courseBusy,
+    settings,
+    todayMarketCycle,
+    memoryIgnoreFocus,
+    memoryShakeIndex,
+    strategyIndex,
+    loadMemory,
+    reloadMemory,
+    hardRefreshMemory,
+    loadCourse,
+    reloadCourse,
+    openFile,
+    setMemoryIgnoreFocus,
+    setMemoryShakeIndex,
+    // Add integrations from context to use run action
+    integrations,
+  } = useConsoleContext();
+
+  const strategyPerf = React.useMemo(
+    () =>
+      calculateStrategyPerformance(trades, (t) =>
+        resolveCanonicalStrategy(t, strategyIndex)
+      ),
+    [trades, strategyIndex]
+  );
+
+  const strategyStats = React.useMemo(
+    () => calculateStrategyStats(strategies, strategyPerf, isActive),
+    [strategies, strategyPerf]
+  );
+
+  const playbookPerfRows = React.useMemo(
+    () => generatePlaybookPerfRows(strategyPerf, strategyIndex, safePct),
+    [strategyPerf, strategyIndex]
+  );
+
   return (
     <>
       <SectionHeader
@@ -121,6 +93,9 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         textButtonSemiboldStyle={textButtonSemiboldStyle}
         textButtonStrongStyle={textButtonStrongStyle}
         V5_COLORS={V5_COLORS}
+        onAction={(id) => integrations?.run(id as any)}
+        can={(id) => integrations?.isCapabilityAvailable(id as any) ?? false}
+        runCommand={useConsoleContext().runCommand}
       />
 
       <CourseSuggestion
@@ -128,7 +103,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         courseError={courseError}
         courseBusy={courseBusy}
         settings={settings}
-        loadCourse={loadCourse}
+        loadCourse={() => loadCourse(settings)}
         reloadCourse={reloadCourse}
         openFile={openFile}
         buttonSmStyle={buttonSmStyle}
@@ -144,7 +119,7 @@ export const LearnTab: React.FC<LearnTabProps> = ({
         strategies={strategies}
         strategyPerf={strategyPerf}
         playbookPerfRows={playbookPerfRows}
-        todayMarketCycle={todayMarketCycle}
+        todayMarketCycle={todayMarketCycle.join(" + ")}
         openFile={openFile}
         isActive={isActive}
         textButtonStyle={textButtonStyle}
