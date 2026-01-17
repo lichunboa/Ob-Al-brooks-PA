@@ -1,142 +1,178 @@
 ---
 name: trading-console-plugin-maintainer
-description: This skill should be used when maintaining, upgrading, or UI-polishing the Obsidian native plugin console (TypeScript/React) at `.obsidian/plugins/al-brooks-console` for the 🦁 AL-Brooks 交易员控制台. It focuses on safe edits, build gating (`npm run build`), parity with v5.0 UX, and preventing regressions in the huge `Dashboard.tsx`.
+description: This skill should be used when maintaining, upgrading, or UI-polishing the Obsidian native plugin console (TypeScript/React) at `.obsidian/plugins/al-brooks-console` for the 🦁 AL-Brooks 交易员控制台. It integrates file-based planning, unit testing automation, and safe edit practices to ensure strict regression prevention and UI consistency.
+hooks:
+  SessionStart:
+    - hooks:
+        - type: command
+          command: "echo '[Maintainer] 🛡️ Protocol Active. Remember: Phase 0 (Context) -> Phase 4 (Verify). Do NOT blind guess.'"
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "echo '[Maintainer] 🛑 Stop! Have you read the Trade Note Template and Price Action logic? (Phase 0)'"
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "echo '[Maintainer] ✅ Edit complete. Now run: npm run build (and npm test if logic changed).'"
 ---
 
-# 🛠️ Trading Console Plugin Maintainer（原生插件控制台维护/升级）
+# 🛠️ Trading Console Plugin Maintainer (Ultimate Edition)
 
-## 目标
+## 📌 目标与核心理念
 
-- 维护 Obsidian 原生插件控制台（TypeScript + React），确保：
-  - **功能不丢**（尤其是对照 v5.0 的模块/入口）
-  - **只做必要变更**（不引入额外 UX）
-  - **每次改动都能 build**（门禁：`npm run build`）
-  - **可回滚、可定位**（避免在 `Dashboard.tsx` 及其子组件里“迷路”）
-  - **UI 一致性**（严格使用 Design System 组件）
+本 Skill 是维护 `Al-Brooks-Console` 插件的**最高准则**。它不仅仅是代码编辑指南，更是集成了 **Planning (规划)**、**Design (设计)**、**Testing (测试)** 与 **Build (构建)** 的全流程自动化手册。
 
-## 何时触发本 Skill
+**核心理念**：
+1.  **Context is RAM, Files are Disk**: 复杂任务必须落地到文件 (`task_plan.md`)。
+2.  **Tests as Documentation**: 逻辑变更必须伴随自动生成的单元测试。
+3.  **UI Consistency**: 严禁“原本能用就行”，必须符合设计系统。
+4.  **Build Green**: 任何提交必须通过 `npm run build` 和 `npm test`。
 
-- 修复插件控制台报错、TS/TSX 编译失败、运行时报错
-- 调整控制台信息架构/页面布局（“UI 整理但不动功能”）
-- 迁移/合并模块入口（例如把“每日行动”并入“交易中心”）
-- 升级依赖、调整构建配置、处理 Obsidian API 变动
-- 需要在 `.obsidian/plugins/al-brooks-console` 下做任何代码修改
+---
 
-## 关键约束（硬规则）
+## 🚦 何时触发本 Skill
 
-1.  **保持 UX 合同**：实现“被描述的 UX”，不新增页面/弹窗/筛选/动画。
-2.  **不删除功能**：允许“换入口/换位置”，不允许“砍掉逻辑”。
-3.  **UI 组件一致性**（⭐⭐⭐）：
-    *   **严禁使用原生 `<button>`**：必须使用 `src/ui/components/Button.tsx`。
-    *   **容器统一**：使用 `GlassPanel` 包裹卡片，`SectionHeader` 做标题。
-4.  **架构分层**：
-    *   `Dashboard.tsx` 是 **数据容器 (State Container)**：负责加载数据、订阅设置、定义回调。
-    *   `src/views/tabs/*` 是 **布局层 (Layout)**：负责组织页面结构（如 `TradingHubTab`）。
-    *   **不要在 Dashboard.tsx 里写长 JSX**，应抽取到 Tab 或 Component。
-5.  **构建门禁**：每个结构性改动后必须通过构建：`cd .obsidian/plugins/al-brooks-console && npm run build`。
+- 🛠️ **常规维护**：修复 Bug、升级依赖、重构代码。
+- 🎨 **UI 调整**：优化界面、迁移入口、调整布局。
+- ⚡ **新功能开发**：开发新组件（如 Execution Panel, Smart Recommender）。
+- 🧪 **测试治理**：补充测试用例、修复 CI 失败。
 
-## Repo 导航（高频路径）
+---
 
-- **插件根目录**：`.obsidian/plugins/al-brooks-console/`
-- **数据容器**：`.obsidian/plugins/al-brooks-console/src/views/Dashboard.tsx` (State/Props orchestration)
-- **页面布局**：`.obsidian/plugins/al-brooks-console/src/views/tabs/` (e.g. `TradingHubTab.tsx`, `AnalyticsTab.tsx`)
-- **UI 组件库**：`.obsidian/plugins/al-brooks-console/src/ui/components/` (Button, GlassPanel, etc.)
-- **业务组件**：`.obsidian/plugins/al-brooks-console/src/views/components/`
-    - **交易核心**：`trading/OpenTradeAssistant.tsx` (智能推荐/开仓助手 - **高频变更**)
-    - **计划组件**：`plan/PlanWidget.tsx` (Plan integration)
-- **核心逻辑**：`.obsidian/plugins/al-brooks-console/src/core/` (`strategy-recommender.ts`, `trade-index.ts`)
-- **构建命令**：`npm run build`
+## 📋 统一维护工作流 (Unified Workflow)
 
-## 标准维护工作流（强制按顺序）
+所有维护任务**强制**遵循以下五步循环：
 
-### 0) 先读“自进化记忆”
+### 0️⃣ Phase 0: Domain & Data Context (拒绝“管中窥豹”)
+**这是最关键的一步，跳过必死。**
 
-- 读取：`memory/system_evolution.md`
-- 目的：复用过去踩坑经验（特别是 Dashboard 大改、Tasks 集成、UI 条件渲染嵌套）
+在修改任何代码前，必须建立“笔记-插件-业务”的完整上下文：
 
-### 1) 明确变更类型（只选一种）
+1.  **数据源头分析 (Source of Truth)**：
+    *   **严禁**只看 `.tsx` 定义的接口。
+    *   **必须**读取 `Templates/单笔交易模版 (Trade Note).md`：这是数据的物理形态。
+    *   **必须**分析 `src/core/contracts.ts`：这是数据的内存形态。
+    *   **必须**确认数据转换逻辑：数据是怎么从 Markdown 变成了 React Props 的？（通常在 `obsidian-trade-index.ts` 或 `Dashboard.tsx`）。
 
-- UI 归类/移动入口（不动逻辑）
-- Bug 修复（尽量最小 diff）
-- 依赖/构建升级（优先锁住输出与行为）
-- **新功能组件开发**（如 Execution Panel, Smart Recommender）
+2.  **业务逻辑对齐 (Price Action Domain)**：
+    *   如果任务涉及“交易逻辑”（如 Setup, Signal, Exit），**必须**先自我提问并回答：
+        *   "这个功能在 Al Brooks 体系里是什么意图？"
+        *   "High 1 / Low 2 是怎么定义的？"
+        *(如果不懂，必须查阅 `🦁 交易员控制台 (Trader Command)/README.md` 或询问用户，绝对禁止“猜业务”)*
 
-输出：用 3–7 条 bullet 写出“要改什么、不改什么”。
+3.  **用户场景模拟**：
+    *   不要只把自己当程序员，要把自己当**正在复盘的交易员**。
+    *   思考：交易员现在是在看一张静态图，还是在复盘当天的动态行情？主要痛点是“填起来麻烦”还是“找不到数据”？
 
-### 2) 建立可回滚锚点
+### 1️⃣ Phase 1: Planning (规划与记忆)
+**来源技能**: `planning-with-files`
 
-- 确认当前在正确分支
-- 在编辑 `Dashboard.tsx` 或 `OpenTradeAssistant.tsx` 前，先定位明确的锚点（如 `export function` 或 `interface Props`）。
+- **评估复杂度**：
+    - **简单任务** (Quick Fix): 直接执行。
+    - **复杂任务** (>2文件修改 / 逻辑重构): **必须**启动文件规划。
+        1.  在根目录创建/更新 `task_plan.md`：拆解任务步骤。
+        2.  创建/更新 `findings.md`：记录调研结果。
+        3.  创建/更新 `progress.md`：记录执行流水。
+- **读取记忆**：
+    - 强制读取 `memory/system_evolution.md`。
 
-### 3) 代码修改原则
+### 2️⃣ Phase 2: Design Check (设计检查)
+**来源技能**: `ui-design-system`
 
-- **UI 修改**：优先检查 `src/ui/components` 是否有现成组件。
-- **Props 传递**：若需要 `app` 或 `enumPresets`，确保从 `Dashboard.tsx` -> `Tab` -> `Component` 一路传下去，不要尝试在子组件里重新获取 context（除非使用 Context API，但目前不仅限于 Props）。
-- **逻辑修改**：对于 `StrategyRecommender` 等复杂逻辑，增加必要的 `console.log` 调试，但在提交前清理。
+- **UI 变更前必查**：
+    - ❌ **严禁**使用原生 HTML 标签。
+    - ✅ **必须**复用 `src/ui/components`。
+- **UX 约束**：
+    - **Sticky Context**: Dashboard 必须保持对 "Active File" 的粘性引用。
 
-### 4) 立即跑构建门禁
+### 3️⃣ Phase 3: Implementation (安全实施)
+**来源技能**: `code-reviewer`
 
-- 执行：`cd .obsidian/plugins/al-brooks-console && npm run build`
-- 若失败：只修复本次引入的问题；不要顺手修其它无关问题。
+- **修改原则**：
+    - **Dashboard.tsx**: 仅作为**数据容器**。
+    - **Types.ts**: 修改接口后， Search 全局引用。
 
-### 5) 变更完成后补记录（必须写）
+### 4️⃣ Phase 4: Verification (处决“盲目自信”)
+**来源技能**: `unit-test-generator`
 
-- 更新：`memory/system_evolution.md`
-- 更新：`references/changelog.md`
+- **3-Strike Protocol (Bug 修复铁律)**：
+    - **Attempt 1**: 快速修复。
+    - **Attempt 2**: ❌ **严禁直接重试**。如果第一次修复失败（例如用户反馈“没变化”），**必须停止 Blind Coding**。
+        - 📌 **必须**编写一个最小复现脚本或详细的 `console.log` 探针。
+        - 📌 **必须**先定位到为什么第一次修复无效（是因为缓存？逻辑分支没走到？还是数据源根本就没更新？）。
+    - **Attempt 3**: 寻求用户帮助或全面回滚。
 
-## 核心组件专项说明
+- **逻辑变更后**：
+    - **自动生成测试**：修改核心逻辑后，**必须**运行 `npm test`。
+- **构建门禁**：
+    - **强制执行**：`npm run build`。
 
-### Dashboard.tsx (The Orchestrator)
-不再是单体巨石 UI，而是**指挥官**。
-- **职责**：
-    - `loadAllFrontmatterFiles()`
-    - `subscribeSettings()`
-    - `ConsoleComponent.run()`
-- **修改建议**：只改数据加载和 Props 传递。不要往里塞 `div`。
+### 5️⃣ Phase 5: Documentation (文档落地)
+**来源技能**: `changelog-writer`
 
-### OpenTradeAssistant.tsx (The Brain)
-- **职责**：处理开仓逻辑、智能策略推荐。
-- **近期演进**：已集成 "Smart Recommender" (百分比匹配、动态推荐)。
-- **注意**：此处逻辑复杂，修改推荐算法时需小心 `strategy-matcher-v2` 的评分逻辑。
+- **更新记录**：
+    - `versions.json` & `package.json`: 如果是版本发布。
+    - `memory/system_evolution.md`: 记录本次解决的硬核 Bug 或架构决策。
+    - `task_plan.md`: 标记任务完成，归档 `findings.md`。
 
-### TradingHubTab.tsx (The Layout)
-- **职责**：组合 `PlanWidget`, `TodayKpiCard`, `OpenTradeAssistant`, `TodayTradesSection`。
-- **模式**：接受 `app`, `index`, `onUpdate` 等 props 并分发。
+---
 
-## v5 UI 优点提炼与迁移
+## 🧱 关键约束 (Hard Rules)
 
-目标：复用 **信息层级 + 结构节奏 + 模块语义**。
+| 领域 | 规则 | 违规后果 |
+| :--- | :--- | :--- |
+| **UI** | 严禁原生 `<button>`，必须用 `src/ui/components/Button.tsx` | UI 风格割裂，用户体验下降 |
+| **Logic** | 核心逻辑变更必须配套 `npm test` | 引入回归 Bug，破坏核心功能 |
+| **Build** | 每次结构性改动后执行 `npm run build` | 提交损坏的代码，CI/CD 失败 |
+| **Context** | Dashboard 上下文必须 "Sticky" | 用户切换笔记后丢失交易数据 |
+| **Commands** | 第三方插件调用 ID 必须硬编码 (Deterministic) | 依赖模糊搜索导致调用错误命令 |
+| **Feature** | **Upgrade Only**. 严禁删除/破坏现有功能 | 导致用户习惯被迫改变，体验降级 |
 
-### 1) 通用结构（顺序固定）
+---
 
-1.  **模块标题条**（SectionHeader component）：
-    - `<SectionHeader title="中文" subtitle="English" icon="Emoji" />`
-2.  **主卡片容器**（GlassPanel component）：
-    - `<GlassPanel> ...content... </GlassPanel>`
-3.  **主 CTA**（Button component）：
-    - `<Button variant="primary" onClick={...}>Action</Button>`
+## 🧪 回归测试清单 (Regression Checklist)
 
-### 2) 视觉语言（严格遵守）
+每次发布前必须手动核对：
 
-- **中性色**：只用 Obsidian 主题变量。
-- **交互**：所有可点元素必须有 `cursor: pointer` 和 hover 态（`Button` 组件已内置）。
+### 1. 交易中心 (Trading Hub)
+- [ ] **OpenTradeAssistant**:
+    - [ ] 是否正确识别当天的未平仓交易？
+    - [ ] 点击推荐策略（如 "Bull Breakout"）是否能填入 `setup` 字段？
+- [ ] **DailyActions**:
+    - [ ] 勾选复选框后，重启插件，勾选状态是否持久化？
+- [ ] **PlanWidget**:
+    - [ ] Risk Limit 和 Market Cycle 输入是否保存生效？
 
-## 常见坑位（快速排雷）
+### 2. 学习模块 (Course & Coach)
+- [ ] **CoachFocus**: "优先复习" 是否触发 SRS 插件？
+- [ ] **CourseSuggestion**: 课程进度条是否显示正确？
 
-- **Props Drilling 丢失**：在 `Dashboard.tsx` 加了 prop，但在 `TradingHubTab.tsx` 忘了接，导致孙组件拿不到。
-- **UI 样式错乱**：使用了原生的 `<button>` 导致样式与 Design System 不统一。
-- **推荐算法异常**：修改 `strategy-matcher` 时未考虑旧数据的兼容性（如缺失 `direction` 字段）。
-- **构建报错**：修改了 `types.ts` 但没有更新所有引用处。
-- **列表状态跳动（Jumping）**：在渲染可变列表（如 `openTrades`）时，严禁使用 index 作为 `key` 或选中态依据。必须使用稳定唯一标识（如 `file.path`），否则列表重排（如 mtime 变更）会导致选中项意外跳变。
-- **引导文案冲突**：当页面存在多个类似功能模块（如“推荐分析”与“推荐执行”）时，避免使用通用的“建议下一步”，应明确命名上下文（如“建议完善分析” vs “建议补充执行”）。
-- **数据响应性丢失**：UI 组件（如策略百分比列表）必须订阅所有影响计算的 Props（如 `setupCategory`, `patterns`），漏掉一个就会导致数据计算停滞（如死锁在 20%）。
-- **同步失效隐患 (Sync Failures)**：
-    *   **字段遗漏**：如果 UI 显示“未填写”但实际已填写，优先检查 `contracts.ts` 和 `obsidian-trade-index.ts`。若索引层未显式读取该字段，前端永远拿到 `undefined`。
-    *   **分隔符误判**：若预设值包含斜杠（如 "Set/Forget"），默认的 `normalizeStringArray` 会将其拆分为 `["Set", "Forget"]`，导致与前端预设值不匹配。必须使用自定义 Splitter（仅逗号/分号）。
+### 3. 数据中心 (Analytics)
+- [ ] **Capital Growth Chart**: 盈亏曲线是否渲染？（检查 Recharts 兼容性）
 
-## 资源
+---
 
-- `memory/system_evolution.md`：强制读取/强制写入的经验库
-- `references/checklists.md`：可复制执行的检查清单
-- `references/gotchas.md`：高频坑位与处理模式
-- `references/changelog.md`：skill 与插件版本演进记录
+## 📂 Repo 导航图谱
+
+- **根目录**: `.obsidian/plugins/al-brooks-console/`
+- **入口**: `main.ts` (插件生命周期)
+- **指挥官**: `src/views/Dashboard.tsx` (State, Props, Data Load)
+- **布局层**: `src/views/tabs/` (`TradingHubTab`, `AnalyticsTab`)
+- **UI 库**: `src/ui/components/` (Button, GlassPanel)
+- **业务组件**:
+    - 开仓/推荐: `src/views/components/trading/OpenTradeAssistant.tsx`
+    - 计划: `src/views/components/plan/PlanWidget.tsx`
+- **核心逻辑**: `src/core/` (`action/action-service.ts`, `schema-validator.ts`)
+- **测试**: `src/core/**/__tests__/` (Jest tests)
+
+---
+
+## 🧠 Memory & Evolution
+> *此部分将在每次维护后动态更新，记录系统的演进脉络*
+
+- **v2.2.2 (2026-01-17)**:
+    - **Zod Migration**: `SchemaValidator` 底层迁移至 Zod，解决手写验证维护难问题。
+    - **Test Env**: 引入 Jest + ts-jest，建立单元测试基准。
+    - **UI Std**: 全局替换原生 `<button>` 为 `<Button>` 组件。

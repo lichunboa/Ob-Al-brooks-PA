@@ -62,8 +62,14 @@
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260113_0001_实盘_ES",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260114_1106_实盘_ES",
     "//copilot",
+    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/📋 任务与规划",
+    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/📚 核心文档",
+    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/🧠 技能与方法",
+    "//Categories 分类/Categories 分类/Al brooks",
     "//Templates",
-    "//🦁 交易员控制台 (Trader Command)"
+    "//Categories 分类/Categories 分类/Al brooks/Categories 分类/Al brooks/价格行为学",
+    "//Categories 分类",
+    "//Categories 分类/Categories 分类/Al brooks/Categories 分类/Al brooks/《价格行为PPT中文笔记》"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
@@ -75,8 +81,6 @@
     "_assets",
     "_blocks"
   ],
-  "newFileLocation": "root",
-  "newFileFolderPath": "",
   "inlineBacklinks": false,
   "inlineContext": true,
   "inlineBacklinksExpanded": false,

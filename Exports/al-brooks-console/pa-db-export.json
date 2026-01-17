@@ -1,226 +1,16 @@
 {
   "meta": {
     "schemaVersion": 3,
-    "exportedAt": "2026-01-09T15:48:59.354Z",
-    "pluginVersion": "2.2.0"
+    "exportedAt": "2026-01-16T15:47:38.080Z",
+    "pluginVersion": "2.2.2"
   },
   "trades": [
     {
-      "path": "Daily/Trades/260109_0654_实盘_ES.md",
-      "name": "260109_0654_实盘_ES.md",
-      "dateIso": "2026-01-09",
-      "ticker": "ES (标普)",
-      "accountType": "Backtest",
-      "marketCycle": "交易区间 (Trading Range)",
-      "patternsObserved": [],
-      "signalBarQuality": [],
-      "timeframe": "5m",
-      "managementPlan": [],
-      "mtime": 1767932416336,
-      "tags": [
-        "PA/Trade"
-      ],
-      "rawFrontmatter": {
-        "categories": [
-          "交易日记"
-        ],
-        "tags": [
-          "PA/Trade"
-        ],
-        "date": "2026-01-09",
-        "账户类型/account_type": "回测 (Backtest)",
-        "品种/ticker": "ES (标普)",
-        "时间周期/timeframe": "5m",
-        "市场周期/market_cycle": [
-          "交易区间 (Trading Range)"
-        ],
-        "总是方向/always_in": null,
-        "日内类型/day_type": null,
-        "概率/probability": null,
-        "信心/confidence": null,
-        "管理计划/management_plan": null,
-        "方向/direction": null,
-        "设置类别/setup_category": null,
-        "观察到的形态/patterns_observed": null,
-        "信号K/signal_bar_quality": null,
-        "订单类型/order_type": null,
-        "入场/entry_price": null,
-        "止损/stop_loss": null,
-        "目标位/take_profit": null,
-        "初始风险/initial_risk": null,
-        "净利润/net_profit": null,
-        "结果/outcome": null,
-        "封面/cover": null,
-        "执行评价/execution_quality": null,
-        "策略名称/strategy_name": null
-      },
-      "tf": "5m"
-    },
-    {
-      "path": "Daily/Trades/260108_0607_实盘_ES.md",
-      "name": "260108_0607_实盘_ES.md",
-      "dateIso": "2026-01-08",
-      "ticker": "ES (标普)",
-      "accountType": "Backtest",
-      "marketCycle": "弱趋势 (Weak Trend)",
-      "patternsObserved": [],
-      "signalBarQuality": [],
-      "timeframe": "5m",
-      "managementPlan": [],
-      "mtime": 1767932416335,
-      "tags": [
-        "PA/Trade"
-      ],
-      "rawFrontmatter": {
-        "categories": [
-          "交易日记"
-        ],
-        "tags": [
-          "PA/Trade"
-        ],
-        "date": "2026-01-08",
-        "账户类型/account_type": "回测 (Backtest)",
-        "品种/ticker": "ES (标普)",
-        "时间周期/timeframe": "5m",
-        "市场周期/market_cycle": [
-          "弱趋势 (Weak Trend)"
-        ],
-        "总是方向/always_in": null,
-        "日内类型/day_type": null,
-        "概率/probability": null,
-        "信心/confidence": null,
-        "管理计划/management_plan": null,
-        "方向/direction": null,
-        "设置类别/setup_category": null,
-        "观察到的形态/patterns_observed": null,
-        "信号K/signal_bar_quality": null,
-        "订单类型/order_type": null,
-        "入场/entry_price": null,
-        "止损/stop_loss": null,
-        "目标位/take_profit": null,
-        "初始风险/initial_risk": null,
-        "净利润/net_profit": null,
-        "结果/outcome": null,
-        "封面/cover": null,
-        "执行评价/execution_quality": null,
-        "策略名称/strategy_name": null
-      },
-      "tf": "5m"
-    },
-    {
-      "path": "Daily/Trades/260104_0758_实盘_ES.md",
-      "name": "260104_0758_实盘_ES.md",
-      "dateIso": "2026-01-04",
-      "ticker": "ES (标普)",
-      "accountType": "Backtest",
-      "marketCycle": "交易区间 (Trading Range)",
-      "patternsObserved": [],
-      "signalBarQuality": [],
-      "timeframe": "5m",
-      "managementPlan": [],
-      "mtime": 1767772337344,
-      "tags": [
-        "PA/Trade"
-      ],
-      "rawFrontmatter": {
-        "categories": [
-          "交易日记"
-        ],
-        "tags": [
-          "PA/Trade"
-        ],
-        "date": "2026-01-04",
-        "账户类型/account_type": "回测 (Backtest)",
-        "品种/ticker": "ES (标普)",
-        "时间周期/timeframe": "5m",
-        "市场周期/market_cycle": [
-          "交易区间 (Trading Range)"
-        ],
-        "总是方向/always_in": null,
-        "日内类型/day_type": null,
-        "概率/probability": null,
-        "信心/confidence": null,
-        "管理计划/management_plan": null,
-        "方向/direction": null,
-        "设置类别/setup_category": null,
-        "观察到的形态/patterns_observed": null,
-        "信号K/signal_bar_quality": null,
-        "订单类型/order_type": null,
-        "入场/entry_price": null,
-        "止损/stop_loss": null,
-        "目标位/take_profit": null,
-        "初始风险/initial_risk": null,
-        "净利润/net_profit": null,
-        "结果/outcome": null,
-        "封面/cover": null,
-        "执行评价/execution_quality": null,
-        "策略名称/strategy_name": null
-      },
-      "tf": "5m"
-    },
-    {
-      "path": "Daily/Trades/251219_0036_实盘_ES.md",
-      "name": "251219_0036_实盘_ES.md",
-      "dateIso": "2025-12-26",
-      "ticker": "ES (标普)",
-      "pnl": -16.6,
-      "outcome": "loss",
-      "accountType": "Live",
-      "setupCategory": "趋势回调 (Trend Pullback)",
-      "patternsObserved": [],
-      "signalBarQuality": [],
-      "timeframe": "5m",
-      "direction": "做多 (Long)",
-      "strategyName": "高1/低1 (High 1/Low 1)",
-      "managementPlan": [],
-      "executionQuality": "🟢 完美执行 (Perfect)",
-      "cover": "[[assets/251219_0036_实盘_ES/251219_0036_实盘_ES-20251219011416792.png]]",
-      "mtime": 1767604972919,
-      "tags": [
-        "PA/Trade"
-      ],
-      "rawFrontmatter": {
-        "categories": [
-          "交易日记"
-        ],
-        "tags": [
-          "PA/Trade"
-        ],
-        "date": "2025-12-26",
-        "封面/cover": "[[assets/251219_0036_实盘_ES/251219_0036_实盘_ES-20251219011416792.png]]",
-        "品种/ticker": "ES (标普)",
-        "账户类型/account_type": "实盘 (Live)",
-        "方向/direction": "做多 (Long)",
-        "设置类别/setup_category": "趋势回调 (Trend Pullback)",
-        "净利润/net_profit": -16.6,
-        "订单类型/order_type": "突破入场 (Stop Entry)",
-        "信号K/signal_bar_quality": null,
-        "执行评价/execution_quality": "🟢 完美执行 (Perfect)",
-        "市场周期/market_cycle": null,
-        "总是方向/always_in": null,
-        "日内类型/day_type": null,
-        "概率/probability": null,
-        "信心/confidence": null,
-        "管理计划/management_plan": null,
-        "结果/outcome": "止损 (Loss)",
-        "初始风险/initial_risk": -16.6,
-        "入场/entry_price": 6811.91,
-        "止损/stop_loss": 6795.55,
-        "目标位/take_profit": 6836,
-        "时间周期/timeframe": "5m",
-        "交易方程/trader_equation": "波段 (Swing)",
-        "策略名称/strategy_name": "高1/低1 (High 1/Low 1)"
-      },
-      "error": "🟢 完美执行 (Perfect)",
-      "dir": "做多 (Long)",
-      "tf": "5m"
-    },
-    {
-      "path": "Daily/Trades/251224_0145_实盘_ES.md",
-      "name": "251224_0145_实盘_ES.md",
-      "dateIso": "2025-12-24",
-      "ticker": "ES (标普)",
-      "pnl": 8,
+      "path": "Daily/Trades/260116_1432_实盘_BTC.md",
+      "name": "260116_1432_实盘_BTC.md",
+      "dateIso": "2026-01-16",
+      "ticker": "BTC (比特币)",
+      "pnl": 5,
       "outcome": "win",
       "accountType": "Live",
       "marketCycle": "强趋势 (Strong Trend)",
@@ -229,59 +19,120 @@
         "20均线缺口 (20 EMA Gap)"
       ],
       "signalBarQuality": [
-        "连续内包 (ii / Consecutive Inside Bars)",
-        "外包夹内包 (ioi / Inside-Outside-Inside)"
+        "强阳收盘 (Strong Bull Close)"
       ],
       "timeframe": "5m",
       "direction": "做多 (Long)",
       "strategyName": "20均线缺口 (20 EMA Gap)",
-      "managementPlan": [],
+      "managementPlan": [
+        "一次性下单/不管理 (Set & Forget)"
+      ],
+      "orderType": "突破入场 (Stop Entry)",
       "executionQuality": "🟢 完美执行 (Perfect)",
-      "cover": "[[assets/251219_0036_实盘_ES/251219_0036_实盘_ES-20251219011416792.png]]",
-      "mtime": 1767611670438,
+      "cover": "![[Categories 分类/太妃价格行为/assets/太妃/L01Bslide01.jpg]]",
+      "entryPrice": 20,
+      "stopLoss": 15,
+      "takeProfit": 25,
+      "initialRisk": 16,
+      "netProfit": 5,
+      "mtime": 1768564013473,
       "tags": [
         "PA/Trade"
       ],
       "rawFrontmatter": {
+        "封面/cover": "![[Categories 分类/太妃价格行为/assets/太妃/L01Bslide01.jpg]]",
         "categories": [
           "交易日记"
         ],
         "tags": [
           "PA/Trade"
         ],
-        "date": "2025-12-24",
+        "date": "2026-01-16",
         "账户类型/account_type": "实盘 (Live)",
-        "品种/ticker": "ES (标普)",
+        "品种/ticker": "BTC (比特币)",
         "时间周期/timeframe": "5m",
-        "市场周期/market_cycle": [
-          "强趋势 (Strong Trend)"
+        "日内类型/day_type": [
+          "极速与通道 (Spike and Channel)"
         ],
-        "总是方向/always_in": null,
-        "日内类型/day_type": null,
-        "概率/probability": null,
-        "信心/confidence": null,
-        "管理计划/management_plan": null,
+        "总是方向/always_in": [
+          "中性/不确定 (Neutral)"
+        ],
+        "市场周期/market_cycle": "强趋势 (Strong Trend)",
         "方向/direction": "做多 (Long)",
         "设置类别/setup_category": "趋势回调 (Trend Pullback)",
         "观察到的形态/patterns_observed": [
           "20均线缺口 (20 EMA Gap)"
         ],
         "信号K/signal_bar_quality": [
-          "连续内包 (ii / Consecutive Inside Bars)",
-          "外包夹内包 (ioi / Inside-Outside-Inside)"
+          "强阳收盘 (Strong Bull Close)"
         ],
+        "策略名称/strategy_name": "20均线缺口 (20 EMA Gap)",
+        "管理计划/management_plan": "一次性下单/不管理 (Set & Forget)",
         "订单类型/order_type": "突破入场 (Stop Entry)",
-        "入场/entry_price": 30,
-        "止损/stop_loss": 24,
-        "目标位/take_profit": 38,
-        "初始风险/initial_risk": 6,
-        "净利润/net_profit": 8,
-        "结果/outcome": "止盈 (Win)",
-        "封面/cover": "[[assets/251219_0036_实盘_ES/251219_0036_实盘_ES-20251219011416792.png]]",
+        "入场/entry_price": "20",
+        "止损/stop_loss": "15",
+        "目标位/take_profit": "25",
+        "初始风险/initial_risk": "16",
+        "净利润/net_profit": "5",
         "执行评价/execution_quality": "🟢 完美执行 (Perfect)",
-        "策略名称/strategy_name": "20均线缺口 (20 EMA Gap)"
+        "结果/outcome": "止盈 (Win)"
       },
       "error": "🟢 完美执行 (Perfect)",
+      "dir": "做多 (Long)",
+      "tf": "5m"
+    },
+    {
+      "path": "Daily/Trades/260116_1231_实盘_ES.md",
+      "name": "260116_1231_实盘_ES.md",
+      "dateIso": "2026-01-16",
+      "ticker": "ES (标普)",
+      "accountType": "Live",
+      "marketCycle": "交易区间 (Trading Range)",
+      "patternsObserved": [],
+      "signalBarQuality": [],
+      "timeframe": "5m",
+      "direction": "做多 (Long)",
+      "managementPlan": [],
+      "mtime": 1768578311861,
+      "tags": [
+        "PA/Trade"
+      ],
+      "rawFrontmatter": {
+        "封面/cover": null,
+        "categories": [
+          "交易日记"
+        ],
+        "tags": [
+          "PA/Trade"
+        ],
+        "date": "2026-01-16",
+        "账户类型/account_type": "实盘 (Live)",
+        "品种/ticker": "ES (标普)",
+        "时间周期/timeframe": "5m",
+        "日内类型/day_type": [
+          "极速与通道 (Spike and Channel)"
+        ],
+        "总是方向/always_in": [
+          "中性/不确定 (Neutral)"
+        ],
+        "市场周期/market_cycle": [
+          "交易区间 (Trading Range)"
+        ],
+        "方向/direction": "做多 (Long)",
+        "设置类别/setup_category": null,
+        "观察到的形态/patterns_observed": null,
+        "信号K/signal_bar_quality": null,
+        "策略名称/strategy_name": null,
+        "管理计划/management_plan": null,
+        "订单类型/order_type": null,
+        "入场/entry_price": null,
+        "止损/stop_loss": null,
+        "目标位/take_profit": null,
+        "初始风险/initial_risk": null,
+        "净利润/net_profit": null,
+        "执行评价/execution_quality": null,
+        "结果/outcome": null
+      },
       "dir": "做多 (Long)",
       "tf": "5m"
     },
@@ -303,9 +154,15 @@
       "direction": "做多 (Long)",
       "strategyName": "收线追进 (Buy/Sell NOW)",
       "managementPlan": [],
+      "orderType": "突破入场 (Stop Entry)",
       "executionQuality": "🔴 追涨杀跌 (FOMO)",
       "cover": "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]",
-      "mtime": 1767772337343,
+      "entryPrice": 12,
+      "stopLoss": 10,
+      "takeProfit": 16,
+      "initialRisk": 10,
+      "netProfit": 20,
+      "mtime": 1768550314396,
       "tags": [
         "PA/Trade"
       ],
@@ -329,7 +186,6 @@
           "强阳收盘 (Strong Bull Close)"
         ],
         "概率/probability": null,
-        "信心/confidence": null,
         "执行评价/execution_quality": "🔴 追涨杀跌 (FOMO)",
         "封面/cover": "[[assets/SPX 2025.9/SPX 2025.9-20251216114216242.png]]",
         "banner": "Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png",
@@ -351,22 +207,26 @@
   ],
   "statsByAccountType": {
     "All": {
-      "countTotal": 6,
-      "countCompleted": 3,
+      "countTotal": 3,
+      "countCompleted": 2,
       "countWins": 2,
-      "countLosses": 1,
+      "countLosses": 0,
       "countScratch": 0,
-      "winRatePct": 67,
-      "netProfit": 11.399999999999999
+      "winRatePct": 100,
+      "netMoney": 25,
+      "netR": 2.3125,
+      "netProfit": 25
     },
     "Live": {
       "countTotal": 2,
-      "countCompleted": 2,
+      "countCompleted": 1,
       "countWins": 1,
-      "countLosses": 1,
+      "countLosses": 0,
       "countScratch": 0,
-      "winRatePct": 50,
-      "netProfit": -8.600000000000001
+      "winRatePct": 100,
+      "netMoney": 5,
+      "netR": 0.3125,
+      "netProfit": 5
     },
     "Demo": {
       "countTotal": 1,
@@ -375,15 +235,19 @@
       "countLosses": 0,
       "countScratch": 0,
       "winRatePct": 100,
+      "netMoney": 20,
+      "netR": 2,
       "netProfit": 20
     },
     "Backtest": {
-      "countTotal": 3,
+      "countTotal": 0,
       "countCompleted": 0,
       "countWins": 0,
       "countLosses": 0,
       "countScratch": 0,
       "winRatePct": 0,
+      "netMoney": 0,
+      "netR": 0,
       "netProfit": 0
     }
   },
@@ -411,6 +275,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_20均线缺口.md",
         "name": "策略卡片_20均线缺口.md",
         "canonicalName": "20均线缺口 (20 EMA Gap)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "强趋势 (Strong Trend)",
           "突破模式 (Breakout Mode)"
@@ -443,6 +311,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_第一均线缺口.md",
         "name": "策略卡片_第一均线缺口.md",
         "canonicalName": "第一均线缺口 (First MA Gap)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "强趋势 (Strong Trend)"
         ],
@@ -481,6 +353,10 @@
         "name": "策略卡片_逆1顺1.md",
         "canonicalName": "高1/低1 (High 1/Low 1)",
         "source": "Brooks Playbook（原太妃价格行为） L13B",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "强趋势 (Strong Trend)",
           "弱趋势 (Weak Trend)"
@@ -518,6 +394,10 @@
         "name": "策略卡片_极速与通道.md",
         "canonicalName": "极速与通道 (Spike and Channel)",
         "source": "Brooks Playbook（原太妃价格行为） L16B",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "弱趋势 (Weak Trend)"
         ],
@@ -553,6 +433,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_急赴磁体.md",
         "name": "策略卡片_急赴磁体.md",
         "canonicalName": "急赴磁体 (Rush to Magnet)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "交易区间 (Trading Range)",
           "突破模式 (Breakout Mode)"
@@ -590,6 +474,10 @@
         "name": "策略卡片_看衰突破.md",
         "canonicalName": "看衰突破 (Fade Breakout)",
         "source": "Brooks Playbook（原太妃价格行为） L15A",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "交易区间 (Trading Range)"
         ],
@@ -627,6 +515,10 @@
         "name": "策略卡片_末端旗形.md",
         "canonicalName": "末端旗形 (Final Flag)",
         "source": "Brooks Playbook（原太妃价格行为） L16B",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "弱趋势 (Weak Trend)"
         ],
@@ -662,6 +554,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_区间突破回调.md",
         "name": "策略卡片_区间突破回调.md",
         "canonicalName": "区间突破回调 (Breakout Pullback)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "强趋势 (Strong Trend)",
           "突破模式 (Breakout Mode)"
@@ -699,6 +595,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_收线追进.md",
         "name": "策略卡片_收线追进.md",
         "canonicalName": "收线追进 (Buy/Sell NOW)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "强趋势 (Strong Trend)",
           "突破模式 (Breakout Mode)"
@@ -735,6 +635,10 @@
         "path": "策略仓库 (Strategy Repository)/太妃方案/策略卡片_双重顶底.md",
         "name": "策略卡片_双重顶底.md",
         "canonicalName": "双顶双底 (Double Top/Bottom)",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "交易区间 (Trading Range)",
           "弱趋势 (Weak Trend)"
@@ -774,6 +678,10 @@
         "name": "策略卡片_楔形顶底.md",
         "canonicalName": "楔形顶底 (Wedge Top/Bottom)",
         "source": "Brooks Playbook（原太妃价格行为） L14B",
+        "direction": [
+          "做多 (Long)",
+          "做空 (Short)"
+        ],
         "marketCycles": [
           "突破模式 (Breakout Mode)",
           "弱趋势 (Weak Trend)"

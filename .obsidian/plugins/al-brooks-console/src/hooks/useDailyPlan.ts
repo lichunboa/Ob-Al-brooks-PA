@@ -50,16 +50,11 @@ export function useDailyPlan(app: App, todayContext?: TodayContext): UseDailyPla
             const dailyPlan: DailyPlan = {
                 date: fm.date || file.basename, // fallback
                 focusSymbols: fm.plan_focus_symbols || [],
-                focusTimeframes: fm["时间周期/timeframe"] || fm.plan_focus_timeframes || [],
-                marketCycle: fm["市场周期/market_cycle"] || fm.marketCycle,
-                dayType: fm["日内类型/day_type"] || fm.dayType,
-                alwaysIn: fm["总是方向/always_in"] || fm.alwaysIn,
                 strategies: fm.plan_strategies || [],
                 riskLimit: fm.plan_risk_limit ?? 3,
                 maxTrades: fm.plan_max_trades ?? 5,
                 notes: fm.plan_notes || "",
                 checklist: checklist.length > 0 ? checklist : (fm.plan_checklist || [])
-                // Fallback to frontmatter if content is empty (e.g. first create)
             };
 
             setPlan(dailyPlan);
@@ -106,13 +101,19 @@ export function useDailyPlan(app: App, todayContext?: TodayContext): UseDailyPla
             fm.plan_max_trades = newPlan.maxTrades;
             fm.plan_notes = newPlan.notes;
 
-            // Should we update other fields? 
-            // marketCycle, dayType etc are shared with Trade Note template logic?
-            // The template uses specific keys:
-            if (newPlan.marketCycle) fm["市场周期/market_cycle"] = newPlan.marketCycle;
-            if (newPlan.focusTimeframes) fm["时间周期/timeframe"] = newPlan.focusTimeframes; // Array?
-            if (newPlan.dayType) fm["日内类型/day_type"] = newPlan.dayType;
-            if (newPlan.alwaysIn) fm["总是方向/always_in"] = newPlan.alwaysIn;
+            // Explicitly remove deprecated Plan attributes if they exist
+            delete fm.plan_focus_timeframes;
+            delete fm.focusTimeframes;
+            delete fm["时间周期/timeframe"];
+
+            delete fm.marketCycle;
+            delete fm["市场周期/market_cycle"];
+
+            delete fm.dayType;
+            delete fm["日内类型/day_type"];
+
+            delete fm.alwaysIn;
+            delete fm["总是方向/always_in"];
 
             // Update legacy checklist frontmatter just in case? 
             // Or leave it drifting? 

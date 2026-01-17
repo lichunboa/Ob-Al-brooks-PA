@@ -4,10 +4,11 @@ import { GlassPanel } from "../../ui/components/GlassPanel";
 import { SectionHeader } from "../../ui/components/SectionHeader";
 import { TodayKpiCard } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
+
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
 import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
-import { PlanWidget } from "../components/plan/PlanWidget";
-import { useDailyPlan } from "../../hooks/useDailyPlan";
+
+
 import { useConsoleContext } from "../../context/ConsoleContext";
 import { calculateTodayKpi } from "../../utils/data-calculation-utils";
 import { findOpenTrade } from "../../utils/trade-utils";
@@ -35,7 +36,7 @@ export const TradingHubTab: React.FC = () => {
     integrations,
   } = useConsoleContext();
 
-  const { plan, savePlan, toggleChecklistItem } = useDailyPlan(app, todayContext);
+  /* Removed PlanWidget and useDailyPlan */
 
   const todayIso = React.useMemo(() => moment().format("YYYY-MM-DD"), []);
 
@@ -218,23 +219,7 @@ export const TradingHubTab: React.FC = () => {
       )}
 
       <GlassPanel style={{ marginBottom: "16px" }}>
-        <PlanWidget
-          plan={plan || undefined}
-          onGoToPlan={() => todayContext?.openTodayNote && todayContext.openTodayNote()}
-          onSavePlan={savePlan}
-          onToggleChecklistItem={toggleChecklistItem}
-          onUpdateRiskLimit={async (limit) => {
-            if (plan) {
-              await savePlan({ ...plan, riskLimit: limit });
-            }
-          }}
-          onOpenTodayNote={() => todayContext?.openTodayNote && todayContext.openTodayNote()}
-          enumPresets={enumPresets}
-          strategyIndex={strategyIndex}
-          app={app}
-          targetTrade={null}
-        />
-        <div style={{ height: "16px", borderBottom: "1px solid var(--background-modifier-border)", marginBottom: "16px" }}></div>
+
 
         <TodayKpiCard todayKpi={todayKpi} currencyMode={currencyMode || "USD"} />
 
@@ -273,6 +258,7 @@ export const TradingHubTab: React.FC = () => {
       </GlassPanel>
 
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
+
     </>
   );
 };

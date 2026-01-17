@@ -1,21 +1,7 @@
 import * as React from "react";
-import { DailyPlan, PlanChecklistItem } from "../../../types/plan";
+import { DailyPlan } from "../../../types/plan";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
-
-import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
-import { StrategyIndex } from "../../../core/strategy-index";
-import type { App } from "obsidian";
-import type { TradeRecord } from "../../../core/contracts";
 import { Button } from "../../../ui/components/Button";
-
-const defaultMarketCycles = [
-    "Bull Trend",
-    "Bull Channel",
-    "Trading Range",
-    "Bear Channel",
-    "Bear Trend",
-    "Breakout Mode"
-];
 
 interface PlanWidgetProps {
     plan?: DailyPlan;
@@ -24,23 +10,14 @@ interface PlanWidgetProps {
     onToggleChecklistItem?: (index: number) => Promise<void>;
     onUpdateRiskLimit?: (riskLimit: number) => Promise<void>;
     onOpenTodayNote?: () => void;
-    enumPresets?: any;
-    strategyIndex?: StrategyIndex;
-    app?: App;
-    targetTrade?: TradeRecord | null;
 }
 
 export const PlanWidget: React.FC<PlanWidgetProps> = ({
     plan,
-    onGoToPlan,
     onSavePlan,
     onToggleChecklistItem,
     onUpdateRiskLimit,
-    onOpenTodayNote,
-    enumPresets,
-    strategyIndex,
-    app,
-    targetTrade
+    onOpenTodayNote
 }) => {
     // --- Read Mode State (Inline Actions) ---
     const [isEditingRisk, setIsEditingRisk] = React.useState(false);
@@ -83,36 +60,7 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
         }
     };
 
-    // Quick Add for Read Mode (Strategies)
-    const handleQuickAddStrategy = async (strategyName: string) => {
-        if (!plan) return;
-        const currentStrategies = plan.strategies || [];
-        if (currentStrategies.includes(strategyName)) return;
 
-        const newStrategies = [...currentStrategies, strategyName];
-        const newPlan = { ...plan, strategies: newStrategies };
-        await onSavePlan(newPlan);
-    };
-
-    // Calculate recommendations based on plan's market cycle
-    const activeCycle = plan?.marketCycle;
-
-    // Recommendations State
-    const [recommendations, setRecommendations] = React.useState<any[]>([]);
-
-    // Update recommendations when Market Cycle changes
-    React.useEffect(() => {
-        if (!activeCycle || !strategyIndex) {
-            setRecommendations([]);
-            return;
-        }
-        const results = matchStrategiesV2(strategyIndex, {
-            marketCycle: activeCycle,
-            includeHistoricalPerf: true,
-            limit: 5
-        }, []);
-        setRecommendations(results);
-    }, [activeCycle, strategyIndex]);
 
     return (
         <GlassPanel className="pa-plan-widget" style={{ padding: "12px 16px" }}>
@@ -216,18 +164,8 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                                     {Array.isArray(plan.focusSymbols) ? plan.focusSymbols.join(", ") : plan.focusSymbols}
                                 </div>
                             )}
-                            {plan.marketCycle && (
-                                <div>
-                                    <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Cycle:</span>{" "}
-                                    {plan.marketCycle}
-                                </div>
-                            )}
-                            {plan.focusTimeframes && plan.focusTimeframes.length > 0 && (
-                                <div>
-                                    <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>TF:</span>{" "}
-                                    {Array.isArray(plan.focusTimeframes) ? plan.focusTimeframes.join(", ") : plan.focusTimeframes}
-                                </div>
-                            )}
+
+
                             <div>
                                 <span style={{ fontWeight: "bold", color: "var(--text-normal)" }}>Risk:</span>{" "}
                                 {isEditingRisk ? (
@@ -270,47 +208,6 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({
                                 )}
                             </div>
                         </div>
-
-                        {/* Strategies Display & Quick Actions */}
-                        {/* Separator if needed, but existing layout is tight */}
-
-                        {/* Inline Strategy Quick Add (Only if Market Cycle is set) */}
-                        {recommendations.length > 0 && (
-                            <div style={{
-                                marginBottom: "8px",
-                                padding: "6px 8px",
-                                background: "var(--background-secondary)",
-                                borderRadius: "6px",
-                                border: "1px solid var(--background-modifier-border)"
-                            }}>
-                                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-accent)", marginBottom: "4px" }}>
-                                    💡 Suggestions ({plan.marketCycle}):
-                                </div>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                                    {recommendations.map(rec => {
-                                        const isSelected = plan.strategies?.includes(rec.card.canonicalName);
-                                        if (isSelected) return null;
-
-                                        return (
-                                            <Button
-                                                key={`read-${rec.card.path}`}
-                                                onClick={() => handleQuickAddStrategy(rec.card.canonicalName)}
-                                                variant="small"
-                                                style={{
-                                                    padding: "2px 6px",
-                                                    fontSize: "10px",
-                                                    borderStyle: "dashed",
-                                                    opacity: 0.8
-                                                }}
-                                                title="添加策略到今日计划"
-                                            >
-                                                + {rec.card.canonicalName}
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
 
                         {plan.strategies && plan.strategies.length > 0 && (
                             <div style={{ marginBottom: "8px" }}>

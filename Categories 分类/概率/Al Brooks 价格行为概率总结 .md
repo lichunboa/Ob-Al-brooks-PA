@@ -1,8 +1,8 @@
 ---
 tags:
-	- flashcards
+  - flashcards
 categories:
-	- 概率
+  - 概率
 ---
 
 | **概率 (Probability)** | **英文描述 (Description)**                                                                       | **中文翻译及解释**                                                                          |

@@ -26,7 +26,7 @@ import { DataStatisticsPanel } from "../components/manage/DataStatisticsPanel";
 import { ExportPanel } from "../components/manage/ExportPanel";
 import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
-import { BatchEditPanel } from "../components/batch/BatchEditPanel";
+
 import { InspectorPanel } from "../components/manage/InspectorPanel";
 import { V5_COLORS } from "../../ui/tokens";
 import { SPACE } from "../../ui/styles/dashboardPrimitives";
@@ -278,13 +278,7 @@ export const ManageTab: React.FC = () => {
 
             <RawDataPanel trades={trades} openFile={openFile} />
 
-            <div style={{ marginBottom: "24px" }}>
-                <BatchEditPanel
-                    trades={trades}
-                    onBatchUpdate={handleBatchUpdateTrades}
-                    openFile={openFile}
-                />
-            </div>
+
 
             {/* [Merged]: DoctorPanel functionality moved into HealthStatusPanel */}
 
