@@ -35,6 +35,11 @@
   - 表头翻译不完整
   - 参考：`services/telegram-service/src/cards/i18n.py`
 
+### 数据面板可用性
+- [ ] **行情情绪/涨跌榜缓存为空**  
+  - 原因：`telegram-service/src/bot/app.py` 硬编码 `BINANCE_API_DISABLED=True`，跳过 Binance 拉取，`ticker_24hr_data` / `funding_rate_data` 始终为空  
+  - 方向：决定是否恢复外部拉取或改用 TimescaleDB/SQLite 本地数据源；否则保持禁用仅会有告警
+
 ### 数据架构优化
 - [ ] **SQLite 数据迁移到统一 PG 库**（重要但不紧急）
   - 当前：`libs/database/services/telegram-service/market_data.db`
@@ -102,6 +107,9 @@
 ### 配置管理
 - [ ] 端口统一（5433 vs 5434 混用问题）
 - [ ] 环境变量校验（启动时检查必填项）
+- [ ] PG 实时信号服务导入失败告警  
+  - 现象：`signals.pg_engine` 导入失败，PG 实时信号未启动  
+  - 方向：调整 telegram-service 的导入路径或在 signal-service 侧提供可导入入口，并确保 psycopg/PG 配置就绪
 
 ---
 
