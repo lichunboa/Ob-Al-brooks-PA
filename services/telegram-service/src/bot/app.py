@@ -373,16 +373,19 @@ def _is_command_allowed(update) -> bool:
     if chat_type not in ("group", "supergroup"):
         return False
 
-    if not _GROUP_WHITELIST or chat.id not in _GROUP_WHITELIST:
-        return False
-
-    if getattr(update, "callback_query", None):
+    # ===== 群聊放宽策略 =====
+    # 只要是显式命令（/、! 前缀或 bot_command 实体）或回调查询，一律放行，便于群内直接使用
+    text = (message.text or message.caption or "")
+    has_command_prefix = bool(text) and text.lstrip().startswith(_GROUP_ALLOWED_PREFIXES)
+    has_bot_command_entity = any(
+        getattr(ent, "type", "") == "bot_command" for ent in (getattr(message, "entities", None) or [])
+    )
+    is_callback = getattr(update, "callback_query", None) is not None
+    if has_command_prefix or has_bot_command_entity or is_callback:
         return True
 
-    text = (message.text or message.caption or "")
-    if not text:
-        return False
-    if not text.lstrip().startswith(_GROUP_ALLOWED_PREFIXES):
+    # 其他非命令消息仍按原有白名单+@ 提及约束
+    if not _GROUP_WHITELIST or chat.id not in _GROUP_WHITELIST:
         return False
     if _GROUP_REQUIRE_MENTION and not _message_mentions_bot(message):
         return False
@@ -5341,9 +5344,24 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
     if not update or not update.message or not hasattr(update.message, 'text') or not update.message.text:
         return
 
-    # 全局权限拦截
+    # 全局权限拦截（群聊：允许“已知键盘文本”和 AI 触发词，即使未在白名单）
     if not bypass_checks and not _is_command_allowed(update):
-        return
+        if getattr(update.message.chat, "type", "") in ("group", "supergroup"):
+            text = update.message.text.strip()
+            # 与下方 button_mapping 共享的快捷键文本（无需 admin/白名单）
+            known_texts = {
+                "🐋 持仓量排行", "💱 资金费率排行", "📈 成交量排行", "💥 爆仓排行",
+                "🎭 市场情绪", "📡 行情总览", "📈 市场总览", "💧 资金流向排行",
+                "🧊 市场深度排行", "📊 数据面板", "🚨 信号", "🔔 信号",
+                "🤖 AI分析", "🔍 币种查询", "📈 可视化", "📈 Charts",
+                "🏠 主菜单", "ℹ️ 帮助", "🌐 语言", "🌐 Language",
+            }
+            # 允许形如 "BTC@" 的 AI 触发词
+            is_ai_trigger = text.endswith("@") and 2 <= len(text) <= 12
+            if text not in known_texts and not is_ai_trigger:
+                return
+        else:
+            return
 
     try:
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
