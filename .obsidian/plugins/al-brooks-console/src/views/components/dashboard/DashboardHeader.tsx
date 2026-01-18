@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Button } from "../../../ui/components/Button";
-import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { Notice } from "obsidian";
 import type { IntegrationCapability } from "../../../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../../../integrations/PluginIntegrationRegistry";
@@ -34,124 +33,151 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
     const TRADE_NOTE_TEMPLATE_PATH = "Templates/单笔交易模版 (Trade Note).md";
 
+    // 紧凑按钮样式
+    const miniButtonStyle: React.CSSProperties = {
+        padding: "4px 10px",
+        fontSize: "0.8em",
+        borderRadius: "4px",
+        border: "1px solid var(--background-modifier-border)",
+        background: "var(--background-primary)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+    };
+
     return (
-        <div className="pa-dashboard-header">
-            <div className="pa-dashboard-title">
-                🦁 交易员控制台
-                <span className="pa-dashboard-meta">（Dashboard）</span>
-                <span className="pa-dashboard-meta">v{version}</span>
-                <span className="pa-dashboard-meta">{statusText}</span>
+        <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            flexWrap: "wrap",
+        }}>
+            {/* 左侧：标题 + 状态 */}
+            <div style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "8px",
+            }}>
+                <span style={{ fontSize: "1em", fontWeight: 700 }}>
+                    🦁 控制台
+                </span>
+                <span style={{ fontSize: "0.75em", color: "var(--text-faint)" }}>
+                    v{version}
+                </span>
+                <span style={{ fontSize: "0.75em", color: "var(--text-muted)" }}>
+                    {statusText}
+                </span>
             </div>
-            <div className="pa-dashboard-actions">
-                {/* Currency Toggle */}
-                <div style={{ display: 'flex', background: 'var(--background-modifier-form-field)', borderRadius: '6px', padding: '2px' }}>
-                    <Button
-                        onClick={() => setCurrencyMode('USD')}
-                        variant="small"
-                        style={{
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: currencyMode === 'USD' ? 'var(--interactive-accent)' : 'transparent',
-                            color: currencyMode === 'USD' ? 'var(--text-on-accent)' : 'var(--text-muted)',
-                            fontSize: '12px',
-                            fontWeight: 500
-                        }}
-                    >
-                        USD
-                    </Button>
-                    <Button
-                        onClick={() => setCurrencyMode('CNY')}
-                        variant="small"
-                        style={{
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: currencyMode === 'CNY' ? 'var(--interactive-accent)' : 'transparent',
-                            color: currencyMode === 'CNY' ? 'var(--text-on-accent)' : 'var(--text-muted)',
-                            fontSize: '12px',
-                            fontWeight: 500
-                        }}
-                    >
-                        CNY
-                    </Button>
+
+            {/* 右侧：操作按钮 */}
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+            }}>
+                {/* 货币切换 - 更紧凑 */}
+                <div style={{
+                    display: "flex",
+                    background: "var(--background-modifier-form-field)",
+                    borderRadius: "4px",
+                    padding: "1px",
+                }}>
+                    {(['USD', 'CNY'] as const).map(mode => (
+                        <div
+                            key={mode}
+                            onClick={() => setCurrencyMode(mode)}
+                            style={{
+                                padding: "2px 8px",
+                                fontSize: "0.75em",
+                                fontWeight: 600,
+                                borderRadius: "3px",
+                                cursor: "pointer",
+                                background: currencyMode === mode ? "var(--interactive-accent)" : "transparent",
+                                color: currencyMode === mode ? "var(--text-on-accent)" : "var(--text-muted)",
+                                transition: "all 0.15s ease",
+                            }}
+                        >
+                            {mode}
+                        </div>
+                    ))}
                 </div>
-                <InteractiveButton
-                    interaction="lift"
+
+                {/* 新建交易 */}
+                <div
                     onClick={() => {
-                        // 优先调用 QuickAdd 命令（会自动填写日期等）
                         if (runCommand) {
-                            // QuickAdd 命令 ID 可能是 UUID 格式或名称格式
                             const quickAddCommands = [
-                                "quickadd:choice:4fe2b2a9-956f-4d21-a597-d1f86878cdc3", // UUID 格式
-                                "quickadd:choice:New Live Trade", // 名称格式
-                                "quickadd:runQuickAdd" // 打开 QuickAdd 菜单
+                                "quickadd:choice:4fe2b2a9-956f-4d21-a597-d1f86878cdc3",
+                                "quickadd:choice:New Live Trade",
+                                "quickadd:runQuickAdd"
                             ];
-
                             for (const cmd of quickAddCommands) {
-                                if (runCommand(cmd)) {
-                                    console.log("[Dashboard] 成功调用 QuickAdd:", cmd);
-                                    return;
-                                }
+                                if (runCommand(cmd)) return;
                             }
-                            console.warn("[Dashboard] QuickAdd 命令调用失败，回退到打开模版");
-                        } else {
-                            console.warn("[Dashboard] runCommand 未定义");
                         }
-
-                        // 回退：打开模版文件
                         openFile(TRADE_NOTE_TEMPLATE_PATH);
                     }}
-                    title="新建交易笔记（QuickAdd 自动填充日期）"
+                    style={miniButtonStyle}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.background = "var(--interactive-accent)";
+                        e.currentTarget.style.color = "var(--text-on-accent)";
+                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.background = "var(--background-primary)";
+                        e.currentTarget.style.color = "var(--text-normal)";
+                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                    }}
+                    title="新建交易笔记"
                 >
-                    新建交易
-                </InteractiveButton>
+                    <span>➕</span>
+                    <span>新交易</span>
+                </div>
 
-                {integrations ? (
-                    <>
-                        <InteractiveButton
-                            interaction="lift"
-                            onClick={() => {
-                                if (runCommand) {
-                                    const app = (window as any).app;
-                                    const available = app.commands.listCommands();
+                {/* 复习卡片 */}
+                {integrations && (
+                    <div
+                        onClick={() => {
+                            if (runCommand) {
+                                const app = (window as any).app;
+                                const available = app.commands.listCommands();
 
-                                    // 1. Try standard command
-                                    if (runCommand("obsidian-spaced-repetition:srs-review-flashcards")) {
-                                        return;
-                                    }
-
-                                    // 2. Search for commands
-                                    const srsCmds = available.filter((c: any) =>
-                                        c.id.includes("obsidian-spaced-repetition") &&
-                                        (c.id.includes("review-flashcards") || c.id.includes("review-all"))
-                                    );
-
-                                    console.log("[Dashboard] Found SRS Commands:", srsCmds.map((c: any) => c.id));
-
-                                    if (srsCmds.length > 0) {
-                                        const best = srsCmds[0].id;
-                                        new Notice(`调用: ${srsCmds[0].name}`);
-                                        runCommand(best);
-                                    } else {
-                                        new Notice("❌ 未找到 Spaced Repetition 插件命令！\n请确保插件已启用。");
-                                        console.warn("Available commands containing 'review':", available.filter((c: any) => c.id.includes("review")));
-                                    }
+                                if (runCommand("obsidian-spaced-repetition:srs-review-flashcards")) {
+                                    return;
                                 }
-                            }}
-                            title="Review Flashcards (Spaced Repetition)"
-                        >
-                            🗂️ 复习卡片
-                        </InteractiveButton>
-                    </>
-                ) : (
-                    <span
-                        style={{
-                            fontSize: "0.8em",
-                            color: "var(--text-muted)",
-                            marginLeft: "8px",
+
+                                const srsCmds = available.filter((c: any) =>
+                                    c.id.includes("obsidian-spaced-repetition") &&
+                                    (c.id.includes("review-flashcards") || c.id.includes("review-all"))
+                                );
+
+                                if (srsCmds.length > 0) {
+                                    new Notice(`调用: ${srsCmds[0].name}`);
+                                    runCommand(srsCmds[0].id);
+                                } else {
+                                    new Notice("❌ 未找到 Spaced Repetition 插件命令");
+                                }
+                            }
                         }}
+                        style={miniButtonStyle}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.background = "var(--interactive-accent)";
+                            e.currentTarget.style.color = "var(--text-on-accent)";
+                            e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.background = "var(--background-primary)";
+                            e.currentTarget.style.color = "var(--text-normal)";
+                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                        }}
+                        title="复习卡片"
                     >
-                        (Integrations loading...)
-                    </span>
+                        <span>🗂️</span>
+                        <span>复习</span>
+                    </div>
                 )}
             </div>
         </div>
