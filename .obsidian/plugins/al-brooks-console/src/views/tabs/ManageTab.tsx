@@ -24,7 +24,6 @@ import { HealthStatusPanel } from "../components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "../components/manage/SchemaIssuesPanel";
 import { DataStatisticsPanel } from "../components/manage/DataStatisticsPanel";
 import { ExportPanel } from "../components/manage/ExportPanel";
-import { PropertyManager } from "../components/manager/PropertyManager";
 import { RawDataPanel } from "../components/manage/RawDataPanel";
 
 import { InspectorPanel } from "../components/manage/InspectorPanel";
@@ -371,57 +370,7 @@ export const ManageTab: React.FC = () => {
                 />
             </div>
 
-            <PropertyManager
-                // Data
-                schemaIssues={schemaIssues}
-                paTagSnapshot={paTagSnapshot}
-                trades={trades}
-                strategyIndex={strategyIndex}
-                enumPresets={enumPresets}
-                schemaScanNote={schemaScanNote}
-                inspectorIssues={inspectorIssues}
-                fixPlanText={null} // derived elsewhere?
 
-                // State
-                managerBusy={managerBusy}
-                managerSearch={managerSearch}
-                managerTradeInventory={managerTradeInventory}
-                managerStrategyInventory={managerStrategyInventory}
-                managerScope={managerScope}
-                managerInspectorKey={managerInspectorKey}
-                managerInspectorTab={managerInspectorTab}
-                managerInspectorFileFilter={managerInspectorFileFilter}
-                showFixPlan={showFixPlan}
-
-                // Setters
-                setManagerBusy={setManagerBusy}
-                setManagerSearch={setManagerSearch}
-                setManagerScope={setManagerScope}
-                setManagerInspectorKey={setManagerInspectorKey}
-                setManagerInspectorTab={setManagerInspectorTab}
-                setManagerInspectorFileFilter={setManagerInspectorFileFilter}
-                setShowFixPlan={handleSetShowFixPlan}
-
-                // Methods
-                scanManagerInventory={scanManagerInventory}
-                runManagerPlan={runManagerPlan}
-                buildRenameKeyPlan={buildRenameKeyPlan}
-                buildDeleteKeyPlan={buildDeleteKeyPlan}
-                buildAppendValPlan={buildAppendValPlan}
-                buildInjectPropPlan={buildInjectPropPlan}
-                buildUpdateValPlan={buildUpdateValPlan}
-                buildDeleteValPlan={buildDeleteValPlan}
-                selectManagerTradeFiles={selectManagerTradeFiles}
-                selectManagerStrategyFiles={selectManagerStrategyFiles}
-
-                // Helpers
-                openFile={openFile}
-                openGlobalSearch={openGlobalSearch}
-                promptText={promptText}
-                confirmDialog={confirmDialog}
-                showNotice={noop} // Todo: import Notice?
-                runCommand={runCommand}
-            />
 
             {schemaIssues.length > 0 && (
                 <div style={{ marginBottom: "24px" }}>
