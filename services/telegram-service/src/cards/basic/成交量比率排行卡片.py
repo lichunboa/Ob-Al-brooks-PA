@@ -20,8 +20,7 @@ from cards.i18n import (
     translate_value,
     format_sort_field,
 )
-
-from cards.base import RankingCard
+from cards.base import RankingCard, format_number
 
 
 class 成交量比率排行卡片(RankingCard):
@@ -284,7 +283,7 @@ class 成交量比率排行卡片(RankingCard):
             for col_id, _, _ in active_special:
                 val = item.get(col_id)
                 if isinstance(val, (int, float)):
-                    row.append(f"{val:.2f}")
+                    row.append(format_number(val, 2))
                 else:
                     translated = translate_value(val, lang=lang)
                     row.append(str(translated) if translated not in (None, "") else "-")
@@ -296,9 +295,9 @@ class 成交量比率排行卡片(RankingCard):
                 elif col_id == "quote_volume":
                     row.append(self._format_volume(val))
                 elif col_id == "price":
-                    row.append(f"{val:.4f}" if val else "-")
+                    row.append(format_number(val, 4) if val else "-")
                 elif isinstance(val, (int, float)):
-                    row.append(f"{val:.2f}")
+                    row.append(format_number(val, 2))
                 else:
                     row.append(str(val) if val not in (None, "") else "-")
             rows.append(row)
