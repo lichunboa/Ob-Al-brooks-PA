@@ -87,11 +87,7 @@ export const TradingHubTab: React.FC = () => {
   const [activeMetadata, setActiveMetadata] = React.useState<{ cycle?: string; direction?: string; setup?: string } | null>(null);
 
   React.useEffect(() => {
-    const updateMetadata = () => {
-      const file = app.workspace.getActiveFile();
-      // If no file is active (e.g. clicking sidebar), do nothing to preserve state.
-      // If dashboard is active, app.workspace.getActiveFile() might be null or return the view?
-      // Actually, for Dashboard view, getActiveFile usually returns null.
+    const updateMetadataFromFile = (file: any) => {
       if (!file) return;
 
       const cache = app.metadataCache.getFileCache(file);
@@ -101,7 +97,7 @@ export const TradingHubTab: React.FC = () => {
 
       // Only update if it *looks* like a trade note (has specific fields)
       if (fm.market_cycle || fm.marketCycle || fm.direction || fm.setup || fm.setup_category) {
-        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}`);
+        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}, cycle: ${fm.market_cycle || fm.marketCycle}`);
         setActiveMetadata({
           cycle: fm.market_cycle || fm.marketCycle,
           direction: fm.direction,
@@ -109,22 +105,28 @@ export const TradingHubTab: React.FC = () => {
           setup: fm.setup || fm.setup_category || fm.setupCategory
         });
       }
-      // If it's NOT a trade note (e.g. a settings file), we *might* want to clear it?
-      // But for "Smart Prediction", sticky context is better than clearing.
     };
 
-    updateMetadata(); // Initial read
+    const updateFromActiveFile = () => {
+      const file = app.workspace.getActiveFile();
+      if (file) updateMetadataFromFile(file);
+    };
+
+    updateFromActiveFile(); // Initial read
 
     // Listen for file open and metadata changes
-    // We also listen to 'active-leaf-change' to catch switching between split panes
-    const eventRef = app.workspace.on('file-open', updateMetadata);
-    const leafRef = app.workspace.on('active-leaf-change', updateMetadata);
-    const cacheRef = app.metadataCache.on('changed', (file: any) => {
-      // If the changed file is the one we are currently tracking, updating is safe.
-      // We can just try to update from active file.
-      // Or if the *modified* file is the one we last saw?
-      // Simplest: just run the update check.
-      updateMetadata();
+    const eventRef = app.workspace.on('file-open', updateFromActiveFile);
+    const leafRef = app.workspace.on('active-leaf-change', updateFromActiveFile);
+
+    // 关键修复：当元数据变化时，直接使用变化的文件
+    const cacheRef = app.metadataCache.on('changed', (changedFile: any) => {
+      const activeFile = app.workspace.getActiveFile();
+      // 如果变化的文件就是当前活动文件，立即更新
+      if (activeFile && changedFile && changedFile.path === activeFile.path) {
+        console.log(`[TradingHub] Metadata changed for active file: ${changedFile.basename}`);
+        // 延迟一点让缓存完全更新
+        setTimeout(() => updateMetadataFromFile(changedFile), 50);
+      }
     });
 
     return () => {
