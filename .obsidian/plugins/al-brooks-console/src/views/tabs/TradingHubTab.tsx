@@ -87,6 +87,10 @@ export const TradingHubTab: React.FC = () => {
   const [activeMetadata, setActiveMetadata] = React.useState<{ cycle?: string; direction?: string; setup?: string } | null>(null);
 
   React.useEffect(() => {
+    // 跟踪上次检测到的值，避免不必要的更新
+    let lastCycle = "";
+    let lastDirection = "";
+
     const updateMetadataFromFile = (file: any) => {
       if (!file) return;
 
@@ -94,16 +98,23 @@ export const TradingHubTab: React.FC = () => {
       if (!cache || !cache.frontmatter) return;
 
       const fm = cache.frontmatter;
+      const cycle = fm["市场周期/market_cycle"] || fm.market_cycle || fm.marketCycle || "";
+      const direction = fm["方向/direction"] || fm.direction || "";
 
-      // Only update if it *looks* like a trade note (has specific fields)
-      if (fm.market_cycle || fm.marketCycle || fm.direction || fm.setup || fm.setup_category) {
-        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}, cycle: ${fm.market_cycle || fm.marketCycle}`);
-        setActiveMetadata({
-          cycle: fm.market_cycle || fm.marketCycle,
-          direction: fm.direction,
-          // @ts-ignore
-          setup: fm.setup || fm.setup_category || fm.setupCategory
-        });
+      // 只有值变化时才更新状态（避免无限循环）
+      if (cycle !== lastCycle || direction !== lastDirection) {
+        console.log(`[TradingHub] 元数据更新: ${file.basename}, cycle: "${cycle}", direction: "${direction}"`);
+        lastCycle = cycle;
+        lastDirection = direction;
+
+        if (cycle || direction || fm.setup || fm.setup_category) {
+          setActiveMetadata({
+            cycle: cycle,
+            direction: direction,
+            // @ts-ignore
+            setup: fm.setup || fm.setup_category || fm.setupCategory
+          });
+        }
       }
     };
 
@@ -114,25 +125,34 @@ export const TradingHubTab: React.FC = () => {
 
     updateFromActiveFile(); // Initial read
 
-    // Listen for file open and metadata changes
+    // 事件监听
     const eventRef = app.workspace.on('file-open', updateFromActiveFile);
     const leafRef = app.workspace.on('active-leaf-change', updateFromActiveFile);
 
-    // 关键修复：当元数据变化时，直接使用变化的文件
+    // metadataCache.changed 事件
     const cacheRef = app.metadataCache.on('changed', (changedFile: any) => {
       const activeFile = app.workspace.getActiveFile();
-      // 如果变化的文件就是当前活动文件，立即更新
       if (activeFile && changedFile && changedFile.path === activeFile.path) {
-        console.log(`[TradingHub] Metadata changed for active file: ${changedFile.basename}`);
-        // 延迟一点让缓存完全更新
-        setTimeout(() => updateMetadataFromFile(changedFile), 50);
+        setTimeout(() => updateMetadataFromFile(changedFile), 100);
       }
     });
+
+    // 🔧 关键修复：添加 resolved 事件（frontmatter 解析完成时触发）
+    const resolvedRef = app.metadataCache.on('resolved', () => {
+      updateFromActiveFile();
+    });
+
+    // 🔧 后备方案：定时轮询（每2秒检查一次）
+    const pollInterval = setInterval(() => {
+      updateFromActiveFile();
+    }, 2000);
 
     return () => {
       app.workspace.offref(eventRef);
       app.workspace.offref(leafRef);
       app.metadataCache.offref(cacheRef);
+      app.metadataCache.offref(resolvedRef);
+      clearInterval(pollInterval);
     };
   }, [app]);
 
