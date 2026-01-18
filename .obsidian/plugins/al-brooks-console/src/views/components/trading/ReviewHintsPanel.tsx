@@ -204,9 +204,9 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                                                 ? "rgba(34, 197, 94, 0.1)"
                                                 : "var(--background-modifier-form-field)",
                                     borderLeft: `3px solid ${alert.type === 'warning' ? 'var(--text-error)'
-                                            : alert.type === 'learn' ? 'var(--text-accent)'
-                                                : alert.type === 'strategy' ? 'var(--text-success)'
-                                                    : 'var(--text-muted)'
+                                        : alert.type === 'learn' ? 'var(--text-accent)'
+                                            : alert.type === 'strategy' ? 'var(--text-success)'
+                                                : 'var(--text-muted)'
                                         }`,
                                     display: "flex",
                                     flexDirection: "column",
@@ -222,7 +222,16 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                                 {alert.action && openFile && alert.action.path && (
                                     <InteractiveButton
                                         interaction="text"
-                                        onClick={() => openFile(alert.action!.path!)}
+                                        onClick={async () => {
+                                            // 先打开文件
+                                            await openFile(alert.action!.path!);
+                                            // 如果是学习类型，延迟后触发该笔记的 SRS 复习
+                                            if (alert.type === 'learn' && runCommand) {
+                                                setTimeout(() => {
+                                                    runCommand('obsidian-spaced-repetition:srs-review-flashcards-in-note');
+                                                }, 500);
+                                            }
+                                        }}
                                         style={{
                                             fontSize: "0.85em",
                                             color: "var(--interactive-accent)",
