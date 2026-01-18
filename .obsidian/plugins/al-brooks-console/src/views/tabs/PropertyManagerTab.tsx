@@ -1,6 +1,6 @@
 /**
  * PropertyManagerTab 属性管理器标签页
- * 
+ *
  * 基于老版本 pa-view-manager.js V18 Crystal Edition 重构
  * 💎 上帝模式（属性管理器）
  */
@@ -9,6 +9,7 @@ import * as React from "react";
 import type { App } from "obsidian";
 import { Notice } from "obsidian";
 import { GlassPanel } from "../../ui/components/GlassPanel";
+import { SectionHeader } from "../../ui/components/SectionHeader";
 import { PropertyCard } from "../components/property/PropertyCard";
 import { PropertyInspector } from "../components/property/PropertyInspector";
 import { PropertyManagerService, type PropertyGroup, type PropertyStats, type BatchOperation, type BatchResult } from "../../core/property-manager";
@@ -72,7 +73,6 @@ export const PropertyManagerTab: React.FC<PropertyManagerTabProps> = ({ app }) =
 
         if (result.success > 0) {
             new Notice(`✅ 完成 ${result.success} 处修改`);
-            // 刷新数据
             await loadProperties();
         }
 
@@ -96,72 +96,52 @@ export const PropertyManagerTab: React.FC<PropertyManagerTabProps> = ({ app }) =
     );
 
     return (
-        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
-            {/* 头部 */}
-            <GlassPanel style={{ marginBottom: "16px", padding: "16px 20px" }}>
+        <div style={{ paddingBottom: "40px" }}>
+            {/* 头部 - 使用 SectionHeader 统一风格 */}
+            <SectionHeader
+                title="上帝模式 (God Mode)"
+                subtitle={`${totalProperties} 个属性 · ${totalValues} 个值`}
+                icon="💎"
+            />
+
+            {/* 搜索栏 - 使用 GlassPanel */}
+            <GlassPanel style={{ marginBottom: "16px", padding: "12px 16px" }}>
                 <div style={{
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
-                    flexWrap: "wrap",
                     gap: "12px"
                 }}>
-                    <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px"
-                    }}>
-                        <span style={{ fontSize: "1.4em" }}>💎</span>
-                        <span style={{
-                            fontSize: "1.2em",
-                            fontWeight: 800,
-                            background: "linear-gradient(to right, var(--interactive-accent), #818cf8)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent"
-                        }}>
-                            上帝模式 (God Mode)
-                        </span>
-                        <span style={{
-                            fontSize: "0.85em",
+                    <input
+                        type="text"
+                        placeholder="🔍 搜索属性..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            flex: 1,
+                            background: "var(--background-modifier-form-field)",
+                            border: "1px solid var(--background-modifier-border)",
+                            color: "var(--text-normal)",
+                            padding: "8px 12px",
+                            borderRadius: "8px",
+                            outline: "none",
+                            fontSize: "0.9em"
+                        }}
+                    />
+                    <button
+                        onClick={loadProperties}
+                        style={{
+                            background: "var(--background-modifier-form-field)",
+                            border: "1px solid var(--background-modifier-border)",
                             color: "var(--text-muted)",
-                            marginLeft: "8px"
-                        }}>
-                            {totalProperties} 个属性 · {totalValues} 个值
-                        </span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        <input
-                            type="text"
-                            placeholder="🔍 搜索属性..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                                background: "rgba(0,0,0,0.2)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "var(--text-normal)",
-                                padding: "8px 14px",
-                                borderRadius: "8px",
-                                width: "200px",
-                                outline: "none",
-                                fontSize: "0.9em"
-                            }}
-                        />
-                        <button
-                            onClick={loadProperties}
-                            style={{
-                                background: "rgba(255,255,255,0.05)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "var(--text-muted)",
-                                padding: "8px 12px",
-                                borderRadius: "8px",
-                                cursor: "pointer"
-                            }}
-                            title="刷新"
-                        >
-                            🔄
-                        </button>
-                    </div>
+                            padding: "8px 12px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            fontSize: "0.9em"
+                        }}
+                        title="刷新"
+                    >
+                        🔄
+                    </button>
                 </div>
             </GlassPanel>
 
@@ -180,33 +160,30 @@ export const PropertyManagerTab: React.FC<PropertyManagerTabProps> = ({ app }) =
             {/* 分组列表 */}
             {!isLoading && filteredGroups.map((group, gi) => (
                 <div key={gi} style={{ marginBottom: "20px" }}>
+                    {/* 分组标题 - 使用统一的底部边框样式 */}
                     <div style={{
                         display: "flex",
                         alignItems: "center",
                         gap: "10px",
-                        marginBottom: "10px",
+                        margin: "12px 0 10px",
                         paddingBottom: "8px",
-                        borderBottom: "1px solid rgba(255,255,255,0.05)"
+                        borderBottom: "1px solid var(--background-modifier-border)"
                     }}>
-                        <span style={{
-                            fontSize: "0.9em",
-                            fontWeight: 700,
-                            color: "var(--text-muted)",
-                            textTransform: "uppercase",
-                            letterSpacing: "1px"
-                        }}>
+                        <span style={{ fontWeight: 700 }}>
                             {group.name}
                         </span>
                         <span style={{
-                            background: "rgba(255,255,255,0.08)",
+                            background: "var(--background-modifier-form-field)",
                             padding: "2px 8px",
                             borderRadius: "6px",
-                            fontSize: "0.8em"
+                            fontSize: "0.8em",
+                            color: "var(--text-muted)"
                         }}>
                             {group.properties.length}
                         </span>
                     </div>
 
+                    {/* 属性网格 */}
                     <div style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",

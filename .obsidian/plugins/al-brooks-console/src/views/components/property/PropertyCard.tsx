@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
+import { glassCardStyle } from "../../../ui/styles/glass";
 import type { PropertyStats } from "../../../core/property-manager";
 
 interface PropertyCardProps {
@@ -16,15 +17,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick })
     return (
         <div
             onClick={onClick}
-            className="property-card"
             style={{
+                ...glassCardStyle,
                 cursor: "pointer",
                 transition: "all 0.2s ease",
-                padding: "12px",
-                background: "rgba(30, 41, 59, 0.4)",
-                borderRadius: "10px",
-                border: "1px solid rgba(255,255,255,0.05)"
             }}
+            className="property-card"
         >
             <div style={{
                 display: "flex",
@@ -33,9 +31,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick })
                 marginBottom: "8px"
             }}>
                 <span style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontWeight: 700,
-                    fontSize: "0.95em",
+                    fontFamily: "var(--font-monospace)",
+                    fontWeight: 600,
+                    fontSize: "0.9em",
                     color: "var(--text-normal)"
                 }}>
                     {property.key}
@@ -50,11 +48,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick })
                 color: "var(--text-muted)"
             }}>
                 <span style={{
-                    background: "rgba(56, 189, 248, 0.15)",
-                    color: "var(--interactive-accent)",
+                    background: "var(--background-modifier-form-field)",
+                    color: "var(--text-accent)",
                     padding: "2px 8px",
                     borderRadius: "4px",
-                    fontWeight: 600
+                    fontWeight: 600,
+                    fontSize: "0.85em"
                 }}>
                     {property.valueCount} 个值
                 </span>

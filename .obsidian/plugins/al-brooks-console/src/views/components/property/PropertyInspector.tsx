@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
-import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { glassPanelStyle, glassCardStyle } from "../../../ui/styles/glass";
 import type { PropertyStats, BatchOperation, BatchResult } from "../../../core/property-manager";
 
 interface PropertyInspectorProps {
@@ -49,7 +49,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
         try {
             const result = await onBatchUpdate(paths, operation);
             if (result.success > 0) {
-                onClose(); // 成功后关闭弹窗
+                onClose();
             }
         } finally {
             setIsProcessing(false);
@@ -126,12 +126,37 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
 
     const displayPaths = filteredPaths || allPaths;
 
+    // 按钮基础样式
+    const btnStyle: React.CSSProperties = {
+        padding: "8px 12px",
+        borderRadius: "6px",
+        border: "1px solid var(--background-modifier-border)",
+        background: "var(--background-modifier-form-field)",
+        color: "var(--text-normal)",
+        cursor: "pointer",
+        fontSize: "0.85em"
+    };
+
+    const btnPrimaryStyle: React.CSSProperties = {
+        ...btnStyle,
+        background: "var(--interactive-accent)",
+        border: "none",
+        color: "white"
+    };
+
+    const btnDangerStyle: React.CSSProperties = {
+        ...btnStyle,
+        background: "transparent",
+        border: "1px solid var(--text-error)",
+        color: "var(--text-error)"
+    };
+
     return (
         <div
             style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0,0,0,0.7)",
+                background: "rgba(0,0,0,0.6)",
                 backdropFilter: "blur(8px)",
                 zIndex: 9000,
                 display: "flex",
@@ -142,48 +167,35 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
         >
             <div
                 style={{
-                    background: "rgba(15, 23, 42, 0.95)",
-                    backdropFilter: "blur(24px)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: "16px",
+                    ...glassPanelStyle,
                     width: "680px",
                     maxWidth: "95vw",
                     maxHeight: "85vh",
                     display: "flex",
                     flexDirection: "column",
-                    overflow: "hidden",
-                    boxShadow: "0 50px 120px rgba(0,0,0,0.8)"
+                    overflow: "hidden"
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 头部 */}
                 <div style={{
-                    padding: "20px 24px",
+                    padding: "16px 20px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    background: "rgba(255,255,255,0.02)"
+                    borderBottom: "1px solid var(--background-modifier-border)"
                 }}>
                     <span style={{
-                        fontSize: "1.3em",
-                        fontWeight: 800,
-                        fontFamily: "'JetBrains Mono', monospace"
+                        fontSize: "1.1em",
+                        fontWeight: 700,
+                        fontFamily: "var(--font-monospace)"
                     }}>
                         {property.key}
                     </span>
                     <button
                         onClick={handleDeleteKey}
                         disabled={isProcessing}
-                        style={{
-                            padding: "8px 14px",
-                            borderRadius: "8px",
-                            border: "1px solid rgba(248, 113, 113, 0.3)",
-                            background: "transparent",
-                            color: "#f87171",
-                            cursor: "pointer",
-                            fontSize: "0.9em"
-                        }}
+                        style={btnDangerStyle}
                     >
                         🗑️ 删除属性
                     </button>
@@ -192,16 +204,16 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                 {/* 标签页 */}
                 <div style={{
                     display: "flex",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    background: "rgba(0,0,0,0.2)"
+                    borderBottom: "1px solid var(--background-modifier-border)",
+                    background: "var(--background-primary-alt)"
                 }}>
                     <div
                         style={{
-                            padding: "14px 20px",
+                            padding: "12px 16px",
                             cursor: "pointer",
                             fontWeight: 600,
-                            color: activeTab === 'vals' ? "var(--interactive-accent)" : "var(--text-muted)",
-                            borderBottom: activeTab === 'vals' ? "2px solid var(--interactive-accent)" : "2px solid transparent",
+                            color: activeTab === 'vals' ? "var(--text-accent)" : "var(--text-muted)",
+                            borderBottom: activeTab === 'vals' ? "2px solid var(--text-accent)" : "2px solid transparent",
                             transition: "0.2s"
                         }}
                         onClick={() => setActiveTab('vals')}
@@ -210,11 +222,11 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                     </div>
                     <div
                         style={{
-                            padding: "14px 20px",
+                            padding: "12px 16px",
                             cursor: "pointer",
                             fontWeight: 600,
-                            color: activeTab === 'files' ? "var(--interactive-accent)" : "var(--text-muted)",
-                            borderBottom: activeTab === 'files' ? "2px solid var(--interactive-accent)" : "2px solid transparent",
+                            color: activeTab === 'files' ? "var(--text-accent)" : "var(--text-muted)",
+                            borderBottom: activeTab === 'files' ? "2px solid var(--text-accent)" : "2px solid transparent",
                             transition: "0.2s"
                         }}
                         onClick={() => { setActiveTab('files'); handleResetFilter(); }}
@@ -243,18 +255,16 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            padding: "12px 24px",
-                                            borderBottom: "1px solid rgba(255,255,255,0.03)",
-                                            transition: "0.15s"
+                                            padding: "10px 20px",
+                                            borderBottom: "1px solid var(--background-modifier-border)"
                                         }}
-                                        className="property-row"
                                     >
                                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                             <span style={{
-                                                background: "rgba(255,255,255,0.08)",
-                                                padding: "6px 12px",
+                                                background: "var(--background-modifier-form-field)",
+                                                padding: "4px 10px",
                                                 borderRadius: "6px",
-                                                fontFamily: "'JetBrains Mono', monospace",
+                                                fontFamily: "var(--font-monospace)",
                                                 fontSize: "0.9em"
                                             }}>
                                                 {v.value}
@@ -263,30 +273,30 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                                                 {v.paths.length}
                                             </span>
                                         </div>
-                                        <div style={{ display: "flex", gap: "8px" }}>
-                                            <InteractiveButton
-                                                interaction="text"
+                                        <div style={{ display: "flex", gap: "6px" }}>
+                                            <button
                                                 onClick={() => handleUpdateValue(v.value, v.paths)}
                                                 disabled={isProcessing}
+                                                style={btnStyle}
                                                 title="修改"
                                             >
                                                 ✏️
-                                            </InteractiveButton>
-                                            <InteractiveButton
-                                                interaction="text"
+                                            </button>
+                                            <button
                                                 onClick={() => handleDeleteValue(v.value, v.paths)}
                                                 disabled={isProcessing}
+                                                style={btnStyle}
                                                 title="删除"
                                             >
                                                 🗑️
-                                            </InteractiveButton>
-                                            <InteractiveButton
-                                                interaction="text"
+                                            </button>
+                                            <button
                                                 onClick={() => handleViewFiles(v.value, v.paths)}
+                                                style={btnStyle}
                                                 title="查看文件"
                                             >
                                                 👁️
-                                            </InteractiveButton>
+                                            </button>
                                         </div>
                                     </div>
                                 ))
@@ -298,13 +308,14 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                         <div>
                             {filterLabel && (
                                 <div style={{
-                                    padding: "12px 24px",
+                                    padding: "10px 20px",
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
-                                    background: "rgba(56, 189, 248, 0.1)",
-                                    color: "var(--interactive-accent)",
-                                    fontWeight: 600
+                                    background: "var(--background-primary-alt)",
+                                    color: "var(--text-accent)",
+                                    fontWeight: 600,
+                                    fontSize: "0.9em"
                                 }}>
                                     <span>🔍 筛选: {filterLabel}</span>
                                     <span
@@ -319,16 +330,15 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                                 <div
                                     key={i}
                                     style={{
-                                        padding: "10px 24px",
+                                        padding: "8px 20px",
                                         cursor: "pointer",
                                         display: "flex",
                                         justifyContent: "space-between",
-                                        borderBottom: "1px solid rgba(255,255,255,0.03)",
-                                        transition: "0.15s",
-                                        color: "var(--text-muted)"
+                                        borderBottom: "1px solid var(--background-modifier-border)",
+                                        color: "var(--text-muted)",
+                                        fontSize: "0.9em"
                                     }}
                                     onClick={() => onOpenFile(path)}
-                                    className="property-file"
                                 >
                                     <span style={{ color: "var(--text-normal)" }}>
                                         {path.split("/").pop()}
@@ -339,7 +349,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                                 </div>
                             ))}
                             {displayPaths.length > 100 && (
-                                <div style={{ padding: "12px 24px", color: "var(--text-muted)", textAlign: "center" }}>
+                                <div style={{ padding: "12px 20px", color: "var(--text-muted)", textAlign: "center" }}>
                                     还有 {displayPaths.length - 100} 个文件未显示...
                                 </div>
                             )}
@@ -349,40 +359,26 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
 
                 {/* 底部操作 */}
                 <div style={{
-                    padding: "16px 24px",
-                    borderTop: "1px solid rgba(255,255,255,0.05)",
-                    background: "rgba(0,0,0,0.2)",
+                    padding: "14px 20px",
+                    borderTop: "1px solid var(--background-modifier-border)",
+                    background: "var(--background-primary-alt)",
                     display: "flex",
                     justifyContent: "flex-end",
-                    gap: "12px"
+                    gap: "10px"
                 }}>
                     {activeTab === 'vals' && (
                         <>
                             <button
                                 onClick={handleRename}
                                 disabled={isProcessing}
-                                style={{
-                                    padding: "10px 16px",
-                                    borderRadius: "8px",
-                                    border: "1px solid rgba(255,255,255,0.1)",
-                                    background: "transparent",
-                                    color: "var(--text-muted)",
-                                    cursor: "pointer"
-                                }}
+                                style={btnStyle}
                             >
                                 ✏️ 重命名属性
                             </button>
                             <button
                                 onClick={handleAppendValue}
                                 disabled={isProcessing}
-                                style={{
-                                    padding: "10px 16px",
-                                    borderRadius: "8px",
-                                    border: "none",
-                                    background: "var(--interactive-accent)",
-                                    color: "white",
-                                    cursor: "pointer"
-                                }}
+                                style={btnPrimaryStyle}
                             >
                                 ➕ 追加新值
                             </button>
@@ -392,14 +388,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                         <button
                             onClick={() => handleInject(displayPaths)}
                             disabled={isProcessing}
-                            style={{
-                                padding: "10px 16px",
-                                borderRadius: "8px",
-                                border: "none",
-                                background: "var(--interactive-accent)",
-                                color: "white",
-                                cursor: "pointer"
-                            }}
+                            style={btnPrimaryStyle}
                         >
                             💉 注入属性
                         </button>
