@@ -4,22 +4,25 @@ import type { TradeRecord } from "../../../core/contracts";
 import { GlassPanel } from "../../../ui/components/GlassPanel";
 import { MarketStateMachine } from "../../../core/market-state-machine";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { buildSmartAlerts, type SmartAlert, type StrategyNote } from "../../../core/smart-alert-engine";
+import type { MemorySnapshot } from "../../../core/memory";
 
 /**
  * ReviewHintsPanel Props接口
  */
 export interface ReviewHintsPanelProps {
     latestTrade: TradeRecord | null;
-    activeMetadata?: { cycle?: string; direction?: string } | null; // NEW
+    activeMetadata?: { cycle?: string; direction?: string } | null;
     reviewHints: Array<{ id: string; zh: string; en: string }>;
-    todayMarketCycle?: string; // 新增:今日市场周期
-    app?: App; // 用于文件操作
-    strategies?: any[]; // StrategyNoteFrontmatter[]
+    todayMarketCycle?: string;
+    app?: App;
+    strategies?: StrategyNote[];
     openFile?: (path: string) => void;
     runCommand?: (id: string) => void;
-    // 智能学习增强
-    memory?: { focusCard?: any; quizPool?: any[]; weeklyPath?: any } | null;
-    recentTrades?: TradeRecord[]; // 最近交易用于分析薄弱点
+    // 智能预警增强
+    memory?: MemorySnapshot | null;
+    recentTrades?: TradeRecord[];
+    activeTags?: string[]; // 当前笔记标签
 }
 
 /**
@@ -90,8 +93,8 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             .sort((a, b) => b[1] - a[1])
             .slice(0, 2);
 
-        // 获取焦点卡片
-        const focusCard = memory?.focusCard;
+        // 获取焦点文件
+        const focusFile = memory?.focusFile;
 
         return {
             weakPoints: sortedErrors.map(([error, count]) => ({
@@ -99,9 +102,9 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                 count,
                 suggestion: `复习 "${error}" 相关概念`
             })),
-            focusCard: focusCard ? {
-                title: focusCard.file || focusCard.q || '当前焦点',
-                path: focusCard.path
+            focusCard: focusFile ? {
+                title: focusFile.name?.replace('.md', '') || '当前焦点',
+                path: focusFile.path
             } : null
         };
     }, [recentTrades, memory]);
