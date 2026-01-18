@@ -10,20 +10,20 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Any
 
 from src.config import PROJECT_ROOT, HTTP_PROXY
 
 # 导入工具
 sys.path.insert(0, str(PROJECT_ROOT)) if str(PROJECT_ROOT) not in sys.path else None
 
-# LLM 后端选择：cli / api（默认 cli）
+# LLM 后端选择：cli / api / openai_compat（默认 cli）
 LLM_BACKEND = os.getenv("LLM_BACKEND", "cli")
 
 
 async def call_llm(
     messages: List[Dict[str, str]],
-    model: str = "gemini-3-flash-preview",
+    model: str | None = None,
     backend: str = None,
 ) -> Tuple[str, str]:
     """
@@ -38,11 +38,15 @@ async def call_llm(
         (content, raw_response): 回复内容和原始响应
     """
     backend = backend or LLM_BACKEND
+    model = model or os.getenv("LLM_MODEL") or "gemini-3-flash-preview"
 
     if backend == "cli":
         return await _call_gemini_cli(messages, model)
-    else:
+    if backend == "api":
         return await _call_api(messages, model)
+    if backend in {"openai_compat", "openai"}:
+        return await _call_openai_compat(messages, model)
+    return await _call_api(messages, model)
 
 
 async def _call_api(messages: List[Dict[str, str]], model: str) -> Tuple[str, str]:
@@ -69,6 +73,59 @@ async def _call_api(messages: List[Dict[str, str]], model: str) -> Tuple[str, st
         return content, json.dumps(resp, ensure_ascii=False)
     except Exception as e:
         return f"[API_ERROR] {e}", json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+async def _call_openai_compat(messages: List[Dict[str, str]], model: str) -> Tuple[str, str]:
+    """通过 OpenAI 兼容接口直连调用（只需 API Key）"""
+    import asyncio
+    import urllib.request
+    import urllib.error
+
+    base_url = os.getenv("LLM_API_BASE_URL")
+    api_key = os.getenv("EXTERNAL_API_KEY")
+
+    if not base_url:
+        return "[OPENAI_COMPAT_ERROR] LLM_API_BASE_URL 未配置", json.dumps({"error": "missing_base_url"}, ensure_ascii=False)
+    if not api_key:
+        return "[OPENAI_COMPAT_ERROR] EXTERNAL_API_KEY 未配置", json.dumps({"error": "missing_api_key"}, ensure_ascii=False)
+    if model == "gemini-3-flash-preview" and not os.getenv("LLM_MODEL"):
+        return "[OPENAI_COMPAT_ERROR] 请设置 LLM_MODEL", json.dumps({"error": "missing_model"}, ensure_ascii=False)
+
+    url = base_url.rstrip("/") + "/chat/completions"
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.5,
+        "stream": False,
+        "max_tokens": 1000000,
+    }
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    def _request():
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            return resp.read().decode("utf-8")
+
+    try:
+        loop = asyncio.get_event_loop()
+        raw = await loop.run_in_executor(None, _request)
+        resp = json.loads(raw)
+        content = resp.get("choices", [{}])[0].get("message", {}).get("content")
+        if not content:
+            content = raw
+        return content, raw
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read().decode("utf-8")
+        except Exception:
+            body = str(e)
+        return f"[OPENAI_COMPAT_ERROR] {e}", json.dumps({"error": body}, ensure_ascii=False)
+    except Exception as e:
+        return f"[OPENAI_COMPAT_ERROR] {e}", json.dumps({"error": str(e)}, ensure_ascii=False)
 
 
 async def _call_gemini_cli(messages: List[Dict[str, str]], model: str) -> Tuple[str, str]:

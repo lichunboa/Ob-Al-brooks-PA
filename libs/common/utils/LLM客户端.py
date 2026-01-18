@@ -35,8 +35,8 @@ class LLM客户端:
         from dotenv import load_dotenv
         import os
 
-        # 加载.env文件
-        env_path = 获取仓库根目录() / ".env"
+        # 加载.env文件（统一读取 config/.env）
+        env_path = 获取仓库根目录() / "config" / ".env"
         load_dotenv(env_path)
 
         # 设置API地址
