@@ -323,24 +323,26 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                     style={{
                                                         padding: "10px 12px",
                                                         background: isTop
-                                                            ? "#60A5FA"
-                                                            : isHigh
-                                                                ? "rgba(96, 165, 250, 0.15)"
-                                                                : "var(--background-secondary)",
+                                                            ? "rgba(16, 185, 129, 0.08)"
+                                                            : "var(--background-primary)",
                                                         borderRadius: "8px",
                                                         cursor: "pointer",
                                                         transition: "all 0.15s ease",
                                                         border: isTop
-                                                            ? "none"
+                                                            ? "1px solid #10B981"
                                                             : "1px solid var(--background-modifier-border)",
                                                     }}
                                                     onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = "translateY(-1px)";
-                                                        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+                                                        if (!isTop) {
+                                                            e.currentTarget.style.background = "rgba(96, 165, 250, 0.08)";
+                                                            e.currentTarget.style.borderColor = "#60A5FA";
+                                                        }
                                                     }}
                                                     onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = "translateY(0)";
-                                                        e.currentTarget.style.boxShadow = "none";
+                                                        if (!isTop) {
+                                                            e.currentTarget.style.background = "var(--background-primary)";
+                                                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                                        }
                                                     }}
                                                 >
                                                     {/* 第一行：名称 + 匹配度 */}
@@ -353,7 +355,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                         <span style={{
                                                             fontSize: "0.9em",
                                                             fontWeight: 600,
-                                                            color: isTop ? "var(--text-on-accent)" : "var(--text-normal)",
+                                                            color: isTop ? "#10B981" : "var(--text-normal)",
                                                             flex: 1,
                                                             overflow: "hidden",
                                                             textOverflow: "ellipsis",
@@ -366,9 +368,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                             fontWeight: 600,
                                                             padding: "2px 6px",
                                                             borderRadius: "4px",
-                                                            background: isTop
-                                                                ? "rgba(255,255,255,0.25)"
-                                                                : "#60A5FA",
+                                                            background: "#60A5FA",
                                                             color: "white",
                                                             marginLeft: "6px",
                                                             flexShrink: 0,
@@ -384,22 +384,20 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                             alignItems: "center",
                                                             gap: "12px",
                                                             fontSize: "0.8em",
-                                                            color: isTop ? "rgba(255,255,255,0.9)" : "var(--text-muted)",
+                                                            color: "var(--text-muted)",
                                                             marginTop: "4px",
                                                         }}>
                                                             {r.card.riskReward && (
-                                                                <span>📊 R/R: <b style={{ color: isTop ? "white" : "var(--text-normal)" }}>{r.card.riskReward}</b></span>
+                                                                <span>📊 R/R: <b style={{ color: "var(--text-normal)" }}>{r.card.riskReward}</b></span>
                                                             )}
                                                             {strategyTrades.length > 0 && (
                                                                 <>
                                                                     <span style={{
-                                                                        color: isTop
-                                                                            ? "rgba(255,255,255,0.95)"
-                                                                            : winRate !== null && winRate >= 50 ? "#10B981" : "#EF4444"
+                                                                        color: winRate !== null && winRate >= 50 ? "#10B981" : "#EF4444"
                                                                     }}>
                                                                         ✓ 胜率: <b>{winRate ?? 0}%</b>
                                                                     </span>
-                                                                    <span>📅 使用: <b style={{ color: isTop ? "white" : "var(--text-normal)" }}>{strategyTrades.length}次</b></span>
+                                                                    <span>📅 使用: <b style={{ color: "var(--text-normal)" }}>{strategyTrades.length}次</b></span>
                                                                 </>
                                                             )}
                                                         </div>
