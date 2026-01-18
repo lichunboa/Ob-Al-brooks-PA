@@ -77,11 +77,10 @@ export const ConsoleContent: React.FC = () => {
       fontFamily: "var(--font-interface)",
       overflow: "hidden" // Ensure container doesn't overflow, let content scroll
     }}>
-      {/* Header / Navigation */}
-      {/* Header / Navigation */}
+      {/* Header / Navigation - 紧凑布局 */}
       <div style={{
         flexShrink: 0,
-        padding: "16px 24px 0",
+        padding: "10px 16px 0",
         background: "var(--background-secondary)",
         borderBottom: "1px solid var(--background-modifier-border)"
       }}>
@@ -99,26 +98,15 @@ export const ConsoleContent: React.FC = () => {
               capabilityId: id,
               payload: {}
             };
-            // We need a way to execute intent. 
-            // The registry has executeIntent?
-            // Or simply:
-            // integrations.executeIntent(intent)
-            // Let's check PluginIntegrationRegistry interface in Context or elsewhere.
-            // Assuming executeIntent exists or we can skip for now if complex.
-            // Previous Dashboard.tsx had it.
           }}
           runCommand={runCommand}
           onRebuild={() => {
-            // We need access to index to rebuild.
-            // Context exposes `index`.
-            // index.build() or index.rebuild()
-            // Check TradeIndex interface.
           }}
           showRebuild={true}
         />
 
-        {/* Navigation Tabs */}
-        <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingBottom: "12px" }}>
+        {/* Navigation Tabs - 紧凑 */}
+        <div style={{ display: "flex", gap: "4px", marginTop: "8px", paddingBottom: "8px" }}>
           {renderTabButton("trading", "交易中心", "📊")}
           {renderTabButton("analytics", "复盘分析", "📈")}
           {renderTabButton("learn", "策略学习", "🎓")}
