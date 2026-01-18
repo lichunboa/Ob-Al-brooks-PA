@@ -237,11 +237,11 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         <div
                             style={{
                                 color: "var(--text-muted)",
-                                fontSize: "0.9em",
-                                marginBottom: "10px",
+                                fontSize: "0.85em",
+                                marginBottom: "6px",
                             }}
                         >
-                            市场周期: {marketCycle ?? "—"}
+                            市场周期: <strong style={{ color: "var(--text-normal)" }}>{marketCycle ?? "—"}</strong>
                         </div>
 
                         {marketCycle && (() => {
@@ -263,59 +263,114 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
 
                             if (results.length === 0) return null;
 
+                            // 计算总评分用于百分比
+                            const totalScore = results.reduce((sum, r) => sum + r.score, 0);
+                            const maxScore = Math.max(...results.map(r => r.score));
+
                             return (
                                 <div>
-                                    <div style={{ fontWeight: 600, marginBottom: "8px" }}>
-                                        周期 → 策略推荐
+                                    <div style={{
+                                        fontWeight: 600,
+                                        marginBottom: "8px",
+                                        fontSize: "0.9em",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px"
+                                    }}>
+                                        <span>📊 策略推荐</span>
+                                        <span style={{
+                                            fontSize: "0.8em",
+                                            color: "var(--text-muted)",
+                                            fontWeight: 400
+                                        }}>({results.length}个匹配)</span>
                                     </div>
-                                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {(() => {
-                                            // 计算总评分用于百分比
-                                            const totalScore = results.reduce((sum, r) => sum + r.score, 0);
 
-                                            return results.map((r) => {
-                                                // 计算百分比
-                                                const percentage = totalScore > 0
-                                                    ? Math.round((r.score / totalScore) * 100)
-                                                    : 0;
+                                    {/* 两列网格布局 */}
+                                    <div style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 1fr",
+                                        gap: "6px"
+                                    }}>
+                                        {results.map((r) => {
+                                            // 计算百分比
+                                            const percentage = totalScore > 0
+                                                ? Math.round((r.score / totalScore) * 100)
+                                                : 0;
 
-                                                return (
-                                                    <li
-                                                        key={`cycle-pick-${r.card.path}`}
-                                                        style={{ marginBottom: "6px" }}
-                                                    >
-                                                        <InteractiveButton
-                                                            interaction="text"
-                                                            onClick={() => onOpenFile(r.card.path)}
-                                                        >
-                                                            {r.card.canonicalName}
-                                                        </InteractiveButton>
-                                                        {r.score > 0 && (
-                                                            <span style={{
-                                                                marginLeft: "8px",
-                                                                fontSize: "0.85em",
-                                                                color: "var(--text-faint)"
-                                                            }}>
-                                                                {r.reason}
-                                                            </span>
-                                                        )}
-                                                        {/* 添加百分比显示 */}
-                                                        <span style={{
-                                                            marginLeft: "8px",
-                                                            fontSize: "0.85em",
-                                                            padding: "2px 6px",
-                                                            background: "var(--interactive-accent)",
-                                                            color: "var(--text-on-accent)",
-                                                            borderRadius: "4px",
-                                                            fontWeight: 600
-                                                        }}>
-                                                            {percentage}%
-                                                        </span>
-                                                    </li>
-                                                );
-                                            });
-                                        })()}
-                                    </ul>
+                                            // 根据评分确定视觉层级
+                                            const isTop = r.score === maxScore;
+                                            const isHigh = percentage >= 15;
+                                            const isMedium = percentage >= 8 && percentage < 15;
+
+                                            return (
+                                                <div
+                                                    key={`cycle-pick-${r.card.path}`}
+                                                    onClick={() => onOpenFile(r.card.path)}
+                                                    style={{
+                                                        padding: isTop ? "8px 10px" : "6px 8px",
+                                                        background: isTop
+                                                            ? "var(--interactive-accent)"
+                                                            : isHigh
+                                                                ? "rgba(var(--interactive-accent-rgb), 0.15)"
+                                                                : "rgba(var(--mono-rgb-100), 0.04)",
+                                                        borderRadius: "6px",
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        alignItems: "center",
+                                                        transition: "all 0.15s ease",
+                                                        border: isTop
+                                                            ? "none"
+                                                            : "1px solid var(--background-modifier-border)",
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = "translateY(-1px)";
+                                                        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = "translateY(0)";
+                                                        e.currentTarget.style.boxShadow = "none";
+                                                    }}
+                                                >
+                                                    <span style={{
+                                                        fontSize: isTop ? "0.9em" : isHigh ? "0.85em" : "0.8em",
+                                                        fontWeight: isTop ? 600 : isHigh ? 500 : 400,
+                                                        color: isTop
+                                                            ? "var(--text-on-accent)"
+                                                            : isHigh
+                                                                ? "var(--text-normal)"
+                                                                : "var(--text-muted)",
+                                                        flex: 1,
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                    }}>
+                                                        {r.card.canonicalName}
+                                                    </span>
+                                                    <span style={{
+                                                        fontSize: isTop ? "0.8em" : "0.7em",
+                                                        fontWeight: 600,
+                                                        padding: "2px 6px",
+                                                        borderRadius: "4px",
+                                                        background: isTop
+                                                            ? "rgba(255,255,255,0.2)"
+                                                            : isHigh
+                                                                ? "var(--interactive-accent)"
+                                                                : "rgba(var(--mono-rgb-100), 0.1)",
+                                                        color: isTop
+                                                            ? "var(--text-on-accent)"
+                                                            : isHigh
+                                                                ? "var(--text-on-accent)"
+                                                                : "var(--text-muted)",
+                                                        marginLeft: "6px",
+                                                        flexShrink: 0,
+                                                    }}>
+                                                        {percentage}%
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             );
                         })()}
@@ -323,7 +378,7 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 );
             })()}
 
-            {/* 智能引导推荐 - 独立显示 */}
+            {/* 智能引导推荐 - 紧凑两列布局 */}
             {(() => {
                 const recommendation = recommendNextAttribute(strategyIndex, {
                     marketCycle: currentTrade.marketCycle,
@@ -342,64 +397,69 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 return (
                     <div style={{
                         marginBottom: "12px",
-                        padding: "12px",
-                        background: "var(--background-secondary)",
+                        padding: "10px",
+                        background: "rgba(var(--interactive-accent-rgb), 0.08)",
                         borderRadius: "8px",
-                        border: "1px solid var(--background-modifier-border)",
+                        border: "1px solid rgba(var(--interactive-accent-rgb), 0.2)",
                     }}>
                         <div style={{
-                            fontSize: "12px",
-                            marginBottom: "8px",
+                            fontSize: "0.85em",
+                            marginBottom: "6px",
                             fontWeight: 600,
-                            color: "var(--text-accent)"
+                            color: "var(--text-accent)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
                         }}>
-                            💡 建议完善分析: {recommendation.nextAttributeLabel}
+                            <span>💡 建议完善</span>
+                            <span style={{
+                                fontWeight: 400,
+                                color: "var(--text-muted)",
+                                fontSize: "0.9em"
+                            }}>
+                                {recommendation.nextAttributeLabel} ({recommendation.filteredCount}策略)
+                            </span>
                         </div>
+                        {/* 两列网格 */}
                         <div style={{
-                            fontSize: "11px",
-                            opacity: 0.8,
-                            marginBottom: "8px",
-                            color: "var(--text-muted)"
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "4px"
                         }}>
-                            基于{recommendation.filteredCount}个策略推荐:
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            {recommendation.recommendations.map(rec => (
+                            {recommendation.recommendations.slice(0, 6).map(rec => (
                                 <Button
                                     key={rec.value}
                                     onClick={() => handleFillAttribute(rec.attribute, rec.value)}
-                                    variant="default" // Using default base but overriding for custom look
+                                    variant="default"
                                     style={{
-                                        width: "100%", // Block button behavior
-                                        padding: "8px",
+                                        padding: "6px 8px",
                                         background: "var(--background-primary)",
-                                        borderRadius: "6px",
+                                        borderRadius: "4px",
                                         border: "1px solid var(--background-modifier-border)",
-                                        fontSize: "12px",
+                                        fontSize: "0.8em",
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        textAlign: "left",
                                     }}
                                 >
-                                    <span style={{ fontWeight: 500 }}>{rec.value}</span>
                                     <span style={{
-                                        fontSize: "11px",
-                                        color: "var(--text-muted)",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "6px"
+                                        fontWeight: 500,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        flex: 1,
+                                    }}>{rec.value}</span>
+                                    <span style={{
+                                        padding: "1px 4px",
+                                        background: "var(--interactive-accent)",
+                                        color: "var(--text-on-accent)",
+                                        borderRadius: "3px",
+                                        fontSize: "0.85em",
+                                        fontWeight: 600,
+                                        marginLeft: "4px",
+                                        flexShrink: 0,
                                     }}>
-                                        <span>{rec.count}个策略</span>
-                                        <span style={{
-                                            padding: "2px 6px",
-                                            background: "var(--interactive-accent)",
-                                            color: "var(--text-on-accent)",
-                                            borderRadius: "4px",
-                                            fontWeight: 600
-                                        }}>
-                                            {rec.percentage}%
-                                        </span>
+                                        {rec.percentage}%
                                     </span>
                                 </Button>
                             ))}
@@ -420,130 +480,156 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
 
             {currentStrategy ? (
                 <div>
-                    <div style={{ marginBottom: "8px" }}>
+                    <div style={{
+                        marginBottom: "8px",
+                        fontSize: "0.85em",
+                        color: "var(--text-muted)"
+                    }}>
                         策略:{" "}
                         <InteractiveButton
                             interaction="text"
                             onClick={() => onOpenFile(currentStrategy.path)}
+                            style={{ fontWeight: 600 }}
                         >
                             {currentStrategy.canonicalName}
                         </InteractiveButton>
                     </div>
 
+                    {/* 2x2 紧凑卡片网格 */}
                     <div
                         style={{
                             display: "grid",
-                            gridTemplateColumns:
-                                "repeat(auto-fit, minmax(220px, 1fr))",
-                            gap: "8px",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "6px",
                         }}
                     >
                         {(currentStrategy.entryCriteria?.length ?? 0) > 0 && (
-                            <div>
-                                <div
-                                    style={{
-                                        fontWeight: 800,
-                                        marginBottom: "4px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "6px",
-                                        color: "var(--text-accent)",
-                                    }}
-                                >
-                                    <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                        🚪
-                                    </span>
-                                    入场
+                            <div style={{
+                                background: "rgba(var(--interactive-accent-rgb), 0.08)",
+                                borderRadius: "6px",
+                                padding: "8px",
+                                border: "1px solid rgba(var(--interactive-accent-rgb), 0.15)",
+                            }}>
+                                <div style={{
+                                    fontWeight: 600,
+                                    marginBottom: "4px",
+                                    fontSize: "0.8em",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    color: "var(--text-accent)",
+                                }}>
+                                    <span>🚪</span>
+                                    <span>入场</span>
                                 </div>
-                                <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                    {currentStrategy
-                                        .entryCriteria!.slice(0, 3)
-                                        .map((x, i) => (
-                                            <li key={`entry-${i}`}>{x}</li>
-                                        ))}
+                                <ul style={{
+                                    margin: 0,
+                                    paddingLeft: "14px",
+                                    fontSize: "0.8em",
+                                    color: "var(--text-muted)"
+                                }}>
+                                    {currentStrategy.entryCriteria!.slice(0, 2).map((x, i) => (
+                                        <li key={`entry-${i}`} style={{ marginBottom: "2px" }}>{x}</li>
+                                    ))}
                                 </ul>
                             </div>
                         )}
-                        {(currentStrategy.stopLossRecommendation?.length ?? 0) >
-                            0 && (
-                                <div>
-                                    <div
-                                        style={{
-                                            fontWeight: 800,
-                                            marginBottom: "4px",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: "6px",
-                                            color: V5_COLORS.loss,
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                            🛑
-                                        </span>
-                                        止损
-                                    </div>
-                                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {currentStrategy
-                                            .stopLossRecommendation!.slice(0, 3)
-                                            .map((x, i) => (
-                                                <li key={`stop-${i}`}>{x}</li>
-                                            ))}
-                                    </ul>
+
+                        {(currentStrategy.stopLossRecommendation?.length ?? 0) > 0 && (
+                            <div style={{
+                                background: "rgba(239, 68, 68, 0.08)",
+                                borderRadius: "6px",
+                                padding: "8px",
+                                border: "1px solid rgba(239, 68, 68, 0.15)",
+                            }}>
+                                <div style={{
+                                    fontWeight: 600,
+                                    marginBottom: "4px",
+                                    fontSize: "0.8em",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    color: V5_COLORS.loss,
+                                }}>
+                                    <span>🛑</span>
+                                    <span>止损</span>
                                 </div>
-                            )}
+                                <ul style={{
+                                    margin: 0,
+                                    paddingLeft: "14px",
+                                    fontSize: "0.8em",
+                                    color: "var(--text-muted)"
+                                }}>
+                                    {currentStrategy.stopLossRecommendation!.slice(0, 2).map((x, i) => (
+                                        <li key={`stop-${i}`} style={{ marginBottom: "2px" }}>{x}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         {(currentStrategy.riskAlerts?.length ?? 0) > 0 && (
-                            <div>
-                                <div
-                                    style={{
-                                        fontWeight: 800,
-                                        marginBottom: "4px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "6px",
-                                        color: V5_COLORS.back,
-                                    }}
-                                >
-                                    <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                        ⚠️
-                                    </span>
-                                    风险
+                            <div style={{
+                                background: "rgba(245, 158, 11, 0.08)",
+                                borderRadius: "6px",
+                                padding: "8px",
+                                border: "1px solid rgba(245, 158, 11, 0.15)",
+                            }}>
+                                <div style={{
+                                    fontWeight: 600,
+                                    marginBottom: "4px",
+                                    fontSize: "0.8em",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    color: V5_COLORS.back,
+                                }}>
+                                    <span>⚠️</span>
+                                    <span>风险</span>
                                 </div>
-                                <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                    {currentStrategy
-                                        .riskAlerts!.slice(0, 3)
-                                        .map((x, i) => (
-                                            <li key={`risk-${i}`}>{x}</li>
-                                        ))}
+                                <ul style={{
+                                    margin: 0,
+                                    paddingLeft: "14px",
+                                    fontSize: "0.8em",
+                                    color: "var(--text-muted)"
+                                }}>
+                                    {currentStrategy.riskAlerts!.slice(0, 2).map((x, i) => (
+                                        <li key={`risk-${i}`} style={{ marginBottom: "2px" }}>{x}</li>
+                                    ))}
                                 </ul>
                             </div>
                         )}
-                        {(currentStrategy.takeProfitRecommendation?.length ??
-                            0) > 0 && (
-                                <div>
-                                    <div
-                                        style={{
-                                            fontWeight: 800,
-                                            marginBottom: "4px",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: "6px",
-                                            color: "var(--text-accent)",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                                            🎯
-                                        </span>
-                                        目标
-                                    </div>
-                                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                                        {currentStrategy
-                                            .takeProfitRecommendation!.slice(0, 3)
-                                            .map((x, i) => (
-                                                <li key={`tp-${i}`}>{x}</li>
-                                            ))}
-                                    </ul>
+
+                        {(currentStrategy.takeProfitRecommendation?.length ?? 0) > 0 && (
+                            <div style={{
+                                background: "rgba(16, 185, 129, 0.08)",
+                                borderRadius: "6px",
+                                padding: "8px",
+                                border: "1px solid rgba(16, 185, 129, 0.15)",
+                            }}>
+                                <div style={{
+                                    fontWeight: 600,
+                                    marginBottom: "4px",
+                                    fontSize: "0.8em",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    color: V5_COLORS.win,
+                                }}>
+                                    <span>🎯</span>
+                                    <span>目标</span>
                                 </div>
-                            )}
+                                <ul style={{
+                                    margin: 0,
+                                    paddingLeft: "14px",
+                                    fontSize: "0.8em",
+                                    color: "var(--text-muted)"
+                                }}>
+                                    {currentStrategy.takeProfitRecommendation!.slice(0, 2).map((x, i) => (
+                                        <li key={`tp-${i}`} style={{ marginBottom: "2px" }}>{x}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
 
                     {(() => {
