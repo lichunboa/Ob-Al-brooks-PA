@@ -367,8 +367,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                             borderRadius: "4px",
                                                             background: isTop
                                                                 ? "rgba(255,255,255,0.25)"
-                                                                : "var(--interactive-accent)",
-                                                            color: isTop ? "var(--text-on-accent)" : "white",
+                                                                : "#60A5FA",
+                                                            color: "white",
                                                             marginLeft: "6px",
                                                             flexShrink: 0,
                                                         }}>
@@ -377,28 +377,29 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                     </div>
 
                                                     {/* 第二行：R/R、胜率、使用次数 */}
-                                                    {(r.card.riskReward || winRate !== null) && (
+                                                    {(r.card.riskReward || strategyTrades.length > 0) && (
                                                         <div style={{
                                                             display: "flex",
                                                             alignItems: "center",
-                                                            gap: "10px",
-                                                            fontSize: "0.75em",
-                                                            color: isTop ? "rgba(255,255,255,0.8)" : "var(--text-muted)",
+                                                            gap: "12px",
+                                                            fontSize: "0.8em",
+                                                            color: isTop ? "rgba(255,255,255,0.9)" : "var(--text-muted)",
+                                                            marginTop: "4px",
                                                         }}>
                                                             {r.card.riskReward && (
-                                                                <span>📊 R/R: <b>{r.card.riskReward}</b></span>
-                                                            )}
-                                                            {winRate !== null && (
-                                                                <span style={{
-                                                                    color: isTop
-                                                                        ? "rgba(255,255,255,0.9)"
-                                                                        : winRate >= 50 ? "#10B981" : "#EF4444"
-                                                                }}>
-                                                                    ✓ 胜率: <b>{winRate}%</b>
-                                                                </span>
+                                                                <span>📊 R/R: <b style={{ color: isTop ? "white" : "var(--text-normal)" }}>{r.card.riskReward}</b></span>
                                                             )}
                                                             {strategyTrades.length > 0 && (
-                                                                <span>📅 使用: <b>{strategyTrades.length}次</b></span>
+                                                                <>
+                                                                    <span style={{
+                                                                        color: isTop
+                                                                            ? "rgba(255,255,255,0.95)"
+                                                                            : winRate !== null && winRate >= 50 ? "#10B981" : "#EF4444"
+                                                                    }}>
+                                                                        ✓ 胜率: <b>{winRate ?? 0}%</b>
+                                                                    </span>
+                                                                    <span>📅 使用: <b style={{ color: isTop ? "white" : "var(--text-normal)" }}>{strategyTrades.length}次</b></span>
+                                                                </>
                                                             )}
                                                         </div>
                                                     )}
