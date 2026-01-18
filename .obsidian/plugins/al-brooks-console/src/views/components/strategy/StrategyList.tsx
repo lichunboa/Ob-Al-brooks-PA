@@ -219,139 +219,124 @@ export const StrategyList: React.FC<Props> = ({
                 ) : null}
             </div>
 
-            {/* List */}
+            {/* List - 使用折叠分组 */}
             {filtered.length === 0 ? (
-                <div style={{ textAlign: "center", padding: SPACE.xl, color: "var(--text-muted)" }}>
-                    🤷‍♂️ 未找到匹配的策略 (No strategies found)
+                <div style={{ textAlign: "center", padding: SPACE.md, color: "var(--text-muted)", fontSize: "0.9em" }}>
+                    🤷‍♂️ 未找到匹配的策略
                 </div>
             ) : (
                 grouped.ordered.map((groupName) => {
                     const items = grouped.by.get(groupName) ?? [];
                     if (items.length === 0) return null;
-                    return (
-                        <div key={`group-${groupName}`} style={{ marginBottom: SPACE.lg }}>
-                            <Label style={{ marginBottom: SPACE.sm, color: COLORS.accent, opacity: 0.9 }}>
-                                {groupName} ({items.length})
-                            </Label>
 
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                                    gap: SPACE.md,
-                                }}
-                            >
+                    // 有活跃策略的分组默认展开
+                    const hasActive = items.some(s => isActive((s as any).statusRaw));
+
+                    return (
+                        <details
+                            key={`group-${groupName}`}
+                            open={hasActive}
+                            style={{
+                                marginBottom: "6px",
+                                border: "1px solid var(--background-modifier-border)",
+                                borderRadius: "6px",
+                                background: "rgba(var(--mono-rgb-100), 0.02)",
+                            }}
+                        >
+                            <summary style={{
+                                cursor: "pointer",
+                                padding: "8px 10px",
+                                fontWeight: 600,
+                                fontSize: "0.85em",
+                                listStyle: "none",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                color: COLORS.accent,
+                            }}>
+                                <span>{groupName}</span>
+                                <span style={{
+                                    fontSize: "0.85em",
+                                    color: "var(--text-muted)",
+                                    fontWeight: 400,
+                                    background: "var(--background-modifier-border)",
+                                    padding: "1px 6px",
+                                    borderRadius: "4px"
+                                }}>
+                                    {items.length}
+                                </span>
+                            </summary>
+
+                            {/* 紧凑策略网格 */}
+                            <div style={{
+                                padding: "6px 8px 8px",
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: "4px",
+                            }}>
                                 {items.map((s) => {
                                     const p = perf?.get(s.canonicalName) ?? perf?.get(s.name) ?? { total: 0, wins: 0, pnl: 0, lastDateIso: "" };
                                     const wr = p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                                     const active = isActive((s as any).statusRaw);
-                                    const statusLabel = statusToCn((s as any).statusRaw);
-                                    const statusTone = getStatusTone((s as any).statusRaw);
-
-                                    const lastDate = p.lastDateIso
-                                        ? p.lastDateIso.slice(5, 10)
-                                        : "";
 
                                     return (
-                                        <GlassCard
+                                        <div
                                             key={s.path}
                                             onClick={() => onOpenFile(s.path)}
-                                            hoverEffect={true}
                                             style={{
-                                                padding: SPACE.md,
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: SPACE.xs,
-                                                // EXPLICT BORDERS FOR VISIBILITY
+                                                padding: "6px 8px",
+                                                background: active
+                                                    ? "rgba(16, 185, 129, 0.08)"
+                                                    : "var(--background-primary)",
+                                                borderRadius: "4px",
                                                 border: active
                                                     ? `1px solid ${COLORS.win}`
                                                     : "1px solid var(--background-modifier-border)",
-                                                background: active
-                                                    ? "rgba(16, 185, 129, 0.05)"
-                                                    : "var(--background-secondary)",
-                                                boxShadow: "var(--shadow-s)",
+                                                fontSize: "0.8em",
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                transition: "all 0.15s ease",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!active) {
+                                                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                                    e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!active) {
+                                                    e.currentTarget.style.background = "var(--background-primary)";
+                                                    e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                                }
                                             }}
                                         >
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    alignItems: "flex-start",
-                                                    justifyContent: "space-between",
-                                                    gap: SPACE.sm,
-                                                    marginBottom: "2px",
-                                                }}
-                                            >
-                                                <HeadingM style={{
-                                                    fontSize: "1.05em",
-                                                    lineHeight: "1.3",
-                                                    flex: "1",
-                                                    wordBreak: "break-word"
+                                            <span style={{
+                                                fontWeight: active ? 600 : 400,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                                flex: 1,
+                                            }}>
+                                                {s.canonicalName || s.name}
+                                            </span>
+                                            {p.total > 0 && (
+                                                <span style={{
+                                                    fontSize: "0.9em",
+                                                    fontWeight: 600,
+                                                    color: wr >= 50 ? COLORS.win : COLORS.loss,
+                                                    marginLeft: "6px",
+                                                    flexShrink: 0,
                                                 }}>
-                                                    {s.canonicalName || s.name}
-                                                </HeadingM>
-
-                                                <div style={{
-                                                    textAlign: "right",
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    alignItems: "flex-end",
-                                                    minWidth: "60px"
-                                                }}>
-                                                    <span style={{
-                                                        ...TYPO.numeric,
-                                                        fontSize: "1.1em",
-                                                        fontWeight: 700,
-                                                        color: wr >= 50 ? COLORS.win : COLORS.loss,
-                                                        opacity: p.total > 0 ? 1 : 0.3
-                                                    }}>
-                                                        {p.total > 0 ? `${wr}%` : "--"}
-                                                    </span>
-                                                    {p.total > 0 && (
-                                                        <span style={{ ...TYPO.caption, fontSize: "0.75em" }}>
-                                                            {p.total} 次
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "space-between",
-                                                    marginTop: "auto",
-                                                    paddingTop: SPACE.sm
-                                                }}
-                                            >
-                                                <StatusBadge
-                                                    label={statusLabel.split("/")[0]}
-                                                    tone={statusTone}
-                                                />
-
-                                                {/* [Merged]: Risk Reward Display from Legacy */}
-                                                {s.riskReward ? (
-                                                    <span style={{ ...TYPO.caption, fontSize: "0.8em", color: "var(--text-faint)", marginLeft: "4px" }}>
-                                                        R/R: <strong>{s.riskReward}</strong>
-                                                    </span>
-                                                ) : null}
-
-                                                {lastDate && (
-                                                    <span style={{ ...TYPO.caption, color: "var(--text-faint)" }}>
-                                                        📅 {lastDate}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {s.patternsObserved?.length > 0 && (
-                                                <div style={{ ...TYPO.caption, marginTop: "2px", display: "flex", gap: "6px", alignItems: "center" }}>
-                                                    <span>📐 {s.patternsObserved.length} 形态</span>
-                                                </div>
+                                                    {wr}%
+                                                </span>
                                             )}
-                                        </GlassCard>
+                                        </div>
                                     );
                                 })}
                             </div>
-                        </div>
+                        </details>
                     );
                 })
             )}

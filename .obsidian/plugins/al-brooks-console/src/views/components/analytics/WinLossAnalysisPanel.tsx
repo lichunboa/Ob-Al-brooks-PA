@@ -1,8 +1,7 @@
 import * as React from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { TradeRecord } from "../../../core/contracts";
-import { aggregateTrades, type AnalyticsBucket, type BreakdownDimension } from "../../../core/analytics";
-import { Card } from "../../../ui/components/Card";
+import { aggregateTrades, type AnalyticsBucket } from "../../../core/analytics";
 import { formatCurrency } from "../../../utils/format-utils";
 
 interface AnalysisInsightPanelProps {
@@ -12,47 +11,70 @@ interface AnalysisInsightPanelProps {
 }
 
 const COLORS = {
-    win: 'var(--color-green)',
-    loss: 'var(--color-red)',
+    win: '#10b981',   // 绿色
+    loss: '#ef4444',  // 红色
     neutral: 'var(--text-muted)'
 };
 
-const DimensionChart: React.FC<{
+/**
+ * 迷你图表组件 - 更紧凑
+ */
+const MiniChart: React.FC<{
     title: string;
     data: AnalyticsBucket[];
     dataKey: "netMoney" | "netR" | "winRate";
     currencyMode: 'USD' | 'CNY';
     displayUnit: 'money' | 'r';
 }> = ({ title, data, dataKey, currencyMode, displayUnit }) => {
+    // 只显示前4条数据
+    const displayData = data.slice(0, 4);
+
     return (
-        <Card style={{ flex: 1, minWidth: "300px" }}>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "1em", opacity: 0.9 }}>{title}</h4>
-            <div style={{ width: "100%", height: 200 }}>
+        <div style={{
+            flex: "1 1 45%",
+            minWidth: "200px",
+            background: "rgba(var(--mono-rgb-100), 0.02)",
+            borderRadius: "6px",
+            padding: "10px",
+            border: "1px solid var(--background-modifier-border)",
+        }}>
+            <div style={{
+                fontSize: "0.8em",
+                fontWeight: 600,
+                marginBottom: "8px",
+                color: "var(--text-muted)"
+            }}>
+                {title}
+            </div>
+            <div style={{ width: "100%", height: 80 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--background-modifier-border)" />
+                    <BarChart data={displayData} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
                         <XAxis type="number" hide />
                         <YAxis
                             dataKey="label"
                             type="category"
-                            width={80}
-                            tick={{ fontSize: 11, fill: "var(--text-normal)" }}
+                            width={70}
+                            tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                            axisLine={false}
+                            tickLine={false}
                         />
                         <Tooltip
                             cursor={{ fill: 'var(--background-modifier-hover)' }}
                             contentStyle={{
                                 backgroundColor: "var(--background-primary)",
                                 border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "6px"
+                                borderRadius: "4px",
+                                fontSize: "0.85em",
+                                padding: "4px 8px"
                             }}
                             formatter={(val: number) => {
-                                if (dataKey === "winRate") return `${val.toFixed(1)}%`;
+                                if (dataKey === "winRate") return `${val.toFixed(0)}%`;
                                 if (displayUnit === 'r') return `${val > 0 ? '+' : ''}${val.toFixed(1)}R`;
                                 return formatCurrency(val, currencyMode);
                             }}
                         />
-                        <Bar dataKey={dataKey} barSize={20} radius={[0, 4, 4, 0]}>
-                            {data.map((entry, index) => (
+                        <Bar dataKey={dataKey} barSize={12} radius={[0, 3, 3, 0]}>
+                            {displayData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={
                                     dataKey === 'winRate'
                                         ? (entry.winRate >= 50 ? COLORS.win : COLORS.loss)
@@ -63,67 +85,90 @@ const DimensionChart: React.FC<{
                     </BarChart>
                 </ResponsiveContainer>
             </div>
-        </Card>
+        </div>
     );
 };
 
 export const WinLossAnalysisPanel: React.FC<AnalysisInsightPanelProps> = ({ trades, currencyMode, displayUnit = 'money' }) => {
-    // 1. Setup Analysis
+    // 数据聚合
     const setupData = React.useMemo(() =>
-        aggregateTrades(trades, "setup").slice(0, 8), // Top 8 setups
+        aggregateTrades(trades, "setup").slice(0, 4),
         [trades]);
 
-    // 2. Direction Analysis
     const directionData = React.useMemo(() =>
         aggregateTrades(trades, "direction"),
         [trades]);
 
-    // 3. Day Analysis (Win Rate focus)
     const dayData = React.useMemo(() =>
         aggregateTrades(trades, "day"),
         [trades]);
 
-    // 4. Timeframe Analysis
     const timeframeData = React.useMemo(() =>
-        aggregateTrades(trades, "timeframe" as any), // Cast as "timeframe" isn't in BreakdownDimension type yet, need to update analytics.ts or just cast
+        aggregateTrades(trades, "timeframe" as any),
         [trades]);
 
     const pnlKey = displayUnit === 'r' ? 'netR' : 'netMoney';
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                <DimensionChart
-                    title={displayUnit === 'r' ? "架构表现 (Net R)" : "架构表现 (净盈亏)"}
+        <details
+            open
+            style={{
+                border: "1px solid var(--background-modifier-border)",
+                borderRadius: "8px",
+                padding: "10px 12px",
+                background: "rgba(var(--mono-rgb-100), 0.02)",
+            }}
+        >
+            <summary style={{
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "0.9em",
+                listStyle: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "var(--text-muted)"
+            }}>
+                <span>📊</span>
+                <span>交易洞察 (Insights)</span>
+            </summary>
+
+            {/* 2x2 紧凑网格 */}
+            <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "8px",
+                marginTop: "10px"
+            }}>
+                <MiniChart
+                    title="架构表现"
                     data={setupData}
                     dataKey={pnlKey}
                     currencyMode={currencyMode}
                     displayUnit={displayUnit}
                 />
-                <DimensionChart
-                    title="每日胜率 (Win Rate)"
+                <MiniChart
+                    title="每日胜率"
                     data={dayData}
                     dataKey="winRate"
                     currencyMode={currencyMode}
                     displayUnit={displayUnit}
                 />
-            </div>
-            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                <DimensionChart
-                    title={displayUnit === 'r' ? "方向分布 (Net R)" : "方向分布 (净盈亏)"}
+                <MiniChart
+                    title="方向分布"
                     data={directionData}
                     dataKey={pnlKey}
                     currencyMode={currencyMode}
                     displayUnit={displayUnit}
                 />
-                <DimensionChart
-                    title={displayUnit === 'r' ? "周期分析 (Net R)" : "周期分析 (净盈亏)"}
+                <MiniChart
+                    title="周期分析"
                     data={timeframeData}
                     dataKey={pnlKey}
                     currencyMode={currencyMode}
                     displayUnit={displayUnit}
                 />
             </div>
-        </div>
+        </details>
     );
 };
