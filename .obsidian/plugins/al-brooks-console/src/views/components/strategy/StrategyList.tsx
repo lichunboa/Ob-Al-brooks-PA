@@ -326,7 +326,7 @@ export const StrategyList: React.FC<Props> = ({
                                                     fontSize: "0.7em",
                                                     padding: "2px 6px",
                                                     borderRadius: "4px",
-                                                    background: active ? COLORS.win : "var(--text-accent)",
+                                                    background: active ? COLORS.win : COLORS.accent,
                                                     color: "white",
                                                     fontWeight: 600,
                                                     whiteSpace: "nowrap",
