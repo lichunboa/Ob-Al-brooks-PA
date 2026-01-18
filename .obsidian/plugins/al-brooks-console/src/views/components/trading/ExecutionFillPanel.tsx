@@ -276,73 +276,79 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
 
     return (
         <div style={{
-            marginTop: "16px",
-            padding: "16px",
-            background: "rgba(var(--background-secondary-rgb), 0.5)", // More transparent
-            borderRadius: "12px", // More rounded like GlassPanel
+            marginTop: "12px",
+            padding: "10px",
+            background: "rgba(var(--background-secondary-rgb), 0.5)",
+            borderRadius: "8px",
             border: "1px solid var(--background-modifier-border)",
-            ...glassInsetStyle // Apply inner shadow/texture
+            ...glassInsetStyle
         }}>
             <div style={{
-                fontSize: "13px",
-                marginBottom: "8px",
+                fontSize: "0.85em",
+                marginBottom: "6px",
                 fontWeight: 600,
                 color: "var(--text-accent)",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: "6px"
             }}>
-                <span>💡</span>
-                <span>建议补充执行: {nextField.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>💡</span>
+                    <span>建议补充执行: {nextField.label}</span>
+                </div>
+                <span style={{
+                    fontSize: "0.8em",
+                    color: "var(--text-muted)",
+                    fontWeight: 400
+                }}>
+                    还有 {emptyFields.length} 项
+                </span>
             </div>
 
+            {/* 两列网格布局 */}
             <div style={{
-                fontSize: "11px",
-                opacity: 0.8,
-                marginBottom: "12px",
-                color: "var(--text-muted)"
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "4px"
             }}>
-                还有 {emptyFields.length} 个执行字段待填写
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {nextField.isStrategy ? (
-                    // 特殊渲染：策略确认
+                    // 特殊渲染：策略确认 - 占满两列
                     <div style={{
-                        padding: "12px",
+                        gridColumn: "1 / -1",
+                        padding: "8px 10px",
                         background: "rgba(var(--interactive-accent-rgb), 0.1)",
                         border: "1px solid var(--interactive-accent)",
-                        borderRadius: "8px",
+                        borderRadius: "6px",
                         display: "flex",
-                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "space-between",
                         gap: "8px"
                     }}>
-                        <div style={{ fontSize: "13px", fontWeight: 500 }}>
-                            检测到匹配策略：<span style={{ color: "var(--text-accent)", fontWeight: 700 }}>{suggestedStrategyName}</span>
+                        <div style={{ fontSize: "0.85em" }}>
+                            检测到匹配策略：<span style={{ color: "var(--text-accent)", fontWeight: 600 }}>{suggestedStrategyName}</span>
                         </div>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <Button
-                                variant="default"
-                                onClick={() => suggestedStrategyName && handleFillField(nextField.fieldName, suggestedStrategyName)}
-                                style={{ flex: 1 }}
-                            >
-                                ✅ 确认使用此策略
-                            </Button>
-                        </div>
+                        <Button
+                            variant="small"
+                            onClick={() => suggestedStrategyName && handleFillField(nextField.fieldName, suggestedStrategyName)}
+                        >
+                            ✅ 确认
+                        </Button>
                     </div>
                 ) : nextField.isNumeric ? (
-                    <div style={{ display: "flex", gap: "8px" }}>
+                    // 数值输入 - 占满两列
+                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: "6px" }}>
                         <input
                             type="number"
                             placeholder={nextField.placeholder}
                             style={{
                                 flex: 1,
-                                padding: "8px 12px",
+                                padding: "6px 10px",
                                 background: "var(--background-primary)",
                                 border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "6px",
+                                borderRadius: "4px",
                                 outline: "none",
-                                fontSize: "13px"
+                                fontSize: "0.85em"
                             }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -353,7 +359,6 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                         <Button
                             variant="small"
                             onClick={(e) => {
-                                // Find input sibling safely
                                 const wrapper = e.currentTarget.parentElement;
                                 const input = wrapper?.querySelector('input');
                                 if (input) {
@@ -365,28 +370,33 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                         </Button>
                     </div>
                 ) : (
+                    // 选项列表 - 两列网格
                     nextField.values?.map(value => (
                         <div
                             key={value}
                             onClick={() => handleFillField(nextField.fieldName, value)}
-                            className="nav-file-title" // Use Obsidian class for hover effect
                             style={{
-                                padding: "8px 12px",
+                                padding: "6px 8px",
                                 background: "var(--background-primary)",
-                                borderRadius: "6px",
+                                borderRadius: "4px",
                                 border: "1px solid var(--background-modifier-border)",
-                                fontSize: "12px",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
+                                fontSize: "0.8em",
                                 cursor: "pointer",
-                                transition: "all 0.2s",
+                                transition: "all 0.15s ease",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "var(--background-primary)";
+                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
                             }}
                         >
-                            <span style={{ fontWeight: 500 }}>{value}</span>
-                            <div style={{ opacity: 0, transition: "opacity 0.2s" }} className="hover-visible">
-                                ↵
-                            </div>
+                            {value}
                         </div>
                     ))
                 )}
