@@ -309,32 +309,23 @@ export const ManageTab: React.FC = () => {
             </div>
 
             {/* 💎 上帝模式入口 */}
-            <div
-                onClick={() => setShowGodMode(true)}
-                style={{
-                    margin: "0 12px 20px",
-                    padding: "16px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    background: "linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(129, 140, 248, 0.1) 100%)",
-                    border: "1px solid rgba(56, 189, 248, 0.2)",
-                    borderRadius: "12px"
-                }}
-            >
-                <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                }}>
+            <GlassPanel style={{ marginBottom: "16px" }}>
+                <div
+                    onClick={() => setShowGodMode(true)}
+                    style={{
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+                >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "1.5em" }}>💎</span>
+                        <span style={{ fontSize: "1.3em" }}>💎</span>
                         <div>
                             <div style={{
-                                fontWeight: 800,
-                                fontSize: "1.1em",
-                                background: "linear-gradient(to right, var(--interactive-accent), #818cf8)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent"
+                                fontWeight: 700,
+                                fontSize: "1em",
+                                color: "var(--text-normal)"
                             }}>
                                 上帝模式 (God Mode)
                             </div>
@@ -345,7 +336,7 @@ export const ManageTab: React.FC = () => {
                     </div>
                     <span style={{ color: "var(--text-muted)" }}>→</span>
                 </div>
-            </div>
+            </GlassPanel>
 
             <RawDataPanel trades={trades} openFile={openFile} />
 
