@@ -7,6 +7,7 @@ AI 分析管道
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Dict, Any
 
 from src.data import fetch_payload
@@ -15,7 +16,12 @@ from src.llm import call_llm
 from src.utils.run_recorder import RunRecorder
 
 
-async def run_analysis(symbol: str, interval: str, prompt_name: str, lang: str | None = None) -> Dict[str, Any]:
+async def run_analysis(
+    symbol: str,
+    interval: str,
+    prompt_name: str | None = None,
+    lang: str | None = None,
+) -> Dict[str, Any]:
     """
     执行 AI 分析
     
@@ -27,6 +33,9 @@ async def run_analysis(symbol: str, interval: str, prompt_name: str, lang: str |
     Returns:
         分析结果字典
     """
+    # 0. 选择默认提示词
+    prompt_name = prompt_name or os.getenv("AI_DEFAULT_PROMPT", "市场全局解析")
+
     # 1. 获取全量数据
     payload = await asyncio.to_thread(fetch_payload, symbol, interval)
 

@@ -19,6 +19,7 @@ sys.path.insert(0, str(PROJECT_ROOT)) if str(PROJECT_ROOT) not in sys.path else 
 
 # LLM 后端选择：cli / api / openai_compat（默认 cli）
 LLM_BACKEND = os.getenv("LLM_BACKEND", "cli")
+DEFAULT_MAX_TOKENS = 32000
 
 
 async def call_llm(
@@ -63,7 +64,7 @@ async def _call_api(messages: List[Dict[str, str]], model: str) -> Tuple[str, st
             messages=messages,
             model=model,
             temperature=0.5,
-            max_tokens=1000000,
+            max_tokens=_get_max_tokens(),
             stream=False,
             req_timeout=600,
         )
@@ -97,7 +98,7 @@ async def _call_openai_compat(messages: List[Dict[str, str]], model: str) -> Tup
         "messages": messages,
         "temperature": 0.5,
         "stream": False,
-        "max_tokens": 1000000,
+        "max_tokens": _get_max_tokens(),
     }
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     headers = {
@@ -171,6 +172,17 @@ async def _call_gemini_cli(messages: List[Dict[str, str]], model: str) -> Tuple[
         return f"[CLI_ERROR] gemini_client 未安装: {e}", json.dumps({"error": str(e)}, ensure_ascii=False)
     except Exception as e:
         return f"[CLI_ERROR] {e}", json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def _get_max_tokens() -> int:
+    raw = os.getenv("LLM_MAX_TOKENS")
+    if not raw:
+        return DEFAULT_MAX_TOKENS
+    try:
+        value = int(raw)
+        return value if value > 0 else DEFAULT_MAX_TOKENS
+    except ValueError:
+        return DEFAULT_MAX_TOKENS
 
 
 # 便捷函数

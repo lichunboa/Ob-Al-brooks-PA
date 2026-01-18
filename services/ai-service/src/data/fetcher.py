@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 import sqlite3
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Set
 
@@ -20,12 +21,21 @@ TELEGRAM_SRC = PROJECT_ROOT / "services" / "telegram-service" / "src"
 if str(TELEGRAM_SRC) not in sys.path:
     sys.path.insert(0, str(TELEGRAM_SRC))
 
-# TimescaleDB 连接配置
-DB_HOST = os.getenv("TIMESCALE_HOST", "localhost")
-DB_PORT = os.getenv("TIMESCALE_PORT", "5433")
-DB_USER = os.getenv("TIMESCALE_USER", "postgres")
-DB_PASS = os.getenv("TIMESCALE_PASSWORD", "postgres")
-DB_NAME = os.getenv("TIMESCALE_DB", "market_data")
+# TimescaleDB 连接配置（优先 DATABASE_URL）
+DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("TIMESCALE_DATABASE_URL")
+if DATABASE_URL:
+    parsed = urlparse(DATABASE_URL)
+    DB_HOST = parsed.hostname or os.getenv("TIMESCALE_HOST", "localhost")
+    DB_PORT = str(parsed.port or os.getenv("TIMESCALE_PORT", "5433"))
+    DB_USER = parsed.username or os.getenv("TIMESCALE_USER", "postgres")
+    DB_PASS = parsed.password or os.getenv("TIMESCALE_PASSWORD", "postgres")
+    DB_NAME = (parsed.path or "").lstrip("/") or os.getenv("TIMESCALE_DB", "market_data")
+else:
+    DB_HOST = os.getenv("TIMESCALE_HOST", "localhost")
+    DB_PORT = os.getenv("TIMESCALE_PORT", "5433")
+    DB_USER = os.getenv("TIMESCALE_USER", "postgres")
+    DB_PASS = os.getenv("TIMESCALE_PASSWORD", "postgres")
+    DB_NAME = os.getenv("TIMESCALE_DB", "market_data")
 
 ALL_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"]
 
@@ -219,13 +229,22 @@ def fetch_indicators_full(symbol: str) -> Dict[str, Any]:
             if sym_col is None:
                 continue
 
-            # 有周期字段：每个周期取最新一条
-            if "周期" in cols:
-                sql = f"SELECT * FROM '{tbl}' WHERE `{sym_col}`=? GROUP BY `周期` HAVING `数据时间`=MAX(`数据时间`)"
-                rows = cur.execute(sql, (symbol,)).fetchall()
-            else:
+            # 有周期字段：每个周期取最新一条（使用子查询保证确定性）
+            if "周期" in cols and "数据时间" in cols:
+                sql = (
+                    f"SELECT * FROM '{tbl}' WHERE `{sym_col}`=? "
+                    "AND (`周期`, `数据时间`) IN ("
+                    f"SELECT `周期`, MAX(`数据时间`) FROM '{tbl}' WHERE `{sym_col}`=? GROUP BY `周期`"
+                    ")"
+                )
+                rows = cur.execute(sql, (symbol, symbol)).fetchall()
+            elif "数据时间" in cols:
                 # 无周期字段：只取最新一条
                 sql = f"SELECT * FROM '{tbl}' WHERE `{sym_col}`=? ORDER BY `数据时间` DESC LIMIT 1"
+                rows = cur.execute(sql, (symbol,)).fetchall()
+            else:
+                # 无时间字段：退化为取一条
+                sql = f"SELECT * FROM '{tbl}' WHERE `{sym_col}`=? LIMIT 1"
                 rows = cur.execute(sql, (symbol,)).fetchall()
 
             if rows:

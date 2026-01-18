@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--list-prompts", action="store_true", help="列出可用提示词")
     parser.add_argument("--analyze", type=str, metavar="SYMBOL", help="测试分析指定币种")
     parser.add_argument("--interval", type=str, default="4h", help="分析周期 (默认 4h)")
+    parser.add_argument("--prompt", type=str, default="市场全局解析", help="提示词名称 (默认 市场全局解析)")
     args = parser.parse_args()
 
     if args.test:
@@ -72,7 +73,7 @@ def main():
         logger.info("=== 分析 %s (%s) ===", symbol, args.interval)
 
         async def _run():
-            result = await run_analysis(symbol, args.interval)
+            result = await run_analysis(symbol, args.interval, args.prompt)
             if result:
                 print("\n" + "=" * 60)
                 print(result)
