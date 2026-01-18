@@ -21,6 +21,33 @@ export const V5_COLORS = {
   textDim: "rgba(243,244,246,0.4)",
 } as const;
 
+/**
+ * 统一布局间距常量
+ * 用于保持 UI 模块之间的一致性
+ */
+export const LAYOUT = {
+  // 模块间距
+  gap: {
+    xs: "4px",
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+    xl: "24px",
+  },
+  // 内边距
+  padding: {
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+  },
+  // 圆角
+  radius: {
+    sm: "6px",
+    md: "8px",
+    lg: "12px",
+  },
+} as const;
+
 export function withHexAlpha(color: string, alphaHex: string): string {
   // Only apply to 6-digit hex like #RRGGBB. Otherwise return as-is.
   if (/^#[0-9a-fA-F]{6}$/.test(color) && /^[0-9a-fA-F]{2}$/.test(alphaHex)) {
@@ -28,3 +55,4 @@ export function withHexAlpha(color: string, alphaHex: string): string {
   }
   return color;
 }
+
