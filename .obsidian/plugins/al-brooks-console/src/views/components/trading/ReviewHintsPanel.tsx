@@ -40,34 +40,46 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     runCommand,
     memory,
     recentTrades = [],
+    activeTags = [],
 }) => {
     const stateMachine = React.useMemo(() => new MarketStateMachine(), []);
     const [actionRunning, setActionRunning] = React.useState<string | null>(null);
 
     const guidance = React.useMemo(() => {
-        // Fix: Do NOT mix contexts. If activeMetadata is present (even partially), use it exclusively for the source of truth.
         let cycle, direction;
 
         if (activeMetadata) {
-            cycle = activeMetadata.cycle || todayMarketCycle; // Fallback to today only if active is partial? No, if active is open, it implies "Current Focus".
-            // Actually, if activeMetadata is detecting a file, we should rely on IT.
-            // If direction is empty in file, it means "Unknown/Neutral".
             cycle = activeMetadata.cycle;
             direction = activeMetadata.direction;
         } else {
-            // Fallback to Latest Trade or Today's Plan
             cycle = latestTrade?.marketCycle || todayMarketCycle;
             direction = latestTrade?.direction;
         }
 
-        // Debug Log
         console.log(`[ReviewHintsPanel] Guidance Input. Source: ${activeMetadata ? "ActiveFile" : "History/Plan"}. Cycle: "${cycle}", Direction: "${direction}"`);
 
-        // Pass both cycle and direction to inferState
         return stateMachine.generateGuidance(
             stateMachine.inferState(cycle, direction)
         );
     }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
+
+    // 智能预警引擎
+    const smartAlerts = React.useMemo(() => {
+        const marketState = stateMachine.inferState(
+            activeMetadata?.cycle || latestTrade?.marketCycle || todayMarketCycle,
+            activeMetadata?.direction || latestTrade?.direction
+        );
+
+        return buildSmartAlerts({
+            marketState,
+            marketCycle: activeMetadata?.cycle || latestTrade?.marketCycle || todayMarketCycle,
+            direction: activeMetadata?.direction || latestTrade?.direction,
+            recentTrades,
+            strategies: strategies as StrategyNote[],
+            memory: memory || undefined,
+            activeTags,
+        });
+    }, [activeMetadata, latestTrade, todayMarketCycle, recentTrades, strategies, memory, activeTags, stateMachine]);
 
     // 智能学习分析：根据最近交易分析薄弱点
     const smartLearning = React.useMemo(() => {
@@ -152,6 +164,95 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
 
     return (
         <div style={{ marginBottom: "16px" }}>
+            {/* 智能预警 */}
+            {smartAlerts.length > 0 && (
+                <GlassPanel style={{ marginBottom: "12px", padding: "10px 12px" }}>
+                    <div style={{
+                        fontWeight: 600,
+                        marginBottom: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "0.9em"
+                    }}>
+                        <span>🚨</span>
+                        <span>智能预警</span>
+                        <span style={{
+                            fontSize: "0.8em",
+                            fontWeight: 400,
+                            color: "var(--text-muted)",
+                            background: "var(--background-modifier-form-field)",
+                            padding: "1px 6px",
+                            borderRadius: "8px"
+                        }}>
+                            {smartAlerts.length}
+                        </span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {smartAlerts.slice(0, 5).map((alert, i) => (
+                            <div
+                                key={`alert-${i}`}
+                                style={{
+                                    padding: "6px 10px",
+                                    borderRadius: "6px",
+                                    fontSize: "0.85em",
+                                    background: alert.type === 'warning'
+                                        ? "rgba(239, 68, 68, 0.1)"
+                                        : alert.type === 'learn'
+                                            ? "rgba(59, 130, 246, 0.1)"
+                                            : alert.type === 'strategy'
+                                                ? "rgba(34, 197, 94, 0.1)"
+                                                : "var(--background-modifier-form-field)",
+                                    borderLeft: `3px solid ${alert.type === 'warning' ? 'var(--text-error)'
+                                            : alert.type === 'learn' ? 'var(--text-accent)'
+                                                : alert.type === 'strategy' ? 'var(--text-success)'
+                                                    : 'var(--text-muted)'
+                                        }`,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "2px"
+                                }}
+                            >
+                                <div style={{ fontWeight: 500 }}>{alert.message}</div>
+                                {alert.detail && (
+                                    <div style={{ fontSize: "0.9em", color: "var(--text-muted)" }}>
+                                        {alert.detail}
+                                    </div>
+                                )}
+                                {alert.action && openFile && alert.action.path && (
+                                    <InteractiveButton
+                                        interaction="text"
+                                        onClick={() => openFile(alert.action!.path!)}
+                                        style={{
+                                            fontSize: "0.85em",
+                                            color: "var(--interactive-accent)",
+                                            padding: "2px 0",
+                                            marginTop: "2px"
+                                        }}
+                                    >
+                                        → {alert.action.label}
+                                    </InteractiveButton>
+                                )}
+                                {alert.action && alert.action.command && runCommand && (
+                                    <InteractiveButton
+                                        interaction="text"
+                                        onClick={() => runCommand(alert.action!.command!)}
+                                        style={{
+                                            fontSize: "0.85em",
+                                            color: "var(--interactive-accent)",
+                                            padding: "2px 0",
+                                            marginTop: "2px"
+                                        }}
+                                    >
+                                        → {alert.action.label}
+                                    </InteractiveButton>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </GlassPanel>
+            )}
+
             {/* 市场状态预测 */}
             {guidance && (
                 <GlassPanel style={{ marginBottom: "12px", borderLeft: guidance.state === 'unknown' ? '4px solid var(--text-muted)' : undefined }}>
