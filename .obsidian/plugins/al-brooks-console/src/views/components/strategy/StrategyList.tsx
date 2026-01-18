@@ -267,39 +267,37 @@ export const StrategyList: React.FC<Props> = ({
                                 </span>
                             </summary>
 
-                            {/* 紧凑策略网格 */}
+                            {/* 策略列表 */}
                             <div style={{
                                 padding: "6px 8px 8px",
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: "4px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "6px",
                             }}>
                                 {items.map((s) => {
                                     const p = perf?.get(s.canonicalName) ?? perf?.get(s.name) ?? { total: 0, wins: 0, pnl: 0, lastDateIso: "" };
                                     const wr = p.total > 0 ? Math.round((p.wins / p.total) * 100) : 0;
                                     const active = isActive((s as any).statusRaw);
-                                    const statusLabel = statusToCn((s as any).statusRaw);
 
                                     return (
                                         <div
                                             key={s.path}
                                             onClick={() => onOpenFile(s.path)}
                                             style={{
-                                                padding: "8px 10px",
+                                                padding: "10px 12px",
                                                 background: active
                                                     ? "rgba(16, 185, 129, 0.08)"
                                                     : "var(--background-primary)",
-                                                borderRadius: "6px",
+                                                borderRadius: "8px",
                                                 border: active
                                                     ? `1px solid ${COLORS.win}`
                                                     : "1px solid var(--background-modifier-border)",
-                                                fontSize: "0.85em",
                                                 cursor: "pointer",
                                                 transition: "all 0.15s ease",
                                             }}
                                             onMouseEnter={(e) => {
                                                 if (!active) {
-                                                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.08)";
                                                     e.currentTarget.style.borderColor = "var(--interactive-accent)";
                                                 }
                                             }}
@@ -310,71 +308,53 @@ export const StrategyList: React.FC<Props> = ({
                                                 }
                                             }}
                                         >
-                                            {/* 第一行：名称 + 状态标签 */}
+                                            {/* 第一行：名称 + 状态 */}
                                             <div style={{
                                                 display: "flex",
-                                                justifyContent: "space-between",
                                                 alignItems: "center",
-                                                marginBottom: p.total > 0 || s.riskReward ? "4px" : 0
+                                                gap: "8px",
+                                                marginBottom: (p.total > 0 || s.riskReward) ? "6px" : 0
                                             }}>
                                                 <span style={{
-                                                    fontWeight: active ? 700 : 600,
+                                                    fontWeight: 600,
                                                     color: active ? COLORS.win : "var(--text-normal)",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                    flex: 1,
+                                                    fontSize: "0.9em",
                                                 }}>
                                                     {s.canonicalName || s.name}
                                                 </span>
                                                 <span style={{
-                                                    fontSize: "0.75em",
+                                                    fontSize: "0.7em",
                                                     padding: "2px 6px",
                                                     borderRadius: "4px",
-                                                    marginLeft: "6px",
-                                                    flexShrink: 0,
                                                     background: active ? COLORS.win : "var(--text-accent)",
                                                     color: "white",
                                                     fontWeight: 600,
+                                                    whiteSpace: "nowrap",
                                                 }}>
-                                                    {active ? "● 实战中" : "● 学习中"}
-                                                    {statusLabel.includes("Learning") && " (Learning)"}
+                                                    {active ? "实战中" : "学习中"}
                                                 </span>
                                             </div>
 
-                                            {/* 第二行：R/R、胜率、使用次数、最近日期 */}
+                                            {/* 第二行：指标信息 */}
                                             {(p.total > 0 || s.riskReward) && (
                                                 <div style={{
                                                     display: "flex",
                                                     alignItems: "center",
-                                                    gap: "8px",
+                                                    gap: "12px",
                                                     fontSize: "0.8em",
                                                     color: "var(--text-muted)",
-                                                    flexWrap: "wrap"
                                                 }}>
                                                     {s.riskReward && (
-                                                        <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-                                                            <span style={{ color: COLORS.win }}>📊</span>
-                                                            <span>R/R:</span>
-                                                            <span style={{ fontWeight: 600 }}>{s.riskReward}</span>
-                                                        </span>
+                                                        <span>📊 R/R: <b>{s.riskReward}</b></span>
                                                     )}
                                                     {p.total > 0 && (
                                                         <>
-                                                            <span>✓ 胜率:</span>
-                                                            <span style={{
-                                                                fontWeight: 700,
-                                                                color: wr >= 50 ? COLORS.win : COLORS.loss,
-                                                            }}>
-                                                                {wr}%
+                                                            <span>
+                                                                ✓ 胜率: <b style={{ color: wr >= 50 ? COLORS.win : COLORS.loss }}>{wr}%</b>
                                                             </span>
-                                                            <span>📅 使用:</span>
-                                                            <span style={{ fontWeight: 600 }}>{p.total}次</span>
+                                                            <span>📅 使用: <b>{p.total}次</b></span>
                                                             {p.lastDateIso && (
-                                                                <>
-                                                                    <span>●</span>
-                                                                    <span>最近: {p.lastDateIso.slice(0, 10)}</span>
-                                                                </>
+                                                                <span>● 最近: {p.lastDateIso.slice(0, 10)}</span>
                                                             )}
                                                         </>
                                                     )}
