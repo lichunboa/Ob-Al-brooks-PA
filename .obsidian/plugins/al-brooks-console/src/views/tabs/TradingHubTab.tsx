@@ -87,50 +87,72 @@ export const TradingHubTab: React.FC = () => {
   const [activeMetadata, setActiveMetadata] = React.useState<{ cycle?: string; direction?: string; setup?: string } | null>(null);
 
   React.useEffect(() => {
-    const updateMetadata = () => {
-      const file = app.workspace.getActiveFile();
-      // If no file is active (e.g. clicking sidebar), do nothing to preserve state.
-      // If dashboard is active, app.workspace.getActiveFile() might be null or return the view?
-      // Actually, for Dashboard view, getActiveFile usually returns null.
+    // 跟踪上次检测到的值，避免不必要的更新
+    let lastCycle = "";
+    let lastDirection = "";
+
+    const updateMetadataFromFile = (file: any) => {
       if (!file) return;
 
       const cache = app.metadataCache.getFileCache(file);
       if (!cache || !cache.frontmatter) return;
 
       const fm = cache.frontmatter;
+      const cycle = fm["市场周期/market_cycle"] || fm.market_cycle || fm.marketCycle || "";
+      const direction = fm["方向/direction"] || fm.direction || "";
 
-      // Only update if it *looks* like a trade note (has specific fields)
-      if (fm.market_cycle || fm.marketCycle || fm.direction || fm.setup || fm.setup_category) {
-        console.log(`[TradingHub] Active Trade Note Detected: ${file.basename}`);
-        setActiveMetadata({
-          cycle: fm.market_cycle || fm.marketCycle,
-          direction: fm.direction,
-          // @ts-ignore
-          setup: fm.setup || fm.setup_category || fm.setupCategory
-        });
+      // 只有值变化时才更新状态（避免无限循环）
+      if (cycle !== lastCycle || direction !== lastDirection) {
+        console.log(`[TradingHub] 元数据更新: ${file.basename}, cycle: "${cycle}", direction: "${direction}"`);
+        lastCycle = cycle;
+        lastDirection = direction;
+
+        if (cycle || direction || fm.setup || fm.setup_category) {
+          setActiveMetadata({
+            cycle: cycle,
+            direction: direction,
+            // @ts-ignore
+            setup: fm.setup || fm.setup_category || fm.setupCategory
+          });
+        }
       }
-      // If it's NOT a trade note (e.g. a settings file), we *might* want to clear it?
-      // But for "Smart Prediction", sticky context is better than clearing.
     };
 
-    updateMetadata(); // Initial read
+    const updateFromActiveFile = () => {
+      const file = app.workspace.getActiveFile();
+      if (file) updateMetadataFromFile(file);
+    };
 
-    // Listen for file open and metadata changes
-    // We also listen to 'active-leaf-change' to catch switching between split panes
-    const eventRef = app.workspace.on('file-open', updateMetadata);
-    const leafRef = app.workspace.on('active-leaf-change', updateMetadata);
-    const cacheRef = app.metadataCache.on('changed', (file: any) => {
-      // If the changed file is the one we are currently tracking, updating is safe.
-      // We can just try to update from active file.
-      // Or if the *modified* file is the one we last saw?
-      // Simplest: just run the update check.
-      updateMetadata();
+    updateFromActiveFile(); // Initial read
+
+    // 事件监听
+    const eventRef = app.workspace.on('file-open', updateFromActiveFile);
+    const leafRef = app.workspace.on('active-leaf-change', updateFromActiveFile);
+
+    // metadataCache.changed 事件
+    const cacheRef = app.metadataCache.on('changed', (changedFile: any) => {
+      const activeFile = app.workspace.getActiveFile();
+      if (activeFile && changedFile && changedFile.path === activeFile.path) {
+        setTimeout(() => updateMetadataFromFile(changedFile), 100);
+      }
     });
+
+    // 🔧 关键修复：添加 resolved 事件（frontmatter 解析完成时触发）
+    const resolvedRef = app.metadataCache.on('resolved', () => {
+      updateFromActiveFile();
+    });
+
+    // 🔧 后备方案：定时轮询（每2秒检查一次）
+    const pollInterval = setInterval(() => {
+      updateFromActiveFile();
+    }, 2000);
 
     return () => {
       app.workspace.offref(eventRef);
       app.workspace.offref(leafRef);
       app.metadataCache.offref(cacheRef);
+      app.metadataCache.offref(resolvedRef);
+      clearInterval(pollInterval);
     };
   }, [app]);
 

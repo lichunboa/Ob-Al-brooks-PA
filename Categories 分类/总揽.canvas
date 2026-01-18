@@ -1,8 +1,9 @@
 {
 	"nodes":[
+		{"id":"99d4a1753d26175c","x":-140,"y":-528,"width":400,"height":400,"type":"file","file":"Categories 分类/Al brooks/价格行为学/01 术语.md"},
 		{"id":"9b9352f5b7e855a8","type":"file","file":"Categories 分类/Basre/Al brooks PA.base","x":-380,"y":-240,"width":400,"height":369},
 		{"id":"9bf68c82453d73f5","type":"file","file":"Daily/交易日记.base","x":40,"y":-240,"width":400,"height":400},
-		{"id":"d1c3dd991c882697","x":-360,"y":220,"width":720,"height":840,"type":"file","file":"Categories 分类/🦁 交易员控制台 (Trader Command).md"}
+		{"id":"d1c3dd991c882697","type":"file","file":"Categories 分类/🦁 交易员控制台 (Trader Command).md","x":-360,"y":220,"width":720,"height":840}
 	],
 	"edges":[]
 }

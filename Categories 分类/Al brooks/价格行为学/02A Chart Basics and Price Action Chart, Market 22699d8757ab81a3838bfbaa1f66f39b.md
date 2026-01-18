@@ -1,3 +1,8 @@
+---
+categories:
+  - Al brooks PA
+status:
+---
 # 02A Chart Basics and Price Action: Chart, Market
 
 - *Charts: purpose and types*

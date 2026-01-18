@@ -118,11 +118,13 @@ export class MarketStateMachine {
      * @param marketCycle 市场周期字符串
      * @param direction 交易方向 (Long/Short) - 用于消除歧义
      */
-    inferState(marketCycle: string | undefined, direction?: string): MarketState {
+    inferState(marketCycle: string | string[] | undefined, direction?: string): MarketState {
         if (!marketCycle) return "unknown";
 
-        const normalized = marketCycle.trim();
-        const dir = direction?.toLowerCase().trim() || "";
+        // 处理数组情况（marketCycle 可能是 MultiSelect 字段）
+        const cycleStr = Array.isArray(marketCycle) ? marketCycle.join(' ') : String(marketCycle);
+        const normalized = cycleStr.trim();
+        const dir = direction ? (Array.isArray(direction) ? direction.join(' ') : String(direction)).toLowerCase().trim() : "";
 
         // Robust Matching: Use includes instead of strict equality to handle "不做 (Long)" or "做多 (Long)" formats
         const isBull = dir.includes("long") || dir.includes("buy") || dir.includes("bull") || dir.includes("做多") || dir.includes("看涨") || dir.includes("多");
@@ -207,8 +209,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 第一次回调通常会有更低的高点(LH)供二次入场",
                         "⚠️ 警告: 只有连续的一系列强阴线才能改变Always In状态"
                     ],
-                    recommendedStrategies: ["H1", "H2", "High 2 Buy", "Micro Wedge", "Gap Pullback"],
-                    forbiddenStrategies: ["Counter-trend Scalp", "Wedge Top Sell"],
+                    recommendedStrategies: ["高1 (H1)", "高2 (H2)", "高2做多", "微型楔形", "缺口回调"],
+                    forbiddenStrategies: ["逆势剥头皮", "楔形顶做空"],
                     keyLevels: [
                         { type: "support", level: "EMA20 (动态支撑)", description: "首次触及必买" },
                         { type: "support", level: "Gap (缺口)", description: "突破缺口支撑" },
@@ -227,8 +229,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 第一次反弹通常会有更高低点(HL)供二次做空",
                         "⚠️ 警告: 不要被单根大阳线欺骗,等待跟随确认"
                     ],
-                    recommendedStrategies: ["L1", "L2", "Low 2 Sell", "Micro Wedge", "Bear Flag"],
-                    forbiddenStrategies: ["Counter-trend Scalp", "Wedge Bottom Buy"],
+                    recommendedStrategies: ["低1 (L1)", "低2 (L2)", "低2做空", "微型楔形", "熊旗"],
+                    forbiddenStrategies: ["逆势剥头皮", "楔形底做多"],
                     keyLevels: [
                         { type: "resistance", level: "EMA20 (动态阻力)", description: "首次触及必空" },
                         { type: "resistance", level: "Breakout Point", description: "突破点回测" },
@@ -247,8 +249,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 通道线超买区只止盈(Take Profit),不反手",
                         "⚠️ 警告: 留意变异为宽幅震荡(Trading Range)"
                     ],
-                    recommendedStrategies: ["Bull Channel Buy", "Wedge Bottom", "H2", "Triangle"],
-                    forbiddenStrategies: ["Chase (追高)", "Breakout Mode"],
+                    recommendedStrategies: ["牛通道做多", "楔形底", "高2 (H2)", "三角形"],
+                    forbiddenStrategies: ["追高", "突破模式"],
                     keyLevels: [
                         { type: "support", level: "Trendline (趋势线)", description: "通道下沿" },
                         { type: "resistance", level: "Channel Top", description: "通道上沿(部分止盈)" }
@@ -266,8 +268,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 75%的通道最终会向反方向突破(变为区间)",
                         "⚠️ 警告: 在通道下沿谨慎追空,等待L1/L2"
                     ],
-                    recommendedStrategies: ["Bear Channel Sell", "Wedge Top", "L2", "Flag"],
-                    forbiddenStrategies: ["Chase (追空)", "Breakout Mode"],
+                    recommendedStrategies: ["熊通道做空", "楔形顶", "低2 (L2)", "旗形"],
+                    forbiddenStrategies: ["追空", "突破模式"],
                     keyLevels: [
                         { type: "resistance", level: "Trendline (趋势线)", description: "通道上沿" },
                         { type: "support", level: "Channel Bottom", description: "通道下沿(部分止盈)" }
@@ -285,8 +287,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 不要在此状态下使用Stop Order入场(易被止损)",
                         "⚠️ 警告: 大多数突破会失败并反向运动"
                     ],
-                    recommendedStrategies: ["Fade Breakout", "Scalp", "Limit Order Entry"],
-                    forbiddenStrategies: ["Trend Swing", "Stop Entry"],
+                    recommendedStrategies: ["看衰突破", "剥头皮", "限价入场"],
+                    forbiddenStrategies: ["趋势波段", "突破入场"],
                     keyLevels: [
                         { type: "resistance", level: "Range Top", description: "假突破卖点" },
                         { type: "support", level: "Range Bottom", description: "假突破买点" }
@@ -304,8 +306,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 在高位看到大阳线是卖出机会(真空效应)",
                         "⚠️ 警告: 第二段腿(Second Leg)是常见的获利目标"
                     ],
-                    recommendedStrategies: ["BLSHS (Buy Low Sell High)", "Double Top/Bottom", "Wedge", "Final Flag"],
-                    forbiddenStrategies: ["Breakout Follow", "Swing Holding"],
+                    recommendedStrategies: ["高抛低吸", "双顶双底", "楔形", "末端旗形"],
+                    forbiddenStrategies: ["追突破", "持有波段"],
                     keyLevels: [
                         { type: "resistance", level: "Resistance Zone", description: "上方阻力区" },
                         { type: "support", level: "Support Zone", description: "下方支撑区" },
@@ -324,8 +326,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 如果突破后立即出现跟随阳线,胜率大增",
                         "⚠️ 警告: 小仓位追涨,预留加仓空间应对回调"
                     ],
-                    recommendedStrategies: ["Breakout Buy", "Gap Buy", "Spike and Channel"],
-                    forbiddenStrategies: ["Fade Breakout", "Top Picking"],
+                    recommendedStrategies: ["突破做多", "缺口做多", "极速与通道"],
+                    forbiddenStrategies: ["看衰突破", "摸顶"],
                     keyLevels: [
                         { type: "support", level: "Breakout Point", description: "突破缺口" },
                         { type: "magnet", level: "Measured Move", description: "测量目标(基于突破幅度)" }
@@ -343,8 +345,8 @@ export class MarketStateMachine {
                         "⚠️ 警告: 留意是否出现更低低点(LL)确认趋势",
                         "⚠️ 警告: 任何反弹(Pullback)都是首次做空机会"
                     ],
-                    recommendedStrategies: ["Breakout Sell", "Gap Sell", "Spike and Channel"],
-                    forbiddenStrategies: ["Fade Breakout", "Bottom Picking"],
+                    recommendedStrategies: ["突破做空", "缺口做空", "极速与通道"],
+                    forbiddenStrategies: ["看衰突破", "抄底"],
                     keyLevels: [
                         { type: "resistance", level: "Breakout Point", description: "突破缺口" },
                         { type: "magnet", level: "Measured Move", description: "测量目标" }
@@ -362,8 +364,8 @@ export class MarketStateMachine {
                         "⚠️ 核心原则: 如果看不清,就假设是区间震荡(Trading Range)",
                         "⚠️ 观察重点: EMA斜率,是否创新高/新低,重叠程度",
                     ],
-                    recommendedStrategies: ["Wait for Clarity", "Limit Order Scalp"],
-                    forbiddenStrategies: ["Large Position", "Aggressive Entry"],
+                    recommendedStrategies: ["等待明朗", "限价剥头皮"],
+                    forbiddenStrategies: ["重仓", "激进入场"],
                     keyLevels: [],
                     tone: "warning"
                 };

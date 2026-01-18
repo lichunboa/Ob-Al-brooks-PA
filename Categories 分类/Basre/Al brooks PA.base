@@ -44,3 +44,4 @@ views:
     hideNotesWhen: required
     heatmapCellSize: 14
     imageFit: contain
+    cardSize: 220

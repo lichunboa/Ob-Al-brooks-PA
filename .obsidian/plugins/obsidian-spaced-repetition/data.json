@@ -30,7 +30,8 @@
       "🦁 交易员控制台 (Trader Command)",
       "**/*.🦁 交易员控制台 (Trader Command)5.0.md",
       "node_modules",
-      "Excalidraw"
+      "Excalidraw",
+      "**/*.小禾酥脚本.md"
     ],
     "openRandomNote": false,
     "autoNextNote": false,
