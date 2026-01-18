@@ -523,6 +523,12 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                         onClick={async () => {
                                             console.log("[CoachFocus] Opening random quiz file:", q.path);
                                             await openFile(q.path);
+                                            // 打开后触发 SRS 复习命令
+                                            if (onAction) {
+                                                setTimeout(() => {
+                                                    onAction("review-flashcards-in-note");
+                                                }, 300);
+                                            }
                                         }}
                                         style={{
                                             padding: "6px 8px",

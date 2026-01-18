@@ -17,6 +17,9 @@ export interface ReviewHintsPanelProps {
     strategies?: any[]; // StrategyNoteFrontmatter[]
     openFile?: (path: string) => void;
     runCommand?: (id: string) => void;
+    // 智能学习增强
+    memory?: { focusCard?: any; quizPool?: any[]; weeklyPath?: any } | null;
+    recentTrades?: TradeRecord[]; // 最近交易用于分析薄弱点
 }
 
 /**
@@ -32,6 +35,8 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     strategies = [],
     openFile,
     runCommand,
+    memory,
+    recentTrades = [],
 }) => {
     const stateMachine = React.useMemo(() => new MarketStateMachine(), []);
     const [actionRunning, setActionRunning] = React.useState<string | null>(null);
@@ -60,6 +65,46 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             stateMachine.inferState(cycle, direction)
         );
     }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
+
+    // 智能学习分析：根据最近交易分析薄弱点
+    const smartLearning = React.useMemo(() => {
+        if (!recentTrades || recentTrades.length < 3) return null;
+
+        // 分析失败的交易模式
+        const lossTrades = recentTrades.filter(t =>
+            t.outcome === 'loss' || (t.netProfit ?? 0) < 0
+        );
+
+        if (lossTrades.length === 0) return null;
+
+        // 统计失败原因（使用 setup 或 marketCycle 作为分析维度）
+        const errorCounts: Record<string, number> = {};
+        lossTrades.forEach(t => {
+            // 使用策略名或市场周期作为分析维度
+            const category = t.setupKey || t.strategyName || t.marketCycle || 'Unknown';
+            errorCounts[category] = (errorCounts[category] || 0) + 1;
+        });
+
+        // 找到最常见的错误
+        const sortedErrors = Object.entries(errorCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 2);
+
+        // 获取焦点卡片
+        const focusCard = memory?.focusCard;
+
+        return {
+            weakPoints: sortedErrors.map(([error, count]) => ({
+                error,
+                count,
+                suggestion: `复习 "${error}" 相关概念`
+            })),
+            focusCard: focusCard ? {
+                title: focusCard.file || focusCard.q || '当前焦点',
+                path: focusCard.path
+            } : null
+        };
+    }, [recentTrades, memory]);
 
     // 如果既没有市场预测(unknown且无guidance? impossible, always guidance) 也没有复盘提示
     // modified: If unknown AND no trade hints, we prefer to Show the "Unknown" state widget to prompt user.
@@ -240,6 +285,54 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                                     {" "}{level.description}: {level.level}
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* 智能学习建议 */}
+                    {smartLearning && smartLearning.weakPoints.length > 0 && (
+                        <div style={{
+                            marginTop: "10px",
+                            paddingTop: "10px",
+                            borderTop: "1px solid var(--background-modifier-border)",
+                            fontSize: "0.85em"
+                        }}>
+                            <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                marginBottom: "6px",
+                                color: "var(--text-muted)"
+                            }}>
+                                <span>📚</span>
+                                <span>学习建议</span>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                {smartLearning.weakPoints.map((wp, i) => (
+                                    <span
+                                        key={i}
+                                        style={{
+                                            padding: "2px 8px",
+                                            background: "rgba(239, 68, 68, 0.1)",
+                                            color: "var(--text-error)",
+                                            borderRadius: "8px",
+                                            fontSize: "0.9em"
+                                        }}
+                                    >
+                                        {wp.error} ({wp.count}次失败)
+                                    </span>
+                                ))}
+                            </div>
+                            {smartLearning.focusCard && openFile && (
+                                <div style={{ marginTop: "6px" }}>
+                                    <InteractiveButton
+                                        interaction="text"
+                                        onClick={() => openFile(smartLearning.focusCard!.path)}
+                                        style={{ fontSize: "0.9em", color: "var(--interactive-accent)" }}
+                                    >
+                                        🎯 当前焦点: {smartLearning.focusCard.title}
+                                    </InteractiveButton>
+                                </div>
+                            )}
                         </div>
                     )}
                 </GlassPanel>

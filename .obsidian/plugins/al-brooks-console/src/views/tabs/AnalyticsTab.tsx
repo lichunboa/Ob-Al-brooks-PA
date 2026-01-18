@@ -83,6 +83,50 @@ export const AnalyticsTab: React.FC = () => {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [showConfig, setShowConfig] = React.useState(false);
 
+  // 日期范围筛选
+  type DateRange = 'week' | 'month' | '30d' | '90d' | 'year' | 'all';
+  const [dateRange, setDateRange] = React.useState<DateRange>('all');
+
+  // 根据日期范围筛选交易
+  const filteredTrades = React.useMemo(() => {
+    if (dateRange === 'all') return trades;
+
+    const now = new Date();
+    let cutoff: Date;
+
+    switch (dateRange) {
+      case 'week':
+        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case '30d':
+        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        cutoff = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        return trades;
+    }
+
+    const cutoffIso = cutoff.toISOString().split('T')[0];
+    return trades.filter(t => t.dateIso && t.dateIso >= cutoffIso);
+  }, [trades, dateRange]);
+
+  const dateRangeLabels: Record<DateRange, string> = {
+    week: '本周',
+    month: '本月',
+    '30d': '30天',
+    '90d': '90天',
+    year: '本年',
+    all: '全部',
+  };
+
   type WidgetKey = keyof typeof visibleWidgets;
 
   const toggleWidget = (key: string) => {
@@ -92,28 +136,28 @@ export const AnalyticsTab: React.FC = () => {
     });
   };
 
-  // Derived Data
+  // Derived Data - 使用筛选后的数据
   const summary = React.useMemo(
-    () => computeTradeStatsByAccountType(trades),
-    [trades]
+    () => computeTradeStatsByAccountType(filteredTrades),
+    [filteredTrades]
   );
 
   const strategyLab = React.useMemo(
     () =>
-      computeStrategyLab(trades, (t) => ({
+      computeStrategyLab(filteredTrades, (t) => ({
         name: resolveCanonicalStrategy(t, strategyIndex),
       })),
-    [trades, strategyIndex]
+    [filteredTrades, strategyIndex]
   );
 
   const contextAnalysis = React.useMemo(
-    () => computeContextAnalysis(trades),
-    [trades]
+    () => computeContextAnalysis(filteredTrades),
+    [filteredTrades]
   );
 
   const analyticsRecentLiveTradesAsc = React.useMemo(
-    () => computeRecentLiveTradesAsc(trades, 30),
-    [trades]
+    () => computeRecentLiveTradesAsc(filteredTrades, 30),
+    [filteredTrades]
   );
 
   const analyticsRMultiples = React.useMemo(
@@ -127,18 +171,18 @@ export const AnalyticsTab: React.FC = () => {
   );
 
   const analyticsTopStrats = React.useMemo(
-    () => computeTopStrategiesFromTrades(trades, 5, strategyIndex),
-    [trades, strategyIndex]
+    () => computeTopStrategiesFromTrades(filteredTrades, 5, strategyIndex),
+    [filteredTrades, strategyIndex]
   );
 
   const liveCyclePerf = React.useMemo(
-    () => calculateLiveCyclePerformance(trades),
-    [trades]
+    () => calculateLiveCyclePerformance(filteredTrades),
+    [filteredTrades]
   );
 
   const tuition = React.useMemo(
-    () => computeTuitionAnalysis(trades),
-    [trades]
+    () => computeTuitionAnalysis(filteredTrades),
+    [filteredTrades]
   );
 
   const analyticsSuggestion = React.useMemo(
@@ -156,13 +200,13 @@ export const AnalyticsTab: React.FC = () => {
   );
 
   const strategyAttribution = React.useMemo(
-    () => computeStrategyAttribution(trades, strategyIndex, 20),
-    [trades, strategyIndex]
+    () => computeStrategyAttribution(filteredTrades, strategyIndex, 20),
+    [filteredTrades, strategyIndex]
   );
 
   const allTradesDateRange = React.useMemo(
-    () => calculateAllTradesDateRange(trades),
-    [trades]
+    () => calculateAllTradesDateRange(filteredTrades),
+    [filteredTrades]
   );
 
   // Calendar Data
@@ -176,7 +220,7 @@ export const AnalyticsTab: React.FC = () => {
     dates.reverse(); // Ascending
 
     // Compute aggregation map
-    const dailyAggArray = computeDailyAgg(trades, 365);
+    const dailyAggArray = computeDailyAgg(filteredTrades, 365);
     const dailyMap = new Map<string, { dateIso: string; netR: number; count: number }>();
     dailyAggArray.forEach(d => {
       dailyMap.set(d.dateIso, d);
@@ -185,15 +229,15 @@ export const AnalyticsTab: React.FC = () => {
     const cells = generateCalendarCells(dates, dailyMap);
     const maxAbs = calculateCalendarMaxAbs(cells);
     return { calendarCells: cells, maxAbs };
-  }, [trades]);
+  }, [filteredTrades]);
 
   const calendarDays = calendarCells.length;
 
   // Gallery Data
   const gallery = React.useMemo(
     () =>
-      buildGalleryItems(trades, galleryScope, resolveLink, getResourceUrl),
-    [trades, galleryScope, resolveLink, getResourceUrl]
+      buildGalleryItems(filteredTrades, galleryScope, resolveLink, getResourceUrl),
+    [filteredTrades, galleryScope, resolveLink, getResourceUrl]
   );
 
   // Calculate drawdown data from Live equity curve
@@ -234,37 +278,50 @@ export const AnalyticsTab: React.FC = () => {
           marginBottom: SPACE.sm,
         }}
       >
-        {/* Unit Toggle */}
-        <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
-          <div
-            onClick={() => setDisplayUnit('money')}
-            style={{
-              padding: "2px 10px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              background: displayUnit === 'money' ? "var(--interactive-accent)" : "transparent",
-              color: displayUnit === 'money' ? "var(--text-on-accent)" : "var(--text-muted)",
-              fontSize: "0.85em",
-              fontWeight: 600,
-              transition: "all 0.2s"
-            }}
-          >
-            $
+        {/* 日期范围选择 + 单位切换 */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {/* 日期范围 */}
+          <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
+            {(['week', 'month', '30d', '90d', 'year', 'all'] as DateRange[]).map(range => (
+              <div
+                key={range}
+                onClick={() => setDateRange(range)}
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  background: dateRange === range ? "var(--interactive-accent)" : "transparent",
+                  color: dateRange === range ? "var(--text-on-accent)" : "var(--text-muted)",
+                  fontSize: "0.75em",
+                  fontWeight: 600,
+                  transition: "all 0.15s"
+                }}
+              >
+                {dateRangeLabels[range]}
+              </div>
+            ))}
           </div>
-          <div
-            onClick={() => setDisplayUnit('r')}
-            style={{
-              padding: "2px 10px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              background: displayUnit === 'r' ? "var(--interactive-accent)" : "transparent",
-              color: displayUnit === 'r' ? "var(--text-on-accent)" : "var(--text-muted)",
-              fontSize: "0.85em",
-              fontWeight: 600,
-              transition: "all 0.2s"
-            }}
-          >
-            R
+
+          {/* 单位切换 */}
+          <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
+            {(['money', 'r'] as const).map(unit => (
+              <div
+                key={unit}
+                onClick={() => setDisplayUnit(unit)}
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  background: displayUnit === unit ? "var(--interactive-accent)" : "transparent",
+                  color: displayUnit === unit ? "var(--text-on-accent)" : "var(--text-muted)",
+                  fontSize: "0.75em",
+                  fontWeight: 600,
+                  transition: "all 0.15s"
+                }}
+              >
+                {unit === 'money' ? '$' : 'R'}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -354,7 +411,7 @@ export const AnalyticsTab: React.FC = () => {
 
           {visibleWidgets.dataAnalysis && (
             <JournalGallery
-              trades={trades}
+              trades={filteredTrades}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               calendarCells={calendarCells}
@@ -380,7 +437,7 @@ export const AnalyticsTab: React.FC = () => {
 
           {visibleWidgets.winLossAnalysis && (
             <WinLossAnalysisPanel
-              trades={trades}
+              trades={filteredTrades}
               currencyMode={currencyMode}
               displayUnit={displayUnit}
             />
