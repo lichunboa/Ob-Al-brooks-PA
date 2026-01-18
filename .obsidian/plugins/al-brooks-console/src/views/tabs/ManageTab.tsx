@@ -33,6 +33,9 @@ import { SPACE } from "../../ui/styles/dashboardPrimitives";
 import { topN } from "../../utils/aggregation-utils";
 import { DoctorPanel } from "../components/manage/DoctorPanel";
 import { ArchivePanel } from "../components/manage/ArchivePanel";
+import { PropertyManagerTab } from "./PropertyManagerTab";
+import { GlassPanel } from "../../ui/components/GlassPanel";
+import { InteractiveButton } from "../../ui/components/InteractiveButton";
 
 
 
@@ -262,6 +265,36 @@ export const ManageTab: React.FC = () => {
         }
     };
 
+    // 💎 上帝模式状态
+    const [showGodMode, setShowGodMode] = React.useState(false);
+
+    // 如果显示上帝模式，渲染 PropertyManagerTab
+    if (showGodMode) {
+        return (
+            <div style={{ height: "100%" }}>
+                <div style={{
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    borderBottom: "1px solid rgba(255,255,255,0.05)"
+                }}>
+                    <InteractiveButton
+                        interaction="text"
+                        onClick={() => setShowGodMode(false)}
+                        style={{ padding: "6px 12px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px" }}
+                    >
+                        ← 返回
+                    </InteractiveButton>
+                    <span style={{ fontWeight: 700, fontSize: "1.1em" }}>
+                        💎 上帝模式（属性管理器）
+                    </span>
+                </div>
+                <PropertyManagerTab app={app} />
+            </div>
+        );
+    }
+
     return (
         <div style={{ paddingBottom: "40px" }}>
             <SectionHeader title="数据管理中心" icon="🛡️" />
@@ -274,6 +307,45 @@ export const ManageTab: React.FC = () => {
                 }}
             >
                 全面的数据健康监控、属性管理及导出工具。
+            </div>
+
+            {/* 💎 上帝模式入口 */}
+            <div
+                onClick={() => setShowGodMode(true)}
+                style={{
+                    margin: "0 12px 20px",
+                    padding: "16px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    background: "linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(129, 140, 248, 0.1) 100%)",
+                    border: "1px solid rgba(56, 189, 248, 0.2)",
+                    borderRadius: "12px"
+                }}
+            >
+                <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ fontSize: "1.5em" }}>💎</span>
+                        <div>
+                            <div style={{
+                                fontWeight: 800,
+                                fontSize: "1.1em",
+                                background: "linear-gradient(to right, var(--interactive-accent), #818cf8)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent"
+                            }}>
+                                上帝模式 (God Mode)
+                            </div>
+                            <div style={{ fontSize: "0.85em", color: "var(--text-muted)", marginTop: "2px" }}>
+                                全局属性扫描 · 批量重命名 · 值管理 · 属性注入
+                            </div>
+                        </div>
+                    </div>
+                    <span style={{ color: "var(--text-muted)" }}>→</span>
+                </div>
             </div>
 
             <RawDataPanel trades={trades} openFile={openFile} />
