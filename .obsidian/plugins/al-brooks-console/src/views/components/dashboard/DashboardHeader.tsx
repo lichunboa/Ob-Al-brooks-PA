@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Button } from "../../../ui/components/Button";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { Notice } from "obsidian";
 import type { IntegrationCapability } from "../../../integrations/contracts";
 import type { PluginIntegrationRegistry } from "../../../integrations/PluginIntegrationRegistry";
 
@@ -76,11 +77,30 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <InteractiveButton
                     interaction="lift"
                     onClick={() => {
-                        // Prefer calling command if available, else open file
-                        if (runCommand) runCommand("al-brooks-console:create-trade-note");
-                        else openFile(TRADE_NOTE_TEMPLATE_PATH);
+                        // 优先调用 QuickAdd 命令（会自动填写日期等）
+                        if (runCommand) {
+                            // QuickAdd 命令 ID 可能是 UUID 格式或名称格式
+                            const quickAddCommands = [
+                                "quickadd:choice:4fe2b2a9-956f-4d21-a597-d1f86878cdc3", // UUID 格式
+                                "quickadd:choice:New Live Trade", // 名称格式
+                                "quickadd:runQuickAdd" // 打开 QuickAdd 菜单
+                            ];
+
+                            for (const cmd of quickAddCommands) {
+                                if (runCommand(cmd)) {
+                                    console.log("[Dashboard] 成功调用 QuickAdd:", cmd);
+                                    return;
+                                }
+                            }
+                            console.warn("[Dashboard] QuickAdd 命令调用失败，回退到打开模版");
+                        } else {
+                            console.warn("[Dashboard] runCommand 未定义");
+                        }
+
+                        // 回退：打开模版文件
+                        openFile(TRADE_NOTE_TEMPLATE_PATH);
                     }}
-                    title={TRADE_NOTE_TEMPLATE_PATH}
+                    title="新建交易笔记（QuickAdd 自动填充日期）"
                 >
                     新建交易
                 </InteractiveButton>
@@ -91,34 +111,29 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                             interaction="lift"
                             onClick={() => {
                                 if (runCommand) {
-                                    // Debug: List all commands to find the real one
-                                    const available = (window as any).app.commands.listCommands().filter((c: any) =>
-                                        c.id.includes("spaced") || c.id.includes("card") || c.id.includes("review")
-                                    );
-                                    console.log("[Dashboard] All Flashcard Related Commands:", available.map((c: any) => c.id));
+                                    const app = (window as any).app;
+                                    const available = app.commands.listCommands();
 
-                                    // Try known command IDs based on main.js + Manifest
-                                    // Verified ID: "obsidian-spaced-repetition:srs-review-flashcards"
-                                    const commands = [
-                                        "obsidian-spaced-repetition:srs-review-flashcards",
-                                        "obsidian-spaced-repetition:review-flashcards",
-                                        "srs:review-flashcards"
-                                    ];
-                                    let executed = false;
-                                    for (const cmd of commands) {
-                                        if (runCommand(cmd)) {
-                                            executed = true;
-                                            break;
-                                        }
+                                    // 1. Try standard command
+                                    if (runCommand("obsidian-spaced-repetition:srs-review-flashcards")) {
+                                        return;
                                     }
 
-                                    if (!executed && available.length > 0) {
-                                        // Auto-fallback: Try the first command that looks like "review-flashcards"
-                                        const fuzzy = available.find((c: any) => c.id.includes("review-flashcards"));
-                                        if (fuzzy) {
-                                            console.log(`[Dashboard] Falling back to fuzzy match: ${fuzzy.id}`);
-                                            runCommand(fuzzy.id);
-                                        }
+                                    // 2. Search for commands
+                                    const srsCmds = available.filter((c: any) =>
+                                        c.id.includes("obsidian-spaced-repetition") &&
+                                        (c.id.includes("review-flashcards") || c.id.includes("review-all"))
+                                    );
+
+                                    console.log("[Dashboard] Found SRS Commands:", srsCmds.map((c: any) => c.id));
+
+                                    if (srsCmds.length > 0) {
+                                        const best = srsCmds[0].id;
+                                        new Notice(`调用: ${srsCmds[0].name}`);
+                                        runCommand(best);
+                                    } else {
+                                        new Notice("❌ 未找到 Spaced Repetition 插件命令！\n请确保插件已启用。");
+                                        console.warn("Available commands containing 'review':", available.filter((c: any) => c.id.includes("review")));
                                     }
                                 }
                             }}

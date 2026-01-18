@@ -29,6 +29,7 @@ export const ConsoleContent: React.FC = () => {
     openFile,
     integrations,
     index,
+    runCommand, // 新增：用于执行 Obsidian 命令（如复习卡片）
   } = useConsoleContext();
 
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
@@ -106,6 +107,7 @@ export const ConsoleContent: React.FC = () => {
             // Assuming executeIntent exists or we can skip for now if complex.
             // Previous Dashboard.tsx had it.
           }}
+          runCommand={runCommand}
           onRebuild={() => {
             // We need access to index to rebuild.
             // Context exposes `index`.

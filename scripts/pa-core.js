@@ -532,6 +532,7 @@ if (!window.__paAutoRefreshInstalled) {
   };
 
   const onModify = (file) => {
+    return; // ⛔️ 紧急熔断：禁用自动刷新，防止死循环
     try {
       if (!shouldCare(file)) return;
       window.paMarkDirty("modify", file.path);

@@ -94,60 +94,77 @@ export async function loadCourse(app: App, settings: AlBrooksConsoleSettings): P
     const linksById: Record<string, { path: string; name: string }> = {};
     const doneIds: string[] = [];
 
+    // Debug: Trace start
+    console.log(`[Manager] loadCourse started. Scanning ${files.length} files...`);
+
     for (const f of files) {
+        if (f.path.includes("Templates/") || f.path.includes("Archive/")) continue;
+
         const cache = app.metadataCache.getFileCache(f);
         const fm = cache?.frontmatter;
 
-        // FIXED: User specified 'module_id' is the key property.
-        let id = fm?.module_id;
+        // 2. Legacy Filter: Check tags
+        const tags = cache?.tags?.map(t => t.tag) || [];
+        const updateTags = fm?.tags;
 
-        // Fallback to course_id if module_id missing (backward compat), or basename if neither exist (but user wants strict module_id??)
-        // User said: "Only module_id marked courses should be counted".
-        // So I will prioritize module_id. If missing, I should probably NOT count it as a course node unless strict legacy file naming?
-        // Let's keep `course_id` as fallback but prefer `module_id`.
-        if (!id) id = fm?.course_id;
-
-        // Strict Mode: If user insists on "Only module_id", maybe I should disable filename regex?
-        // User said: "1. Only courses with module_id property should be counted. You didn't analyze this."
-        // This implies filename matching is unwanted/wrong.
-        // I will COMMENT OUT the filename regex match to strictly follow user request.
-        /*
-        if (!id) {
-            const m = f.basename.match(/^([A-Za-z0-9]+)/);
-            if (m) id = m[1];
-        }
-        */
-
-        if (id) {
-            // Normalize ID: remove leading zeros (01 -> 1) IF it is purely numeric, or numeric part of alphanum?
-            // Actually, best to store as is, BUT syllabus usually uses "1", "2" for numbers.
-            // If filename is "01", we should map to "1".
-            // If filename is "02A", we should map to "2A" or "02A"?
-            // User syllabus likely uses "2A" if filename uses "02A".
-            // Let's normalize by stripping leading zero if it looks like a number or alpha-number?
-            // "01" -> "1", "02A" -> "2A". "L01" -> "L1"? No, L01 usually stays L01.
-            // Safe bet: Match strictly.
-            // BUT user complaint involves "logic messed up".
-            // Let's rely on flexible matching.
-            // Check if we can find exact match first.
-            let key = String(id);
-            if (!linksById[key] && key.startsWith("0")) {
-                const noZero = key.replace(/^0+/, "");
-                if (noZero) key = noZero;
-            }
-            linksById[key] = { path: f.path, name: f.basename };
-            // Also store original for safety
-            if (String(id) !== key) linksById[String(id)] = { path: f.path, name: f.basename };
-            linksById[String(id)] = { path: f.path, name: f.basename };
-
-            // FIXED: Respected 'studied' boolean/checkbox from v5 legacy logic
-            if (fm?.status === "Done" || fm?.tags?.includes("#PA/Done") || fm?.studied === true) {
-                doneIds.push(String(id));
+        let hasCourseTag = false;
+        if (tags.some(t => t.toLowerCase() === "#pa/course")) hasCourseTag = true;
+        if (!hasCourseTag && updateTags) {
+            const tagList = Array.isArray(updateTags) ? updateTags : String(updateTags).split(/[\s,]+/);
+            if (tagList.some((t: string) => t.trim().replace(/^#/, "").toLowerCase() === "pa/course")) {
+                hasCourseTag = true;
             }
         }
-    }
 
-    return buildCourseSnapshot({
+        // Robust Module ID Parsing
+        let ids: string[] = [];
+        const rawModuleId = fm?.module_id;
+        const rawCourseId = fm?.course_id;
+
+        const parseIds = (raw: any): string[] => {
+            if (raw === undefined || raw === null) return [];
+            if (Array.isArray(raw)) return raw.map(String);
+            // Handle comma-separated string: "10A, 10B"
+            if (typeof raw === 'string' && raw.includes(',')) {
+                return raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            }
+            return [String(raw)];
+        };
+
+        if (rawModuleId !== undefined && rawModuleId !== null) {
+            ids = parseIds(rawModuleId);
+        } else if (rawCourseId !== undefined && rawCourseId !== null) {
+            ids = parseIds(rawCourseId);
+        }
+
+        // If file *looks* like a course but has no tag, log a warning (could be the issue)
+        if (ids.length > 0 && !hasCourseTag) {
+            // console.warn(`[Manager] Skipped possible course file (missing #PA/Course): "${f.basename}" IDs: [${ids.join(", ")}]`);
+            // Strict legacy behavior: MUST have tag.
+            continue;
+        }
+
+        if (!hasCourseTag) continue;
+
+        if (ids.length > 0) {
+            const isDone = fm?.status === "Done" || fm?.tags?.includes("#PA/Done") || fm?.studied === true;
+
+            // Debug Log: Valid course found
+            console.log(`[Manager] Course Note: "${f.basename}" IDs: [${ids.join(", ")}] Done: ${isDone}`);
+
+            for (const idStr of ids) {
+                const id = idStr.trim();
+                if (!id) continue;
+
+                // LEGACY BEHAVIOR: Exact match
+                const key = id;
+                linksById[key] = { path: f.path, name: f.basename };
+                if (isDone) {
+                    doneIds.push(key);
+                }
+            }
+        }
+    } return buildCourseSnapshot({
         syllabus,
         doneIds,
         linksById,

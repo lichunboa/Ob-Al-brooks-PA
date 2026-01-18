@@ -79,6 +79,12 @@ export const LearnTab: React.FC = () => {
         style={{ margin: "18px 0 10px" }}
       />
 
+      {memoryError && (
+        <div style={{ padding: '10px', background: 'var(--background-modifier-error)', color: 'var(--text-on-accent)', borderRadius: '8px', marginBottom: '10px', fontSize: '0.9em' }}>
+          <strong>Memory Load Error:</strong> {memoryError}
+        </div>
+      )}
+
       <CoachFocus
         memory={memory}
         course={course}

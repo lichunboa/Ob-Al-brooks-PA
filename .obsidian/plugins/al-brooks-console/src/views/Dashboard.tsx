@@ -205,9 +205,25 @@ export class ConsoleView extends ItemView {
             loadCourse={() => loadCourse(this.app, this.getSettings())}
             loadMemory={() => loadMemory(this.app, this.getSettings())}
             runCommand={(id) => {
-              const available = (this.app as any).commands.listCommands().filter((c: any) => c.id.includes("spaced"));
-              console.log("[Dashboard] Available SRS Commands:", available.map((c: any) => c.id));
-              return (this.app as any).commands.executeCommandById(id);
+              const commands = (this.app as any).commands;
+              // 先检查命令是否存在
+              const allCommands = commands.listCommands();
+              const commandExists = allCommands.some((c: any) => c.id === id);
+
+              if (!commandExists) {
+                console.log(`[Dashboard] 命令不存在: ${id}`);
+                return false;
+              }
+
+              // 执行命令
+              try {
+                commands.executeCommandById(id);
+                console.log(`[Dashboard] 成功执行命令: ${id}`);
+                return true;
+              } catch (e) {
+                console.error(`[Dashboard] 执行命令失败: ${id}`, e);
+                return false;
+              }
             }}
             getResourceUrl={(path) => {
               const file = this.app.vault.getAbstractFileByPath(path);

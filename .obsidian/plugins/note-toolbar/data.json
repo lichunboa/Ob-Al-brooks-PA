@@ -57,47 +57,6 @@
       "hasCommand": false,
       "items": [
         {
-          "uuid": "881ab6cd-fa48-44aa-a260-751baff595ec",
-          "hasCommand": false,
-          "icon": "",
-          "inGallery": false,
-          "label": "💬",
-          "link": "Copilot: Open Copilot Chat Window",
-          "linkAttr": {
-            "commandCheck": false,
-            "commandId": "copilot:chat-open-window",
-            "hasVars": false,
-            "type": "command"
-          },
-          "tooltip": "",
-          "visibility": {
-            "desktop": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "mobile": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "tablet": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            }
-          }
-        },
-        {
           "uuid": "d7b994c2-2feb-403d-b0fd-36db50f59f16",
           "hasCommand": false,
           "icon": "",
@@ -107,88 +66,6 @@
           "linkAttr": {
             "commandCheck": false,
             "commandId": "obsidian-emoji-toolbar:emoji-picker:open-picker",
-            "hasVars": false,
-            "type": "command"
-          },
-          "tooltip": "",
-          "visibility": {
-            "desktop": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "mobile": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "tablet": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "uuid": "c58493c0-587c-4b55-9092-e5a3884253eb",
-          "hasCommand": false,
-          "icon": "",
-          "inGallery": false,
-          "label": "🪟",
-          "link": "Advanced Tables: Open table controls toolbar",
-          "linkAttr": {
-            "commandCheck": false,
-            "commandId": "table-editor-obsidian:table-control-bar",
-            "hasVars": false,
-            "type": "command"
-          },
-          "tooltip": "",
-          "visibility": {
-            "desktop": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "mobile": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            },
-            "tablet": {
-              "allViews": {
-                "components": [
-                  "icon",
-                  "label"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "uuid": "26b8e883-f819-4bd9-b9ae-c881329a2f48",
-          "hasCommand": false,
-          "icon": "",
-          "inGallery": false,
-          "label": "❤️",
-          "link": "Life Tracker: Capture properties",
-          "linkAttr": {
-            "commandCheck": false,
-            "commandId": "life-tracker:capture-properties",
             "hasVars": false,
             "type": "command"
           },
@@ -850,7 +727,7 @@
           }
         }
       },
-      "updated": "2025-12-17T11:16:26.722Z"
+      "updated": "2026-01-18T07:36:33.253Z"
     }
   ],
   "version": 20250313.1,
