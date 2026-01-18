@@ -323,10 +323,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                     style={{
                                                         padding: "10px 12px",
                                                         background: isTop
-                                                            ? "var(--interactive-accent)"
+                                                            ? "#60A5FA"
                                                             : isHigh
-                                                                ? "rgba(var(--interactive-accent-rgb), 0.12)"
-                                                                : "rgba(var(--mono-rgb-100), 0.04)",
+                                                                ? "rgba(96, 165, 250, 0.15)"
+                                                                : "var(--background-secondary)",
                                                         borderRadius: "8px",
                                                         cursor: "pointer",
                                                         transition: "all 0.15s ease",
