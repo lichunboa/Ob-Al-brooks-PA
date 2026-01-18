@@ -523,12 +523,16 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                                         onClick={async () => {
                                             console.log("[CoachFocus] Opening random quiz file:", q.path);
                                             await openFile(q.path);
-                                            // 打开后触发 SRS 复习命令
-                                            if (onAction) {
-                                                setTimeout(() => {
+                                            // 打开后触发 SRS 复习命令（延迟确保文件已打开）
+                                            setTimeout(() => {
+                                                if (runCommand) {
+                                                    // 直接调用 SRS 插件命令复习当前笔记的卡片
+                                                    const success = runCommand("obsidian-spaced-repetition:srs-review-flashcards-in-note");
+                                                    console.log("[CoachFocus] SRS review command result:", success);
+                                                } else if (onAction) {
                                                     onAction("review-flashcards-in-note");
-                                                }, 300);
-                                            }
+                                                }
+                                            }, 500);
                                         }}
                                         style={{
                                             padding: "6px 8px",

@@ -151,6 +151,7 @@ export function buildMemorySnapshot(args: {
     total += currentFileCardCount;
 
     // --- Quiz Pool Population ---
+    // 1. Basic 卡片 (::)
     for (const m of basicMatches) {
       quizAll.push({
         q: String(m[1] ?? "").trim(),
@@ -158,6 +159,38 @@ export function buildMemorySnapshot(args: {
         path: f.path,
         type: "Basic",
       });
+    }
+
+    // 2. 多行问答卡片 (?) - 提取问题部分
+    const multilineRegex = /^(.+)\n\?$/gm;
+    const multilineMatches = [...clean.matchAll(multilineRegex)];
+    for (const m of multilineMatches) {
+      const question = String(m[1] ?? "").trim();
+      if (question.length > 3) {
+        quizAll.push({
+          q: question,
+          file: f.name,
+          path: f.path,
+          type: "Basic",
+        });
+      }
+    }
+
+    // 3. 填空题 (==xxx==) - 提取填空所在行作为问题
+    const clozeLineRegex = /^(.+==[^=]+=+.*)$/gm;
+    const clozeLineMatches = [...clean.matchAll(clozeLineRegex)];
+    for (const m of clozeLineMatches) {
+      const line = String(m[1] ?? "").trim();
+      // 用 ___ 替换填空项作为问题显示
+      const displayQ = line.replace(/==[^=]+==/g, "___");
+      if (displayQ.length > 5) {
+        quizAll.push({
+          q: displayQ,
+          file: f.name,
+          path: f.path,
+          type: "Basic",
+        });
+      }
     }
 
     // --- SR Metadata Parsing ---
