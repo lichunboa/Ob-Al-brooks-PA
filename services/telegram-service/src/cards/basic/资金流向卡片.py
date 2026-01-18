@@ -176,6 +176,7 @@ class MoneyFlowCard(RankingCard):
             flow_type,
             market,
             fields_state,
+            lang,
         )
 
         aligned = user_handler.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
