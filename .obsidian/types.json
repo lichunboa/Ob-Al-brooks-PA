@@ -29,6 +29,8 @@
     "设置类别/setup_category": "multitext",
     "date": "date",
     "概率/probability": "multitext",
-    "studied": "checkbox"
+    "studied": "checkbox",
+    "止损建议/stop_loss_recommendation": "multitext",
+    "目标建议/take_profit_recommendation": "multitext"
   }
 }

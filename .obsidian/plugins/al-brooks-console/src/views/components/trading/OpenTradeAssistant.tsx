@@ -285,10 +285,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         }}>({results.length}个匹配)</span>
                                     </div>
 
-                                    {/* 两列网格布局 */}
+                                    {/* 单列布局，显示更多信息 */}
                                     <div style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 1fr",
+                                        display: "flex",
+                                        flexDirection: "column",
                                         gap: "6px"
                                     }}>
                                         {results.map((r) => {
@@ -300,24 +300,34 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             // 根据评分确定视觉层级
                                             const isTop = r.score === maxScore;
                                             const isHigh = percentage >= 15;
-                                            const isMedium = percentage >= 8 && percentage < 15;
+
+                                            // 计算该策略的历史表现
+                                            const strategyTrades = trades.filter(t => {
+                                                const tName = t.strategyName?.toLowerCase() || "";
+                                                const sName = r.card.canonicalName.toLowerCase();
+                                                return tName.includes(sName) || sName.includes(tName);
+                                            });
+                                            const wins = strategyTrades.filter(t => {
+                                                const pnl = typeof t.pnl === "number" ? t.pnl : 0;
+                                                return pnl > 0;
+                                            }).length;
+                                            const winRate = strategyTrades.length > 0
+                                                ? Math.round((wins / strategyTrades.length) * 100)
+                                                : null;
 
                                             return (
                                                 <div
                                                     key={`cycle-pick-${r.card.path}`}
                                                     onClick={() => onOpenFile(r.card.path)}
                                                     style={{
-                                                        padding: isTop ? "8px 10px" : "6px 8px",
+                                                        padding: "10px 12px",
                                                         background: isTop
                                                             ? "var(--interactive-accent)"
                                                             : isHigh
-                                                                ? "rgba(var(--interactive-accent-rgb), 0.15)"
+                                                                ? "rgba(var(--interactive-accent-rgb), 0.12)"
                                                                 : "rgba(var(--mono-rgb-100), 0.04)",
-                                                        borderRadius: "6px",
+                                                        borderRadius: "8px",
                                                         cursor: "pointer",
-                                                        display: "flex",
-                                                        justifyContent: "space-between",
-                                                        alignItems: "center",
                                                         transition: "all 0.15s ease",
                                                         border: isTop
                                                             ? "none"
@@ -332,41 +342,66 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                         e.currentTarget.style.boxShadow = "none";
                                                     }}
                                                 >
-                                                    <span style={{
-                                                        fontSize: isTop ? "0.9em" : isHigh ? "0.85em" : "0.8em",
-                                                        fontWeight: isTop ? 600 : isHigh ? 500 : 400,
-                                                        color: isTop
-                                                            ? "var(--text-on-accent)"
-                                                            : isHigh
-                                                                ? "var(--text-normal)"
-                                                                : "var(--text-muted)",
-                                                        flex: 1,
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap",
+                                                    {/* 第一行：名称 + 匹配度 */}
+                                                    <div style={{
+                                                        display: "flex",
+                                                        justifyContent: "space-between",
+                                                        alignItems: "center",
+                                                        marginBottom: (r.card.riskReward || winRate !== null) ? "4px" : 0
                                                     }}>
-                                                        {r.card.canonicalName}
-                                                    </span>
-                                                    <span style={{
-                                                        fontSize: isTop ? "0.8em" : "0.7em",
-                                                        fontWeight: 600,
-                                                        padding: "2px 6px",
-                                                        borderRadius: "4px",
-                                                        background: isTop
-                                                            ? "rgba(255,255,255,0.2)"
-                                                            : isHigh
-                                                                ? "var(--interactive-accent)"
-                                                                : "rgba(var(--mono-rgb-100), 0.1)",
-                                                        color: isTop
-                                                            ? "var(--text-on-accent)"
-                                                            : isHigh
-                                                                ? "var(--text-on-accent)"
-                                                                : "var(--text-muted)",
-                                                        marginLeft: "6px",
-                                                        flexShrink: 0,
-                                                    }}>
-                                                        {percentage}%
-                                                    </span>
+                                                        <span style={{
+                                                            fontSize: "0.9em",
+                                                            fontWeight: 600,
+                                                            color: isTop ? "var(--text-on-accent)" : "var(--text-normal)",
+                                                            flex: 1,
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            whiteSpace: "nowrap",
+                                                        }}>
+                                                            {r.card.canonicalName}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: "0.75em",
+                                                            fontWeight: 600,
+                                                            padding: "2px 6px",
+                                                            borderRadius: "4px",
+                                                            background: isTop
+                                                                ? "rgba(255,255,255,0.25)"
+                                                                : "var(--interactive-accent)",
+                                                            color: isTop ? "var(--text-on-accent)" : "white",
+                                                            marginLeft: "6px",
+                                                            flexShrink: 0,
+                                                        }}>
+                                                            {percentage}%
+                                                        </span>
+                                                    </div>
+
+                                                    {/* 第二行：R/R、胜率、使用次数 */}
+                                                    {(r.card.riskReward || winRate !== null) && (
+                                                        <div style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: "10px",
+                                                            fontSize: "0.75em",
+                                                            color: isTop ? "rgba(255,255,255,0.8)" : "var(--text-muted)",
+                                                        }}>
+                                                            {r.card.riskReward && (
+                                                                <span>📊 R/R: <b>{r.card.riskReward}</b></span>
+                                                            )}
+                                                            {winRate !== null && (
+                                                                <span style={{
+                                                                    color: isTop
+                                                                        ? "rgba(255,255,255,0.9)"
+                                                                        : winRate >= 50 ? "#10B981" : "#EF4444"
+                                                                }}>
+                                                                    ✓ 胜率: <b>{winRate}%</b>
+                                                                </span>
+                                                            )}
+                                                            {strategyTrades.length > 0 && (
+                                                                <span>📅 使用: <b>{strategyTrades.length}次</b></span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
