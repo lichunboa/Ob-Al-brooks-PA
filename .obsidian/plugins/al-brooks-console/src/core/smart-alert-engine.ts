@@ -345,6 +345,7 @@ function analyzePatternRecommendations(
 
 /**
  * 分析学习薄弱点（基于 #flashcards 卡片）
+ * 增强版：根据市场状态推荐相关概念复习
  */
 function analyzeLearningWeakness(
     memory: MemorySnapshot,
@@ -352,8 +353,23 @@ function analyzeLearningWeakness(
 ): SmartAlert[] {
     const alerts: SmartAlert[] = [];
 
+    // 市场状态对应的学习关键词
+    const stateToLearningTopics: Record<MarketState, string[]> = {
+        strong_trend_bull: ['趋势', '突破', 'EMA', '回调', 'H1', 'H2', '测量移动'],
+        strong_trend_bear: ['趋势', '突破', 'EMA', '反弹', 'L1', 'L2', '测量移动'],
+        weak_trend_bull: ['通道', '回调', '楔形', '区间', '止盈'],
+        weak_trend_bear: ['通道', '反弹', '楔形', '区间', '止盈'],
+        tight_range: ['区间', '假突破', '剥头皮', '限价单'],
+        broad_range: ['区间', '双顶', '双底', '旗形', '高抛低吸'],
+        breakout_bull: ['突破', '缺口', '极速', '通道', '测量移动'],
+        breakout_bear: ['突破', '缺口', '极速', '通道', '测量移动'],
+        unknown: ['基础', '入门', '规则'],
+    };
+
+    const topics = stateToLearningTopics[state] || [];
+
     // 到期卡片提醒
-    if (memory.due > 10) {
+    if (memory.due > 5) {
         alerts.push({
             type: 'learn',
             priority: 2,
@@ -379,6 +395,44 @@ function analyzeLearningWeakness(
                 label: '立即复习',
                 path: memory.focusFile.path,
             },
+        });
+    }
+
+    // 智能推荐：根据当前市场状态推荐相关卡片
+    if (memory.quizPool && memory.quizPool.length > 0 && topics.length > 0) {
+        // 在题库中找与当前市场状态相关的问题
+        const relevantCards = memory.quizPool.filter(card => {
+            const q = (card.q || '').toLowerCase();
+            const file = (card.file || '').toLowerCase();
+            return topics.some(topic =>
+                q.includes(topic.toLowerCase()) || file.includes(topic.toLowerCase())
+            );
+        }).slice(0, 3);
+
+        if (relevantCards.length > 0) {
+            const firstCard = relevantCards[0];
+            alerts.push({
+                type: 'learn',
+                priority: 2,
+                source: '情境学习',
+                message: `💡 当前周期相关: ${firstCard.file.replace('.md', '')}`,
+                detail: `问题: ${firstCard.q.slice(0, 40)}...`,
+                action: {
+                    label: '复习此概念',
+                    path: firstCard.path,
+                },
+            });
+        }
+    }
+
+    // 掌握度分析
+    if (memory.masteryPct < 70 && memory.total > 20) {
+        alerts.push({
+            type: 'learn',
+            priority: 2,
+            source: '掌握度',
+            message: `📊 整体掌握度 ${memory.masteryPct}%`,
+            detail: '建议每天坚持复习，提高掌握度',
         });
     }
 
