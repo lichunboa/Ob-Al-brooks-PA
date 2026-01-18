@@ -52,14 +52,12 @@ export const TradingHubTab: React.FC = () => {
     [todayTrades]
   );
 
-  // Calculate openTrades list for the assistant
+  // Calculate openTrades list for the assistant - 包括所有未完成的交易（不限于今天）
   const openTrades = React.useMemo(() => {
-    return todayTrades.filter(t =>
-      t.outcome !== "win" &&
-      t.outcome !== "loss" &&
-      t.outcome !== "scratch"
+    return trades.filter(t =>
+      !t.outcome || t.outcome === "open" || t.outcome === "unknown"
     );
-  }, [todayTrades]);
+  }, [trades]);
 
   // Review Hints Logic
   const latestTrade = todayTrades.length > 0 ? todayTrades[0] : null;

@@ -76,7 +76,9 @@
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260118_2220_实盘_ES",
     "//🦁 交易员控制台 (Trader Command)",
     "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/📋 任务与规划",
-    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/存档"
+    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/存档",
+    "//策略仓库 (Strategy Repository)",
+    "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/太妃方案"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
