@@ -496,33 +496,59 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
 
                     {memory.quizPool.length > 0 ? (
                         <div>
-                            <div style={{ fontWeight: 600, marginBottom: "6px" }}>
-                                随机抽题（{settings.srsRandomQuizCount}）
+                            <div style={{
+                                fontWeight: 600,
+                                marginBottom: "6px",
+                                fontSize: "0.85em",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px"
+                            }}>
+                                <span>🎲</span>
+                                <span>随机抽题</span>
+                                <span style={{
+                                    color: "var(--text-muted)",
+                                    fontWeight: 400
+                                }}>({settings.srsRandomQuizCount})</span>
                             </div>
-                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                            {/* 两列网格布局 */}
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: "4px"
+                            }}>
                                 {memory.quizPool.map((q: any, idx: number) => (
-                                    <li key={`q-${idx}`} style={{ marginBottom: "6px" }}>
-                                        <InteractiveButton
-                                            interaction="text"
-                                            onClick={async () => {
-                                                console.log("[CoachFocus] Opening random quiz file:", q.path);
-                                                await openFile(q.path);
-                                            }}
-                                        >
-                                            {q.q || q.file}
-                                        </InteractiveButton>
-                                        <span
-                                            style={{
-                                                marginLeft: "8px",
-                                                color: "var(--text-faint)",
-                                                fontSize: "0.85em",
-                                            }}
-                                        >
-                                            {q.file}
-                                        </span>
-                                    </li>
+                                    <div
+                                        key={`q-${idx}`}
+                                        onClick={async () => {
+                                            console.log("[CoachFocus] Opening random quiz file:", q.path);
+                                            await openFile(q.path);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            background: "var(--background-primary)",
+                                            borderRadius: "4px",
+                                            border: "1px solid var(--background-modifier-border)",
+                                            fontSize: "0.8em",
+                                            cursor: "pointer",
+                                            transition: "all 0.15s ease",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                            e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = "var(--background-primary)";
+                                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                        }}
+                                    >
+                                        {q.q || q.file}
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         </div>
                     ) : (
                         <div

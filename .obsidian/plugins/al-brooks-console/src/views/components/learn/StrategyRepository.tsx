@@ -114,38 +114,71 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                         }}
                     >
                         <div
-                            style={{ fontWeight: 700, opacity: 0.75, marginBottom: 6 }}
+                            style={{
+                                fontWeight: 600,
+                                fontSize: "0.85em",
+                                marginBottom: 8,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px"
+                            }}
                         >
-                            🌊 今日市场周期:{" "}
-                            <span
-                                style={{ color: "var(--text-accent)", fontWeight: 800 }}
-                            >
+                            <span>🌊</span>
+                            <span>今日市场周期:</span>
+                            <span style={{ color: "var(--text-accent)", fontWeight: 700 }}>
                                 {cycle}
                             </span>
                         </div>
-                        <div
-                            style={{ fontSize: "0.85em", color: "var(--text-muted)" }}
-                        >
-                            {picks.length > 0 ? (
-                                <>
-                                    推荐优先关注:{" "}
-                                    {picks.map((s, idx) => (
-                                        <React.Fragment key={`pb-pick-${s.path}`}>
-                                            {idx > 0 ? " · " : ""}
-                                            <InteractiveButton
-                                                interaction="text"
-                                                onClick={() => openFile(s.path)}
-                                                style={{ whiteSpace: "nowrap" }}
-                                            >
-                                                {String(s.canonicalName || s.name)}
-                                            </InteractiveButton>
-                                        </React.Fragment>
+                        {picks.length > 0 ? (
+                            <>
+                                <div style={{
+                                    fontSize: "0.8em",
+                                    color: "var(--text-muted)",
+                                    marginBottom: "6px"
+                                }}>
+                                    推荐优先关注 ({picks.length})
+                                </div>
+                                {/* 两列网格 */}
+                                <div style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "4px"
+                                }}>
+                                    {picks.map((s) => (
+                                        <div
+                                            key={`pb-pick-${s.path}`}
+                                            onClick={() => openFile(s.path)}
+                                            style={{
+                                                padding: "6px 8px",
+                                                background: "var(--background-primary)",
+                                                borderRadius: "4px",
+                                                border: "1px solid var(--background-modifier-border)",
+                                                fontSize: "0.8em",
+                                                cursor: "pointer",
+                                                transition: "all 0.15s ease",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "var(--background-primary)";
+                                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                            }}
+                                        >
+                                            {String(s.canonicalName || s.name)}
+                                        </div>
                                     ))}
-                                </>
-                            ) : (
-                                "暂无匹配的实战策略（可在策略卡片里补充状态/周期）。"
-                            )}
-                        </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ fontSize: "0.85em", color: "var(--text-faint)" }}>
+                                暂无匹配的实战策略
+                            </div>
+                        )}
                     </div>
                 );
             })()}
