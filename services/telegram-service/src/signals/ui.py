@@ -288,8 +288,6 @@ def get_signal_push_kb(symbol: str, *, uid: int | None = None, lang: str | None 
         [
             InlineKeyboardButton(analyze_text, callback_data=f"single_query_{symbol}"),
             InlineKeyboardButton(ai_text, callback_data=f"ai_coin_{symbol}"),
-        ],
-        [
             InlineKeyboardButton(binance_text, url=binance_url),
         ],
     ])

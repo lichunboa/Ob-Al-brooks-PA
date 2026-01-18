@@ -98,6 +98,7 @@ def kline_envelope_page(
     intervals: str | None = None,
     limit: int = 500,
     exchange: str | None = None,
+    range_days: int | None = None,
 ):
     """多周期K线包络可视化页面（含币种选择）。"""
     symbols = _resolve_ui_symbols()
@@ -105,14 +106,16 @@ def kline_envelope_page(
     if selected not in symbols:
         selected = symbols[0]
 
-    interval_str = intervals or "5m,1h,4h,1d"
+    interval_str = intervals or "1m,5m,15m,1h,4h,1d,1w"
     exchange = exchange or _resolve_exchange_default()
+    range_days = range_days or 30
     query = urlencode(
         {
             "symbol": selected,
             "intervals": interval_str,
             "limit": limit,
             "exchange": exchange,
+            "range_days": range_days,
         }
     )
     iframe_src = f"/kline-envelope/view?{query}"
@@ -141,6 +144,7 @@ def kline_envelope_page(
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-wrap: wrap;
     }}
     select {{
       padding: 6px 10px;
@@ -169,22 +173,43 @@ def kline_envelope_page(
         {options}
       </select>
     </label>
+    <label>
+      时间范围：
+      <select id="rangeSelect">
+        <option value="3">3天</option>
+        <option value="7">7天</option>
+        <option value="14">14天</option>
+        <option value="30">30天</option>
+        <option value="60">60天</option>
+        <option value="180">180天</option>
+        <option value="365">365天</option>
+      </select>
+    </label>
     <span class="meta">周期：{interval_str}</span>
   </header>
   <iframe id="klineFrame" src="{iframe_src}"></iframe>
   <script>
     const select = document.getElementById("symbolSelect");
     const frame = document.getElementById("klineFrame");
+    const rangeSelect = document.getElementById("rangeSelect");
     const baseQuery = "{interval_str}";
-    select.addEventListener("change", () => {{
+    const baseExchange = "{exchange}";
+    const baseLimit = "{limit}";
+    rangeSelect.value = "{range_days}";
+
+    function reloadFrame() {{
       const params = new URLSearchParams({{
         symbol: select.value,
         intervals: baseQuery,
-        limit: "{limit}",
-        exchange: "{exchange}"
+        limit: baseLimit,
+        exchange: baseExchange,
+        range_days: rangeSelect.value
       }});
       frame.src = `/kline-envelope/view?${{params.toString()}}`;
-    }});
+    }}
+
+    select.addEventListener("change", reloadFrame);
+    rangeSelect.addEventListener("change", reloadFrame);
   </script>
 </body>
 </html>
@@ -200,6 +225,7 @@ def kline_envelope_view(
     exchange: str | None = None,
     startTime: int | None = None,
     endTime: int | None = None,
+    range_days: int | None = None,
 ):
     """多周期K线包络视图（直接返回复用模板的 HTML）。"""
     exchange = exchange or _resolve_exchange_default()
@@ -209,6 +235,8 @@ def kline_envelope_view(
         "limit": limit,
         "exchange": exchange,
     }
+    if range_days is not None:
+        params["range_days"] = range_days
     if startTime is not None:
         params["startTime"] = startTime
     if endTime is not None:

@@ -213,6 +213,38 @@ _ALLOWED_INTERVALS = {
     "1h", "2h", "4h", "6h", "8h", "12h",
     "1d", "3d", "1w", "1M",
 }
+_DEFAULT_RANGE_DAYS = 30
+
+
+def _parse_range_days(val: object) -> int | None:
+    """解析 range 参数，支持 '30d'/'7'/'90D' 等。"""
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return int(val)
+    text = str(val).strip().lower()
+    if text.endswith("d"):
+        text = text[:-1]
+    if not text:
+        return None
+    try:
+        return int(float(text))
+    except ValueError:
+        return None
+
+
+def _select_intervals_by_span(span_ms: int) -> List[str]:
+    """根据时间跨度选择可视周期层级（LOD）。"""
+    days = max(span_ms / 86400000, 0.0)
+    if days > 180:
+        return ["1d", "4h"]
+    if days > 60:
+        return ["1d", "4h", "1h"]
+    if days > 14:
+        return ["4h", "1h", "15m"]
+    if days > 3:
+        return ["1h", "15m", "5m"]
+    return ["15m", "5m", "1m"]
 
 
 def _normalize_interval(interval: str) -> str:
@@ -285,24 +317,13 @@ def _fetch_multi_interval_klines(params: Dict) -> Dict:
     exchange = params.get("exchange") or os.environ.get("BINANCE_WS_DB_EXCHANGE") or os.environ.get("DB_EXCHANGE") or "binance_futures_um"
     intervals_param = params.get("intervals")
 
-    if intervals_param:
+    if intervals_param and str(intervals_param).strip().lower() != "auto":
         if isinstance(intervals_param, str):
             intervals = [s.strip() for s in intervals_param.split(",") if s.strip()]
         else:
             intervals = list(intervals_param)
     else:
-        intervals = ["5m", "1h", "4h", "1d"]
-
-    intervals = [_normalize_interval(iv) for iv in intervals]
-    if not intervals:
-        raise ValueError("intervals 为空")
-
-    base_interval = params.get("base_interval")
-    if base_interval:
-        base_interval = _normalize_interval(base_interval)
-        if base_interval not in intervals:
-            intervals.insert(0, base_interval)
-    base_interval = base_interval or min(intervals, key=_interval_seconds)
+        intervals = []
 
     limit = int(params.get("limit", 500))
     if limit <= 0:
@@ -310,6 +331,7 @@ def _fetch_multi_interval_klines(params: Dict) -> Dict:
 
     end_ms = params.get("end_time") or params.get("endTime")
     start_ms = params.get("start_time") or params.get("startTime")
+    range_days = _parse_range_days(params.get("range_days") or params.get("rangeDays") or params.get("range"))
 
     settings = get_settings()
     if not settings.database_url:
@@ -318,7 +340,11 @@ def _fetch_multi_interval_klines(params: Dict) -> Dict:
     with psycopg2.connect(settings.database_url) as conn:
         if end_ms is None:
             with conn.cursor() as cur:
-                candidates = [base_interval] + [iv for iv in intervals if iv != base_interval]
+                candidates = []
+                if intervals:
+                    candidates = list(intervals)
+                else:
+                    candidates = ["1m", "5m", "15m", "1h", "4h", "1d"]
                 resolved_base = None
                 for interval in candidates:
                     table = _interval_table(interval)
@@ -336,10 +362,8 @@ def _fetch_multi_interval_klines(params: Dict) -> Dict:
                         resolved_base = interval
                         break
                 if end_ms is None:
-                    if "1m" not in intervals:
-                        intervals.insert(0, "1m")
-                        base_interval = "1m"
-                        table = _interval_table(base_interval)
+                    if "1m" not in candidates:
+                        table = _interval_table("1m")
                         try:
                             cur.execute(
                                 f"SELECT MAX(bucket_ts) FROM market_data.{table} WHERE symbol = %s AND exchange = %s",
@@ -348,20 +372,37 @@ def _fetch_multi_interval_klines(params: Dict) -> Dict:
                             row = cur.fetchone()
                             if row and row[0] is not None:
                                 end_ms = int(row[0].timestamp() * 1000)
-                                resolved_base = base_interval
+                                resolved_base = "1m"
                         except Exception as exc:  # noqa: BLE001
                             logger.warning("读取 %s 失败: %s", table, exc)
                     if end_ms is None:
-                        raise ValueError(f"无可用数据: {symbol} {exchange} ({','.join(intervals)})")
+                        raise ValueError(f"无可用数据: {symbol} {exchange} ({','.join(candidates)})")
                 if resolved_base:
                     base_interval = resolved_base
 
         if start_ms is None:
-            span_ms = _interval_seconds(base_interval) * 1000 * limit
-            start_ms = int(end_ms - span_ms)
+            if range_days is None:
+                range_days = _DEFAULT_RANGE_DAYS
+            start_ms = int(end_ms - (range_days * 86400000))
 
         if start_ms > end_ms:
             start_ms, end_ms = end_ms, start_ms
+
+        span_ms = end_ms - start_ms
+
+        if not intervals:
+            intervals = _select_intervals_by_span(span_ms)
+
+        intervals = [_normalize_interval(iv) for iv in intervals]
+        if not intervals:
+            raise ValueError("intervals 为空")
+
+        base_interval = params.get("base_interval")
+        if base_interval:
+            base_interval = _normalize_interval(base_interval)
+            if base_interval not in intervals:
+                intervals.insert(0, base_interval)
+        base_interval = base_interval or min(intervals, key=_interval_seconds)
 
         payload = {
             "symbol": symbol,
