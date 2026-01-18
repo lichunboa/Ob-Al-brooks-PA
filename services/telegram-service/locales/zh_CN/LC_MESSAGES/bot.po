@@ -3224,3 +3224,7 @@ msgstr "📜 最近20条"
 
 msgid "btn.stats"
 msgstr "📊 统计"
+
+# Binance 链接按钮
+msgid "btn.binance"
+msgstr "🔗 Binance"

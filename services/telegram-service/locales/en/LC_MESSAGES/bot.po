@@ -3224,3 +3224,7 @@ msgstr "📜 Last 20"
 
 msgid "btn.stats"
 msgstr "📊 Stats"
+
+# Binance link button
+msgid "btn.binance"
+msgstr "🔗 Binance"
