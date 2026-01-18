@@ -5523,7 +5523,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     await update.message.reply_document(
                         document=file_obj,
                         filename=file_obj.name,
-                        caption=_t("export.caption", update, symbol=sym)
+                        caption=_t(update, "export.caption", symbol=sym)
                     )
                 except Exception as e:
                     logger.error(f"完整TXT导出失败: {e}")
@@ -5562,7 +5562,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
             try:
                 from bot.single_token_snapshot import SingleTokenSnapshot
                 lang = _resolve_lang(update)
-                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=1, update=update, lang=lang, symbol=symbol)
+                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=1, update=update, lang=lang, symbol=sym)
                 snap = SingleTokenSnapshot()
                 text, pages = snap.render_table(
                     sym,
@@ -5572,7 +5572,7 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     page=0,
                     lang=lang,
                 )
-                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=pages, update=update, lang=lang, symbol=symbol)
+                kb = build_single_snapshot_keyboard(enabled_periods, "basic", ustate["single_cards"], page=0, pages=pages, update=update, lang=lang, symbol=sym)
                 try:
                     await update.message.reply_text(text, reply_markup=kb, parse_mode='Markdown')
                 except BadRequest as e:
