@@ -1437,7 +1437,7 @@ class CommandHandler {
             const path = require('path');
             const fs = require('fs');
             
-            const scriptPath = path.join(__dirname, '../scripts/csv-report-api.js');
+            const scriptPath = path.join(__dirname, '../scripts/csv-report.js');
             
             // 执行脚本
             const csv = execSync(`node "${scriptPath}"`, {

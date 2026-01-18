@@ -147,7 +147,8 @@ services/polymarket/
 │
 ├── scripts/
 │   ├── bot.sh             # 启动脚本
-│   └── deploy-to-server.sh
+│   ├── deploy-to-server.sh
+│   └── csv-report.js      # CSV 统计报告（信号统计 + 市场排行）
 │
 └── data/
     ├── users.json         # 用户数据（运行时）
@@ -214,3 +215,9 @@ pnpm example:live-arb     # 实时套利扫描
 ---
 
 *最后更新：2025-12-25*
+
+---
+
+## 11. 变更日志
+
+- 2026-01-18：CSV 报告脚本合并为 `scripts/csv-report.js`，对外仅保留一套统计逻辑。

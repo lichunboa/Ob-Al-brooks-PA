@@ -5,10 +5,57 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { SocksProxyAgent } = require('socks-proxy-agent');
+const fetch = require('node-fetch');
+
+const projectRoot = path.resolve(__dirname, '../../../../../');
+const dotenvPath = path.join(projectRoot, 'config', '.env');
+require('dotenv').config({ path: dotenvPath, override: true });
 
 const GAMMA_API = 'https://gamma-api.polymarket.com';
 const LOG_FILE = process.argv[2] || '/root/.pm2/logs/polymarket-bot-out.log';
+
+const getProxyUrl = () =>
+  process.env.HTTPS_PROXY
+  || process.env.HTTP_PROXY
+  || process.env.https_proxy
+  || process.env.http_proxy
+  || process.env.PROXY;
+
+const createProxyAgent = () => {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) return null;
+  if (proxyUrl.startsWith('socks')) return new SocksProxyAgent(proxyUrl);
+  return new HttpsProxyAgent(proxyUrl);
+};
+
+const proxyAgent = createProxyAgent();
+const fetchJson = async (url) => {
+  const res = await fetch(url, proxyAgent ? { agent: proxyAgent } : undefined);
+  return res.json();
+};
+
+const csvEscape = (value) => {
+  if (value == null) return '';
+  const s = String(value);
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return `"${s}"`;
+};
+
+const parseOutcomePrice = (raw) => {
+  if (!raw) return '';
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? (arr[0] ?? '') : '';
+  } catch {
+    return '';
+  }
+};
 
 // 滚动24小时：计算24小时前的时间戳
 const now = new Date();
@@ -53,8 +100,7 @@ async function buildMarketMap() {
     while (true) {
       try {
         const url = `${GAMMA_API}/markets?closed=${closed}&limit=${limit}&offset=${offset}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchJson(url);
         if (!data || data.length === 0) break;
         
         for (const m of data) {
@@ -311,23 +357,23 @@ async function main() {
   
   // 1. 套利信号
   csv += '# 套利信号 Top 15\n排名,市场名称,出现次数,最高利润%,链接\n';
-  arbTop.forEach(([n, c], i) => csv += `${i+1},"${n}",${c},${data.arbProfits.get(n)||''},${link(n)}\n`);
+  arbTop.forEach(([n, c], i) => csv += `${i+1},${csvEscape(n)},${c},${data.arbProfits.get(n)||''},${link(n)}\n`);
   
   // 2. 大额交易
   csv += '\n# 大额交易 Top 15\n排名,市场名称,交易次数,链接\n';
-  largeTop.forEach(([n, c], i) => csv += `${i+1},"${n}",${c},${link(n)}\n`);
+  largeTop.forEach(([n, c], i) => csv += `${i+1},${csvEscape(n)},${c},${link(n)}\n`);
   
   // 3. 订单簿失衡
   csv += '\n# 订单簿失衡 Top 15\n排名,市场名称,失衡次数,链接\n';
-  obTop.forEach(([n, c], i) => csv += `${i+1},"${n}",${c},${link(n)}\n`);
+  obTop.forEach(([n, c], i) => csv += `${i+1},${csvEscape(n)},${c},${link(n)}\n`);
   
   // 4. 聪明钱
   csv += '\n# 聪明钱 Top 15\n排名,市场名称,信号次数,链接\n';
-  smartTop.forEach(([n, c], i) => csv += `${i+1},"${n}",${c},${link(n)}\n`);
+  smartTop.forEach(([n, c], i) => csv += `${i+1},${csvEscape(n)},${c},${link(n)}\n`);
   
   // 5. 新市场 Top 15
   csv += '\n# 新市场 Top 15\n排名,市场名称,出现次数,链接\n';
-  newMarketTop.forEach(([n, c], i) => csv += `${i+1},"${n}",${c},${link(n)}\n`);
+  newMarketTop.forEach(([n, c], i) => csv += `${i+1},${csvEscape(n)},${c},${link(n)}\n`);
   
   // 6. 综合热门市场 Top 15
   csv += '\n# 综合热门市场 Top 15\n排名,市场名称,套利,大额,订单簿,聪明钱,总计,链接\n';
@@ -336,7 +382,7 @@ async function main() {
     const large = data.largeTradeCounts.get(n) || 0;
     const ob = data.orderbookCounts.get(n) || 0;
     const smart = data.smartMoneyCounts.get(n) || 0;
-    csv += `${i+1},"${n}",${arb},${large},${ob},${smart},${total},${link(n)}\n`;
+    csv += `${i+1},${csvEscape(n)},${arb},${large},${ob},${smart},${total},${link(n)}\n`;
   });
   
   // 7. 活跃时段分布 (UTC)
@@ -395,7 +441,7 @@ async function main() {
   csv += '\n# 高频套利市场 (10次以上)\n排名,市场名称,出现次数,最高利润%,链接\n';
   const highFreqArb = [...data.arbCounts.entries()].filter(([, c]) => c >= 10).sort((a, b) => b[1] - a[1]);
   highFreqArb.forEach(([n, c], i) => {
-    csv += `${i+1},"${n}",${c},${data.arbProfits.get(n)||''},${link(n)}\n`;
+    csv += `${i+1},${csvEscape(n)},${c},${data.arbProfits.get(n)||''},${link(n)}\n`;
   });
   
   // 14. 聪明钱偏好类别
@@ -439,8 +485,8 @@ async function main() {
   console.error('📥 获取市场排行数据...');
   
   const [byVolume, byLiquidity] = await Promise.all([
-    fetch(`${GAMMA_API}/markets?limit=20&order=volume24hr&ascending=false&active=true`).then(r => r.json()).catch(() => []),
-    fetch(`${GAMMA_API}/markets?limit=20&order=liquidity&ascending=false&active=true`).then(r => r.json()).catch(() => [])
+    fetchJson(`${GAMMA_API}/markets?limit=20&order=volume24hr&ascending=false&active=true`).catch(() => []),
+    fetchJson(`${GAMMA_API}/markets?limit=20&order=liquidity&ascending=false&active=true`).catch(() => [])
   ]);
   
   const getLink = (m) => {
@@ -451,14 +497,14 @@ async function main() {
   // 18. 24h成交量 Top 15
   csv += '\n# 24h成交量 Top 15\n排名,市场名称,24h成交量,价格,链接\n';
   byVolume.slice(0, 15).forEach((m, i) => {
-    const price = m.outcomePrices ? JSON.parse(m.outcomePrices)[0] : '';
-    csv += `${i+1},"${m.question}",${Math.round(m.volume24hr || 0)},${price},${getLink(m)}\n`;
+    const price = parseOutcomePrice(m.outcomePrices);
+    csv += `${i+1},${csvEscape(m.question)},${Math.round(m.volume24hr || 0)},${price},${getLink(m)}\n`;
   });
   
   // 19. 流动性 Top 15
   csv += '\n# 流动性 Top 15\n排名,市场名称,流动性,24h成交量,链接\n';
   byLiquidity.slice(0, 15).forEach((m, i) => {
-    csv += `${i+1},"${m.question}",${Math.round(m.liquidity || 0)},${Math.round(m.volume24hr || 0)},${getLink(m)}\n`;
+    csv += `${i+1},${csvEscape(m.question)},${Math.round(m.liquidity || 0)},${Math.round(m.volume24hr || 0)},${getLink(m)}\n`;
   });
   
   // 20. 24h涨幅 Top 15
@@ -466,16 +512,16 @@ async function main() {
   const gainers = [...withChange].sort((a, b) => b.oneDayPriceChange - a.oneDayPriceChange);
   csv += '\n# 24h涨幅 Top 15\n排名,市场名称,涨幅%,当前价格,链接\n';
   gainers.slice(0, 15).forEach((m, i) => {
-    const price = m.outcomePrices ? JSON.parse(m.outcomePrices)[0] : '';
-    csv += `${i+1},"${m.question}",${(m.oneDayPriceChange * 100).toFixed(1)},${price},${getLink(m)}\n`;
+    const price = parseOutcomePrice(m.outcomePrices);
+    csv += `${i+1},${csvEscape(m.question)},${(m.oneDayPriceChange * 100).toFixed(1)},${price},${getLink(m)}\n`;
   });
   
   // 21. 24h跌幅 Top 15
   const losers = [...withChange].sort((a, b) => a.oneDayPriceChange - b.oneDayPriceChange);
   csv += '\n# 24h跌幅 Top 15\n排名,市场名称,跌幅%,当前价格,链接\n';
   losers.slice(0, 15).forEach((m, i) => {
-    const price = m.outcomePrices ? JSON.parse(m.outcomePrices)[0] : '';
-    csv += `${i+1},"${m.question}",${(m.oneDayPriceChange * 100).toFixed(1)},${price},${getLink(m)}\n`;
+    const price = parseOutcomePrice(m.outcomePrices);
+    csv += `${i+1},${csvEscape(m.question)},${(m.oneDayPriceChange * 100).toFixed(1)},${price},${getLink(m)}\n`;
   });
   
   console.log(csv);

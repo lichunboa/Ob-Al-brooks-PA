@@ -84,14 +84,13 @@ curl -s "https://gamma-api.polymarket.com/markets?slug=xxx" | jq '.events[0].slu
 
 修复时需检查以下文件中的链接生成逻辑：
 
-- `scripts/csv-report-api.js`
 - `scripts/csv-report.js`
 - `signals/*/formatter.js`（如有生成链接）
 
 ## 修复记录
 
 - **日期**: 2024-12-31
-- **问题**: csv-report-api.js 使用 `m.slug` 生成链接
+- **问题**: csv-report.js 使用 `m.slug` 生成链接
 - **修复**: 改为 `m.events[0]?.slug || m.slug`
 
 ---
