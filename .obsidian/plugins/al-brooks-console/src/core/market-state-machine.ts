@@ -118,11 +118,13 @@ export class MarketStateMachine {
      * @param marketCycle 市场周期字符串
      * @param direction 交易方向 (Long/Short) - 用于消除歧义
      */
-    inferState(marketCycle: string | undefined, direction?: string): MarketState {
+    inferState(marketCycle: string | string[] | undefined, direction?: string): MarketState {
         if (!marketCycle) return "unknown";
 
-        const normalized = marketCycle.trim();
-        const dir = direction?.toLowerCase().trim() || "";
+        // 处理数组情况（marketCycle 可能是 MultiSelect 字段）
+        const cycleStr = Array.isArray(marketCycle) ? marketCycle.join(' ') : String(marketCycle);
+        const normalized = cycleStr.trim();
+        const dir = direction ? (Array.isArray(direction) ? direction.join(' ') : String(direction)).toLowerCase().trim() : "";
 
         // Robust Matching: Use includes instead of strict equality to handle "不做 (Long)" or "做多 (Long)" formats
         const isBull = dir.includes("long") || dir.includes("buy") || dir.includes("bull") || dir.includes("做多") || dir.includes("看涨") || dir.includes("多");
