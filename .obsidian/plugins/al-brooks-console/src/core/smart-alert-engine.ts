@@ -370,12 +370,18 @@ function analyzeLearningWeakness(
 
     // 到期卡片提醒
     if (memory.due > 5) {
+        // 如果有 focusFile（最困难的笔记），推荐先从那里开始复习
+        const targetPath = memory.focusFile?.path;
         alerts.push({
             type: 'learn',
             priority: 2,
             source: '学习提醒',
             message: `📚 ${memory.due} 张卡片待复习`,
-            action: {
+            detail: targetPath ? `建议从薄弱点开始` : undefined,
+            action: targetPath ? {
+                label: '开始复习',
+                path: targetPath,
+            } : {
                 label: '开始复习',
                 command: 'obsidian-spaced-repetition:srs-review-flashcards',
             },
