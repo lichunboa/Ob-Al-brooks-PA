@@ -41,6 +41,8 @@ class RunRecorder:
         prompt_text: Optional[str] = None,
         analysis_text: Optional[str] = None,
         request_messages: Optional[List[Dict[str, Any]]] = None,
+        status: Optional[str] = None,
+        error: Optional[str] = None,
     ) -> str:
         if not self.record_enabled:
             return ""
@@ -58,6 +60,8 @@ class RunRecorder:
             "timestamp_utc": timestamp,
             "variable_map": variable_map,
             "docs": self._attach_docs(payload),
+            "status": status,
+            "error": error,
         }
         (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 

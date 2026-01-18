@@ -212,7 +212,7 @@ vim config/.env
   - Defaults: `BACKFILL_MODE=all` (full backfill; if `BACKFILL_START_DATE` is set, calculates days from start date; otherwise ~10 years), `SYMBOLS_GROUPS=main4` (only BTC/ETH/SOL/BNB; for full market use `all` or custom groups)  
   - Compute backend: `COMPUTE_BACKEND`, `MAX_WORKERS`, `HIGH_PRIORITY_TOP_N`, `INDICATORS_ENABLED`/`INDICATORS_DISABLED`  
   - Display/filter: `BINANCE_API_DISABLED`, `DISABLE_SINGLE_TOKEN_QUERY`, `SNAPSHOT_HIDDEN_FIELDS`, `BLOCKED_SYMBOLS`  
-  - AI/Trading: `AI_INDICATOR_TABLES`, `AI_INDICATOR_TABLES_DISABLED`, `LLM_BACKEND`, `LLM_API_BASE_URL`, `EXTERNAL_API_KEY`, `LLM_MODEL`, `LLM_MAX_TOKENS`, `AI_DEFAULT_PROMPT`, `AI_RECORD_ENABLED`, `AI_RECORD_PAYLOAD`, `AI_RECORD_PROMPT`, `AI_RECORD_MESSAGES`, `AI_RECORD_ANALYSIS`, `AI_RECORD_MAX_DIRS`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`
+  - AI/Trading: `AI_INDICATOR_TABLES`, `AI_INDICATOR_TABLES_DISABLED`, `LLM_BACKEND`, `LLM_API_BASE_URL`, `EXTERNAL_API_KEY`, `LLM_MODEL`, `LLM_MAX_TOKENS`, `AI_LARGE_PAYLOAD_CHAR_LIMIT`, `AI_FORCE_GEMINI_ON_LARGE_PAYLOAD`, `AI_DEFAULT_PROMPT`, `AI_RECORD_ENABLED`, `AI_RECORD_PAYLOAD`, `AI_RECORD_PROMPT`, `AI_RECORD_MESSAGES`, `AI_RECORD_ANALYSIS`, `AI_RECORD_MAX_DIRS`, `BINANCE_API_KEY`, `BINANCE_API_SECRET`
   - i18n: `DEFAULT_LOCALE` (default en), `SUPPORTED_LOCALES` (zh-CN,en), `FALLBACK_LOCALE`
 
 ### 📦 Download Historical Data (Optional)
@@ -959,6 +959,7 @@ tradecat/
 │   └── 📂 fate-service/            # Fortune telling service
 │       ├── 📂 services/            # Sub-services
 │       │   └── 📂 telegram-service/ # Fortune Bot
+│       │       └── 📂 src/liuyao_factors/ # Liuyao quantitative factors
 │       ├── 📂 libs/                # Shared libraries
 │       ├── Makefile
 │       ├── pyproject.toml
