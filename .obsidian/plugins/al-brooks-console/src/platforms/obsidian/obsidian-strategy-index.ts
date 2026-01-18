@@ -19,6 +19,7 @@ const STRATEGY_FIELD_ALIASES = {
     "statusRaw",
   ],
   riskReward: [
+    "盈亏比/risk_reward",
     "风险收益比/risk_reward",
     "risk_reward",
     "riskReward",
