@@ -25,6 +25,7 @@ export interface StrategyCard {
     signalBarQuality?: string[];
     marketCycles: string[];
     setupCategories: string[];
+    riskReward?: string;
 }
 
 /**
