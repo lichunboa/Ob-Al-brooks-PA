@@ -305,7 +305,10 @@ class AIAnalysisHandler:
 
             # 调用 ai-service 核心分析
             result = await run_analysis(symbol, interval, prompt, lang=preferred_lang)
-            analysis_text = result.get("analysis", "未生成 AI 分析结果")
+            if result.get("status") == "error":
+                analysis_text = result.get("error") or "AI 分析失败"
+            else:
+                analysis_text = result.get("analysis", "未生成 AI 分析结果")
 
             # Telegram 消息限制 4096 字符
             if len(analysis_text) > 4000:
