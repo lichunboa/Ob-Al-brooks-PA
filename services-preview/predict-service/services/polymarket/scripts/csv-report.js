@@ -71,13 +71,46 @@ const parseOutcomePrice = (raw) => {
 const now = new Date();
 const hours24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-function isWithin24Hours(line) {
-  // 提取时间戳 2025-12-30T00:01:08
-  const match = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
-  if (!match) return false;
-  const lineTime = new Date(match[1] + 'Z'); // 假设 UTC
-  return lineTime >= hours24Ago && lineTime <= now;
-}
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+const stripAnsi = (line) => line.replace(ANSI_REGEX, '');
+const pad2 = (num) => String(num).padStart(2, '0');
+const formatLocalMinute = (date) =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+const formatLocalDateTime = (date) =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+
+const parseLineTime = (line, state) => {
+  // ISO 或空格分隔: 2026-01-18T00:25:22 / 2026-01-18 00:25:22
+  const fullMatch = line.match(/(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (fullMatch) {
+    const dt = new Date(`${fullMatch[1]}T${fullMatch[2]}`);
+    if (!Number.isNaN(dt.getTime())) {
+      const [h, m, s] = fullMatch[2].split(':').map(Number);
+      state.currentDate = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      state.lastTimeSec = h * 3600 + m * 60 + s;
+      return dt;
+    }
+  }
+
+  // 仅时间: 00:25:22
+  const timeOnlyMatch = line.match(/(^|\\s)(\\d{2}:\\d{2}:\\d{2})/);
+  if (timeOnlyMatch) {
+    const [h, m, s] = timeOnlyMatch[2].split(':').map(Number);
+    if (!state.currentDate) {
+      state.currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    const timeSec = h * 3600 + m * 60 + s;
+    if (state.lastTimeSec !== null && timeSec + 6 * 3600 < state.lastTimeSec) {
+      state.currentDate = new Date(state.currentDate.getTime() + 24 * 60 * 60 * 1000);
+    }
+    state.lastTimeSec = timeSec;
+    const dt = new Date(state.currentDate.getTime());
+    dt.setHours(h, m, s, 0);
+    return dt;
+  }
+
+  return null;
+};
 
 const marketSlugs = new Map();
 const ENABLE_API_RANKINGS = process.env.CSV_ENABLE_API_RANKINGS === 'true';
@@ -176,33 +209,36 @@ async function extractData() {
   
   let lastMarketName = null;
   let lastMarketTime = null;
+  const timeState = { currentDate: null, lastTimeSec: null };
   
   const rl = readline.createInterface({
     input: fs.createReadStream(LOG_FILE),
     crlfDelay: Infinity
   });
   
-  for await (const line of rl) {
-    if (!isWithin24Hours(line)) continue;
+  for await (const rawLine of rl) {
+    const line = stripAnsi(rawLine);
+    const lineTime = parseLineTime(line, timeState);
+    if (!lineTime || lineTime < hours24Ago || lineTime > now) {
+      continue;
+    }
     
     // 提取时间戳用于爆发检测
-    const tsMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
-    if (tsMatch && line.includes('⏱️')) {
-      const ts = tsMatch[1];
-      if (lastBurstCheck === ts.slice(0, 15)) {
+    if (line.includes('⏱️')) {
+      const tsKey = formatLocalMinute(lineTime);
+      if (lastBurstCheck === tsKey) {
         burstCount++;
       } else {
         if (burstCount >= 20) {
           signalBursts.push({ time: lastBurstCheck, count: burstCount });
         }
-        lastBurstCheck = ts.slice(0, 15);
+        lastBurstCheck = tsKey;
         burstCount = 1;
       }
     }
     
     // 提取小时
-    const hourMatch = line.match(/T(\d{2}):/);
-    const hour = hourMatch ? parseInt(hourMatch[1]) : -1;
+    const hour = lineTime.getHours();
     
     if (hour >= 0 && line.includes('⏱️')) {
       hourlySignals[hour]++;
@@ -257,7 +293,7 @@ async function extractData() {
     // 🏷️ 标签行
     const tagMatch = line.match(/(\d{2}:\d{2}:\d{2}).*?🏷️\s*(.+)$/);
     if (tagMatch) {
-      lastMarketTime = tagMatch[1];
+      lastMarketTime = lineTime;
       lastMarketName = tagMatch[2].trim();
       categoryStats[categorizeMarket(lastMarketName)]++;
       continue;
@@ -265,9 +301,9 @@ async function extractData() {
     
     // MessageUpdater
     const msgMatch = line.match(/(\d{2}:\d{2}:\d{2}).*?\[MessageUpdater\].*?\((\w+)\)/);
-    if (msgMatch && lastMarketName) {
-      const [, time, type] = msgMatch;
-      if (timeDiff(time, lastMarketTime) <= 2) {
+    if (msgMatch && lastMarketName && lastMarketTime) {
+      const type = msgMatch[2];
+      if (Math.abs(lineTime.getTime() - lastMarketTime.getTime()) / 1000 <= 2) {
         const name = lastMarketName;
         
         if (!marketSignalTypes.has(name)) marketSignalTypes.set(name, new Set());
@@ -305,13 +341,8 @@ async function extractData() {
   };
 }
 
-function timeDiff(t1, t2) {
-  const toSec = t => { const [h, m, s] = t.split(':').map(Number); return h * 3600 + m * 60 + s; };
-  return Math.abs(toSec(t1) - toSec(t2));
-}
-
 async function main() {
-  const timeRange = `${hours24Ago.toISOString().slice(0, 16)} ~ ${now.toISOString().slice(0, 16)} UTC`;
+  const timeRange = `${formatLocalDateTime(hours24Ago)} ~ ${formatLocalDateTime(now)}`;
   console.error(`📊 生成 CSV 报告 (滚动24小时: ${timeRange})...\n`);
   
   const data = await extractData();
@@ -367,8 +398,8 @@ async function main() {
     csv += `${i+1},${csvEscape(n)},${arb},${large},${ob},${smart},${total},${link(n)}\n`;
   });
   
-  // 7. 活跃时段分布 (UTC)
-  csv += '\n# 活跃时段分布 (UTC)\n小时,信号数量,占比%\n';
+  // 7. 活跃时段分布 (本地时间)
+  csv += '\n# 活跃时段分布 (本地时间)\n小时,信号数量,占比%\n';
   const totalSignals = data.hourlySignals.reduce((a, b) => a + b, 0);
   data.hourlySignals.forEach((count, hour) => {
     const pct = totalSignals > 0 ? (count / totalSignals * 100).toFixed(1) : 0;
@@ -376,7 +407,7 @@ async function main() {
   });
   
   // 8. 时段-类型分布
-  csv += '\n# 时段-类型分布 (UTC)\n小时,套利,大额交易,订单簿,聪明钱\n';
+  csv += '\n# 时段-类型分布 (本地时间)\n小时,套利,大额交易,订单簿,聪明钱\n';
   for (let h = 0; h < 24; h++) {
     csv += `${h.toString().padStart(2, '0')}:00,${data.hourlyByType.arb[h]},${data.hourlyByType.large[h]},${data.hourlyByType.orderbook[h]},${data.hourlyByType.smart[h]}\n`;
   }
