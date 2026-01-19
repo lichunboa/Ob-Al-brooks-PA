@@ -259,11 +259,11 @@ export const AnalyticsTab: React.FC = () => {
 
   const calendarDays = calendarCells.length;
 
-  // Gallery Data - 使用全局过滤器
+  // Gallery Data - 使用全局过滤器（filteredTrades 已按账户类型过滤，所以传 'All'）
   const gallery = React.useMemo(
     () =>
-      buildGalleryItems(filteredTrades, accountFilter === 'all' ? 'All' : accountFilter, resolveLink, getResourceUrl),
-    [filteredTrades, accountFilter, resolveLink, getResourceUrl]
+      buildGalleryItems(filteredTrades, 'All', resolveLink, getResourceUrl),
+    [filteredTrades, resolveLink, getResourceUrl]
   );
 
   // Calculate drawdown data from Live equity curve

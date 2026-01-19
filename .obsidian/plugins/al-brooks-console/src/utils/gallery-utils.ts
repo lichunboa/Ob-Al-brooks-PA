@@ -58,6 +58,16 @@ export function buildGalleryItems(
         const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
         const rawCover =
             (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
+
+        // [DEBUG] 封面解析调试
+        console.log(`[Gallery] ${t.name}`, {
+            "t.cover": (t as any).cover,
+            "fm.cover": (fm as any)["cover"],
+            "fm.封面/cover": (fm as any)["封面/cover"],
+            rawCover,
+            rawCoverType: typeof rawCover,
+        });
+
         const ref = parseCoverRef(rawCover);
 
         // 允许"没有封面"的交易也进入展示(用占位卡片),否则用户会看到
