@@ -57,39 +57,43 @@ export function buildGalleryItems(
         // 优先使用索引层规范字段(SSOT);frontmatter 仅作回退。
         const fm = (t.rawFrontmatter ?? {}) as Record<string, unknown>;
         const rawCover =
-            (t as any).cover ?? (fm as any)["cover"] ?? (fm as any)["封面/cover"];
-
-        // [DEBUG] 封面解析调试
-        console.log(`[Gallery] ${t.name}`, {
-            "t.cover": (t as any).cover,
-            "fm.cover": (fm as any)["cover"],
-            "fm.封面/cover": (fm as any)["封面/cover"],
-            rawCover,
-            rawCoverType: typeof rawCover,
-        });
-
-        const ref = parseCoverRef(rawCover);
+            (fm as any)["封面/cover"] ?? (fm as any)["cover"] ?? (t as any).cover;
 
         // 允许"没有封面"的交易也进入展示(用占位卡片),否则用户会看到
         // "范围内有 2 笔,但只展示 1 张"的困惑。
         let resolved = "";
         let url: string | undefined = undefined;
-        if (ref) {
-            let target = String(ref.target ?? "").trim();
-            if (target) {
-                // 支持外链封面(http/https),否则按 Obsidian linkpath 解析到 vault path。
-                if (/^https?:\/\//i.test(target)) {
-                    resolved = target;
-                    url = target;
-                } else {
-                    resolved = resolveLink
-                        ? resolveLink(target, t.path) ?? target
-                        : target;
-                    if (resolved && isImage(resolved)) {
-                        url = getResourceUrl(resolved);
-                    } else {
-                        resolved = "";
-                        url = undefined;
+
+        if (rawCover) {
+            // 情况1: Obsidian Link 对象 (frontmatter 中的 [[...]] 会被解析为 Link 对象)
+            if (rawCover && typeof rawCover === "object" && (rawCover as any).path) {
+                const linkPath = (rawCover as any).path as string;
+                if (linkPath && isImage(linkPath)) {
+                    resolved = linkPath;
+                    url = getResourceUrl(linkPath);
+                }
+            }
+            // 情况2: 字符串格式 (包括 "[[...]]" 或 "![]()" 或纯路径)
+            else if (typeof rawCover === "string") {
+                const ref = parseCoverRef(rawCover);
+                if (ref) {
+                    let target = String(ref.target ?? "").trim();
+                    if (target) {
+                        // 支持外链封面(http/https)
+                        if (/^https?:\/\//i.test(target)) {
+                            resolved = target;
+                            url = target;
+                        } else {
+                            resolved = resolveLink
+                                ? resolveLink(target, t.path) ?? target
+                                : target;
+                            if (resolved && isImage(resolved)) {
+                                url = getResourceUrl(resolved);
+                            } else {
+                                resolved = "";
+                                url = undefined;
+                            }
+                        }
                     }
                 }
             }
