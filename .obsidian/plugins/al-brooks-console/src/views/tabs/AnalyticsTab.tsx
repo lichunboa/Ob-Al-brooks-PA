@@ -486,12 +486,7 @@ export const AnalyticsTab: React.FC = () => {
             <TuitionCostPanel tuition={tuition} SPACE={SPACE} />
           )}
 
-          {visibleWidgets.analyticsSuggestion && (
-            <AnalyticsSuggestion
-              analyticsSuggestion={analyticsSuggestion}
-              SPACE={SPACE}
-            />
-          )}
+          {/* 系统建议已移至交易中心，避免重复 */}
 
           {visibleWidgets.dataAnalysis && (
             <StrategyAttributionPanel
