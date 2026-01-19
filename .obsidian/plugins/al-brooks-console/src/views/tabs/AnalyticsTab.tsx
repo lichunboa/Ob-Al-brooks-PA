@@ -50,6 +50,7 @@ import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPan
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { StrategyAttributionPanel } from "../components/analytics/StrategyAttributionPanel";
+import { StrategyRPerformancePanel } from "../components/analytics/StrategyRPerformancePanel";
 import { CompactCalendarHeatmap } from "../components/analytics/CompactCalendarHeatmap";
 import { Card } from "../../ui/components/Card";
 
@@ -504,6 +505,14 @@ export const AnalyticsTab: React.FC = () => {
               currencyMode={currencyMode}
             />
           )}
+
+          {/* 策略R值执行分析 */}
+          <StrategyRPerformancePanel
+            trades={tradesForAnalysis}
+            strategyIndex={strategyIndex}
+            currencyMode={currencyMode}
+            SPACE={SPACE}
+          />
 
           <AnalyticsInsightPanel
             analyticsMind={analyticsMind}
