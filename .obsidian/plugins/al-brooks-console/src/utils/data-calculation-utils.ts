@@ -130,12 +130,61 @@ export function calculateTodayKpi(
 export type TimeRange = "today" | "week" | "month" | "all";
 
 /**
- * 根据时间范围计算KPI数据
+ * 账户类型
+ */
+export type AccountType = "all" | "Live" | "Demo" | "Backtest";
+
+/**
+ * 根据时间范围和账户类型过滤交易
+ */
+export function filterTrades(
+    trades: TradeRecord[],
+    timeRange: TimeRange,
+    accountType: AccountType,
+    todayIso: string
+): TradeRecord[] {
+    let filtered = trades;
+
+    // 账户类型过滤
+    if (accountType !== "all") {
+        filtered = filtered.filter((t) => {
+            const acct = t.accountType ?? "";
+            return acct === accountType ||
+                acct.includes(accountType) ||
+                (accountType === "Live" && (acct.includes("实盘") || acct.includes("Live"))) ||
+                (accountType === "Demo" && (acct.includes("模拟") || acct.includes("Demo"))) ||
+                (accountType === "Backtest" && (acct.includes("回测") || acct.includes("Backtest")));
+        });
+    }
+
+    // 时间范围过滤
+    if (timeRange === "today") {
+        filtered = filtered.filter((t) => t.dateIso === todayIso);
+    } else if (timeRange === "week") {
+        const today = new Date(todayIso);
+        const dayOfWeek = today.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - diff);
+        const weekStartIso = weekStart.toISOString().split('T')[0];
+        filtered = filtered.filter((t) => t.dateIso && t.dateIso >= weekStartIso);
+    } else if (timeRange === "month") {
+        const monthStart = todayIso.substring(0, 7) + "-01";
+        filtered = filtered.filter((t) => t.dateIso && t.dateIso >= monthStart);
+    }
+    // "all" 不需要时间过滤
+
+    return filtered;
+}
+
+/**
+ * 根据时间范围和账户类型计算KPI数据
  */
 export function calculateKpiForRange(
     trades: TradeRecord[],
     range: TimeRange,
-    todayIso: string
+    todayIso: string,
+    accountType: AccountType = "all"
 ): {
     filteredTrades: TradeRecord[];
     total: number;
@@ -145,28 +194,8 @@ export function calculateKpiForRange(
     netMoney: number;
     netR: number;
 } {
-    // 根据时间范围过滤交易
-    let filteredTrades: TradeRecord[];
-
-    if (range === "today") {
-        filteredTrades = trades.filter((t) => t.dateIso === todayIso);
-    } else if (range === "week") {
-        // 本周（周一开始）
-        const today = new Date(todayIso);
-        const dayOfWeek = today.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 周一为起点
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - diff);
-        const weekStartIso = weekStart.toISOString().split('T')[0];
-        filteredTrades = trades.filter((t) => t.dateIso && t.dateIso >= weekStartIso);
-    } else if (range === "month") {
-        // 本月
-        const monthStart = todayIso.substring(0, 7) + "-01"; // YYYY-MM-01
-        filteredTrades = trades.filter((t) => t.dateIso && t.dateIso >= monthStart);
-    } else {
-        // 全部
-        filteredTrades = [...trades];
-    }
+    // 使用 filterTrades 进行统一过滤
+    const filteredTrades = filterTrades(trades, range, accountType, todayIso);
 
     const total = filteredTrades.length;
     let wins = 0;

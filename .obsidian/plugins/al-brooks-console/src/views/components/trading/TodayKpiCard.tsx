@@ -5,21 +5,6 @@ import { GlassPanel } from "../../../ui/components/GlassPanel";
 import { formatCurrency } from "../../../utils/format-utils";
 
 /**
- * 时间范围类型
- */
-export type TimeRange = "today" | "week" | "month" | "all";
-
-/**
- * 时间范围标签映射
- */
-export const TIME_RANGE_LABELS: Record<TimeRange, string> = {
-    today: "今日",
-    week: "本周",
-    month: "本月",
-    all: "全部",
-};
-
-/**
  * KPI数据接口
  */
 export interface TodayKpiData {
@@ -37,68 +22,21 @@ export interface TodayKpiData {
 export interface TodayKpiCardProps {
     todayKpi: TodayKpiData;
     currencyMode?: 'USD' | 'CNY';
-    timeRange?: TimeRange;
-    onTimeRangeChange?: (range: TimeRange) => void;
+    title?: string;
 }
 
 /**
  * KPI卡片组件
  * 显示交易统计:总交易、获胜、亏损、胜率、净利润
- * 支持时间范围切换
  */
 export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({
     todayKpi,
     currencyMode = 'USD',
-    timeRange = 'today',
-    onTimeRangeChange,
+    title = "今日",
 }) => {
-    const ranges: TimeRange[] = ["today", "week", "month", "all"];
-
     return (
-        <GlassPanel style={{ marginBottom: "16px" }}>
-            {/* 标题 + 时间范围选择器 */}
-            <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "8px"
-            }}>
-                <div style={{ fontWeight: 600 }}>{TIME_RANGE_LABELS[timeRange]}</div>
-
-                {onTimeRangeChange && (
-                    <div style={{
-                        display: "flex",
-                        gap: "4px",
-                        background: "var(--background-secondary)",
-                        borderRadius: "6px",
-                        padding: "2px",
-                    }}>
-                        {ranges.map((r) => (
-                            <button
-                                key={r}
-                                onClick={() => onTimeRangeChange(r)}
-                                style={{
-                                    padding: "4px 8px",
-                                    fontSize: "0.75em",
-                                    fontWeight: timeRange === r ? 600 : 400,
-                                    background: timeRange === r
-                                        ? "var(--interactive-accent)"
-                                        : "transparent",
-                                    color: timeRange === r
-                                        ? "white"
-                                        : "var(--text-muted)",
-                                    border: "none",
-                                    borderRadius: "4px",
-                                    cursor: "pointer",
-                                    transition: "all 0.15s ease",
-                                }}
-                            >
-                                {TIME_RANGE_LABELS[r]}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+        <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "8px" }}>{title}</div>
 
             <div style={{ marginBottom: "14px" }}>
                 <div
@@ -198,6 +136,9 @@ export const TodayKpiCard: React.FC<TodayKpiCardProps> = ({
                     </div>
                 </div>
             </div>
-        </GlassPanel>
+        </div>
     );
 };
+
+// 导出类型方便其他地方使用
+export type { TimeRange } from "../../../utils/data-calculation-utils";

@@ -2,7 +2,8 @@ import * as React from "react";
 import { moment } from "obsidian";
 import { GlassPanel } from "../../ui/components/GlassPanel";
 import { SectionHeader } from "../../ui/components/SectionHeader";
-import { TodayKpiCard, TimeRange } from "../components/trading/TodayKpiCard";
+import { TodayKpiCard } from "../components/trading/TodayKpiCard";
+import { TradeFilters, TimeRange, AccountType, TIME_RANGE_LABELS } from "../components/trading/TradeFilters";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
@@ -10,7 +11,7 @@ import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
 
 
 import { useConsoleContext } from "../../context/ConsoleContext";
-import { calculateTodayKpi, calculateKpiForRange } from "../../utils/data-calculation-utils";
+import { calculateTodayKpi, calculateKpiForRange, filterTrades } from "../../utils/data-calculation-utils";
 import { findOpenTrade } from "../../utils/trade-utils";
 import { buildReviewHints } from "../../core/review-hints";
 import {
@@ -40,13 +41,20 @@ export const TradingHubTab: React.FC = () => {
 
   const todayIso = React.useMemo(() => moment().format("YYYY-MM-DD"), []);
 
-  // 时间范围状态
+  // 过滤器状态
   const [timeRange, setTimeRange] = React.useState<TimeRange>("today");
+  const [accountType, setAccountType] = React.useState<AccountType>("all");
 
-  // 根据时间范围计算 KPI
+  // 根据时间范围和账户类型计算 KPI
   const rangeKpi = React.useMemo(
-    () => calculateKpiForRange(trades, timeRange, todayIso),
-    [trades, timeRange, todayIso]
+    () => calculateKpiForRange(trades, timeRange, todayIso, accountType),
+    [trades, timeRange, todayIso, accountType]
+  );
+
+  // 过滤后的交易（供其他组件使用）
+  const filteredTrades = React.useMemo(
+    () => filterTrades(trades, timeRange, accountType, todayIso),
+    [trades, timeRange, accountType, todayIso]
   );
 
   // 今日数据仍然需要用于其他功能
@@ -250,6 +258,13 @@ export const TradingHubTab: React.FC = () => {
 
       <GlassPanel style={{ marginBottom: "16px" }}>
 
+        {/* 过滤器 */}
+        <TradeFilters
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          accountType={accountType}
+          onAccountTypeChange={setAccountType}
+        />
 
         <TodayKpiCard
           todayKpi={{
@@ -261,8 +276,7 @@ export const TradingHubTab: React.FC = () => {
             netR: rangeKpi.netR,
           }}
           currencyMode={currencyMode || "USD"}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
+          title={TIME_RANGE_LABELS[timeRange]}
         />
 
         <ReviewHintsPanel
