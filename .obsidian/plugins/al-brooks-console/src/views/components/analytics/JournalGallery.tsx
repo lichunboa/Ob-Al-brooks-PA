@@ -108,8 +108,7 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
         let maxAbsMoney = 0;
 
         trades.forEach(t => {
-            // Apply Scope Filter
-            if (analyticsScope !== 'All' && t.accountType !== analyticsScope) return;
+            // 数据已由顶部全局过滤器过滤，这里不再需要 Scope Filter
             if (!t.dateIso) return;
 
             // Only care about this month
@@ -131,17 +130,15 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
         });
 
         return { map, maxAbsMoney };
-    }, [trades, analyticsScope, currentMonthStr]);
+    }, [trades, currentMonthStr]);
 
 
     // 4. Drilldown Logic (Same as before)
     const selectedDayTrades = React.useMemo(() => {
         if (!selectedDate) return [];
-        return trades.filter(t => {
-            if (analyticsScope !== 'All' && t.accountType !== analyticsScope) return false;
-            return t.dateIso === selectedDate;
-        });
-    }, [trades, selectedDate, analyticsScope]);
+        // 数据已由顶部全局过滤器过滤
+        return trades.filter(t => t.dateIso === selectedDate);
+    }, [trades, selectedDate]);
 
     const selectedDayStats = React.useMemo(() => {
         if (!selectedDayTrades.length) return null;
@@ -165,31 +162,7 @@ export const JournalGallery: React.FC<JournalGalleryProps> = ({
                 }}
             >
                 <div style={{ fontWeight: 600 }}>交易日志画廊</div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <label
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            color: "var(--text-muted)",
-                            fontSize: "0.9em",
-                        }}
-                    >
-                        范围
-                        <select
-                            value={analyticsScope}
-                            onChange={(e) =>
-                                setAnalyticsScope(e.target.value as AnalyticsScope)
-                            }
-                            style={selectStyle}
-                        >
-                            <option value="Live">实盘</option>
-                            <option value="Demo">模拟</option>
-                            <option value="Backtest">回测</option>
-                            <option value="All">全部</option>
-                        </select>
-                    </label>
-                </div>
+                {/* 账户类型过滤已移到顶部全局过滤器 */}
             </div>
 
             <div
