@@ -1,6 +1,6 @@
 {
     "name": "al-brooks-console",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Al Brooks Price Action Trader Console - 智能交易员控制台",
     "main": "main.js",
     "scripts": {
