@@ -59,28 +59,49 @@ interface StrategyRAnalysisRow {
     deviationPercent: number | null; // 偏离百分比
 }
 
+/**
+ * 计算交易的 R 值
+ * 优先使用 t.r，否则从 pnl / initialRisk 计算
+ */
+function computeTradeR(t: TradeRecord): number | null {
+    // 优先使用显式的 r 字段
+    if (t.r !== undefined) return t.r;
+
+    // 否则从 pnl 和 initialRisk 计算
+    const pnl = t.pnl ?? t.netProfit ?? 0;
+    if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+        return pnl / t.initialRisk;
+    }
+
+    return null;
+}
+
 function computeStrategyRAnalysis(
     trades: TradeRecord[],
     strategyIndex: StrategyIndex
 ): StrategyRAnalysisRow[] {
     // 按策略名分组
     const groupMap = new Map<string, {
-        trades: TradeRecord[];
+        rValues: number[];
         path: string;
     }>();
 
     trades.forEach(t => {
         const sName = t.strategyName;
-        if (!sName || t.r === undefined) return;
+        if (!sName) return;
+
+        // 计算 R 值
+        const rValue = computeTradeR(t);
+        if (rValue === null) return;
 
         const existing = groupMap.get(sName);
         if (existing) {
-            existing.trades.push(t);
+            existing.rValues.push(rValue);
         } else {
             // 查找策略路径
             const card = strategyIndex.lookup(sName);
             groupMap.set(sName, {
-                trades: [t],
+                rValues: [rValue],
                 path: card?.path ?? ''
             });
         }
@@ -94,10 +115,9 @@ function computeStrategyRAnalysis(
         const expectedR = parseRiskReward(card?.riskReward);
 
         // 计算实际平均 R
-        const rValues = data.trades.filter(t => t.r !== undefined).map(t => t.r!);
-        if (rValues.length === 0) return;
+        if (data.rValues.length === 0) return;
 
-        const actualAvgR = rValues.reduce((sum, r) => sum + r, 0) / rValues.length;
+        const actualAvgR = data.rValues.reduce((sum, r) => sum + r, 0) / data.rValues.length;
 
         // 计算偏离度
         let deviation: number | null = null;
@@ -113,7 +133,7 @@ function computeStrategyRAnalysis(
             strategyPath: data.path,
             expectedR,
             actualAvgR,
-            tradeCount: rValues.length,
+            tradeCount: data.rValues.length,
             deviation,
             deviationPercent
         });
