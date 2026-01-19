@@ -50,6 +50,7 @@ import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPan
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { JournalGallery } from "../components/analytics/JournalGallery";
+import { CompactCalendarHeatmap } from "../components/analytics/CompactCalendarHeatmap";
 import { Card } from "../../ui/components/Card";
 
 export const AnalyticsTab: React.FC = () => {
@@ -398,6 +399,27 @@ export const AnalyticsTab: React.FC = () => {
           ⚙️ Configure View
         </Button>
       </div>
+
+      {/* 日历热图 - 顶部过滤区域 */}
+      <Card variant="tight" style={{ marginBottom: '8px' }}>
+        <CompactCalendarHeatmap
+          trades={filteredTrades}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          currencyMode={currencyMode}
+        />
+        {selectedDate && (
+          <div style={{
+            marginTop: '6px',
+            padding: '4px 8px',
+            background: 'var(--background-modifier-hover)',
+            borderRadius: '4px',
+            fontSize: '0.8em'
+          }}>
+            📅 已选择: <strong>{selectedDate}</strong> — 下方数据已过滤为当日记录
+          </div>
+        )}
+      </Card>
 
       <div
         style={{
