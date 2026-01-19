@@ -50,6 +50,7 @@ import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPan
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { JournalGallery } from "../components/analytics/JournalGallery";
+import { MonthCalendarHeatmap } from "../components/analytics/MonthCalendarHeatmap";
 import { Card } from "../../ui/components/Card";
 
 export const AnalyticsTab: React.FC = () => {
@@ -91,7 +92,7 @@ export const AnalyticsTab: React.FC = () => {
   type AccountFilter = 'all' | 'Live' | 'Demo' | 'Backtest';
   const [accountFilter, setAccountFilter] = React.useState<AccountFilter>('all');
 
-  // 根据日期范围和账户类型筛选交易
+  // 根据日期范围、账户类型和选中日期筛选交易
   const filteredTrades = React.useMemo(() => {
     let result = trades;
 
@@ -162,28 +163,34 @@ export const AnalyticsTab: React.FC = () => {
     });
   };
 
-  // Derived Data - 使用筛选后的数据
+  // 当选中日期时，进一步过滤为该日期的数据
+  const activeFilteredTrades = React.useMemo(() => {
+    if (!selectedDate) return filteredTrades;
+    return filteredTrades.filter(t => t.dateIso === selectedDate);
+  }, [filteredTrades, selectedDate]);
+
+  // Derived Data - 使用当前活跃过滤后的数据
   const summary = React.useMemo(
-    () => computeTradeStatsByAccountType(filteredTrades),
-    [filteredTrades]
+    () => computeTradeStatsByAccountType(activeFilteredTrades),
+    [activeFilteredTrades]
   );
 
   const strategyLab = React.useMemo(
     () =>
-      computeStrategyLab(filteredTrades, (t) => ({
+      computeStrategyLab(activeFilteredTrades, (t) => ({
         name: resolveCanonicalStrategy(t, strategyIndex),
       })),
-    [filteredTrades, strategyIndex]
+    [activeFilteredTrades, strategyIndex]
   );
 
   const contextAnalysis = React.useMemo(
-    () => computeContextAnalysis(filteredTrades),
-    [filteredTrades]
+    () => computeContextAnalysis(activeFilteredTrades),
+    [activeFilteredTrades]
   );
 
   const analyticsRecentLiveTradesAsc = React.useMemo(
-    () => computeRecentLiveTradesAsc(filteredTrades, 30),
-    [filteredTrades]
+    () => computeRecentLiveTradesAsc(activeFilteredTrades, 30),
+    [activeFilteredTrades]
   );
 
   const analyticsRMultiples = React.useMemo(
@@ -197,18 +204,18 @@ export const AnalyticsTab: React.FC = () => {
   );
 
   const analyticsTopStrats = React.useMemo(
-    () => computeTopStrategiesFromTrades(filteredTrades, 5, strategyIndex),
-    [filteredTrades, strategyIndex]
+    () => computeTopStrategiesFromTrades(activeFilteredTrades, 5, strategyIndex),
+    [activeFilteredTrades, strategyIndex]
   );
 
   const liveCyclePerf = React.useMemo(
-    () => calculateLiveCyclePerformance(filteredTrades),
-    [filteredTrades]
+    () => calculateLiveCyclePerformance(activeFilteredTrades),
+    [activeFilteredTrades]
   );
 
   const tuition = React.useMemo(
-    () => computeTuitionAnalysis(filteredTrades),
-    [filteredTrades]
+    () => computeTuitionAnalysis(activeFilteredTrades),
+    [activeFilteredTrades]
   );
 
   const analyticsSuggestion = React.useMemo(
@@ -226,13 +233,13 @@ export const AnalyticsTab: React.FC = () => {
   );
 
   const strategyAttribution = React.useMemo(
-    () => computeStrategyAttribution(filteredTrades, strategyIndex, 20),
-    [filteredTrades, strategyIndex]
+    () => computeStrategyAttribution(activeFilteredTrades, strategyIndex, 20),
+    [activeFilteredTrades, strategyIndex]
   );
 
   const allTradesDateRange = React.useMemo(
-    () => calculateAllTradesDateRange(filteredTrades),
-    [filteredTrades]
+    () => calculateAllTradesDateRange(activeFilteredTrades),
+    [activeFilteredTrades]
   );
 
   // Calendar Data
@@ -246,7 +253,7 @@ export const AnalyticsTab: React.FC = () => {
     dates.reverse(); // Ascending
 
     // Compute aggregation map
-    const dailyAggArray = computeDailyAgg(filteredTrades, 365);
+    const dailyAggArray = computeDailyAgg(activeFilteredTrades, 365);
     const dailyMap = new Map<string, { dateIso: string; netR: number; count: number }>();
     dailyAggArray.forEach(d => {
       dailyMap.set(d.dateIso, d);
@@ -255,15 +262,15 @@ export const AnalyticsTab: React.FC = () => {
     const cells = generateCalendarCells(dates, dailyMap);
     const maxAbs = calculateCalendarMaxAbs(cells);
     return { calendarCells: cells, maxAbs };
-  }, [filteredTrades]);
+  }, [activeFilteredTrades]);
 
   const calendarDays = calendarCells.length;
 
-  // Gallery Data - 使用全局过滤器（filteredTrades 已按账户类型过滤，所以传 'All'）
+  // Gallery Data - 使用 activeFilteredTrades (响应日期选择)
   const gallery = React.useMemo(
     () =>
-      buildGalleryItems(filteredTrades, 'All', resolveLink, getResourceUrl),
-    [filteredTrades, resolveLink, getResourceUrl]
+      buildGalleryItems(activeFilteredTrades, 'All', resolveLink, getResourceUrl),
+    [activeFilteredTrades, resolveLink, getResourceUrl]
   );
 
   // Calculate drawdown data from Live equity curve
@@ -392,6 +399,28 @@ export const AnalyticsTab: React.FC = () => {
         </Button>
       </div>
 
+      {/* 日历热图 - 顶部过滤区域 */}
+      <Card variant="tight" style={{ marginBottom: SPACE.sm }}>
+        <MonthCalendarHeatmap
+          trades={filteredTrades}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          currencyMode={currencyMode}
+          compact={false}
+        />
+        {selectedDate && (
+          <div style={{
+            marginTop: SPACE.sm,
+            padding: `${SPACE.xs} ${SPACE.sm}`,
+            background: 'var(--background-modifier-hover)',
+            borderRadius: '6px',
+            fontSize: '0.85em'
+          }}>
+            📅 已选择: <strong>{selectedDate}</strong> — 下方数据已过滤为当日记录
+          </div>
+        )}
+      </Card>
+
       <div
         style={{
           display: "flex",
@@ -465,7 +494,7 @@ export const AnalyticsTab: React.FC = () => {
 
           {visibleWidgets.dataAnalysis && (
             <JournalGallery
-              trades={filteredTrades}
+              trades={activeFilteredTrades}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               calendarCells={calendarCells}
@@ -491,7 +520,7 @@ export const AnalyticsTab: React.FC = () => {
 
           {visibleWidgets.winLossAnalysis && (
             <WinLossAnalysisPanel
-              trades={filteredTrades}
+              trades={activeFilteredTrades}
               currencyMode={currencyMode}
               displayUnit={displayUnit}
             />

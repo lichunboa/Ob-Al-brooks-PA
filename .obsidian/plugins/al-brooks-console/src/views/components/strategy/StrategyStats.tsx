@@ -1,5 +1,13 @@
 import * as React from "react";
-import type { StrategyStatsProps } from "../../../types";
+
+/** 策略统计 Props */
+interface StrategyStatsProps {
+  total: number;
+  activeCount: number;
+  learningCount: number;
+  totalUses: number;
+  onFilter: (filter: string) => void;
+}
 
 /**
  * 策略统计组件 - 水平紧凑布局
