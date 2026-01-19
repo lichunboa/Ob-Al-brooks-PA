@@ -259,12 +259,14 @@ export const AnalyticsTab: React.FC = () => {
 
   const calendarDays = calendarCells.length;
 
-  // Gallery Data - 使用全局过滤器（filteredTrades 已按账户类型过滤，所以传 'All'）
-  const gallery = React.useMemo(
-    () =>
-      buildGalleryItems(filteredTrades, 'All', resolveLink, getResourceUrl),
-    [filteredTrades, resolveLink, getResourceUrl]
-  );
+  // Gallery Data - 响应日期选择
+  const gallery = React.useMemo(() => {
+    // 如果选中了日期，只显示该日期的交易；否则显示全部
+    const tradesForGallery = selectedDate
+      ? filteredTrades.filter(t => t.dateIso === selectedDate)
+      : filteredTrades;
+    return buildGalleryItems(tradesForGallery, 'All', resolveLink, getResourceUrl);
+  }, [filteredTrades, selectedDate, resolveLink, getResourceUrl]);
 
   // Calculate drawdown data from Live equity curve
   const drawdownData = React.useMemo(() => {
