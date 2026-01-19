@@ -17,6 +17,7 @@ OPTIMIZATION_TODO.md
 MARKETING.md
 book/
 .ruff_cache/
+tmp_liuyao_repos_20260118/
 
 # ====================
 # Python
@@ -209,3 +210,6 @@ ai服务多方法支持，传统多api（主要支持免费的）
 先部署到云使用
 
 019bc83d-cdd4-7490-9821-3e8da7f4d7dc
+
+# Large local logs
+polymarket-bot.out

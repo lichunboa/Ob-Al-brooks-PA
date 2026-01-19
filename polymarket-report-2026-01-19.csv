@@ -1,0 +1,211 @@
+# 套利信号 Top 15
+排名,市场名称,出现次数,最高利润%,链接
+
+# 大额交易 Top 15
+排名,市场名称,交易次数,链接
+
+# 订单簿失衡 Top 15
+排名,市场名称,失衡次数,链接
+
+# 聪明钱 Top 15
+排名,市场名称,信号次数,链接
+
+# 新市场 Top 15
+排名,市场名称,出现次数,链接
+
+# 综合热门市场 Top 15
+排名,市场名称,套利,大额,订单簿,聪明钱,总计,链接
+
+# 活跃时段分布 (本地时间)
+小时,信号数量,占比%
+00:00,0,0
+01:00,0,0
+02:00,0,0
+03:00,0,0
+04:00,0,0
+05:00,0,0
+06:00,0,0
+07:00,0,0
+08:00,0,0
+09:00,0,0
+10:00,0,0
+11:00,0,0
+12:00,0,0
+13:00,0,0
+14:00,0,0
+15:00,0,0
+16:00,0,0
+17:00,0,0
+18:00,0,0
+19:00,0,0
+20:00,0,0
+21:00,0,0
+22:00,0,0
+23:00,0,0
+
+# 时段-类型分布 (本地时间)
+小时,套利,大额交易,订单簿,聪明钱
+00:00,0,0,0,0
+01:00,0,0,0,0
+02:00,0,0,0,0
+03:00,0,0,0,0
+04:00,0,0,0,0
+05:00,0,0,0,0
+06:00,0,0,0,0
+07:00,0,0,0,0
+08:00,0,0,0,0
+09:00,0,0,0,0
+10:00,0,0,0,0
+11:00,0,0,0,0
+12:00,0,0,0,0
+13:00,0,0,0,0
+14:00,0,0,0,0
+15:00,0,0,0,0
+16:00,0,0,0,0
+17:00,0,0,0,0
+18:00,0,0,0,0
+19:00,0,0,0,0
+20:00,0,0,0,0
+21:00,0,0,0,0
+22:00,0,0,0,0
+23:00,0,0,0,0
+
+# 买卖比例
+类型,数量,占比%
+
+# 聪明钱操作类型
+类型,数量,占比%
+
+# 套利利润分布
+利润区间,数量,占比%
+
+# 市场类别分布
+类别,信号数量,占比%
+体育,0,0
+加密货币,0,0
+政治,0,0
+娱乐,0,0
+金融,0,0
+其他,0,0
+
+# 高频套利市场 (10次以上)
+排名,市场名称,出现次数,最高利润%,链接
+
+# 聪明钱偏好类别
+类别,信号数量,占比%
+体育,0,0
+加密货币,0,0
+政治,0,0
+娱乐,0,0
+金融,0,0
+其他,0,0
+
+# 信号频率趋势 (环比)
+小时,信号数,环比变化%
+00:00,0,N/A
+01:00,0,N/A
+02:00,0,N/A
+03:00,0,N/A
+04:00,0,N/A
+05:00,0,N/A
+06:00,0,N/A
+07:00,0,N/A
+08:00,0,N/A
+09:00,0,N/A
+10:00,0,N/A
+11:00,0,N/A
+12:00,0,N/A
+13:00,0,N/A
+14:00,0,N/A
+15:00,0,N/A
+16:00,0,N/A
+17:00,0,N/A
+18:00,0,N/A
+19:00,0,N/A
+20:00,0,N/A
+21:00,0,N/A
+22:00,0,N/A
+23:00,0,N/A
+
+# 市场重复出现率 (跨信号类型)
+信号类型数,市场数量,占比%
+1种,0,0
+2种,0,0
+3种,0,0
+4种,0,0
+
+# 信号密集时段 (5分钟内20+信号)
+时间,信号数量
+
+# 24h成交量 Top 15
+排名,市场名称,24h成交量,价格,链接
+1,"Rams vs. Bears",11516432,1,https://polymarket.com/event/nfl-la-chi-2026-01-18
+2,"Texans vs. Patriots",9099422,0,https://polymarket.com/event/nfl-hou-ne-2026-01-18
+3,"Will Aston Villa FC win on 2026-01-18?",7698143,0,https://polymarket.com/event/epl-ast-eve-2026-01-18
+4,"Will FC Barcelona win on 2026-01-18?",7373140,0,https://polymarket.com/event/lal-rso-bar-2026-01-18
+5,"Fed decreases interest rates by 50+ bps after January 2026 meeting?",7129542,0.0025,https://polymarket.com/event/fed-decision-in-january
+6,"Will Stade Rennais FC 1901 win on 2026-01-18?",6949374,0,https://polymarket.com/event/fl1-ren-hac-2026-01-18
+7,"Spread: Patriots (-3.5)",4535233,1,https://polymarket.com/event/nfl-hou-ne-2026-01-18
+8,"Will Trump say ""Unbelievable"" or ""Fantastic"" or ""Incredible"" 10+ times during Panthers visit?",3794733,1,https://polymarket.com/event/what-will-trump-say-during-panthers-visit-on-january-15
+9,"Will Real Sociedad de Fútbol win on 2026-01-18?",3357070,1,https://polymarket.com/event/lal-rso-bar-2026-01-18
+10,"Trail Blazers vs. Kings",3209834,1,https://polymarket.com/event/nba-por-sac-2026-01-18
+11,"Fed increases interest rates by 25+ bps after January 2026 meeting?",3035530,0.0015,https://polymarket.com/event/fed-decision-in-january
+12,"Raptors vs. Lakers",2968671,0,https://polymarket.com/event/nba-tor-lal-2026-01-18
+13,"Will Club Atlético de Madrid win on 2026-01-18?",2822259,1,https://polymarket.com/event/lal-mad-ala-2026-01-18
+14,"Hornets vs. Nuggets",2571910,1,https://polymarket.com/event/nba-cha-den-2026-01-18
+15,"Spread: Rams (-3.5)",2445676,0,https://polymarket.com/event/nfl-la-chi-2026-01-18
+
+# 流动性 Top 15
+排名,市场名称,流动性,24h成交量,链接
+1,"Will the price of Solana be above $170 on January 20?",9999,1368,https://polymarket.com/event/solana-above-on-january-20
+2,"Will Silver (SI) settle over $70 on the final trading day of January 2026?",9999,65,https://polymarket.com/event/si-over-under-jan-2026
+3,"Will María Corina Machado visit Venezuela by March 31, 2026?",1000,879,https://polymarket.com/event/who-will-visit-venezuela-by-march-31
+4,"Will at least 85% of U.S. COVID-19 cases be from the Omicron variant on January 1, 2022?",100,0,https://polymarket.com/event/what-percent-of-us-covid19-cases-will-be-from-the-omicron-variant-on-january-1-2022
+5,"Will the price of Ethereum be above $3,000 on January 22?",9995,2822,https://polymarket.com/event/ethereum-above-on-january-22
+6,"Will the Republicans win the Nebraska Senate race in 2026?",9995,248,https://polymarket.com/event/nebraska-senate-election-winner
+7,"Will Jason Miyares be the Republican nominee for Senate in Virginia?",999,0,https://polymarket.com/event/virginia-republican-senate-primary-winner
+8,"Will the Republicans win the Montana Senate race in 2026?",9994,1660,https://polymarket.com/event/montana-senate-election-winner
+9,"Toledo Rockets vs. Massachusetts Minutemen",999,0,https://polymarket.com/event/cbb-toledo-umass-2026-01-20
+10,"Will Free Guy gross more than $20M domestically on opening weekend?",100,0,https://polymarket.com/event/will-free-guy-gross-more-than-20m-domestically-on-opening-weekend
+11,"Will the New York Islanders make the NHL Playoffs?",999,0,https://polymarket.com/event/which-teams-will-make-the-nhl-playoffs
+12,"Will a Category 5 Hurricane Make Landfall in the Lower 48 States Before November 1?",999,0,https://polymarket.com/event/will-a-category-5-hurricane-make-landfall-in-the-lower-48-states-before-november-1
+13,"Will ""LOVE YOU TOO - Ledisi"" win Best Traditional R&B Performance at the 68th annual GRAMMY Awards?",100,0,https://polymarket.com/event/grammys-best-traditional-rb-performance-winner
+14,"Will box office sales be higher than $200 million in the first quarter of 2021?",999,0,https://polymarket.com/event/will-box-office-sales-be-higher-than-200-million-in-the-first-quarter-of-2021
+15,"NBA: Will the Mavericks beat the Wizards by more than 6.5 points in their November 27th matchup?",999,0,https://polymarket.com/event/nba-will-the-mavericks-beat-the-wizards-by-more-than-6pt5-points-in-their-november-27th-matchup
+
+# 24h涨幅 Top 15
+排名,市场名称,涨幅%,当前价格,链接
+1,"Will Real Sociedad de Fútbol win on 2026-01-18?",82.5,1,https://polymarket.com/event/lal-rso-bar-2026-01-18
+2,"Hornets vs. Nuggets",56.0,1,https://polymarket.com/event/nba-cha-den-2026-01-18
+3,"Trail Blazers vs. Kings",55.5,1,https://polymarket.com/event/nba-por-sac-2026-01-18
+4,"Spread: Patriots (-3.5)",52.4,1,https://polymarket.com/event/nfl-hou-ne-2026-01-18
+5,"Rams vs. Bears",34.4,1,https://polymarket.com/event/nfl-la-chi-2026-01-18
+6,"Will Club Atlético de Madrid win on 2026-01-18?",27.5,1,https://polymarket.com/event/lal-mad-ala-2026-01-18
+7,"Will Trump say ""Unbelievable"" or ""Fantastic"" or ""Incredible"" 10+ times during Panthers visit?",0.1,1,https://polymarket.com/event/what-will-trump-say-during-panthers-visit-on-january-15
+8,"Fed decreases interest rates by 50+ bps after January 2026 meeting?",-0.1,0.0025,https://polymarket.com/event/fed-decision-in-january
+9,"Will André Ventura win the 2026 Portugal presidential election?",-0.4,0.0475,https://polymarket.com/event/portugal-presidential-election
+10,"Will Trump acquire Greenland before 2027?",-1.0,0.205,https://polymarket.com/event/will-trump-acquire-greenland-before-2027
+11,"Will Senegal win on 2026-01-18?",-24.4,0,https://polymarket.com/event/acn-sen-mar-2026-01-18
+12,"Texans vs. Patriots",-37.5,0,https://polymarket.com/event/nfl-hou-ne-2026-01-18
+13,"Senators vs. Red Wings",-43.5,0,https://polymarket.com/event/nhl-ott-det-2026-01-18
+14,"Raptors vs. Lakers",-47.4,0,https://polymarket.com/event/nba-tor-lal-2026-01-18
+15,"Spread: Rams (-3.5)",-51.4,0,https://polymarket.com/event/nfl-la-chi-2026-01-18
+
+# 24h跌幅 Top 15
+排名,市场名称,跌幅%,当前价格,链接
+1,"Will FC Barcelona win on 2026-01-18?",-61.5,0,https://polymarket.com/event/lal-rso-bar-2026-01-18
+2,"Magic vs. Grizzlies",-60.5,0,https://polymarket.com/event/nba-orl-mem-2026-01-18
+3,"Will Stade Rennais FC 1901 win on 2026-01-18?",-59.5,0,https://polymarket.com/event/fl1-ren-hac-2026-01-18
+4,"Will Aston Villa FC win on 2026-01-18?",-58.5,0,https://polymarket.com/event/epl-ast-eve-2026-01-18
+5,"Spread: Rams (-3.5)",-51.4,0,https://polymarket.com/event/nfl-la-chi-2026-01-18
+6,"Raptors vs. Lakers",-47.4,0,https://polymarket.com/event/nba-tor-lal-2026-01-18
+7,"Senators vs. Red Wings",-43.5,0,https://polymarket.com/event/nhl-ott-det-2026-01-18
+8,"Texans vs. Patriots",-37.5,0,https://polymarket.com/event/nfl-hou-ne-2026-01-18
+9,"Will Senegal win on 2026-01-18?",-24.4,0,https://polymarket.com/event/acn-sen-mar-2026-01-18
+10,"Will Trump acquire Greenland before 2027?",-1.0,0.205,https://polymarket.com/event/will-trump-acquire-greenland-before-2027
+11,"Will André Ventura win the 2026 Portugal presidential election?",-0.4,0.0475,https://polymarket.com/event/portugal-presidential-election
+12,"Fed decreases interest rates by 50+ bps after January 2026 meeting?",-0.1,0.0025,https://polymarket.com/event/fed-decision-in-january
+13,"Will Trump say ""Unbelievable"" or ""Fantastic"" or ""Incredible"" 10+ times during Panthers visit?",0.1,1,https://polymarket.com/event/what-will-trump-say-during-panthers-visit-on-january-15
+14,"Will Club Atlético de Madrid win on 2026-01-18?",27.5,1,https://polymarket.com/event/lal-mad-ala-2026-01-18
+15,"Rams vs. Bears",34.4,1,https://polymarket.com/event/nfl-la-chi-2026-01-18
+
