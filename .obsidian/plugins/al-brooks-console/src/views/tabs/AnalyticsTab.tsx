@@ -50,6 +50,7 @@ import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPan
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
 import { JournalGallery } from "../components/analytics/JournalGallery";
+import { StrategyAttributionPanel } from "../components/analytics/StrategyAttributionPanel";
 import { CompactCalendarHeatmap } from "../components/analytics/CompactCalendarHeatmap";
 import { Card } from "../../ui/components/Card";
 
@@ -493,20 +494,13 @@ export const AnalyticsTab: React.FC = () => {
           )}
 
           {visibleWidgets.dataAnalysis && (
-            <JournalGallery
+            <StrategyAttributionPanel
               trades={filteredTrades}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
-              calendarCells={calendarCells}
-              calendarDays={calendarDays}
-              calendarMaxAbs={calendarMaxAbs}
               strategyAttribution={strategyAttribution}
-              analyticsScope={analyticsScope}
-              setAnalyticsScope={setAnalyticsScope}
               openFile={openFile}
-              getDayOfMonth={getDayOfMonth}
               textButtonStyle={textButtonStyle}
-              selectStyle={selectStyle}
               SPACE={SPACE}
               currencyMode={currencyMode}
             />
