@@ -162,18 +162,23 @@ export const AnalyticsTab: React.FC = () => {
     });
   };
 
-  // Derived Data - 使用筛选后的数据
+  // Derived Data - 响应日期选择
+  const tradesForAnalysis = React.useMemo(() => {
+    if (!selectedDate) return filteredTrades;
+    return filteredTrades.filter(t => t.dateIso === selectedDate);
+  }, [filteredTrades, selectedDate]);
+
   const summary = React.useMemo(
-    () => computeTradeStatsByAccountType(filteredTrades),
-    [filteredTrades]
+    () => computeTradeStatsByAccountType(tradesForAnalysis),
+    [tradesForAnalysis]
   );
 
   const strategyLab = React.useMemo(
     () =>
-      computeStrategyLab(filteredTrades, (t) => ({
+      computeStrategyLab(tradesForAnalysis, (t) => ({
         name: resolveCanonicalStrategy(t, strategyIndex),
       })),
-    [filteredTrades, strategyIndex]
+    [tradesForAnalysis, strategyIndex]
   );
 
   const contextAnalysis = React.useMemo(
