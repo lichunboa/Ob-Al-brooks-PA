@@ -2,7 +2,7 @@ import * as React from "react";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { StrategyStats } from "../strategy/StrategyStats";
 import { StrategyList } from "../strategy/StrategyList";
-import { PlaybookPerformance } from "./PlaybookPerformance";
+
 import { matchStrategies } from "../../../core/strategy-matcher";
 import type { StrategyIndex } from "../../../core/strategy-index";
 
@@ -238,13 +238,6 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                     </span>
                 </div>
             </div>
-
-            <PlaybookPerformance
-                playbookPerfRows={playbookPerfRows}
-                openFile={openFile}
-                textButtonStyle={textButtonStyle}
-                V5_COLORS={V5_COLORS}
-            />
         </div>
     );
 };
