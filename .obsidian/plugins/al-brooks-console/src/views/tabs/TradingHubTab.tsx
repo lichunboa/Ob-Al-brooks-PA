@@ -2,7 +2,7 @@ import * as React from "react";
 import { moment } from "obsidian";
 import { GlassPanel } from "../../ui/components/GlassPanel";
 import { SectionHeader } from "../../ui/components/SectionHeader";
-import { TodayKpiCard } from "../components/trading/TodayKpiCard";
+import { TodayKpiCard, TimeRange } from "../components/trading/TodayKpiCard";
 import { OpenTradeAssistant } from "../components/trading/OpenTradeAssistant";
 
 import { DailyActionsPanel } from "../components/trading/DailyActionsPanel";
@@ -10,7 +10,7 @@ import { ReviewHintsPanel } from "../components/trading/ReviewHintsPanel";
 
 
 import { useConsoleContext } from "../../context/ConsoleContext";
-import { calculateTodayKpi } from "../../utils/data-calculation-utils";
+import { calculateTodayKpi, calculateKpiForRange } from "../../utils/data-calculation-utils";
 import { findOpenTrade } from "../../utils/trade-utils";
 import { buildReviewHints } from "../../core/review-hints";
 import {
@@ -40,6 +40,16 @@ export const TradingHubTab: React.FC = () => {
 
   const todayIso = React.useMemo(() => moment().format("YYYY-MM-DD"), []);
 
+  // 时间范围状态
+  const [timeRange, setTimeRange] = React.useState<TimeRange>("today");
+
+  // 根据时间范围计算 KPI
+  const rangeKpi = React.useMemo(
+    () => calculateKpiForRange(trades, timeRange, todayIso),
+    [trades, timeRange, todayIso]
+  );
+
+  // 今日数据仍然需要用于其他功能
   const todayKpi = React.useMemo(
     () => calculateTodayKpi(trades, todayIso),
     [trades, todayIso]
@@ -241,7 +251,19 @@ export const TradingHubTab: React.FC = () => {
       <GlassPanel style={{ marginBottom: "16px" }}>
 
 
-        <TodayKpiCard todayKpi={todayKpi} currencyMode={currencyMode || "USD"} />
+        <TodayKpiCard
+          todayKpi={{
+            total: rangeKpi.total,
+            wins: rangeKpi.wins,
+            losses: rangeKpi.losses,
+            winRatePct: rangeKpi.winRatePct,
+            netMoney: rangeKpi.netMoney,
+            netR: rangeKpi.netR,
+          }}
+          currencyMode={currencyMode || "USD"}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        />
 
         <ReviewHintsPanel
           latestTrade={latestTrade} // Keep for fallback or other props

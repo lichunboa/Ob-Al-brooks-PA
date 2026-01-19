@@ -125,6 +125,92 @@ export function calculateTodayKpi(
 }
 
 /**
+ * 时间范围类型
+ */
+export type TimeRange = "today" | "week" | "month" | "all";
+
+/**
+ * 根据时间范围计算KPI数据
+ */
+export function calculateKpiForRange(
+    trades: TradeRecord[],
+    range: TimeRange,
+    todayIso: string
+): {
+    filteredTrades: TradeRecord[];
+    total: number;
+    wins: number;
+    losses: number;
+    winRatePct: number;
+    netMoney: number;
+    netR: number;
+} {
+    // 根据时间范围过滤交易
+    let filteredTrades: TradeRecord[];
+
+    if (range === "today") {
+        filteredTrades = trades.filter((t) => t.dateIso === todayIso);
+    } else if (range === "week") {
+        // 本周（周一开始）
+        const today = new Date(todayIso);
+        const dayOfWeek = today.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 周一为起点
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - diff);
+        const weekStartIso = weekStart.toISOString().split('T')[0];
+        filteredTrades = trades.filter((t) => t.dateIso && t.dateIso >= weekStartIso);
+    } else if (range === "month") {
+        // 本月
+        const monthStart = todayIso.substring(0, 7) + "-01"; // YYYY-MM-01
+        filteredTrades = trades.filter((t) => t.dateIso && t.dateIso >= monthStart);
+    } else {
+        // 全部
+        filteredTrades = [...trades];
+    }
+
+    const total = filteredTrades.length;
+    let wins = 0;
+    let losses = 0;
+    let netMoney = 0;
+    let netR = 0;
+
+    for (const t of filteredTrades) {
+        const pnl = typeof t.pnl === "number" && Number.isFinite(t.pnl) ? t.pnl : 0;
+        netMoney += pnl;
+
+        let r = 0;
+        if (typeof t.r === "number" && Number.isFinite(t.r)) {
+            r = t.r;
+        } else if (pnl !== 0 && t.initialRisk && t.initialRisk > 0) {
+            r = pnl / t.initialRisk;
+        }
+        netR += r;
+
+        const outcome = (t.outcome ?? "").toString().trim().toLowerCase();
+        if (outcome === "win") {
+            wins++;
+        } else if (outcome === "loss") {
+            losses++;
+        } else if (!outcome || outcome === "unknown") {
+            if (pnl > 0) wins++;
+            else if (pnl < 0) losses++;
+        }
+    }
+
+    const winRatePct = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+    return {
+        filteredTrades,
+        total,
+        wins,
+        losses,
+        winRatePct,
+        netMoney,
+        netR,
+    };
+}
+
+/**
  * 策略统计数据计算
  */
 export function calculateStrategyStats(
