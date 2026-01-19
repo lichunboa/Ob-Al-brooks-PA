@@ -259,11 +259,11 @@ export const AnalyticsTab: React.FC = () => {
 
   const calendarDays = calendarCells.length;
 
-  // Gallery Data
+  // Gallery Data - 使用全局过滤器
   const gallery = React.useMemo(
     () =>
-      buildGalleryItems(filteredTrades, galleryScope, resolveLink, getResourceUrl),
-    [filteredTrades, galleryScope, resolveLink, getResourceUrl]
+      buildGalleryItems(filteredTrades, accountFilter === 'all' ? 'All' : accountFilter, resolveLink, getResourceUrl),
+    [filteredTrades, accountFilter, resolveLink, getResourceUrl]
   );
 
   // Calculate drawdown data from Live equity curve
@@ -509,11 +509,8 @@ export const AnalyticsTab: React.FC = () => {
         >
           <AnalyticsGallery
             gallery={gallery}
-            galleryScope={galleryScope}
-            setGalleryScope={setGalleryScope}
             openFile={openFile}
             getResourceUrl={getResourceUrl}
-            selectStyle={selectStyle}
             SPACE={SPACE}
           />
         </div>

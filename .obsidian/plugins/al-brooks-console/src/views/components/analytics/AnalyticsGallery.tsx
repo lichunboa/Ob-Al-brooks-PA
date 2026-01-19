@@ -1,6 +1,5 @@
 import * as React from "react";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
-import type { AnalyticsScope } from "../../../core/analytics";
 import { V5_COLORS } from "../../../ui/tokens";
 import { Card } from "../../../ui/components/Card";
 
@@ -10,21 +9,15 @@ interface AnalyticsGalleryProps {
         candidateCount: number;
         items: any[];
     };
-    galleryScope: AnalyticsScope;
-    setGalleryScope: (scope: AnalyticsScope) => void;
     openFile: (path: string) => void;
     getResourceUrl?: (path: string) => string;
-    selectStyle: React.CSSProperties;
-    SPACE: any; // Assuming SPACE object structure
+    SPACE: any;
 }
 
 export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
     gallery,
-    galleryScope,
-    setGalleryScope,
     openFile,
     getResourceUrl,
-    selectStyle,
     SPACE,
 }) => {
     return (
@@ -51,29 +44,6 @@ export const AnalyticsGallery: React.FC<AnalyticsGalleryProps> = ({
                         （图表/Charts）
                     </span>
                 </div>
-                <label
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: SPACE.xs,
-                        color: "var(--text-muted)",
-                        fontSize: "0.9em",
-                    }}
-                >
-                    范围
-                    <select
-                        value={galleryScope}
-                        onChange={(e) =>
-                            setGalleryScope(e.target.value as AnalyticsScope)
-                        }
-                        style={selectStyle}
-                    >
-                        <option value="All">全部</option>
-                        <option value="Live">实盘</option>
-                        <option value="Backtest">回测</option>
-                        <option value="Demo">模拟</option>
-                    </select>
-                </label>
             </div>
 
             <div
