@@ -49,7 +49,6 @@ import { AnalyticsInsightPanel } from "../components/analytics/AnalyticsInsightP
 import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPanel";
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
-import { JournalGallery } from "../components/analytics/JournalGallery";
 import { StrategyAttributionPanel } from "../components/analytics/StrategyAttributionPanel";
 import { CompactCalendarHeatmap } from "../components/analytics/CompactCalendarHeatmap";
 import { Card } from "../../ui/components/Card";
