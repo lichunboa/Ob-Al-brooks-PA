@@ -16,13 +16,10 @@ export interface StrategyRPerformancePanelProps {
 }
 
 /**
- * 解析盈亏比字符串为数字
+ * 从单个盈亏比字符串解析数字
  * 支持格式: "2:1", "2.5:1", "3R", "2.5", 等
  */
-function parseRiskReward(rr: string | undefined): number | null {
-    if (!rr) return null;
-
-    // 清理字符串
+function parseSingleRiskReward(rr: string): number | null {
     const cleaned = rr.trim();
 
     // 格式1: "2:1" 或 "2.5:1"
@@ -44,6 +41,32 @@ function parseRiskReward(rr: string | undefined): number | null {
     }
 
     return null;
+}
+
+/**
+ * 解析盈亏比字符串为数字
+ * 支持格式: "2:1", "2.5:1", "3R", "2.5", "2:1 - 3:1" (范围格式)
+ * 对于范围格式，返回最小值（保守估计）
+ */
+function parseRiskReward(rr: string | undefined): number | null {
+    if (!rr) return null;
+
+    const cleaned = rr.trim();
+
+    // 检查是否是范围格式（如 "2:1 - 3:1" 或 "1.5:1 - 2:1"）
+    if (cleaned.includes('-')) {
+        const parts = cleaned.split('-').map(p => p.trim());
+        const values: number[] = [];
+        for (const part of parts) {
+            const val = parseSingleRiskReward(part);
+            if (val !== null) values.push(val);
+        }
+        // 返回最小值作为保守估计
+        return values.length > 0 ? Math.min(...values) : null;
+    }
+
+    // 单个值
+    return parseSingleRiskReward(cleaned);
 }
 
 /**
