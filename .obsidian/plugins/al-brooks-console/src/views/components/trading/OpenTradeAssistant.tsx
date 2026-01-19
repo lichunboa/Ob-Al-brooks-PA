@@ -777,124 +777,16 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     })()}
                 </div>
             ) : (
-                (() => {
-                    const marketCycleRaw = (
-                        currentTrade.marketCycle ?? todayMarketCycle
-                    )
-                        ?.toString()
-                        .trim();
-                    const marketCycle = marketCycleRaw
-                        ? marketCycleRaw.includes("(")
-                            ? marketCycleRaw.split("(")[0].trim()
-                            : marketCycleRaw
-                        : undefined;
-                    const setupCategory = currentTrade.setupCategory
-                        ?.toString()
-                        .trim();
-                    const setupKey = currentTrade.setupKey?.toString().trim();
-                    const hasHints = Boolean(marketCycle || setupCategory);
-
-                    if (!hasHints) {
-                        return (
-                            <div
-                                style={{
-                                    color: "var(--text-faint)",
-                                    fontSize: "0.9em",
-                                }}
-                            >
-                                未找到匹配策略。
-                            </div>
-                        );
-                    }
-
-                    const norm = (s: string) => s.toLowerCase();
-                    const wantCycleKey = marketCycle
-                        ? norm(marketCycle)
-                        : undefined;
-                    const wantSetupKey =
-                        setupCategory || setupKey
-                            ? norm(String(setupCategory || setupKey))
-                            : undefined;
-
-                    const scored = strategyIndex
-                        .list()
-                        .map((card) => {
-                            let score = 0;
-                            if (
-                                wantCycleKey &&
-                                card.marketCycles.some((c) => {
-                                    const ck = norm(String(c));
-                                    return (
-                                        ck.includes(wantCycleKey) ||
-                                        wantCycleKey.includes(ck)
-                                    );
-                                })
-                            ) {
-                                score += 2;
-                            }
-                            if (
-                                wantSetupKey &&
-                                card.setupCategories.some((c) => {
-                                    const ck = norm(String(c));
-                                    return (
-                                        ck.includes(wantSetupKey) ||
-                                        wantSetupKey.includes(ck)
-                                    );
-                                })
-                            ) {
-                                score += 1;
-                            }
-                            return { card, score };
-                        })
-                        .filter((x) => x.score > 0)
-                        .sort((a, b) => b.score - a.score)
-                        .slice(0, 3)
-                        .map((x) => x.card);
-
-                    if (scored.length === 0) {
-                        return (
-                            <div
-                                style={{
-                                    color: "var(--text-faint)",
-                                    fontSize: "0.9em",
-                                }}
-                            >
-                                未找到匹配策略。
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div>
-                            <div
-                                style={{
-                                    color: "var(--text-muted)",
-                                    fontSize: "0.9em",
-                                    marginBottom: "8px",
-                                }}
-                            >
-                                💡 基于当前市场背景（{marketCycle ?? "未知"}
-                                ）的策略建议：
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: "8px",
-                                }}
-                            >
-                                {scored.map((s) => (
-                                    <InteractiveButton
-                                        key={`today-fallback-${s.path}`}
-                                        onClick={() => onOpenFile(s.path)}
-                                    >
-                                        {s.canonicalName}
-                                    </InteractiveButton>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                })()
+                <div
+                    style={{
+                        color: "var(--text-faint)",
+                        fontSize: "0.9em",
+                        padding: "12px",
+                        textAlign: "center"
+                    }}
+                >
+                    未找到匹配策略。请在上方"策略推荐"中选择或手动填写。
+                </div>
             )}
         </div>
     );
