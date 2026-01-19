@@ -1,23 +1,59 @@
-export type { TradeRecord as TradeData } from "./core/contracts";
+import type { TradeRecord } from "./core/contracts";
 
-// 兼容旧字段：当前 UI 只需要总数/扫描时间等可在后续迁移中移除。
+// Temporary alias/re-export
+export type TradeData = TradeRecord; // or any if strictly needed, but better typed
+
 export interface TradeIndexStats {
 	totalTrades: number;
 	lastScan: number;
 	dirty: boolean;
 }
 
-// Schema 扫描相关类型
-export type PaTagSnapshot = {
+export interface PaTagSnapshot {
+	generatedAtIso?: string;
 	files: number;
 	tagMap: Record<string, number>;
-	generatedAtIso?: string;
+}
+
+export interface SchemaIssueItem {
+	path: string;
+	key: string;
+	issue?: string;
+	name?: string;
+	type?: string;
+	val?: string;
+	expected?: string;
+	actual?: string;
+}
+
+export type StrategyStatsProps = {
+	total: number;
+	activeCount: number;
+	learningCount: number;
+	totalUses: number;
+	onFilter?: (filter: string) => void;
 };
 
-export type SchemaIssueItem = {
-	path: string;
+export type StrategyCardData = {
+	id: string;
 	name: string;
-	key: string;
-	type: string;
-	val?: string;
+	path?: string;
+	tags?: string[];
+	status?: 'active' | 'learning' | 'archived' | string;
+	rr?: string;
+	winRate?: number;
+	uses?: number;
+	lastUsed?: string | null;
+	marketCycle?: string | null;
+	description?: string;
+};
+
+export type PerformanceRow = {
+	strategyId: string;
+	name: string;
+	wins: number;
+	losses: number;
+	netPnl: number;
+	trades: number;
+	winRate: number;
 };
