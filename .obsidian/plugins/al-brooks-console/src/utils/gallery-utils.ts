@@ -59,6 +59,17 @@ export function buildGalleryItems(
         const rawCover =
             (fm as any)["封面/cover"] ?? (fm as any)["cover"] ?? (t as any).cover;
 
+        // [DEBUG] 详细调试
+        console.log(`[Gallery Debug] ${t.name}`, {
+            hasFm: !!fm,
+            fmKeys: Object.keys(fm).slice(0, 10),
+            rawCover,
+            rawCoverType: typeof rawCover,
+            isObject: rawCover && typeof rawCover === "object",
+            hasPath: rawCover && typeof rawCover === "object" && !!(rawCover as any).path,
+            coverPath: rawCover && typeof rawCover === "object" ? (rawCover as any).path : "N/A",
+        });
+
         // 允许"没有封面"的交易也进入展示(用占位卡片),否则用户会看到
         // "范围内有 2 笔,但只展示 1 张"的困惑。
         let resolved = "";
@@ -68,14 +79,17 @@ export function buildGalleryItems(
             // 情况1: Obsidian Link 对象 (frontmatter 中的 [[...]] 会被解析为 Link 对象)
             if (rawCover && typeof rawCover === "object" && (rawCover as any).path) {
                 const linkPath = (rawCover as any).path as string;
+                console.log(`[Gallery Debug] Link Object detected:`, { linkPath, isImage: isImage(linkPath) });
                 if (linkPath && isImage(linkPath)) {
                     resolved = linkPath;
-                    url = getResourceUrl(linkPath);
+                    url = getResourceUrl ? getResourceUrl(linkPath) : undefined;
+                    console.log(`[Gallery Debug] URL generated:`, { url });
                 }
             }
             // 情况2: 字符串格式 (包括 "[[...]]" 或 "![]()" 或纯路径)
             else if (typeof rawCover === "string") {
                 const ref = parseCoverRef(rawCover);
+                console.log(`[Gallery Debug] String format:`, { rawCover, ref });
                 if (ref) {
                     let target = String(ref.target ?? "").trim();
                     if (target) {
@@ -87,8 +101,10 @@ export function buildGalleryItems(
                             resolved = resolveLink
                                 ? resolveLink(target, t.path) ?? target
                                 : target;
+                            console.log(`[Gallery Debug] resolved:`, { target, resolved, isImage: isImage(resolved) });
                             if (resolved && isImage(resolved)) {
-                                url = getResourceUrl(resolved);
+                                url = getResourceUrl ? getResourceUrl(resolved) : undefined;
+                                console.log(`[Gallery Debug] URL:`, { url });
                             } else {
                                 resolved = "";
                                 url = undefined;
