@@ -83,7 +83,14 @@ export function buildGalleryItems(
                 if (linkPath && isImage(linkPath)) {
                     resolved = linkPath;
                     url = getResourceUrl ? getResourceUrl(linkPath) : undefined;
-                    console.log(`[Gallery Debug] URL generated:`, { url });
+                    // 如果直接获取失败，尝试用 resolveLink 解析
+                    if (!url && resolveLink) {
+                        const fullPath = resolveLink(linkPath, t.path);
+                        if (fullPath) {
+                            url = getResourceUrl ? getResourceUrl(fullPath) : undefined;
+                        }
+                    }
+                    console.log(`[Gallery Debug] URL generated:`, { linkPath, url });
                 }
             }
             // 情况2: 字符串格式 (包括 "[[...]]" 或 "![]()" 或纯路径)
@@ -98,12 +105,17 @@ export function buildGalleryItems(
                             resolved = target;
                             url = target;
                         } else {
+                            // 先尝试用 resolveLink 获取完整路径
                             resolved = resolveLink
                                 ? resolveLink(target, t.path) ?? target
                                 : target;
                             console.log(`[Gallery Debug] resolved:`, { target, resolved, isImage: isImage(resolved) });
                             if (resolved && isImage(resolved)) {
                                 url = getResourceUrl ? getResourceUrl(resolved) : undefined;
+                                // 如果解析后的路径也无法获取 URL，尝试原始 target
+                                if (!url && resolved !== target) {
+                                    url = getResourceUrl ? getResourceUrl(target) : undefined;
+                                }
                                 console.log(`[Gallery Debug] URL:`, { url });
                             } else {
                                 resolved = "";

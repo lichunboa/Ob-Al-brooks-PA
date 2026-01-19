@@ -229,6 +229,11 @@ export class ConsoleView extends ItemView {
               const file = this.app.vault.getAbstractFileByPath(path);
               return file instanceof TFile ? this.app.vault.getResourcePath(file) : undefined;
             }}
+            resolveLink={(linkText, fromPath) => {
+              // 使用 Obsidian 的链接解析 API
+              const dest = this.app.metadataCache.getFirstLinkpathDest(linkText, fromPath);
+              return dest?.path ?? null;
+            }}
           />
         </ConsoleErrorBoundary>
       );
