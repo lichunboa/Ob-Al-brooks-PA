@@ -87,9 +87,28 @@ export const AnalyticsTab: React.FC = () => {
   type DateRange = 'week' | 'month' | '30d' | '90d' | 'year' | 'all';
   const [dateRange, setDateRange] = React.useState<DateRange>('all');
 
-  // 根据日期范围筛选交易
+  // 账户类型筛选
+  type AccountFilter = 'all' | 'Live' | 'Demo' | 'Backtest';
+  const [accountFilter, setAccountFilter] = React.useState<AccountFilter>('all');
+
+  // 根据日期范围和账户类型筛选交易
   const filteredTrades = React.useMemo(() => {
-    if (dateRange === 'all') return trades;
+    let result = trades;
+
+    // 账户类型过滤
+    if (accountFilter !== 'all') {
+      result = result.filter(t => {
+        const acct = t.accountType ?? "";
+        return acct === accountFilter ||
+          acct.includes(accountFilter) ||
+          (accountFilter === "Live" && (acct.includes("实盘") || acct.includes("Live"))) ||
+          (accountFilter === "Demo" && (acct.includes("模拟") || acct.includes("Demo"))) ||
+          (accountFilter === "Backtest" && (acct.includes("回测") || acct.includes("Backtest")));
+      });
+    }
+
+    // 日期范围过滤
+    if (dateRange === 'all') return result;
 
     const now = new Date();
     let cutoff: Date;
@@ -111,12 +130,12 @@ export const AnalyticsTab: React.FC = () => {
         cutoff = new Date(now.getFullYear(), 0, 1);
         break;
       default:
-        return trades;
+        return result;
     }
 
     const cutoffIso = cutoff.toISOString().split('T')[0];
-    return trades.filter(t => t.dateIso && t.dateIso >= cutoffIso);
-  }, [trades, dateRange]);
+    return result.filter(t => t.dateIso && t.dateIso >= cutoffIso);
+  }, [trades, dateRange, accountFilter]);
 
   const dateRangeLabels: Record<DateRange, string> = {
     week: '本周',
@@ -125,6 +144,13 @@ export const AnalyticsTab: React.FC = () => {
     '90d': '90天',
     year: '本年',
     all: '全部',
+  };
+
+  const accountFilterLabels: Record<AccountFilter, string> = {
+    all: '全部',
+    Live: '实盘',
+    Demo: '模拟',
+    Backtest: '回测',
   };
 
   type WidgetKey = keyof typeof visibleWidgets;
@@ -278,32 +304,60 @@ export const AnalyticsTab: React.FC = () => {
           marginBottom: SPACE.sm,
         }}
       >
-        {/* 日期范围选择 + 单位切换 */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        {/* 日期范围选择 + 账户类型 + 单位切换 */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
           {/* 日期范围 */}
-          <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
-            {(['week', 'month', '30d', '90d', 'year', 'all'] as DateRange[]).map(range => (
-              <div
-                key={range}
-                onClick={() => setDateRange(range)}
-                style={{
-                  padding: "2px 8px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  background: dateRange === range ? "var(--interactive-accent)" : "transparent",
-                  color: dateRange === range ? "var(--text-on-accent)" : "var(--text-muted)",
-                  fontSize: "0.75em",
-                  fontWeight: 600,
-                  transition: "all 0.15s"
-                }}
-              >
-                {dateRangeLabels[range]}
-              </div>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>📅</span>
+            <div style={{ display: "flex", gap: "2px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
+              {(['week', 'month', '30d', '90d', 'year', 'all'] as DateRange[]).map(range => (
+                <div
+                  key={range}
+                  onClick={() => setDateRange(range)}
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    background: dateRange === range ? "#60A5FA" : "transparent",
+                    color: dateRange === range ? "white" : "var(--text-muted)",
+                    fontSize: "0.75em",
+                    fontWeight: 600,
+                    transition: "all 0.15s"
+                  }}
+                >
+                  {dateRangeLabels[range]}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 账户类型 */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>💼</span>
+            <div style={{ display: "flex", gap: "2px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
+              {(['all', 'Live', 'Demo', 'Backtest'] as AccountFilter[]).map(acct => (
+                <div
+                  key={acct}
+                  onClick={() => setAccountFilter(acct)}
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    background: accountFilter === acct ? "#60A5FA" : "transparent",
+                    color: accountFilter === acct ? "white" : "var(--text-muted)",
+                    fontSize: "0.75em",
+                    fontWeight: 600,
+                    transition: "all 0.15s"
+                  }}
+                >
+                  {accountFilterLabels[acct]}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* 单位切换 */}
-          <div style={{ display: "flex", gap: "2px", background: "var(--background-modifier-form-field)", padding: "2px", borderRadius: "6px" }}>
+          <div style={{ display: "flex", gap: "2px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
             {(['money', 'r'] as const).map(unit => (
               <div
                 key={unit}
@@ -312,8 +366,8 @@ export const AnalyticsTab: React.FC = () => {
                   padding: "2px 8px",
                   borderRadius: "4px",
                   cursor: "pointer",
-                  background: displayUnit === unit ? "var(--interactive-accent)" : "transparent",
-                  color: displayUnit === unit ? "var(--text-on-accent)" : "var(--text-muted)",
+                  background: displayUnit === unit ? "#60A5FA" : "transparent",
+                  color: displayUnit === unit ? "white" : "var(--text-muted)",
                   fontSize: "0.75em",
                   fontWeight: 600,
                   transition: "all 0.15s"
