@@ -10,6 +10,8 @@ import {
   parseYaml,
   stringifyYaml,
 } from "obsidian";
+import { ConsoleProvider } from "../context/ConsoleContext";
+import { ConsoleContent } from "./ConsoleContent";
 import { createRoot, Root } from "react-dom/client";
 import type { TradeIndex, TradeIndexStatus } from "../core/trade-index";
 import { computeTradeStatsByAccountType } from "../core/stats";
@@ -613,7 +615,7 @@ const ConsoleComponent: React.FC<Props> = ({
           const first = res.errors?.[0];
           window.alert(
             `部分操作失败：${res.failed} 个文件。` +
-              (first ? `\n示例：${first.path}\n${first.message}` : "")
+            (first ? `\n示例：${first.path}\n${first.message}` : "")
           );
         } else if (res.applied === 0) {
           window.alert(
@@ -1319,8 +1321,8 @@ const ConsoleComponent: React.FC<Props> = ({
       galleryScope === "All"
         ? trades
         : trades.filter(
-            (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
-          );
+          (t) => ((t.accountType ?? "Live") as AccountType) === galleryScope
+        );
 
     // v5.0 口径：按“最新”取候选。index.getAll() 的顺序不保证，所以这里显式按日期倒序。
     const candidatesSorted = [...candidates].sort((a, b) => {
@@ -1841,31 +1843,31 @@ const ConsoleComponent: React.FC<Props> = ({
                       )}
                       {(openTradeStrategy.stopLossRecommendation?.length ?? 0) >
                         0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: V5_COLORS.loss,
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              🛑
-                            </span>
-                            止损
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                marginBottom: "4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                color: V5_COLORS.loss,
+                              }}
+                            >
+                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                🛑
+                              </span>
+                              止损
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                              {openTradeStrategy
+                                .stopLossRecommendation!.slice(0, 3)
+                                .map((x, i) => (
+                                  <li key={`stop-${i}`}>{x}</li>
+                                ))}
+                            </ul>
                           </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .stopLossRecommendation!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`stop-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
+                        )}
                       {(openTradeStrategy.riskAlerts?.length ?? 0) > 0 && (
                         <div>
                           <div
@@ -1894,31 +1896,31 @@ const ConsoleComponent: React.FC<Props> = ({
                       )}
                       {(openTradeStrategy.takeProfitRecommendation?.length ??
                         0) > 0 && (
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 800,
-                              marginBottom: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              color: "var(--text-accent)",
-                            }}
-                          >
-                            <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
-                              🎯
-                            </span>
-                            目标
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                marginBottom: "4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                color: "var(--text-accent)",
+                              }}
+                            >
+                              <span style={{ fontSize: "1.05em", lineHeight: 1 }}>
+                                🎯
+                              </span>
+                              目标
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                              {openTradeStrategy
+                                .takeProfitRecommendation!.slice(0, 3)
+                                .map((x, i) => (
+                                  <li key={`tp-${i}`}>{x}</li>
+                                ))}
+                            </ul>
                           </div>
-                          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                            {openTradeStrategy
-                              .takeProfitRecommendation!.slice(0, 3)
-                              .map((x, i) => (
-                                <li key={`tp-${i}`}>{x}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
+                        )}
                     </div>
 
                     {(() => {
@@ -1939,12 +1941,12 @@ const ConsoleComponent: React.FC<Props> = ({
                       const signalMatch =
                         curSignals.length > 0 && reqSignals.length > 0
                           ? reqSignals.some((r) =>
-                              curSignals.some((c) => {
-                                const rn = norm(r);
-                                const cn = norm(c);
-                                return rn.includes(cn) || cn.includes(rn);
-                              })
-                            )
+                            curSignals.some((c) => {
+                              const rn = norm(r);
+                              const cn = norm(c);
+                              return rn.includes(cn) || cn.includes(rn);
+                            })
+                          )
                           : null;
 
                       return (
@@ -2571,8 +2573,8 @@ short mode\n\
                         cy.pnl > 0
                           ? V5_COLORS.win
                           : cy.pnl < 0
-                          ? V5_COLORS.loss
-                          : "var(--text-muted)";
+                            ? V5_COLORS.loss
+                            : "var(--text-muted)";
                       return (
                         <div
                           key={cy.name}
@@ -2764,15 +2766,15 @@ short mode\n\
                       analyticsSuggestion.tone === "danger"
                         ? withHexAlpha(V5_COLORS.loss, "1F")
                         : analyticsSuggestion.tone === "warn"
-                        ? withHexAlpha(V5_COLORS.back, "1F")
-                        : withHexAlpha(V5_COLORS.win, "1A"),
+                          ? withHexAlpha(V5_COLORS.back, "1F")
+                          : withHexAlpha(V5_COLORS.win, "1A"),
                     border: "1px solid var(--background-modifier-border)",
                     color:
                       analyticsSuggestion.tone === "danger"
                         ? V5_COLORS.loss
                         : analyticsSuggestion.tone === "warn"
-                        ? V5_COLORS.back
-                        : V5_COLORS.win,
+                          ? V5_COLORS.back
+                          : V5_COLORS.win,
                     fontWeight: 700,
                   }}
                 >
@@ -2845,14 +2847,13 @@ short mode\n\
                           c.netR > 0
                             ? withHexAlpha(V5_COLORS.win, "1A")
                             : c.netR < 0
-                            ? withHexAlpha(V5_COLORS.loss, "1A")
-                            : `rgba(var(--mono-rgb-100), 0.05)`;
+                              ? withHexAlpha(V5_COLORS.loss, "1A")
+                              : `rgba(var(--mono-rgb-100), 0.05)`;
                         return (
                           <div
                             key={`cal-${c.dateIso}`}
-                            title={`${c.dateIso} • ${c.count} 笔 • ${
-                              c.netR >= 0 ? "+" : ""
-                            }${c.netR.toFixed(1)}R`}
+                            title={`${c.dateIso} • ${c.count} 笔 • ${c.netR >= 0 ? "+" : ""
+                              }${c.netR.toFixed(1)}R`}
                             style={{
                               border:
                                 "1px solid var(--background-modifier-border)",
@@ -2881,15 +2882,15 @@ short mode\n\
                                   c.netR > 0
                                     ? V5_COLORS.win
                                     : c.netR < 0
-                                    ? V5_COLORS.loss
-                                    : "var(--text-faint)",
+                                      ? V5_COLORS.loss
+                                      : "var(--text-faint)",
                                 textAlign: "right",
                               }}
                             >
                               {c.count > 0
                                 ? `${c.netR >= 0 ? "+" : ""}${c.netR.toFixed(
-                                    1
-                                  )}R`
+                                  1
+                                )}R`
                                 : "—"}
                             </div>
                           </div>
@@ -3069,7 +3070,7 @@ short mode\n\
                               analyticsRecentLiveTradesAsc.map((t, i) => {
                                 const r =
                                   typeof t.pnl === "number" &&
-                                  Number.isFinite(t.pnl)
+                                    Number.isFinite(t.pnl)
                                     ? t.pnl
                                     : 0;
                                 let h = Math.abs(r) * rScale;
@@ -3078,15 +3079,14 @@ short mode\n\
                                   r > 0
                                     ? V5_COLORS.win
                                     : r < 0
-                                    ? V5_COLORS.loss
-                                    : "var(--text-muted)";
+                                      ? V5_COLORS.loss
+                                      : "var(--text-muted)";
                                 const top = r >= 0 ? rZeroY - h : rZeroY;
                                 return (
                                   <div
                                     key={`rbar-${t.path}-${t.dateIso}-${i}`}
-                                    title={`${t.dateIso} | ${
-                                      t.name
-                                    } | R: ${r.toFixed(2)}`}
+                                    title={`${t.dateIso} | ${t.name
+                                      } | R: ${r.toFixed(2)}`}
                                     style={{
                                       position: "absolute",
                                       left: `${i * step}px`,
@@ -3159,8 +3159,8 @@ short mode\n\
                           s.wr >= 50
                             ? V5_COLORS.win
                             : s.wr >= 40
-                            ? V5_COLORS.back
-                            : V5_COLORS.loss;
+                              ? V5_COLORS.back
+                              : V5_COLORS.loss;
                         let displayName = s.name;
                         if (
                           displayName.length > 12 &&
@@ -3533,8 +3533,8 @@ short mode\n\
                                   it.accountType === "Live"
                                     ? V5_COLORS.live
                                     : it.accountType === "Backtest"
-                                    ? V5_COLORS.back
-                                    : V5_COLORS.demo,
+                                      ? V5_COLORS.back
+                                      : V5_COLORS.demo,
                                 border:
                                   "1px solid var(--background-modifier-border)",
                                 color: "rgba(var(--mono-rgb-0), 0.9)",
@@ -3547,8 +3547,8 @@ short mode\n\
                               {it.accountType === "Live"
                                 ? "实盘"
                                 : it.accountType === "Backtest"
-                                ? "回测"
-                                : "模拟"}
+                                  ? "回测"
+                                  : "模拟"}
                             </div>
 
                             <div
@@ -3659,8 +3659,8 @@ short mode\n\
                                 {it.accountType === "Live"
                                   ? "实盘"
                                   : it.accountType === "Backtest"
-                                  ? "回测"
-                                  : "模拟"}
+                                    ? "回测"
+                                    : "模拟"}
                               </div>
                               <div
                                 style={{
@@ -4103,38 +4103,38 @@ short mode\n\
                   const focusRec =
                     canRecommendFocus && memory.focusFile
                       ? {
-                          type: "Focus" as const,
-                          title: memory.focusFile.name.replace(/\.md$/i, ""),
-                          path: memory.focusFile.path,
-                          desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
-                        }
+                        type: "Focus" as const,
+                        title: memory.focusFile.name.replace(/\.md$/i, ""),
+                        path: memory.focusFile.path,
+                        desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
+                      }
                       : null;
 
                   const courseRec = course?.hybridRec
                     ? (() => {
-                        const rec = course.hybridRec;
-                        const title = String(
-                          rec.data.t || rec.data.q || "推荐"
-                        );
-                        const path = String((rec.data as any).path || "");
-                        const desc = rec.type === "New" ? "新主题" : "闪卡测验";
-                        return { type: rec.type, title, path, desc } as const;
-                      })()
+                      const rec = course.hybridRec;
+                      const title = String(
+                        rec.data.t || rec.data.q || "推荐"
+                      );
+                      const path = String((rec.data as any).path || "");
+                      const desc = rec.type === "New" ? "新主题" : "闪卡测验";
+                      return { type: rec.type, title, path, desc } as const;
+                    })()
                     : null;
 
                   const quiz =
                     memory.quizPool.length > 0
                       ? memory.quizPool[
-                          Math.max(0, memoryShakeIndex) % memory.quizPool.length
-                        ]
+                      Math.max(0, memoryShakeIndex) % memory.quizPool.length
+                      ]
                       : null;
                   const randomRec = quiz
                     ? {
-                        type: "Shake" as const,
-                        title: String(quiz.q || quiz.file),
-                        path: String(quiz.path),
-                        desc: "🎲 随机抽取",
-                      }
+                      type: "Shake" as const,
+                      title: String(quiz.q || quiz.file),
+                      path: String(quiz.path),
+                      desc: "🎲 随机抽取",
+                    }
                     : null;
 
                   const rec = focusRec ?? courseRec ?? randomRec;
@@ -4144,10 +4144,10 @@ short mode\n\
                     rec.type === "Focus"
                       ? "🔥 优先复习"
                       : rec.type === "New"
-                      ? "🚀 推荐"
-                      : rec.type === "Review"
-                      ? "🔄 推荐"
-                      : "🎲 随机抽取";
+                        ? "🚀 推荐"
+                        : rec.type === "Review"
+                          ? "🔄 推荐"
+                          : "🎲 随机抽取";
 
                   const onShake = () => {
                     setMemoryIgnoreFocus(true);
@@ -4371,88 +4371,88 @@ short mode\n\
               <div>
                 {course.hybridRec
                   ? (() => {
-                      const rec = course.hybridRec;
-                      const sid = simpleCourseId(rec.data.id);
-                      const link =
-                        course.linksById[rec.data.id] || course.linksById[sid];
-                      const prefix =
-                        rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
-                      return (
+                    const rec = course.hybridRec;
+                    const sid = simpleCourseId(rec.data.id);
+                    const link =
+                      course.linksById[rec.data.id] || course.linksById[sid];
+                    const prefix =
+                      rec.type === "New" ? "🚀 继续学习" : "🔄 建议复习";
+                    return (
+                      <div
+                        style={{
+                          border:
+                            "1px solid var(--background-modifier-border)",
+                          borderRadius: "8px",
+                          padding: "10px",
+                          background: "rgba(var(--mono-rgb-100), 0.03)",
+                          marginBottom: "10px",
+                        }}
+                      >
                         <div
                           style={{
-                            border:
-                              "1px solid var(--background-modifier-border)",
-                            borderRadius: "8px",
-                            padding: "10px",
-                            background: "rgba(var(--mono-rgb-100), 0.03)",
-                            marginBottom: "10px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "10px",
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: "10px",
-                            }}
-                          >
-                            <div>
-                              {link ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openFile(link.path)}
-                                  style={textButtonSemiboldStyle}
-                                  onMouseEnter={onTextBtnMouseEnter}
-                                  onMouseLeave={onTextBtnMouseLeave}
-                                  onFocus={onTextBtnFocus}
-                                  onBlur={onTextBtnBlur}
-                                >
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                </button>
-                              ) : (
-                                <span style={{ color: "var(--text-faint)" }}>
-                                  {prefix}: {String(rec.data.t ?? rec.data.id)}
-                                  （笔记未创建）
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                color: "var(--text-muted)",
-                                fontFamily: "var(--font-monospace)",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {rec.data.id}
-                            </div>
+                          <div>
+                            {link ? (
+                              <button
+                                type="button"
+                                onClick={() => openFile(link.path)}
+                                style={textButtonSemiboldStyle}
+                                onMouseEnter={onTextBtnMouseEnter}
+                                onMouseLeave={onTextBtnMouseLeave}
+                                onFocus={onTextBtnFocus}
+                                onBlur={onTextBtnBlur}
+                              >
+                                {prefix}: {String(rec.data.t ?? rec.data.id)}
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--text-faint)" }}>
+                                {prefix}: {String(rec.data.t ?? rec.data.id)}
+                                （笔记未创建）
+                              </span>
+                            )}
                           </div>
                           <div
                             style={{
-                              marginTop: "6px",
                               color: "var(--text-muted)",
-                              fontSize: "0.85em",
-                              display: "flex",
-                              gap: "12px",
-                              flexWrap: "wrap",
+                              fontFamily: "var(--font-monospace)",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <span>
-                              章节: <strong>{String(rec.data.p ?? "—")}</strong>
-                            </span>
-                            <span>
-                              进度:{" "}
-                              <strong>
-                                {course.progress.doneCount}/
-                                {course.progress.totalCount}
-                              </strong>
-                            </span>
-                            <span>
-                              笔记:{" "}
-                              <strong>{link ? "已创建" : "未创建"}</strong>
-                            </span>
+                            {rec.data.id}
                           </div>
                         </div>
-                      );
-                    })()
+                        <div
+                          style={{
+                            marginTop: "6px",
+                            color: "var(--text-muted)",
+                            fontSize: "0.85em",
+                            display: "flex",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span>
+                            章节: <strong>{String(rec.data.p ?? "—")}</strong>
+                          </span>
+                          <span>
+                            进度:{" "}
+                            <strong>
+                              {course.progress.doneCount}/
+                              {course.progress.totalCount}
+                            </strong>
+                          </span>
+                          <span>
+                            笔记:{" "}
+                            <strong>{link ? "已创建" : "未创建"}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()
                   : null}
 
                 {course.upNext.length > 0 && (
@@ -4543,13 +4543,13 @@ short mode\n\
                             const bg = c.isDone
                               ? V5_COLORS.win
                               : c.hasNote
-                              ? V5_COLORS.accent
-                              : "rgba(var(--mono-rgb-100), 0.06)";
+                                ? V5_COLORS.accent
+                                : "rgba(var(--mono-rgb-100), 0.06)";
                             const fg = c.isDone
                               ? "var(--background-primary)"
                               : c.hasNote
-                              ? "var(--background-primary)"
-                              : "var(--text-faint)";
+                                ? "var(--background-primary)"
+                                : "var(--text-faint)";
                             const title = `${c.item.id}: ${String(
                               c.item.t ?? ""
                             )}`;
@@ -4830,8 +4830,8 @@ short mode\n\
                       r.pnl > 0
                         ? V5_COLORS.win
                         : r.pnl < 0
-                        ? V5_COLORS.loss
-                        : "var(--text-muted)";
+                          ? V5_COLORS.loss
+                          : "var(--text-muted)";
 
                     return (
                       <div
@@ -4923,8 +4923,8 @@ short mode\n\
                 healthScore > 90
                   ? V5_COLORS.win
                   : healthScore > 60
-                  ? V5_COLORS.back
-                  : V5_COLORS.loss;
+                    ? V5_COLORS.back
+                    : V5_COLORS.loss;
               const files = paTagSnapshot?.files ?? 0;
               const tags = paTagSnapshot
                 ? Object.keys(paTagSnapshot.tagMap).length
@@ -4941,8 +4941,8 @@ short mode\n\
 
               const topTags = paTagSnapshot
                 ? Object.entries(paTagSnapshot.tagMap)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 60)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 60)
                 : [];
 
               const hasCJK = (str: string) => /[\u4e00-\u9fff]/.test(str);
@@ -5885,8 +5885,8 @@ short mode\n\
                                   {issue.severity === "error"
                                     ? "错误"
                                     : issue.severity === "warn"
-                                    ? "警告"
-                                    : "—"}
+                                      ? "警告"
+                                      : "—"}
                                 </div>
                                 <div style={{ flex: "1 1 auto" }}>
                                   <div style={{ fontWeight: 600 }}>
@@ -6291,618 +6291,618 @@ short mode\n\
 
                     {managerInspectorKey
                       ? (() => {
-                          const inv =
-                            managerScope === "strategy"
-                              ? managerStrategyInventory
-                              : managerTradeInventory;
-                          const key = managerInspectorKey;
-                          if (!inv) return null;
+                        const inv =
+                          managerScope === "strategy"
+                            ? managerStrategyInventory
+                            : managerTradeInventory;
+                        const key = managerInspectorKey;
+                        if (!inv) return null;
 
-                          const selectManagerFiles =
-                            managerScope === "strategy"
-                              ? selectManagerStrategyFiles
-                              : selectManagerTradeFiles;
+                        const selectManagerFiles =
+                          managerScope === "strategy"
+                            ? selectManagerStrategyFiles
+                            : selectManagerTradeFiles;
 
-                          const allPaths = inv.keyPaths[key] ?? [];
-                          const perVal = inv.valPaths[key] ?? {};
-                          const sortedVals = Object.entries(perVal).sort(
-                            (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
+                        const allPaths = inv.keyPaths[key] ?? [];
+                        const perVal = inv.valPaths[key] ?? {};
+                        const sortedVals = Object.entries(perVal).sort(
+                          (a, b) => (b[1]?.length ?? 0) - (a[1]?.length ?? 0)
+                        );
+                        const currentPaths =
+                          managerInspectorFileFilter?.paths ?? allPaths;
+                        const filterLabel = managerInspectorFileFilter?.label;
+
+                        const prettyManagerVal = (val: string) => {
+                          let s = (val ?? "").toString().trim();
+                          if (!s) return "";
+                          const low = s.toLowerCase();
+                          if (s === "Unknown" || low === "unknown")
+                            return "未知/Unknown";
+                          if (s === "Empty" || low === "empty")
+                            return "空/Empty";
+                          if (low === "null") return "空/null";
+                          return s;
+                        };
+
+                        const close = () => {
+                          setManagerInspectorKey(undefined);
+                          setManagerInspectorTab("vals");
+                          setManagerInspectorFileFilter(undefined);
+                        };
+
+                        const doRenameKey = async () => {
+                          const n =
+                            (await promptText?.({
+                              title: `重命名 ${key}`,
+                              defaultValue: key,
+                              placeholder: "输入新属性名",
+                              okText: "重命名",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const nextKey = n.trim();
+                          if (!nextKey || nextKey === key) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认重命名",
+                              message: `将属性\n${key}\n重命名为\n${nextKey}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildRenameKeyPlan(
+                            selectManagerFiles(allPaths),
+                            key,
+                            nextKey,
+                            { overwrite: true }
                           );
-                          const currentPaths =
-                            managerInspectorFileFilter?.paths ?? allPaths;
-                          const filterLabel = managerInspectorFileFilter?.label;
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const prettyManagerVal = (val: string) => {
-                            let s = (val ?? "").toString().trim();
-                            if (!s) return "";
-                            const low = s.toLowerCase();
-                            if (s === "Unknown" || low === "unknown")
-                              return "未知/Unknown";
-                            if (s === "Empty" || low === "empty")
-                              return "空/Empty";
-                            if (low === "null") return "空/null";
-                            return s;
-                          };
+                        const doDeleteKey = async () => {
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认删除属性",
+                              message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
+                              okText: "删除",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildDeleteKeyPlan(
+                            selectManagerFiles(allPaths),
+                            key
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const close = () => {
-                            setManagerInspectorKey(undefined);
-                            setManagerInspectorTab("vals");
-                            setManagerInspectorFileFilter(undefined);
-                          };
+                        const doAppendVal = async () => {
+                          const v =
+                            (await promptText?.({
+                              title: `追加新值 → ${key}`,
+                              placeholder: "输入要追加的值",
+                              okText: "追加",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const val = v.trim();
+                          if (!val) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认追加",
+                              message: `向属性\n${key}\n追加值：\n${val}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildAppendValPlan(
+                            selectManagerFiles(allPaths),
+                            key,
+                            val
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doRenameKey = async () => {
-                            const n =
-                              (await promptText?.({
-                                title: `重命名 ${key}`,
-                                defaultValue: key,
-                                placeholder: "输入新属性名",
-                                okText: "重命名",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const nextKey = n.trim();
-                            if (!nextKey || nextKey === key) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认重命名",
-                                message: `将属性\n${key}\n重命名为\n${nextKey}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildRenameKeyPlan(
-                              selectManagerFiles(allPaths),
-                              key,
-                              nextKey,
-                              { overwrite: true }
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doInjectProp = async () => {
+                          const k =
+                            (await promptText?.({
+                              title: "注入属性：属性名",
+                              placeholder: "例如：市场周期/market_cycle",
+                              okText: "下一步",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const newKey = k.trim();
+                          if (!newKey) return;
+                          const v =
+                            (await promptText?.({
+                              title: `注入属性：${newKey} 的值`,
+                              placeholder: "输入要注入的值",
+                              okText: "注入",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const newVal = v.trim();
+                          if (!newVal) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认注入",
+                              message:
+                                `将向 ${currentPaths.length} 个文件注入：\n` +
+                                `${newKey}: ${newVal}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildInjectPropPlan(
+                            selectManagerFiles(currentPaths),
+                            newKey,
+                            newVal
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doDeleteKey = async () => {
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认删除属性",
-                                message: `⚠️ 将从所有关联文件中删除属性：\n${key}`,
-                                okText: "删除",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildDeleteKeyPlan(
-                              selectManagerFiles(allPaths),
-                              key
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doUpdateVal = async (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          const n =
+                            (await promptText?.({
+                              title: `修改值 → ${key}`,
+                              defaultValue: val,
+                              placeholder: "输入新的值",
+                              okText: "修改",
+                              cancelText: "取消",
+                            })) ?? "";
+                          const next = n.trim();
+                          if (!next || next === val) return;
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认修改",
+                              message:
+                                `将 ${paths.length} 个文件中的\n` +
+                                `${key}: ${val}\n` +
+                                `修改为\n` +
+                                `${key}: ${next}`,
+                              okText: "确认",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildUpdateValPlan(
+                            selectManagerFiles(paths),
+                            key,
+                            val,
+                            next
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doAppendVal = async () => {
-                            const v =
-                              (await promptText?.({
-                                title: `追加新值 → ${key}`,
-                                placeholder: "输入要追加的值",
-                                okText: "追加",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const val = v.trim();
-                            if (!val) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认追加",
-                                message: `向属性\n${key}\n追加值：\n${val}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildAppendValPlan(
-                              selectManagerFiles(allPaths),
-                              key,
-                              val
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const doDeleteVal = async (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          const ok =
+                            (await confirmDialog?.({
+                              title: "确认移除值",
+                              message:
+                                `将从 ${paths.length} 个文件中移除：\n` +
+                                `${key}: ${val}`,
+                              okText: "移除",
+                              cancelText: "取消",
+                            })) ?? false;
+                          if (!ok) return;
+                          const plan = buildDeleteValPlan(
+                            selectManagerFiles(paths),
+                            key,
+                            val,
+                            {
+                              deleteKeyIfEmpty: true,
+                            }
+                          );
+                          await runManagerPlan(plan, {
+                            closeInspector: true,
+                            forceDeleteKeys: true,
+                            refreshInventory: true,
+                          });
+                        };
 
-                          const doInjectProp = async () => {
-                            const k =
-                              (await promptText?.({
-                                title: "注入属性：属性名",
-                                placeholder: "例如：市场周期/market_cycle",
-                                okText: "下一步",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const newKey = k.trim();
-                            if (!newKey) return;
-                            const v =
-                              (await promptText?.({
-                                title: `注入属性：${newKey} 的值`,
-                                placeholder: "输入要注入的值",
-                                okText: "注入",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const newVal = v.trim();
-                            if (!newVal) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认注入",
-                                message:
-                                  `将向 ${currentPaths.length} 个文件注入：\n` +
-                                  `${newKey}: ${newVal}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildInjectPropPlan(
-                              selectManagerFiles(currentPaths),
-                              newKey,
-                              newVal
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
+                        const showFilesForVal = (
+                          val: string,
+                          paths: string[]
+                        ) => {
+                          setManagerInspectorTab("files");
+                          setManagerInspectorFileFilter({
+                            paths,
+                            label: `值: ${val}`,
+                          });
+                        };
 
-                          const doUpdateVal = async (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            const n =
-                              (await promptText?.({
-                                title: `修改值 → ${key}`,
-                                defaultValue: val,
-                                placeholder: "输入新的值",
-                                okText: "修改",
-                                cancelText: "取消",
-                              })) ?? "";
-                            const next = n.trim();
-                            if (!next || next === val) return;
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认修改",
-                                message:
-                                  `将 ${paths.length} 个文件中的\n` +
-                                  `${key}: ${val}\n` +
-                                  `修改为\n` +
-                                  `${key}: ${next}`,
-                                okText: "确认",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildUpdateValPlan(
-                              selectManagerFiles(paths),
-                              key,
-                              val,
-                              next
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              refreshInventory: true,
-                            });
-                          };
-
-                          const doDeleteVal = async (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            const ok =
-                              (await confirmDialog?.({
-                                title: "确认移除值",
-                                message:
-                                  `将从 ${paths.length} 个文件中移除：\n` +
-                                  `${key}: ${val}`,
-                                okText: "移除",
-                                cancelText: "取消",
-                              })) ?? false;
-                            if (!ok) return;
-                            const plan = buildDeleteValPlan(
-                              selectManagerFiles(paths),
-                              key,
-                              val,
-                              {
-                                deleteKeyIfEmpty: true,
-                              }
-                            );
-                            await runManagerPlan(plan, {
-                              closeInspector: true,
-                              forceDeleteKeys: true,
-                              refreshInventory: true,
-                            });
-                          };
-
-                          const showFilesForVal = (
-                            val: string,
-                            paths: string[]
-                          ) => {
-                            setManagerInspectorTab("files");
-                            setManagerInspectorFileFilter({
-                              paths,
-                              label: `值: ${val}`,
-                            });
-                          };
-
-                          return (
+                        return (
+                          <div
+                            onClick={(e) => {
+                              if (e.target === e.currentTarget) close();
+                            }}
+                            style={{
+                              position: "fixed",
+                              inset: 0,
+                              background: "rgba(0,0,0,0.35)",
+                              zIndex: 9999,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "24px",
+                            }}
+                          >
                             <div
-                              onClick={(e) => {
-                                if (e.target === e.currentTarget) close();
-                              }}
                               style={{
-                                position: "fixed",
-                                inset: 0,
-                                background: "rgba(0,0,0,0.35)",
-                                zIndex: 9999,
+                                width: "min(860px, 95vw)",
+                                maxHeight: "85vh",
+                                overflow: "hidden",
+                                borderRadius: "12px",
+                                border:
+                                  "1px solid var(--background-modifier-border)",
+                                background: "var(--background-primary)",
                                 display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "24px",
+                                flexDirection: "column",
                               }}
                             >
                               <div
                                 style={{
-                                  width: "min(860px, 95vw)",
-                                  maxHeight: "85vh",
-                                  overflow: "hidden",
-                                  borderRadius: "12px",
-                                  border:
-                                    "1px solid var(--background-modifier-border)",
-                                  background: "var(--background-primary)",
                                   display: "flex",
-                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  gap: "12px",
+                                  padding: "12px 14px",
+                                  borderBottom:
+                                    "1px solid var(--background-modifier-border)",
                                 }}
                               >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    gap: "12px",
-                                    padding: "12px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 800 }}>
-                                    {key}
-                                    <span
-                                      style={{
-                                        color: "var(--text-faint)",
-                                        fontSize: "0.9em",
-                                        marginLeft: "10px",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      {managerScope === "strategy"
-                                        ? "策略"
-                                        : "交易"}
-                                    </span>
-                                  </div>
-                                  <div style={{ display: "flex", gap: "8px" }}>
-                                    <button
-                                      type="button"
-                                      disabled={managerBusy}
-                                      onClick={doDeleteKey}
-                                      style={
-                                        managerBusy
-                                          ? buttonSmDisabledStyle
-                                          : buttonSmStyle
-                                      }
-                                    >
-                                      🗑️ 删除属性
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={close}
-                                      style={buttonSmStyle}
-                                    >
-                                      关闭
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    padding: "10px 14px",
-                                    borderBottom:
-                                      "1px solid var(--background-modifier-border)",
-                                  }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setManagerInspectorTab("vals");
-                                      setManagerInspectorFileFilter(undefined);
-                                    }}
+                                <div style={{ fontWeight: 800 }}>
+                                  {key}
+                                  <span
                                     style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "vals"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
+                                      color: "var(--text-faint)",
+                                      fontSize: "0.9em",
+                                      marginLeft: "10px",
+                                      fontWeight: 600,
                                     }}
                                   >
-                                    属性值 ({sortedVals.length})
-                                  </button>
+                                    {managerScope === "strategy"
+                                      ? "策略"
+                                      : "交易"}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", gap: "8px" }}>
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setManagerInspectorTab("files")
+                                    disabled={managerBusy}
+                                    onClick={doDeleteKey}
+                                    style={
+                                      managerBusy
+                                        ? buttonSmDisabledStyle
+                                        : buttonSmStyle
                                     }
-                                    style={{
-                                      ...buttonSmStyle,
-                                      background:
-                                        managerInspectorTab === "files"
-                                          ? "rgba(var(--mono-rgb-100), 0.08)"
-                                          : "var(--background-primary)",
-                                    }}
                                   >
-                                    关联文件 ({allPaths.length})
+                                    🗑️ 删除属性
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={close}
+                                    style={buttonSmStyle}
+                                  >
+                                    关闭
                                   </button>
                                 </div>
+                              </div>
 
-                                <div
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  padding: "10px 14px",
+                                  borderBottom:
+                                    "1px solid var(--background-modifier-border)",
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManagerInspectorTab("vals");
+                                    setManagerInspectorFileFilter(undefined);
+                                  }}
                                   style={{
-                                    padding: "10px 14px",
-                                    overflow: "auto",
-                                    flex: "1 1 auto",
+                                    ...buttonSmStyle,
+                                    background:
+                                      managerInspectorTab === "vals"
+                                        ? "rgba(var(--mono-rgb-100), 0.08)"
+                                        : "var(--background-primary)",
                                   }}
                                 >
-                                  {managerInspectorTab === "vals" ? (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
-                                      {sortedVals.length === 0 ? (
+                                  属性值 ({sortedVals.length})
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setManagerInspectorTab("files")
+                                  }
+                                  style={{
+                                    ...buttonSmStyle,
+                                    background:
+                                      managerInspectorTab === "files"
+                                        ? "rgba(var(--mono-rgb-100), 0.08)"
+                                        : "var(--background-primary)",
+                                  }}
+                                >
+                                  关联文件 ({allPaths.length})
+                                </button>
+                              </div>
+
+                              <div
+                                style={{
+                                  padding: "10px 14px",
+                                  overflow: "auto",
+                                  flex: "1 1 auto",
+                                }}
+                              >
+                                {managerInspectorTab === "vals" ? (
+                                  <div
+                                    style={{ display: "grid", gap: "8px" }}
+                                  >
+                                    {sortedVals.length === 0 ? (
+                                      <div
+                                        style={{
+                                          padding: "40px",
+                                          textAlign: "center",
+                                          color: "var(--text-faint)",
+                                        }}
+                                      >
+                                        无值记录
+                                      </div>
+                                    ) : (
+                                      sortedVals.map(([val, paths]) => (
                                         <div
-                                          style={{
-                                            padding: "40px",
-                                            textAlign: "center",
-                                            color: "var(--text-faint)",
-                                          }}
-                                        >
-                                          无值记录
-                                        </div>
-                                      ) : (
-                                        sortedVals.map(([val, paths]) => (
-                                          <div
-                                            key={`mgr-v5-row-${val}`}
-                                            style={{
-                                              display: "flex",
-                                              justifyContent: "space-between",
-                                              alignItems: "center",
-                                              gap: "10px",
-                                              border:
-                                                "1px solid var(--background-modifier-border)",
-                                              borderRadius: "10px",
-                                              padding: "10px",
-                                              background:
-                                                "rgba(var(--mono-rgb-100), 0.03)",
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "10px",
-                                                minWidth: 0,
-                                              }}
-                                            >
-                                              <span
-                                                style={{
-                                                  border:
-                                                    "1px solid var(--background-modifier-border)",
-                                                  borderRadius: "999px",
-                                                  padding: "2px 10px",
-                                                  background:
-                                                    "var(--background-primary)",
-                                                  maxWidth: "520px",
-                                                  overflow: "hidden",
-                                                  textOverflow: "ellipsis",
-                                                  whiteSpace: "nowrap",
-                                                }}
-                                                title={val}
-                                              >
-                                                {prettyManagerVal(val) || val}
-                                              </span>
-                                              <span
-                                                style={{
-                                                  color: "var(--text-muted)",
-                                                  fontVariantNumeric:
-                                                    "tabular-nums",
-                                                }}
-                                              >
-                                                {paths.length}
-                                              </span>
-                                            </div>
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                gap: "8px",
-                                              }}
-                                            >
-                                              <button
-                                                type="button"
-                                                disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doUpdateVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
-                                                title="修改"
-                                              >
-                                                ✏️
-                                              </button>
-                                              <button
-                                                type="button"
-                                                disabled={managerBusy}
-                                                onClick={() =>
-                                                  void doDeleteVal(val, paths)
-                                                }
-                                                style={
-                                                  managerBusy
-                                                    ? buttonSmDisabledStyle
-                                                    : buttonSmStyle
-                                                }
-                                                title="删除"
-                                              >
-                                                🗑️
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  showFilesForVal(val, paths)
-                                                }
-                                                style={buttonSmStyle}
-                                                title="查看文件"
-                                              >
-                                                👁️
-                                              </button>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div
-                                      style={{ display: "grid", gap: "8px" }}
-                                    >
-                                      {filterLabel ? (
-                                        <div
+                                          key={`mgr-v5-row-${val}`}
                                           style={{
                                             display: "flex",
                                             justifyContent: "space-between",
                                             alignItems: "center",
-                                            color: V5_COLORS.accent,
-                                            fontWeight: 700,
-                                            padding: "8px 10px",
-                                            border:
-                                              "1px solid var(--background-modifier-border)",
-                                            borderRadius: "10px",
-                                            background:
-                                              "rgba(var(--mono-rgb-100), 0.03)",
-                                          }}
-                                        >
-                                          <span>🔍 筛选: {filterLabel}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setManagerInspectorFileFilter(
-                                                undefined
-                                              )
-                                            }
-                                            style={buttonSmStyle}
-                                          >
-                                            ✕ 重置
-                                          </button>
-                                        </div>
-                                      ) : null}
-
-                                      {currentPaths.slice(0, 200).map((p) => (
-                                        <button
-                                          key={`mgr-v5-file-${p}`}
-                                          type="button"
-                                          onClick={() => void openFile?.(p)}
-                                          title={p}
-                                          onMouseEnter={onTextBtnMouseEnter}
-                                          onMouseLeave={onTextBtnMouseLeave}
-                                          onFocus={onTextBtnFocus}
-                                          onBlur={onTextBtnBlur}
-                                          style={{
-                                            textAlign: "left",
+                                            gap: "10px",
                                             border:
                                               "1px solid var(--background-modifier-border)",
                                             borderRadius: "10px",
                                             padding: "10px",
                                             background:
-                                              "var(--background-primary)",
-                                            cursor: "pointer",
+                                              "rgba(var(--mono-rgb-100), 0.03)",
                                           }}
                                         >
-                                          <div style={{ fontWeight: 700 }}>
-                                            {p.split("/").pop()}
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "10px",
+                                              minWidth: 0,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                border:
+                                                  "1px solid var(--background-modifier-border)",
+                                                borderRadius: "999px",
+                                                padding: "2px 10px",
+                                                background:
+                                                  "var(--background-primary)",
+                                                maxWidth: "520px",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
+                                              title={val}
+                                            >
+                                              {prettyManagerVal(val) || val}
+                                            </span>
+                                            <span
+                                              style={{
+                                                color: "var(--text-muted)",
+                                                fontVariantNumeric:
+                                                  "tabular-nums",
+                                              }}
+                                            >
+                                              {paths.length}
+                                            </span>
                                           </div>
                                           <div
                                             style={{
-                                              color: "var(--text-faint)",
-                                              fontSize: "0.85em",
-                                              opacity: 0.8,
+                                              display: "flex",
+                                              gap: "8px",
                                             }}
                                           >
-                                            {p}
+                                            <button
+                                              type="button"
+                                              disabled={managerBusy}
+                                              onClick={() =>
+                                                void doUpdateVal(val, paths)
+                                              }
+                                              style={
+                                                managerBusy
+                                                  ? buttonSmDisabledStyle
+                                                  : buttonSmStyle
+                                              }
+                                              title="修改"
+                                            >
+                                              ✏️
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={managerBusy}
+                                              onClick={() =>
+                                                void doDeleteVal(val, paths)
+                                              }
+                                              style={
+                                                managerBusy
+                                                  ? buttonSmDisabledStyle
+                                                  : buttonSmStyle
+                                              }
+                                              title="删除"
+                                            >
+                                              🗑️
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                showFilesForVal(val, paths)
+                                              }
+                                              style={buttonSmStyle}
+                                              title="查看文件"
+                                            >
+                                              👁️
+                                            </button>
                                           </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div
+                                    style={{ display: "grid", gap: "8px" }}
+                                  >
+                                    {filterLabel ? (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          color: V5_COLORS.accent,
+                                          fontWeight: 700,
+                                          padding: "8px 10px",
+                                          border:
+                                            "1px solid var(--background-modifier-border)",
+                                          borderRadius: "10px",
+                                          background:
+                                            "rgba(var(--mono-rgb-100), 0.03)",
+                                        }}
+                                      >
+                                        <span>🔍 筛选: {filterLabel}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setManagerInspectorFileFilter(
+                                              undefined
+                                            )
+                                          }
+                                          style={buttonSmStyle}
+                                        >
+                                          ✕ 重置
                                         </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
+                                      </div>
+                                    ) : null}
 
-                                <div
-                                  style={{
-                                    padding: "10px 14px",
-                                    borderTop:
-                                      "1px solid var(--background-modifier-border)",
-                                    display: "flex",
-                                    gap: "10px",
-                                    justifyContent: "flex-end",
-                                  }}
-                                >
-                                  {managerInspectorTab === "vals" ? (
-                                    <>
+                                    {currentPaths.slice(0, 200).map((p) => (
                                       <button
+                                        key={`mgr-v5-file-${p}`}
                                         type="button"
-                                        disabled={managerBusy}
-                                        onClick={() => void doRenameKey()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
+                                        onClick={() => void openFile?.(p)}
+                                        title={p}
+                                        onMouseEnter={onTextBtnMouseEnter}
+                                        onMouseLeave={onTextBtnMouseLeave}
+                                        onFocus={onTextBtnFocus}
+                                        onBlur={onTextBtnBlur}
+                                        style={{
+                                          textAlign: "left",
+                                          border:
+                                            "1px solid var(--background-modifier-border)",
+                                          borderRadius: "10px",
+                                          padding: "10px",
+                                          background:
+                                            "var(--background-primary)",
+                                          cursor: "pointer",
+                                        }}
                                       >
-                                        ✏️ 重命名
+                                        <div style={{ fontWeight: 700 }}>
+                                          {p.split("/").pop()}
+                                        </div>
+                                        <div
+                                          style={{
+                                            color: "var(--text-faint)",
+                                            fontSize: "0.85em",
+                                            opacity: 0.8,
+                                          }}
+                                        >
+                                          {p}
+                                        </div>
                                       </button>
-                                      <button
-                                        type="button"
-                                        disabled={managerBusy}
-                                        onClick={() => void doAppendVal()}
-                                        style={
-                                          managerBusy
-                                            ? buttonSmDisabledStyle
-                                            : buttonSmStyle
-                                        }
-                                      >
-                                        ➕ 追加新值
-                                      </button>
-                                    </>
-                                  ) : (
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div
+                                style={{
+                                  padding: "10px 14px",
+                                  borderTop:
+                                    "1px solid var(--background-modifier-border)",
+                                  display: "flex",
+                                  gap: "10px",
+                                  justifyContent: "flex-end",
+                                }}
+                              >
+                                {managerInspectorTab === "vals" ? (
+                                  <>
                                     <button
                                       type="button"
                                       disabled={managerBusy}
-                                      onClick={() => void doInjectProp()}
+                                      onClick={() => void doRenameKey()}
                                       style={
                                         managerBusy
                                           ? buttonSmDisabledStyle
                                           : buttonSmStyle
                                       }
                                     >
-                                      💉 注入属性
+                                      ✏️ 重命名
                                     </button>
-                                  )}
-                                </div>
+                                    <button
+                                      type="button"
+                                      disabled={managerBusy}
+                                      onClick={() => void doAppendVal()}
+                                      style={
+                                        managerBusy
+                                          ? buttonSmDisabledStyle
+                                          : buttonSmStyle
+                                      }
+                                    >
+                                      ➕ 追加新值
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={managerBusy}
+                                    onClick={() => void doInjectProp()}
+                                    style={
+                                      managerBusy
+                                        ? buttonSmDisabledStyle
+                                        : buttonSmStyle
+                                    }
+                                  >
+                                    💉 注入属性
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          );
-                        })()
+                          </div>
+                        );
+                      })()
                       : null}
                   </>
                 ) : (
@@ -7386,8 +7386,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isStrategy = normalized.some(
           (t) => t.toLowerCase() === STRATEGY_TAG.toLowerCase()
@@ -7477,8 +7477,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         if (!normalized.some(isPaTag)) continue;
 
@@ -7517,8 +7517,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         const isCourse = normalized.some(
           (t) => t.toLowerCase() === COURSE_TAG.toLowerCase()
@@ -7560,8 +7560,8 @@ export class ConsoleView extends ItemView {
         const fmTags = Array.isArray(fmTagsRaw)
           ? fmTagsRaw.filter((t): t is string => typeof t === "string")
           : typeof fmTagsRaw === "string"
-          ? [fmTagsRaw]
-          : [];
+            ? [fmTagsRaw]
+            : [];
         const normalized = [...cacheTags, ...fmTags].map(normalizeTag);
         return normalized.some(
           (t) => t.toLowerCase() === FLASH_TAG.toLowerCase()
@@ -7595,33 +7595,40 @@ export class ConsoleView extends ItemView {
     this.root = createRoot(this.mountEl);
     this.root.render(
       <ConsoleErrorBoundary>
-        <ConsoleComponent
+        <ConsoleProvider
           index={this.index}
           strategyIndex={this.strategyIndex}
           todayContext={this.todayContext}
+          settings={this.getSettings()}
+          onSaveSettings={async (s) => {
+            // 这里需要保存设置的逻辑
+          }}
+          app={this.app}
+          version={this.version}
+          openFile={async (path) => {
+            this.app.workspace.openLinkText(path, "", true);
+          }}
           resolveLink={resolveLink}
           getResourceUrl={getResourceUrl}
-          enumPresets={enumPresets}
+          runCommand={(commandId) =>
+            (this.app as any).commands?.executeCommandById?.(commandId)
+          }
+          openGlobalSearch={openGlobalSearch}
+          promptText={promptText}
+          confirmDialog={confirmDialog}
           loadStrategyNotes={loadStrategyNotes}
           loadPaTagSnapshot={loadPaTagSnapshot}
           loadAllFrontmatterFiles={loadAllFrontmatterFiles}
           applyFixPlan={applyFixPlan}
           restoreFiles={restoreFiles}
           createTradeNote={createTradeNote}
-          settings={this.getSettings()}
-          subscribeSettings={this.subscribeSettings}
           loadCourse={loadCourse}
           loadMemory={loadMemory}
-          promptText={promptText}
-          confirmDialog={confirmDialog}
           integrations={this.integrations}
-          openFile={openFile}
-          openGlobalSearch={openGlobalSearch}
-          runCommand={(commandId) =>
-            (this.app as any).commands?.executeCommandById?.(commandId)
-          }
-          version={this.version}
-        />
+          enumPresets={enumPresets}
+        >
+          <ConsoleContent />
+        </ConsoleProvider>
       </ConsoleErrorBoundary>
     );
   }
