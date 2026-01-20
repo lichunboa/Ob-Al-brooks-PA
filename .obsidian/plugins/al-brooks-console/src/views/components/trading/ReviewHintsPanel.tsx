@@ -85,9 +85,11 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
 
         // 计算每个策略的历史表现并排序
         const withPerformance = dirFiltered.map(s => {
-            const strategyName = (s.strategy || "").toLowerCase();
-            if (!strategyName) {
-                return { name: s.strategy || "未命名", path: s.path, winRate: 0, tradeCount: 0 };
+            // 优先使用 strategy，然后 canonicalName，最后 name
+            const displayName = (s as any).strategy || (s as any).canonicalName || (s as any).name || "未命名";
+            const strategyName = displayName.toLowerCase();
+            if (!strategyName || strategyName === "未命名") {
+                return { name: displayName, path: s.path, winRate: 0, tradeCount: 0 };
             }
             const relatedTrades = recentTrades.filter(t =>
                 t.strategyName?.toLowerCase().includes(strategyName) ||
@@ -96,7 +98,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             const wins = relatedTrades.filter(t => (t.netProfit ?? 0) > 0 || t.outcome === "win").length;
             const winRate = relatedTrades.length > 0 ? wins / relatedTrades.length : 0;
             return {
-                name: s.strategy || "未命名",
+                name: displayName,
                 path: s.path,
                 winRate: Math.round(winRate * 100),
                 tradeCount: relatedTrades.length
