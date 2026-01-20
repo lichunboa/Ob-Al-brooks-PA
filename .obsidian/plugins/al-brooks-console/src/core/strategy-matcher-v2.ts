@@ -241,6 +241,7 @@ function scoreHistorical(
 /**
  * 辅助函数: 评分风险等级匹配
  * 根据用户偏好的风险等级和策略卡片的风险等级进行匹配
+ * 返回 -1 表示硬性不匹配（应跳过该策略）
  */
 function scoreRiskLevel(
     card: StrategyCard,
@@ -250,7 +251,7 @@ function scoreRiskLevel(
 
     // 从策略卡片中获取风险等级
     const cardRisk = (card as any)["风险等级/risk_level"] || (card as any).risk_level || (card as any).riskLevel;
-    if (!cardRisk) return 0; // 策略卡片无风险等级
+    if (!cardRisk) return 0; // 策略卡片无风险等级，不影响
 
     const riskStr = String(cardRisk).toLowerCase();
 
@@ -271,18 +272,8 @@ function scoreRiskLevel(
         return 3;
     }
 
-    // 相邻等级给部分分
-    // Low <-> Medium: 差1级
-    // Medium <-> High: 差1级
-    // Low <-> High: 差2级
-    const riskOrder = { "Low": 0, "Medium": 1, "High": 2 };
-    const diff = Math.abs(riskOrder[cardRiskLevel] - riskOrder[preferredRisk]);
-
-    if (diff === 1) {
-        return 1; // 差1级，给部分分
-    }
-
-    return 0; // 差2级，不匹配
+    // 用户指定了偏好，但策略不匹配 -> 返回 -1 表示硬性过滤
+    return -1;
 }
 
 /**
@@ -369,6 +360,11 @@ export function matchStrategiesV2(
             setupCategory: 0
         };
 
+        // 风险等级硬性过滤：-1表示不匹配，跳过该策略
+        if (breakdown.riskLevel === -1) {
+            continue;
+        }
+
         // 计算历史表现
         let perf: { winRate: number; totalTrades: number } | undefined;
         if (input.includeHistoricalPerf && trades && trades.length > 0) {
@@ -431,6 +427,11 @@ export function matchStrategiesV2(
             marketCycle: 0,
             setupCategory: 0
         };
+
+        // 风险等级硬性过滤：-1表示不匹配，跳过该策略
+        if (breakdown.riskLevel === -1) {
+            continue;
+        }
 
         // 必选项验证: 如果用户提供了这些字段,策略必须匹配
         // 市场周期必选
