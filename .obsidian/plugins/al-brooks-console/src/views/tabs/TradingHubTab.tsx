@@ -317,6 +317,8 @@ export const TradingHubTab: React.FC = () => {
             const rc = useConsoleContext().runCommand;
             if (rc) rc(id);
           } : undefined}
+          recentTrades={trades}
+          srsCards={srsCards.map(c => ({ title: c.title, interval: c.interval, ease: c.ease }))}
         />
 
         <ContextLearnWidget

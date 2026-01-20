@@ -10,6 +10,13 @@ import type { MemorySnapshot } from "../../../core/memory";
 /**
  * ReviewHintsPanel Props接口
  */
+// SRS 卡片信息（用于学习进度关联）
+interface SRSCardInfo {
+    title: string;
+    interval: number; // 间隔天数，越大表示掌握越好
+    ease: number;
+}
+
 export interface ReviewHintsPanelProps {
     latestTrade: TradeRecord | null;
     activeMetadata?: { cycle?: string; direction?: string } | null;
@@ -23,6 +30,8 @@ export interface ReviewHintsPanelProps {
     memory?: MemorySnapshot | null;
     recentTrades?: TradeRecord[];
     activeTags?: string[]; // 当前笔记标签
+    // V3: SRS 学习进度关联
+    srsCards?: SRSCardInfo[];
 }
 
 /**
@@ -41,6 +50,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
     memory,
     recentTrades = [],
     activeTags = [],
+    srsCards = [], // V3: SRS 学习进度关联
 }) => {
     const stateMachine = React.useMemo(() => new MarketStateMachine(), []);
     const [actionRunning, setActionRunning] = React.useState<string | null>(null);
@@ -63,7 +73,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
         );
     }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
 
-    // V3引擎：动态策略推荐（替代硬编码）+ 历史表现加权
+    // V3引擎：动态策略推荐（替代硬编码）+ 历史表现加权 + SRS掌握度
     const dynamicStrategies = React.useMemo(() => {
         const cycle = activeMetadata?.cycle || latestTrade?.marketCycle || todayMarketCycle;
         const direction = activeMetadata?.direction || latestTrade?.direction;
@@ -83,37 +93,68 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             ? matched.filter(s => !s.direction || s.direction.toString().toLowerCase().includes(direction.toString().toLowerCase()))
             : matched;
 
-        // 计算每个策略的历史表现并排序
+        // 计算每个策略的历史表现 + SRS掌握度 并排序
         const withPerformance = dirFiltered.map(s => {
             // 优先使用 strategy，然后 canonicalName，最后 name
             const displayName = (s as any).strategy || (s as any).canonicalName || (s as any).name || "未命名";
             const strategyName = displayName.toLowerCase();
             if (!strategyName || strategyName === "未命名") {
-                return { name: displayName, path: s.path, winRate: 0, tradeCount: 0 };
+                return { name: displayName, path: s.path, winRate: 0, tradeCount: 0, srsScore: 0 };
             }
+
+            // 历史表现评分
             const relatedTrades = recentTrades.filter(t =>
                 t.strategyName?.toLowerCase().includes(strategyName) ||
                 strategyName.includes(t.strategyName?.toLowerCase() || "")
             );
             const wins = relatedTrades.filter(t => (t.netProfit ?? 0) > 0 || t.outcome === "win").length;
             const winRate = relatedTrades.length > 0 ? wins / relatedTrades.length : 0;
+
+            // V3: SRS 掌握度评分 (-10 到 +10)
+            // interval > 7天 表示掌握良好 (+5~+10)
+            // interval < 3天 表示经常忘记 (-5~-10)
+            let srsScore = 0;
+            if (srsCards.length > 0) {
+                const relatedSrsCards = srsCards.filter(card =>
+                    card.title.toLowerCase().includes(strategyName) ||
+                    strategyName.includes(card.title.toLowerCase())
+                );
+                if (relatedSrsCards.length > 0) {
+                    const avgInterval = relatedSrsCards.reduce((sum, c) => sum + c.interval, 0) / relatedSrsCards.length;
+                    if (avgInterval >= 14) srsScore = 10;       // 掌握很好
+                    else if (avgInterval >= 7) srsScore = 5;    // 掌握良好
+                    else if (avgInterval >= 3) srsScore = 0;    // 一般
+                    else if (avgInterval >= 1) srsScore = -5;   // 需要复习
+                    else srsScore = -10;                        // 经常忘记
+                }
+            }
+
+            // 获取关联形态用于知识链接
+            const patterns = (s as any).patterns || (s as any).patternsObserved || [];
             return {
                 name: displayName,
                 path: s.path,
                 winRate: Math.round(winRate * 100),
-                tradeCount: relatedTrades.length
+                tradeCount: relatedTrades.length,
+                srsScore,
+                patterns: Array.isArray(patterns) ? patterns : [patterns]
             };
         });
 
-        // 按胜率排序（有历史记录的优先，胜率高的优先）
+        // 综合排序：有历史记录的优先，胜率高的优先，SRS掌握好的优先
         withPerformance.sort((a, b) => {
+            // 1. 有历史记录的优先
             if (a.tradeCount > 0 && b.tradeCount === 0) return -1;
             if (a.tradeCount === 0 && b.tradeCount > 0) return 1;
-            return b.winRate - a.winRate;
+            // 2. 胜率排序（权重 70%）
+            const winRateDiff = (b.winRate - a.winRate) * 0.7;
+            // 3. SRS掌握度排序（权重 30%）
+            const srsDiff = (b.srsScore - a.srsScore) * 0.3;
+            return winRateDiff + srsDiff;
         });
 
         return withPerformance.slice(0, 5);
-    }, [activeMetadata, latestTrade, todayMarketCycle, strategies, recentTrades]);
+    }, [activeMetadata, latestTrade, todayMarketCycle, strategies, recentTrades, srsCards]);
 
     // 智能预警引擎
     const smartAlerts = React.useMemo(() => {
@@ -431,6 +472,89 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                         </div>
                     )}
 
+                    {/* V3: 关联形态/知识链接 - 可点击打开笔记 */}
+                    {dynamicStrategies.length > 0 && (() => {
+                        // 收集所有推荐策略的关联形态（去重）
+                        const allPatterns = new Set<string>();
+                        dynamicStrategies.forEach(s => {
+                            s.patterns?.forEach((p: string) => {
+                                if (p && typeof p === 'string') allPatterns.add(p);
+                            });
+                        });
+                        if (allPatterns.size === 0) return null;
+
+                        // 辅助函数：在知识库中查找形态对应的笔记
+                        const findKnowledgeNote = async (pattern: string) => {
+                            if (!app) return null;
+                            const normalizedPattern = pattern.toLowerCase().trim();
+                            // 知识库路径
+                            const knowledgePath = "Categories 分类/Al brooks/价格行为学";
+                            const files = app.vault.getMarkdownFiles().filter(f =>
+                                f.path.startsWith(knowledgePath)
+                            );
+                            // 优先精确匹配文件名
+                            const exactMatch = files.find(f =>
+                                f.basename.toLowerCase() === normalizedPattern ||
+                                f.basename.toLowerCase().includes(normalizedPattern)
+                            );
+                            if (exactMatch) return exactMatch.path;
+                            // 模糊匹配：包含关键词
+                            const fuzzyMatch = files.find(f => {
+                                const name = f.basename.toLowerCase();
+                                return normalizedPattern.split(/[\s\-_]/).some(word =>
+                                    word.length > 2 && name.includes(word)
+                                );
+                            });
+                            return fuzzyMatch?.path || null;
+                        };
+
+                        return (
+                            <div style={{
+                                marginTop: "6px",
+                                fontSize: "0.8em",
+                                color: "var(--text-muted)"
+                            }}>
+                                <span style={{ marginRight: "6px" }}>📚 关联形态:</span>
+                                {Array.from(allPatterns).slice(0, 5).map((pattern, i) => (
+                                    <InteractiveButton
+                                        key={i}
+                                        interaction="lift"
+                                        onClick={async () => {
+                                            const notePath = await findKnowledgeNote(pattern);
+                                            if (notePath && openFile) {
+                                                openFile(notePath);
+                                            } else {
+                                                // 没找到笔记，使用全局搜索
+                                                if (app) {
+                                                    (app as any).commands?.executeCommandById?.('global-search:open');
+                                                    setTimeout(() => {
+                                                        const searchLeaf = app.workspace.getLeavesOfType('search')[0];
+                                                        if (searchLeaf) {
+                                                            (searchLeaf.view as any).setQuery?.(pattern);
+                                                        }
+                                                    }, 200);
+                                                }
+                                            }
+                                        }}
+                                        style={{
+                                            padding: "1px 6px",
+                                            background: "var(--background-modifier-border)",
+                                            borderRadius: "8px",
+                                            marginRight: "4px",
+                                            fontSize: "0.9em",
+                                            cursor: "pointer"
+                                        }}
+                                        title={`点击查找 "${pattern}" 相关笔记`}
+                                    >
+                                        {pattern}
+                                    </InteractiveButton>
+                                ))}
+                                {allPatterns.size > 5 && (
+                                    <span style={{ opacity: 0.6 }}>+{allPatterns.size - 5}</span>
+                                )}
+                            </div>
+                        );
+                    })()}
                     {/* 关键位 */}
                     {guidance.keyLevels.length > 0 && (
                         <div style={{ fontSize: "0.9em", color: "var(--text-muted)" }}>
