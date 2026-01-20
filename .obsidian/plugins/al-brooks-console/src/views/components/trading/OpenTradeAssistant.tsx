@@ -523,7 +523,31 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     {/* 属性值/推荐 */}
                                     <div style={{ padding: "4px 0" }}>
                                         {!field.isEmpty ? (
-                                            <span style={{ color: "var(--text-normal)" }}>{String(field.value)}</span>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <span style={{ color: "var(--text-normal)", flex: 1 }}>{String(field.value)}</span>
+                                                <span
+                                                    onClick={() => handleFillAttribute(field.key, "")}
+                                                    title="撤回此字段"
+                                                    style={{
+                                                        padding: "2px 6px",
+                                                        fontSize: "0.75em",
+                                                        color: "var(--text-muted)",
+                                                        cursor: "pointer",
+                                                        borderRadius: "4px",
+                                                        border: "1px solid var(--background-modifier-border)"
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.color = "var(--text-error)";
+                                                        e.currentTarget.style.borderColor = "var(--text-error)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.color = "var(--text-muted)";
+                                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                                    }}
+                                                >
+                                                    ↩ 撤回
+                                                </span>
+                                            </div>
                                         ) : field.recommendations.length > 0 ? (
                                             <select
                                                 onChange={(e) => {
