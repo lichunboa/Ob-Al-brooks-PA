@@ -386,6 +386,31 @@ export const AnalyticsTab: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* 可见账户控制 checkboxes */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "8px", borderLeft: "1px solid var(--background-modifier-border)", paddingLeft: "8px" }}>
+            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>👁️ 显示:</span>
+            {['Live', 'Demo', 'Backtest'].map(acct => {
+              const isVisible = visibleAccounts.includes(acct as any);
+              return (
+                <label key={acct} style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75em", color: "var(--text-muted)" }}>
+                  <input
+                    type="checkbox"
+                    checked={isVisible}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setVisibleAccounts(prev => {
+                        if (checked) return [...prev, acct as any];
+                        return prev.filter(a => a !== acct);
+                      });
+                    }}
+                    style={{ margin: 0 }}
+                  />
+                  {acct === 'Live' ? '实盘' : acct === 'Demo' ? '模拟' : '回测'}
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <Button
