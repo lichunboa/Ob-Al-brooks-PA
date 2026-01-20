@@ -313,10 +313,34 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                             {/* 字段值/输入 */}
                             <div style={{ padding: "4px 0" }}>
                                 {isFilled ? (
-                                    // 已填写：显示值
-                                    <span style={{ color: "var(--text-normal)" }}>
-                                        {String(currentVal)}
-                                    </span>
+                                    // 已填写：显示值 + 撤回按钮
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <span style={{ color: "var(--text-normal)", flex: 1 }}>
+                                            {String(currentVal)}
+                                        </span>
+                                        <span
+                                            onClick={() => handleFillField(field.fieldName, "")}
+                                            title="撤回此字段"
+                                            style={{
+                                                padding: "2px 6px",
+                                                fontSize: "0.75em",
+                                                color: "var(--text-muted)",
+                                                cursor: "pointer",
+                                                borderRadius: "4px",
+                                                border: "1px solid var(--background-modifier-border)"
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.color = "var(--text-error)";
+                                                e.currentTarget.style.borderColor = "var(--text-error)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.color = "var(--text-muted)";
+                                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                            }}
+                                        >
+                                            ↩ 撤回
+                                        </span>
+                                    </div>
                                 ) : field.isStrategy && suggestedStrategyName ? (
                                     // 策略确认按钮
                                     <div style={{
