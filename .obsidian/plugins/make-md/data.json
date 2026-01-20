@@ -70,7 +70,6 @@
     "//Categories 分类/Categories 分类/Basre",
     "//Categories 分类/Categories 分类/Al brooks/Categories 分类/Al brooks/价格行为学",
     "//Categories 分类/Categories 分类/Al brooks/Categories 分类/Al brooks/《价格行为PPT中文笔记》",
-    "//Daily",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260118_1539_实盘_ ES",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260118_2220_实盘_ES",
     "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/存档",
@@ -80,7 +79,8 @@
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/251219_0036_实盘_ES",
     "//Daily/Daily/SPX/Daily/SPX/assets",
     "//Daily/Daily/SPX/Daily/SPX/assets/Daily/SPX/assets/SPX 2025.11",
-    "//🦁 交易员控制台 (Trader Command)"
+    "//🦁 交易员控制台 (Trader Command)",
+    "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/📋 任务与规划"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",
