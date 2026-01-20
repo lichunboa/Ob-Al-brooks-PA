@@ -426,21 +426,43 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             })()}
 
 
-            {/* 智能引导推荐 - 表格形式 */}
+            {/* 智能引导推荐 - 固定表格形式 */}
             {(() => {
-                const recommendation = recommendNextAttribute(strategyIndex, {
-                    marketCycle: currentTrade.marketCycle,
-                    alwaysIn: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"],
-                    setupCategory: currentTrade.setupCategory,
-                    patterns: currentTrade.patternsObserved,
-                    signalBarQuality: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"],
-                    direction: currentTrade.direction,
-                    timeframe: currentTrade.timeframe,
+                // 定义所有待推荐的属性
+                const attributeFields = [
+                    { key: "direction", label: "方向", value: currentTrade.direction },
+                    { key: "marketCycle", label: "市场周期", value: currentTrade.marketCycle },
+                    { key: "setupCategory", label: "设置类别", value: currentTrade.setupCategory },
+                    { key: "signalBarQuality", label: "信号K", value: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"] },
+                    { key: "alwaysIn", label: "总是方向", value: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"] },
+                    { key: "patternsObserved", label: "形态", value: currentTrade.patternsObserved },
+                ];
+
+                // 计算每个属性的推荐值
+                const fieldsWithRecs = attributeFields.map(field => {
+                    const isEmpty = !field.value || field.value === "" || field.value === "unknown";
+                    // 根据已填属性获取推荐
+                    const rec = isEmpty ? recommendNextAttribute(strategyIndex, {
+                        marketCycle: currentTrade.marketCycle,
+                        direction: currentTrade.direction,
+                        setupCategory: currentTrade.setupCategory,
+                        signalBarQuality: (currentTrade as any).signalBarQuality,
+                        alwaysIn: (currentTrade as any).alwaysIn,
+                        patterns: currentTrade.patternsObserved,
+                        timeframe: currentTrade.timeframe,
+                    }) : null;
+
+                    // 从推荐中过滤当前属性的值
+                    const recommendations = rec?.recommendations?.filter(r =>
+                        r.attribute.toLowerCase().includes(field.key.toLowerCase()) ||
+                        field.key.toLowerCase().includes(r.attribute.split("/")[0].toLowerCase())
+                    ).slice(0, 4) || [];
+
+                    return { ...field, isEmpty, recommendations };
                 });
 
-                if (!recommendation || recommendation.recommendations.length === 0) {
-                    return null;
-                }
+                const filledCount = fieldsWithRecs.filter(f => !f.isEmpty).length;
+                const progressPct = Math.round((filledCount / fieldsWithRecs.length) * 100);
 
                 return (
                     <div style={{
@@ -450,79 +472,82 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                         borderRadius: "8px",
                         border: "1px solid var(--background-modifier-border)",
                     }}>
-                        {/* 标题行 */}
-                        <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            marginBottom: "8px"
-                        }}>
+                        {/* 标题行+进度条 */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                             <span style={{ fontSize: "0.85em", fontWeight: 600, color: "var(--text-accent)" }}>
                                 💡 建议完善
                             </span>
-                            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
-                                {recommendation.nextAttributeLabel}
-                            </span>
-                            <span style={{
-                                fontSize: "0.75em",
-                                padding: "1px 6px",
-                                background: "var(--interactive-accent)",
-                                color: "var(--text-on-accent)",
-                                borderRadius: "8px"
+                            <div style={{
+                                flex: 1,
+                                height: "6px",
+                                background: "var(--background-modifier-border)",
+                                borderRadius: "3px",
+                                overflow: "hidden"
                             }}>
-                                {recommendation.filteredCount} 策略
+                                <div style={{
+                                    width: `${progressPct}%`,
+                                    height: "100%",
+                                    background: progressPct === 100 ? "var(--color-green)" : "var(--interactive-accent)",
+                                    transition: "width 0.3s ease"
+                                }} />
+                            </div>
+                            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+                                {filledCount}/{fieldsWithRecs.length} {progressPct === 100 ? "✅" : ""}
                             </span>
                         </div>
-                        {/* 选项表格 - 两列 */}
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "4px"
-                        }}>
-                            {recommendation.recommendations.slice(0, 6).map(rec => (
-                                <div
-                                    key={rec.value}
-                                    onClick={() => handleFillAttribute(rec.attribute, rec.value)}
-                                    style={{
-                                        padding: "6px 8px",
-                                        background: "var(--background-primary)",
-                                        borderRadius: "4px",
-                                        border: "1px solid var(--background-modifier-border)",
-                                        fontSize: "0.8em",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        cursor: "pointer"
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = "var(--background-primary)";
-                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                                    }}
-                                >
-                                    <span style={{
-                                        fontWeight: 500,
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        flex: 1,
-                                    }}>{rec.value}</span>
-                                    <span style={{
-                                        padding: "1px 4px",
-                                        background: "var(--interactive-accent)",
-                                        color: "var(--text-on-accent)",
-                                        borderRadius: "3px",
-                                        fontSize: "0.85em",
-                                        fontWeight: 600,
-                                        marginLeft: "4px",
-                                        flexShrink: 0,
+
+                        {/* 属性表格 */}
+                        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 8px", fontSize: "0.85em" }}>
+                            {fieldsWithRecs.map((field, idx) => (
+                                <React.Fragment key={idx}>
+                                    {/* 属性名 */}
+                                    <div style={{
+                                        color: field.isEmpty ? "var(--text-accent)" : "var(--text-muted)",
+                                        fontWeight: field.isEmpty ? 500 : 400,
+                                        padding: "4px 0",
+                                        display: "flex", alignItems: "center", gap: "4px"
                                     }}>
-                                        {rec.percentage}%
-                                    </span>
-                                </div>
+                                        {field.isEmpty ? "○" : "✓"} {field.label}
+                                    </div>
+                                    {/* 属性值/推荐 */}
+                                    <div style={{ padding: "4px 0" }}>
+                                        {!field.isEmpty ? (
+                                            <span style={{ color: "var(--text-normal)" }}>{String(field.value)}</span>
+                                        ) : field.recommendations.length > 0 ? (
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                                {field.recommendations.map((rec, i) => (
+                                                    <span
+                                                        key={i}
+                                                        onClick={() => handleFillAttribute(rec.attribute, rec.value)}
+                                                        style={{
+                                                            padding: "2px 6px",
+                                                            background: "var(--background-primary)",
+                                                            border: "1px solid var(--background-modifier-border)",
+                                                            borderRadius: "4px",
+                                                            fontSize: "0.85em",
+                                                            cursor: "pointer",
+                                                            display: "flex", alignItems: "center", gap: "4px"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = "var(--background-primary)";
+                                                        }}
+                                                    >
+                                                        {rec.value.length > 12 ? rec.value.slice(0, 10) + "..." : rec.value}
+                                                        <span style={{
+                                                            fontSize: "0.8em", fontWeight: 600,
+                                                            color: "var(--interactive-accent)"
+                                                        }}>{rec.percentage}%</span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>待填写</span>
+                                        )}
+                                    </div>
+                                </React.Fragment>
                             ))}
                         </div>
                     </div>
