@@ -287,7 +287,8 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                             市场周期: <strong style={{ color: "var(--text-normal)" }}>{marketCycle ?? "—"}</strong>
                         </div>
 
-                        {marketCycle && (() => {
+                        {/* 策略推荐 - 始终显示，不依赖市场周期 */}
+                        {(() => {
                             const patterns = (currentTrade.patternsObserved ?? [])
                                 .map((p) => String(p).trim())
                                 .filter(Boolean);
