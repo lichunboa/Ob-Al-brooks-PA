@@ -512,35 +512,31 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         {!field.isEmpty ? (
                                             <span style={{ color: "var(--text-normal)" }}>{String(field.value)}</span>
                                         ) : field.recommendations.length > 0 ? (
-                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                            <select
+                                                onChange={(e) => {
+                                                    if (e.target.value) {
+                                                        handleFillAttribute(field.recommendations[0].attribute, e.target.value);
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: "4px 8px",
+                                                    background: "var(--background-primary)",
+                                                    border: "1px solid var(--background-modifier-border)",
+                                                    borderRadius: "4px",
+                                                    fontSize: "0.85em",
+                                                    color: "var(--text-normal)",
+                                                    cursor: "pointer",
+                                                    minWidth: "150px"
+                                                }}
+                                                defaultValue=""
+                                            >
+                                                <option value="" disabled>选择 {field.label}...</option>
                                                 {field.recommendations.map((rec, i) => (
-                                                    <span
-                                                        key={i}
-                                                        onClick={() => handleFillAttribute(rec.attribute, rec.value)}
-                                                        style={{
-                                                            padding: "2px 6px",
-                                                            background: "var(--background-primary)",
-                                                            border: "1px solid var(--background-modifier-border)",
-                                                            borderRadius: "4px",
-                                                            fontSize: "0.85em",
-                                                            cursor: "pointer",
-                                                            display: "flex", alignItems: "center", gap: "4px"
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = "var(--background-primary)";
-                                                        }}
-                                                    >
-                                                        {rec.value.length > 12 ? rec.value.slice(0, 10) + "..." : rec.value}
-                                                        <span style={{
-                                                            fontSize: "0.8em", fontWeight: 600,
-                                                            color: "var(--interactive-accent)"
-                                                        }}>{rec.percentage}%</span>
-                                                    </span>
+                                                    <option key={i} value={rec.value}>
+                                                        {rec.value} ({rec.percentage}%)
+                                                    </option>
                                                 ))}
-                                            </div>
+                                            </select>
                                         ) : (
                                             <span style={{ color: "var(--text-faint)", fontSize: "0.85em" }}>待填写</span>
                                         )}
