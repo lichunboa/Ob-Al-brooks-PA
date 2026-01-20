@@ -24,6 +24,7 @@ export interface StrategyMatchInputV2 {
     // 新增字段
     direction?: "Long" | "Short"; // 交易方向
     timeframe?: string; // 时间周期
+    riskLevel?: "Low" | "Medium" | "High"; // 风险等级偏好
     includeHistoricalPerf?: boolean; // 是否考虑历史表现
 
     limit?: number;
@@ -35,6 +36,7 @@ export interface StrategyMatchInputV2 {
 export interface ScoreBreakdown {
     direction: number;      // 方向匹配 (0-5分)
     timeframe: number;      // 时间周期 (0-3分)
+    riskLevel: number;      // 风险等级 (0-3分)
     historical: number;     // 历史表现 (0-4分)
     marketCycle: number;    // 市场周期 (0-2分)
     setupCategory: number;  // 设置类别 (0-1分)
@@ -237,6 +239,53 @@ function scoreHistorical(
 }
 
 /**
+ * 辅助函数: 评分风险等级匹配
+ * 根据用户偏好的风险等级和策略卡片的风险等级进行匹配
+ */
+function scoreRiskLevel(
+    card: StrategyCard,
+    preferredRisk?: "Low" | "Medium" | "High"
+): number {
+    if (!preferredRisk) return 0; // 无偏好，不影响分数
+
+    // 从策略卡片中获取风险等级
+    const cardRisk = (card as any)["风险等级/risk_level"] || (card as any).risk_level || (card as any).riskLevel;
+    if (!cardRisk) return 0; // 策略卡片无风险等级
+
+    const riskStr = String(cardRisk).toLowerCase();
+
+    // 判断策略卡片的风险等级
+    let cardRiskLevel: "Low" | "Medium" | "High" | null = null;
+    if (riskStr.includes("低") || riskStr.includes("low")) {
+        cardRiskLevel = "Low";
+    } else if (riskStr.includes("中") || riskStr.includes("medium")) {
+        cardRiskLevel = "Medium";
+    } else if (riskStr.includes("高") || riskStr.includes("high")) {
+        cardRiskLevel = "High";
+    }
+
+    if (!cardRiskLevel) return 0;
+
+    // 完全匹配给满分
+    if (cardRiskLevel === preferredRisk) {
+        return 3;
+    }
+
+    // 相邻等级给部分分
+    // Low <-> Medium: 差1级
+    // Medium <-> High: 差1级
+    // Low <-> High: 差2级
+    const riskOrder = { "Low": 0, "Medium": 1, "High": 2 };
+    const diff = Math.abs(riskOrder[cardRiskLevel] - riskOrder[preferredRisk]);
+
+    if (diff === 1) {
+        return 1; // 差1级，给部分分
+    }
+
+    return 0; // 差2级，不匹配
+}
+
+/**
  * 辅助函数: 生成推荐理由
  */
 function generateReason(
@@ -314,6 +363,7 @@ export function matchStrategiesV2(
             pattern: 10, // 精确匹配给高分
             direction: scoreDirection(card, input.direction),
             timeframe: scoreTimeframe(card, input.timeframe),
+            riskLevel: scoreRiskLevel(card, input.riskLevel),
             historical: 0,
             marketCycle: 0,
             setupCategory: 0
@@ -330,6 +380,7 @@ export function matchStrategiesV2(
             breakdown.pattern +
             breakdown.direction +
             breakdown.timeframe +
+            breakdown.riskLevel +
             breakdown.historical +
             breakdown.marketCycle +
             breakdown.setupCategory;
@@ -375,6 +426,7 @@ export function matchStrategiesV2(
             pattern: 0,
             direction: scoreDirection(card, input.direction),
             timeframe: scoreTimeframe(card, input.timeframe),
+            riskLevel: scoreRiskLevel(card, input.riskLevel),
             historical: 0,
             marketCycle: 0,
             setupCategory: 0
@@ -432,6 +484,7 @@ export function matchStrategiesV2(
         const score =
             breakdown.direction +
             breakdown.timeframe +
+            breakdown.riskLevel +
             breakdown.historical +
             breakdown.marketCycle +
             breakdown.setupCategory;

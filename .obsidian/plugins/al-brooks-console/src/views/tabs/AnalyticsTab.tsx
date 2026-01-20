@@ -93,6 +93,9 @@ export const AnalyticsTab: React.FC = () => {
   type AccountFilter = 'all' | 'Live' | 'Demo' | 'Backtest';
   const [accountFilter, setAccountFilter] = React.useState<AccountFilter>('all');
 
+  // 可见账户类型（用于热力图等图表筛选）
+  const [visibleAccounts, setVisibleAccounts] = React.useState<('Live' | 'Demo' | 'Backtest')[]>(['Live', 'Demo', 'Backtest']);
+
   // 根据日期范围和账户类型筛选交易
   const filteredTrades = React.useMemo(() => {
     let result = trades;
