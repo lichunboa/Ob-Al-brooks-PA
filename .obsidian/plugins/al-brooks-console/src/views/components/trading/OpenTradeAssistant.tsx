@@ -439,12 +439,12 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                     timeframe: currentTrade.timeframe,
                 });
 
-                // 使用推荐器定义的顺序
+                // 使用推荐器定义的顺序 (key 必须与 FILL_ORDER 中的 key 一致)
                 const attributeFields = [
                     { key: "marketCycle", label: "市场周期", value: currentTrade.marketCycle },
                     { key: "direction", label: "方向", value: currentTrade.direction },
                     { key: "setupCategory", label: "设置类别", value: currentTrade.setupCategory },
-                    { key: "patternsObserved", label: "形态", value: currentTrade.patternsObserved },
+                    { key: "patterns", label: "形态", value: currentTrade.patternsObserved },
                     { key: "signalBarQuality", label: "信号K", value: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"] },
                 ];
 
