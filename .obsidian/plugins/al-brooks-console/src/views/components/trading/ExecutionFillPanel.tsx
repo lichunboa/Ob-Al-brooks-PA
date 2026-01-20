@@ -377,36 +377,29 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                                         </Button>
                                     </div>
                                 ) : (
-                                    // 未填写选项字段：快捷按钮
-                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                                        {field.values?.slice(0, 4).map((val, i) => (
-                                            <span
-                                                key={i}
-                                                onClick={() => handleFillField(field.fieldName, val)}
-                                                style={{
-                                                    padding: "2px 6px",
-                                                    background: "var(--background-primary)",
-                                                    border: "1px solid var(--background-modifier-border)",
-                                                    borderRadius: "4px",
-                                                    fontSize: "0.85em",
-                                                    cursor: "pointer"
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = "var(--background-primary)";
-                                                }}
-                                            >
-                                                {val.length > 15 ? val.slice(0, 12) + "..." : val}
-                                            </span>
+                                    // 未填写选项字段：下拉菜单
+                                    <select
+                                        style={{
+                                            width: "100%",
+                                            padding: "6px 8px",
+                                            border: "1px solid var(--background-modifier-border)",
+                                            borderRadius: "4px",
+                                            background: "var(--background-primary)",
+                                            fontSize: "0.9em",
+                                            cursor: "pointer"
+                                        }}
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                handleFillField(field.fieldName, e.target.value);
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>选择 {field.label}...</option>
+                                        {field.values?.map((val, i) => (
+                                            <option key={i} value={val}>{val}</option>
                                         ))}
-                                        {(field.values?.length || 0) > 4 && (
-                                            <span style={{ color: "var(--text-muted)", fontSize: "0.8em" }}>
-                                                +{(field.values?.length || 0) - 4}
-                                            </span>
-                                        )}
-                                    </div>
+                                    </select>
                                 )}
                             </div>
                         </React.Fragment>
