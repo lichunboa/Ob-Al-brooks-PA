@@ -426,6 +426,109 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             })()}
 
 
+            {/* 智能引导推荐 - 表格形式 */}
+            {(() => {
+                const recommendation = recommendNextAttribute(strategyIndex, {
+                    marketCycle: currentTrade.marketCycle,
+                    alwaysIn: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"],
+                    setupCategory: currentTrade.setupCategory,
+                    patterns: currentTrade.patternsObserved,
+                    signalBarQuality: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"],
+                    direction: currentTrade.direction,
+                    timeframe: currentTrade.timeframe,
+                });
+
+                if (!recommendation || recommendation.recommendations.length === 0) {
+                    return null;
+                }
+
+                return (
+                    <div style={{
+                        marginBottom: "12px",
+                        padding: "10px",
+                        background: "rgba(var(--background-secondary-rgb), 0.5)",
+                        borderRadius: "8px",
+                        border: "1px solid var(--background-modifier-border)",
+                    }}>
+                        {/* 标题行 */}
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            marginBottom: "8px"
+                        }}>
+                            <span style={{ fontSize: "0.85em", fontWeight: 600, color: "var(--text-accent)" }}>
+                                💡 建议完善
+                            </span>
+                            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+                                {recommendation.nextAttributeLabel}
+                            </span>
+                            <span style={{
+                                fontSize: "0.75em",
+                                padding: "1px 6px",
+                                background: "var(--interactive-accent)",
+                                color: "var(--text-on-accent)",
+                                borderRadius: "8px"
+                            }}>
+                                {recommendation.filteredCount} 策略
+                            </span>
+                        </div>
+                        {/* 选项表格 - 两列 */}
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "4px"
+                        }}>
+                            {recommendation.recommendations.slice(0, 6).map(rec => (
+                                <div
+                                    key={rec.value}
+                                    onClick={() => handleFillAttribute(rec.attribute, rec.value)}
+                                    style={{
+                                        padding: "6px 8px",
+                                        background: "var(--background-primary)",
+                                        borderRadius: "4px",
+                                        border: "1px solid var(--background-modifier-border)",
+                                        fontSize: "0.8em",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        cursor: "pointer"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                        e.currentTarget.style.borderColor = "var(--interactive-accent)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "var(--background-primary)";
+                                        e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                    }}
+                                >
+                                    <span style={{
+                                        fontWeight: 500,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        flex: 1,
+                                    }}>{rec.value}</span>
+                                    <span style={{
+                                        padding: "1px 4px",
+                                        background: "var(--interactive-accent)",
+                                        color: "var(--text-on-accent)",
+                                        borderRadius: "3px",
+                                        fontSize: "0.85em",
+                                        fontWeight: 600,
+                                        marginLeft: "4px",
+                                        flexShrink: 0,
+                                    }}>
+                                        {rec.percentage}%
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* 交易执行填写面板 - 使用 currentTrade (支持多标签切换和实时更新) */}
             {currentTrade && (
                 <ExecutionFillPanel
