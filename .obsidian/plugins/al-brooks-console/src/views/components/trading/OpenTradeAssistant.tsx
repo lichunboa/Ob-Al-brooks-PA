@@ -174,56 +174,69 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 进行中交易助手
             </div>
 
-            {/* 多持仓选择器 */}
-            {openTrades.length > 1 && (
-                <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px",
-                    marginBottom: "12px"
-                }}>
-                    {openTrades.map((trade, idx) => {
-                        // 账户类型标签和颜色
-                        const accountType = trade.accountType?.toString().toLowerCase() || "";
-                        const isLive = accountType.includes("live") || accountType.includes("实盘");
-                        const isDemo = accountType.includes("demo") || accountType.includes("模拟");
-                        const isBacktest = accountType.includes("backtest") || accountType.includes("回测");
-                        const accountLabel = isLive ? "🟢" : isDemo ? "🔵" : isBacktest ? "⚪" : "";
+            {/* 多持仓选择器 - 按品种分组 */}
+            {openTrades.length > 1 && (() => {
+                // 按品种分组
+                const groupedByTicker = openTrades.reduce((acc, trade, idx) => {
+                    const ticker = trade.ticker || "未知";
+                    if (!acc[ticker]) acc[ticker] = [];
+                    acc[ticker].push({ trade, idx });
+                    return acc;
+                }, {} as Record<string, Array<{ trade: typeof openTrades[0], idx: number }>>);
 
-                        return (
-                            <Button
-                                key={trade.path}
-                                onClick={() => setSelectedTradePath(trade.path)}
-                                variant="small"
-                                style={{
-                                    padding: "6px 12px",
-                                    minWidth: "140px",
-                                    justifyContent: "center",
-                                    background: trade.path === currentTrade.path
-                                        ? "var(--interactive-accent)"
-                                        : "var(--background-modifier-border)",
-                                    color: trade.path === currentTrade.path
-                                        ? "var(--text-on-accent)"
-                                        : "var(--text-muted)",
-                                    border: "none",
-                                    borderRadius: "12px",
-                                    fontSize: "0.85em",
-                                    fontWeight: trade.path === currentTrade.path ? 600 : 400,
-                                    transition: "all 0.2s",
+                return (
+                    <div style={{ marginBottom: "12px" }}>
+                        {Object.entries(groupedByTicker).map(([ticker, trades]) => (
+                            <div key={ticker} style={{ marginBottom: "6px" }}>
+                                {/* 品种标题 */}
+                                <div style={{
+                                    fontSize: "0.75em",
+                                    color: "var(--text-faint)",
+                                    marginBottom: "4px",
                                     display: "flex",
                                     alignItems: "center",
                                     gap: "4px"
-                                }}
-                            >
-                                {accountLabel && <span>{accountLabel}</span>}
-                                <span>{trade.direction === "Long" ? "📈" : trade.direction === "Short" ? "📉" : "➡️"}</span>
-                                <span>{trade.ticker || "未知"}</span>
-                                <span style={{ opacity: 0.7, fontSize: "0.9em" }}>#{idx + 1}</span>
-                            </Button>
-                        );
-                    })}
-                </div>
-            )}
+                                }}>
+                                    <span>{ticker}</span>
+                                    <span style={{ opacity: 0.6 }}>({trades.length}笔)</span>
+                                </div>
+                                {/* 该品种下的交易 */}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                    {trades.map(({ trade, idx }) => {
+                                        const accountType = trade.accountType?.toString().toLowerCase() || "";
+                                        const isLive = accountType.includes("live") || accountType.includes("实盘");
+                                        const isDemo = accountType.includes("demo") || accountType.includes("模拟");
+                                        const accountLabel = isLive ? "🟢" : isDemo ? "🔵" : "⚪";
+                                        const isSelected = trade.path === currentTrade.path;
+
+                                        return (
+                                            <span
+                                                key={trade.path}
+                                                onClick={() => setSelectedTradePath(trade.path)}
+                                                style={{
+                                                    padding: "3px 8px",
+                                                    background: isSelected ? "var(--interactive-accent)" : "var(--background-modifier-border)",
+                                                    color: isSelected ? "var(--text-on-accent)" : "var(--text-muted)",
+                                                    borderRadius: "10px",
+                                                    fontSize: "0.8em",
+                                                    cursor: "pointer",
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    gap: "3px"
+                                                }}
+                                            >
+                                                {accountLabel}
+                                                {trade.direction === "Long" ? "📈" : trade.direction === "Short" ? "📉" : "➡️"}
+                                                <span style={{ fontWeight: isSelected ? 600 : 400 }}>#{idx + 1}</span>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            })()}
 
             <div
                 style={{
