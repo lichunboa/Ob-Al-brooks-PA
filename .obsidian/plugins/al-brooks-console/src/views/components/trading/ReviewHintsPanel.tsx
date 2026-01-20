@@ -63,6 +63,33 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
         );
     }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
 
+    // V3引擎：动态策略推荐（替代硬编码）
+    const dynamicStrategies = React.useMemo(() => {
+        const cycle = activeMetadata?.cycle || latestTrade?.marketCycle || todayMarketCycle;
+        const direction = activeMetadata?.direction || latestTrade?.direction;
+
+        if (!cycle || strategies.length === 0) return [];
+
+        // 从策略仓库中匹配符合当前市场周期的策略
+        const matched = strategies.filter(s => {
+            if (!s.marketCycles) return false;
+            const cycles = Array.isArray(s.marketCycles) ? s.marketCycles : [s.marketCycles];
+            const normalizedCycle = cycle.toString().toLowerCase();
+            return cycles.some(c => normalizedCycle.includes(c.toString().toLowerCase()));
+        });
+
+        // 按方向过滤（如果有方向信息）
+        const dirFiltered = direction
+            ? matched.filter(s => !s.direction || s.direction.toString().toLowerCase().includes(direction.toString().toLowerCase()))
+            : matched;
+
+        // 返回前5个匹配的策略
+        return dirFiltered.slice(0, 5).map(s => ({
+            name: s.strategy,
+            path: s.path
+        }));
+    }, [activeMetadata, latestTrade, todayMarketCycle, strategies]);
+
     // 智能预警引擎
     const smartAlerts = React.useMemo(() => {
         const marketState = stateMachine.inferState(
@@ -332,60 +359,38 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* 推荐策略 (Smart Linked) */}
-                    {guidance.recommendedStrategies.length > 0 && (
+                    {/* 推荐策略 (V3引擎 - 动态匹配) */}
+                    {dynamicStrategies.length > 0 && (
                         <div style={{ marginBottom: "8px" }}>
                             <span style={{
                                 fontSize: "0.9em",
                                 color: "var(--text-muted)",
                                 marginRight: "8px"
                             }}>
-                                推荐策略:
+                                📊 推荐策略 ({dynamicStrategies.length}):
                             </span>
-                            {guidance.recommendedStrategies.map((sName, i) => {
-                                // Try to find strategy note
-                                const matched = findStrategy(sName);
-                                if (matched && openFile) {
-                                    return (
-                                        <InteractiveButton
-                                            key={i}
-                                            interaction="lift"
-                                            onClick={() => openFile(matched.path)}
-                                            style={{
-                                                display: "inline-block",
-                                                padding: "2px 8px",
-                                                background: "var(--interactive-accent)",
-                                                color: "var(--text-on-accent)",
-                                                borderRadius: "12px",
-                                                fontSize: "0.85em",
-                                                marginRight: "6px",
-                                                marginBottom: "4px",
-                                                border: "none",
-                                                cursor: "pointer"
-                                            }}
-                                            title={`打开策略: ${matched.strategy}`}
-                                        >
-                                            {sName} ↗
-                                        </InteractiveButton>
-                                    );
-                                }
-                                // Fallback static
-                                return (
-                                    <span key={i} style={{
+                            {dynamicStrategies.map((s, i) => (
+                                <InteractiveButton
+                                    key={i}
+                                    interaction="lift"
+                                    onClick={() => openFile?.(s.path)}
+                                    style={{
                                         display: "inline-block",
                                         padding: "2px 8px",
-                                        background: "var(--background-secondary)", // Neutral background for unlinked
-                                        color: "var(--text-normal)",
+                                        background: "var(--interactive-accent)",
+                                        color: "var(--text-on-accent)",
                                         borderRadius: "12px",
                                         fontSize: "0.85em",
                                         marginRight: "6px",
                                         marginBottom: "4px",
-                                        border: "1px solid var(--background-modifier-border)"
-                                    }}>
-                                        {sName}
-                                    </span>
-                                );
-                            })}
+                                        border: "none",
+                                        cursor: "pointer"
+                                    }}
+                                    title={`打开策略: ${s.name}`}
+                                >
+                                    {s.name} ↗
+                                </InteractiveButton>
+                            ))}
                         </div>
                     )}
 

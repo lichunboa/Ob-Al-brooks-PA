@@ -70,12 +70,23 @@ export const TradingHubTab: React.FC = () => {
     [todayTrades]
   );
 
-  // Calculate openTrades list for the assistant - 包括所有未完成的交易（不限于今天）
+  // 计算 openTrades 列表 - 受 accountType 筛选影响
   const openTrades = React.useMemo(() => {
-    return trades.filter(t =>
-      !t.outcome || t.outcome === "open" || t.outcome === "unknown"
-    );
-  }, [trades]);
+    return trades.filter(t => {
+      // 必须是未完成的交易
+      const isOpen = !t.outcome || t.outcome === "open" || t.outcome === "unknown";
+      if (!isOpen) return false;
+
+      // 应用账户类型筛选
+      if (accountType !== "all") {
+        const tradeAccountType = t.accountType?.toString().toLowerCase() || "";
+        if (accountType === "Live" && !tradeAccountType.includes("live") && !tradeAccountType.includes("实盘")) return false;
+        if (accountType === "Demo" && !tradeAccountType.includes("demo") && !tradeAccountType.includes("模拟")) return false;
+        if (accountType === "Backtest" && !tradeAccountType.includes("backtest") && !tradeAccountType.includes("回测")) return false;
+      }
+      return true;
+    });
+  }, [trades, accountType]);
 
   // Review Hints Logic
   const latestTrade = todayTrades.length > 0 ? todayTrades[0] : null;
@@ -258,7 +269,7 @@ export const TradingHubTab: React.FC = () => {
 
       <GlassPanel style={{ marginBottom: "16px" }}>
 
-        {/* 过滤器 */}
+        {/* 1. 过滤器 + KPI (快速了解状态) */}
         <TradeFilters
           timeRange={timeRange}
           onTimeRangeChange={setTimeRange}
@@ -279,9 +290,24 @@ export const TradingHubTab: React.FC = () => {
           title={TIME_RANGE_LABELS[timeRange]}
         />
 
+        {/* 2. 进行中交易助手 (核心功能，最重要) */}
+        <OpenTradeAssistant
+          openTrade={openTrade}
+          todayMarketCycle={todayContext?.getTodayMarketCycle()}
+          strategyIndex={strategyIndex}
+          onOpenFile={openFile}
+          openTrades={openTrades}
+          trades={todayTrades}
+          textButtonStyle={textButtonStyle}
+          buttonStyle={buttonStyle}
+          app={app}
+          enumPresets={enumPresets}
+        />
+
+        {/* 3. 复盘提示 + 上下文学习 (次要辅助) */}
         <ReviewHintsPanel
-          latestTrade={latestTrade} // Keep for fallback or other props
-          activeMetadata={activeMetadata} // NEW: Real-time override
+          latestTrade={latestTrade}
+          activeMetadata={activeMetadata}
           reviewHints={reviewHints}
           todayMarketCycle={todayMarketCycleStr}
           app={app}
@@ -298,21 +324,9 @@ export const TradingHubTab: React.FC = () => {
           onReview={(file) => openFile(file.path)}
         />
 
-
-        <OpenTradeAssistant
-          openTrade={openTrade}
-          todayMarketCycle={todayContext?.getTodayMarketCycle()}
-          strategyIndex={strategyIndex}
-          onOpenFile={openFile}
-          openTrades={openTrades}
-          trades={todayTrades}
-          textButtonStyle={textButtonStyle}
-          buttonStyle={buttonStyle}
-          app={app}
-          enumPresets={enumPresets}
-        />
       </GlassPanel>
 
+      {/* 4. 每日行动 (操作区) */}
       <DailyActionsPanel can={can} MarkdownBlock={MarkdownBlock} />
 
     </>
