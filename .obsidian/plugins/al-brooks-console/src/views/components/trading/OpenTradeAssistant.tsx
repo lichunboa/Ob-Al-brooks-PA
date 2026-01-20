@@ -213,7 +213,9 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                     const accountType = trade.accountType?.toString().toLowerCase() || "";
                                     const isLive = accountType.includes("live") || accountType.includes("实盘");
                                     const isDemo = accountType.includes("demo") || accountType.includes("模拟");
-                                    const accountLabel = isLive ? "🟢" : isDemo ? "🔵" : "⚪";
+                                    const isBacktest = accountType.includes("backtest") || accountType.includes("回测");
+                                    // 使用 V5_COLORS 统一颜色
+                                    const accountColor = isLive ? V5_COLORS.live : isDemo ? V5_COLORS.demo : isBacktest ? V5_COLORS.back : "var(--text-muted)";
                                     const isSelected = trade.path === currentTrade.path;
 
                                     return (
@@ -232,7 +234,13 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                                 gap: "2px"
                                             }}
                                         >
-                                            {accountLabel}
+                                            {/* 账户类型圆点 */}
+                                            <span style={{
+                                                width: "6px",
+                                                height: "6px",
+                                                borderRadius: "50%",
+                                                background: accountColor
+                                            }} />
                                             {trade.direction === "Long" ? "↑" : trade.direction === "Short" ? "↓" : "→"}
                                             #{idx + 1}
                                         </span>
