@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/mitchellcb/Library/Mobile Documents/iCloud~md~obsidian/Documents/Al-brooks-PA/logs/.38876268ded06ca1b739691de58234ce9ad17558-audit.json",
+    "files": [
+        {
+            "date": 1768904191099,
+            "name": "/Users/mitchellcb/Library/Mobile Documents/iCloud~md~obsidian/Documents/Al-brooks-PA/logs/mcp-puppeteer-2026-01-20.log",
+            "hash": "b9613e4882e398dcb01aa289ee73306ca2d88246f5076278e43d7bd2403007be"
+        }
+    ],
+    "hashType": "sha256"
+}

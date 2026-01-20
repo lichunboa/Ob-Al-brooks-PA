@@ -425,50 +425,40 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* 推荐策略 (V3引擎 - 动态匹配) */}
+                    {/* 推荐策略 (V3引擎 - 简化显示，因为上方已有详细推荐) */}
                     {dynamicStrategies.length > 0 && (
-                        <div style={{ marginBottom: "8px" }}>
-                            <span style={{
-                                fontSize: "0.9em",
-                                color: "var(--text-muted)",
-                                marginRight: "8px"
-                            }}>
-                                📊 推荐策略 ({dynamicStrategies.length}):
-                            </span>
+                        <div style={{
+                            marginBottom: "8px",
+                            fontSize: "0.8em",
+                            color: "var(--text-muted)",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            gap: "4px"
+                        }}>
+                            <span>📊 推荐策略 ({dynamicStrategies.length}):</span>
                             {dynamicStrategies.map((s, i) => (
-                                <InteractiveButton
+                                <span
                                     key={i}
-                                    interaction="lift"
                                     onClick={() => openFile?.(s.path)}
                                     style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "4px",
-                                        padding: "2px 8px",
-                                        background: s.tradeCount > 0 && s.winRate >= 50 ? "rgba(16, 185, 129, 0.2)" : "var(--interactive-accent)",
-                                        color: s.tradeCount > 0 && s.winRate >= 50 ? "#10B981" : "var(--text-on-accent)",
-                                        borderRadius: "12px",
-                                        fontSize: "0.85em",
-                                        marginRight: "6px",
-                                        marginBottom: "4px",
-                                        border: s.tradeCount > 0 && s.winRate >= 50 ? "1px solid #10B981" : "none",
-                                        cursor: "pointer"
+                                        padding: "1px 6px",
+                                        background: "var(--background-modifier-border)",
+                                        borderRadius: "8px",
+                                        cursor: "pointer",
+                                        fontSize: "0.95em"
                                     }}
-                                    title={s.tradeCount > 0 ? `胜率: ${s.winRate}% (${s.tradeCount}次)` : `打开策略: ${s.name}`}
+                                    title={s.tradeCount > 0 ? `胜率: ${s.winRate}% (${s.tradeCount}次)` : `打开: ${s.name}`}
                                 >
-                                    {s.name}
-                                    {s.tradeCount > 0 && (
-                                        <span style={{
-                                            fontSize: "0.8em",
-                                            fontWeight: 600,
-                                            opacity: 0.9
-                                        }}>
-                                            {s.winRate}%
-                                        </span>
-                                    )}
-                                    ↗
-                                </InteractiveButton>
+                                    {s.name}{s.tradeCount > 0 && s.winRate >= 50 ? ` ✓${s.winRate}%` : ""}↗
+                                </span>
                             ))}
+                            {/* SRS 复习提示 */}
+                            {dynamicStrategies.some(s => s.srsScore < 0) && (
+                                <span style={{ color: "var(--text-warning)", marginLeft: "4px" }}>
+                                    ⚠️ 部分策略需复习
+                                </span>
+                            )}
                         </div>
                     )}
 

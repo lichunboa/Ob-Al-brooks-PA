@@ -1,0 +1,70 @@
+{
+  "userName": "",
+  "enableBlocklist": true,
+  "blockedCommands": {
+    "unix": [
+      "rm -rf",
+      "chmod 777",
+      "chmod -R 777"
+    ],
+    "windows": [
+      "del /s /q",
+      "rd /s /q",
+      "rmdir /s /q",
+      "format",
+      "diskpart",
+      "Remove-Item -Recurse -Force",
+      "Remove-Item -Force -Recurse",
+      "Remove-Item -r -fo",
+      "Remove-Item -fo -r",
+      "Remove-Item -Recurse",
+      "Remove-Item -r",
+      "ri -Recurse",
+      "ri -r",
+      "ri -Force",
+      "ri -fo",
+      "rm -r -fo",
+      "rm -Recurse",
+      "rm -Force",
+      "del -Recurse",
+      "del -Force",
+      "erase -Recurse",
+      "erase -Force",
+      "rd -Recurse",
+      "rmdir -Recurse",
+      "Format-Volume",
+      "Clear-Disk",
+      "Initialize-Disk",
+      "Remove-Partition"
+    ]
+  },
+  "permissionMode": "yolo",
+  "model": "claude-opus-4-5-thinking",
+  "thinkingBudget": "medium",
+  "enableAutoTitleGeneration": true,
+  "titleGenerationModel": "",
+  "show1MModel": false,
+  "excludedTags": [],
+  "mediaFolder": "",
+  "systemPrompt": "",
+  "allowedExportPaths": [
+    "~/Desktop",
+    "~/Downloads"
+  ],
+  "persistentExternalContextPaths": [],
+  "environmentVariables": "ANTHROPIC_APILKEY=sk-614245494f7846b0839aa360a99fb103\nANTHROPIC_BASE_URL=http://127.0.0.1:8045\nANTHROPIC_MODEL=claude-opus-4-5-thinking",
+  "envSnippets": [],
+  "keyboardNavigation": {
+    "scrollUpKey": "w",
+    "scrollDownKey": "s",
+    "focusInputKey": "i"
+  },
+  "locale": "zh-CN",
+  "claudeCliPath": "",
+  "claudeCliPathsByHost": {},
+  "loadUserClaudeSettings": true,
+  "lastClaudeModel": "opus",
+  "lastCustomModel": "claude-opus-4-5-thinking",
+  "lastEnvHash": "ANTHROPIC_BASE_URL=http://127.0.0.1:8045|ANTHROPIC_MODEL=claude-opus-4-5-thinking",
+  "maxTabs": 3
+}

@@ -1,0 +1,125 @@
+/* Tool call container - transparent, no border */
+.claudian-tool-call {
+  margin: 8px 0;
+}
+
+/* Tool call header - transparent */
+.claudian-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.claudian-tool-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.claudian-tool-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.claudian-tool-label {
+  font-family: var(--font-monospace);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Current task preview (for TodoWrite when collapsed) */
+.claudian-tool-current {
+  flex: 1;
+  font-family: var(--font-monospace);
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.claudian-tool-status {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.claudian-tool-status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.claudian-tool-status.status-running {
+  color: var(--text-accent);
+}
+
+.claudian-tool-status.status-completed {
+  color: var(--color-green);
+}
+
+.claudian-tool-status.status-error {
+  color: var(--color-red);
+}
+
+.claudian-tool-status.status-blocked {
+  color: var(--color-orange);
+}
+/* Tool call content - border-left style (like thinking block) */
+.claudian-tool-content {
+  padding: 4px 0 4px 16px;
+  margin-left: 7px;
+  border-left: 2px solid var(--background-modifier-border);
+}
+
+/* TodoWrite content - no border (renders todo panel directly) */
+.claudian-tool-content-todo {
+  border-left: none;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* Result row */
+.claudian-tool-result-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.claudian-tool-result-text {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Result items - regular text lines */
+.claudian-tool-result-item {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.claudian-tool-result-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Bulleted items (WebSearch) - hanging indent for wrapped lines */
+.claudian-tool-result-bullet {
+  display: block;
+  padding-left: 0.8em;
+  text-indent: -0.8em;
+  margin-bottom: 2px;
+}
+
+.claudian-tool-result-bullet:last-child {
+  margin-bottom: 0;
+}

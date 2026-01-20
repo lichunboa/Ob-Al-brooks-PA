@@ -1365,7 +1365,6 @@ body {
      * Licensed under the MIT License; see the LICENSE file.
      */
     --ntb-anim-duration-moderate: 320ms;
-    --ntb-blur-s: blur(2px) saturate(1.5) brightness(1.05);
     &.theme-light {
         --ntb-liquid-glass-background: rgba(255, 255, 255, 0.5);
         --ntb-shadow-base: inset 1px 1px 2px rgba(255, 255, 255, 0.5), inset -1px -1px 2px rgba(255, 255, 255, 0.5), inset 0 4px 16px rgba(255, 255, 255, 0.025);
@@ -1386,8 +1385,16 @@ body {
 
 }
 
-.note-toolbar-hidden {
+.ntb-hidden {
     display: none !important;
+}
+
+.is-phone.ntb-remove-nav .mobile-navbar {
+    display: none !important;
+}
+
+body.is-phone.ntb-remove-nav {
+    --navbar-height: 0;
 }
 /*
  * Default adjustments for various themes (CSS variables)
@@ -1822,6 +1829,8 @@ body {
     &[data-callout-metadata*="mnwrp"] ul {
         .is-mobile & {
             flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
     }
 
@@ -1955,7 +1964,7 @@ body.is-mobile .callout[data-callout="note-toolbar"][data-callout-metadata*="mgl
         gap: var(--size-4-2);
         & a, span.external-link {
             background-color: var(--ntb-liquid-glass-background) !important;
-            backdrop-filter: var(--ntb-blur-s);
+            backdrop-filter: var(--raised-blur);
             border: var(--border-width) solid var(--background-modifier-border);
             border-radius: 32px;
             box-shadow: var(--ntb-shadow-xs);
@@ -1965,6 +1974,7 @@ body.is-mobile .callout[data-callout="note-toolbar"][data-callout-metadata*="mgl
         @media (hover: hover) {
             & a:hover, span.external-link:hover {
                 box-shadow: none;
+                opacity: unset;
             }
         }
     }
@@ -2126,7 +2136,7 @@ body button.cg-note-toolbar-fab[data-fab-metadata*="glass"],
 body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
     background-color: var(--ntb-liquid-glass-background) !important;
     background-image: unset !important;
-    backdrop-filter: var(--ntb-blur-s) !important;
+    backdrop-filter: var(--raised-blur) !important;
     border: var(--border-width) solid var(--background-modifier-border);
     box-shadow: var(--ntb-shadow-xs);
     /* fix? ghosting effect with overlays when glass style is being used; happens on desktop */
@@ -2137,6 +2147,7 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
     @media (hover: hover) {
         &:hover {
             box-shadow: none;
+            opacity: unset;
         }
     }
     .is-mobile & {
@@ -2208,10 +2219,11 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
                 .is-hidden-nav & {
                     margin-bottom: var(--cg-nt-tbar-bottom-margin-bottom-phone);
                 }
-            }
-            /* fix: bottom margin needs to be removed when keyboard is open on phone */
-            .is-phone.mod-toolbar-open & {
-                margin-bottom: unset;
+                /* fix: bottom margin needs to be removed when keyboard is open on phone */
+                .ntb-is-keyboard-open & {
+                    margin-bottom: unset;
+                    transition: unset;
+                }
             }
         }
 
@@ -2276,6 +2288,17 @@ body.is-mobile button.cg-note-toolbar-fab[data-fab-metadata*="mgls"] {
             }
         }
     }
+}
+/* if Navbar is completely hidden by Note Toolbar, don't shift bottom toolbars */
+.is-phone.ntb-remove-nav .cg-note-toolbar-container[data-tbar-position*="bottom"] {
+    & .cg-note-toolbar-callout {
+        margin-bottom: var(--cg-nt-tbar-bottom-margin-bottom-phone);
+    }
+}
+/* hides the FAB when a sidebar is open on phones */
+.is-phone .app-container:has(.workspace.is-left-sidedock-open) .cg-note-toolbar-container[data-tbar-position*="fab"],
+.is-phone .app-container:has(.workspace.is-right-sidedock-open) .cg-note-toolbar-container[data-tbar-position*="fab"] {
+    display: none;
 }
 /* remove spacing after props section, only if toolbar is in props position */
 .metadata-container:has(+ .cg-note-toolbar-bar-container[data-tbar-position="props"]) {
@@ -4205,7 +4228,7 @@ body[data-ntb-csstheme="Cupertino"] {
             gap: var(--size-4-2);
             & a, span.external-link {
                 background-color: var(--ntb-liquid-glass-background) !important;
-                backdrop-filter: var(--ntb-blur-s);
+                backdrop-filter: var(--raised-blur);
                 border: var(--border-width) solid var(--background-modifier-border);
                 border-radius: 32px;
                 box-shadow: var(--ntb-shadow-xs);
@@ -4223,7 +4246,7 @@ body[data-ntb-csstheme="Cupertino"] {
     /* Licensed under the MIT License; see the LICENSE file */
     & button.cg-note-toolbar-fab {
         background-color: var(--ntb-liquid-glass-background) !important;
-        backdrop-filter: var(--ntb-blur-s) !important;
+        backdrop-filter: var(--raised-blur) !important;
         border: var(--border-width) solid var(--background-modifier-border);
         box-shadow: var(--ntb-shadow-xs);
         /* fix: ghosting effect with overlays when glass style is being used */

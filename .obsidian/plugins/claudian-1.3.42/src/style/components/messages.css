@@ -1,0 +1,195 @@
+/* Messages wrapper (for scroll-to-bottom button positioning) */
+.claudian-messages-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Messages area */
+.claudian-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Focusable messages panel for vim-style navigation */
+.claudian-messages-focusable:focus {
+  outline: none;
+}
+
+/* Welcome message - claude.ai style */
+.claudian-welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  min-height: 200px;
+}
+
+.claudian-welcome-greeting {
+  font-family: 'Copernicus', 'Tiempos Headline', 'Tiempos', Georgia, 'Times New Roman', serif;
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: -0.01em;
+}
+
+/* Individual messages */
+.claudian-message {
+  padding: 10px 14px;
+  border-radius: 8px;
+  max-width: 95%;
+  word-wrap: break-word;
+}
+
+.claudian-message-user {
+  position: relative;
+  background: rgba(0, 0, 0, 0.3);
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+/* Text selection in user messages - visible highlight */
+.claudian-message-user ::selection {
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+}
+
+.claudian-message-user ::-moz-selection {
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+}
+
+.claudian-message-assistant {
+  background: transparent;
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  border-bottom-left-radius: 4px;
+  text-align: left;
+}
+
+/* Message content */
+.claudian-message-content {
+  line-height: 1.5;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Interrupted message */
+.claudian-interrupted {
+  color: #d45d5d;
+}
+
+.claudian-interrupted-hint {
+  color: var(--text-muted);
+}
+
+/* Text blocks within message content */
+.claudian-text-block {
+  position: relative;
+  margin: 0;
+}
+
+/* Copy button for text blocks */
+.claudian-text-copy-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-monospace);
+  background: var(--background-primary);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+  border-radius: 3px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.claudian-text-copy-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Show copy button on hover */
+.claudian-text-block:hover .claudian-text-copy-btn {
+  opacity: 1;
+}
+
+.claudian-text-copy-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Copied state - only affects color, visibility still controlled by hover */
+.claudian-text-copy-btn.copied {
+  color: var(--text-accent);
+}
+
+.claudian-text-block+.claudian-tool-call {
+  margin-top: 8px;
+}
+
+.claudian-tool-call+.claudian-text-block {
+  margin-top: 8px;
+}
+
+.claudian-message-content p {
+  margin: 0 0 8px 0;
+}
+
+.claudian-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.claudian-message-content ul,
+.claudian-message-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+/* Scrollbar styling */
+.claudian-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.claudian-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.claudian-messages::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+.claudian-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--background-modifier-border-hover);
+}
+
+/* Response duration footer */
+.claudian-response-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.claudian-baked-duration {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-style: italic;
+}

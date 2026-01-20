@@ -1,0 +1,123 @@
+/**
+ * Claudian - Type definitions barrel export.
+ *
+ * Re-exports all types from modular type files.
+ */
+
+// Chat types
+export {
+  type ChatMessage,
+  type ContentBlock,
+  type Conversation,
+  type ConversationMeta,
+  type ImageAttachment,
+  type ImageMediaType,
+  type SessionMetadata,
+  type StreamChunk,
+  type UsageInfo,
+  VIEW_TYPE_CLAUDIAN,
+} from './chat';
+
+// Model types
+export {
+  BETA_1M_CONTEXT,
+  type ClaudeModel,
+  CONTEXT_WINDOW_1M,
+  CONTEXT_WINDOW_STANDARD,
+  DEFAULT_CLAUDE_MODELS,
+  DEFAULT_THINKING_BUDGET,
+  getContextWindowSize,
+  type ModelWithBetas,
+  type ModelWithoutBetas,
+  resolveModelWithBetas,
+  THINKING_BUDGETS,
+  type ThinkingBudget,
+} from './models';
+
+// SDK types
+export {
+  type ModelUsageInfo,
+  type SDKContentBlock,
+  type SDKMessage,
+  type SDKMessageContent,
+  type SDKStreamEvent,
+} from './sdk';
+
+// Settings types
+export {
+  type CCPermissions,
+  type CCSettings,
+  type ClaudianSettings,
+  type CliPlatformKey,
+  createPermissionRule,
+  DEFAULT_CC_PERMISSIONS,
+  DEFAULT_CC_SETTINGS,
+  DEFAULT_SETTINGS,
+  type EnvSnippet,
+  getBashToolBlockedCommands,
+  getCliPlatformKey,  // Kept for migration
+  getCurrentPlatformBlockedCommands,
+  getCurrentPlatformKey,
+  getDefaultBlockedCommands,
+  type HostnameCliPaths,
+  type InstructionRefineResult,
+  type KeyboardNavigationSettings,
+  type LegacyPermission,
+  legacyPermissionsToCCPermissions,
+  legacyPermissionToCCRule,
+  parseCCPermissionRule,
+  type Permission,
+  type PermissionMode,
+  type PermissionRule,
+  type PlatformBlockedCommands,
+  type PlatformCliPaths,  // Kept for migration
+  type SlashCommand,
+} from './settings';
+
+// Re-export getHostnameKey from utils (moved from settings for architecture compliance)
+export { getHostnameKey } from '../../utils/env';
+
+// Tool types
+export {
+  type AsyncSubagentStatus,
+  type SubagentInfo,
+  type SubagentMode,
+  type ToolCallInfo,
+  type ToolDiffData,
+} from './tools';
+
+// MCP types
+export {
+  type ClaudianMcpConfigFile,
+  type ClaudianMcpServer,
+  DEFAULT_MCP_SERVER,
+  getMcpServerType,
+  inferMcpServerType,
+  isValidMcpServerConfig,
+  type McpConfigFile,
+  type McpHttpServerConfig,
+  type McpServerConfig,
+  type McpServerType,
+  type McpSSEServerConfig,
+  type McpStdioServerConfig,
+  type ParsedMcpConfig,
+} from './mcp';
+
+// Plugin types
+export {
+  type ClaudianPlugin,
+  type InstalledPluginEntry,
+  type InstalledPluginsFile,
+  type MarketplaceManifest,
+  type MarketplacePluginEntry,
+  type PluginManifest,
+  type PluginScope,
+  type PluginStatus,
+  type SdkPluginConfig,
+} from './plugins';
+
+// Agent types
+export {
+  type AgentDefinition,
+  type AgentFrontmatter,
+} from './agent';
