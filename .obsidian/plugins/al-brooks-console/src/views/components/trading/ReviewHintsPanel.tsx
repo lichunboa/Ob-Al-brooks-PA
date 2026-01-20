@@ -63,7 +63,7 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
         );
     }, [todayMarketCycle, latestTrade?.marketCycle, latestTrade?.direction, activeMetadata, stateMachine]);
 
-    // V3引擎：动态策略推荐（替代硬编码）
+    // V3引擎：动态策略推荐（替代硬编码）+ 历史表现加权
     const dynamicStrategies = React.useMemo(() => {
         const cycle = activeMetadata?.cycle || latestTrade?.marketCycle || todayMarketCycle;
         const direction = activeMetadata?.direction || latestTrade?.direction;
@@ -83,12 +83,32 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
             ? matched.filter(s => !s.direction || s.direction.toString().toLowerCase().includes(direction.toString().toLowerCase()))
             : matched;
 
-        // 返回前5个匹配的策略
-        return dirFiltered.slice(0, 5).map(s => ({
-            name: s.strategy,
-            path: s.path
-        }));
-    }, [activeMetadata, latestTrade, todayMarketCycle, strategies]);
+        // 计算每个策略的历史表现并排序
+        const withPerformance = dirFiltered.map(s => {
+            const strategyName = s.strategy.toLowerCase();
+            const relatedTrades = recentTrades.filter(t =>
+                t.strategyName?.toLowerCase().includes(strategyName) ||
+                strategyName.includes(t.strategyName?.toLowerCase() || "")
+            );
+            const wins = relatedTrades.filter(t => (t.netProfit ?? 0) > 0 || t.outcome === "win").length;
+            const winRate = relatedTrades.length > 0 ? wins / relatedTrades.length : 0;
+            return {
+                name: s.strategy,
+                path: s.path,
+                winRate: Math.round(winRate * 100),
+                tradeCount: relatedTrades.length
+            };
+        });
+
+        // 按胜率排序（有历史记录的优先，胜率高的优先）
+        withPerformance.sort((a, b) => {
+            if (a.tradeCount > 0 && b.tradeCount === 0) return -1;
+            if (a.tradeCount === 0 && b.tradeCount > 0) return 1;
+            return b.winRate - a.winRate;
+        });
+
+        return withPerformance.slice(0, 5);
+    }, [activeMetadata, latestTrade, todayMarketCycle, strategies, recentTrades]);
 
     // 智能预警引擎
     const smartAlerts = React.useMemo(() => {
@@ -375,20 +395,32 @@ export const ReviewHintsPanel: React.FC<ReviewHintsPanelProps> = ({
                                     interaction="lift"
                                     onClick={() => openFile?.(s.path)}
                                     style={{
-                                        display: "inline-block",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "4px",
                                         padding: "2px 8px",
-                                        background: "var(--interactive-accent)",
-                                        color: "var(--text-on-accent)",
+                                        background: s.tradeCount > 0 && s.winRate >= 50 ? "rgba(16, 185, 129, 0.2)" : "var(--interactive-accent)",
+                                        color: s.tradeCount > 0 && s.winRate >= 50 ? "#10B981" : "var(--text-on-accent)",
                                         borderRadius: "12px",
                                         fontSize: "0.85em",
                                         marginRight: "6px",
                                         marginBottom: "4px",
-                                        border: "none",
+                                        border: s.tradeCount > 0 && s.winRate >= 50 ? "1px solid #10B981" : "none",
                                         cursor: "pointer"
                                     }}
-                                    title={`打开策略: ${s.name}`}
+                                    title={s.tradeCount > 0 ? `胜率: ${s.winRate}% (${s.tradeCount}次)` : `打开策略: ${s.name}`}
                                 >
-                                    {s.name} ↗
+                                    {s.name}
+                                    {s.tradeCount > 0 && (
+                                        <span style={{
+                                            fontSize: "0.8em",
+                                            fontWeight: 600,
+                                            opacity: 0.9
+                                        }}>
+                                            {s.winRate}%
+                                        </span>
+                                    )}
+                                    ↗
                                 </InteractiveButton>
                             ))}
                         </div>

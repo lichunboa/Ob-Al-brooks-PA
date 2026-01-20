@@ -298,10 +298,10 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                         }}>({results.length}个匹配)</span>
                                     </div>
 
-                                    {/* 单列布局，显示更多信息 */}
+                                    {/* 两列网格布局 */}
                                     <div style={{
-                                        display: "flex",
-                                        flexDirection: "column",
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 1fr",
                                         gap: "6px"
                                     }}>
                                         {results.map((r) => {
