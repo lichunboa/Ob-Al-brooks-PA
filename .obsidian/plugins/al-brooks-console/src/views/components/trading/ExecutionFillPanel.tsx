@@ -316,6 +316,34 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
                                     <span style={{ color: "var(--text-normal)" }}>
                                         {String(currentVal)}
                                     </span>
+                                ) : field.isStrategy && suggestedStrategyName ? (
+                                    // 策略确认按钮
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        padding: "4px 8px",
+                                        background: "rgba(16, 185, 129, 0.1)",
+                                        borderRadius: "4px",
+                                        border: "1px solid #10B981"
+                                    }}>
+                                        <span style={{ color: "#10B981", fontWeight: 500, flex: 1 }}>
+                                            {suggestedStrategyName}
+                                        </span>
+                                        <Button
+                                            variant="small"
+                                            onClick={() => handleFillField(field.fieldName, suggestedStrategyName)}
+                                            style={{
+                                                padding: "2px 8px",
+                                                fontSize: "0.8em",
+                                                background: "#10B981",
+                                                color: "white",
+                                                border: "none"
+                                            }}
+                                        >
+                                            ✓ 确认
+                                        </Button>
+                                    </div>
                                 ) : field.isNumeric ? (
                                     // 未填写数字字段：输入框
                                     <div style={{ display: "flex", gap: "4px" }}>
