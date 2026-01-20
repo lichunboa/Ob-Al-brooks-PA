@@ -81,6 +81,9 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     // 当前选中的持仓路径 (使用路径而非索引，避免列表重排时跳单)
     const [selectedTradePath, setSelectedTradePath] = React.useState<string | null>(null);
 
+    // 风险偏好筛选（用于策略推荐）
+    const [riskPreference, setRiskPreference] = React.useState<"All" | "Low" | "Medium" | "High">("All");
+
     // 初始化或重置选中项
     React.useEffect(() => {
         // 如果没有选中项，或者当前选中项不在列表中，默认选中第一个
@@ -290,13 +293,14 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 .filter(Boolean);
                             const setupCategory = (currentTrade.setupCategory ?? currentTrade.setupKey)?.toString().trim();
 
-                            // 使用V2引擎 - 考虑方向、时间周期、历史表现
+                            // 使用V2引擎 - 考虑方向、时间周期、历史表现、风险等级
                             const results = matchStrategiesV2(strategyIndex, {
                                 marketCycle,
                                 setupCategory,
                                 patterns,
                                 direction: currentTrade.direction as "Long" | "Short" | undefined,
                                 timeframe: currentTrade.timeframe,
+                                riskLevel: riskPreference === "All" ? undefined : riskPreference,
                                 includeHistoricalPerf: true,
                                 limit: 20, // 显示所有匹配的策略
                             }, trades);
@@ -323,6 +327,26 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                             color: "var(--text-muted)",
                                             fontWeight: 400
                                         }}>({results.length}个匹配)</span>
+                                        {/* 风险偏好下拉菜单 */}
+                                        <select
+                                            value={riskPreference}
+                                            onChange={(e) => setRiskPreference(e.target.value as any)}
+                                            style={{
+                                                marginLeft: "auto",
+                                                fontSize: "0.75em",
+                                                padding: "2px 6px",
+                                                borderRadius: "4px",
+                                                border: "1px solid var(--background-modifier-border)",
+                                                background: "var(--background-secondary)",
+                                                color: "var(--text-normal)",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            <option value="All">全部风险</option>
+                                            <option value="Low">🟢 低风险</option>
+                                            <option value="Medium">🟡 中风险</option>
+                                            <option value="High">🔴 高风险</option>
+                                        </select>
                                     </div>
 
                                     {/* 两列网格布局 */}
