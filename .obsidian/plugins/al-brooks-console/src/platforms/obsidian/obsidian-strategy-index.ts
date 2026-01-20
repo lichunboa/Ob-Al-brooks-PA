@@ -52,8 +52,8 @@ const STRATEGY_FIELD_ALIASES = {
     "take_profit_recommendation",
     "takeProfitRecommendation",
   ],
-  timeframe: ["周期/timeframe", "timeframe", "tf"],
-  riskLevel: ["风险级别/risk_level", "risk_level", "riskLevel", "risk"],
+  timeframe: ["时间周期/timeframe", "周期/timeframe", "timeframe", "tf"],
+  riskLevel: ["风险等级/risk_level", "风险级别/risk_level", "risk_level", "riskLevel", "risk"],
 } as const;
 
 function toStringArray(v: unknown): string[] {
