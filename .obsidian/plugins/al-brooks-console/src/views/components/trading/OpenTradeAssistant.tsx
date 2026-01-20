@@ -544,19 +544,26 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 </React.Fragment>
                             ))}
                         </div>
+
+                        {/* 分隔线 */}
+                        <div style={{
+                            borderTop: "1px solid var(--background-modifier-border)",
+                            margin: "12px 0 8px 0"
+                        }} />
+
+                        {/* 执行信息 - 集成到同一个容器 */}
+                        {currentTrade && (
+                            <ExecutionFillPanel
+                                trade={currentTrade}
+                                app={app}
+                                enumPresets={enumPresets}
+                                suggestedStrategyName={currentStrategy?.canonicalName}
+                                embedded={true}
+                            />
+                        )}
                     </div>
                 );
             })()}
-
-            {/* 交易执行填写面板 - 使用 currentTrade (支持多标签切换和实时更新) */}
-            {currentTrade && (
-                <ExecutionFillPanel
-                    trade={currentTrade}
-                    app={app}
-                    enumPresets={enumPresets}
-                    suggestedStrategyName={currentStrategy?.canonicalName}
-                />
-            )}
 
             {currentStrategy ? (
                 <div>

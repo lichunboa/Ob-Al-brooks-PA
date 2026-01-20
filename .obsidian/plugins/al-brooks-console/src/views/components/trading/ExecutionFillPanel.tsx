@@ -55,13 +55,14 @@ export interface ExecutionFillPanelProps {
     app: any;
     enumPresets?: EnumPresets;
     suggestedStrategyName?: string; // Automatically suggested strategy name from engine
+    embedded?: boolean; // 是否嵌入到父容器（去除自身边框和背景）
 }
 
 /**
  * 交易执行填写面板组件
  * 用于快速填写管理计划、订单类型、结果和执行评价等字段
  */
-export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, enumPresets, suggestedStrategyName }) => {
+export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, app, enumPresets, suggestedStrategyName, embedded = false }) => {
     // 乐观锁：记录用户已经填写的字段及其值
     // Key: fieldName (e.g., "管理计划/management_plan")
     // Value: filled value
@@ -247,12 +248,12 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
     // 表格视图：显示所有字段
     return (
         <div style={{
-            marginTop: "12px",
-            padding: "10px",
-            background: "rgba(var(--background-secondary-rgb), 0.5)",
-            borderRadius: "8px",
-            border: "1px solid var(--background-modifier-border)",
-            ...glassInsetStyle
+            marginTop: embedded ? "0" : "12px",
+            padding: embedded ? "0" : "10px",
+            background: embedded ? "transparent" : "rgba(var(--background-secondary-rgb), 0.5)",
+            borderRadius: embedded ? "0" : "8px",
+            border: embedded ? "none" : "1px solid var(--background-modifier-border)",
+            ...(embedded ? {} : glassInsetStyle)
         }}>
             {/* 进度条 */}
             <div style={{
