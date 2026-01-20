@@ -428,41 +428,39 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
 
             {/* 智能引导推荐 - 固定表格形式 */}
             {(() => {
-                // 定义所有待推荐的属性
-                const attributeFields = [
-                    { key: "direction", label: "方向", value: currentTrade.direction },
-                    { key: "marketCycle", label: "市场周期", value: currentTrade.marketCycle },
-                    { key: "setupCategory", label: "设置类别", value: currentTrade.setupCategory },
-                    { key: "signalBarQuality", label: "信号K", value: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"] },
-                    { key: "alwaysIn", label: "总是方向", value: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"] },
-                    { key: "patternsObserved", label: "形态", value: currentTrade.patternsObserved },
-                ];
-
-                // 计算每个属性的推荐值
-                const fieldsWithRecs = attributeFields.map(field => {
-                    const isEmpty = !field.value || field.value === "" || field.value === "unknown";
-                    // 根据已填属性获取推荐
-                    const rec = isEmpty ? recommendNextAttribute(strategyIndex, {
-                        marketCycle: currentTrade.marketCycle,
-                        direction: currentTrade.direction,
-                        setupCategory: currentTrade.setupCategory,
-                        signalBarQuality: (currentTrade as any).signalBarQuality,
-                        alwaysIn: (currentTrade as any).alwaysIn,
-                        patterns: currentTrade.patternsObserved,
-                        timeframe: currentTrade.timeframe,
-                    }) : null;
-
-                    // 从推荐中过滤当前属性的值
-                    const recommendations = rec?.recommendations?.filter(r =>
-                        r.attribute.toLowerCase().includes(field.key.toLowerCase()) ||
-                        field.key.toLowerCase().includes(r.attribute.split("/")[0].toLowerCase())
-                    ).slice(0, 4) || [];
-
-                    return { ...field, isEmpty, recommendations };
+                // 先调用一次推荐器获取当前应填的属性
+                const recommendation = recommendNextAttribute(strategyIndex, {
+                    marketCycle: currentTrade.marketCycle,
+                    direction: currentTrade.direction,
+                    setupCategory: currentTrade.setupCategory,
+                    signalBarQuality: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"],
+                    alwaysIn: (currentTrade as any).alwaysIn || (currentTrade as any)["总是方向/always_in"],
+                    patterns: currentTrade.patternsObserved,
+                    timeframe: currentTrade.timeframe,
                 });
 
-                const filledCount = fieldsWithRecs.filter(f => !f.isEmpty).length;
-                const progressPct = Math.round((filledCount / fieldsWithRecs.length) * 100);
+                // 使用推荐器定义的顺序
+                const attributeFields = [
+                    { key: "marketCycle", label: "市场周期", value: currentTrade.marketCycle },
+                    { key: "direction", label: "方向", value: currentTrade.direction },
+                    { key: "setupCategory", label: "设置类别", value: currentTrade.setupCategory },
+                    { key: "patternsObserved", label: "形态", value: currentTrade.patternsObserved },
+                    { key: "signalBarQuality", label: "信号K", value: (currentTrade as any).signalBarQuality || (currentTrade as any)["信号K/signal_bar_quality"] },
+                ];
+
+                // 给每个属性标记状态
+                const fieldsWithState = attributeFields.map(field => {
+                    const rawVal = field.value;
+                    const isEmpty = !rawVal || rawVal === "" || rawVal === "unknown" ||
+                        (Array.isArray(rawVal) && rawVal.length === 0);
+                    // 只有当前属性是"下一个应填"时才显示推荐
+                    const isNextToFill = recommendation?.nextAttribute === field.key;
+                    const recommendations = isNextToFill ? recommendation.recommendations.slice(0, 4) : [];
+                    return { ...field, isEmpty, isNextToFill, recommendations };
+                });
+
+                const filledCount = fieldsWithState.filter(f => !f.isEmpty).length;
+                const progressPct = Math.round((filledCount / fieldsWithState.length) * 100);
 
                 return (
                     <div style={{
@@ -492,13 +490,13 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 }} />
                             </div>
                             <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
-                                {filledCount}/{fieldsWithRecs.length} {progressPct === 100 ? "✅" : ""}
+                                {filledCount}/{fieldsWithState.length} {progressPct === 100 ? "✅" : ""}
                             </span>
                         </div>
 
                         {/* 属性表格 */}
                         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 8px", fontSize: "0.85em" }}>
-                            {fieldsWithRecs.map((field, idx) => (
+                            {fieldsWithState.map((field, idx) => (
                                 <React.Fragment key={idx}>
                                     {/* 属性名 */}
                                     <div style={{
