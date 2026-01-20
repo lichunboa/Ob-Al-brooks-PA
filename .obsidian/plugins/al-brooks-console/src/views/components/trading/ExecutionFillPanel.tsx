@@ -241,39 +241,10 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
 
     // 过滤出需要填写的字段
     const emptyFields = fieldsToFill.filter(f => f.isEmpty);
+    const filledCount = fieldsToFill.length - emptyFields.length;
+    const progressPct = Math.round((filledCount / fieldsToFill.length) * 100);
 
-    // 如果所有字段都已填写, 显示完成状态而不是 null
-    if (emptyFields.length === 0) {
-        return (
-            <div style={{
-                marginTop: "16px",
-                padding: "12px 16px",
-                background: "rgba(var(--background-secondary-rgb), 0.3)",
-                borderRadius: "12px",
-                border: "1px solid var(--background-modifier-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                ...glassInsetStyle
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "16px" }}>✅</span>
-                    <span style={{
-                        fontSize: "13px",
-                        fontWeight: 500,
-                        color: "var(--text-muted)"
-                    }}>
-                        执行信息已填写完成
-                    </span>
-                </div>
-                {/* Future: Add 'Edit' button here if needed */}
-            </div>
-        );
-    }
-
-    // 一次只显示第一个未填写的字段
-    const nextField = emptyFields[0];
-
+    // 表格视图：显示所有字段
     return (
         <div style={{
             marginTop: "12px",
@@ -283,124 +254,137 @@ export const ExecutionFillPanel: React.FC<ExecutionFillPanelProps> = ({ trade, a
             border: "1px solid var(--background-modifier-border)",
             ...glassInsetStyle
         }}>
+            {/* 进度条 */}
             <div style={{
-                fontSize: "0.85em",
-                marginBottom: "6px",
-                fontWeight: 600,
-                color: "var(--text-accent)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                gap: "6px"
+                gap: "8px",
+                marginBottom: "10px"
             }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span>💡</span>
-                    <span>建议补充执行: {nextField.label}</span>
-                </div>
-                <span style={{
-                    fontSize: "0.8em",
-                    color: "var(--text-muted)",
-                    fontWeight: 400
+                <span style={{ fontSize: "0.85em", fontWeight: 600, color: "var(--text-accent)" }}>
+                    📝 执行信息
+                </span>
+                <div style={{
+                    flex: 1,
+                    height: "6px",
+                    background: "var(--background-modifier-border)",
+                    borderRadius: "3px",
+                    overflow: "hidden"
                 }}>
-                    还有 {emptyFields.length} 项
+                    <div style={{
+                        width: `${progressPct}%`,
+                        height: "100%",
+                        background: progressPct === 100 ? "var(--color-green)" : "var(--interactive-accent)",
+                        transition: "width 0.3s ease"
+                    }} />
+                </div>
+                <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>
+                    {filledCount}/{fieldsToFill.length} {progressPct === 100 ? "✅" : ""}
                 </span>
             </div>
 
-            {/* 两列网格布局 */}
+            {/* 字段表格 */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "4px"
+                gridTemplateColumns: "auto 1fr",
+                gap: "4px 8px",
+                fontSize: "0.85em"
             }}>
-                {nextField.isStrategy ? (
-                    // 特殊渲染：策略确认 - 占满两列
-                    <div style={{
-                        gridColumn: "1 / -1",
-                        padding: "8px 10px",
-                        background: "rgba(var(--interactive-accent-rgb), 0.1)",
-                        border: "1px solid var(--interactive-accent)",
-                        borderRadius: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "8px"
-                    }}>
-                        <div style={{ fontSize: "0.85em" }}>
-                            检测到匹配策略：<span style={{ color: "var(--text-accent)", fontWeight: 600 }}>{suggestedStrategyName}</span>
-                        </div>
-                        <Button
-                            variant="small"
-                            onClick={() => suggestedStrategyName && handleFillField(nextField.fieldName, suggestedStrategyName)}
-                        >
-                            ✅ 确认
-                        </Button>
-                    </div>
-                ) : nextField.isNumeric ? (
-                    // 数值输入 - 占满两列
-                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: "6px" }}>
-                        <input
-                            type="number"
-                            placeholder={nextField.placeholder}
-                            style={{
-                                flex: 1,
-                                padding: "6px 10px",
-                                background: "var(--background-primary)",
-                                border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "4px",
-                                outline: "none",
-                                fontSize: "0.85em"
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    handleFillField(nextField.fieldName, e.currentTarget.value);
-                                }
-                            }}
-                        />
-                        <Button
-                            variant="small"
-                            onClick={(e) => {
-                                const wrapper = e.currentTarget.parentElement;
-                                const input = wrapper?.querySelector('input');
-                                if (input) {
-                                    handleFillField(nextField.fieldName, input.value);
-                                }
-                            }}
-                        >
-                            确认
-                        </Button>
-                    </div>
-                ) : (
-                    // 选项列表 - 两列网格
-                    nextField.values?.map(value => (
-                        <div
-                            key={value}
-                            onClick={() => handleFillField(nextField.fieldName, value)}
-                            style={{
-                                padding: "6px 8px",
-                                background: "var(--background-primary)",
-                                borderRadius: "4px",
-                                border: "1px solid var(--background-modifier-border)",
-                                fontSize: "0.8em",
-                                cursor: "pointer",
-                                transition: "all 0.15s ease",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                                e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "var(--background-primary)";
-                                e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                            }}
-                        >
-                            {value}
-                        </div>
-                    ))
-                )}
+                {fieldsToFill.map((field, idx) => {
+                    const currentVal = field.isNumeric
+                        ? getVal(field.fieldName, NUMERIC_FIELDS.find(nf => nf.fieldName === field.fieldName)?.key?.replace(/_([a-z])/g, (g) => g[1].toUpperCase()) || "")
+                        : getVal(field.fieldName, getTradeKey(field.fieldName));
+                    const isFilled = !field.isEmpty;
+
+                    return (
+                        <React.Fragment key={idx}>
+                            {/* 字段名 */}
+                            <div style={{
+                                color: isFilled ? "var(--text-muted)" : "var(--text-accent)",
+                                fontWeight: isFilled ? 400 : 500,
+                                padding: "4px 0",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px"
+                            }}>
+                                {isFilled ? "✓" : "○"} {field.label}
+                            </div>
+                            {/* 字段值/输入 */}
+                            <div style={{ padding: "4px 0" }}>
+                                {isFilled ? (
+                                    // 已填写：显示值
+                                    <span style={{ color: "var(--text-normal)" }}>
+                                        {String(currentVal)}
+                                    </span>
+                                ) : field.isNumeric ? (
+                                    // 未填写数字字段：输入框
+                                    <div style={{ display: "flex", gap: "4px" }}>
+                                        <input
+                                            type="text"
+                                            placeholder={field.placeholder}
+                                            style={{
+                                                flex: 1,
+                                                padding: "4px 8px",
+                                                border: "1px solid var(--background-modifier-border)",
+                                                borderRadius: "4px",
+                                                background: "var(--background-primary)",
+                                                fontSize: "0.9em"
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    handleFillField(field.fieldName, e.currentTarget.value);
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            variant="small"
+                                            onClick={(e) => {
+                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                if (input?.value) handleFillField(field.fieldName, input.value);
+                                            }}
+                                            style={{ padding: "4px 8px", fontSize: "0.85em" }}
+                                        >
+                                            ✓
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    // 未填写选项字段：快捷按钮
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                        {field.values?.slice(0, 4).map((val, i) => (
+                                            <span
+                                                key={i}
+                                                onClick={() => handleFillField(field.fieldName, val)}
+                                                style={{
+                                                    padding: "2px 6px",
+                                                    background: "var(--background-primary)",
+                                                    border: "1px solid var(--background-modifier-border)",
+                                                    borderRadius: "4px",
+                                                    fontSize: "0.85em",
+                                                    cursor: "pointer"
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = "var(--background-primary)";
+                                                }}
+                                            >
+                                                {val.length > 15 ? val.slice(0, 12) + "..." : val}
+                                            </span>
+                                        ))}
+                                        {(field.values?.length || 0) > 4 && (
+                                            <span style={{ color: "var(--text-muted)", fontSize: "0.8em" }}>
+                                                +{(field.values?.length || 0) - 4}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
             </div>
         </div>
     );
+
 };
