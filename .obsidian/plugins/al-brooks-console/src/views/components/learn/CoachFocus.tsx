@@ -28,6 +28,15 @@ export interface CoachFocusProps {
     onAction?: (actionId: string, param?: any) => void;
     can?: (actionId: string) => boolean;
     runCommand?: (commandId: string) => boolean;
+
+    // 学习联动Props
+    poorPerformingStrategies?: Array<{
+        name: string;
+        winRate: number;
+        trades: number;
+        pnl: number;
+        path?: string;
+    }>;
 }
 
 /**
@@ -51,6 +60,7 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
     onAction,
     can,
     runCommand,
+    poorPerformingStrategies,
 }) => {
     // Debug Log for Memory Counts
     React.useEffect(() => {
@@ -77,6 +87,63 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                     (Coach Focus)
                 </span>
             </div>
+
+            {/* 需要加强的策略（学习与复盘联动） */}
+            {poorPerformingStrategies && poorPerformingStrategies.length > 0 && (
+                <div style={{
+                    marginBottom: "12px",
+                    padding: "10px",
+                    background: "rgba(239, 68, 68, 0.08)",
+                    border: "1px solid rgba(239, 68, 68, 0.25)",
+                    borderRadius: "8px",
+                }}>
+                    <div style={{
+                        fontSize: "0.85em",
+                        fontWeight: 600,
+                        color: "#ef4444",
+                        marginBottom: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                    }}>
+                        <span>⚠️</span>
+                        <span>需要加强</span>
+                        <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>
+                            （复盘分析发现）
+                        </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {poorPerformingStrategies.map((s) => (
+                            <div
+                                key={s.name}
+                                onClick={() => s.path && openFile(s.path)}
+                                style={{
+                                    padding: "4px 10px",
+                                    background: "rgba(239, 68, 68, 0.12)",
+                                    borderRadius: "6px",
+                                    fontSize: "0.8em",
+                                    cursor: s.path ? "pointer" : "default",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    transition: "all 0.15s",
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (s.path) e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
+                                }}
+                            >
+                                <span>{s.name}</span>
+                                <span style={{ color: "#ef4444", fontWeight: 600 }}>
+                                    {s.winRate}%
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {memory && memory.cnt ? (
                 <div>

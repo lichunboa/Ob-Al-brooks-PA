@@ -2,6 +2,7 @@ import * as React from "react";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
 import { StrategyStats } from "../strategy/StrategyStats";
 import { StrategyList } from "../strategy/StrategyList";
+import { calculateMastery, getMasteryColor, getMasteryLabel } from "../../../utils/strategy-mastery-utils";
 
 import { matchStrategies } from "../../../core/strategy-matcher";
 import type { StrategyIndex } from "../../../core/strategy-index";
@@ -179,6 +180,113 @@ export const StrategyRepository: React.FC<StrategyRepositoryProps> = ({
                                 暂无匹配的实战策略
                             </div>
                         )}
+                    </div>
+                );
+            })()}
+            {/* 策略掌握度概览 */}
+            {(() => {
+                // 获取实战策略的掌握度
+                const activeStrategies = strategies.filter(s => isActive(s.statusRaw || ''));
+                if (activeStrategies.length === 0) return null;
+
+                const masteryData = activeStrategies.slice(0, 8).map(s => {
+                    const perf = strategyPerf?.get(s.canonicalName || s.name);
+                    return calculateMastery({
+                        strategyName: s.canonicalName || s.name,
+                        winRate: perf ? Math.round((perf.wins / (perf.total || 1)) * 100) : 0,
+                        tradeCount: perf?.total || 0,
+                        avgR: perf?.avgR || 0,
+                    });
+                }).sort((a, b) => a.masteryScore - b.masteryScore);
+
+                return (
+                    <div style={{
+                        margin: "10px 0",
+                        padding: "10px 12px",
+                        background: "rgba(var(--mono-rgb-100), 0.02)",
+                        border: "1px solid var(--background-modifier-border)",
+                        borderRadius: "8px",
+                    }}>
+                        <div style={{
+                            fontSize: "0.85em",
+                            fontWeight: 600,
+                            marginBottom: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                        }}>
+                            <span>📊</span>
+                            <span>策略掌握度</span>
+                            <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>
+                                （点击复习薄弱策略）
+                            </span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                            {masteryData.map(m => (
+                                <div
+                                    key={m.strategyName}
+                                    onClick={() => {
+                                        const s = activeStrategies.find(x => (x.canonicalName || x.name) === m.strategyName);
+                                        if (s?.path) openFile(s.path);
+                                    }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        cursor: "pointer",
+                                        padding: "4px 6px",
+                                        borderRadius: "4px",
+                                        transition: "background 0.15s",
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(128,128,128,0.1)"}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                >
+                                    <div style={{
+                                        width: "90px",
+                                        fontSize: "0.8em",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap"
+                                    }}>
+                                        {m.strategyName}
+                                    </div>
+                                    <div style={{
+                                        flex: 1,
+                                        height: "8px",
+                                        background: "rgba(128,128,128,0.2)",
+                                        borderRadius: "4px",
+                                        overflow: "hidden",
+                                    }}>
+                                        <div style={{
+                                            width: `${m.masteryScore}%`,
+                                            height: "100%",
+                                            background: getMasteryColor(m.masteryScore),
+                                            borderRadius: "4px",
+                                            transition: "width 0.3s ease",
+                                        }} />
+                                    </div>
+                                    <div style={{
+                                        width: "45px",
+                                        fontSize: "0.75em",
+                                        color: getMasteryColor(m.masteryScore),
+                                        fontWeight: 600,
+                                        textAlign: "right",
+                                    }}>
+                                        {m.masteryScore}%
+                                    </div>
+                                    <div style={{
+                                        fontSize: "0.7em",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                        background: `${getMasteryColor(m.masteryScore)}22`,
+                                        color: getMasteryColor(m.masteryScore),
+                                        fontWeight: 600,
+                                    }}>
+                                        {getMasteryLabel(m.level)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 );
             })()}

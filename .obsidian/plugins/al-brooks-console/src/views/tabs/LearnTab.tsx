@@ -3,6 +3,7 @@ import { SectionHeader } from "../../ui/components/SectionHeader";
 import { CoachFocus } from "../components/learn/CoachFocus";
 import { CourseSuggestion } from "../components/learn/CourseSuggestion";
 import { StrategyRepository } from "../components/learn/StrategyRepository";
+import { LearningPlanPanel } from "../components/learn/LearningPlanPanel";
 import { useConsoleContext } from "../../context/ConsoleContext";
 import {
   calculateStrategyStats,
@@ -70,6 +71,35 @@ export const LearnTab: React.FC = () => {
     [strategyPerf, strategyIndex]
   );
 
+  // 计算表现差的策略（胜率<50% 且 使用>2次）用于学习联动
+  const poorPerformingStrategies = React.useMemo(() => {
+    const result: Array<{
+      name: string;
+      winRate: number;
+      trades: number;
+      pnl: number;
+      path?: string;
+    }> = [];
+
+    strategyPerf.forEach((perf, name) => {
+      if (perf.total >= 2) {
+        const winRate = Math.round((perf.wins / perf.total) * 100);
+        if (winRate < 50 || perf.pnlMoney < 0) {
+          const strategy = strategies.find(s => (s.canonicalName || s.name) === name);
+          result.push({
+            name,
+            winRate,
+            trades: perf.total,
+            pnl: perf.pnlMoney,
+            path: strategy?.path,
+          });
+        }
+      }
+    });
+
+    return result.sort((a, b) => a.winRate - b.winRate).slice(0, 5);
+  }, [strategyPerf, strategies]);
+
   return (
     <>
       <SectionHeader
@@ -102,6 +132,7 @@ export const LearnTab: React.FC = () => {
         onAction={(id) => integrations?.run(id as any)}
         can={(id) => integrations?.isCapabilityAvailable(id as any) ?? false}
         runCommand={useConsoleContext().runCommand}
+        poorPerformingStrategies={poorPerformingStrategies}
       />
 
       <CourseSuggestion
@@ -131,6 +162,26 @@ export const LearnTab: React.FC = () => {
         textButtonStyle={textButtonStyle}
         textButtonNoWrapStyle={textButtonNoWrapStyle}
         V5_COLORS={V5_COLORS}
+      />
+
+      {/* 学习计划面板 - 基于掌握度薄弱策略生成 */}
+      <LearningPlanPanel
+        plans={(() => {
+          // 基于薄弱策略生成推荐学习计划
+          if (poorPerformingStrategies.length === 0) return [];
+          return [{
+            id: 'auto-weekly',
+            title: '本周重点复习',
+            strategies: poorPerformingStrategies.map(s => s.name),
+            createdAt: new Date().toISOString().split('T')[0],
+            progress: 0,
+            status: 'active' as const,
+          }];
+        })()}
+        onOpenStrategy={(name) => {
+          const s = strategies.find(x => (x.canonicalName || x.name) === name);
+          if (s?.path) openFile(s.path);
+        }}
       />
 
       {/* Gallery is rendered in the Analytics grid (with scope selector). */}

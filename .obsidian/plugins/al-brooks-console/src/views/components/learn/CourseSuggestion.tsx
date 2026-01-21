@@ -232,84 +232,105 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                 gap: "20px",
                             }}
                         >
-                            {course.phases.map((ph: any) => (
-                                <div
-                                    key={`ph-${ph.phase}`}
-                                    style={{ marginBottom: "12px" }}
-                                >
+                            {course.phases.map((ph: any) => {
+                                // 计算模块进度
+                                const doneCount = ph.items.filter((c: any) => c.isDone).length;
+                                const totalCount = ph.items.length;
+                                const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+                                return (
                                     <div
-                                        style={{
-                                            fontSize: "0.85em",
-                                            color: "var(--text-muted)",
-                                            marginBottom: "6px",
-                                            borderBottom:
-                                                "1px solid var(--background-modifier-border)",
-                                            paddingBottom: "4px",
-                                        }}
+                                        key={`ph-${ph.phase}`}
+                                        style={{ marginBottom: "12px" }}
                                     >
-                                        {ph.phase}
-                                    </div>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            flexWrap: "wrap",
-                                            gap: "6px",
-                                        }}
-                                    >
-                                        {ph.items.map((c: any) => {
-                                            const bg = c.isDone
-                                                ? V5_COLORS.win
-                                                : c.hasNote
-                                                    ? V5_COLORS.accent
-                                                    : "rgba(var(--mono-rgb-100), 0.06)";
-                                            const fg = c.isDone
-                                                ? "var(--background-primary)"
-                                                : c.hasNote
-                                                    ? "var(--background-primary)"
+                                        <div
+                                            style={{
+                                                fontSize: "0.85em",
+                                                color: "var(--text-muted)",
+                                                marginBottom: "6px",
+                                                borderBottom:
+                                                    "1px solid var(--background-modifier-border)",
+                                                paddingBottom: "4px",
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            <span>{ph.phase}</span>
+                                            <span style={{
+                                                fontSize: "0.8em",
+                                                color: progressPct === 100 ? V5_COLORS.win : "var(--text-faint)",
+                                                fontWeight: 600,
+                                            }}>
+                                                {progressPct}%
+                                            </span>
+                                        </div>
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                gap: "4px",
+                                            }}
+                                        >
+                                            {ph.items.map((c: any) => {
+                                                // 优化颜色区分
+                                                const bg = c.isDone
+                                                    ? V5_COLORS.win  // 已完成 = 绿色
+                                                    : c.hasNote
+                                                        ? V5_COLORS.back  // 有笔记未完成 = 蓝色
+                                                        : "rgba(128, 128, 128, 0.15)";  // 未开始 = 灰色
+                                                const fg = c.isDone || c.hasNote
+                                                    ? "rgba(255,255,255,0.95)"
                                                     : "var(--text-faint)";
-                                            const title = `${c.item.id}: ${String(
-                                                c.item.t ?? ""
-                                            )}`;
-                                            return (
-                                                <InteractiveButton
-                                                    key={`c-${ph.phase}-${c.item.id}`}
-                                                    interaction="mini-cell"
-                                                    disabled={!c.link}
-                                                    onClick={() => c.link && openFile(c.link.path)}
-                                                    title={title}
-                                                    style={{
-                                                        width: "26px",
-                                                        height: "26px",
-                                                        borderRadius: "6px",
-                                                        flexShrink: 0,
-                                                        padding: 0,
-                                                        border:
-                                                            "1px solid var(--background-modifier-border)",
-                                                        background: bg,
-                                                        opacity: c.link ? 1 : 0.75,
-                                                    }}
-                                                >
-                                                    <div
+
+                                                // 增强悬浮提示信息
+                                                const status = c.isDone ? "✅ 已完成" : c.hasNote ? "📝 进行中" : "⬜ 未开始";
+                                                const title = `${c.item.id}: ${String(c.item.t ?? "无标题")}\n${status}`;
+
+                                                return (
+                                                    <InteractiveButton
+                                                        key={`c-${ph.phase}-${c.item.id}`}
+                                                        interaction="mini-cell"
+                                                        disabled={!c.link}
+                                                        onClick={() => c.link && openFile(c.link.path)}
+                                                        title={title}
                                                         style={{
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            width: "100%",
-                                                            height: "100%",
-                                                            color: fg,
-                                                            fontSize: "0.65em",
-                                                            fontWeight: 700,
-                                                            letterSpacing: "-0.3px",
+                                                            width: "24px",
+                                                            height: "24px",
+                                                            borderRadius: "4px",
+                                                            flexShrink: 0,
+                                                            padding: 0,
+                                                            border: c.isDone
+                                                                ? `1px solid ${V5_COLORS.win}`
+                                                                : c.hasNote
+                                                                    ? `1px solid ${V5_COLORS.back}`
+                                                                    : "1px solid rgba(128, 128, 128, 0.3)",
+                                                            background: bg,
+                                                            opacity: c.link ? 1 : 0.6,
+                                                            transition: "all 0.15s ease",
                                                         }}
                                                     >
-                                                        {c.shortId}
-                                                    </div>
-                                                </InteractiveButton>
-                                            );
-                                        })}
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                color: fg,
+                                                                fontSize: "0.6em",
+                                                                fontWeight: 700,
+                                                            }}
+                                                        >
+                                                            {c.isDone ? "✓" : c.shortId}
+                                                        </div>
+                                                    </InteractiveButton>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </details>
                 </div>
