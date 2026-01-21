@@ -83,7 +83,8 @@ export const CompactCalendarHeatmap: React.FC<CompactCalendarHeatmapProps> = ({
         return { totalPnl, tradeCount };
     }, [currentMonthStats]);
 
-    const cellSize = 24;
+    // 日历单元格尺寸（增大以提高视觉权重）
+    const cellSize = 32;
 
     return (
         <div style={{
@@ -105,13 +106,13 @@ export const CompactCalendarHeatmap: React.FC<CompactCalendarHeatmapProps> = ({
                         style={{ padding: '2px 6px', fontSize: '0.85em' }}
                     >◀</InteractiveButton>
                     <div style={{
-                        fontSize: '0.95em',
-                        fontWeight: 700,
+                        fontSize: '1.05em',
+                        fontWeight: 800,
                         fontVariantNumeric: 'tabular-nums',
-                        minWidth: '75px',
+                        minWidth: '90px',
                         textAlign: 'center'
                     }}>
-                        {currentMonthStr}
+                        📅 {currentMonthStr}
                     </div>
                     <InteractiveButton
                         onClick={handleNextMonth}
@@ -158,9 +159,10 @@ export const CompactCalendarHeatmap: React.FC<CompactCalendarHeatmapProps> = ({
                 {['日', '一', '二', '三', '四', '五', '六'].map((d, i) => (
                     <div key={`header-${i}`} style={{
                         textAlign: 'center',
-                        fontSize: '0.65em',
+                        fontSize: '0.75em',
                         color: 'var(--text-muted)',
-                        fontWeight: 600,
+                        fontWeight: 700,
+                        paddingBottom: '4px',
                     }}>
                         {d}
                     </div>
@@ -202,7 +204,8 @@ export const CompactCalendarHeatmap: React.FC<CompactCalendarHeatmapProps> = ({
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                fontSize: '0.7em',
+                                fontSize: '0.8em',
+                                fontWeight: count > 0 ? 600 : 400,
                                 color: count > 0 ? 'var(--text-normal)' : 'var(--text-faint)',
                                 transition: "all 0.1s ease",
                                 opacity: (!isSelected && selectedDate) ? 0.5 : 1

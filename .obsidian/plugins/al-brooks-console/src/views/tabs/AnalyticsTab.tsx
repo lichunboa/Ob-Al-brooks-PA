@@ -13,6 +13,7 @@ import {
   computeRMultiplesFromPnl,
   computeRecentLiveTradesAsc,
   computeTopStrategiesFromTrades,
+  computeReviewSuggestion,
 } from "../../core/hub-analytics";
 import { computeTradeStatsByAccountType } from "../../core/stats";
 import { computeStrategyLab } from "../../utils/strategy-performance-utils";
@@ -39,7 +40,6 @@ import { V5_COLORS } from "../../ui/tokens";
 import { SectionHeader } from "../../ui/components/SectionHeader";
 import { Button } from "../../ui/components/Button";
 import { AccountSummaryCards } from "../components/analytics/AccountSummaryCards";
-import { MarketCyclePerformance } from "../components/analytics/MarketCyclePerformance";
 import { TuitionCostPanel } from "../components/analytics/TuitionCostPanel";
 import { AnalyticsSuggestion } from "../components/analytics/AnalyticsSuggestion";
 import { DataAnalysisPanel } from "../components/analytics/DataAnalysisPanel";
@@ -49,9 +49,13 @@ import { AnalyticsInsightPanel } from "../components/analytics/AnalyticsInsightP
 import { WinLossAnalysisPanel } from "../components/analytics/WinLossAnalysisPanel";
 import { CapitalGrowthChart } from "../components/analytics/CapitalGrowthChart";
 import { AnalyticsGallery } from "../components/analytics/AnalyticsGallery";
-import { StrategyAttributionPanel } from "../components/analytics/StrategyAttributionPanel";
-import { StrategyRPerformancePanel } from "../components/analytics/StrategyRPerformancePanel";
+import { computeStrategyRAnalysis } from "../components/analytics/StrategyRPerformancePanel";
+import { ReviewSuggestionPanel } from "../components/analytics/ReviewSuggestionPanel";
 import { CompactCalendarHeatmap } from "../components/analytics/CompactCalendarHeatmap";
+import { StrategySelector } from "../components/analytics/StrategySelector";
+import { StrategyDetailPanel } from "../components/analytics/StrategyDetailPanel";
+import { TradeHistoryList } from "../components/analytics/TradeHistoryList";
+import { StrategyComparisonPanel } from "../components/analytics/StrategyComparisonPanel";
 import { Card } from "../../ui/components/Card";
 
 export const AnalyticsTab: React.FC = () => {
@@ -74,7 +78,7 @@ export const AnalyticsTab: React.FC = () => {
   const [visibleWidgets, setVisibleWidgets] = React.useState({
     accountSummary: true,
     capitalGrowth: true,
-    drawdownAnalysis: false,
+    drawdownAnalysis: true,  // 启用回撤分析
     marketCycle: true,
     tuitionCost: true,
     analyticsSuggestion: true,
@@ -89,27 +93,59 @@ export const AnalyticsTab: React.FC = () => {
   type DateRange = 'week' | 'month' | '30d' | '90d' | 'year' | 'all';
   const [dateRange, setDateRange] = React.useState<DateRange>('all');
 
-  // 账户类型筛选
-  type AccountFilter = 'all' | 'Live' | 'Demo' | 'Backtest';
-  const [accountFilter, setAccountFilter] = React.useState<AccountFilter>('all');
+  // 账户类型筛选（支持多选）
+  type AccountType = 'Live' | 'Demo' | 'Backtest';
+  const [selectedAccounts, setSelectedAccounts] = React.useState<AccountType[]>([]);
 
-  // 可见账户类型（用于热力图等图表筛选）
-  const [visibleAccounts, setVisibleAccounts] = React.useState<('Live' | 'Demo' | 'Backtest')[]>(['Live', 'Demo', 'Backtest']);
+  // 策略筛选（支持多选）
+  const [selectedStrategies, setSelectedStrategies] = React.useState<string[]>([]);
 
-  // 根据日期范围和账户类型筛选交易
+  // 可见账户类型（从 selectedAccounts 派生）
+  const visibleAccounts: AccountType[] =
+    selectedAccounts.length === 0
+      ? ['Live', 'Demo', 'Backtest']
+      : selectedAccounts;
+
+  // 账户类型切换
+  const toggleAccount = (acct: AccountType) => {
+    setSelectedAccounts(prev =>
+      prev.includes(acct)
+        ? prev.filter(a => a !== acct)
+        : [...prev, acct]
+    );
+  };
+
+  // 策略切换
+  const toggleStrategy = (strategy: string) => {
+    setSelectedStrategies(prev =>
+      prev.includes(strategy)
+        ? prev.filter(s => s !== strategy)
+        : [...prev, strategy]
+    );
+  };
+
+
+  // 根据日期范围、账户类型、策略筛选交易
   const filteredTrades = React.useMemo(() => {
     let result = trades;
 
-    // 账户类型过滤
-    if (accountFilter !== 'all') {
+    // 账户类型过滤（支持多选）
+    if (selectedAccounts.length > 0) {
       result = result.filter(t => {
         const acct = t.accountType ?? "";
-        return acct === accountFilter ||
-          acct.includes(accountFilter) ||
-          (accountFilter === "Live" && (acct.includes("实盘") || acct.includes("Live"))) ||
-          (accountFilter === "Demo" && (acct.includes("模拟") || acct.includes("Demo"))) ||
-          (accountFilter === "Backtest" && (acct.includes("回测") || acct.includes("Backtest")));
+        return selectedAccounts.some(selected =>
+          acct === selected ||
+          acct.includes(selected) ||
+          (selected === "Live" && (acct.includes("实盘") || acct.includes("Live"))) ||
+          (selected === "Demo" && (acct.includes("模拟") || acct.includes("Demo"))) ||
+          (selected === "Backtest" && (acct.includes("回测") || acct.includes("Backtest")))
+        );
       });
+    }
+
+    // 策略筛选（支持多选）
+    if (selectedStrategies.length > 0) {
+      result = result.filter(t => selectedStrategies.includes(t.strategyName || 'Unknown'));
     }
 
     // 日期范围过滤
@@ -140,7 +176,19 @@ export const AnalyticsTab: React.FC = () => {
 
     const cutoffIso = cutoff.toISOString().split('T')[0];
     return result.filter(t => t.dateIso && t.dateIso >= cutoffIso);
-  }, [trades, dateRange, accountFilter]);
+  }, [trades, dateRange, selectedAccounts, selectedStrategies]);
+
+  // 计算所有策略名称（用于全局分析，即未选策略时视为全选所有策略）
+  const allStrategyNames = React.useMemo(() => {
+    const names = new Set<string>();
+    for (const t of filteredTrades) {
+      names.add(t.strategyName || 'Unknown');
+    }
+    return Array.from(names);
+  }, [filteredTrades]);
+
+  // 实际用于分析的策略列表（未选时=全选）
+  const effectiveStrategies = selectedStrategies.length > 0 ? selectedStrategies : allStrategyNames;
 
   const dateRangeLabels: Record<DateRange, string> = {
     week: '本周',
@@ -151,8 +199,7 @@ export const AnalyticsTab: React.FC = () => {
     all: '全部',
   };
 
-  const accountFilterLabels: Record<AccountFilter, string> = {
-    all: '全部',
+  const accountTypeLabels: Record<AccountType, string> = {
     Live: '实盘',
     Demo: '模拟',
     Backtest: '回测',
@@ -212,8 +259,8 @@ export const AnalyticsTab: React.FC = () => {
   );
 
   const liveCyclePerf = React.useMemo(
-    () => calculateLiveCyclePerformance(filteredTrades),
-    [filteredTrades]
+    () => calculateLiveCyclePerformance(filteredTrades, visibleAccounts),
+    [filteredTrades, visibleAccounts]
   );
 
   const tuition = React.useMemo(
@@ -240,9 +287,33 @@ export const AnalyticsTab: React.FC = () => {
     [filteredTrades, strategyIndex]
   );
 
+  // R值执行分析数据（用于策略仪表盘）
+  const strategyRAnalysis = React.useMemo(
+    () => computeStrategyRAnalysis(tradesForAnalysis, strategyIndex),
+    [tradesForAnalysis, strategyIndex]
+  );
+
   const allTradesDateRange = React.useMemo(
     () => calculateAllTradesDateRange(filteredTrades),
     [filteredTrades]
+  );
+
+
+  // 基于筛选范围内的交易计算心态分析（支持所有账户类型）
+  const filteredMindset = React.useMemo(
+    () => computeMindsetFromRecentLive(filteredTrades, filteredTrades.length),
+    [filteredTrades]
+  );
+
+  // 历史回顾建议（基于筛选范围内的交易数据）
+  const reviewSuggestions = React.useMemo(
+    () => computeReviewSuggestion({
+      trades: filteredTrades,
+      strategyAttribution: strategyAttribution,
+      tuitionAnalysis: tuition,
+      mindset: filteredMindset,
+    }),
+    [filteredTrades, strategyAttribution, tuition, filteredMindset]
   );
 
   // Calendar Data
@@ -343,28 +414,65 @@ export const AnalyticsTab: React.FC = () => {
             </div>
           </div>
 
-          {/* 账户类型 */}
+          {/* 账户类型（多选） */}
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>💼</span>
-            <div style={{ display: "flex", gap: "2px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
-              {(['all', 'Live', 'Demo', 'Backtest'] as AccountFilter[]).map(acct => (
-                <div
-                  key={acct}
-                  onClick={() => setAccountFilter(acct)}
-                  style={{
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    background: accountFilter === acct ? "#60A5FA" : "transparent",
-                    color: accountFilter === acct ? "white" : "var(--text-muted)",
-                    fontSize: "0.75em",
-                    fontWeight: 600,
-                    transition: "all 0.15s"
-                  }}
-                >
-                  {accountFilterLabels[acct]}
-                </div>
-              ))}
+            <div style={{ display: "flex", gap: "4px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
+              {/* 全部按钮 */}
+              <div
+                onClick={() => setSelectedAccounts([])}
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  background: selectedAccounts.length === 0 ? "#60A5FA" : "transparent",
+                  color: selectedAccounts.length === 0 ? "white" : "var(--text-muted)",
+                  fontSize: "0.75em",
+                  fontWeight: 600,
+                  transition: "all 0.15s"
+                }}
+              >
+                全部
+              </div>
+              {/* 各账户类型复选框 */}
+              {(['Live', 'Demo', 'Backtest'] as AccountType[]).map(acct => {
+                const isSelected = selectedAccounts.includes(acct);
+                return (
+                  <div
+                    key={acct}
+                    onClick={() => toggleAccount(acct)}
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      background: isSelected ? "#60A5FA" : "transparent",
+                      color: isSelected ? "white" : "var(--text-muted)",
+                      fontSize: "0.75em",
+                      fontWeight: 600,
+                      transition: "all 0.15s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px"
+                    }}
+                  >
+                    <span style={{
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "2px",
+                      border: `1px solid ${isSelected ? "white" : "var(--text-muted)"}`,
+                      background: isSelected ? "white" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "7px",
+                      color: "#60A5FA"
+                    }}>
+                      {isSelected && '✓'}
+                    </span>
+                    {accountTypeLabels[acct]}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -389,44 +497,7 @@ export const AnalyticsTab: React.FC = () => {
               </div>
             ))}
           </div>
-
-          {/* 可见账户控制 checkboxes */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "8px", borderLeft: "1px solid var(--background-modifier-border)", paddingLeft: "8px" }}>
-            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>👁️ 显示:</span>
-            {['Live', 'Demo', 'Backtest'].map(acct => {
-              const isVisible = visibleAccounts.includes(acct as any);
-              return (
-                <label key={acct} style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "0.75em", color: "var(--text-muted)" }}>
-                  <input
-                    type="checkbox"
-                    checked={isVisible}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setVisibleAccounts(prev => {
-                        if (checked) return [...prev, acct as any];
-                        return prev.filter(a => a !== acct);
-                      });
-                    }}
-                    style={{ margin: 0 }}
-                  />
-                  {acct === 'Live' ? '实盘' : acct === 'Demo' ? '模拟' : '回测'}
-                </label>
-              );
-            })}
-          </div>
         </div>
-
-        <Button
-          variant="small"
-          onClick={() => setShowConfig(true)}
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "0.85em",
-            padding: "4px 8px",
-          }}
-        >
-          ⚙️ Configure View
-        </Button>
       </div>
 
       {/* 日历热图 - 顶部过滤区域 */}
@@ -449,6 +520,45 @@ export const AnalyticsTab: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* 策略筛选器 - 核心筛选层（支持多选） */}
+      <StrategySelector
+        trades={trades.filter(t => {
+          // 只按日期和账户过滤，不按策略筛选（否则选择器会被清空）
+          if (selectedAccounts.length > 0) {
+            const acct = t.accountType ?? "";
+            if (!selectedAccounts.some(selected =>
+              acct === selected ||
+              acct.includes(selected) ||
+              (selected === "Live" && (acct.includes("实盘") || acct.includes("Live"))) ||
+              (selected === "Demo" && (acct.includes("模拟") || acct.includes("Demo"))) ||
+              (selected === "Backtest" && (acct.includes("回测") || acct.includes("Backtest")))
+            )) {
+              return false;
+            }
+          }
+          if (dateRange !== 'all') {
+            const now = new Date();
+            let cutoff: Date;
+            switch (dateRange) {
+              case 'week': cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+              case 'month': cutoff = new Date(now.getFullYear(), now.getMonth(), 1); break;
+              case '30d': cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+              case '90d': cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+              case 'year': cutoff = new Date(now.getFullYear(), 0, 1); break;
+              default: return true;
+            }
+            const cutoffIso = cutoff.toISOString().split('T')[0];
+            return t.dateIso && t.dateIso >= cutoffIso;
+          }
+          return true;
+        })}
+        selectedStrategies={selectedStrategies}
+        onToggleStrategy={toggleStrategy}
+        onSelectAll={() => setSelectedStrategies([])}
+        currencyMode={currencyMode}
+        SPACE={SPACE}
+      />
 
       <div
         style={{
@@ -482,6 +592,7 @@ export const AnalyticsTab: React.FC = () => {
                 SPACE={SPACE}
                 currencyMode={currencyMode}
                 displayUnit={displayUnit}
+                visibleAccounts={visibleAccounts}
               />
             </Card>
           )}
@@ -494,6 +605,7 @@ export const AnalyticsTab: React.FC = () => {
               SPACE={SPACE}
               currencyMode={currencyMode}
               displayUnit={displayUnit}
+              visibleAccounts={visibleAccounts}
             />
           )}
 
@@ -501,55 +613,48 @@ export const AnalyticsTab: React.FC = () => {
             <DrawdownChart data={drawdownData} />
           )}
 
-          {visibleWidgets.marketCycle && (
-            <MarketCyclePerformance
-              liveCyclePerf={liveCyclePerf}
-              SPACE={SPACE}
-              CYCLE_MAP={CYCLE_MAP}
-              currencyMode={currencyMode}
-            />
-          )}
+          {/* 已删除冗余面板：市场环境表现、策略仪表盘 - 信息已整合到策略详情和对比面板 */}
 
-          {visibleWidgets.tuitionCost && (
-            <TuitionCostPanel tuition={tuition} SPACE={SPACE} />
-          )}
-
-          {/* 系统建议已移至交易中心，避免重复 */}
-
-          {visibleWidgets.dataAnalysis && (
-            <StrategyAttributionPanel
+          {/* 多策略对比面板 - 2+策略时显示 */}
+          {effectiveStrategies.length >= 2 && (
+            <StrategyComparisonPanel
               trades={filteredTrades}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              strategyAttribution={strategyAttribution}
-              openFile={openFile}
-              textButtonStyle={textButtonStyle}
-              SPACE={SPACE}
-              currencyMode={currencyMode}
-            />
-          )}
-
-          {/* 策略R值执行分析 */}
-          <StrategyRPerformancePanel
-            trades={tradesForAnalysis}
-            strategyIndex={strategyIndex}
-            currencyMode={currencyMode}
-            SPACE={SPACE}
-          />
-
-          <AnalyticsInsightPanel
-            analyticsMind={analyticsMind}
-            analyticsTopStrats={analyticsTopStrats}
-            SPACE={SPACE}
-          />
-
-          {visibleWidgets.winLossAnalysis && (
-            <WinLossAnalysisPanel
-              trades={filteredTrades}
+              selectedStrategies={effectiveStrategies}
               currencyMode={currencyMode}
               displayUnit={displayUnit}
+              SPACE={SPACE}
             />
           )}
+
+          {/* 策略详情面板 - 始终显示（全局视图=全选所有策略） */}
+          <StrategyDetailPanel
+            trades={filteredTrades}
+            selectedStrategies={effectiveStrategies}
+            currencyMode={currencyMode}
+            displayUnit={displayUnit}
+            SPACE={SPACE}
+          />
+
+          {/* 交易明细列表 - 始终显示 */}
+          <TradeHistoryList
+            trades={filteredTrades}
+            openFile={openFile}
+            currencyMode={currencyMode}
+            displayUnit={displayUnit}
+            SPACE={SPACE}
+          />
+
+          {/* 历史回顾建议（与交易中心的即时建议区分） */}
+          <ReviewSuggestionPanel
+            suggestions={reviewSuggestions}
+            SPACE={SPACE}
+          />
+
+          {/* 以下面板已整合到「策略详情」：
+              - 策略归因 (Top)
+              - 策略R值执行分析
+              - 交易维度分析 (方向分布/周期分析)
+          */}
 
         </div>
 

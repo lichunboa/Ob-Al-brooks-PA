@@ -72,7 +72,7 @@ function parseRiskReward(rr: string | undefined): number | null {
 /**
  * 计算策略 R 值执行分析数据
  */
-interface StrategyRAnalysisRow {
+export interface StrategyRAnalysisRow {
     strategyName: string;
     strategyPath: string;
     expectedR: number | null;  // 策略推荐的 R 值
@@ -99,7 +99,7 @@ function computeTradeR(t: TradeRecord): number | null {
     return null;
 }
 
-function computeStrategyRAnalysis(
+export function computeStrategyRAnalysis(
     trades: TradeRecord[],
     strategyIndex: StrategyIndex
 ): StrategyRAnalysisRow[] {

@@ -18,45 +18,80 @@ export interface AccountSummaryCardsProps {
     SPACE: any;
     currencyMode?: 'USD' | 'CNY';
     displayUnit?: 'money' | 'r';
+    // 可见账户类型（用于过滤显示）
+    visibleAccounts?: ('Live' | 'Demo' | 'Backtest')[];
 }
+
 
 /**
  * 账户资金概览卡片组件
  * 显示Live/Demo/Backtest三个账户的资金概览
+ * 支持 visibleAccounts 过滤以及零值/Unknown 隐藏
  */
 export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
     summary,
     SPACE,
     currencyMode = 'USD',
     displayUnit = 'money',
+    visibleAccounts = ['Live', 'Demo', 'Backtest'], // 默认显示全部
 }) => {
+    // 构建账户卡片配置
+    const allCards = [
+        {
+            key: "Live" as const,
+            label: "🟢 实盘账户",
+            badge: "Live",
+            accent: V5_COLORS.live,
+            stats: summary.Live,
+        },
+        {
+            key: "Demo" as const,
+            label: "🔵 模拟盘",
+            badge: "Demo",
+            accent: V5_COLORS.demo,
+            stats: summary.Demo,
+        },
+        {
+            key: "Backtest" as const,
+            label: "🟠 复盘回测",
+            badge: "Backtest",
+            accent: V5_COLORS.back,
+            stats: summary.Backtest,
+        },
+    ];
+
+    // 过滤逻辑：
+    // 1. 只显示 visibleAccounts 中的账户
+    // 2. 隐藏零值账户（净利润为0且交易次数为0）
+    const filteredCards = allCards.filter(card => {
+        // 检查是否在可见列表中
+        if (!visibleAccounts.includes(card.key)) return false;
+
+        // 隐藏零值账户（无交易且无盈亏）
+        const netMoney = card.stats.netMoney ?? 0;
+        const countTotal = card.stats.countTotal ?? 0;
+        if (netMoney === 0 && countTotal === 0) return false;
+
+        return true;
+    });
+
+    // 如果所有账户都被过滤掉，显示空状态提示
+    if (filteredCards.length === 0) {
+        return (
+            <div style={{
+                color: "var(--text-muted)",
+                fontSize: "0.9em",
+                padding: SPACE.md,
+                textAlign: "center"
+            }}>
+                📭 当前筛选条件下无账户数据
+            </div>
+        );
+    }
+
     return (
         <div style={{ display: "flex", gap: SPACE.md, flexWrap: "wrap" }}>
-            {(
-                [
-                    {
-                        key: "Live",
-                        label: "🟢 实盘账户",
-                        badge: "Live",
-                        accent: V5_COLORS.live,
-                        stats: summary.Live,
-                    },
-                    {
-                        key: "Demo",
-                        label: "🔵 模拟盘",
-                        badge: "Demo",
-                        accent: V5_COLORS.demo,
-                        stats: summary.Demo,
-                    },
-                    {
-                        key: "Backtest",
-                        label: "🟠 复盘回测",
-                        badge: "Backtest",
-                        accent: V5_COLORS.back,
-                        stats: summary.Backtest,
-                    },
-                ] as const
-            ).map((card) => {
+            {filteredCards.map((card) => {
                 const netMoney = card.stats.netMoney ?? 0;
                 const netR = card.stats.netR ?? 0;
                 const isR = displayUnit === 'r';
@@ -66,6 +101,7 @@ export const AccountSummaryCards: React.FC<AccountSummaryCardsProps> = ({
                     ? (displayValue > 0 ? "+" : "")
                     : (displayValue > 0 ? "+" : "");
                 const displaySuffix = isR ? "R" : "";
+
 
                 return (
                     <Card

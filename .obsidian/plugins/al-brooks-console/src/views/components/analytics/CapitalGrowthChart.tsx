@@ -11,6 +11,8 @@ interface CapitalGrowthChartProps {
     SPACE: any; // Assuming SPACE object structure
     currencyMode?: 'USD' | 'CNY';
     displayUnit?: 'money' | 'r';
+    // 可见账户类型（用于过滤显示）
+    visibleAccounts?: ('Live' | 'Demo' | 'Backtest')[];
 }
 
 export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
@@ -20,6 +22,7 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     SPACE,
     currencyMode = 'USD',
     displayUnit = 'money',
+    visibleAccounts = ['Live', 'Demo', 'Backtest'], // 默认显示全部
 }) => {
     // Transform data for Recharts
     const data = React.useMemo(() => {
@@ -96,18 +99,25 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                         flexWrap: "wrap",
                     }}
                 >
-                    <span style={{ color: getRColorByAccountType("Live") }}>
-                        ● 实盘 {liveTotal >= 0 ? "+" : ""}
-                        {formatValue(liveTotal)}
-                    </span>
-                    <span style={{ color: getRColorByAccountType("Demo") }}>
-                        ● 模拟 {demoTotal >= 0 ? "+" : ""}
-                        {formatValue(demoTotal)}
-                    </span>
-                    <span style={{ color: getRColorByAccountType("Backtest") }}>
-                        ● 回测 {backtestTotal >= 0 ? "+" : ""}
-                        {formatValue(backtestTotal)}
-                    </span>
+                    {/* 根据 visibleAccounts 过滤图例显示 */}
+                    {visibleAccounts.includes('Live') && (
+                        <span style={{ color: getRColorByAccountType("Live") }}>
+                            ● 实盘 {liveTotal >= 0 ? "+" : ""}
+                            {formatValue(liveTotal)}
+                        </span>
+                    )}
+                    {visibleAccounts.includes('Demo') && (
+                        <span style={{ color: getRColorByAccountType("Demo") }}>
+                            ● 模拟 {demoTotal >= 0 ? "+" : ""}
+                            {formatValue(demoTotal)}
+                        </span>
+                    )}
+                    {visibleAccounts.includes('Backtest') && (
+                        <span style={{ color: getRColorByAccountType("Backtest") }}>
+                            ● 回测 {backtestTotal >= 0 ? "+" : ""}
+                            {formatValue(backtestTotal)}
+                        </span>
+                    )}
                     <span style={{ color: "var(--text-faint)" }}>
                         {allTradesDateRange.min && allTradesDateRange.max
                             ? `范围：${allTradesDateRange.min} → ${allTradesDateRange.max}`
@@ -145,32 +155,39 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                                 return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}${suffix}`, null];
                             }}
                         />
-                        <Line
-                            type="monotone"
-                            dataKey="Backtest"
-                            stroke={getRColorByAccountType("Backtest")}
-                            strokeWidth={1.5}
-                            strokeDasharray="4 4"
-                            dot={false}
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="Demo"
-                            stroke={getRColorByAccountType("Demo")}
-                            strokeWidth={1.5}
-                            dot={false}
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="Live"
-                            stroke={getRColorByAccountType("Live")}
-                            strokeWidth={2.5}
-                            dot={{ r: 1 }}
-                            activeDot={{ r: 4 }}
-                            connectNulls
-                        />
+                        {/* 根据 visibleAccounts 条件渲染曲线 */}
+                        {visibleAccounts.includes('Backtest') && (
+                            <Line
+                                type="monotone"
+                                dataKey="Backtest"
+                                stroke={getRColorByAccountType("Backtest")}
+                                strokeWidth={1.5}
+                                strokeDasharray="4 4"
+                                dot={false}
+                                connectNulls
+                            />
+                        )}
+                        {visibleAccounts.includes('Demo') && (
+                            <Line
+                                type="monotone"
+                                dataKey="Demo"
+                                stroke={getRColorByAccountType("Demo")}
+                                strokeWidth={1.5}
+                                dot={false}
+                                connectNulls
+                            />
+                        )}
+                        {visibleAccounts.includes('Live') && (
+                            <Line
+                                type="monotone"
+                                dataKey="Live"
+                                stroke={getRColorByAccountType("Live")}
+                                strokeWidth={2.5}
+                                dot={{ r: 1 }}
+                                activeDot={{ r: 4 }}
+                                connectNulls
+                            />
+                        )}
                     </LineChart>
                 </ResponsiveContainer>
             </div>

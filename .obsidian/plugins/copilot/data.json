@@ -6,13 +6,13 @@
   "openAIOrgId": "",
   "huggingfaceApiKey": "",
   "cohereApiKey": "",
-  "anthropicApiKey": "sk-614245494f7846b0839aa360a99fb103",
+  "anthropicApiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
   "azureOpenAIApiKey": "",
   "azureOpenAIApiInstanceName": "",
   "azureOpenAIApiDeploymentName": "",
   "azureOpenAIApiVersion": "",
   "azureOpenAIApiEmbeddingDeploymentName": "",
-  "googleApiKey": "",
+  "googleApiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
   "openRouterAiApiKey": "",
   "xaiApiKey": "",
   "mistralApiKey": "",
@@ -24,7 +24,7 @@
   "githubCopilotToken": "",
   "githubCopilotTokenExpiresAt": 0,
   "defaultChainType": "llm_chain",
-  "defaultModelKey": "copilot-plus-flash|copilot-plus",
+  "defaultModelKey": "claude-opus-4-5-thinking|anthropic",
   "embeddingModelKey": "text-embedding-3-small|openai",
   "temperature": 0.1,
   "maxTokens": 6000,
@@ -68,7 +68,7 @@
     {
       "name": "google/gemini-2.5-flash-lite",
       "provider": "openrouterai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "projectEnabled": true,
@@ -85,23 +85,28 @@
       "projectEnabled": true,
       "capabilities": [
         "vision"
-      ]
+      ],
+      "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
+      "baseUrl": "http://127.0.0.1:8045"
     },
     {
       "name": "google/gemini-2.5-pro",
       "provider": "openrouterai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "projectEnabled": true,
       "capabilities": [
+        "reasoning",
         "vision"
-      ]
+      ],
+      "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
+      "baseUrl": "http://127.0.0.1:8045"
     },
     {
       "name": "gpt-5",
       "provider": "openai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "capabilities": [
@@ -111,7 +116,7 @@
     {
       "name": "gpt-5-mini",
       "provider": "openai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "capabilities": [
@@ -121,7 +126,7 @@
     {
       "name": "gpt-4.1",
       "provider": "openai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "projectEnabled": true,
@@ -132,7 +137,7 @@
     {
       "name": "gpt-4.1-mini",
       "provider": "openai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": true,
       "projectEnabled": true,
@@ -143,7 +148,7 @@
     {
       "name": "openai/gpt-4.1",
       "provider": "openrouterai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": false,
       "projectEnabled": true,
@@ -154,7 +159,7 @@
     {
       "name": "openai/gpt-4.1-mini",
       "provider": "openrouterai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": false,
       "projectEnabled": true,
@@ -165,7 +170,7 @@
     {
       "name": "grok-4-fast",
       "provider": "xai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": false,
       "projectEnabled": true,
@@ -176,7 +181,7 @@
     {
       "name": "x-ai/grok-4-fast",
       "provider": "openrouterai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "core": false,
       "projectEnabled": true,
@@ -187,7 +192,7 @@
     {
       "name": "gemini-2.5-flash",
       "provider": "google",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "projectEnabled": true,
       "capabilities": [
@@ -197,7 +202,7 @@
     {
       "name": "gemini-2.5-flash-lite",
       "provider": "google",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "projectEnabled": true,
       "capabilities": [
@@ -205,31 +210,33 @@
       ]
     },
     {
-      "name": "gemini-2.5-pro",
+      "name": "gemini-3-pro-high",
       "provider": "google",
       "enabled": true,
       "isBuiltIn": true,
       "projectEnabled": true,
       "capabilities": [
+        "reasoning",
         "vision"
-      ]
+      ],
+      "baseUrl": "http://127.0.0.1:8045"
     },
     {
       "name": "azure-openai",
       "provider": "azure openai",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true
     },
     {
       "name": "deepseek-chat",
       "provider": "deepseek",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true
     },
     {
       "name": "deepseek-reasoner",
       "provider": "deepseek",
-      "enabled": true,
+      "enabled": false,
       "isBuiltIn": true,
       "capabilities": [
         "reasoning"
@@ -258,7 +265,7 @@
       "enabled": true,
       "isBuiltIn": false,
       "baseUrl": "http://127.0.0.1:8045",
-      "apiKey": "sk-614245494f7846b0839aa360a99fb103",
+      "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
       "isEmbeddingModel": false,
       "capabilities": [
         "reasoning"

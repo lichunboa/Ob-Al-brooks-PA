@@ -12,8 +12,8 @@
     {
       "type": "anthropic",
       "id": "anthropic",
-      "apiKey": "sk-614245494f7846b0839aa360a99fb103",
-      "baseUrl": "http://127.0.0.1:8045"
+      "baseUrl": "http://127.0.0.1:8045",
+      "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d"
     },
     {
       "type": "openai",
@@ -21,7 +21,9 @@
     },
     {
       "type": "gemini",
-      "id": "gemini"
+      "id": "gemini",
+      "baseUrl": "http://127.0.0.1:8045",
+      "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d"
     },
     {
       "type": "xai",
@@ -68,6 +70,7 @@
       "providerId": "anthropic-plan",
       "id": "claude-sonnet-4.5 (plan)",
       "model": "claude-sonnet-4-5",
+      "enable": false,
       "thinking": {
         "enabled": true,
         "budget_tokens": 8192
@@ -77,49 +80,57 @@
       "providerType": "openai-plan",
       "providerId": "openai-plan",
       "id": "gpt-5.2 (plan)",
-      "model": "gpt-5.2"
+      "model": "gpt-5.2",
+      "enable": false
     },
     {
       "providerType": "anthropic",
       "providerId": "anthropic",
       "id": "claude-opus-4.5",
-      "model": "claude-opus-4-5"
+      "model": "claude-opus-4-5",
+      "enable": false
     },
     {
       "providerType": "anthropic",
       "providerId": "anthropic",
       "id": "claude-sonnet-4.5",
-      "model": "claude-sonnet-4-5"
+      "model": "claude-sonnet-4-5",
+      "enable": false
     },
     {
       "providerType": "anthropic",
       "providerId": "anthropic",
       "id": "claude-haiku-4.5",
-      "model": "claude-haiku-4-5"
+      "model": "claude-haiku-4-5",
+      "enable": false
     },
     {
       "providerType": "openai",
       "providerId": "openai",
       "id": "gpt-5.2",
-      "model": "gpt-5.2"
+      "model": "gpt-5.2",
+      "enable": false
     },
     {
       "providerType": "openai",
       "providerId": "openai",
       "id": "gpt-5-mini",
-      "model": "gpt-5-mini"
+      "model": "gpt-5-mini",
+      "enable": false
     },
     {
       "providerType": "openai",
       "providerId": "openai",
       "id": "gpt-4.1-mini",
-      "model": "gpt-4.1-mini"
+      "model": "gpt-4.1-mini",
+      "enable": false
     },
     {
       "providerType": "openai",
       "providerId": "openai",
       "id": "o4-mini",
       "model": "o4-mini",
+      "enable": false,
       "reasoning": {
         "enabled": true,
         "reasoning_effort": "medium"
@@ -129,37 +140,49 @@
       "providerType": "gemini",
       "providerId": "gemini",
       "id": "gemini-3-pro-preview",
-      "model": "gemini-3-pro-preview"
+      "model": "gemini-3-pro-preview",
+      "enable": true,
+      "thinking": {
+        "enabled": false,
+        "control_mode": "level",
+        "thinking_level": "high",
+        "include_thoughts": false
+      }
     },
     {
       "providerType": "gemini",
       "providerId": "gemini",
       "id": "gemini-3-flash-preview",
-      "model": "gemini-3-flash-preview"
+      "model": "gemini-3-flash-preview",
+      "enable": false
     },
     {
       "providerType": "deepseek",
       "providerId": "deepseek",
       "id": "deepseek-chat",
-      "model": "deepseek-chat"
+      "model": "deepseek-chat",
+      "enable": false
     },
     {
       "providerType": "deepseek",
       "providerId": "deepseek",
       "id": "deepseek-reasoner",
-      "model": "deepseek-reasoner"
+      "model": "deepseek-reasoner",
+      "enable": false
     },
     {
       "providerType": "xai",
       "providerId": "xai",
       "id": "grok-4-1-fast",
-      "model": "grok-4-1-fast"
+      "model": "grok-4-1-fast",
+      "enable": false
     },
     {
       "providerType": "xai",
       "providerId": "xai",
       "id": "grok-4-1-fast-non-reasoning",
-      "model": "grok-4-1-fast-non-reasoning"
+      "model": "grok-4-1-fast-non-reasoning",
+      "enable": false
     }
   ],
   "embeddingModels": [
@@ -206,8 +229,8 @@
       "dimension": 1024
     }
   ],
-  "chatModelId": "claude-opus-4.5",
-  "applyModelId": "claude-opus-4.5",
+  "chatModelId": "gemini-3-pro-preview",
+  "applyModelId": "gemini-3-pro-preview",
   "embeddingModelId": "openai/text-embedding-3-small",
   "systemPrompt": "",
   "ragOptions": {

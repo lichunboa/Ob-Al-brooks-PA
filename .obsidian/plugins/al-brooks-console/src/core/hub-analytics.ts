@@ -351,3 +351,174 @@ export function computeHubSuggestion(args: {
     text: `当前状态良好。表现最好的策略是 ${bestStrat}。建议继续保持一致性。`,
   };
 }
+
+/**
+ * computeReviewSuggestion - 基于历史数据的回顾性分析建议
+ * 
+ * 与 computeHubSuggestion 的区别:
+ * - computeHubSuggestion: 即时决策 - "现在应该做什么"
+ * - computeReviewSuggestion: 历史回顾 - "过去做了什么，如何改进"
+ */
+export interface ReviewSuggestionResult {
+  type: 'success' | 'improvement' | 'warning';
+  title: string;
+  details: string[];
+}
+
+export function computeReviewSuggestion(args: {
+  /** 筛选范围内的交易 */
+  trades: TradeRecord[];
+  /** 策略归因数据 */
+  strategyAttribution: Array<{
+    strategyName: string;
+    netMoney: number;
+    count: number;
+  }>;
+  /** 学费分析（使用标准 TuitionAnalysis 接口） */
+  tuitionAnalysis?: {
+    tuitionR: number;
+    tuitionMoney: number;
+    rows: Array<{ error: string; costR: number; costMoney: number }>;
+  };
+  /** 心态分析（从筛选范围内的交易计算） */
+  mindset?: {
+    tilt: number;
+    fomo: number;
+    hesitation: number;
+    status: string;
+    color: string;
+  };
+}): ReviewSuggestionResult[] {
+  const suggestions: ReviewSuggestionResult[] = [];
+  const trades = args.trades ?? [];
+
+  if (trades.length === 0) {
+    return [{
+      type: 'improvement',
+      title: '📭 无交易数据',
+      details: ['当前筛选范围内没有交易记录。请调整日期范围或开始记录交易。'],
+    }];
+  }
+
+  // 0. 心态分析（优先显示）
+  const mindset = args.mindset;
+  if (mindset) {
+    const totalIssues = mindset.tilt + mindset.fomo + mindset.hesitation;
+    if (mindset.tilt > 0) {
+      suggestions.push({
+        type: 'warning',
+        title: '🔥 检测到 Tilt 交易',
+        details: [
+          `在筛选范围内发现 ${mindset.tilt} 次情绪化交易（Tilt/上头）`,
+          '建议：出现 Tilt 时立即停止交易，写复盘结论再恢复实盘',
+        ],
+      });
+    } else if (mindset.fomo > 0 || mindset.hesitation > 0) {
+      const issues: string[] = [];
+      if (mindset.fomo > 0) issues.push(`FOMO ${mindset.fomo} 次`);
+      if (mindset.hesitation > 0) issues.push(`犹豫 ${mindset.hesitation} 次`);
+      suggestions.push({
+        type: 'improvement',
+        title: '⚠️ 执行心态有波动',
+        details: [
+          `检测到: ${issues.join('、')}`,
+          '建议：只在信号K收盘后下单，满足条件就执行',
+        ],
+      });
+    } else if (totalIssues === 0 && trades.length >= 3) {
+      suggestions.push({
+        type: 'success',
+        title: '🛡️ 心态稳定',
+        details: ['当前筛选范围内未检测到情绪化交易'],
+      });
+    }
+  }
+
+
+  // 1. 整体表现分析
+  const winCount = trades.filter(t => (t.pnl ?? 0) > 0).length;
+  const lossCount = trades.filter(t => (t.pnl ?? 0) < 0).length;
+  const totalPnl = trades.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
+  const winRate = trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0;
+
+  if (totalPnl > 0 && winRate >= 50) {
+    suggestions.push({
+      type: 'success',
+      title: '✅ 整体表现良好',
+      details: [
+        `盈利 ${winCount} 笔，亏损 ${lossCount} 笔，胜率 ${winRate}%`,
+        `总盈亏: ${totalPnl > 0 ? '+' : ''}${totalPnl.toFixed(2)}`,
+      ],
+    });
+  } else if (winRate < 40 && trades.length >= 5) {
+    suggestions.push({
+      type: 'warning',
+      title: '⚠️ 胜率偏低',
+      details: [
+        `当前胜率 ${winRate}%（${winCount}/${trades.length}）低于 40%`,
+        '建议：回顾入场条件是否过于宽松，或考虑收紧筛选标准',
+      ],
+    });
+  }
+
+  // 2. 策略表现分析 - 找出问题策略
+  const strategyData = args.strategyAttribution ?? [];
+  const losingStrategies = strategyData
+    .filter(s => s.netMoney < 0 && s.count >= 2)
+    .sort((a, b) => a.netMoney - b.netMoney);
+
+  if (losingStrategies.length > 0) {
+    const worst = losingStrategies[0];
+    suggestions.push({
+      type: 'improvement',
+      title: '📉 策略优化建议',
+      details: [
+        `「${worst.strategyName}」策略累计亏损最多（${worst.count} 笔）`,
+        '建议：复习该策略的入场/止损规则，或暂停使用该策略',
+      ],
+    });
+  }
+
+  // 3. 学费分析 - 最贵错误
+  const tuition = args.tuitionAnalysis;
+  if (tuition && tuition.rows.length > 0) {
+    const topError = tuition.rows[0];
+    suggestions.push({
+      type: 'warning',
+      title: '💸 最贵错误',
+      details: [
+        `「${topError.error}」错误造成 ${topError.costR.toFixed(1)}R / ${topError.costMoney.toFixed(0)} 亏损`,
+        '建议：针对此错误制定明确的行动规则，每次交易前检查',
+      ],
+    });
+  }
+
+  // 4. 交易频率分析
+  if (trades.length > 0) {
+    // 计算日期范围内的交易频率
+    const dates = [...new Set(trades.map(t => t.dateIso).filter(Boolean))];
+    const avgTradesPerDay = trades.length / Math.max(dates.length, 1);
+
+    if (avgTradesPerDay > 5) {
+      suggestions.push({
+        type: 'improvement',
+        title: '📊 交易频率提示',
+        details: [
+          `平均每交易日 ${avgTradesPerDay.toFixed(1)} 笔交易`,
+          '建议：考虑是否存在过度交易，精选高质量机会',
+        ],
+      });
+    }
+  }
+
+  // 如果没有任何建议，添加默认建议
+  if (suggestions.length === 0) {
+    suggestions.push({
+      type: 'success',
+      title: '📈 继续保持',
+      details: ['当前表现稳定，建议保持交易纪律和一致性。'],
+    });
+  }
+
+  return suggestions;
+}

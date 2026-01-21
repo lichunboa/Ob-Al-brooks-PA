@@ -52,7 +52,7 @@
     "~/Downloads"
   ],
   "persistentExternalContextPaths": [],
-  "environmentVariables": "ANTHROPIC_APILKEY=sk-614245494f7846b0839aa360a99fb103\nANTHROPIC_BASE_URL=http://127.0.0.1:8045\nANTHROPIC_MODEL=claude-opus-4-5-thinking",
+  "environmentVariables": "ANTHROPIC_APILKEY=sk-302bf77c3e724acfa73d893a2d416c9d\nANTHROPIC_BASE_URL=http://127.0.0.1:8045\nANTHROPIC_MODEL=claude-opus-4-5-thinking",
   "envSnippets": [],
   "keyboardNavigation": {
     "scrollUpKey": "w",

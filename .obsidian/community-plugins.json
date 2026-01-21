@@ -8,7 +8,6 @@
   "obsidian-enhancing-mindmap",
   "obsidian-git",
   "quickadd",
-  "editing-toolbar",
   "obsidian-emoji-toolbar",
   "obsidian-hover-editor",
   "excalibrain",
@@ -19,10 +18,12 @@
   "zenboard",
   "make-md",
   "dataview",
-  "obsidian-spaced-repetition",
   "obsidian-local-images-plus",
   "oz-image-plugin",
   "obsidian-custom-attachment-location",
   "tag-wrangler",
+  "editing-toolbar",
+  "obsidian-spaced-repetition",
+  "copilot",
   "al-brooks-console"
 ]
