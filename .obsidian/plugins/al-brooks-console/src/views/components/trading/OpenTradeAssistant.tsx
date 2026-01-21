@@ -150,6 +150,13 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
             }
 
             await app.fileManager.processFrontMatter(file, (fm: any) => {
+                // 空值表示撤回/删除字段
+                if (value === "" || value === null || value === undefined) {
+                    delete fm[fieldName];
+                    console.log('[AutoFill] Deleted field:', fieldName);
+                    return;
+                }
+
                 if (ARRAY_FIELDS.has(attribute)) {
                     // 数组字段:添加到数组中
                     if (!fm[fieldName]) {
@@ -306,11 +313,9 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                                 limit: 20, // 显示所有匹配的策略
                             }, trades);
 
-                            if (results.length === 0) return null;
-
                             // 计算总评分用于百分比
-                            const totalScore = results.reduce((sum, r) => sum + r.score, 0);
-                            const maxScore = Math.max(...results.map(r => r.score));
+                            const totalScore = results.length > 0 ? results.reduce((sum, r) => sum + r.score, 0) : 0;
+                            const maxScore = results.length > 0 ? Math.max(...results.map(r => r.score)) : 0;
 
                             return (
                                 <div>
