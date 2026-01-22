@@ -258,6 +258,7 @@ class Engine:
         """写入 market_data.db - 每个指标一张表，全量覆盖"""
         from ..db.reader import writer as sqlite_writer
 
+        data: Dict[str, pd.DataFrame] = {}
         for indicator_name, records_list in all_results.items():
             if not records_list:
                 continue
@@ -270,8 +271,10 @@ class Engine:
                     all_records.append(records)
 
             if all_records:
-                df = pd.DataFrame(all_records)
-                sqlite_writer.write(indicator_name, df)
+                data[indicator_name] = pd.DataFrame(all_records)
+
+        if data:
+            sqlite_writer.write_batch(data)
 
         # 全局计算：市场占比
         self._update_market_share()

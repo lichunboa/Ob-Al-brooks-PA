@@ -26,7 +26,7 @@ Scope: services/trading-service
 - [x] Replace iterrows deletes with executemany in DataWriter.
   - Files: `services/trading-service/src/db/reader.py`
   - Accept: same row counts; write time reduced.
-- [ ] Single transaction for per-indicator writes.
+- [x] Single transaction for per-indicator writes.
   - Files: `services/trading-service/src/db/reader.py`, `services/trading-service/src/core/engine.py`
   - Accept: commit count drops from O(K) to O(1) per run.
 - [ ] Reuse indicator instances per batch after verifying statelessness.
