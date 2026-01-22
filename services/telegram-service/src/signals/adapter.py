@@ -22,6 +22,7 @@ from events import SignalPublisher, SignalEvent
 from formatters.base import BaseFormatter, strength_bar, fmt_price
 
 _send_func: Optional[Callable] = None
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
 def _translate_message(event: SignalEvent) -> str:
@@ -49,10 +50,11 @@ def get_pg_engine():
     return _get_pg_engine()
 
 
-def init_pusher(send_func: Callable):
+def init_pusher(send_func: Callable, loop: Optional[asyncio.AbstractEventLoop] = None):
     """初始化推送器"""
-    global _send_func
+    global _send_func, _main_loop
     _send_func = send_func
+    _main_loop = loop
 
     def on_signal_event(event: SignalEvent):
         if not _send_func:
@@ -83,14 +85,15 @@ def init_pusher(send_func: Callable):
                 except Exception as e:
                     logger.warning(f"推送给 {uid} 失败: {e}")
 
+        # 只在主事件循环内发送，避免跨线程/跨事件循环污染 HTTP 客户端
+        if _main_loop and _main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(push(), _main_loop)
+            return
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.run_coroutine_threadsafe(push(), loop)
-            else:
-                asyncio.run(push())
+            running = asyncio.get_running_loop()
+            asyncio.run_coroutine_threadsafe(push(), running)
         except RuntimeError:
-            asyncio.run(push())
+            logger.warning("⚠️ 主事件循环不可用，跳过信号推送")
 
     SignalPublisher.subscribe(on_signal_event)
     logger.info("信号推送器已初始化")

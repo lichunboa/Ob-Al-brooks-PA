@@ -195,7 +195,9 @@ check_database() {
     # 解析连接信息
     local db_host=$(echo "$db_url" | sed -n 's|.*@\([^:/]*\).*|\1|p')
     local db_port=$(echo "$db_url" | grep -oP ':\K\d+(?=/)' || echo "5432")
-    local db_name=$(echo "$db_url" | grep -oP '/\K[^?]+' || echo "market_data")
+    # 数据库名取最后一个 '/' 之后，并去掉 query string
+    local db_name=$(echo "$db_url" | sed -n 's|.*/||p' | cut -d'?' -f1)
+    [ -z "$db_name" ] && db_name="market_data"
     
     [ -z "$db_host" ] && db_host="localhost"
     
@@ -215,12 +217,17 @@ check_database() {
     fi
     
     # 表检查
-    local db_user=$(echo "$db_url" | sed -n 's|.*//\([^:]*\):.*|\1|p')
-    local db_pass=$(echo "$db_url" | sed -n 's|.*:\([^@]*\)@.*|\1|p')
+    # 解析 user/password（支持无密码）
+    local userinfo=$(echo "$db_url" | sed -n 's|.*//\([^@]*\)@.*|\1|p')
+    local db_user="${userinfo%%:*}"
+    local db_pass=""
+    if [[ "$userinfo" == *:* ]]; then
+        db_pass="${userinfo#*:}"
+    fi
     
     if [ -n "$db_user" ] && [ -n "$db_pass" ]; then
         if PGPASSWORD="$db_pass" psql -h "$db_host" -p "$db_port" -U "$db_user" -d "$db_name" \
-            -c "SELECT 1 FROM market_data.candles_1m LIMIT 1" -q 2>/dev/null; then
+            -c "SELECT 1 FROM market_data.candles_1m LIMIT 1" -q >/dev/null 2>&1; then
             success "数据表: candles_1m 存在"
         else
             warn "数据表: candles_1m 不存在或无数据"

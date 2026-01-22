@@ -190,7 +190,13 @@ vim config/.env
 ### ⚙️ 配置（必须）
 
 - 路径：`config/.env`（已由 init.sh 复制），权限需 600，服务启动脚本会强制校验。  
-- TimescaleDB 端口需与脚本一致：仓库脚本默认 5433，模板为 5434，复制后请将 `DATABASE_URL` 改为 5433；若坚持 5434，需同步修改 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 等所有脚本及下方示例端口。
+- **TimescaleDB 端口说明**（重要）：
+  - **新库（5434）**：`config/.env.example` 默认端口，含 raw/agg/quality 多 schema 架构，推荐新部署使用
+  - **旧库（5433）**：与早期数据采集链兼容，`scripts/export_timescaledb.sh` / `scripts/timescaledb_compression.sh` 默认使用
+  - **选择建议**：
+    - 继续沿用旧库：保持 `DATABASE_URL` 端口 5433，并将 markets-service 脚本端口改为 5433
+    - 切换到新库：保持 5434，同时修改顶层运维脚本与 README 示例端口为 5434，确保存储/压缩/导出脚本一致
+  - **混用风险**：脚本与服务若指向不同端口会造成数据分叉；变更前先备份
 - 核心字段：  
   - `DATABASE_URL`（TimescaleDB，见下方端口说明）  
   - `BOT_TOKEN`（Telegram Bot Token）  
@@ -249,9 +255,9 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 
 > 端口说明：模板默认 5434，但仓库脚本默认 5433。复制后请在 `config/.env` 中把 `DATABASE_URL` 端口改为 5433，或若选择 5434，则务必同步修改 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 与所有示例命令端口。
 
-## 🔍 补充检查（2026-01-09）
+## 🔍 补充检查（2026-01-23）
 
-- **端口选择**：`config/.env.example` 默认端口已改为 **5434**（新库，含 raw/agg/quality schema）；核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 仍默认 **5433**（旧库）。请根据实际使用情况选定端口并同步修改。<!-- TODO: 选择统一端口（5433 或 5434）并执行全局替换 -->
+- **端口选择**：`config/.env.example` 默认端口为 **5434**（新库，含 raw/agg/quality schema）；核心脚本 `scripts/export_timescaledb.sh`、`scripts/timescaledb_compression.sh` 默认 **5433**（旧库）。请根据实际使用情况选定端口并同步修改。
 - CI 仅执行 ruff + py_compile 抽样（`.github/workflows/ci.yml`，检查前 50 个 .py 文件），不会跑 tests；提交前本地仍需 `./scripts/verify.sh`。
 - `scripts/install.sh` 生成各服务 `.env` 但运行时只读 `config/.env`；避免多份配置漂移。
 

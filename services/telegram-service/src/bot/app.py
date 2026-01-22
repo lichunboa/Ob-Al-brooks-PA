@@ -13,6 +13,7 @@ import json
 import threading
 import importlib.util
 import unicodedata
+import re
 
 # 提前初始化 logger
 logger = logging.getLogger(__name__)
@@ -179,6 +180,103 @@ def _t(update, message_id: str, **kwargs) -> str:
         logger.error("获取翻译失败: lang=%s key=%s err=%s", lang, message_id, exc)
         return message_id
     return text or message_id
+
+
+# ==================== 币种解析（允许中文符号） ====================
+_ASCII_TOKEN_RE = re.compile(r"[A-Za-z0-9]{2,15}")
+_CJK_TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{1,12}")
+
+
+def _normalize_symbol_ascii(raw: str) -> Optional[str]:
+    """规范化英文币种符号，返回不含 USDT 的大写结果。"""
+    if not raw:
+        return None
+    cleaned = re.sub(r"[\\s/\\-_:]+", "", raw).upper()
+    if not cleaned:
+        return None
+    if cleaned.endswith("USDT"):
+        cleaned = cleaned[:-4]
+    return cleaned if _ASCII_TOKEN_RE.fullmatch(cleaned) else None
+
+
+def _build_allowed_symbol_sets(user_handler) -> tuple[set[str], set[str]]:
+    """构建允许的币种集合（原始 + 基础币种），用于过滤中文误触发。"""
+    if not user_handler:
+        return set(), set()
+    try:
+        symbols = user_handler.get_active_symbols() or []
+    except Exception:
+        return set(), set()
+    raw_set: set[str] = set()
+    base_set: set[str] = set()
+    for item in symbols:
+        s = str(item).strip()
+        if not s:
+            continue
+        raw_set.add(s)
+        upper = s.upper()
+        base_set.add(upper)
+        base_set.add(upper.replace("USDT", ""))
+    return raw_set, base_set
+
+
+def _resolve_symbol_input(raw: str, *, allowed_raw: set[str] | None = None,
+                          allowed_base: set[str] | None = None) -> Optional[str]:
+    """解析输入为币种代码，支持中文符号，必要时校验是否在允许列表内。"""
+    if not raw:
+        return None
+    raw = str(raw).strip()
+    if not raw:
+        return None
+
+    # 中文币种：直接按原样匹配（不做别名映射）
+    if _CJK_TOKEN_RE.search(raw):
+        sym = re.sub(r"\\s+", "", raw)
+        if not sym:
+            return None
+        if allowed_raw or allowed_base:
+            if sym in (allowed_raw or set()):
+                return sym
+            if sym in (allowed_base or set()):
+                return sym
+            if f"{sym}USDT" in (allowed_raw or set()):
+                return sym
+            return None
+        return sym
+
+    # 英文/数字币种
+    sym = _normalize_symbol_ascii(raw)
+    if not sym:
+        return None
+    if allowed_raw or allowed_base:
+        if sym in (allowed_base or set()):
+            return sym
+        if sym in (allowed_raw or set()):
+            return sym
+        if f"{sym}USDT" in (allowed_raw or set()):
+            return sym
+        return None
+    return sym
+
+
+def _extract_symbol_token(text: str, *, double_exclaim: bool) -> Optional[str]:
+    """从文本中提取币种候选词（英文或中文）。"""
+    if not text:
+        return None
+    if double_exclaim:
+        pattern = r"([A-Za-z0-9]{2,15}|[\u4e00-\u9fff]{1,12})\\s*[!！]{2}"
+    else:
+        pattern = r"([A-Za-z0-9]{2,15}|[\u4e00-\u9fff]{1,12})\\s*[!！](?![!！])"
+    m = re.search(pattern, text)
+    if m:
+        return m.group(1)
+    tokens = _ASCII_TOKEN_RE.findall(text)
+    if tokens:
+        return tokens[0]
+    m = _CJK_TOKEN_RE.search(text)
+    if m:
+        return m.group(0)
+    return None
 
 
 def _btn(update, key: str, callback: str, active: bool = False, prefix: str = "✅") -> InlineKeyboardButton:
@@ -528,6 +626,7 @@ CACHE_FILE_SECONDARY = os.path.join(CACHE_DIR, 'cache_data_secondary.json')
 bot = None
 user_handler = None
 _user_handler_init_task = None
+APP_LOOP = None
 
 
 async def _trigger_user_handler_init() -> None:
@@ -5157,10 +5256,13 @@ async def query_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if args:
         # 直接查询指定币种
-        coin = args[0].upper().replace("USDT", "")
-        coin + "USDT"
+        allowed_raw, allowed_base = _build_allowed_symbol_sets(user_handler)
+        sym = _resolve_symbol_input(args[0], allowed_raw=allowed_raw, allowed_base=allowed_base)
+        if not sym:
+            await update.message.reply_text(_t(update, "snapshot.error.no_symbol"))
+            return
         # 触发单币查询
-        update.message.text = f"{coin}!"
+        update.message.text = f"{sym}!"
         await handle_keyboard_message(update, context, bypass_checks=True)
     else:
         await _send_instant_reply(update, "loading.query")
@@ -5496,59 +5598,55 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     await update.message.reply_text(_t(update, "ai.failed", error=e))
                     return
 
+        allowed_raw, allowed_base = _build_allowed_symbol_sets(user_handler)
+
         # -------- 单币双感叹号触发完整TXT：如 "btc!!" 或 "BTC！！" --------
         if "!!" in norm_text or "！！" in norm_text:
-            m = re.search(r"([A-Za-z0-9]{2,15})\s*[!！]{2}", norm_text, re.IGNORECASE)
-            if m:
-                sym = m.group(1).upper()
-                try:
-                    await _instant_once("loading.query")
-                    from bot.single_token_txt import export_single_token_txt
-                    import io
-                    from datetime import datetime
-
-                    # 获取用户语言
-                    lang = _resolve_lang(update)
-                    txt_content = export_single_token_txt(sym, lang=lang)
-
-                    # 创建文件对象
-                    file_obj = io.BytesIO(txt_content.encode('utf-8'))
-                    file_obj.name = f"{sym}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-
-                    # Binance 跳转按钮（与信号一致，默认永续）
-                    binance_btn = InlineKeyboardMarkup([[
-                        InlineKeyboardButton(
-                            I18N.gettext("btn.binance", lang=lang),
-                            url=_build_binance_url(sym, market="futures")
-                        )
-                    ]])
-
-                    # 发送文件
-                    await update.message.reply_document(
-                        document=file_obj,
-                        filename=file_obj.name,
-                        caption=_t(update, "export.caption", symbol=sym),
-                        reply_markup=binance_btn,
-                    )
-                except Exception as e:
-                    logger.error(f"完整TXT导出失败: {e}")
-                    await update.message.reply_text(_t("error.export_failed", update))
+            token = _extract_symbol_token(norm_text, double_exclaim=True)
+            sym = _resolve_symbol_input(token, allowed_raw=allowed_raw, allowed_base=allowed_base) if token else None
+            if not sym:
+                await update.message.reply_text(_t(update, "snapshot.error.no_symbol"))
                 return
+            try:
+                await _instant_once("loading.query")
+                from bot.single_token_txt import export_single_token_txt
+                import io
+                from datetime import datetime
+
+                # 获取用户语言
+                lang = _resolve_lang(update)
+                txt_content = export_single_token_txt(sym, lang=lang)
+
+                # 创建文件对象
+                file_obj = io.BytesIO(txt_content.encode('utf-8'))
+                file_obj.name = f"{sym}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+
+                # Binance 跳转按钮（与信号一致，默认永续）
+                binance_btn = InlineKeyboardMarkup([[
+                    InlineKeyboardButton(
+                        I18N.gettext("btn.binance", lang=lang),
+                        url=_build_binance_url(sym, market="futures")
+                    )
+                ]])
+
+                # 发送文件
+                await update.message.reply_document(
+                    document=file_obj,
+                    filename=file_obj.name,
+                    caption=_t(update, "export.caption", symbol=sym),
+                    reply_markup=binance_btn,
+                )
+            except Exception as e:
+                logger.error(f"完整TXT导出失败: {e}")
+                await update.message.reply_text(_t("error.export_failed", update))
+            return
 
         # -------- 单币感叹号触发：如 "btc!" 或 "BTC！" --------
         sym = None
         if "!" in norm_text or "！" in norm_text:
-            # 优先按符号前的 token 抓取
-            m = re.search(r"([A-Za-z0-9]{2,15})\s*[!！](?![!！])", norm_text, re.IGNORECASE)
-            if m:
-                sym = m.group(1)
-            else:
-                # 兜底：取首个字母/数字串
-                tokens = re.findall(r"[A-Za-z0-9]{2,15}", norm_text)
-                if tokens:
-                    sym = tokens[0]
+            token = _extract_symbol_token(norm_text, double_exclaim=False)
+            sym = _resolve_symbol_input(token, allowed_raw=allowed_raw, allowed_base=allowed_base) if token else None
         if sym:
-            sym = sym.upper()
             await _instant_once("loading.query")
             user_id = update.effective_user.id
             # 性能优化：临时关闭单币查询
@@ -5593,6 +5691,9 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
             except Exception as exc:
                 logger.error("单币快照渲染失败: %s", exc)
                 await update.message.reply_text(_t(update, "error.query_failed", error=""), parse_mode='Markdown')
+            return
+        if ("!" in norm_text or "！" in norm_text) and not sym:
+            await update.message.reply_text(_t(update, "snapshot.error.no_symbol"))
             return
 
         if message_text in button_mapping:
@@ -5946,7 +6047,12 @@ def initialize_bot_sync():
 
 async def post_init(application):
     """应用启动后的初始化"""
+    global APP_LOOP
     logger.info("✅ 应用启动完成")
+    try:
+        APP_LOOP = asyncio.get_running_loop()
+    except RuntimeError:
+        APP_LOOP = None
     await _refresh_bot_identity(application)
 
     # 延迟启动后台缓存加载任务
@@ -5972,6 +6078,81 @@ async def post_init(application):
         logger.info("✅ Telegram命令菜单设置成功")
     except Exception as e:
         logger.warning(f"⚠️ 设置命令菜单失败: {e}")
+
+    # 启动信号检测服务（绑定主事件循环，避免跨线程/跨循环发送消息）
+    try:
+        from signals import init_pusher, start_signal_loop
+
+        async def send_signal(user_id: int, text: str, reply_markup):
+            """发送信号消息"""
+            try:
+                await application.bot.send_message(
+                    chat_id=user_id,
+                    text=text,
+                    reply_markup=reply_markup
+                )
+            except Exception as e:
+                logger.warning(f"发送信号给 {user_id} 失败: {e}")
+
+        init_pusher(send_signal, loop=APP_LOOP)
+        start_signal_loop(interval=60)
+        logger.info("✅ SQLite信号检测服务已启动")
+        print("🔔 SQLite信号检测服务已启动，间隔60秒")
+    except Exception as e:
+        logger.warning(f"⚠️ SQLite信号服务启动失败: {e}")
+
+    # 启动 PG 实时信号检测服务
+    try:
+        from signals.pg_engine import start_pg_signal_loop, get_pg_engine
+        from signals.pg_formatter import get_pg_formatter
+        from signals.ui import get_signal_push_kb, _get_subscribers
+        import time
+        from collections import deque
+
+        pg_formatter = get_pg_formatter()
+        
+        # 速率限制：最大30条/分钟
+        _pg_push_times = deque(maxlen=30)
+        _PG_RATE_LIMIT = 30
+        _PG_RATE_WINDOW = 60
+
+        def on_pg_signal(signal, formatted_msg):
+            """PG信号回调 - 推送给订阅用户（主事件循环）"""
+            # 速率限制检查
+            now = time.time()
+            while _pg_push_times and _pg_push_times[0] < now - _PG_RATE_WINDOW:
+                _pg_push_times.popleft()
+            if len(_pg_push_times) >= _PG_RATE_LIMIT:
+                logger.warning(f"PG信号推送速率限制，跳过: {signal.symbol} - {signal.signal_type}")
+                return
+            _pg_push_times.append(now)
+
+            async def push():
+                subscribers = _get_subscribers()
+                for uid in subscribers:
+                    try:
+                        kb = get_signal_push_kb(signal.symbol, uid=uid)
+                        await application.bot.send_message(
+                            chat_id=uid,
+                            text=formatted_msg,
+                            reply_markup=kb
+                        )
+                    except Exception as e:
+                        logger.warning(f"PG信号推送给 {uid} 失败: {e}")
+
+            if APP_LOOP and APP_LOOP.is_running():
+                asyncio.run_coroutine_threadsafe(push(), APP_LOOP)
+            else:
+                logger.warning("⚠️ 主事件循环不可用，跳过PG信号推送")
+
+        # 注册回调并启动（币种从 SYMBOLS_GROUPS 配置继承）
+        engine = get_pg_engine()  # 自动从 libs/common/symbols 获取配置
+        engine.register_callback(on_pg_signal)
+        start_pg_signal_loop(interval=60)
+        logger.info(f"✅ PG实时信号检测服务已启动，监控: {engine.symbols}")
+        print(f"🔔 PG实时信号检测服务已启动，监控 {len(engine.symbols)} 个币种")
+    except Exception as e:
+        logger.warning(f"⚠️ PG信号服务启动失败: {e}")
 
 
 
@@ -6209,89 +6390,6 @@ def main():
         print("💾 缓存策略: 机器人立即可用，数据后台异步加载")
         print("📞 现在可以发送 /start 命令测试机器人！")
         print("⚡ 注意：初次使用时数据功能可能需要几秒钟加载")
-
-        # 启动信号检测服务
-        try:
-            from signals import init_pusher, start_signal_loop
-
-            async def send_signal(user_id: int, text: str, reply_markup):
-                """发送信号消息"""
-                try:
-                    await application.bot.send_message(
-                        chat_id=user_id,
-                        text=text,
-                        reply_markup=reply_markup
-                    )
-                except Exception as e:
-                    logger.warning(f"发送信号给 {user_id} 失败: {e}")
-
-            init_pusher(send_signal)
-            start_signal_loop(interval=60)
-            logger.info("✅ SQLite信号检测服务已启动")
-            print("🔔 SQLite信号检测服务已启动，间隔60秒")
-        except Exception as e:
-            logger.warning(f"⚠️ SQLite信号服务启动失败: {e}")
-
-        # 启动 PG 实时信号检测服务
-        try:
-            from signals.pg_engine import start_pg_signal_loop, get_pg_engine
-            from signals.pg_formatter import get_pg_formatter
-            from signals.ui import get_signal_push_kb, _get_subscribers
-            import asyncio
-            import time
-            from collections import deque
-
-            pg_formatter = get_pg_formatter()
-            
-            # 速率限制：最大30条/分钟
-            _pg_push_times = deque(maxlen=30)
-            _PG_RATE_LIMIT = 30
-            _PG_RATE_WINDOW = 60
-
-            def on_pg_signal(signal, formatted_msg):
-                """PG信号回调 - 推送给订阅用户（复用主事件循环+速率限制）"""
-                # 速率限制检查
-                now = time.time()
-                while _pg_push_times and _pg_push_times[0] < now - _PG_RATE_WINDOW:
-                    _pg_push_times.popleft()
-                if len(_pg_push_times) >= _PG_RATE_LIMIT:
-                    logger.warning(f"PG信号推送速率限制，跳过: {signal.symbol} - {signal.signal_type}")
-                    return
-                _pg_push_times.append(now)
-
-                async def push():
-                    subscribers = _get_subscribers()
-                    for uid in subscribers:
-                        try:
-                            kb = get_signal_push_kb(signal.symbol, uid=uid)
-                            await application.bot.send_message(
-                                chat_id=uid,
-                                text=formatted_msg,
-                                reply_markup=kb
-                            )
-                        except Exception as e:
-                            logger.warning(f"PG信号推送给 {uid} 失败: {e}")
-
-                # 使用 run_coroutine_threadsafe 投递到主事件循环
-                try:
-                    main_loop = asyncio.get_event_loop()
-                    if main_loop.is_running():
-                        asyncio.run_coroutine_threadsafe(push(), main_loop)
-                    else:
-                        # 回退：创建新循环（不推荐，仅兜底）
-                        asyncio.run(push())
-                except RuntimeError:
-                    # 无法获取事件循环时，使用 asyncio.run
-                    asyncio.run(push())
-
-            # 注册回调并启动（币种从 SYMBOLS_GROUPS 配置继承）
-            engine = get_pg_engine()  # 自动从 libs/common/symbols 获取配置
-            engine.register_callback(on_pg_signal)
-            start_pg_signal_loop(interval=60)
-            logger.info(f"✅ PG实时信号检测服务已启动，监控: {engine.symbols}")
-            print(f"🔔 PG实时信号检测服务已启动，监控 {len(engine.symbols)} 个币种")
-        except Exception as e:
-            logger.warning(f"⚠️ PG信号服务启动失败: {e}")
 
         # 显式阻塞主线程：close_loop=True 交由库关闭事件循环，stop_signals=None 避免额外信号干扰
         application.run_polling(

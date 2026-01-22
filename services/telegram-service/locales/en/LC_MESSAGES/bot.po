@@ -105,10 +105,10 @@ msgstr ""
 
 # AI module
 msgid "ai.list.title"
-msgstr "🤖 *AI Analysis*"
+msgstr "🤖 AI Analysis"
 
 msgid "ai.list.usage"
-msgstr "💡 How to use: send `symbol@` to start, e.g. `BTC@`"
+msgstr "💡 Trigger\nSend `symbol@`\nExample: `BTC@`"
 
 msgid "ai.list.supported"
 msgstr "📊 Supported symbols ({count})"
@@ -919,7 +919,7 @@ msgid "cache.backup_file"
 msgstr "Backup"
 
 msgid "query.title"
-msgstr "🔍 *Symbol Query*"
+msgstr "🔍 Symbol Query"
 
 msgid "query.prompt"
 msgstr "Send symbol name to query:"
@@ -931,13 +931,13 @@ msgid "query.count"
 msgstr "📊 Available symbols ({count})"
 
 msgid "query.usage"
-msgstr "💡 Usage:"
+msgstr "💡 Quick use"
 
 msgid "query.usage_interactive"
-msgstr "• `BTC!` - Interactive query"
+msgstr "`BTC!` Interactive query"
 
 msgid "query.usage_export"
-msgstr "• `BTC!!` - Export full TXT file"
+msgstr "`BTC!!` Export full TXT"
 
 # Futures field buttons - Taker direction
 msgid "btn.field.taker_ratio"

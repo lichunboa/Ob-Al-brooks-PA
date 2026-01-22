@@ -105,10 +105,10 @@ msgstr ""
 
 # AI 模块
 msgid "ai.list.title"
-msgstr "🤖 *AI 分析*"
+msgstr "🤖 AI 分析"
 
 msgid "ai.list.usage"
-msgstr "💡 使用方法: 发送 `币种名@` 触发分析，例如: `BTC@`"
+msgstr "💡 触发方式\n发送 `币种@`\n例：`BTC@`"
 
 msgid "ai.list.supported"
 msgstr "📊 可分析币种 ({count} 个)"
@@ -919,7 +919,7 @@ msgid "cache.backup_file"
 msgstr "备份文件"
 
 msgid "query.title"
-msgstr "🔍 *币种查询*"
+msgstr "🔍 币种查询"
 
 msgid "query.prompt"
 msgstr "请发送币种名称触发查询："
@@ -931,13 +931,13 @@ msgid "query.count"
 msgstr "📊 可查询币种 ({count} 个)"
 
 msgid "query.usage"
-msgstr "💡 使用方法:"
+msgstr "💡 快捷用法"
 
 msgid "query.usage_interactive"
-msgstr "• `BTC!` - 交互式查询"
+msgstr "`BTC!` 交互查询"
 
 msgid "query.usage_export"
-msgstr "• `BTC!!` - 导出完整TXT文件"
+msgstr "`BTC!!` 导出完整 TXT"
 
 # 期货字段按钮 - 主动成交方向
 msgid "btn.field.taker_ratio"
