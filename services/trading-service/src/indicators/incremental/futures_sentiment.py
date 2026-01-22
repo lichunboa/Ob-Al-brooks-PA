@@ -1,11 +1,23 @@
 """期货情绪指标（从 PostgreSQL 读取）"""
 import pandas as pd
 from datetime import timezone
-from typing import Optional, Dict
+from typing import Optional, Dict, TypedDict
 from ..base import Indicator, IndicatorMeta, register
 
+# ==================== 数据契约 ====================
+
+class FuturesLatestMetrics(TypedDict, total=False):
+    """期货情绪最新快照契约（增量指标输入）"""
+    datetime: Optional[pd.Timestamp]
+    oi: Optional[float]
+    oiv: Optional[float]
+    ctlsr: Optional[float]
+    tlsr: Optional[float]
+    lsr: Optional[float]
+    tlsvr: Optional[float]
+
 # 缓存 {interval: {symbol: data}}
-_METRICS_CACHE: Dict[str, Dict[str, dict]] = {}
+_METRICS_CACHE: Dict[str, Dict[str, FuturesLatestMetrics]] = {}
 _CACHE_TS: Dict[str, float] = {}
 
 
@@ -54,13 +66,13 @@ def _load_all_metrics(interval: str = "5m"):
         pass
 
 
-def get_latest_metrics(symbol: str, interval: str = "5m") -> Optional[dict]:
+def get_latest_metrics(symbol: str, interval: str = "5m") -> Optional[FuturesLatestMetrics]:
     """获取单个币种的最新期货数据"""
     _load_all_metrics(interval)
     return _METRICS_CACHE.get(interval, {}).get(symbol)
 
 
-def set_metrics_cache(cache: Dict[str, dict], interval: str = "5m"):
+def set_metrics_cache(cache: Dict[str, FuturesLatestMetrics], interval: str = "5m"):
     """设置期货数据缓存（用于跨进程传递）"""
     global _METRICS_CACHE, _CACHE_TS
     import time
@@ -68,7 +80,7 @@ def set_metrics_cache(cache: Dict[str, dict], interval: str = "5m"):
     _CACHE_TS[interval] = time.time()
 
 
-def get_metrics_cache(interval: str = "5m") -> Dict[str, dict]:
+def get_metrics_cache(interval: str = "5m") -> Dict[str, FuturesLatestMetrics]:
     """获取期货数据缓存"""
     _load_all_metrics(interval)
     return _METRICS_CACHE.get(interval, {}).copy()
