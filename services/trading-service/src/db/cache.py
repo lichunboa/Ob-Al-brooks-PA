@@ -192,15 +192,15 @@ class DataCache:
         return updated
 
     def get_klines(self, interval: str, symbol: str = None) -> Dict[str, pd.DataFrame]:
-        """获取K线数据（从缓存）"""
+        """获取K线数据（从缓存，只读）"""
         with self._lock:
             if interval not in self._klines:
                 return {}
             if symbol:
                 df = self._klines[interval].get(symbol)
-                return {symbol: df.copy()} if df is not None else {}
-            # 返回全部（复制）
-            return {s: df.copy() for s, df in self._klines[interval].items()}
+                return {symbol: df} if df is not None else {}
+            # 返回全部（浅拷贝字典，DataFrame 只读）
+            return dict(self._klines[interval])
 
     def get_all_intervals(self) -> List[str]:
         """获取已缓存的周期"""

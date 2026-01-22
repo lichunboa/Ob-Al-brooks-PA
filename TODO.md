@@ -41,7 +41,7 @@ Scope: services/trading-service
 - [x] Batch update DataCache per interval instead of per symbol.
   - File: `services/trading-service/src/db/cache.py`
   - Accept: TimescaleDB query count drops to O(intervals).
-- [ ] Avoid DataFrame .copy() in cache path; enforce read-only contract.
+- [x] Avoid DataFrame .copy() in cache path; enforce read-only contract.
   - File: `services/trading-service/src/db/cache.py`
   - Accept: peak RSS reduced without output drift.
 
@@ -65,3 +65,4 @@ Scope: services/trading-service
 - 2026-01-22: Completed TvTrendCloud vectorization (Phase 1).
 - 2026-01-22: Added batch futures metrics caches to reduce per-symbol IO.
 - 2026-01-22: Batched DataCache interval updates to reduce N+1 queries.
+- 2026-01-22: Returned cached K线 DataFrame as只读引用以降低复制开销.
