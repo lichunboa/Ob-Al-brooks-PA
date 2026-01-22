@@ -2803,29 +2803,25 @@ class TradeCatBot:
         if not force_refresh and self._active_symbols and (now - self._active_symbols_timestamp) < 300:
             return self._active_symbols
 
-        # 从环境变量读取配置
-        symbols_groups = os.environ.get('SYMBOLS_GROUPS', 'main4')
-        
-        # 根据分组获取币种列表
-        if symbols_groups.startswith('main'):
-            group_key = f'SYMBOLS_GROUP_{symbols_groups}'
-            symbols_str = os.environ.get(group_key, '')
-            if symbols_str:
-                symbols = [s.strip() for s in symbols_str.split(',') if s.strip()]
-                # 过滤掉被屏蔽的币种
-                filtered = [s for s in symbols if s not in get_blocked_symbols()]
-                self._active_symbols = filtered
-                self._active_symbols_timestamp = now
-                logger.info(f"✅ 从配置加载币种 ({symbols_groups}): {filtered}")
-                return filtered
-        
+        from common.symbols import get_configured_symbols
+
+        configured = get_configured_symbols()
+        if configured:
+            filtered = [s for s in configured if s not in get_blocked_symbols()]
+            self._active_symbols = filtered
+            self._active_symbols_timestamp = now
+            groups = os.environ.get("SYMBOLS_GROUPS", "main4")
+            preview = filtered[:10]
+            logger.info("✅ 从配置加载币种 (%s): %s (共 %d)", groups, preview, len(filtered))
+            return filtered
+
         # 默认回退到 main4
         default_symbols = os.environ.get('SYMBOLS_GROUP_main4', 'BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT')
         symbols = [s.strip() for s in default_symbols.split(',') if s.strip()]
         filtered = [s for s in symbols if s not in get_blocked_symbols()]
         self._active_symbols = filtered
         self._active_symbols_timestamp = now
-        logger.info(f"✅ 使用默认币种配置: {filtered}")
+        logger.info("✅ 使用默认币种配置: %s", filtered)
         return filtered
 
     def compute_market_sentiment_data(self):
@@ -5510,7 +5506,6 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     from bot.single_token_txt import export_single_token_txt
                     import io
                     from datetime import datetime
-                    from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
                     # 获取用户语言
                     lang = _resolve_lang(update)

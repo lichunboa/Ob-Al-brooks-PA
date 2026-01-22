@@ -208,6 +208,22 @@ def get_high_priority_symbols_fast(top_n: int = 30) -> set:
     return result
 
 
+def _load_all_symbols_from_db() -> list:
+    """从数据库读取全量 USDT 永续符号（轻量查询）。"""
+    try:
+        with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
+            rows = conn.execute("""
+                SELECT DISTINCT symbol
+                FROM market_data.ingest_offsets
+                WHERE symbol LIKE '%USDT'
+            """).fetchall()
+        symbols = sorted({row["symbol"] for row in rows if row.get("symbol")})
+        return symbols
+    except Exception as e:
+        log(f"全量币种查询失败: {e}")
+        return []
+
+
 # ============ 数据检查 ============
 
 def get_source_latest(interval: str) -> datetime:
@@ -297,11 +313,26 @@ def update_priority():
 
     t0 = time.time()
     configured = get_configured_symbols()
+    groups_str = os.environ.get("SYMBOLS_GROUPS", "auto")
+    selected_groups = {g.strip().lower() for g in groups_str.split(",") if g.strip()}
 
     if configured:
         # 使用配置的分组
         symbols = configured
         log(f"使用配置分组: {len(symbols)} 币种")
+    elif "all" in selected_groups:
+        symbols = _load_all_symbols_from_db()
+        # 应用额外添加和排除
+        extra = [s.strip().upper() for s in os.environ.get("SYMBOLS_EXTRA", "").split(",") if s.strip()]
+        exclude = {s.strip().upper() for s in os.environ.get("SYMBOLS_EXCLUDE", "").split(",") if s.strip()}
+        symbols = sorted((set(symbols) | set(extra)) - exclude) if symbols else []
+        if symbols:
+            log(f"使用数据库全量币种: {len(symbols)} 币种")
+        else:
+            log("全量币种为空，回退自动高优先级")
+            symbols = list(get_high_priority_symbols_fast(top_n=HIGH_PRIORITY_TOP_N))
+            symbols = sorted((set(symbols) | set(extra)) - exclude)
+            log(f"自动高优先级: {len(symbols)} 币种")
     else:
         # auto模式：动态高优先级
         symbols = list(get_high_priority_symbols_fast(top_n=HIGH_PRIORITY_TOP_N))

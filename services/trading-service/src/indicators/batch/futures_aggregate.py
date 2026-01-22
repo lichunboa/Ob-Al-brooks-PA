@@ -81,6 +81,62 @@ def _尾部连续根数(sign_list: List[int]) -> Optional[int]:
     return (count if last_sign > 0 else -count) if last_sign else 0
 
 
+def _round_float(value: Optional[float], digits: int) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return round(float(value), digits)
+    except (TypeError, ValueError):
+        return None
+
+
+def _clip_numeric_fields(data: dict) -> dict:
+    """结果数值裁剪，避免长尾小数扩散。"""
+    decimals = {
+        "持仓金额": 2,
+        "持仓张数": 2,
+        "大户多空比": 4,
+        "全体多空比": 4,
+        "主动成交多空比": 4,
+        "持仓变动": 2,
+        "持仓变动%": 4,
+        "大户偏离": 4,
+        "全体偏离": 4,
+        "主动偏离": 4,
+        "情绪差值": 4,
+        "情绪差值绝对值": 4,
+        "波动率": 4,
+        "风险分": 4,
+        "市场占比": 4,
+        "大户波动": 4,
+        "全体波动": 4,
+        "持仓斜率": 4,
+        "持仓Z分数": 4,
+        "大户情绪动量": 4,
+        "主动情绪动量": 4,
+        "主动跳变幅度": 4,
+        "稳定度分位": 4,
+    }
+    int_fields = {
+        "是否闭合",
+        "数据新鲜秒",
+        "OI连续根数",
+        "主动连续根数",
+        "情绪翻转信号",
+        "陈旧标记",
+    }
+    for key, digits in decimals.items():
+        if key in data:
+            data[key] = _round_float(data.get(key), digits)
+    for key in int_fields:
+        if key in data and data.get(key) is not None:
+            try:
+                data[key] = int(data[key])
+            except (TypeError, ValueError):
+                pass
+    return data
+
+
 def get_metrics_history(symbol: str, limit: int = 100, interval: str = "5m") -> List[dict]:
     """从 PostgreSQL 读取期货情绪历史数据"""
     import psycopg
@@ -224,7 +280,7 @@ class FuturesAggregate(Indicator):
         threshold = period_seconds.get(interval, 600) * 3
         stale = 1 if (freshness is None or freshness > threshold) else 0
 
-        return self._make_result(df, symbol, interval, {
+        data = {
             "是否闭合": is_closed,
             "数据新鲜秒": freshness,
             "持仓金额": oiv,
@@ -256,4 +312,6 @@ class FuturesAggregate(Indicator):
             "稳定度分位": stability_pct,
             "贡献度排名": None,  # 需要全局计算
             "陈旧标记": stale,
-        }, timestamp=ts)
+        }
+        data = _clip_numeric_fields(data)
+        return self._make_result(df, symbol, interval, data, timestamp=ts)
