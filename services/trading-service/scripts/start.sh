@@ -55,6 +55,13 @@ safe_load_env() {
 safe_load_env "$PROJECT_ROOT/config/.env"
 # 配置已统一到 config/.env
 
+# ==================== 计算后端强制配置 ====================
+# 避免线程后端被 GIL 限制，默认走进程后端；如需覆盖，设置 FORCE_* 环境变量。
+cpu_count="$(command -v nproc >/dev/null 2>&1 && nproc || getconf _NPROCESSORS_ONLN || echo 4)"
+export COMPUTE_BACKEND="${FORCE_COMPUTE_BACKEND:-process}"
+export MAX_CPU_WORKERS="${FORCE_MAX_CPU_WORKERS:-$cpu_count}"
+export MAX_WORKERS="${FORCE_MAX_WORKERS:-$cpu_count}"
+
 # 校验 SYMBOLS_* 格式
 validate_symbols() {
     local errors=0

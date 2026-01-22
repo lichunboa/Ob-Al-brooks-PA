@@ -35,7 +35,12 @@ def main():
     parser.add_argument("--intervals", type=str, help="周期，逗号分隔")
     parser.add_argument("--indicators", type=str, help="指标名，逗号分隔")
     parser.add_argument("--lookback", type=int, default=300, help="K线窗口大小")
-    parser.add_argument("--workers", type=int, default=4, help="并行进程数")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=int(os.getenv("MAX_WORKERS", "4")),
+        help="并行进程数",
+    )
     parser.add_argument("--log-file", type=str, help="日志文件路径")
     parser.add_argument("--log-level", type=str, default="INFO", help="日志级别")
     parser.add_argument("--json-log", action="store_true", help="使用JSON格式日志")
