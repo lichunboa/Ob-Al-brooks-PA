@@ -14,8 +14,8 @@ SERVICES=(data-service trading-service telegram-service)
 # SERVICES=(data-service trading-service telegram-service ai-service signal-service)
 
 # 守护进程配置
-DAEMON_PID="$ROOT/daemon.pid"
-DAEMON_LOG="$ROOT/daemon.log"
+DAEMON_PID="$ROOT/run/daemon.pid"
+DAEMON_LOG="$ROOT/logs/daemon.log"
 MAX_RESTART_ATTEMPTS=5          # 每个服务最大连续重启次数
 RESTART_WINDOW=300              # 重启计数重置窗口（秒）
 BASE_BACKOFF=10                 # 基础退避时间（秒）
@@ -23,6 +23,8 @@ MAX_BACKOFF=300                 # 最大退避时间（秒）
 CHECK_INTERVAL=30               # 检查间隔（秒）
 
 # ==================== 工具函数 ====================
+mkdir -p "$ROOT/run" "$ROOT/logs"
+
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$DAEMON_LOG"
 }

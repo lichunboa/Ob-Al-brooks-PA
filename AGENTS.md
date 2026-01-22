@@ -363,17 +363,41 @@ tradecat/
 │   │   └── utils/                  # 工具函数
 │   └── external/                   # 外部依赖/数据
 │
-├── .github/workflows/              # CI 配置
-│   ├── ci.yml                      # ruff + py_compile 抽样检查
-│   ├── pypi-ci.yml                 # PyPI CI
-│   └── pypi-publish.yml            # PyPI 发布
+├── .github/                        # 社区规范与 CI
+│   ├── workflows/                  # CI 配置
+│   │   ├── ci.yml                  # ruff + py_compile 抽样检查
+│   │   ├── pypi-ci.yml             # PyPI CI
+│   │   └── pypi-publish.yml        # PyPI 发布
+│   ├── CONTRIBUTING.md             # 贡献指南
+│   ├── CODE_OF_CONDUCT.md          # 行为准则
+│   └── SECURITY.md                 # 安全政策
+│
+├── artifacts/                      # 构建/测试产物
+│   ├── coverage/                   # 覆盖率数据
+│   ├── dist/                       # 构建输出
+│   └── i18n/                       # i18n 编译产物
+│
+├── cache/                          # 工具缓存
+│   ├── pytest/
+│   └── ruff/
+│
+├── docs/                           # 项目文档
+│   ├── CHANGELOG.md                # 变更日志
+│   └── TODO.md                     # 待办清单
+│
+├── logs/                           # 顶层日志
+│   └── daemon.log
+│
+├── run/                            # 顶层进程状态
+│   └── daemon.pid
 │
 ├── Makefile                        # 常用命令快捷方式
 ├── pyproject.toml                  # 根级项目配置
 ├── README.md                       # 项目文档（中文）
 ├── README_EN.md                    # 项目文档（英文）
 ├── PERFORMANCE_AUDIT_TRADING_SERVICE.md # trading-service Python 性能优化审计报告（静态审计版）
-└── AGENTS.md                       # 本文档
+├── AGENTS.md                       # 本文档
+└── .python-version                 # Python 版本锁定
 ```
 
 ### 6.1 服务标准化结构
@@ -477,7 +501,7 @@ sudo cp /tmp/tradecat-logrotate.conf /etc/logrotate.d/tradecat
 # 轮转策略：
 # - 核心服务日志：每天或 50MB，保留 14 天
 # - 预览服务日志：每天或 50MB，保留 7 天
-# - 根目录日志：每天或 20MB，保留 7 天
+# - 顶层 logs 目录日志：每天或 20MB，保留 7 天
 ```
 
 ### 7.7 守护进程模式

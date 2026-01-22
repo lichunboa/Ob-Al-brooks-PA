@@ -13,6 +13,7 @@
 AUDIT_REPORT.md
 CODE_LOCATIONS.md
 CODE_OF_CONDUCT.md
+!.github/CODE_OF_CONDUCT.md
 OPTIMIZATION_TODO.md
 MARKETING.md
 book/
@@ -42,6 +43,7 @@ pids/
 *.pid
 *.log
 cache/
+artifacts/
 *.cache
 *.db
 

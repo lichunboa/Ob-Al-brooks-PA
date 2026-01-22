@@ -968,13 +968,39 @@ tradecat/
 │       ├── proxy_manager.py        # 代理管理器
 │       └── utils/                  # 工具函数
 │
+├── 📂 artifacts/                   # 构建/测试产物
+│   ├── 📂 coverage/                # 覆盖率数据
+│   │   └── .coverage
+│   ├── 📂 dist/                    # 构建输出
+│   └── 📂 i18n/                    # i18n 编译产物
+│       └── messages.mo
+│
+├── 📂 cache/                       # 工具缓存
+│   ├── pytest/
+│   └── ruff/
+│
+├── 📂 logs/                        # 顶层日志
+│   └── daemon.log
+│
+├── 📂 run/                         # 顶层进程状态
+│   └── daemon.pid
+│
+├── 📂 docs/                        # 项目文档
+│   ├── CHANGELOG.md
+│   └── TODO.md
+│
+├── 📂 .github/                     # 社区与安全规范
+│   ├── CONTRIBUTING.md
+│   ├── CODE_OF_CONDUCT.md
+│   └── SECURITY.md
+│
 ├── 📂 backups/                     # 备份目录
 │   └── 📂 timescaledb/             # 数据库备份
 │
 ├── Makefile                        # 常用命令
 ├── README.md                       # 项目说明
 ├── AGENTS.md                       # AI Agent 指南
-└── CONTRIBUTING.md                 # 贡献指南
+└── .python-version                 # Python 版本锁定
 ```
 
 </details>
@@ -1062,7 +1088,7 @@ tail -f services/trading-service/logs/simple_scheduler.log
 tail -f services/telegram-service/logs/bot.log
 
 # 守护进程日志
-tail -f daemon.log
+tail -f logs/daemon.log
 ```
 
 </details>

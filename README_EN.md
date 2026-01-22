@@ -978,13 +978,40 @@ tradecat/
 │       ├── proxy_manager.py        # Proxy manager
 │       └── utils/                  # Utility functions
 │
+├── 📂 artifacts/                   # Build/test artifacts
+│   ├── 📂 coverage/                # Coverage data
+│   │   └── .coverage
+│   ├── 📂 dist/                    # Build outputs
+│   └── 📂 i18n/                    # i18n compiled output
+│       └── messages.mo
+│
+├── 📂 cache/                       # Tool caches
+│   ├── pytest/
+│   └── ruff/
+│
+├── 📂 logs/                        # Top-level logs
+│   └── daemon.log
+│
+├── 📂 run/                         # Top-level runtime state
+│   └── daemon.pid
+│
+├── 📂 docs/                        # Project docs
+│   ├── CHANGELOG.md
+│   └── TODO.md
+│
+├── 📂 .github/                     # Community & security
+│   ├── CONTRIBUTING.md
+│   ├── CODE_OF_CONDUCT.md
+│   └── SECURITY.md
+│
 ├── 📂 backups/                     # Backup directory
 │   └── 📂 timescaledb/             # Database backups
 │
 ├── Makefile                        # Common commands
 ├── README.md                       # Project documentation (Chinese)
 ├── README_EN.md                    # Project documentation (English)
-└── AGENTS.md                       # AI Agent guide
+├── AGENTS.md                       # AI Agent guide
+└── .python-version                 # Python version pin
 ```
 
 </details>
@@ -1072,7 +1099,7 @@ tail -f services/trading-service/logs/simple_scheduler.log
 tail -f services/telegram-service/logs/bot.log
 
 # Daemon logs
-tail -f daemon.log
+tail -f logs/daemon.log
 ```
 
 </details>
