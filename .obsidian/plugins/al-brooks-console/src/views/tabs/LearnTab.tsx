@@ -51,6 +51,8 @@ export const LearnTab: React.FC = () => {
     setMemoryShakeIndex,
     // Add integrations from context to use run action
     integrations,
+    // App 实例用于写入 SR 标记
+    app,
   } = useConsoleContext();
 
   const strategyPerf = React.useMemo(
@@ -133,7 +135,10 @@ export const LearnTab: React.FC = () => {
         can={(id) => integrations?.isCapabilityAvailable(id as any) ?? false}
         runCommand={useConsoleContext().runCommand}
         poorPerformingStrategies={poorPerformingStrategies}
+        app={app}
       />
+
+      {/* 学习计划面板已移除 - 功能合并到 Coach Focus */}
 
       <CourseSuggestion
         course={course}
@@ -162,26 +167,6 @@ export const LearnTab: React.FC = () => {
         textButtonStyle={textButtonStyle}
         textButtonNoWrapStyle={textButtonNoWrapStyle}
         V5_COLORS={V5_COLORS}
-      />
-
-      {/* 学习计划面板 - 基于掌握度薄弱策略生成 */}
-      <LearningPlanPanel
-        plans={(() => {
-          // 基于薄弱策略生成推荐学习计划
-          if (poorPerformingStrategies.length === 0) return [];
-          return [{
-            id: 'auto-weekly',
-            title: '本周重点复习',
-            strategies: poorPerformingStrategies.map(s => s.name),
-            createdAt: new Date().toISOString().split('T')[0],
-            progress: 0,
-            status: 'active' as const,
-          }];
-        })()}
-        onOpenStrategy={(name) => {
-          const s = strategies.find(x => (x.canonicalName || x.name) === name);
-          if (s?.path) openFile(s.path);
-        }}
       />
 
       {/* Gallery is rendered in the Analytics grid (with scope selector). */}

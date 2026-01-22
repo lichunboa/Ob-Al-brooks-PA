@@ -322,7 +322,7 @@ export const CourseSuggestion: React.FC<CourseSuggestionProps> = ({
                                                                 fontWeight: 700,
                                                             }}
                                                         >
-                                                            {c.isDone ? "✓" : c.shortId}
+                                                            {c.shortId}
                                                         </div>
                                                     </InteractiveButton>
                                                 );

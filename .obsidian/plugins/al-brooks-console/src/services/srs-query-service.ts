@@ -35,8 +35,12 @@ export class SRSQueryService {
             // If no context provided, return all due cards (or maybe none? let's return none to avoid noise)
             if (!contextKeywords || contextKeywords.length === 0) return false;
 
-            // Normalize keywords for matching
-            const normalizedContext = contextKeywords.map(k => k.toLowerCase());
+            // Normalize keywords for matching (过滤掉非字符串值)
+            const normalizedContext = contextKeywords
+                .filter(k => typeof k === 'string' && k.length > 0)
+                .map(k => k.toLowerCase());
+
+            if (normalizedContext.length === 0) return false;
 
             // Check title matches
             const titleLower = card.title.toLowerCase();

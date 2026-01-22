@@ -1,0 +1,87 @@
+site_name: Obsidian Spaced Repetition
+site_url: https://stephenmwangi.com/obsidian-spaced-repetition/
+site_author: Stephen Mwangi
+site_description: >-
+    Documentation for the Obsidian Spaced Repetition plugin
+
+repo_name: st3v3nmw/obsidian-spaced-repetition
+repo_url: https://github.com/st3v3nmw/obsidian-spaced-repetition/
+edit_uri: ""
+docs_dir: docs/docs
+
+theme:
+    name: material
+    logo: favicon.ico
+    favicon: favicon.ico
+    icon:
+        repo: fontawesome/brands/github
+    palette:
+        - scheme: default
+          toggle:
+              icon: material/brightness-7
+              name: Switch to dark mode
+        - scheme: slate
+          toggle:
+              icon: material/brightness-4
+              name: Switch to light mode
+    features:
+        - navigation.top
+        - navigation.expand
+        - toc.follow
+
+nav:
+    - Index: index.md
+    - Flashcards:
+          - Flashcards Overview: flashcards/flashcards-overview.md
+          - Question & Answer Cards: flashcards/q-and-a-cards.md
+          - Cloze Cards: flashcards/cloze-cards.md
+          - Cards with Blank Lines: flashcards/cards-with-blank-lines.md
+          - Organizing into Decks: flashcards/decks.md
+          - Reviewing & Cramming: flashcards/reviewing.md
+          - Statistics: flashcards/statistics.md
+    - Notes: notes.md
+    - User Options & Commands:
+          - User Options: user-options.md
+          - Commands: plugin-commands.md
+    - Algorithms & Data Storage:
+          - Repetition Algorithms: algorithms.md
+          - Data Storage: data-storage.md
+    - Additional:
+          - Spaced Repetition Guides: resources.md
+          - Contributing: contributing.md
+          - Changelog: changelog.md
+          - License: license.md
+
+plugins:
+    - search
+    - i18n:
+          docs_structure: folder
+          languages:
+              - locale: en
+                name: English
+                default: true
+              - locale: zh
+                name: 简体中文
+
+markdown_extensions:
+    - toc:
+          permalink: true
+    - pymdownx.highlight:
+          anchor_linenums: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - admonition
+    - pymdownx.details
+    - pymdownx.superfences
+    - attr_list
+    - footnotes
+    - pymdownx.emoji:
+          emoji_index: !!python/name:material.extensions.emoji.twemoji
+          emoji_generator: !!python/name:material.extensions.emoji.to_svg
+    - md_in_html
+
+extra_css:
+    - extra.css
+
+remote_branch: gh-pages
+remote_name: origin

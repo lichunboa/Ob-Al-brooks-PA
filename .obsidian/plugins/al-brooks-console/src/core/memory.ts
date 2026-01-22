@@ -1,8 +1,14 @@
 export type QuizItem = {
-  q: string;
+  q: string;           // 问题显示文本（填空题用 ___ 替换）
+  answer?: string;     // 答案（单行卡片是 :: 后面的内容，填空题是原始内容）
+  rawQ?: string;       // 原始问题行（含 ==xxx== 标记）
   file: string;
   path: string;
-  type: "Basic";
+  type: "Basic" | "Cloze" | "Multiline";
+  lineNumber?: number; // 卡片所在行号（1-indexed）
+  // 策略关联
+  relatedStrategy?: string;   // 关联的策略名称
+  strategyWinRate?: number;   // 策略胜率 (0-100)
 };
 
 export type MemoryFileStat = {
@@ -91,7 +97,25 @@ export function buildMemorySnapshot(args: {
     const content = String(f.content ?? "");
     if (!content) continue;
 
+    // 行号计算辅助函数（在原始 content 中搜索文本并计算行号）
+    const findLineNumber = (searchText: string) => {
+      // 获取搜索文本的第一行（更准确的匹配）
+      const firstLine = searchText.split('\n')[0].trim();
+      if (!firstLine || firstLine.length < 3) return undefined;
+
+      // 在原始 content 中搜索
+      const idx = content.indexOf(firstLine);
+      if (idx === -1) return undefined;
+
+      // 计算行号
+      const before = content.substring(0, idx);
+      return (before.match(/\n/g) || []).length + 1;
+    };
+
     const clean = content
+      // 排除 frontmatter (--- ... ---)
+      .replace(/^---[\s\S]*?---\n?/m, "")
+      // 排除代码块
       .replace(/```[\s\S]*?```/g, "")
       .replace(/`[^`]*`/g, "");
 
@@ -133,20 +157,20 @@ export function buildMemorySnapshot(args: {
     cnt_sNorm += inlineBasicCount;
     buffer = buffer.replace(regexInlineBasic, "");
 
-    // 6. Cloze Deletions (==) - Only in remaining text
-    const foundClozes = (buffer.match(/==[^=]+==/g) || []).length;
-    cnt_cloze += foundClozes;
+    // 6. Cloze Deletions (==) - Count by LINES containing ==, not individual markers
+    // 官方 SRS 插件按包含填空的行数计数，而非填空标记数
+    const clozeLineCount = (buffer.match(/^.*==[^=]+==/gm) || []).length;
+    cnt_cloze += clozeLineCount;
 
     // File Total
     // Note: Reverse cards typically generate 2 cards (Forward + Backward).
-    // Review count logic usually follows card count.
+    // 注意：填空题每行算1张卡片，不是每个填空项
     const currentFileCardCount =
       itemsFoundBasic +
-      inlineBasicCount +
       (cnt_mRev * 2) +
       (cnt_sRev * 2) +
       cnt_mNorm +
-      foundClozes;
+      clozeLineCount;
 
     total += currentFileCardCount;
 
@@ -155,41 +179,138 @@ export function buildMemorySnapshot(args: {
     for (const m of basicMatches) {
       quizAll.push({
         q: String(m[1] ?? "").trim(),
+        answer: String(m[2] ?? "").trim(),  // 保存答案
         file: f.name,
         path: f.path,
         type: "Basic",
+        lineNumber: findLineNumber(String(m[1] ?? "").trim()),
       });
     }
 
-    // 2. 多行问答卡片 (?) - 提取问题部分
-    const multilineRegex = /^(.+)\n\?$/gm;
+    // 2. 多行问答卡片 (?) - 提取问题和答案
+    // 格式: 问题\n?\n答案（直到 --- 或空行）
+    const multilineRegex = /^(.+)\n\?\n([\s\S]*?)(?=\n---|\n\n|$)/gm;
     const multilineMatches = [...clean.matchAll(multilineRegex)];
     for (const m of multilineMatches) {
       const question = String(m[1] ?? "").trim();
+      const answer = String(m[2] ?? "").trim();
       if (question.length > 3) {
         quizAll.push({
           q: question,
+          answer: answer,  // 保存答案
+          rawQ: `${question}\n?\n${answer}`,  // 原始内容
           file: f.name,
           path: f.path,
-          type: "Basic",
+          type: "Multiline",  // 标记为多行类型
+          lineNumber: findLineNumber(question),
         });
       }
     }
 
-    // 3. 填空题 (==xxx==) - 提取填空所在行作为问题
-    const clozeLineRegex = /^(.+==[^=]+=+.*)$/gm;
-    const clozeLineMatches = [...clean.matchAll(clozeLineRegex)];
-    for (const m of clozeLineMatches) {
-      const line = String(m[1] ?? "").trim();
-      // 用 ___ 替换填空项作为问题显示
-      const displayQ = line.replace(/==[^=]+==/g, "___");
-      if (displayQ.length > 5) {
+    // 2b. 多行复杂问答卡片 (??) - 同样提取问题和答案
+    // ?? 后可能有空行，用 --- 作为答案终止符
+    const multilineComplexRegex = /^(.+)\n\?\?\n\n?([\s\S]*?)(?=\n---)/gm;
+    const multilineComplexMatches = [...clean.matchAll(multilineComplexRegex)];
+    for (const m of multilineComplexMatches) {
+      const question = String(m[1] ?? "").trim();
+      const answer = String(m[2] ?? "").trim();
+      if (question.length > 3 && answer.length > 0) {
         quizAll.push({
-          q: displayQ,
+          q: question,
+          answer: answer,
+          rawQ: `${question}\n??\n${answer}`,
           file: f.name,
           path: f.path,
-          type: "Basic",
+          type: "Multiline",
+          lineNumber: findLineNumber(question),
         });
+      }
+    }
+
+    // 3. 填空题 - 支持多种格式
+    // 格式1: ==xxx== (Obsidian 高亮)
+    // 格式2: {{xxx}} (双大括号)
+    // 格式3: {{c1::xxx}} (Anki 语法)
+
+    // 统一的填空模式检测正则
+    const clozePatterns = [
+      /==([^=]+)==/g,           // ==答案==
+      /\{\{c\d+::([^}]+)\}\}/g, // {{c1::答案}}
+      /\{\{([^}:]+)\}\}/g,      // {{答案}} (不含 c1:: 的简化版)
+    ];
+
+    // 检测行是否包含填空
+    const hasCloze = (line: string) => clozePatterns.some(p => p.test(line));
+
+    // 模板变量黑名单（这些不是填空题）
+    const templateVars = new Set([
+      'date', 'time', 'title', 'folder', 'filename', 'now', 'today', 'yesterday', 'tomorrow',
+      'week', 'month', 'year', 'hour', 'minute', 'second',
+    ]);
+
+    // 检测是否是模板变量
+    const isTemplateVar = (text: string): boolean => {
+      const lower = text.toLowerCase().trim();
+      // 检查是否在黑名单中
+      if (templateVars.has(lower)) return true;
+      // 检查是否包含冒号（模板格式如 time:dddd）
+      if (lower.includes(':')) return true;
+      // 检查是否全是小写字母（单个单词的模板变量）
+      if (/^[a-z]+$/.test(lower) && lower.length <= 10) return true;
+      return false;
+    };
+
+    // 提取所有填空答案
+    const extractClozeAnswers = (line: string): string[] => {
+      const answers: string[] = [];
+      // ==xxx==
+      for (const m of line.matchAll(/==([^=]+)==/g)) answers.push(m[1]);
+      // {{c1::xxx}}
+      for (const m of line.matchAll(/\{\{c\d+::([^}]+)\}\}/g)) answers.push(m[1]);
+      // {{xxx}} (排除模板变量和已匹配的 c1:: 格式)
+      for (const m of line.matchAll(/\{\{([^}]+)\}\}/g)) {
+        const content = m[1];
+        // 排除 c1:: 格式（已在上面处理）
+        if (/^c\d+::/.test(content)) continue;
+        // 排除模板变量
+        if (isTemplateVar(content)) continue;
+        if (!answers.includes(content)) answers.push(content);
+      }
+      return answers;
+    };
+
+    // 替换所有填空为 [...]
+    const replaceCloze = (line: string): string => {
+      return line
+        .replace(/==([^=]+)==/g, "[...]")
+        .replace(/\{\{c\d+::([^}]+)\}\}/g, "[...]")
+        .replace(/\{\{([^}:]+)\}\}/g, "[...]");
+    };
+
+    // 匹配包含填空的行
+    const lines = clean.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('#') || line.startsWith('-')) continue;
+
+      // 重置正则 lastIndex
+      clozePatterns.forEach(p => p.lastIndex = 0);
+
+      if (hasCloze(line)) {
+        const clozeAnswers = extractClozeAnswers(line);
+        const displayQ = replaceCloze(line);
+
+        if (displayQ.length > 5 && clozeAnswers.length > 0) {
+          quizAll.push({
+            q: displayQ,
+            answer: clozeAnswers.join(", "),
+            rawQ: line,
+            file: f.name,
+            path: f.path,
+            type: "Cloze",
+            lineNumber: findLineNumber(line),
+          });
+        }
       }
     }
 

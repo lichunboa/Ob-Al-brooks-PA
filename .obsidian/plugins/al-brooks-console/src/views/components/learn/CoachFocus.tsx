@@ -1,5 +1,19 @@
 import * as React from "react";
 import { InteractiveButton } from "../../../ui/components/InteractiveButton";
+import { InlineFlashcard } from "./InlineFlashcard";
+import { MemoryCalendar } from "./MemoryCalendar";
+import { ProgressChart } from "./ProgressChart";
+import { updateCardSrTag, parseCardScheduleFromLine } from "../../../core/srs-writer";
+import { ReviewResponse } from "../../../core/srs-scheduler";
+import {
+    getSRStats,
+    getSRSettings,
+    openFlashcardReview,
+    startGlobalReview,
+    isSRPluginAvailable,
+    getWeightedCardRecommendations,
+    type StrategyPerformance
+} from "../../../core/srs-bridge";
 
 /**
  * CoachFocus Props接口
@@ -37,6 +51,9 @@ export interface CoachFocusProps {
         pnl: number;
         path?: string;
     }>;
+
+    // App 实例（用于写入 SR 标记）
+    app?: any;
 }
 
 /**
@@ -61,15 +78,160 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
     can,
     runCommand,
     poorPerformingStrategies,
+    app,
 }) => {
-    // Debug Log for Memory Counts
-    React.useEffect(() => {
-        if (memory && memory.cnt) {
-            console.log("[CoachFocus] Memory Counts:", memory.cnt);
-        } else {
-            console.log("[CoachFocus] Memory or memory.cnt is missing", memory);
+    // 当前显示的卡片索引
+    const [currentQuizIndex, setCurrentQuizIndex] = React.useState(0);
+    // 批次 key（用于触发随机重排）
+    const [quizBatchKey, setQuizBatchKey] = React.useState(0);
+
+    // 获取 SRS 真实统计数据
+    const srStats = React.useMemo(() => {
+        if (!app) return null;
+        return getSRStats(app);
+    }, [app]);
+
+    // SRS 是否可用
+    const srAvailable = React.useMemo(() => {
+        return app ? isSRPluginAvailable(app) : false;
+    }, [app]);
+
+    // 合并 SRS 数据和我们的 memory 数据
+    const mergedStats = React.useMemo(() => {
+        if (srStats) {
+            return {
+                total: srStats.totalCards,        // 所有卡片
+                reviewed: srStats.reviewedCards,  // 已复习过的
+                due: srStats.dueCards,            // 到期
+                new: srStats.newCards,            // 新卡片（未复习）
+                young: srStats.youngCards,        // 年轻卡片
+                mature: srStats.matureCards,      // 成熟卡片
+                masteryPct: srStats.masteryPct,   // 掌握度（基于已复习卡片）
+                load7d: memory?.load7d ?? 0,
+                loadNext7: memory?.loadNext7 ?? [],
+            };
         }
-    }, [memory]);
+        // 回退到我们的数据（但掌握度不使用旧算法，需要 SRS 来计算真实掌握度）
+        // 掌握度计算：成熟卡片/(成熟+年轻)，无法从旧数据计算，设为 0
+        return {
+            total: memory?.total ?? 0,
+            reviewed: 0,  // 无法知道已复习多少
+            due: memory?.due ?? 0,
+            new: memory?.total ?? 0,  // 假设都是新卡片
+            young: 0,
+            mature: 0,
+            masteryPct: 0,  // 无法计算真实掌握度，显示 0
+            load7d: memory?.load7d ?? 0,
+            loadNext7: memory?.loadNext7 ?? [],
+        };
+    }, [srStats, memory]);
+
+    // 处理"开始复习"按钮 - 使用 SRS 原生复习
+    const handleStartReview = React.useCallback(() => {
+        if (app && srAvailable) {
+            startGlobalReview(app);
+        } else if (runCommand) {
+            runCommand("obsidian-spaced-repetition:srs-review-flashcards");
+        }
+    }, [app, srAvailable, runCommand]);
+
+    // 处理跳转到特定文件复习
+    const handleReviewFile = React.useCallback(async (filePath: string) => {
+        if (app && srAvailable) {
+            const success = await openFlashcardReview(app, filePath);
+            if (!success) {
+                // 回退到打开文件
+                openFile(filePath);
+            }
+        } else {
+            openFile(filePath);
+        }
+    }, [app, srAvailable, openFile]);
+
+    // 获取策略表现数据并转换为所需格式
+    const strategyPerformances = React.useMemo((): StrategyPerformance[] => {
+        if (!poorPerformingStrategies?.length) return [];
+        return poorPerformingStrategies.map(s => ({
+            name: s.name,
+            winRate: s.winRate / 100,  // 转换为 0-1
+            trades: s.trades,
+            pnl: s.pnl,
+        }));
+    }, [poorPerformingStrategies]);
+
+    // 智能权重推荐（基于策略表现 + SRS 数据）
+    const weightedRecommendations = React.useMemo(() => {
+        if (!app || !srAvailable) return [];
+        return getWeightedCardRecommendations(app, strategyPerformances, 10);
+    }, [app, srAvailable, strategyPerformances]);
+
+    // 策略匹配的 quizPool（优先推荐低胜率策略相关卡片）
+    const enhancedQuizPool = React.useMemo(() => {
+        if (!memory?.quizPool?.length) return [];
+
+        // 从卡片文件名/路径匹配策略
+        const matchStrategy = (item: any) => {
+            if (!poorPerformingStrategies?.length) return null;
+
+            for (const strategy of poorPerformingStrategies) {
+                // 匹配文件名或路径中包含策略名称
+                const strategyName = strategy.name.toLowerCase();
+                const fileName = item.file.toLowerCase();
+                const filePath = item.path.toLowerCase();
+
+                if (fileName.includes(strategyName) || filePath.includes(strategyName)) {
+                    return strategy;
+                }
+
+                // 更宽松的匹配：提取策略名称中的关键词
+                const keywords = strategyName.split(/[-_\s]+/).filter((k: string) => k.length > 2);
+                for (const keyword of keywords) {
+                    if (fileName.includes(keyword) || filePath.includes(keyword)) {
+                        return strategy;
+                    }
+                }
+            }
+            return null;
+        };
+
+        // 增强 quizPool 添加策略关联
+        const enhanced = memory.quizPool.map((item: any) => {
+            const matchedStrategy = matchStrategy(item);
+            return {
+                ...item,
+                relatedStrategy: matchedStrategy?.name,
+                strategyWinRate: matchedStrategy?.winRate,
+            };
+        });
+
+        // 使用 quizBatchKey 作为随机种子进行 Fisher-Yates 洗牌
+        const shuffled = [...enhanced];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            // 使用 quizBatchKey 影响随机性
+            const j = Math.floor(((quizBatchKey * 1234567 + i) % 1000) / 1000 * (i + 1)) % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        return shuffled;
+    }, [memory?.quizPool, poorPerformingStrategies, quizBatchKey]);
+
+    // 切换到下一张卡片（真正随机）
+    const handleNextQuiz = React.useCallback(() => {
+        if (enhancedQuizPool.length > 1) {
+            // 随机选择一个不同于当前的索引
+            let newIndex: number;
+            do {
+                newIndex = Math.floor(Math.random() * enhancedQuizPool.length);
+            } while (newIndex === currentQuizIndex && enhancedQuizPool.length > 1);
+            setCurrentQuizIndex(newIndex);
+        }
+    }, [enhancedQuizPool.length, currentQuizIndex]);
+
+    // 当 quizPool 变化时重置索引
+    React.useEffect(() => {
+        setCurrentQuizIndex(0);
+    }, [memory?.quizPool]);
+
 
     return (
         <div
@@ -145,147 +307,64 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                 </div>
             )}
 
-            {memory && memory.cnt ? (
-                <div>
+            {/* ========== 卡片类型分布 ========== */}
+            {memory && memory.cnt && (
+                <div style={{ marginBottom: "10px" }}>
                     {(() => {
                         const sBase = (memory.cnt.sNorm ?? 0) + (memory.cnt.sRev ?? 0);
                         const mMulti = (memory.cnt.mNorm ?? 0) + (memory.cnt.mRev ?? 0);
                         const cloze = memory.cnt.cloze ?? 0;
                         const total = sBase + mMulti + cloze;
-                        const seg = (val: number) => {
-                            if (total === 0) return "0px";
-                            return `${(val / total) * 100}%`;
-                        };
+                        const seg = (val: number) => total === 0 ? "0px" : `${(val / total) * 100}%`;
                         return (
-                            <div style={{ marginBottom: "10px" }}>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        height: "8px",
-                                        borderRadius: "4px",
-                                        overflow: "hidden",
-                                        gap: "1px",
-                                        background: "var(--background-modifier-border)",
-                                        marginBottom: "8px",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            width: seg(memory.cnt?.sNorm ?? 0),
-                                            background: "var(--text-muted)",
-                                            opacity: 0.55,
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            width: seg((memory.cnt?.sRev ?? 0) * 2),
-                                            background: "var(--text-muted)",
-                                            opacity: 0.35,
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            width: seg(memory.cnt?.mNorm ?? 0),
-                                            background: "var(--interactive-accent)",
-                                            opacity: 0.55,
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            width: seg((memory.cnt?.mRev ?? 0) * 2),
-                                            background: "var(--interactive-accent)",
-                                            opacity: 0.35,
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            width: seg(memory.cnt?.cloze ?? 0),
-                                            background: "var(--interactive-accent)",
-                                            opacity: 0.85,
-                                        }}
-                                    />
+                            <>
+                                <div style={{
+                                    display: "flex",
+                                    height: "6px",
+                                    borderRadius: "3px",
+                                    overflow: "hidden",
+                                    gap: "1px",
+                                    background: "var(--background-modifier-border)",
+                                    marginBottom: "6px",
+                                }}>
+                                    <div style={{ width: seg(sBase), background: "var(--text-muted)", opacity: 0.5 }} />
+                                    <div style={{ width: seg(mMulti), background: "var(--interactive-accent)", opacity: 0.6 }} />
+                                    <div style={{ width: seg(cloze), background: "var(--interactive-accent)", opacity: 0.9 }} />
                                 </div>
-
-                                <div
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 1fr 1fr",
-                                        gap: "10px",
-                                        marginBottom: "10px",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            border:
-                                                "1px solid var(--background-modifier-border)",
-                                            borderRadius: "8px",
-                                            padding: "10px",
-                                            textAlign: "center",
-                                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: "0.75em",
-                                                fontWeight: 700,
-                                                marginBottom: "4px",
-                                            }}
-                                        >
-                                            基础
-                                        </div>
-                                        <div style={{ fontWeight: 800 }}>{sBase}</div>
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            border:
-                                                "1px solid var(--background-modifier-border)",
-                                            borderRadius: "8px",
-                                            padding: "10px",
-                                            textAlign: "center",
-                                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: "0.75em",
-                                                fontWeight: 700,
-                                                marginBottom: "4px",
-                                            }}
-                                        >
-                                            多选
-                                        </div>
-                                        <div style={{ fontWeight: 800 }}>{mMulti}</div>
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            border:
-                                                "1px solid var(--background-modifier-border)",
-                                            borderRadius: "8px",
-                                            padding: "10px",
-                                            textAlign: "center",
-                                            background: "rgba(var(--mono-rgb-100), 0.02)",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                color: "var(--text-muted)",
-                                                fontSize: "0.75em",
-                                                fontWeight: 700,
-                                                marginBottom: "4px",
-                                            }}
-                                        >
-                                            填空
-                                        </div>
-                                        <div style={{ fontWeight: 800 }}>{cloze}</div>
-                                    </div>
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-around",
+                                    fontSize: "0.7em",
+                                    color: "var(--text-muted)",
+                                }}>
+                                    <span>基础 <strong>{sBase}</strong></span>
+                                    <span>多选 <strong>{mMulti}</strong></span>
+                                    <span>填空 <strong>{cloze}</strong></span>
                                 </div>
-                            </div>
+                            </>
                         );
                     })()}
+                </div>
+            )}
+
+            {memory && (
+                <>
+                    {/* ========== 记忆日历 ========== */}
+                    <MemoryCalendar
+                        loadNext7={memory.loadNext7}
+                        style={{ marginBottom: "12px" }}
+                    />
+
+                    {/* ========== 学习进度图表 ========== */}
+                    {(srStats || memory) && (
+                        <ProgressChart
+                            totalCards={mergedStats.total || 0}
+                            reviewedCards={mergedStats.reviewed || 0}
+                            dueCards={mergedStats.due || 0}
+                            load7d={mergedStats.load7d || 0}
+                            style={{ marginBottom: "12px" }}
+                        />
+                    )}
 
                     {(() => {
                         const topN = (memory.topSeries || []).slice(0, 10);
@@ -353,203 +432,155 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                         );
                     })()}
 
-                    {(() => {
-                        const canRecommendFocus =
-                            !memoryIgnoreFocus &&
-                            memory.due > 0 &&
-                            Boolean(memory.focusFile);
-
-                        const focusRec =
-                            canRecommendFocus && memory.focusFile
-                                ? {
-                                    type: "Focus" as const,
-                                    title: memory.focusFile.name.replace(/\.md$/i, ""),
-                                    path: memory.focusFile.path,
-                                    desc: `到期: ${memory.focusFile.due} | 易度: ${memory.focusFile.avgEase}`,
-                                }
-                                : null;
-
-                        const courseRec = course?.hybridRec
-                            ? (() => {
-                                const rec = course.hybridRec;
-                                const title = String(
-                                    rec.data.t || rec.data.q || "推荐"
-                                );
-                                const path = String((rec.data as any).path || "");
-                                const desc = rec.type === "New" ? "新主题" : "闪卡测验";
-                                return { type: rec.type, title, path, desc } as const;
-                            })()
-                            : null;
-
-                        const quiz =
-                            memory.quizPool.length > 0
-                                ? memory.quizPool[
-                                Math.max(0, memoryShakeIndex) % memory.quizPool.length
-                                ]
-                                : null;
-                        const randomRec = quiz
-                            ? {
-                                type: "Shake" as const,
-                                title: String(quiz.q || quiz.file),
-                                path: String(quiz.path),
-                                desc: "🎲 随机抽取",
-                            }
-                            : null;
-
-                        const rec = focusRec ?? courseRec ?? randomRec;
-                        if (!rec) return null;
-
-                        const label =
-                            rec.type === "Focus"
-                                ? "🔥 优先复习"
-                                : rec.type === "New"
-                                    ? "🚀 推荐"
-                                    : rec.type === "Review"
-                                        ? "🔄 推荐"
-                                        : "🎲 随机抽取";
-
-                        const onShake = () => {
-                            setMemoryIgnoreFocus(true);
-                            if (memory.quizPool.length > 0) {
-                                const next = Math.floor(
-                                    Math.random() * memory.quizPool.length
-                                );
-                                setMemoryShakeIndex(next);
-                            } else {
-                                setMemoryShakeIndex((x) => x + 1);
-                            }
-                        };
-
-                        return (
-                            <div
-                                style={{
-                                    border: "1px solid var(--background-modifier-border)",
-                                    borderRadius: "10px",
-                                    padding: "10px",
-                                    background: "rgba(var(--mono-rgb-100), 0.03)",
-                                    marginBottom: "10px",
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    justifyContent: "space-between",
-                                    gap: "12px",
-                                }}
-                            >
-                                <div style={{ flex: "1 1 auto" }}>
-                                    <div
-                                        style={{
-                                            fontSize: "0.85em",
-                                            fontWeight: 700,
-                                            color: "var(--text-muted)",
-                                            marginBottom: "6px",
-                                        }}
-                                    >
-                                        {label}
-                                    </div>
-                                    <div style={{ marginBottom: "6px" }}>
-                                        <InteractiveButton
-                                            interaction="text"
-                                            onClick={async () => {
-                                                // Coach Focus Item Click Handler
-                                                const targetPath = String(rec.path);
-
-                                                if (rec.type === 'Focus' || rec.type === 'Review') {
-                                                    // Targeted Review Logic:
-                                                    // 1. Open the file first (so it becomes active)
-                                                    await openFile(targetPath);
-
-                                                    // 2. Trigger "Review Request" for this specific file
-                                                    // We give a small delay to ensure file is active, then try to trigger "review-note"
-                                                    if (runCommand) {
-                                                        setTimeout(() => {
-                                                            // Try verified commands from main.js source
-                                                            const noteCommands = [
-                                                                "obsidian-spaced-repetition:srs-review-flashcards-in-note", // Correct ID
-                                                                "obsidian-spaced-repetition:srs-open-review-queue-view", // Queue
-                                                                "obsidian-spaced-repetition:review-note", // Legacy/Fallback
-                                                            ];
-                                                            for (const cmd of noteCommands) {
-                                                                console.log(`[CoachFocus] Trying command: ${cmd}`);
-                                                                if (runCommand(cmd)) return;
-                                                            }
-                                                            console.warn("[CoachFocus] Failed to trigger note review command");
-                                                        }, 200);
-                                                    }
-                                                    return;
-                                                }
-                                                // Default: Just open file
-                                                await openFile(targetPath);
-                                            }}
-                                            style={{ fontWeight: 800 }}
-                                        >
-                                            {String(rec.title)}
-                                        </InteractiveButton>
-                                    </div>
-                                    <div
-                                        style={{
-                                            color: "var(--text-faint)",
-                                            fontSize: "0.85em",
-                                        }}
-                                    >
-                                        {rec.desc}
-                                    </div>
-                                </div>
-
-                                <InteractiveButton
-                                    className="pa-btn--small"
-                                    onClick={onShake}
-                                    title="摇一摇换题（跳过优先）"
-                                >
-                                    🎲
-                                </InteractiveButton>
-                            </div>
-                        );
-                    })()}
-
-                    {memory.focusFile ? (
+                    {/* ========== SRS 记忆曲线推荐区域 ========== */}
+                    {memory.focusFile && (
                         <div
                             style={{
+                                border: "1px solid rgba(255, 149, 0, 0.3)",
+                                borderRadius: "10px",
+                                padding: "12px",
+                                background: "rgba(255, 149, 0, 0.05)",
                                 marginBottom: "10px",
-                                color: "var(--text-muted)",
-                                fontSize: "0.9em",
                             }}
                         >
-                            焦点：{" "}
-                            <InteractiveButton
-                                interaction="text"
-                                onClick={async () => {
-                                    if (runCommand) {
-                                        // 1. Open File
-                                        if (memory.focusFile) await openFile(memory.focusFile.path);
-
-                                        // 2. Trigger Targeted Chain
-                                        setTimeout(() => {
-                                            const noteCommands = [
-                                                "obsidian-spaced-repetition:srs-review-flashcards-in-note",
-                                                "obsidian-spaced-repetition:srs-open-review-queue-view"
-                                            ];
-                                            for (const cmd of noteCommands) {
-                                                if (runCommand(cmd)) return;
+                            <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                marginBottom: "8px",
+                            }}>
+                                <div style={{
+                                    fontSize: "0.85em",
+                                    fontWeight: 700,
+                                    color: "#ff9500",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                }}>
+                                    <span>🔥</span>
+                                    <span>SRS 记忆曲线推荐</span>
+                                </div>
+                                {/* 复习按钮组 */}
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                    {/* 正常复习 - 只复习到期卡片 */}
+                                    <InteractiveButton
+                                        className="pa-btn--small"
+                                        onClick={() => {
+                                            if (runCommand) {
+                                                runCommand("obsidian-spaced-repetition:srs-review-flashcards");
+                                            } else if (onAction) {
+                                                onAction("srs:review-flashcards");
                                             }
+                                        }}
+                                        title="正常复习：只复习到期和新卡片"
+                                        style={{
+                                            fontSize: "0.7em",
+                                            padding: "4px 8px",
+                                            background: "rgba(34, 197, 94, 0.15)",
+                                            border: "1px solid rgba(34, 197, 94, 0.3)",
+                                            borderRadius: "6px",
+                                        }}
+                                    >
+                                        📖 复习
+                                    </InteractiveButton>
+                                    {/* 强化复习 - 复习所有卡片 */}
+                                    <InteractiveButton
+                                        className="pa-btn--small"
+                                        onClick={() => {
+                                            if (runCommand) {
+                                                runCommand("obsidian-spaced-repetition:srs-cram-flashcards");
+                                            } else if (onAction) {
+                                                onAction("srs:cram-flashcards");
+                                            }
+                                        }}
+                                        title="强化复习：复习所有卡片（包括未到期）"
+                                        style={{
+                                            fontSize: "0.7em",
+                                            padding: "4px 8px",
+                                            background: "rgba(255, 149, 0, 0.15)",
+                                            border: "1px solid rgba(255, 149, 0, 0.3)",
+                                            borderRadius: "6px",
+                                        }}
+                                    >
+                                        🔥 强化
+                                    </InteractiveButton>
+                                </div>
+                            </div>
+                            <div
+                                onClick={async () => {
+                                    if (runCommand && memory.focusFile) {
+                                        await openFile(memory.focusFile.path);
+                                        setTimeout(() => {
+                                            runCommand("obsidian-spaced-repetition:srs-review-flashcards-in-note");
                                         }, 200);
                                     }
-                                    if (!runCommand && onAction && can && can("srs:review-flashcards")) {
-                                        onAction("srs:review-flashcards");
-                                        return;
-                                    }
-                                    // Fallback for global review button if needed logic here
                                 }}
-                                style={{ fontWeight: 600 }}
+                                style={{
+                                    padding: "10px 12px",
+                                    background: "var(--background-primary)",
+                                    border: "1px solid var(--background-modifier-border)",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    transition: "all 0.15s",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "rgba(255, 149, 0, 0.1)";
+                                    e.currentTarget.style.borderColor = "rgba(255, 149, 0, 0.4)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "var(--background-primary)";
+                                    e.currentTarget.style.borderColor = "var(--background-modifier-border)";
+                                }}
                             >
-                                {memory.focusFile.name.replace(/\.md$/i, "")}
-                            </InteractiveButton>
-                            <span
-                                style={{ marginLeft: "8px", color: "var(--text-faint)" }}
-                            >
-                                到期: {memory.focusFile.due} | 易度:{" "}
-                                {memory.focusFile.avgEase}
-                            </span>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                                        {memory.focusFile.name.replace(/\.md$/i, "")}
+                                    </div>
+                                    <div style={{
+                                        display: "flex",
+                                        gap: "10px",
+                                        fontSize: "0.75em",
+                                        color: "var(--text-muted)",
+                                    }}>
+                                        <span>
+                                            📅 到期: <strong style={{ color: memory.focusFile.due > 0 ? "#ef4444" : "var(--text-muted)" }}>
+                                                {memory.focusFile.due}
+                                            </strong>
+                                        </span>
+                                        <span>
+                                            🧠 易度: <strong style={{
+                                                color: memory.focusFile.avgEase < 200 ? "#ef4444" :
+                                                    memory.focusFile.avgEase < 250 ? "#f59e0b" : "#22c55e"
+                                            }}>
+                                                {memory.focusFile.avgEase}
+                                            </strong>
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* 难度等级标签 */}
+                                <div style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "4px",
+                                    fontSize: "0.7em",
+                                    fontWeight: 600,
+                                    background: memory.focusFile.avgEase < 200 ? "rgba(239, 68, 68, 0.15)" :
+                                        memory.focusFile.avgEase < 250 ? "rgba(245, 158, 11, 0.15)" : "rgba(34, 197, 94, 0.15)",
+                                    color: memory.focusFile.avgEase < 200 ? "#ef4444" :
+                                        memory.focusFile.avgEase < 250 ? "#f59e0b" : "#22c55e",
+                                }}>
+                                    {memory.focusFile.avgEase < 200 ? "🔴 困难" :
+                                        memory.focusFile.avgEase < 250 ? "🟡 中等" : "🟢 简单"}
+                                </div>
+                            </div>
                         </div>
-                    ) : (
+                    )}
+
+
+                    {/* ========== 焦点说明（当没有 focusFile 时显示） ========== */}
+                    {!memory.focusFile && (
                         <div
                             style={{
                                 marginBottom: "10px",
@@ -565,68 +596,123 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                         <div>
                             <div style={{
                                 fontWeight: 600,
-                                marginBottom: "6px",
+                                marginBottom: "8px",
                                 fontSize: "0.85em",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "6px"
+                                justifyContent: "space-between",
                             }}>
-                                <span>🎲</span>
-                                <span>随机抽题</span>
-                                <span style={{
-                                    color: "var(--text-muted)",
-                                    fontWeight: 400
-                                }}>({settings.srsRandomQuizCount})</span>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                }}>
+                                    <span>🎲</span>
+                                    <span>随机抽题</span>
+                                    <span style={{
+                                        color: "var(--text-muted)",
+                                        fontWeight: 400
+                                    }}>({currentQuizIndex + 1}/{memory.quizPool.length})</span>
+                                </div>
+                                <InteractiveButton
+                                    onClick={() => {
+                                        setQuizBatchKey(k => k + 1);
+                                        setCurrentQuizIndex(0);
+                                    }}
+                                    style={{
+                                        fontSize: "0.75em",
+                                        padding: "4px 8px",
+                                        background: "transparent",
+                                        border: "1px solid var(--background-modifier-border)",
+                                        borderRadius: "4px",
+                                    }}
+                                >
+                                    🔀 换一批
+                                </InteractiveButton>
                             </div>
-                            {/* 两列网格布局 */}
-                            <div style={{
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: "4px"
-                            }}>
-                                {memory.quizPool.map((q: any, idx: number) => (
-                                    <div
-                                        key={`q-${idx}`}
-                                        onClick={async () => {
-                                            console.log("[CoachFocus] Opening random quiz file:", q.path);
-                                            await openFile(q.path);
-                                            // 打开后触发 SRS 复习命令（延迟确保文件已打开）
-                                            setTimeout(() => {
-                                                if (runCommand) {
-                                                    // 直接调用 SRS 插件命令复习当前笔记的卡片
-                                                    const success = runCommand("obsidian-spaced-repetition:srs-review-flashcards-in-note");
-                                                    console.log("[CoachFocus] SRS review command result:", success);
-                                                } else if (onAction) {
-                                                    onAction("review-flashcards-in-note");
+
+                            {/* 内联卡片组件 */}
+                            {(() => {
+                                const currentQuiz = enhancedQuizPool[currentQuizIndex];
+                                if (!currentQuiz) return null;
+
+                                // 解析当前卡片的调度信息
+                                const currentSchedule = currentQuiz.rawQ
+                                    ? parseCardScheduleFromLine(currentQuiz.rawQ)
+                                    : undefined;
+
+                                return (
+                                    <InlineFlashcard
+                                        key={`quiz-${currentQuizIndex}-${currentQuiz.q.substring(0, 20)}`}
+                                        question={currentQuiz.q}
+                                        answer={currentQuiz.answer}
+                                        rawCardLine={currentQuiz.rawQ || currentQuiz.q}
+                                        sourcePath={currentQuiz.path}
+                                        sourceFile={currentQuiz.file}
+                                        cardType={currentQuiz.type === "Cloze" ? "cloze" : "basic"}
+                                        currentSchedule={currentSchedule ?? undefined}
+                                        relatedStrategy={currentQuiz.relatedStrategy}
+                                        strategyWinRate={currentQuiz.strategyWinRate}
+                                        onOpenSource={() => openFile(currentQuiz.path)}
+                                        onJumpToSRS={async () => {
+                                            // 跳转到 SRS 复习此笔记
+                                            if (runCommand) {
+                                                await openFile(currentQuiz.path);
+                                                setTimeout(() => {
+                                                    runCommand("obsidian-spaced-repetition:srs-review-flashcards-in-note");
+                                                }, 200);
+                                            }
+                                        }}
+                                        onJumpToEdit={async () => {
+                                            // 打开笔记并跳转到具体行
+                                            if (app && currentQuiz.lineNumber) {
+                                                const file = app.vault.getAbstractFileByPath(currentQuiz.path);
+                                                if (file) {
+                                                    const leaf = app.workspace.getLeaf();
+                                                    await leaf.openFile(file as any, {
+                                                        eState: { line: currentQuiz.lineNumber - 1 }  // 0-indexed
+                                                    });
                                                 }
-                                            }, 500);
+                                            } else {
+                                                openFile(currentQuiz.path);
+                                            }
                                         }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            background: "var(--background-primary)",
-                                            borderRadius: "4px",
-                                            border: "1px solid var(--background-modifier-border)",
-                                            fontSize: "0.8em",
-                                            cursor: "pointer",
-                                            transition: "all 0.15s ease",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
+                                        onNext={handleNextQuiz}
+                                        onReviewComplete={async (response) => {
+
+                                            // 将响应转换为 ReviewResponse 枚举
+                                            const responseMap: Record<string, ReviewResponse> = {
+                                                "easy": ReviewResponse.Easy,
+                                                "good": ReviewResponse.Good,
+                                                "hard": ReviewResponse.Hard,
+                                                "again": ReviewResponse.Again,
+                                            };
+
+                                            // 写入 SR 标记
+                                            if (app) {
+                                                try {
+                                                    const success = await updateCardSrTag(
+                                                        app,
+                                                        currentQuiz.path,
+                                                        currentQuiz.rawQ || currentQuiz.q,
+                                                        responseMap[response],
+                                                        currentSchedule ?? undefined
+                                                    );
+                                                    if (success) {
+                                                        // 更新成功
+                                                    }
+                                                } catch (err) {
+                                                    console.error(`[CoachFocus] Failed to update SR tag:`, err);
+                                                }
+                                            }
+
+                                            handleNextQuiz();
                                         }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = "rgba(var(--interactive-accent-rgb), 0.1)";
-                                            e.currentTarget.style.borderColor = "var(--interactive-accent)";
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = "var(--background-primary)";
-                                            e.currentTarget.style.borderColor = "var(--background-modifier-border)";
-                                        }}
-                                    >
-                                        {q.q || q.file}
-                                    </div>
-                                ))}
-                            </div>
+                                    />
+                                );
+                            })()}
                         </div>
+
                     ) : (
                         <div
                             style={{ color: "var(--text-faint)", fontSize: "0.9em" }}
@@ -634,13 +720,8 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                             在 #flashcards 笔记中未找到可抽取题库。
                         </div>
                     )}
-                </div>
-            ) : (
-                <div style={{ color: "var(--text-faint)", fontSize: "0.9em" }}>
-                    记忆数据不可用。
-                </div>
-            )
-            }
-        </div >
+                </>
+            )}
+        </div>
     );
 };
