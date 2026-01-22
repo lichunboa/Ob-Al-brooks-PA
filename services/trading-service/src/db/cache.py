@@ -108,45 +108,83 @@ class DataCache:
 
         table = f"candles_{interval}"
         updated = 0
+        symbols = [s for s in symbols if s]
+        if not symbols:
+            return updated
 
         try:
             with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
-                for symbol in symbols:
-                    last_ts = self._last_ts.get(interval, {}).get(symbol)
-                    if not last_ts:
-                        # 新币种，全量获取
-                        sql = f"""
-                            SELECT bucket_ts, open, high, low, close, volume,
-                                   quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume
-                            FROM market_data.{table}
-                            WHERE symbol = %s AND exchange = %s
-                            ORDER BY bucket_ts DESC LIMIT %s
-                        """
-                        rows = conn.execute(sql, (symbol, self.exchange, self.lookback)).fetchall()
-                    else:
-                        # 增量获取
-                        sql = f"""
-                            SELECT bucket_ts, open, high, low, close, volume,
-                                   quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume
-                            FROM market_data.{table}
-                            WHERE symbol = %s AND exchange = %s AND bucket_ts > %s
-                            ORDER BY bucket_ts ASC
-                        """
-                        rows = conn.execute(sql, (symbol, self.exchange, last_ts)).fetchall()
+                last_ts_map = self._last_ts.get(interval, {})
+                new_symbols = [s for s in symbols if not last_ts_map.get(s)]
+                known_symbols = [s for s in symbols if s not in new_symbols]
 
-                    if rows:
-                        new_df = self._rows_to_df(rows if last_ts else list(reversed(rows)))
+                # 1) 已有币种：单次增量拉取（按最小时间过滤）
+                if known_symbols:
+                    min_ts = min(last_ts_map[s] for s in known_symbols if last_ts_map.get(s))
+                    sql = f"""
+                        SELECT symbol, bucket_ts, open, high, low, close, volume,
+                               quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume
+                        FROM market_data.{table}
+                        WHERE exchange = %s AND symbol = ANY(%s) AND bucket_ts > %s
+                        ORDER BY symbol, bucket_ts ASC
+                    """
+                    rows = conn.execute(sql, (self.exchange, known_symbols, min_ts)).fetchall()
+                    rows_by_symbol: Dict[str, list] = {s: [] for s in known_symbols}
+                    for row in rows:
+                        symbol = row["symbol"]
+                        last_ts = last_ts_map.get(symbol)
+                        if last_ts and row["bucket_ts"] <= last_ts:
+                            continue
+                        row = dict(row)
+                        row.pop("symbol", None)
+                        rows_by_symbol[symbol].append(row)
+
+                    for symbol, rows_list in rows_by_symbol.items():
+                        if not rows_list:
+                            continue
+                        new_df = self._rows_to_df(rows_list)
                         with self._lock:
-                            if symbol in self._klines.get(interval, {}):
-                                # 合并
-                                old_df = self._klines[interval][symbol]
+                            old_df = self._klines.get(interval, {}).get(symbol)
+                            if old_df is not None:
                                 combined = pd.concat([old_df, new_df])
                                 combined = combined[~combined.index.duplicated(keep='last')]
                                 combined = combined.tail(self.lookback)
                                 self._klines[interval][symbol] = combined
                             else:
-                                self._klines[interval][symbol] = new_df
-                            self._last_ts[interval][symbol] = self._klines[interval][symbol].index[-1]
+                                self._klines.setdefault(interval, {})[symbol] = new_df
+                            self._last_ts.setdefault(interval, {})[symbol] = self._klines[interval][symbol].index[-1]
+                        updated += 1
+
+                # 2) 新币种：单次窗口查询（限制每个币种条数）
+                if new_symbols:
+                    sql = f"""
+                        WITH ranked AS (
+                            SELECT symbol, bucket_ts, open, high, low, close, volume,
+                                   quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume,
+                                   ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY bucket_ts DESC) as rn
+                            FROM market_data.{table}
+                            WHERE exchange = %s AND symbol = ANY(%s)
+                        )
+                        SELECT symbol, bucket_ts, open, high, low, close, volume,
+                               quote_volume, trade_count, taker_buy_volume, taker_buy_quote_volume
+                        FROM ranked WHERE rn <= %s
+                        ORDER BY symbol, bucket_ts ASC
+                    """
+                    rows = conn.execute(sql, (self.exchange, new_symbols, self.lookback)).fetchall()
+                    rows_by_symbol: Dict[str, list] = {s: [] for s in new_symbols}
+                    for row in rows:
+                        symbol = row["symbol"]
+                        row = dict(row)
+                        row.pop("symbol", None)
+                        rows_by_symbol[symbol].append(row)
+
+                    for symbol, rows_list in rows_by_symbol.items():
+                        if not rows_list:
+                            continue
+                        new_df = self._rows_to_df(rows_list)
+                        with self._lock:
+                            self._klines.setdefault(interval, {})[symbol] = new_df
+                            self._last_ts.setdefault(interval, {})[symbol] = new_df.index[-1]
                         updated += 1
         except Exception as e:
             LOG.error(f"[{interval}] 更新失败: {e}")

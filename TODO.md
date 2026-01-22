@@ -38,7 +38,7 @@ Scope: services/trading-service
 - [x] Move futures metrics IO out of indicator compute; add batch reader and cache.
   - Files: `services/trading-service/src/indicators/batch/futures_aggregate.py`, `services/trading-service/src/indicators/batch/futures_gap_monitor.py`, `services/trading-service/src/core/engine.py`
   - Accept: PG query count drops to O(intervals).
-- [ ] Batch update DataCache per interval instead of per symbol.
+- [x] Batch update DataCache per interval instead of per symbol.
   - File: `services/trading-service/src/db/cache.py`
   - Accept: TimescaleDB query count drops to O(intervals).
 - [ ] Avoid DataFrame .copy() in cache path; enforce read-only contract.
@@ -64,3 +64,4 @@ Scope: services/trading-service
 
 - 2026-01-22: Completed TvTrendCloud vectorization (Phase 1).
 - 2026-01-22: Added batch futures metrics caches to reduce per-symbol IO.
+- 2026-01-22: Batched DataCache interval updates to reduce N+1 queries.
