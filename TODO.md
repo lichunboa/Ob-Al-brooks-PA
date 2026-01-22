@@ -51,11 +51,11 @@ Scope: services/trading-service
 
 ## Phase 3: Deep refactor (maintainability + performance)
 
-- [ ] Split IO / compute / storage into clear modules (datasource, indicators, storage, pipeline).
+- [x] Split IO / compute / storage into clear modules (datasource, indicators, storage, pipeline).
   - Accept: indicators are pure compute; IO isolated.
-- [ ] Define data contracts and add tests for non-mutating inputs.
+- [x] Define data contracts and add tests for non-mutating inputs.
   - Accept: tests fail if indicators mutate input df.
-- [ ] Add a benchmark harness (no new runtime deps).
+- [x] Add a benchmark harness (no new runtime deps).
   - Accept: repeatable median timing and RSS snapshot.
 
 ## Validation checklist
@@ -74,3 +74,5 @@ Scope: services/trading-service
 - 2026-01-22: cProfile 完成（/tmp/trading.pstats）。
 - 2026-01-22: py-spy 完成（/tmp/trading.svg）。
 - 2026-01-22: DB 压力计数完成（pg_queries=7, sqlite_commits=3）。
+- 2026-01-22: 拆分 IO/Compute/Storage 模块，Engine 仅负责流程编排。
+- 2026-01-22: 增加输入不变更测试与基准测试冒烟用例。
