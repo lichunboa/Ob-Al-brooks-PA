@@ -108,7 +108,7 @@ msgid "ai.list.title"
 msgstr "🤖 AI 分析"
 
 msgid "ai.list.usage"
-msgstr "💡 触发方式\n发送 `币种@`\n例：`BTC@`"
+msgstr "💡 快捷用法\n发送 BNB@ 触发分析\n发送 BNB@@ 导出 TXT"
 
 msgid "ai.list.supported"
 msgstr "📊 可分析币种 ({count} 个)"
@@ -934,10 +934,10 @@ msgid "query.usage"
 msgstr "💡 快捷用法"
 
 msgid "query.usage_interactive"
-msgstr "`BTC!` 交互查询"
+msgstr "`BNB!` 交互查询"
 
 msgid "query.usage_export"
-msgstr "`BTC!!` 导出完整 TXT"
+msgstr "`BNB!!` 导出完整 TXT"
 
 # 期货字段按钮 - 主动成交方向
 msgid "btn.field.taker_ratio"
@@ -2857,10 +2857,10 @@ msgid "env.single_query.name"
 msgstr "🔍 单币查询"
 
 msgid "env.single_query.desc"
-msgstr "发送 BTC! 查询单币详情"
+msgstr "发送 BNB! 查询单币详情"
 
 msgid "env.single_query.help"
-msgstr "开启后可以发送如 BTC! 来查询单个币种"
+msgstr "开启后可以发送如 BNB! 来查询单个币种"
 
 msgid "env.single_query.enabled_detail"
 msgstr "可用单币查询"

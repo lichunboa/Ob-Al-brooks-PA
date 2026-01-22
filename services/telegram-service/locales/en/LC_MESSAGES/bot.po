@@ -108,7 +108,7 @@ msgid "ai.list.title"
 msgstr "🤖 AI Analysis"
 
 msgid "ai.list.usage"
-msgstr "💡 Trigger\nSend `symbol@`\nExample: `BTC@`"
+msgstr "💡 Quick use\nSend BNB@ to analyze\nSend BNB@@ for TXT"
 
 msgid "ai.list.supported"
 msgstr "📊 Supported symbols ({count})"
@@ -285,7 +285,7 @@ msgid "query.disabled"
 msgstr "⚠️ Coin query is temporarily disabled"
 
 msgid "query.hint"
-msgstr "Please send e.g. btc! to trigger coin query"
+msgstr "Please send e.g. BNB! to trigger coin query"
 
 msgid "feature.coming_soon"
 msgstr "🚧 Feature coming soon!"
@@ -934,10 +934,10 @@ msgid "query.usage"
 msgstr "💡 Quick use"
 
 msgid "query.usage_interactive"
-msgstr "`BTC!` Interactive query"
+msgstr "`BNB!` Interactive query"
 
 msgid "query.usage_export"
-msgstr "`BTC!!` Export full TXT"
+msgstr "`BNB!!` Export full TXT"
 
 # Futures field buttons - Taker direction
 msgid "btn.field.taker_ratio"
@@ -2857,10 +2857,10 @@ msgid "env.single_query.name"
 msgstr "🔍 Coin Query"
 
 msgid "env.single_query.desc"
-msgstr "Send BTC! to query coin details"
+msgstr "Send BNB! to query coin details"
 
 msgid "env.single_query.help"
-msgstr "When enabled, send e.g. BTC! to query single coin"
+msgstr "When enabled, send e.g. BNB! to query single coin"
 
 msgid "env.single_query.enabled_detail"
 msgstr "Coin query available"
