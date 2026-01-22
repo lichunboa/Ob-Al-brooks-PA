@@ -396,6 +396,7 @@ tradecat/
 ├── README.md                       # 项目文档（中文）
 ├── README_EN.md                    # 项目文档（英文）
 ├── PERFORMANCE_AUDIT_TRADING_SERVICE.md # trading-service Python 性能优化审计报告（静态审计版）
+├── PERFORMANCE_EXECUTION_TODO_TRADING_SERVICE.md # trading-service 性能优化执行 TODO
 ├── AGENTS.md                       # 本文档
 └── .python-version                 # Python 版本锁定
 ```

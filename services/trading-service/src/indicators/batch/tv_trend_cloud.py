@@ -59,7 +59,7 @@ class TvTrendCloud(Indicator):
         trend_down = ema2.iloc[-1] < smma200.iloc[-1]
 
         body_size = abs(df["close"].iloc[-1] - df["open"].iloc[-1])
-        avg_body = df.apply(lambda row: abs(row["close"] - row["open"]), axis=1).iloc[-15:].mean()
+        avg_body = (df["close"] - df["open"]).abs().iloc[-15:].mean()
         strength = (body_size / avg_body * 100) if avg_body else 0.0
 
         if (signal_3ls == "BUY" or signal_eng == "BUY") and trend_up:
