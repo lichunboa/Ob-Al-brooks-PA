@@ -229,6 +229,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 
 > **注意**：telegram-service/signals 模块已解耦，仅保留适配层 (`adapter.py`) 和 UI (`ui.py`)，信号检测逻辑全部在 signal-service 中。
 > 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。
+> 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。
 
 ### 4.4 依赖添加规则
 
@@ -396,7 +397,7 @@ tradecat/
 ├── README.md                       # 项目文档（中文）
 ├── README_EN.md                    # 项目文档（英文）
 ├── PERFORMANCE_AUDIT_TRADING_SERVICE.md # trading-service Python 性能优化审计报告（静态审计版）
-├── PERFORMANCE_EXECUTION_TODO_TRADING_SERVICE.md # trading-service 性能优化执行 TODO
+├── TODO.md                         # trading-service 性能优化执行清单
 ├── AGENTS.md                       # 本文档
 └── .python-version                 # Python 版本锁定
 ```
@@ -534,6 +535,22 @@ grep "DATABASE_URL" config/.env | grep -oP ':\K\d+(?=/)'
 # - config/.env 中 DATABASE_URL
 # - scripts/export_timescaledb.sh
 # - scripts/timescaledb_compression.sh
+# - README.md 中所有示例命令
+```
+
+### 7.8 端口冲突（双库架构）
+
+```bash
+# 旧库（5433）：与早期数据采集链兼容，export/compression 脚本默认使用
+# 新库（5434）：多 schema 架构（raw/agg/quality），.env.example 默认
+
+# 确认当前使用端口
+grep "DATABASE_URL" config/.env | grep -oP ':\K\d+(?=/)'
+
+# 若需切换端口，需同步修改：
+# - config/.env 中 DATABASE_URL
+# - scripts/export_timescaledb.sh
+# - scripts/timescaledb_compression.sh
 ```
 
 ---
@@ -618,6 +635,8 @@ CI（`.github/workflows/ci.yml`）仅执行：
 | `DEFAULT_LOCALE` | 默认语言 | `en` |
 | `SIGNAL_DATA_MAX_AGE` | 信号数据最大允许时长（秒，超限不触发） | `600` |
 | `COOLDOWN_SECONDS` | signal-service PG 全局冷却时间（秒，持久化） | `300` |
+| `SIGNAL_DATA_MAX_AGE` | 信号数据最大允许时长（秒，超限不触发） | `600` |
+| `COOLDOWN_SECONDS` | signal-service PG 全局冷却时间（秒，持久化） | `300` |
 
 ### 10.2 币种管理
 
@@ -653,6 +672,10 @@ CI（`.github/workflows/ci.yml`）仅执行：
 | `FATE_SERVICE_PORT` | fate-service | API 端口（默认 8001） |
 | `MARKETS_SERVICE_DATABASE_URL` | markets-service | 独立数据库连接 |
 | `CRYPTO_WRITE_MODE` | markets-service | 写入模式（raw/legacy） |
+| `ORDER_BOOK_TICK_INTERVAL` | markets-service | L1 tick 采样间隔（秒，默认 1） |
+| `ORDER_BOOK_FULL_INTERVAL` | markets-service | L2 full 采样间隔（秒，默认 5） |
+| `ORDER_BOOK_DEPTH` | markets-service | 每侧档位数（默认 1000） |
+| `ORDER_BOOK_RETENTION_DAYS` | markets-service | 数据保留天数（默认 30） |
 
 ---
 

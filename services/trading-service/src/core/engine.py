@@ -63,7 +63,23 @@ def _compute_batch(args: Tuple) -> Dict[str, List[dict]]:
     if futures_cache:
         try:
             from src.indicators.incremental.futures_sentiment import set_metrics_cache
-            set_metrics_cache(futures_cache)
+            latest_cache = futures_cache.get("latest_metrics") if isinstance(futures_cache, dict) else futures_cache
+            if latest_cache:
+                set_metrics_cache(latest_cache)
+        except ImportError:
+            pass
+        try:
+            from src.indicators.batch.futures_aggregate import set_history_cache
+            history_cache = futures_cache.get("history") if isinstance(futures_cache, dict) else None
+            if history_cache:
+                set_history_cache(history_cache)
+        except ImportError:
+            pass
+        try:
+            from src.indicators.batch.futures_gap_monitor import set_times_cache
+            times_cache = futures_cache.get("times") if isinstance(futures_cache, dict) else None
+            if times_cache:
+                set_times_cache(times_cache)
         except ImportError:
             pass
 
@@ -203,10 +219,29 @@ class Engine:
             ]
 
             # 预加载期货缓存
+            futures_cache: Dict[str, dict] = {}
             try:
-                from src.indicators.incremental.futures_sentiment import get_metrics_cache
-                futures_cache = get_metrics_cache()
+                if "期货情绪元数据.py" in indicators:
+                    from src.indicators.incremental.futures_sentiment import get_metrics_cache
+                    futures_cache["latest_metrics"] = get_metrics_cache()
             except ImportError:
+                pass
+
+            try:
+                if "期货情绪聚合表.py" in indicators:
+                    from src.indicators.batch.futures_aggregate import get_history_cache
+                    futures_cache["history"] = get_history_cache(symbols, self.intervals, limit=240)
+            except ImportError:
+                pass
+
+            try:
+                if "期货情绪缺口监控.py" in indicators:
+                    from src.indicators.batch.futures_gap_monitor import get_times_cache
+                    futures_cache["times"] = get_times_cache(symbols, interval="5m", limit=240)
+            except ImportError:
+                pass
+
+            if not futures_cache:
                 futures_cache = None
 
             # 分片并行计算

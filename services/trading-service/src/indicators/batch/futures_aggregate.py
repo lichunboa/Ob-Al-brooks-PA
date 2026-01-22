@@ -2,8 +2,112 @@
 import statistics
 import pandas as pd
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict
 from ..base import Indicator, IndicatorMeta, register
+
+# 期货历史缓存（按周期、按币种）
+_HISTORY_CACHE: Dict[str, Dict[str, List[dict]]] = {}
+_CACHE_TS: Dict[str, float] = {}
+_CACHE_SYMBOLS: Dict[str, set] = {}
+_CACHE_TTL_SECONDS = 60
+
+
+def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) -> Dict[str, List[dict]]:
+    """批量读取期货情绪历史数据（按币种）"""
+    import psycopg
+    from ...config import config
+
+    if not symbols:
+        return {}
+
+    # 根据周期选择表和列名（期货只有 5m/15m/1h/4h/1d/1w）
+    if interval == "5m":
+        table = "binance_futures_metrics_5m"
+        time_col = "create_time"
+        closed_col = "is_closed"
+    else:
+        table = f"binance_futures_metrics_{interval}_last"
+        time_col = "bucket"
+        closed_col = "complete"
+
+    sql = f"""
+        WITH ranked AS (
+            SELECT symbol, {time_col}, sum_open_interest, sum_open_interest_value,
+                   count_toptrader_long_short_ratio, sum_toptrader_long_short_ratio,
+                   count_long_short_ratio, sum_taker_long_short_vol_ratio, {closed_col},
+                   ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY {time_col} DESC) as rn
+            FROM market_data.{table}
+            WHERE symbol = ANY(%s) AND {time_col} > NOW() - INTERVAL '30 days'
+        )
+        SELECT symbol, {time_col}, sum_open_interest, sum_open_interest_value,
+               count_toptrader_long_short_ratio, sum_toptrader_long_short_ratio,
+               count_long_short_ratio, sum_taker_long_short_vol_ratio, {closed_col}
+        FROM ranked WHERE rn <= %s
+        ORDER BY symbol, {time_col} ASC
+    """
+
+    result: Dict[str, List[dict]] = {s: [] for s in symbols}
+    try:
+        with psycopg.connect(config.db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (symbols, limit))
+                for row in cur.fetchall():
+                    ts = row[1].replace(tzinfo=timezone.utc) if row[1] else None
+                    result[row[0]].append({
+                        "datetime": ts,
+                        "ts": int(row[1].timestamp()) if row[1] else 0,
+                        "oi": row[2], "oiv": row[3], "ctlsr": row[4],
+                        "tlsr": row[5], "lsr": row[6], "tlsvr": row[7], "x": row[8],
+                    })
+    except Exception:
+        return {}
+    return result
+
+
+def _ensure_history_cache(symbols: List[str], interval: str, limit: int):
+    """确保历史缓存可用"""
+    import time
+
+    symbols = [s for s in symbols if s]
+    if not symbols:
+        return
+
+    now = time.time()
+    stale = (now - _CACHE_TS.get(interval, 0)) >= _CACHE_TTL_SECONDS
+    if stale:
+        _HISTORY_CACHE[interval] = {}
+        _CACHE_SYMBOLS[interval] = set()
+
+    cached_symbols = _CACHE_SYMBOLS.get(interval, set())
+    missing_symbols = [s for s in symbols if s not in cached_symbols]
+
+    if stale or missing_symbols:
+        batch = _fetch_metrics_history_batch(missing_symbols or symbols, limit, interval)
+        if batch:
+            _HISTORY_CACHE.setdefault(interval, {}).update(batch)
+            _CACHE_SYMBOLS[interval] = cached_symbols.union(batch.keys())
+            _CACHE_TS[interval] = now
+
+
+def get_history_cache(symbols: List[str], intervals: List[str], limit: int = 240) -> Dict[str, Dict[str, List[dict]]]:
+    """预取多周期期货历史缓存（供引擎使用）"""
+    cache: Dict[str, Dict[str, List[dict]]] = {}
+    for interval in intervals:
+        if interval == "1m":
+            continue
+        _ensure_history_cache(symbols, interval, limit)
+        interval_cache = _HISTORY_CACHE.get(interval, {})
+        cache[interval] = {s: interval_cache.get(s, []) for s in symbols}
+    return cache
+
+
+def set_history_cache(cache: Dict[str, Dict[str, List[dict]]]):
+    """设置期货历史缓存（用于跨进程传递）"""
+    import time
+    global _HISTORY_CACHE, _CACHE_TS, _CACHE_SYMBOLS
+    _HISTORY_CACHE = cache or {}
+    _CACHE_TS = {iv: time.time() for iv in _HISTORY_CACHE}
+    _CACHE_SYMBOLS = {iv: set(_HISTORY_CACHE[iv].keys()) for iv in _HISTORY_CACHE}
 
 
 def _f(v) -> Optional[float]:
@@ -139,45 +243,11 @@ def _clip_numeric_fields(data: dict) -> dict:
 
 def get_metrics_history(symbol: str, limit: int = 100, interval: str = "5m") -> List[dict]:
     """从 PostgreSQL 读取期货情绪历史数据"""
-    import psycopg
-    from ...config import config
-
-    # 根据周期选择表和列名（期货只有 5m/15m/1h/4h/1d/1w）
-    if interval == "5m":
-        table = "binance_futures_metrics_5m"
-        time_col = "create_time"
-        closed_col = "is_closed"
-    else:
-        table = f"binance_futures_metrics_{interval}_last"
-        time_col = "bucket"
-        closed_col = "complete"
-
-    try:
-        with psycopg.connect(config.db_url) as conn:
-            with conn.cursor() as cur:
-                cur.execute(f"""
-                    SELECT {time_col}, sum_open_interest, sum_open_interest_value,
-                           count_toptrader_long_short_ratio, sum_toptrader_long_short_ratio,
-                           count_long_short_ratio, sum_taker_long_short_vol_ratio, {closed_col}
-                    FROM market_data.{table}
-                    WHERE symbol = %s AND {time_col} > NOW() - INTERVAL '30 days'
-                    ORDER BY {time_col} DESC
-                    LIMIT %s
-                """, (symbol, limit))
-                rows = cur.fetchall()
-                if not rows:
-                    return []
-                result = []
-                for row in reversed(rows):
-                    result.append({
-                        "datetime": row[0].replace(tzinfo=timezone.utc) if row[0] else None,
-                        "ts": int(row[0].timestamp()) if row[0] else 0,
-                        "oi": row[1], "oiv": row[2], "ctlsr": row[3],
-                        "tlsr": row[4], "lsr": row[5], "tlsvr": row[6], "x": row[7],
-                    })
-                return result
-    except Exception:
-        return []
+    _ensure_history_cache([symbol], interval, limit)
+    history = _HISTORY_CACHE.get(interval, {}).get(symbol, [])
+    if limit and len(history) > limit:
+        return history[-limit:]
+    return history
 
 
 @register

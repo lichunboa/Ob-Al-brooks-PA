@@ -4,11 +4,20 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 from ..base import Indicator, IndicatorMeta, register
 
+# 期货时间序列缓存（按周期、按币种）
+_TIMES_CACHE: Dict[str, Dict[str, List[datetime]]] = {}
+_CACHE_TS: Dict[str, float] = {}
+_CACHE_SYMBOLS: Dict[str, set] = {}
+_CACHE_TTL_SECONDS = 60
 
-def get_metrics_times(symbol: str, limit: int = 240, interval: str = "5m") -> List[datetime]:
-    """从 PostgreSQL 获取时间戳列表"""
+
+def _fetch_metrics_times_batch(symbols: List[str], limit: int, interval: str = "5m") -> Dict[str, List[datetime]]:
+    """批量读取期货时间序列"""
     import psycopg
     from ...config import config
+
+    if not symbols:
+        return {}
 
     # 根据周期选择表和列名
     if interval == "5m":
@@ -18,19 +27,80 @@ def get_metrics_times(symbol: str, limit: int = 240, interval: str = "5m") -> Li
         table = f"binance_futures_metrics_{interval}_last"
         time_col = "bucket"
 
+    sql = f"""
+        WITH ranked AS (
+            SELECT symbol, {time_col},
+                   ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY {time_col} DESC) as rn
+            FROM market_data.{table}
+            WHERE symbol = ANY(%s) AND {time_col} > NOW() - INTERVAL '30 days'
+        )
+        SELECT symbol, {time_col}
+        FROM ranked WHERE rn <= %s
+        ORDER BY symbol, {time_col} ASC
+    """
+
+    result: Dict[str, List[datetime]] = {s: [] for s in symbols}
     try:
         with psycopg.connect(config.db_url) as conn:
             with conn.cursor() as cur:
-                cur.execute(f"""
-                    SELECT {time_col} FROM market_data.{table}
-                    WHERE symbol = %s AND {time_col} > NOW() - INTERVAL '30 days'
-                    ORDER BY {time_col} DESC
-                    LIMIT %s
-                """, (symbol, limit))
-                rows = cur.fetchall()
-                return [r[0].replace(tzinfo=timezone.utc) for r in reversed(rows) if r[0]]
+                cur.execute(sql, (symbols, limit))
+                for row in cur.fetchall():
+                    ts = row[1].replace(tzinfo=timezone.utc) if row[1] else None
+                    if ts:
+                        result[row[0]].append(ts)
     except Exception:
-        return []
+        return {}
+    return result
+
+
+def _ensure_times_cache(symbols: List[str], interval: str, limit: int):
+    """确保时间序列缓存可用"""
+    import time
+
+    symbols = [s for s in symbols if s]
+    if not symbols:
+        return
+
+    now = time.time()
+    stale = (now - _CACHE_TS.get(interval, 0)) >= _CACHE_TTL_SECONDS
+    if stale:
+        _TIMES_CACHE[interval] = {}
+        _CACHE_SYMBOLS[interval] = set()
+
+    cached_symbols = _CACHE_SYMBOLS.get(interval, set())
+    missing_symbols = [s for s in symbols if s not in cached_symbols]
+
+    if stale or missing_symbols:
+        batch = _fetch_metrics_times_batch(missing_symbols or symbols, limit, interval)
+        if batch:
+            _TIMES_CACHE.setdefault(interval, {}).update(batch)
+            _CACHE_SYMBOLS[interval] = cached_symbols.union(batch.keys())
+            _CACHE_TS[interval] = now
+
+
+def get_times_cache(symbols: List[str], interval: str = "5m", limit: int = 240) -> Dict[str, Dict[str, List[datetime]]]:
+    """预取时间序列缓存（供引擎使用）"""
+    _ensure_times_cache(symbols, interval, limit)
+    interval_cache = _TIMES_CACHE.get(interval, {})
+    return {interval: {s: interval_cache.get(s, []) for s in symbols}}
+
+
+def set_times_cache(cache: Dict[str, Dict[str, List[datetime]]]):
+    """设置时间序列缓存（用于跨进程传递）"""
+    import time
+    global _TIMES_CACHE, _CACHE_TS, _CACHE_SYMBOLS
+    _TIMES_CACHE = cache or {}
+    _CACHE_TS = {iv: time.time() for iv in _TIMES_CACHE}
+    _CACHE_SYMBOLS = {iv: set(_TIMES_CACHE[iv].keys()) for iv in _TIMES_CACHE}
+
+
+def get_metrics_times(symbol: str, limit: int = 240, interval: str = "5m") -> List[datetime]:
+    """从 PostgreSQL 获取时间戳列表"""
+    _ensure_times_cache([symbol], interval, limit)
+    times = _TIMES_CACHE.get(interval, {}).get(symbol, [])
+    if limit and len(times) > limit:
+        return times[-limit:]
+    return times
 
 
 def detect_gaps(times: List[datetime], interval_sec: int = 300) -> Dict:

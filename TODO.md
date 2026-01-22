@@ -24,7 +24,7 @@ Scope: services/trading-service
   - File: `services/trading-service/src/indicators/batch/tv_trend_cloud.py`
   - Accept: output parity on same df; compute time reduced.
 - [x] Replace iterrows deletes with executemany in DataWriter.
-  - Files: `services/trading-service/src/db/reader.py`
+  - File: `services/trading-service/src/db/reader.py`
   - Accept: same row counts; write time reduced.
 - [x] Single transaction for per-indicator writes.
   - Files: `services/trading-service/src/db/reader.py`, `services/trading-service/src/core/engine.py`
@@ -35,8 +35,8 @@ Scope: services/trading-service
 
 ## Phase 2: Medium refactor (remove N+1 IO)
 
-- [ ] Move futures metrics IO out of indicator compute; add batch reader and cache.
-  - Files: `services/trading-service/src/indicators/batch/futures_aggregate.py`, `services/trading-service/src/indicators/batch/futures_gap_monitor.py`
+- [x] Move futures metrics IO out of indicator compute; add batch reader and cache.
+  - Files: `services/trading-service/src/indicators/batch/futures_aggregate.py`, `services/trading-service/src/indicators/batch/futures_gap_monitor.py`, `services/trading-service/src/core/engine.py`
   - Accept: PG query count drops to O(intervals).
 - [ ] Batch update DataCache per interval instead of per symbol.
   - File: `services/trading-service/src/db/cache.py`
@@ -63,3 +63,4 @@ Scope: services/trading-service
 ## Execution log
 
 - 2026-01-22: Completed TvTrendCloud vectorization (Phase 1).
+- 2026-01-22: Added batch futures metrics caches to reduce per-symbol IO.
