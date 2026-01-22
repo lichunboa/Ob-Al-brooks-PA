@@ -2,17 +2,31 @@
 import statistics
 import pandas as pd
 from datetime import datetime, timezone
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, TypedDict
 from ..base import Indicator, IndicatorMeta, register
 
+# ==================== 数据契约 ====================
+
+class FuturesMetricsRow(TypedDict, total=False):
+    """期货情绪历史单条记录契约（批量指标输入）"""
+    datetime: Optional[datetime]
+    ts: int
+    oi: Optional[float]
+    oiv: Optional[float]
+    ctlsr: Optional[float]
+    tlsr: Optional[float]
+    lsr: Optional[float]
+    tlsvr: Optional[float]
+    x: Optional[int]
+
 # 期货历史缓存（按周期、按币种）
-_HISTORY_CACHE: Dict[str, Dict[str, List[dict]]] = {}
+_HISTORY_CACHE: Dict[str, Dict[str, List[FuturesMetricsRow]]] = {}
 _CACHE_TS: Dict[str, float] = {}
 _CACHE_SYMBOLS: Dict[str, set] = {}
 _CACHE_TTL_SECONDS = 60
 
 
-def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) -> Dict[str, List[dict]]:
+def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) -> Dict[str, List[FuturesMetricsRow]]:
     """批量读取期货情绪历史数据（按币种）"""
     import psycopg
     from ...config import config
@@ -47,7 +61,7 @@ def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) 
         ORDER BY symbol, {time_col} ASC
     """
 
-    result: Dict[str, List[dict]] = {s: [] for s in symbols}
+    result: Dict[str, List[FuturesMetricsRow]] = {s: [] for s in symbols}
     try:
         with psycopg.connect(config.db_url) as conn:
             with conn.cursor() as cur:
@@ -91,9 +105,11 @@ def _ensure_history_cache(symbols: List[str], interval: str, limit: int):
             _CACHE_TS[interval] = now
 
 
-def get_history_cache(symbols: List[str], intervals: List[str], limit: int = 240) -> Dict[str, Dict[str, List[dict]]]:
+def get_history_cache(
+    symbols: List[str], intervals: List[str], limit: int = 240
+) -> Dict[str, Dict[str, List[FuturesMetricsRow]]]:
     """预取多周期期货历史缓存（供引擎使用）"""
-    cache: Dict[str, Dict[str, List[dict]]] = {}
+    cache: Dict[str, Dict[str, List[FuturesMetricsRow]]] = {}
     for interval in intervals:
         if interval == "1m":
             continue
@@ -103,7 +119,7 @@ def get_history_cache(symbols: List[str], intervals: List[str], limit: int = 240
     return cache
 
 
-def set_history_cache(cache: Dict[str, Dict[str, List[dict]]]):
+def set_history_cache(cache: Dict[str, Dict[str, List[FuturesMetricsRow]]]):
     """设置期货历史缓存（用于跨进程传递）"""
     import time
     global _HISTORY_CACHE, _CACHE_TS, _CACHE_SYMBOLS
@@ -243,7 +259,7 @@ def _clip_numeric_fields(data: dict) -> dict:
     return data
 
 
-def get_metrics_history(symbol: str, limit: int = 100, interval: str = "5m") -> List[dict]:
+def get_metrics_history(symbol: str, limit: int = 100, interval: str = "5m") -> List[FuturesMetricsRow]:
     """从 PostgreSQL 读取期货情绪历史数据"""
     _ensure_history_cache([symbol], interval, limit)
     history = _HISTORY_CACHE.get(interval, {}).get(symbol, [])
