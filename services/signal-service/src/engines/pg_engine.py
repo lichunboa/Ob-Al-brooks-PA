@@ -99,45 +99,29 @@ def _get_default_symbols() -> list[str]:
         if symbols:
             return _validate_symbols(symbols)
 
-    # 读取 SYMBOLS_GROUPS
-    groups_str = os.environ.get("SYMBOLS_GROUPS", env.get("SYMBOLS_GROUPS", "main4")).strip().lower()
+    # 将 .env 中的 SYMBOLS_* 注入环境，避免未 source 时读取不到
+    for key, val in env.items():
+        if key.startswith("SYMBOLS_") and key not in os.environ:
+            os.environ[key] = val
 
-    # 加载所有分组定义
-    all_groups = {}
-    for key in list(os.environ.keys()) + list(env.keys()):
-        if key.startswith("SYMBOLS_GROUP_"):
-            name = key[14:].lower()
-            val = os.environ.get(key, env.get(key, ""))
-            if val:
-                all_groups[name] = [s.strip().upper() for s in val.split(",") if s.strip()]
+    # 与全局符号选择逻辑保持一致（支持 all/auto）
+    try:
+        import sys
+        from pathlib import Path
 
-    # 解析选中的分组
-    selected = [g.strip() for g in groups_str.split(",") if g.strip()]
+        libs_path = str(Path(__file__).parents[4] / "libs")
+        if libs_path not in sys.path:
+            sys.path.insert(0, libs_path)
+        from common.symbols import get_configured_symbols
+    except Exception:
+        get_configured_symbols = None
 
-    # auto/all 返回默认
-    if "auto" in selected or "all" in selected:
-        return _DEFAULT_SYMBOLS
+    if get_configured_symbols:
+        configured = get_configured_symbols()
+        if configured:
+            return _validate_symbols(configured)
 
-    # 收集币种
-    symbols = set()
-    for g in selected:
-        if g in all_groups:
-            symbols.update(all_groups[g])
-
-    # 额外添加
-    extra = os.environ.get("SYMBOLS_EXTRA", env.get("SYMBOLS_EXTRA", ""))
-    if extra:
-        symbols.update(s.strip().upper() for s in extra.split(",") if s.strip())
-
-    # 强制排除
-    exclude = os.environ.get("SYMBOLS_EXCLUDE", env.get("SYMBOLS_EXCLUDE", ""))
-    if exclude:
-        for s in exclude.split(","):
-            symbols.discard(s.strip().upper())
-
-    if symbols:
-        return _validate_symbols(sorted(symbols))
-
+    # 兜底：保持原默认
     return _DEFAULT_SYMBOLS
 
 

@@ -56,8 +56,19 @@ def _fetch_all_symbols_rest() -> List[str]:
     url = os.getenv("SYMBOLS_ALL_URL", "https://fapi.binance.com/fapi/v1/exchangeInfo")
     handler = _proxy_handler()
     opener = urllib.request.build_opener(handler) if handler else urllib.request.build_opener()
-    with opener.open(url, timeout=10) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    retries = int(os.getenv("SYMBOLS_ALL_RETRIES", "3"))
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            with opener.open(url, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            break
+        except Exception as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                time.sleep(1 + attempt)
+                continue
+            raise
     symbols = []
     for item in data.get("symbols", []):
         if item.get("contractType") != "PERPETUAL":
@@ -70,7 +81,7 @@ def _fetch_all_symbols_rest() -> List[str]:
         if sym and sym.endswith("USDT"):
             symbols.append(sym)
     if not symbols:
-        raise RuntimeError("REST 返回空符号列表")
+        raise RuntimeError("REST 返回空符号列表") from last_exc
     return sorted(set(symbols))
 
 
@@ -82,7 +93,7 @@ def _get_all_symbols_cached() -> List[str]:
     if _ALL_SYMBOLS_CACHE and (now - _ALL_SYMBOLS_TS) < ttl:
         return list(_ALL_SYMBOLS_CACHE)
 
-    source = os.getenv("SYMBOLS_ALL_SOURCE", "auto").lower()
+    source = os.getenv("SYMBOLS_ALL_SOURCE", "rest").lower()
     errors = []
     symbols: List[str] = []
 
