@@ -21,9 +21,30 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from ..config import config
+from ..observability import metrics
 
 _sqlite_lock = threading.Lock()
 LOG = logging.getLogger("indicator_service.db")
+_pg_query_total = metrics.counter("pg_query_total", "PG 查询次数")
+_sqlite_commit_total = metrics.counter("sqlite_commit_total", "SQLite 提交次数")
+
+
+def get_db_counters() -> Dict[str, float]:
+    """获取 DB 计数器快照"""
+    return {
+        "pg_query_total": _pg_query_total.get(),
+        "sqlite_commit_total": _sqlite_commit_total.get(),
+    }
+
+
+def inc_pg_query():
+    """记录 PG 查询次数"""
+    _pg_query_total.inc()
+
+
+def inc_sqlite_commit():
+    """记录 SQLite commit 次数"""
+    _sqlite_commit_total.inc()
 
 
 class DataReader:
@@ -55,6 +76,11 @@ class DataReader:
         """从连接池获取连接"""
         with self.pool.connection() as conn:
             yield conn
+
+    def _execute_pg(self, conn, sql: str, params=None):
+        """执行 PG 查询并计数"""
+        inc_pg_query()
+        return conn.execute(sql, params) if params is not None else conn.execute(sql)
 
     def get_klines(self, symbols: Sequence[str], interval: str, limit: int = 300, exchange: str = None) -> Dict[str, pd.DataFrame]:
         """批量获取 K 线数据 - 并行查询"""
@@ -91,7 +117,7 @@ class DataReader:
         result = {}
         try:
             with self._conn() as conn:
-                rows = conn.execute(sql, (symbols_list, exchange, limit)).fetchall()
+                rows = self._execute_pg(conn, sql, (symbols_list, exchange, limit)).fetchall()
                 if rows:
                     from itertools import groupby
                     for symbol, group in groupby(rows, key=lambda x: x['symbol']):
@@ -126,7 +152,7 @@ class DataReader:
                         ORDER BY bucket_ts DESC
                         LIMIT %s
                     """
-                    rows = conn.execute(sql, (symbol, exchange, limit)).fetchall()
+                    rows = self._execute_pg(conn, sql, (symbol, exchange, limit)).fetchall()
                     if rows:
                         return symbol, self._rows_to_df(list(reversed(rows)))
             except Exception:
@@ -184,7 +210,7 @@ class DataReader:
                     LIMIT %s
                 """
                 try:
-                    rows = conn.execute(sql, (symbol, exchange, limit)).fetchall()
+                    rows = self._execute_pg(conn, sql, (symbol, exchange, limit)).fetchall()
                 except Exception:
                     continue
 
@@ -209,7 +235,7 @@ class DataReader:
         exchange = exchange or config.exchange
         with self._conn() as conn:
             sql = f"SELECT DISTINCT symbol FROM market_data.candles_{interval} WHERE exchange = %s"
-            return [r["symbol"] for r in conn.execute(sql, (exchange,)).fetchall()]
+            return [r["symbol"] for r in self._execute_pg(conn, sql, (exchange,)).fetchall()]
 
     def get_latest_ts(self, interval: str, exchange: str = None):
         """获取某周期最新 K 线时间戳"""
@@ -217,7 +243,7 @@ class DataReader:
         try:
             with self._conn() as conn:
                 sql = f"SELECT MAX(bucket_ts) FROM market_data.candles_{interval} WHERE exchange = %s"
-                row = conn.execute(sql, (exchange,)).fetchone()
+                row = self._execute_pg(conn, sql, (exchange,)).fetchone()
                 if row and row["max"]:
                     return row["max"]
         except Exception:
@@ -255,6 +281,7 @@ class DataWriter:
         with self._lock:
             conn = self._get_conn()
             self._write_table(conn, table, df)
+            inc_sqlite_commit()
             conn.commit()
 
     def _write_table(self, conn, table: str, df: pd.DataFrame):
@@ -353,6 +380,7 @@ class DataWriter:
                 for table, df in data.items():
                     self._write_table(conn, table, df)
 
+                inc_sqlite_commit()
                 conn.commit()
             except Exception as e:
                 conn.rollback()

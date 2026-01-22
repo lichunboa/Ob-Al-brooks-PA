@@ -15,6 +15,7 @@ def _fetch_metrics_times_batch(symbols: List[str], limit: int, interval: str = "
     """批量读取期货时间序列"""
     import psycopg
     from ...config import config
+    from ...db.reader import inc_pg_query
 
     if not symbols:
         return {}
@@ -43,6 +44,7 @@ def _fetch_metrics_times_batch(symbols: List[str], limit: int, interval: str = "
     try:
         with psycopg.connect(config.db_url) as conn:
             with conn.cursor() as cur:
+                inc_pg_query()
                 cur.execute(sql, (symbols, limit))
                 for row in cur.fetchall():
                     ts = row[1].replace(tzinfo=timezone.utc) if row[1] else None

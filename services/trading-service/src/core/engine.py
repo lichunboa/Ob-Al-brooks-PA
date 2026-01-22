@@ -138,8 +138,10 @@ class Engine:
         """运行计算 - 使用缓存，只读取一次"""
         from ..db.cache import get_cache, init_cache
 
+        from ..db.reader import get_db_counters
         with trace("engine.run", mode=mode) as span:
             start = time.time()
+            db_counters_start = get_db_counters()
 
             # 使用传入的币种，或自动获取高优先级
             if self.symbols:
@@ -273,6 +275,11 @@ class Engine:
                 _db_write_duration.observe(t_write)
                 write_span.set_tag("duration_s", round(t_write, 2))
 
+            db_counters_end = get_db_counters()
+            pg_queries = db_counters_end["pg_query_total"] - db_counters_start["pg_query_total"]
+            sqlite_commits = db_counters_end["sqlite_commit_total"] - db_counters_start["sqlite_commit_total"]
+            LOG.info("DB压力: pg_queries=%s, sqlite_commits=%s", pg_queries, sqlite_commits)
+
             total_rows = sum(len(recs) for recs_list in all_results.values() for recs in recs_list)
             total_time = time.time() - start
 
@@ -322,6 +329,7 @@ class Engine:
         import sqlite3
         import psycopg
         from ..config import config
+        from ..db.reader import inc_sqlite_commit
 
         try:
             # 1. 从 PostgreSQL 获取全市场各周期持仓总额（只取最新时间点）
@@ -365,6 +373,7 @@ class Engine:
                         WHERE 周期 = ? AND 持仓金额 IS NOT NULL AND 持仓金额 != ''
                     """, (interval,))
             sqlite_conn.commit()
+            inc_sqlite_commit()
             sqlite_conn.close()
         except Exception:
             pass  # 静默失败
@@ -373,11 +382,13 @@ class Engine:
         """清理期货表的1m数据（期货无1m粒度）"""
         import sqlite3
         from ..config import config
+        from ..db.reader import inc_sqlite_commit
         try:
             conn = sqlite3.connect(str(config.sqlite_path))
             conn.execute("DELETE FROM '期货情绪聚合表.py' WHERE 周期='1m'")
             conn.execute("DELETE FROM '期货情绪元数据.py' WHERE 周期='1m'")
             conn.commit()
+            inc_sqlite_commit()
             conn.close()
         except Exception:
             pass

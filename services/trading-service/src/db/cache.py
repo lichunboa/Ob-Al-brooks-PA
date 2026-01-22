@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 from ..config import config
+from .reader import inc_pg_query
 
 LOG = logging.getLogger("indicator_service.cache")
 
@@ -79,6 +80,7 @@ class DataCache:
                     FROM ranked WHERE rn <= %s
                     ORDER BY symbol, bucket_ts ASC
                 """
+                inc_pg_query()
                 rows = conn.execute(sql, (self.exchange, list(symbols), self.lookback)).fetchall()
 
                 # 按币种分组
@@ -128,6 +130,7 @@ class DataCache:
                         WHERE exchange = %s AND symbol = ANY(%s) AND bucket_ts > %s
                         ORDER BY symbol, bucket_ts ASC
                     """
+                    inc_pg_query()
                     rows = conn.execute(sql, (self.exchange, known_symbols, min_ts)).fetchall()
                     rows_by_symbol: Dict[str, list] = {s: [] for s in known_symbols}
                     for row in rows:
@@ -170,6 +173,7 @@ class DataCache:
                         FROM ranked WHERE rn <= %s
                         ORDER BY symbol, bucket_ts ASC
                     """
+                    inc_pg_query()
                     rows = conn.execute(sql, (self.exchange, new_symbols, self.lookback)).fetchall()
                     rows_by_symbol: Dict[str, list] = {s: [] for s in new_symbols}
                     for row in rows:

@@ -14,11 +14,13 @@ Scope: services/trading-service
   - Command: `python -m cProfile -o /tmp/trading.pstats -m src --once --mode all --symbols BTCUSDT,ETHUSDT --intervals 5m,1h`
   - Accept: top cumtime functions identified (psycopg/sqlite3/indicator compute).
   - Result: `/tmp/trading.pstats` 已生成
-- [ ] py-spy flamegraph for CPU vs IO.
+- [x] py-spy flamegraph for CPU vs IO.
   - Command: `py-spy record -o /tmp/trading.svg -- python -m src --once --mode all --symbols BTCUSDT,ETHUSDT --intervals 5m,1h`
   - Accept: dominant stacks mapped to read/compute/write stages.
-- [ ] Record DB pressure counters (SQLite commit count, PG query count).
+  - Result: `/tmp/trading.svg` 已生成
+- [x] Record DB pressure counters (SQLite commit count, PG query count).
   - Accept: per-run counters saved alongside timing.
+  - Result: pg_queries=7, sqlite_commits=3
 
 ## Phase 1: Quick wins (low risk, minimal code)
 
@@ -70,4 +72,5 @@ Scope: services/trading-service
 - 2026-01-22: Returned cached K线 DataFrame as只读引用以降低复制开销.
 - 2026-01-22: Baseline 完成（读取=0.1s, 计算=0.6s, 写入=0.84s, 总耗时 1.97s）。
 - 2026-01-22: cProfile 完成（/tmp/trading.pstats）。
-- 2026-01-22: py-spy 未找到（未生成 /tmp/trading.svg）。
+- 2026-01-22: py-spy 完成（/tmp/trading.svg）。
+- 2026-01-22: DB 压力计数完成（pg_queries=7, sqlite_commits=3）。

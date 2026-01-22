@@ -15,6 +15,7 @@ def _load_all_metrics(interval: str = "5m"):
     import time
     import psycopg
     from ...config import config
+    from ...db.reader import inc_pg_query
 
     # 缓存 60 秒
     if time.time() - _CACHE_TS.get(interval, 0) < 60 and interval in _METRICS_CACHE:
@@ -31,6 +32,7 @@ def _load_all_metrics(interval: str = "5m"):
     try:
         with psycopg.connect(config.db_url) as conn:
             with conn.cursor() as cur:
+                inc_pg_query()
                 cur.execute(f"""
                     SELECT DISTINCT ON (symbol) 
                         symbol, {time_col}, sum_open_interest, sum_open_interest_value,
