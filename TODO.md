@@ -6,12 +6,14 @@ Scope: services/trading-service
 
 ## Phase 0: Baseline and profiling (evidence first)
 
-- [ ] Run baseline workload with fixed symbols/intervals; record t_read/t_compute/t_write.
+- [x] Run baseline workload with fixed symbols/intervals; record t_read/t_compute/t_write.
   - Command: `cd services/trading-service && python -m src --once --mode all --symbols BTCUSDT,ETHUSDT --intervals 5m,1h --workers 4`
   - Accept: log line includes durations and total rows.
-- [ ] cProfile to confirm Python hotspots.
+  - Result: 读取=0.1s, 计算=0.6s, 写入=0.84s, 152行, 总耗时 1.97s
+- [x] cProfile to confirm Python hotspots.
   - Command: `python -m cProfile -o /tmp/trading.pstats -m src --once --mode all --symbols BTCUSDT,ETHUSDT --intervals 5m,1h`
   - Accept: top cumtime functions identified (psycopg/sqlite3/indicator compute).
+  - Result: `/tmp/trading.pstats` 已生成
 - [ ] py-spy flamegraph for CPU vs IO.
   - Command: `py-spy record -o /tmp/trading.svg -- python -m src --once --mode all --symbols BTCUSDT,ETHUSDT --intervals 5m,1h`
   - Accept: dominant stacks mapped to read/compute/write stages.
@@ -66,3 +68,6 @@ Scope: services/trading-service
 - 2026-01-22: Added batch futures metrics caches to reduce per-symbol IO.
 - 2026-01-22: Batched DataCache interval updates to reduce N+1 queries.
 - 2026-01-22: Returned cached K线 DataFrame as只读引用以降低复制开销.
+- 2026-01-22: Baseline 完成（读取=0.1s, 计算=0.6s, 写入=0.84s, 总耗时 1.97s）。
+- 2026-01-22: cProfile 完成（/tmp/trading.pstats）。
+- 2026-01-22: py-spy 未找到（未生成 /tmp/trading.svg）。
