@@ -11,11 +11,8 @@
 """
 import time
 import pickle
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 from typing import Dict, List, Tuple
-import pandas as pd
-
 from ..config import config
 from ..indicators.base import get_all_indicators, get_batch_indicators, get_incremental_indicators
 from ..utils.precision import trim_dataframe
@@ -33,88 +30,6 @@ _active_symbols = metrics.gauge("active_symbols", "活跃交易对数量")
 _last_compute_ts = metrics.gauge("last_compute_timestamp", "最后计算时间戳")
 
 # 全局进程池（复用）
-_executor: ProcessPoolExecutor = None
-
-
-def _get_executor(max_workers: int) -> ProcessPoolExecutor:
-    """获取或创建进程池"""
-    global _executor
-    if _executor is None:
-        _executor = ProcessPoolExecutor(max_workers=max_workers)
-    return _executor
-
-
-def _compute_batch(args: Tuple) -> Dict[str, List[dict]]:
-    """计算一批 (symbol, interval, df_bytes) 的所有指标"""
-    import pickle
-    import sys
-    import os
-
-    # 确保能找到模块
-    service_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    if service_root not in sys.path:
-        sys.path.insert(0, service_root)
-
-    from src.indicators.base import get_all_indicators
-
-    batch, indicator_names, futures_cache = args
-
-    # 设置期货缓存
-    if futures_cache:
-        try:
-            from src.indicators.incremental.futures_sentiment import set_metrics_cache
-            latest_cache = futures_cache.get("latest_metrics") if isinstance(futures_cache, dict) else futures_cache
-            if latest_cache:
-                set_metrics_cache(latest_cache)
-        except ImportError:
-            pass
-        try:
-            from src.indicators.batch.futures_aggregate import set_history_cache
-            history_cache = futures_cache.get("history") if isinstance(futures_cache, dict) else None
-            if history_cache:
-                set_history_cache(history_cache)
-        except ImportError:
-            pass
-        try:
-            from src.indicators.batch.futures_gap_monitor import set_times_cache
-            times_cache = futures_cache.get("times") if isinstance(futures_cache, dict) else None
-            if times_cache:
-                set_times_cache(times_cache)
-        except ImportError:
-            pass
-
-    indicators = get_all_indicators()
-    if indicator_names:
-        indicators = {k: v for k, v in indicators.items() if k in indicator_names}
-
-    results = {name: [] for name in indicators}
-    indicator_instances = {name: cls() for name, cls in indicators.items()}
-
-    for symbol, interval, df_bytes in batch:
-        # 反序列化 DataFrame（兼容已序列化和未序列化）
-        df = pickle.loads(df_bytes) if isinstance(df_bytes, bytes) else df_bytes
-        last_ts = df.index[-1].isoformat() if len(df) > 0 and hasattr(df.index[-1], 'isoformat') else None
-
-        for name, ind in indicator_instances.items():
-            placeholder = [{"交易对": symbol, "周期": interval, "数据时间": last_ts, "指标": None}]
-
-            if len(df) < ind.meta.lookback // 2:
-                if last_ts:
-                    results[name].append(placeholder)
-                continue
-            try:
-                result = ind.compute(df, symbol, interval)
-                if result is not None and not result.empty:
-                    results[name].append(result.to_dict('records'))
-                elif last_ts:
-                    results[name].append(placeholder)
-            except Exception:
-                if last_ts:
-                    results[name].append(placeholder)
-
-    return results
-
-
 class Engine:
     """指标计算引擎（高性能版）"""
 
@@ -136,9 +51,10 @@ class Engine:
 
     def run(self, mode: str = "all"):
         """运行计算 - 使用缓存，只读取一次"""
-        from ..db.cache import get_cache, init_cache
-
         from ..db.reader import get_db_counters
+        from .io import load_klines, preload_futures_cache
+        from .compute import compute_all
+        from .storage import write_results
         with trace("engine.run", mode=mode) as span:
             start = time.time()
             db_counters_start = get_db_counters()
@@ -182,25 +98,7 @@ class Engine:
             # 使用缓存 - 检查是否需要初始化或更新
             with trace("db.read") as read_span:
                 t0 = time.time()
-                cache = get_cache()
-                symbols_set = set(symbols)
-
-                # 检查缓存是否已初始化且包含所需周期
-                need_init = not cache._initialized or not all(iv in cache._initialized for iv in self.intervals)
-                if need_init:
-                    cache = init_cache(symbols, self.intervals, max_lookback)
-                else:
-                    # 增量更新已有缓存
-                    for iv in self.intervals:
-                        cache.update_interval(symbols, iv)
-
-                # 从缓存获取数据
-                all_klines = {}
-                for interval in self.intervals:
-                    klines = cache.get_klines(interval)
-                    for sym, df in klines.items():
-                        if sym in symbols_set:
-                            all_klines[(sym, interval)] = df
+                all_klines = load_klines(symbols, self.intervals, max_lookback)
 
                 t_read = time.time() - t0
                 _db_read_duration.observe(t_read)
@@ -221,46 +119,24 @@ class Engine:
             ]
 
             # 预加载期货缓存
-            futures_cache: Dict[str, dict] = {}
-            try:
-                if "期货情绪元数据.py" in indicators:
-                    from src.indicators.incremental.futures_sentiment import get_metrics_cache
-                    futures_cache["latest_metrics"] = get_metrics_cache()
-            except ImportError:
-                pass
-
-            try:
-                if "期货情绪聚合表.py" in indicators:
-                    from src.indicators.batch.futures_aggregate import get_history_cache
-                    futures_cache["history"] = get_history_cache(symbols, self.intervals, limit=240)
-            except ImportError:
-                pass
-
-            try:
-                if "期货情绪缺口监控.py" in indicators:
-                    from src.indicators.batch.futures_gap_monitor import get_times_cache
-                    futures_cache["times"] = get_times_cache(symbols, interval="5m", limit=240)
-            except ImportError:
-                pass
-
-            if not futures_cache:
-                futures_cache = None
+            futures_cache = preload_futures_cache(symbols, self.intervals, indicators)
 
             # 分片并行计算
             with trace("compute") as compute_span:
                 t1 = time.time()
                 indicator_names = list(indicators.keys())
-
-                if len(task_list) <= 20:
-                    all_results = _compute_batch((task_list, indicator_names, futures_cache))
-                else:
-                    all_results = self._compute_parallel(
-                        task_list,
-                        indicator_names,
-                        indicators,
-                        futures_cache,
-                        backend=self.compute_backend,
-                    )
+                all_results = compute_all(
+                    task_list,
+                    indicator_names,
+                    indicators,
+                    futures_cache,
+                    backend=self.compute_backend,
+                    max_workers=self.max_workers,
+                    max_io_workers=config.max_io_workers,
+                    max_cpu_workers=config.max_cpu_workers,
+                    compute_errors=_compute_errors,
+                    logger=LOG,
+                )
 
                 t_compute = time.time() - t1
                 _compute_duration.observe(t_compute)
@@ -270,7 +146,7 @@ class Engine:
             with trace("db.write") as write_span:
                 t2 = time.time()
                 # 写入 market_data.db（每个指标一张表，全量覆盖）
-                self._write_simple_db(all_results)
+                write_results(all_results)
                 t_write = time.time() - t2
                 _db_write_duration.observe(t_write)
                 write_span.set_tag("duration_s", round(t_write, 2))
@@ -296,161 +172,10 @@ class Engine:
             if total_time > 120:
                 alert(AlertLevel.WARNING, "计算耗时过长", f"总耗时 {total_time:.1f}s 超过阈值", symbols=len(symbols), rows=total_rows)
 
-    def _write_simple_db(self, all_results: Dict[str, list]):
-        """写入 market_data.db - 每个指标一张表，全量覆盖"""
-        from ..db.reader import writer as sqlite_writer
-
-        data: Dict[str, pd.DataFrame] = {}
-        for indicator_name, records_list in all_results.items():
-            if not records_list:
-                continue
-            # 合并所有记录
-            all_records = []
-            for records in records_list:
-                if isinstance(records, list):
-                    all_records.extend(records)
-                elif isinstance(records, dict):
-                    all_records.append(records)
-
-            if all_records:
-                data[indicator_name] = pd.DataFrame(all_records)
-
-        if data:
-            sqlite_writer.write_batch(data)
-
-        # 全局计算：市场占比
-        self._update_market_share()
-
-        # 清理期货表的1m数据（期货无1m粒度）
-        self._cleanup_futures_1m()
-
-    def _update_market_share(self):
-        """更新期货情绪聚合表的市场占比字段（基于全市场持仓总额）"""
-        import sqlite3
-        import psycopg
-        from ..config import config
-        from ..db.reader import inc_sqlite_commit
-
-        try:
-            # 1. 从 PostgreSQL 获取全市场各周期持仓总额（只取最新时间点）
-            totals = {}
-            with psycopg.connect(config.db_url) as conn:
-                with conn.cursor() as cur:
-                    # 5m 从原始表（取每个币种最新一条）
-                    cur.execute("""
-                        SELECT SUM(oiv) FROM (
-                            SELECT DISTINCT ON (symbol) sum_open_interest_value as oiv
-                            FROM market_data.binance_futures_metrics_5m
-                            WHERE create_time > NOW() - INTERVAL '1 hour'
-                            ORDER BY symbol, create_time DESC
-                        ) t
-                    """)
-                    row = cur.fetchone()
-                    if row and row[0]:
-                        totals['5m'] = float(row[0])
-
-                    # 其他周期从物化视图（取最新 bucket）
-                    for interval in ['15m', '1h', '4h', '1d', '1w']:
-                        cur.execute(f"""
-                            SELECT SUM(sum_open_interest_value)
-                            FROM market_data.binance_futures_metrics_{interval}_last
-                            WHERE bucket = (SELECT MAX(bucket) FROM market_data.binance_futures_metrics_{interval}_last)
-                        """)
-                        row = cur.fetchone()
-                        if row and row[0]:
-                            totals[interval] = float(row[0])
-
-            if not totals:
-                return
-
-            # 2. 更新 SQLite 市场占比
-            sqlite_conn = sqlite3.connect(str(config.sqlite_path))
-            for interval, total in totals.items():
-                if total > 0:
-                    sqlite_conn.execute(f"""
-                        UPDATE '期货情绪聚合表.py' 
-                        SET 市场占比 = ROUND(CAST(持仓金额 AS REAL) * 100.0 / {total}, 4)
-                        WHERE 周期 = ? AND 持仓金额 IS NOT NULL AND 持仓金额 != ''
-                    """, (interval,))
-            sqlite_conn.commit()
-            inc_sqlite_commit()
-            sqlite_conn.close()
-        except Exception:
-            pass  # 静默失败
-
-    def _cleanup_futures_1m(self):
-        """清理期货表的1m数据（期货无1m粒度）"""
-        import sqlite3
-        from ..config import config
-        from ..db.reader import inc_sqlite_commit
-        try:
-            conn = sqlite3.connect(str(config.sqlite_path))
-            conn.execute("DELETE FROM '期货情绪聚合表.py' WHERE 周期='1m'")
-            conn.execute("DELETE FROM '期货情绪元数据.py' WHERE 周期='1m'")
-            conn.commit()
-            inc_sqlite_commit()
-            conn.close()
-        except Exception:
-            pass
-
-    def _compute_parallel(
-        self,
-        task_list: list,
-        indicator_names: list,
-        indicators: dict,
-        futures_cache: dict = None,
-        backend: str = "thread",
-    ) -> Dict[str, list]:
-        """并行计算
-        
-        backend:
-            - thread: 全部用线程池（适合IO密集）
-            - process: 全部用进程池（适合CPU密集）
-            - hybrid: IO任务用线程池，CPU任务用进程池
-        """
-        batch_size = max(1, len(task_list) // self.max_workers)
-        batches = []
-        for i in range(0, len(task_list), batch_size):
-            batch = task_list[i:i + batch_size]
-            batches.append((batch, indicator_names, futures_cache))
-
-        all_results = {name: [] for name in indicators}
-
-        if backend == "thread":
-            with ThreadPoolExecutor(max_workers=config.max_io_workers) as executor:
-                futures = [executor.submit(_compute_batch, batch) for batch in batches]
-                for future in as_completed(futures):
-                    try:
-                        batch_results = future.result()
-                        for name, records_list in batch_results.items():
-                            all_results[name].extend(records_list)
-                    except Exception as e:
-                        _compute_errors.inc(1, backend="thread")
-                        LOG.error(f"计算失败: {e}")
-        elif backend == "process":
-            executor = _get_executor(config.max_cpu_workers)
-            futures = [executor.submit(_compute_batch, batch) for batch in batches]
-            for future in as_completed(futures):
-                try:
-                    batch_results = future.result()
-                    for name, records_list in batch_results.items():
-                        all_results[name].extend(records_list)
-                except Exception as e:
-                    _compute_errors.inc(1, backend="process")
-                    LOG.error(f"计算失败: {e}")
-        else:
-            # hybrid: 小批量用线程，大批量用进程
-            if len(task_list) <= 50:
-                return self._compute_parallel(task_list, indicator_names, indicators, futures_cache, "thread")
-            else:
-                return self._compute_parallel(task_list, indicator_names, indicators, futures_cache, "process")
-
-        return all_results
-
     def run_single(self, symbol: str, interval: str, indicator_name: str):
         """单次增量计算 - 走缓存"""
         from ..db.cache import get_cache
-        from ..db.reader import writer
+        from .storage import write_indicator_result
 
         ind_cls = get_all_indicators().get(indicator_name)
         if not ind_cls:
@@ -465,4 +190,4 @@ class Engine:
         result = indicator.compute(klines[symbol], symbol, interval)
         if result is not None and not result.empty:
             result = trim_dataframe(result)
-            writer.write(indicator.meta.name, result, interval)
+            write_indicator_result(indicator.meta.name, result, interval)

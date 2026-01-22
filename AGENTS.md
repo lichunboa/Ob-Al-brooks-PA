@@ -427,6 +427,21 @@ tradecat/
 └── logs/                   # 日志目录
 ```
 
+### 6.2 trading-service core 分层（IO/Compute/Storage）
+
+```
+services/trading-service/src/core/
+├── engine.py               # 流程编排：只管调度与观测
+├── io.py                   # 数据读取与缓存装配（只读）
+├── compute.py              # 指标计算与并行调度（纯计算）
+└── storage.py              # 结果落盘与后处理（只写）
+```
+
+边界约束：
+- IO 只负责读取与缓存装配，不写库、不计算指标
+- Compute 只计算，不做任何数据库读写
+- Storage 只负责落盘与后处理，不参与指标计算
+
 ---
 
 ## 7. Common Pitfalls（常见坑与修复）
