@@ -73,8 +73,8 @@ done
 echo ""
 echo "4. i18n 翻译检查..."
 if command -v msgfmt &> /dev/null; then
-    if msgfmt --check services/telegram-service/locales/zh_CN/LC_MESSAGES/bot.po >/dev/null && \
-       msgfmt --check services/telegram-service/locales/en/LC_MESSAGES/bot.po >/dev/null; then
+    if msgfmt --check -o /dev/null services/telegram-service/locales/zh_CN/LC_MESSAGES/bot.po >/dev/null && \
+       msgfmt --check -o /dev/null services/telegram-service/locales/en/LC_MESSAGES/bot.po >/dev/null; then
         success "i18n 词条检查通过"
     else
         fail "i18n 词条检查失败，请修复缺失或语法错误"
