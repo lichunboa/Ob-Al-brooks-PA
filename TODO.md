@@ -23,7 +23,7 @@ Scope: services/trading-service
 - [x] Vectorize row-wise apply in TvTrendCloud.
   - File: `services/trading-service/src/indicators/batch/tv_trend_cloud.py`
   - Accept: output parity on same df; compute time reduced.
-- [ ] Replace iterrows deletes with executemany in DataWriter.
+- [x] Replace iterrows deletes with executemany in DataWriter.
   - Files: `services/trading-service/src/db/reader.py`
   - Accept: same row counts; write time reduced.
 - [ ] Single transaction for per-indicator writes.

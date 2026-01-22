@@ -252,48 +252,53 @@ class DataWriter:
 
     def write(self, table: str, df: pd.DataFrame, interval: str = None):
         """写入单个表 - 批量 INSERT"""
+        with self._lock:
+            conn = self._get_conn()
+            self._write_table(conn, table, df)
+            conn.commit()
+
+    def _write_table(self, conn, table: str, df: pd.DataFrame):
+        """写入单表 - 复用逻辑，便于批量事务"""
         if df.empty:
             return
 
-        with self._lock:
-            conn = self._get_conn()
+        # 检查表是否存在及列是否匹配
+        try:
+            existing_cols = [c[1] for c in conn.execute(f'PRAGMA table_info([{table}])').fetchall()]
+        except Exception:
+            existing_cols = []
 
-            # 检查表是否存在及列是否匹配
-            try:
-                existing_cols = [c[1] for c in conn.execute(f'PRAGMA table_info([{table}])').fetchall()]
-            except Exception:
-                existing_cols = []
+        df_cols = list(df.columns)
 
-            df_cols = list(df.columns)
+        if existing_cols:
+            # 对齐列：缺失的补 None，多余的丢弃，避免因列不匹配重建表
+            missing = [c for c in existing_cols if c not in df_cols]
+            for c in missing:
+                df[c] = None
+            df = df[existing_cols]
+            df_cols = existing_cols
+        else:
+            # 表不存在，按当前列创建
+            df.head(0).to_sql(table, conn, if_exists="replace", index=False)
+            existing_cols = df_cols
 
-            if existing_cols:
-                # 对齐列：缺失的补 None，多余的丢弃，避免因列不匹配重建表
-                missing = [c for c in existing_cols if c not in df_cols]
-                for c in missing:
-                    df[c] = None
-                df = df[existing_cols]
-                df_cols = existing_cols
-            else:
-                # 表不存在，按当前列创建
-                df.head(0).to_sql(table, conn, if_exists="replace", index=False)
-                existing_cols = df_cols
+        # 先删除同一 (交易对, 周期, 数据时间) 的旧数据
+        if "交易对" in df_cols and "周期" in df_cols and "数据时间" in df_cols:
+            dup_rows = df[["交易对", "周期", "数据时间"]].drop_duplicates()
+            if not dup_rows.empty:
+                delete_sql = f"DELETE FROM [{table}] WHERE [交易对]=? AND [周期]=? AND [数据时间]=?"
+                delete_params = list(dup_rows.itertuples(index=False, name=None))
+                conn.executemany(delete_sql, delete_params)
 
-            # 先删除同一 (交易对, 周期, 数据时间) 的旧数据
-            if "交易对" in df_cols and "周期" in df_cols and "数据时间" in df_cols:
-                for _, row in df[["交易对", "周期", "数据时间"]].drop_duplicates().iterrows():
-                    conn.execute(f"DELETE FROM [{table}] WHERE [交易对]=? AND [周期]=? AND [数据时间]=?",
-                                 (row["交易对"], row["周期"], row["数据时间"]))
+        # 批量 INSERT - 列名用方括号包裹以支持特殊字符
+        placeholders = ",".join(["?"] * len(df_cols))
+        cols_escaped = ",".join(f"[{c}]" for c in df_cols)
+        sql = f"INSERT INTO [{table}] ({cols_escaped}) VALUES ({placeholders})"
+        data = list(df.itertuples(index=False, name=None))
+        conn.executemany(sql, data)
 
-            # 批量 INSERT - 列名用方括号包裹以支持特殊字符
-            placeholders = ",".join(["?"] * len(df_cols))
-            cols_escaped = ",".join(f"[{c}]" for c in df_cols)
-            sql = f"INSERT INTO [{table}] ({cols_escaped}) VALUES ({placeholders})"
-            data = [tuple(row) for row in df.itertuples(index=False, name=None)]
-            conn.executemany(sql, data)
-
-            # 清理旧数据
-            self._cleanup_old_data(conn, table, df)
-            conn.commit()
+        # 清理旧数据
+        self._cleanup_old_data(conn, table, df)
 
     def _cleanup_old_data(self, conn, table: str, df: pd.DataFrame):
         """清理旧数据，保留每个币种每个周期最新N条"""
@@ -311,25 +316,29 @@ class DataWriter:
         if "周期" not in df.columns or "交易对" not in df.columns or "数据时间" not in df.columns:
             return
 
-        for _, row in df[["交易对", "周期"]].drop_duplicates().iterrows():
-            symbol = row["交易对"]
-            interval = row["周期"]
-            limit = RETENTION.get(interval, 60)
+        keys = df[["交易对", "周期"]].drop_duplicates()
+        if keys.empty:
+            return
 
-            try:
-                # 删除超出保留数量的旧数据
-                conn.execute(f"""
-                    DELETE FROM [{table}]
+        params = []
+        for symbol, interval in keys.itertuples(index=False, name=None):
+            limit = RETENTION.get(interval, 60)
+            params.append((symbol, interval, symbol, interval, limit))
+
+        try:
+            # 删除超出保留数量的旧数据
+            conn.executemany(f"""
+                DELETE FROM [{table}]
+                WHERE 交易对 = ? AND 周期 = ?
+                AND 数据时间 NOT IN (
+                    SELECT 数据时间 FROM [{table}]
                     WHERE 交易对 = ? AND 周期 = ?
-                    AND 数据时间 NOT IN (
-                        SELECT 数据时间 FROM [{table}]
-                        WHERE 交易对 = ? AND 周期 = ?
-                        ORDER BY 数据时间 DESC
-                        LIMIT ?
-                    )
-                """, (symbol, interval, symbol, interval, limit))
-            except Exception:
-                pass
+                    ORDER BY 数据时间 DESC
+                    LIMIT ?
+                )
+            """, params)
+        except Exception:
+            pass
 
     def write_batch(self, data: Dict[str, pd.DataFrame], interval: str = None):
         """批量写入多个表 - 单次事务，executemany 批量插入"""
@@ -342,36 +351,7 @@ class DataWriter:
                 conn.execute("BEGIN IMMEDIATE")
 
                 for table, df in data.items():
-                    if df.empty:
-                        continue
-
-                    df_cols = list(df.columns)
-
-                    # 检查表
-                    try:
-                        existing_cols = [c[1] for c in conn.execute(f'PRAGMA table_info([{table}])').fetchall()]
-                    except Exception:
-                        existing_cols = []
-
-                    if existing_cols:
-                        missing = [c for c in existing_cols if c not in df_cols]
-                        for c in missing:
-                            df[c] = None
-                        df = df[existing_cols]
-                        df_cols = existing_cols
-                    else:
-                        conn.execute(f"DROP TABLE IF EXISTS [{table}]")
-                        df.head(0).to_sql(table, conn, if_exists="replace", index=False)
-
-                    # 批量 INSERT - 列名用方括号包裹以支持特殊字符
-                    placeholders = ",".join(["?"] * len(df_cols))
-                    cols_escaped = ",".join(f"[{c}]" for c in df_cols)
-                    sql = f"INSERT INTO [{table}] ({cols_escaped}) VALUES ({placeholders})"
-                    data_tuples = [tuple(row) for row in df.itertuples(index=False, name=None)]
-                    conn.executemany(sql, data_tuples)
-
-                    # 清理旧数据
-                    self._cleanup_old_data(conn, table, df)
+                    self._write_table(conn, table, df)
 
                 conn.commit()
             except Exception as e:
