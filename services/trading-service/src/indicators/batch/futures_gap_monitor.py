@@ -1,8 +1,18 @@
 """期货情绪缺口监控 - 检测5m情绪数据缺口"""
 import pandas as pd
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional, TypedDict
 from ..base import Indicator, IndicatorMeta, register
+
+# ==================== 数据契约 ====================
+
+class GapInfo(TypedDict):
+    """期货情绪缺口监控输出契约"""
+    已加载根数: int
+    最新时间: Optional[str]
+    缺失根数: Optional[int]
+    首缺口起: Optional[str]
+    首缺口止: Optional[str]
 
 # 期货时间序列缓存（按周期、按币种）
 _TIMES_CACHE: Dict[str, Dict[str, List[datetime]]] = {}
@@ -105,7 +115,7 @@ def get_metrics_times(symbol: str, limit: int = 240, interval: str = "5m") -> Li
     return times
 
 
-def detect_gaps(times: List[datetime], interval_sec: int = 300) -> Dict:
+def detect_gaps(times: List[datetime], interval_sec: int = 300) -> GapInfo:
     """检测时间序列中的缺口"""
     if not times:
         return {"已加载根数": 0, "最新时间": None, "缺失根数": None, "首缺口起": None, "首缺口止": None}
