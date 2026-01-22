@@ -72,14 +72,14 @@ def _compute_batch(args: Tuple) -> Dict[str, List[dict]]:
         indicators = {k: v for k, v in indicators.items() if k in indicator_names}
 
     results = {name: [] for name in indicators}
+    indicator_instances = {name: cls() for name, cls in indicators.items()}
 
     for symbol, interval, df_bytes in batch:
         # 反序列化 DataFrame（兼容已序列化和未序列化）
         df = pickle.loads(df_bytes) if isinstance(df_bytes, bytes) else df_bytes
         last_ts = df.index[-1].isoformat() if len(df) > 0 and hasattr(df.index[-1], 'isoformat') else None
 
-        for name, cls in indicators.items():
-            ind = cls()
+        for name, ind in indicator_instances.items():
             placeholder = [{"交易对": symbol, "周期": interval, "数据时间": last_ts, "指标": None}]
 
             if len(df) < ind.meta.lookback // 2:

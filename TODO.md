@@ -29,7 +29,7 @@ Scope: services/trading-service
 - [x] Single transaction for per-indicator writes.
   - Files: `services/trading-service/src/db/reader.py`, `services/trading-service/src/core/engine.py`
   - Accept: commit count drops from O(K) to O(1) per run.
-- [ ] Reuse indicator instances per batch after verifying statelessness.
+- [x] Reuse indicator instances per batch after verifying statelessness.
   - File: `services/trading-service/src/core/engine.py`
   - Accept: output parity across repeated runs.
 
