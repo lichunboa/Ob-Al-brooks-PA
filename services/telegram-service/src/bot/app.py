@@ -6149,8 +6149,7 @@ async def post_init(application):
 
     # 启动 PG 实时信号检测服务
     try:
-        from signals.pg_engine import start_pg_signal_loop, get_pg_engine
-        from signals.pg_formatter import get_pg_formatter
+        from signals import start_pg_signal_loop, get_pg_engine, get_pg_formatter
         from signals.ui import get_signal_push_kb, _get_subscribers
         import time
         from collections import deque

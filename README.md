@@ -171,12 +171,15 @@ networkingMode=mirrored
 ### ⚙️ 最短可跑通三步
 
 ```bash
+# 0) 环境检查（可选，推荐部署前运行）
+./scripts/check_env.sh
+
 # 1) 初始化（创建各服务 .venv + 依赖 + 复制配置模板）
 ./scripts/init.sh
 
 # 2) 填写全局配置（含 BOT_TOKEN / DB / 代理 等）
 cp config/.env.example config/.env && chmod 600 config/.env
-# 将 DATABASE_URL 端口改为 5433 以与仓库脚本一致（脚本默认 5433，模板默认 5434）
+# 端口选择：保持 5434（新库）或改为 5433（旧库），见下方端口说明
 vim config/.env
 
 # 3) 启动核心服务（data + trading + telegram）
