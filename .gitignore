@@ -216,8 +216,18 @@ ai服务多方法支持，传统多api（主要支持免费的）
 # Large local logs
 polymarket-bot.out
 
-codex resume 019be61a-c9c1-7d30-8cba-37ac42a2e327
+ai交易；codex resume 019be75d-562a-7b20-b6ad-ff65171ec762
 
-codex resume 019be615-aa82-7002-a688-4094cec52d19
+币种查询，ai分析前端；codex resume 019be754-b4f2-7a23-98d6-a494cea5ae5f
 
-codex resume 019be60a-8ae2-7041-bec0-32d2ddd6ed5a
+整理/运维；codex resume 019be615-aa82-7002-a688-4094cec52d19
+
+数据库优化；codex resume 019be782-1aae-7020-adab-826c8ade30c6
+
+数据库读写；codex resume 019be77b-9ece-7aa0-ab84-714faaa9f338
+
+性能审计；codex resume 019be77f-8345-7dd1-8e76-242686252b8b
+
+git；codex resume 019be60a-8ae2-7041-bec0-32d2ddd6ed5a
+
+性能；codex resume 019be61a-c9c1-7d30-8cba-37ac42a2e327
