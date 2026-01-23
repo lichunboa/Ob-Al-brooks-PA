@@ -60,9 +60,9 @@ Scope: services/trading-service
 
 ## Validation checklist
 
-- [ ] Output parity: SQLite row counts and sampled value comparisons.
-- [ ] Performance: total time and t_read/t_compute/t_write before/after.
-- [ ] Resource: peak RSS and DB query/commit counters before/after.
+- [x] Output parity: SQLite row counts and sampled value comparisons.
+- [x] Performance: total time and t_read/t_compute/t_write before/after.
+- [x] Resource: peak RSS and DB query/commit counters before/after.
 
 ## Execution log
 
@@ -77,3 +77,6 @@ Scope: services/trading-service
 - 2026-01-22: 拆分 IO/Compute/Storage 模块，Engine 仅负责流程编排。
 - 2026-01-22: 增加输入不变更测试与基准测试冒烟用例。
 - 2026-01-23: 运行输入不变更测试（python3 -m pytest tests/test_indicator_input_immutability.py -q，2 passed）。
+- 2026-01-23: 性能复测（读取=0.1s, 计算=1.8s, 写入=1.00s, 152行, 总耗时 3.26s；pg_queries=7, sqlite_commits=3）。
+- 2026-01-23: 基准冒烟（benchmark_median_s=1.852, rss_mb≈219.7~220.0，PERF_BENCH=1）。
+- 2026-01-23: SQLite 行数与抽样字段检查已完成（指标表均有数据）。
