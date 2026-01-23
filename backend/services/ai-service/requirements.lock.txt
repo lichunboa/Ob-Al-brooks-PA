@@ -1,0 +1,6 @@
+# Auto-generated lock file - do not edit manually
+# Generated: 2026-01-08
+psycopg==3.3.2
+psycopg-binary==3.3.2
+python-dotenv==1.2.1
+typing_extensions==4.15.0

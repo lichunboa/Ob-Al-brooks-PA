@@ -63,3 +63,17 @@ Exports/al-brooks-console/snapshot_*.json
 
 # --- 本地索引数据库（例如 Space/Dataview 等产生的 .mdb） ---
 Tags/**/.space/*.mdb
+
+# --- Backend Services ---
+# TradeCat 克隆的源码目录（不需要纳入版本控制，可单独管理）
+backend-tradecat-source/
+
+# Docker & Python 缓存
+**/__pycache__/
+**/*.pyc
+**/.env
+**/venv/
+**/.venv/
+
+# Backend logs
+backend/logs/

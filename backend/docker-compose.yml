@@ -1,0 +1,155 @@
+# ============================================================
+# AL Brooks Trading Console - Backend Services
+# ============================================================
+#
+# Based on TradeCat (MIT License) with customizations for Al Brooks PA
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up -d timescaledb  # Start database only
+#   docker-compose logs -f            # View logs
+#   docker-compose down               # Stop all services
+#
+# ============================================================
+
+version: '3.8'
+
+services:
+  # ============================================================
+  # TimescaleDB - Time-series database
+  # ============================================================
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: al-brooks-timescaledb
+    restart: unless-stopped
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: market_data
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Data Service - Market data collection (from TradeCat)
+  # ============================================================
+  data-service:
+    build:
+      context: ./services/data-service
+      dockerfile: Dockerfile
+    container_name: al-brooks-data-service
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+    command: ["python", "-m", "src", "--all"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  # ============================================================
+  # Trading Service - Technical indicators (from TradeCat)
+  # ============================================================
+  trading-service:
+    build:
+      context: ./services/trading-service
+      dockerfile: Dockerfile
+    container_name: al-brooks-trading-service
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      data-service:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+      INDICATOR_SQLITE_PATH: /app/data/indicators.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  # ============================================================
+  # Signal Service - Pattern detection (from TradeCat)
+  # ============================================================
+  signal-service:
+    build:
+      context: ./services/signal-service
+      dockerfile: Dockerfile
+    container_name: al-brooks-signal-service
+    restart: unless-stopped
+    depends_on:
+      trading-service:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+      INDICATOR_SQLITE_PATH: /app/data/indicators.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  # ============================================================
+  # AI Service - LLM Analysis (from TradeCat)
+  # ============================================================
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: al-brooks-ai-service
+    restart: unless-stopped
+    depends_on:
+      trading-service:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      INDICATOR_SQLITE_PATH: /app/data/indicators.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./prompts:/app/prompts
+
+  # ============================================================
+  # API Gateway - REST API for Obsidian plugin
+  # ============================================================
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: al-brooks-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    depends_on:
+      - timescaledb
+      - trading-service
+      - signal-service
+      - ai-service
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+      INDICATOR_SQLITE_PATH: /app/data/indicators.db
+      API_HOST: 0.0.0.0
+      API_PORT: 8088
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+volumes:
+  timescaledb_data:
+    driver: local

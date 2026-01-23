@@ -1,0 +1,8 @@
+# trading-service 依赖
+psycopg[binary,pool]>=3.1.0
+pandas>=2.0.0
+numpy>=1.24.0
+TA-Lib>=0.4.0
+
+# K线形态识别 (使用 TA-Lib 替代 m-patternpy)
+# m-patternpy 已从 PyPI 移除，形态识别功能暂时使用 TA-Lib 的 pattern 函数

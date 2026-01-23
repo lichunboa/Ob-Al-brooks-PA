@@ -7,23 +7,23 @@ export interface TradeIndexStats {
 	dirty: boolean;
 }
 
-// PA Tag 快照
-export type PaTagSnapshot = {
+// PA Tag Snapshot 类型
+export interface PaTagSnapshot {
 	files: number;
 	tagMap: Record<string, number>;
 	generatedAtIso?: string;
-};
+}
 
-// 模式问题项
-export type SchemaIssueItem = {
+// Schema Issue 类型
+export interface SchemaIssueItem {
 	path: string;
 	name: string;
 	key: string;
 	type: string;
 	val?: string;
-};
+}
 
-// 策略统计属性
+// Strategy Stats Props 类型
 export interface StrategyStatsProps {
 	total: number;
 	activeCount: number;

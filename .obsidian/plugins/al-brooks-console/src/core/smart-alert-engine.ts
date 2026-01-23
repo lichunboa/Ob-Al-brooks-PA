@@ -1,6 +1,6 @@
 /**
  * 智能预警引擎 (Smart Alert Engine)
- * 
+ *
  * 整合项目现有数据结构生成智能交易警告：
  * - Templates/属性值预设.md → 属性定义
  * - Templates/PA标签体系.md → 标签体系 (#PA/Trade, #flashcards, #task/*)
@@ -8,11 +8,13 @@
  * - Categories 分类 → 概念笔记链接
  * - Daily/Trades → 交易记录
  * - memory (学习卡片) → 薄弱点分析
+ * - Backend Signals (TradeCat) → 实时市场信号
  */
 
 import type { TradeRecord } from "./contracts";
 import type { MarketState } from "./market-state-machine";
 import type { MemorySnapshot } from "./memory";
+import type { SignalData, MarketCycleData, PatternData } from "../services/backend-client";
 
 // ============================================
 // 类型定义
@@ -78,6 +80,16 @@ export interface SmartAlertInput {
     // 属性预设 (从 Templates/属性值预设.md 解析)
     executionQualities?: string[];  // 执行评价枚举
     missedReasons?: string[];       // 错过原因枚举
+
+    // ============================================
+    // Backend Integration (TradeCat)
+    // ============================================
+    /** 后端实时信号 */
+    backendSignals?: SignalData[];
+    /** 后端市场周期分析 */
+    backendMarketCycle?: MarketCycleData;
+    /** 后端形态识别 */
+    backendPatterns?: PatternData;
 }
 
 /**
@@ -111,6 +123,21 @@ export function buildSmartAlerts(input: SmartAlertInput): SmartAlert[] {
     // 5. 学习薄弱点 (基于 #flashcards 卡片)
     if (input.memory) {
         alerts.push(...analyzeLearningWeakness(input.memory, input.marketState));
+    }
+
+    // 6. 后端实时信号 (TradeCat Integration)
+    if (input.backendSignals && input.backendSignals.length > 0) {
+        alerts.push(...analyzeBackendSignals(input.backendSignals));
+    }
+
+    // 7. 后端市场周期分析
+    if (input.backendMarketCycle) {
+        alerts.push(...analyzeBackendMarketCycle(input.backendMarketCycle, input.strategies));
+    }
+
+    // 8. 后端形态识别
+    if (input.backendPatterns && input.backendPatterns.patterns.length > 0) {
+        alerts.push(...analyzeBackendPatterns(input.backendPatterns, input.strategies));
     }
 
     // 按优先级排序
@@ -439,6 +466,188 @@ function analyzeLearningWeakness(
             source: '掌握度',
             message: `📊 整体掌握度 ${memory.masteryPct}%`,
             detail: '建议每天坚持复习，提高掌握度',
+        });
+    }
+
+    return alerts;
+}
+
+// ============================================
+// Backend Integration (TradeCat)
+// ============================================
+
+/**
+ * 分析后端实时信号
+ */
+function analyzeBackendSignals(signals: SignalData[]): SmartAlert[] {
+    const alerts: SmartAlert[] = [];
+
+    // 按时间排序，取最新的信号
+    const sortedSignals = [...signals].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // 处理最近的高强度信号
+    const recentHighStrength = sortedSignals.filter(s => s.strength >= 0.7).slice(0, 3);
+
+    recentHighStrength.forEach(signal => {
+        const directionEmoji = signal.direction === 'BUY' ? '🟢' : signal.direction === 'SELL' ? '🔴' : '⚠️';
+        const priority = signal.strength >= 0.9 ? 5 : signal.strength >= 0.8 ? 4 : 3;
+
+        alerts.push({
+            type: 'warning',
+            priority,
+            source: '后端信号',
+            message: `${directionEmoji} ${signal.signal_name} (${signal.symbol})`,
+            detail: signal.message,
+            tags: [`signal:${signal.direction.toLowerCase()}`, `strength:${Math.round(signal.strength * 100)}%`],
+        });
+    });
+
+    // 统计信号方向
+    const buyCount = signals.filter(s => s.direction === 'BUY').length;
+    const sellCount = signals.filter(s => s.direction === 'SELL').length;
+
+    if (signals.length >= 3) {
+        if (buyCount > sellCount * 2) {
+            alerts.push({
+                type: 'tip',
+                priority: 2,
+                source: '信号统计',
+                message: `📈 多头信号占优 (${buyCount}买/${sellCount}卖)`,
+                detail: '多数技术指标显示看多',
+            });
+        } else if (sellCount > buyCount * 2) {
+            alerts.push({
+                type: 'tip',
+                priority: 2,
+                source: '信号统计',
+                message: `📉 空头信号占优 (${sellCount}卖/${buyCount}买)`,
+                detail: '多数技术指标显示看空',
+            });
+        }
+    }
+
+    return alerts;
+}
+
+/**
+ * 分析后端市场周期
+ */
+function analyzeBackendMarketCycle(
+    cycle: MarketCycleData,
+    strategies: StrategyNote[]
+): SmartAlert[] {
+    const alerts: SmartAlert[] = [];
+
+    // 市场周期映射到中文描述
+    const cycleDescriptions: Record<string, string> = {
+        strong_trend: '强趋势',
+        weak_trend: '弱趋势',
+        trading_range: '交易区间',
+        breakout: '突破',
+    };
+
+    const aiDirections: Record<string, string> = {
+        long: '多头',
+        short: '空头',
+        neutral: '中性',
+    };
+
+    const cycleDesc = cycleDescriptions[cycle.cycle] || cycle.cycle;
+    const dirDesc = aiDirections[cycle.always_in] || cycle.always_in;
+
+    // 市场周期警告
+    if (cycle.confidence >= 0.7) {
+        alerts.push({
+            type: 'tip',
+            priority: 3,
+            source: 'AI市场分析',
+            message: `📊 ${cycleDesc} (${dirDesc}) - 置信度 ${Math.round(cycle.confidence * 100)}%`,
+            detail: `${cycle.symbol} ${cycle.interval} 周期分析`,
+            tags: [`cycle:${cycle.cycle}`, `direction:${cycle.always_in}`],
+        });
+    }
+
+    // 找到匹配当前周期的策略
+    const cycleKeywords: Record<string, string[]> = {
+        strong_trend: ['趋势', '突破', '追踪', 'H1', 'H2', 'L1', 'L2', 'Breakout'],
+        weak_trend: ['通道', '回调', '楔形', 'Channel', 'Wedge', 'Pullback'],
+        trading_range: ['区间', '高抛低吸', 'Range', 'Fade', 'Scalp'],
+        breakout: ['突破', '缺口', 'Gap', 'Spike', 'Breakout'],
+    };
+
+    const keywords = cycleKeywords[cycle.cycle] || [];
+    const matchedStrategies = strategies.filter(s => {
+        const name = (s.strategy || '').toLowerCase();
+        return s.status === 'Active' && keywords.some(k => name.includes(k.toLowerCase()));
+    }).slice(0, 2);
+
+    if (matchedStrategies.length > 0) {
+        alerts.push({
+            type: 'strategy',
+            priority: 3,
+            source: 'AI策略匹配',
+            message: `🎯 推荐策略: ${matchedStrategies.map(s => s.strategy).join(', ')}`,
+            detail: `基于当前 ${cycleDesc} 市场周期`,
+            action: matchedStrategies[0] ? {
+                label: '查看策略',
+                path: matchedStrategies[0].path,
+            } : undefined,
+        });
+    }
+
+    return alerts;
+}
+
+/**
+ * 分析后端形态识别
+ */
+function analyzeBackendPatterns(
+    patternData: PatternData,
+    strategies: StrategyNote[]
+): SmartAlert[] {
+    const alerts: SmartAlert[] = [];
+
+    // 取高置信度的形态
+    const highConfPatterns = patternData.patterns
+        .filter(p => p.confidence >= 0.7)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3);
+
+    highConfPatterns.forEach(pattern => {
+        alerts.push({
+            type: 'pattern',
+            priority: pattern.confidence >= 0.9 ? 4 : 3,
+            source: 'AI形态识别',
+            message: `🔍 ${pattern.name} (${pattern.type})`,
+            detail: `置信度 ${Math.round(pattern.confidence * 100)}% - K线 #${pattern.bar_index}`,
+            tags: [`pattern:${pattern.type}`],
+        });
+    });
+
+    // 形态与策略匹配
+    const patternNames = highConfPatterns.map(p => p.name.toLowerCase());
+    const matchedStrategies = strategies.filter(s => {
+        const strategyName = (s.strategy || '').toLowerCase();
+        const patterns = (s.patterns || []).map(p => p.toLowerCase());
+        return s.status === 'Active' && (
+            patternNames.some(pn => strategyName.includes(pn)) ||
+            patterns.some(sp => patternNames.some(pn => sp.includes(pn) || pn.includes(sp)))
+        );
+    }).slice(0, 2);
+
+    if (matchedStrategies.length > 0) {
+        alerts.push({
+            type: 'strategy',
+            priority: 3,
+            source: '形态策略匹配',
+            message: `📌 形态关联策略: ${matchedStrategies.map(s => s.strategy).join(', ')}`,
+            detail: `检测到的形态可应用这些策略`,
+            action: matchedStrategies[0] ? {
+                label: '查看策略',
+                path: matchedStrategies[0].path,
+            } : undefined,
         });
     }
 
