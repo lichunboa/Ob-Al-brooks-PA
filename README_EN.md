@@ -850,6 +850,7 @@ tradecat/
 │   ├── init.sh                     # Initialization script
 │   ├── start.sh                    # Unified start/daemon script
 │   ├── verify.sh                   # Verification script
+│   ├── sync_market_data_to_rds.py  # SQLite -> PostgreSQL incremental sync
 │   ├── export_timescaledb.sh       # Data export
 │   └── timescaledb_compression.sh  # Compression management
 │

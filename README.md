@@ -849,6 +849,7 @@ tradecat/
 │   ├── init.sh                     # 初始化脚本
 │   ├── start.sh                    # 统一启动/守护脚本
 │   ├── verify.sh                   # 验证脚本
+│   ├── sync_market_data_to_rds.py  # SQLite -> PostgreSQL 增量同步
 │   ├── export_timescaledb.sh       # 数据导出
 │   └── timescaledb_compression.sh  # 压缩管理
 │

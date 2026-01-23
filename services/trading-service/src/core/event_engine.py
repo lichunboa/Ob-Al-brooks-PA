@@ -63,6 +63,9 @@ class EventEngine:
         self._ready_for_events = False  # 已识别高优先级币种，可以接受 NOTIFY
         self._high_symbols = []
         self._interval_locks: Dict[str, threading.Lock] = {}
+        self._listen_conn = None
+        self._listen_backoff = 1
+        self._listen_last_ping = 0.0
 
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -73,6 +76,37 @@ class EventEngine:
 
     def stop(self):
         self._running = False
+        self._close_listener()
+
+    def _close_listener(self):
+        """关闭监听连接"""
+        if self._listen_conn:
+            try:
+                self._listen_conn.close()
+            except Exception:
+                pass
+        self._listen_conn = None
+
+    def _connect_listener(self):
+        """建立或复用 LISTEN 连接"""
+        if self._listen_conn and not self._listen_conn.closed:
+            return self._listen_conn
+
+        while self._running:
+            try:
+                conn = psycopg.connect(config.db_url, autocommit=True, connect_timeout=3)
+                conn.execute("LISTEN candle_1m_update")
+                conn.execute("LISTEN metrics_5m_update")
+                self._listen_conn = conn
+                self._listen_last_ping = time.time()
+                self._listen_backoff = 1
+                LOG.info("LISTEN 连接已建立")
+                return conn
+            except Exception as e:
+                LOG.warning("LISTEN 连接失败: %s", e)
+                time.sleep(self._listen_backoff)
+                self._listen_backoff = min(self._listen_backoff * 2, 30)
+        return None
 
     def run(self):
         """主运行循环"""
@@ -116,17 +150,25 @@ class EventEngine:
 
     def _listen_loop(self):
         """监听 PostgreSQL NOTIFY"""
-        conn = psycopg.connect(config.db_url, autocommit=True)
-        conn.execute("LISTEN candle_1m_update")
-        conn.execute("LISTEN metrics_5m_update")
-        LOG.info("开始监听: candle_1m_update, metrics_5m_update")
-
         while self._running:
-            if select.select([conn], [], [], 1.0)[0]:
-                for notify in conn.notifies():
-                    self._handle_notify(notify.channel, notify.payload)
+            conn = self._connect_listener()
+            if not conn:
+                break
+            try:
+                if select.select([conn], [], [], 1.0)[0]:
+                    for notify in conn.notifies():
+                        self._handle_notify(notify.channel, notify.payload)
 
-        conn.close()
+                now = time.time()
+                if now - self._listen_last_ping >= 30:
+                    conn.execute("SELECT 1")
+                    self._listen_last_ping = now
+            except Exception as e:
+                LOG.warning("监听中断，准备重连: %s", e)
+                self._close_listener()
+                continue
+
+        self._close_listener()
 
     def _handle_notify(self, channel: str, payload: str):
         """处理 NOTIFY 消息"""

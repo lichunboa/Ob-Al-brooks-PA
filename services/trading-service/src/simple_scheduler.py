@@ -15,11 +15,13 @@ import sqlite3
 import sys
 import time
 import atexit
+from contextlib import contextmanager
+from threading import Lock
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 # 添加 src 到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +60,8 @@ high_priority_symbols = []
 
 # SQLite 连接复用（避免频繁开关连接）
 _sqlite_conn = None
+_pg_pool: ConnectionPool | None = None
+_pg_pool_lock = Lock()
 
 def _get_sqlite_conn():
     """获取 SQLite 连接（单例复用）"""
@@ -75,6 +79,31 @@ def _close_sqlite_conn():
         _sqlite_conn = None
 
 atexit.register(_close_sqlite_conn)
+
+
+def _get_pg_pool() -> ConnectionPool:
+    global _pg_pool
+    if _pg_pool is None:
+        with _pg_pool_lock:
+            if _pg_pool is None:
+                _pg_pool = ConnectionPool(DB_URL, min_size=1, max_size=5, timeout=30)
+    return _pg_pool
+
+
+@contextmanager
+def _pg_conn():
+    with _get_pg_pool().connection() as conn:
+        yield conn
+
+
+def _close_pg_pool():
+    global _pg_pool
+    if _pg_pool:
+        _pg_pool.close()
+        _pg_pool = None
+
+
+atexit.register(_close_pg_pool)
 
 
 def log(msg: str):
@@ -96,7 +125,7 @@ def _query_kline_priority(top_n: int = 30) -> set:
     """K线维度优先级 - 交易量+波动率+涨跌幅"""
     symbols = set()
     try:
-        with psycopg.connect(DB_URL) as conn:
+        with _pg_conn() as conn:
             sql = """
                 WITH base AS (
                     SELECT symbol, 
@@ -147,7 +176,7 @@ def _query_futures_priority(top_n: int = 30) -> set:
     """期货维度优先级 - 持仓价值+主动买卖比+多空比"""
     result = set()
     try:
-        with psycopg.connect(DB_URL) as conn:
+        with _pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT DISTINCT ON (symbol) 
@@ -211,12 +240,14 @@ def get_high_priority_symbols_fast(top_n: int = 30) -> set:
 def _load_all_symbols_from_db() -> list:
     """从数据库读取全量 USDT 永续符号（轻量查询）。"""
     try:
-        with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
-            rows = conn.execute("""
-                SELECT DISTINCT symbol
-                FROM market_data.ingest_offsets
-                WHERE symbol LIKE '%USDT'
-            """).fetchall()
+        with _pg_conn() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute("""
+                    SELECT DISTINCT symbol
+                    FROM market_data.ingest_offsets
+                    WHERE symbol LIKE '%USDT'
+                """)
+                rows = cur.fetchall()
         symbols = sorted({row["symbol"] for row in rows if row.get("symbol")})
         return symbols
     except Exception as e:
@@ -230,9 +261,11 @@ def get_source_latest(interval: str) -> datetime:
     """查询 TimescaleDB 该周期最新数据时间"""
     table = f"candles_{interval}"
     try:
-        with psycopg.connect(DB_URL, row_factory=dict_row) as conn:
-            row = conn.execute(f"SELECT MAX(bucket_ts) as latest FROM market_data.{table}").fetchone()
-            return row["latest"] if row else None
+        with _pg_conn() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(f"SELECT MAX(bucket_ts) as latest FROM market_data.{table}")
+                row = cur.fetchone()
+                return row["latest"] if row else None
     except Exception as e:
         log(f"查询 {table} 最新时间失败: {e}")
         return None

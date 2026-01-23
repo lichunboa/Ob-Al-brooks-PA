@@ -120,6 +120,7 @@ cd /path/to/tradecat
 | `./scripts/verify.sh` | 代码验证（ruff + py_compile + i18n） |
 | `python scripts/download_hf_data.py` | 从 HuggingFace 下载历史数据并导入 |
 | `python scripts/check_i18n_keys.py` | 检查 i18n 翻译键对齐 |
+| `python scripts/sync_market_data_to_rds.py` | 增量同步 SQLite `market_data.db` 到 PostgreSQL（RDS/Aurora） |
 | `./scripts/export_timescaledb.sh` | 导出 TimescaleDB 数据（默认端口 5433） |
 | `./scripts/export_timescaledb_main4.sh` | 导出 Main4 精简数据集（默认端口 5433） |
 | `./scripts/timescaledb_compression.sh` | 压缩管理（默认端口 5433） |
@@ -329,6 +330,7 @@ tradecat/
 │   ├── check_env.sh                # 环境检查
 │   ├── check_i18n_keys.py          # i18n 翻译键对齐检查
 │   ├── download_hf_data.py         # HuggingFace 数据下载
+│   ├── sync_market_data_to_rds.py  # SQLite -> PostgreSQL 增量同步
 │   ├── export_timescaledb.sh       # 数据导出（默认端口 5433）
 │   ├── export_timescaledb_main4.sh # 导出 Main4 精简数据集（默认端口 5433）
 │   └── timescaledb_compression.sh  # 压缩管理（默认端口 5433）

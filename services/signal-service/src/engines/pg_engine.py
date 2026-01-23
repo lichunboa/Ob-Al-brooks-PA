@@ -48,6 +48,15 @@ class PGSignal:
 _SYMBOL_PATTERN = re.compile(r"^[A-Z0-9_]{2,20}$")
 
 
+def _safe_float(val, default: float = 0.0) -> float:
+    try:
+        if val is None:
+            return default
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def _validate_symbols(symbols: list[str]) -> list[str]:
     """校验并过滤符号列表，防止SQL注入"""
     validated = []
@@ -137,8 +146,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_close = float(curr.get("close", 0))
-            prev_close = float(prev.get("close", 0))
+            curr_close = _safe_float(curr.get("close", 0))
+            prev_close = _safe_float(prev.get("close", 0))
             if prev_close == 0:
                 return None
             change_pct = (curr_close - prev_close) / prev_close * 100
@@ -162,8 +171,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_close = float(curr.get("close", 0))
-            prev_close = float(prev.get("close", 0))
+            curr_close = _safe_float(curr.get("close", 0))
+            prev_close = _safe_float(prev.get("close", 0))
             if prev_close == 0:
                 return None
             change_pct = (curr_close - prev_close) / prev_close * 100
@@ -187,8 +196,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_vol = float(curr.get("quote_volume", 0))
-            prev_vol = float(prev.get("quote_volume", 0))
+            curr_vol = _safe_float(curr.get("quote_volume", 0))
+            prev_vol = _safe_float(prev.get("quote_volume", 0))
             if prev_vol == 0:
                 return None
             vol_ratio = curr_vol / prev_vol
@@ -200,7 +209,7 @@ class PGSignalRules:
                     strength=min(85, int(50 + vol_ratio * 5)),
                     message_key="signal.pg.msg.volume_spike",
                     message_params={"ratio": f"{vol_ratio:.1f}", "vol": f"{curr_vol / 1e6:.2f}"},
-                    price=float(curr.get("close", 0)),
+                    price=_safe_float(curr.get("close", 0)),
                     extra={"vol_ratio": vol_ratio, "quote_volume": curr_vol},
                 )
         except Exception as e:
@@ -212,8 +221,8 @@ class PGSignalRules:
         if not curr:
             return None
         try:
-            taker_buy = float(curr.get("taker_buy_quote_volume", 0))
-            total_vol = float(curr.get("quote_volume", 0))
+            taker_buy = _safe_float(curr.get("taker_buy_quote_volume", 0))
+            total_vol = _safe_float(curr.get("quote_volume", 0))
             if total_vol == 0:
                 return None
             buy_ratio = taker_buy / total_vol
@@ -225,7 +234,7 @@ class PGSignalRules:
                     strength=int(60 + buy_ratio * 30),
                     message_key="signal.pg.msg.taker_buy",
                     message_params={"pct": f"{buy_ratio * 100:.1f}", "threshold": f"{threshold * 100:.0f}"},
-                    price=float(curr.get("close", 0)),
+                    price=_safe_float(curr.get("close", 0)),
                     extra={"buy_ratio": buy_ratio},
                 )
         except Exception as e:
@@ -237,8 +246,8 @@ class PGSignalRules:
         if not curr:
             return None
         try:
-            taker_buy = float(curr.get("taker_buy_quote_volume", 0))
-            total_vol = float(curr.get("quote_volume", 0))
+            taker_buy = _safe_float(curr.get("taker_buy_quote_volume", 0))
+            total_vol = _safe_float(curr.get("quote_volume", 0))
             if total_vol == 0:
                 return None
             sell_ratio = 1 - taker_buy / total_vol
@@ -250,7 +259,7 @@ class PGSignalRules:
                     strength=int(60 + sell_ratio * 30),
                     message_key="signal.pg.msg.taker_sell",
                     message_params={"pct": f"{sell_ratio * 100:.1f}", "threshold": f"{threshold * 100:.0f}"},
-                    price=float(curr.get("close", 0)),
+                    price=_safe_float(curr.get("close", 0)),
                     extra={"sell_ratio": sell_ratio},
                 )
         except Exception as e:
@@ -262,8 +271,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_oi = float(curr.get("sum_open_interest_value", 0))
-            prev_oi = float(prev.get("sum_open_interest_value", 0))
+            curr_oi = _safe_float(curr.get("sum_open_interest_value", 0))
+            prev_oi = _safe_float(prev.get("sum_open_interest_value", 0))
             if prev_oi == 0:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
@@ -286,8 +295,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_oi = float(curr.get("sum_open_interest_value", 0))
-            prev_oi = float(prev.get("sum_open_interest_value", 0))
+            curr_oi = _safe_float(curr.get("sum_open_interest_value", 0))
+            prev_oi = _safe_float(prev.get("sum_open_interest_value", 0))
             if prev_oi == 0:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
@@ -310,7 +319,7 @@ class PGSignalRules:
         if not curr:
             return None
         try:
-            ratio = float(curr.get("count_toptrader_long_short_ratio", 1))
+            ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 1), 1.0)
             if ratio >= threshold:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
@@ -330,7 +339,7 @@ class PGSignalRules:
         if not curr:
             return None
         try:
-            ratio = float(curr.get("count_toptrader_long_short_ratio", 1))
+            ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 1), 1.0)
             if ratio <= threshold:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
@@ -350,8 +359,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_ratio = float(curr.get("sum_taker_long_short_vol_ratio", 1))
-            prev_ratio = float(prev.get("sum_taker_long_short_vol_ratio", 1))
+            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 1), 1.0)
+            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 1), 1.0)
             if prev_ratio < 1.0 and curr_ratio >= 1.2:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
@@ -371,8 +380,8 @@ class PGSignalRules:
         if not prev or not curr:
             return None
         try:
-            curr_ratio = float(curr.get("sum_taker_long_short_vol_ratio", 1))
-            prev_ratio = float(prev.get("sum_taker_long_short_vol_ratio", 1))
+            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 1), 1.0)
+            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 1), 1.0)
             if prev_ratio > 1.0 and curr_ratio <= 0.8:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
@@ -403,6 +412,7 @@ class PGSignalEngine(BaseEngine):
         self.cooldowns: dict[str, float] = {}
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._conn = None
+        self._conn_last_check = 0.0
         self._cooldown_storage = get_cooldown_storage()
         # 只加载 PG 前缀的冷却记录，避免与 SQLite 互相干扰
         self.cooldowns = {
@@ -421,7 +431,8 @@ class PGSignalEngine(BaseEngine):
             try:
                 import psycopg2
 
-                self._conn = psycopg2.connect(self.db_url)
+                self._conn = psycopg2.connect(self.db_url, connect_timeout=3)
+                self._conn.autocommit = True
             except ImportError:
                 logger.error("psycopg2 not installed")
                 return None
@@ -429,6 +440,30 @@ class PGSignalEngine(BaseEngine):
                 logger.error(f"Database connection failed: {e}")
                 return None
         return self._conn
+
+    def _ensure_conn(self):
+        """确保连接可用，必要时重连"""
+        conn = self._get_conn()
+        if not conn:
+            return None
+
+        now = time.time()
+        if now - self._conn_last_check < 30:
+            return conn
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+            self._conn_last_check = now
+            return conn
+        except Exception as e:
+            logger.warning("PG 连接失效，准备重连: %s", e)
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._conn = None
+            return self._get_conn()
 
     @staticmethod
     def _tf_seconds(timeframe: str) -> float:
@@ -452,7 +487,7 @@ class PGSignalEngine(BaseEngine):
 
     def _fetch_latest_candles(self) -> dict[str, dict]:
         """获取最新K线数据"""
-        conn = self._get_conn()
+        conn = self._ensure_conn()
         if not conn:
             return {}
 
@@ -488,6 +523,11 @@ class PGSignalEngine(BaseEngine):
                     }
         except Exception as e:
             logger.error(f"Fetch candles error: {e}")
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._conn = None
             self.stats["errors"] += 1
         return result
 
@@ -504,7 +544,7 @@ class PGSignalEngine(BaseEngine):
 
     def _fetch_latest_metrics(self) -> dict[str, dict]:
         """获取最新期货指标数据"""
-        conn = self._get_conn()
+        conn = self._ensure_conn()
         if not conn:
             return {}
 
@@ -539,6 +579,11 @@ class PGSignalEngine(BaseEngine):
                     }
         except Exception as e:
             logger.error(f"Fetch metrics error: {e}")
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._conn = None
             self.stats["errors"] += 1
         return result
 

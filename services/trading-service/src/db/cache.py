@@ -8,9 +8,10 @@
 """
 import logging
 import time
-import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from threading import Thread, Event, RLock
+from contextlib import contextmanager
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -46,6 +47,32 @@ class DataCache:
         self._lock = RLock()
         # 初始化标记
         self._initialized: Dict[str, bool] = {}
+        # PG 连接池（默认复用配置库）
+        self._pool: Optional[ConnectionPool] = None
+        self._pool_lock = RLock()
+
+    @contextmanager
+    def _conn(self):
+        """获取 PG 连接（优先复用池）"""
+        if self.db_url == config.db_url:
+            from .reader import reader as _reader
+            with _reader.pool.connection() as conn:
+                yield conn
+            return
+
+        if self._pool is None:
+            with self._pool_lock:
+                if self._pool is None:
+                    self._pool = ConnectionPool(
+                        self.db_url,
+                        min_size=1,
+                        max_size=5,
+                        kwargs={"row_factory": dict_row},
+                        timeout=30,
+                    )
+
+        with self._pool.connection() as conn:
+            yield conn
 
     def init_interval(self, symbols: List[str], interval: str):
         """初始化单个周期 - 单SQL批量查询"""
@@ -65,7 +92,7 @@ class DataCache:
         minutes = interval_minutes.get(interval, 5) * self.lookback * 2
 
         try:
-            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            with self._conn() as conn:
                 # 使用窗口函数限制每个币种的行数，加时间范围过滤
                 sql = f"""
                     WITH ranked AS (
@@ -115,7 +142,7 @@ class DataCache:
             return updated
 
         try:
-            with psycopg.connect(self.db_url, row_factory=dict_row) as conn:
+            with self._conn() as conn:
                 last_ts_map = self._last_ts.get(interval, {})
                 new_symbols = [s for s in symbols if not last_ts_map.get(s)]
                 known_symbols = [s for s in symbols if s not in new_symbols]
