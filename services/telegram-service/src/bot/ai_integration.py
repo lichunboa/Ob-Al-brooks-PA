@@ -10,6 +10,7 @@ import asyncio
 import logging
 import re
 import sys
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Optional
 
@@ -92,6 +93,12 @@ class AIAnalysisHandler:
             lang = self._get_lang(update, context)
             return I18N.gettext(msgid, lang=lang, **kwargs)
         return msgid
+
+    @staticmethod
+    def _bj_now(fmt: str) -> str:
+        """北京时间格式化输出"""
+        tz = timezone(timedelta(hours=8))
+        return datetime.now(tz).strftime(fmt)
 
     def get_supported_symbols(self) -> List[str]:
         """获取支持的币种列表"""
@@ -185,19 +192,26 @@ class AIAnalysisHandler:
             interval = data.replace("ai_interval_", "")
             symbol = context.user_data.get("ai_selected_symbol")
             prompt_name = context.user_data.get("ai_prompt_name", self.default_prompt)
+            export_txt = bool(context.user_data.pop("ai_export_txt", False))
 
             if not symbol:
                 await query.edit_message_text(self._t(update, context, "ai.no_symbol"), parse_mode='Markdown')
                 return SELECTING_COIN
+            # 记录用户最近选择的分析周期，供 @@ 快捷导出复用
+            context.user_data["ai_selected_interval"] = interval
 
             await query.edit_message_text(
                 self._t(update, context, "ai.analyzing", symbol=symbol.replace('USDT', ''), interval=interval),
                 parse_mode='Markdown'
             )
-            asyncio.create_task(self._run_analysis(update, context, symbol, interval, prompt_name))
+            if export_txt:
+                asyncio.create_task(self._run_analysis_to_txt(update, context, symbol, interval, prompt_name))
+            else:
+                asyncio.create_task(self._run_analysis(update, context, symbol, interval, prompt_name))
             return SELECTING_COIN
 
         if data == "ai_cancel":
+            context.user_data.pop("ai_export_txt", None)
             await query.edit_message_text(self._t(update, context, "ai.cancelled"))
             return SELECTING_COIN
 
@@ -332,6 +346,61 @@ class AIAnalysisHandler:
 
         except Exception as exc:
             logger.exception("AI 分析失败")
+            error_msg = f"❌ AI 分析失败：{exc}"
+            if update.callback_query:
+                await update.callback_query.edit_message_text(error_msg)
+            elif update.message:
+                await update.message.reply_text(error_msg)
+
+    async def _run_analysis_to_txt(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
+                                   symbol: str, interval: str, prompt: str) -> None:
+        """执行 AI 分析并导出 TXT"""
+        if not run_analysis:
+            if update.callback_query:
+                await update.callback_query.edit_message_text(self._t(update, context, "ai.not_installed"))
+            elif update.message:
+                await update.message.reply_text(self._t(update, context, "ai.not_installed"))
+            return
+
+        try:
+            preferred_lang = None
+            if context and hasattr(context, "user_data"):
+                preferred_lang = context.user_data.get("lang_preference")
+            if not preferred_lang and update.effective_user and update.effective_user.language_code:
+                preferred_lang = normalize_locale(update.effective_user.language_code)
+
+            result = await run_analysis(symbol, interval, prompt, lang=preferred_lang)
+            if result.get("status") == "error":
+                analysis_text = result.get("error") or "AI 分析失败"
+            else:
+                analysis_text = result.get("analysis", "未生成 AI 分析结果")
+
+            coin = symbol.replace("USDT", "")
+            title = self._t(update, context, "ai.report_title", symbol=coin)
+            time_label = self._t(update, context, "ai.analysis_time")
+            ts_human = self._bj_now("%Y-%m-%d %H:%M:%S")
+            ts_file = self._bj_now("%Y%m%d_%H%M%S")
+            content = f"{title}\n\n{analysis_text}\n\n{time_label}: {ts_human}\n"
+
+            import io
+            file_obj = io.BytesIO(content.encode("utf-8"))
+            file_obj.name = f"{coin}_AI_{ts_file}.txt"
+            caption = self._t(update, context, "ai.file_caption", symbol=coin)
+
+            if update.callback_query and update.callback_query.message:
+                await update.callback_query.message.reply_document(
+                    document=file_obj,
+                    filename=file_obj.name,
+                    caption=caption,
+                )
+            elif update.message:
+                await update.message.reply_document(
+                    document=file_obj,
+                    filename=file_obj.name,
+                    caption=caption,
+                )
+        except Exception as exc:
+            logger.exception("AI TXT 导出失败")
             error_msg = f"❌ AI 分析失败：{exc}"
             if update.callback_query:
                 await update.callback_query.edit_message_text(error_msg)

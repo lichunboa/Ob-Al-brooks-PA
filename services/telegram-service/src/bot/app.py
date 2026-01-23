@@ -279,6 +279,26 @@ def _extract_symbol_token(text: str, *, double_exclaim: bool) -> Optional[str]:
     return None
 
 
+def _extract_symbol_at_token(text: str, *, double_at: bool) -> Optional[str]:
+    """从文本中提取 @@ 触发的币种候选词（英文或中文）。"""
+    if not text:
+        return None
+    if double_at:
+        pattern = r"([A-Za-z0-9]{2,15}|[\u4e00-\u9fff]{1,12})\\s*[@＠]{2}"
+    else:
+        pattern = r"([A-Za-z0-9]{2,15}|[\u4e00-\u9fff]{1,12})\\s*[@＠](?![@＠])"
+    m = re.search(pattern, text)
+    if m:
+        return m.group(1)
+    tokens = _ASCII_TOKEN_RE.findall(text)
+    if tokens:
+        return tokens[0]
+    m = _CJK_TOKEN_RE.search(text)
+    if m:
+        return m.group(0)
+    return None
+
+
 def _btn(update, key: str, callback: str, active: bool = False, prefix: str = "✅") -> InlineKeyboardButton:
     """国际化按钮工厂"""
     text = _t(update, key)
@@ -5599,6 +5619,32 @@ async def handle_keyboard_message(update: Update, context: ContextTypes.DEFAULT_
                     return
 
         allowed_raw, allowed_base = _build_allowed_symbol_sets(user_handler)
+
+        # -------- AI 分析 TXT 导出：如 "btc@@" 或 "BTC＠＠" --------
+        if "@@" in norm_text or "＠＠" in norm_text:
+            token = _extract_symbol_at_token(norm_text, double_at=True)
+            sym = _resolve_symbol_input(token, allowed_raw=allowed_raw, allowed_base=allowed_base) if token else None
+            if not sym:
+                await update.message.reply_text(_t(update, "snapshot.error.no_symbol"))
+                return
+            try:
+                from bot.ai_integration import get_ai_handler, AI_SERVICE_AVAILABLE, SELECTING_INTERVAL
+                if not AI_SERVICE_AVAILABLE:
+                    await update.message.reply_text(_t(update, "ai.not_installed"))
+                    return
+                await _instant_once("loading.ai")
+
+                ai_handler = get_ai_handler(
+                    symbols_provider=lambda: user_handler.get_active_symbols() if user_handler else None
+                )
+                context.user_data["lang_preference"] = _resolve_lang(update)
+                context.user_data["ai_export_txt"] = True
+                context.user_data["ai_state"] = SELECTING_INTERVAL
+                await ai_handler.handle_coin_input(update, context, sym)
+            except Exception as e:
+                logger.error(f"AI TXT 导出失败: {e}")
+                await update.message.reply_text(_t(update, "ai.failed", error=e))
+            return
 
         # -------- 单币双感叹号触发完整TXT：如 "btc!!" 或 "BTC！！" --------
         if "!!" in norm_text or "！！" in norm_text:
