@@ -535,7 +535,9 @@ class PGSignalEngine(BaseEngine):
         """数据是否新鲜，按周期动态阈值"""
         if ts is None:
             return False
-        age = (datetime.now(ts.tzinfo) - ts).total_seconds()
+        # DB里多为 UTC 的 naive 时间，需要用 UTC now 计算
+        now = datetime.now(ts.tzinfo) if ts.tzinfo else datetime.utcnow()
+        age = (now - ts).total_seconds()
         tf_secs = self._tf_seconds(timeframe) or fallback_seconds
         allowed = max(DATA_MAX_AGE_SECONDS, tf_secs * 1.5 if tf_secs else 0)
         if allowed <= 0:
