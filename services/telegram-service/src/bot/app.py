@@ -6161,7 +6161,7 @@ async def post_init(application):
         _PG_RATE_LIMIT = 30
         _PG_RATE_WINDOW = 60
 
-        def on_pg_signal(signal, formatted_msg):
+        def on_pg_signal(signal, formatted_msg=None):
             """PG信号回调 - 推送给订阅用户（主事件循环）"""
             # 速率限制检查
             now = time.time()
@@ -6171,6 +6171,23 @@ async def post_init(application):
                 logger.warning(f"PG信号推送速率限制，跳过: {signal.symbol} - {signal.signal_type}")
                 return
             _pg_push_times.append(now)
+
+            if not formatted_msg:
+                try:
+                    msg = I18N.gettext(signal.message_key, **(signal.message_params or {}))
+                    if msg == signal.message_key:
+                        msg = (signal.extra or {}).get("message", signal.message_key)
+                except Exception:
+                    msg = (signal.extra or {}).get("message", signal.message_key)
+                formatted_msg = pg_formatter.format_basic(
+                    symbol=signal.symbol,
+                    direction=signal.direction,
+                    signal_type=signal.signal_type,
+                    strength=signal.strength,
+                    price=signal.price,
+                    timeframe=signal.timeframe,
+                    message=msg,
+                )
 
             async def push():
                 subscribers = _get_subscribers()
