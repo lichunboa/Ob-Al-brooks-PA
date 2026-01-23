@@ -76,3 +76,4 @@ Scope: services/trading-service
 - 2026-01-22: DB 压力计数完成（pg_queries=7, sqlite_commits=3）。
 - 2026-01-22: 拆分 IO/Compute/Storage 模块，Engine 仅负责流程编排。
 - 2026-01-22: 增加输入不变更测试与基准测试冒烟用例。
+- 2026-01-23: 运行输入不变更测试（python3 -m pytest tests/test_indicator_input_immutability.py -q，2 passed）。
