@@ -12,6 +12,7 @@ import {
     startGlobalReview,
     isSRPluginAvailable,
     getWeightedCardRecommendations,
+    syncSRS,
     type StrategyPerformance
 } from "../../../core/srs-bridge";
 
@@ -84,12 +85,58 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
     const [currentQuizIndex, setCurrentQuizIndex] = React.useState(0);
     // 批次 key（用于触发随机重排）
     const [quizBatchKey, setQuizBatchKey] = React.useState(0);
+    // 刷新 key（用于触发 SRS 数据重新加载）
+    const [refreshKey, setRefreshKey] = React.useState(0);
+
+    // 自动刷新：使用 Obsidian 事件监听 + 短轮询
+    // 1. 监听 metadataCache.resolved 事件（frontmatter 解析完成）
+    // 2. 监听 vault.modify 事件（文件修改）
+    // 3. 2秒轮询作为后备
+    React.useEffect(() => {
+        if (!app) return;
+
+        const triggerRefresh = () => setRefreshKey(k => k + 1);
+
+        // Obsidian 事件监听
+        const resolvedRef = app.metadataCache.on('resolved', triggerRefresh);
+        const modifyRef = app.vault.on('modify', triggerRefresh);
+
+        // 2秒轮询作为后备（比5秒更及时）
+        const interval = setInterval(triggerRefresh, 2000);
+
+        return () => {
+            app.metadataCache.offref(resolvedRef);
+            app.vault.offref(modifyRef);
+            clearInterval(interval);
+        };
+    }, [app]);
 
     // 获取 SRS 真实统计数据
-    const srStats = React.useMemo(() => {
-        if (!app) return null;
-        return getSRStats(app);
-    }, [app]);
+    // 使用 useEffect + useState 替代 useMemo，以便在获取数据前调用 syncSRS
+    const [srStats, setSrStats] = React.useState<{
+        totalCards: number;
+        reviewedCards: number;
+        dueCards: number;
+        newCards: number;
+        youngCards: number;
+        matureCards: number;
+        masteryPct: number;
+        deckTree: any;
+    } | null>(null);
+
+    React.useEffect(() => {
+        if (!app) return;
+
+        const fetchStats = async () => {
+            // 先同步 SRS 数据，确保获取最新状态
+            await syncSRS(app);
+            // 然后获取统计数据
+            const stats = getSRStats(app);
+            setSrStats(stats);
+        };
+
+        fetchStats();
+    }, [app, refreshKey]);
 
     // SRS 是否可用
     const srAvailable = React.useMemo(() => {
@@ -353,6 +400,15 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
                     <MemoryCalendar
                         loadNext7={memory.loadNext7}
                         style={{ marginBottom: "12px" }}
+                        onDayClick={(dateIso, count) => {
+                            // 获取本地时间的 YYYY-MM-DD (使用 moment)
+                            // @ts-ignore
+                            const todayIso = window.moment().format("YYYY-MM-DD");
+                            // 仅当点击今天且有待复习卡片时触发复习
+                            if (dateIso === todayIso && count > 0) {
+                                handleStartReview();
+                            }
+                        }}
                     />
 
                     {/* ========== 学习进度图表 ========== */}

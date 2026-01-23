@@ -56,9 +56,11 @@ function getFirstFieldValue(
 }
 
 function asStrings(v: unknown): string[] {
+  // 注意：不使用 `/` 作为分隔符，因为某些策略名称包含 `/`
+  // 例如：`Buy/Sell NOW`、`High 1/Low 1`、`Double Top/Bottom`
   if (typeof v === "string") {
     return v
-      .split(/[,，;；/|]/g)
+      .split(/[,，;；|]/g)  // 移除 `/` 分隔符
       .map((s) => s.trim())
       .filter(Boolean);
   }

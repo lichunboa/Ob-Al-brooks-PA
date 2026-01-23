@@ -20,18 +20,12 @@ import {
     type FrontmatterFile,
 } from "../../core/manager";
 import { SectionHeader } from "../../ui/components/SectionHeader";
-import { HealthStatusPanel } from "../components/manage/HealthStatusPanel";
 import { SchemaIssuesPanel } from "../components/manage/SchemaIssuesPanel";
-import { DataStatisticsPanel } from "../components/manage/DataStatisticsPanel";
-import { ExportPanel } from "../components/manage/ExportPanel";
-import { RawDataPanel } from "../components/manage/RawDataPanel";
-
 import { InspectorPanel } from "../components/manage/InspectorPanel";
+import { ArchivePanel } from "../components/manage/ArchivePanel";
+import { TagPanoramaPanel } from "../components/manage/TagPanoramaPanel";
 import { V5_COLORS } from "../../ui/tokens";
 import { SPACE } from "../../ui/styles/dashboardPrimitives";
-import { topN } from "../../utils/aggregation-utils";
-import { DoctorPanel } from "../components/manage/DoctorPanel";
-import { ArchivePanel } from "../components/manage/ArchivePanel";
 import { PropertyManagerTab } from "./PropertyManagerTab";
 import { GlassPanel } from "../../ui/components/GlassPanel";
 import { InteractiveButton } from "../../ui/components/InteractiveButton";
@@ -242,15 +236,9 @@ export const ManageTab: React.FC = () => {
         return buildInspectorIssues(trades, enumPresets, strategyIndex);
     }, [trades, enumPresets, strategyIndex]);
 
-    const distTicker = React.useMemo(() => topN((t) => t.ticker, undefined, trades, 10), [trades]);
-    const distSetup = React.useMemo(() => topN((t) => t.setupKey, undefined, trades, 10), [trades]);
-    const distExec = React.useMemo(() => topN((t) => (t as any).executionType ?? t.executionQuality, undefined, trades, 10), [trades]);
-
-    const topTags = React.useMemo(() => {
-        const tagMap: Record<string, number> = (paTagSnapshot?.tagMap as any) ?? {};
-        return Object.entries(tagMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 20) as [string, number][];
+    // 标签快照数据用于 TagPanoramaPanel
+    const tagSnapshot = React.useMemo(() => {
+        return (paTagSnapshot?.tagMap as Record<string, number>) ?? null;
     }, [paTagSnapshot]);
 
     const noop = () => { };
@@ -286,7 +274,7 @@ export const ManageTab: React.FC = () => {
                         ← 返回
                     </InteractiveButton>
                     <span style={{ fontWeight: 700, fontSize: "1.1em" }}>
-                        💎 上帝模式（属性管理器）
+                        🛠️ 属性管理器
                     </span>
                 </div>
                 <PropertyManagerTab app={app} />
@@ -296,7 +284,7 @@ export const ManageTab: React.FC = () => {
 
     return (
         <div style={{ paddingBottom: "40px" }}>
-            <SectionHeader title="数据管理中心" icon="🛡️" />
+            <SectionHeader title="数据管理" icon="🛡️" />
             <div
                 style={{
                     padding: "0 12px 12px",
@@ -305,64 +293,18 @@ export const ManageTab: React.FC = () => {
                     marginTop: "-10px",
                 }}
             >
-                全面的数据健康监控、属性管理及导出工具。
+                标签管理、属性检查与维护工具
             </div>
 
-            {/* 💎 上帝模式入口 */}
-            <GlassPanel style={{ marginBottom: "16px" }}>
-                <div
-                    onClick={() => setShowGodMode(true)}
-                    style={{
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                    }}
-                >
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "1.3em" }}>💎</span>
-                        <div>
-                            <div style={{
-                                fontWeight: 700,
-                                fontSize: "1em",
-                                color: "var(--text-normal)"
-                            }}>
-                                上帝模式 (God Mode)
-                            </div>
-                            <div style={{ fontSize: "0.85em", color: "var(--text-muted)", marginTop: "2px" }}>
-                                全局属性扫描 · 批量重命名 · 值管理 · 属性注入
-                            </div>
-                        </div>
-                    </div>
-                    <span style={{ color: "var(--text-muted)" }}>→</span>
-                </div>
-            </GlassPanel>
-
-            <RawDataPanel trades={trades} openFile={openFile} />
-
-
-
-            {/* [Merged]: DoctorPanel functionality moved into HealthStatusPanel */}
-
+            {/* ===== 1. 🏷️ 标签全景 ===== */}
             <div style={{ marginBottom: "24px" }}>
-                <ArchivePanel app={app} />
-            </div>
-
-            <div style={{ marginBottom: "24px" }}>
-                <HealthStatusPanel
-                    trades={trades}
-                    schemaIssues={schemaIssues}
-                    paTagSnapshot={paTagSnapshot}
-                    enumPresets={enumPresets}
-                    schemaScanNote={schemaScanNote ?? ""}
-                    app={app} // [New]: Passed app for embedded Doctor
-                    V5_COLORS={V5_COLORS}
-                    SPACE={SPACE}
+                <TagPanoramaPanel
+                    paTagSnapshot={tagSnapshot}
+                    openGlobalSearch={openGlobalSearch ?? noop}
                 />
             </div>
 
-
-
+            {/* ===== 2. ⚠️ Schema 问题（有问题才显示） ===== */}
             {schemaIssues.length > 0 && (
                 <div style={{ marginBottom: "24px" }}>
                     <SchemaIssuesPanel
@@ -378,6 +320,7 @@ export const ManageTab: React.FC = () => {
                 </div>
             )}
 
+            {/* ===== 3. 🔍 属性检查器 ===== */}
             <div style={{ marginBottom: "24px" }}>
                 <InspectorPanel
                     inspectorIssues={inspectorIssues}
@@ -388,28 +331,44 @@ export const ManageTab: React.FC = () => {
                 />
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
-                <DataStatisticsPanel
-                    distTicker={distTicker}
-                    distSetup={distSetup}
-                    distExec={distExec}
-                    topTags={topTags}
-                    paTagSnapshot={paTagSnapshot}
-                    openGlobalSearch={openGlobalSearch ?? noop}
-                    onTextBtnMouseEnter={noop}
-                    onTextBtnMouseLeave={noop}
-                    onTextBtnFocus={noop}
-                    onTextBtnBlur={noop}
-                    SPACE={SPACE}
-                />
-            </div>
+            {/* ===== 4. 🛠️ 属性管理器 ===== */}
+            <GlassPanel style={{ marginBottom: "24px" }}>
+                <div
+                    onClick={() => setShowGodMode(true)}
+                    style={{
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+                >
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ fontSize: "1.3em" }}>🛠️</span>
+                        <div>
+                            <div style={{
+                                fontWeight: 700,
+                                fontSize: "1em",
+                                color: "var(--text-normal)"
+                            }}>
+                                属性管理器
+                            </div>
+                            <div style={{ fontSize: "0.85em", color: "var(--text-muted)", marginTop: "2px" }}>
+                                全局属性扫描 · 批量重命名 · 值管理 · 属性注入
+                            </div>
+                        </div>
+                    </div>
+                    <span style={{ color: "var(--text-muted)" }}>→</span>
+                </div>
+            </GlassPanel>
 
-            <div style={{ marginBottom: "24px" }}>
-                <ExportPanel
-                    runCommand={runCommand}
-                    buttonStyle={{}}
-                    disabledButtonStyle={{ opacity: 0.5, pointerEvents: "none" }}
-                />
+            {/* ===== 5. 🗃️ 数据归档 ⚠️ 危险操作 ===== */}
+            <div style={{
+                marginBottom: "24px",
+                border: "2px solid rgba(239, 68, 68, 0.4)",
+                borderRadius: "8px",
+                background: "rgba(239, 68, 68, 0.05)",
+            }}>
+                <ArchivePanel app={app} />
             </div>
         </div>
     );
