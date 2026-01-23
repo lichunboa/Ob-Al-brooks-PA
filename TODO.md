@@ -58,6 +58,24 @@ Scope: services/trading-service
 - [x] Add a benchmark harness (no new runtime deps).
   - Accept: repeatable median timing and RSS snapshot.
 
+## Remaining tasks (from audit, not yet done)
+
+- [ ] Fix `__main__.py` docstring to match the real entry (`python -m src`).
+  - File: `services/trading-service/src/__main__.py`
+- [ ] Vectorize VPVR iterrows hot spots.
+  - File: `services/trading-service/src/indicators/batch/vpvr.py` (lines ~72, ~159)
+- [ ] Split slow indicators to process backend only; keep others on threads to avoid pickling all df.
+  - Files: `services/trading-service/src/core/engine.py`, `services/trading-service/src/core/compute.py`
+- [ ] Expand input immutability coverage to more indicators (beyond TvTrendCloud + KDJ).
+  - File: `services/trading-service/tests/test_indicator_input_immutability.py`
+- [ ] Run line_profiler on DataWriter.write and futures_* compute; record results.
+  - Targets: `services/trading-service/src/db/reader.py`, `services/trading-service/src/indicators/batch/*`
+- [ ] Run tracemalloc/memory_profiler to confirm peak RSS after copy removal; record results.
+  - Targets: `services/trading-service/src/db/cache.py`, `services/trading-service/src/core/engine.py`
+- [ ] Add a full output parity script (row counts + sampled value diffs) and document results.
+  - Location: `services/trading-service/tests/` or `services/trading-service/scripts/`
+- [ ] Optional: deepen module split into `datasource/` and `pipeline/` per audit design.
+
 ## Validation checklist
 
 - [x] Output parity: SQLite row counts and sampled value comparisons.
