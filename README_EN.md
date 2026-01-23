@@ -339,6 +339,9 @@ Signal service tips:
 - `SIGNAL_DATA_MAX_AGE`: maximum data age (seconds) used for signals; stale rows are skipped. Default 600.
 - `COOLDOWN_SECONDS` (signal-service PG): global cooldown window (seconds) before repeating the same PG signal.
 
+nofx-dev (preview) tip:
+- `NOFX_AI_PAYLOAD_ALL`: include all ai-service `raw_payload.json` in nofx AI input (1/0), default 1.
+
 #### 5. Start Services
 
 ```bash

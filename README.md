@@ -337,6 +337,9 @@ vim config/.env
 - `SIGNAL_DATA_MAX_AGE`：信号数据最大允许时长（秒），超过则跳过不产生信号；默认 600，可按部署环境调整。
 - `COOLDOWN_SECONDS`（signal-service）：PG 信号冷却时间（秒），可与规则级冷却配合，避免重复推送。
 
+关键配置补充（nofx-dev，预览服务）：
+- `NOFX_AI_PAYLOAD_ALL`：是否将 ai-service 全量 `raw_payload.json` 并入 nofx AI 输入（1/0），默认 1。
+
 #### 5. 启动服务
 
 ```bash
