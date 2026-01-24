@@ -233,4 +233,9 @@ git；codex resume 019be60a-8ae2-7041-bec0-32d2ddd6ed5a
 
 性能；codex resume 019be61a-c9c1-7d30-8cba-37ac42a2e327
 
+云部署前端；codex resume 019beca2-bfe8-7c41-b5c7-63e89bdb98c7
+
 上云，把消费数据库计算好后推送到aws数据库里面，前端部署到aws提升响应速度
+
+修复gemini认证
+

@@ -6,6 +6,7 @@ import sys
 import json
 import sqlite3
 import logging
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Dict
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -84,27 +85,38 @@ ALL_TABLES = list(RULES_BY_TABLE.keys())
 _subs: Dict[int, Dict] = {}
 
 
+@contextmanager
+def _conn():
+    """获取订阅库连接，确保异常也能释放。"""
+    conn = None
+    try:
+        conn = sqlite3.connect(SUBS_DB_PATH)
+        yield conn
+        conn.commit()
+    finally:
+        if conn:
+            with suppress(Exception):
+                conn.close()
+
+
 def _init_db():
     """初始化订阅数据库"""
     os.makedirs(os.path.dirname(SUBS_DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(SUBS_DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS signal_subs (
-            user_id INTEGER PRIMARY KEY,
-            enabled INTEGER DEFAULT 1,
-            tables TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with _conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS signal_subs (
+                user_id INTEGER PRIMARY KEY,
+                enabled INTEGER DEFAULT 1,
+                tables TEXT
+            )
+        """)
 
 
 def _load_sub(uid: int) -> Dict:
     """从数据库加载订阅"""
     try:
-        conn = sqlite3.connect(SUBS_DB_PATH)
-        row = conn.execute("SELECT enabled, tables FROM signal_subs WHERE user_id = ?", (uid,)).fetchone()
-        conn.close()
+        with _conn() as conn:
+            row = conn.execute("SELECT enabled, tables FROM signal_subs WHERE user_id = ?", (uid,)).fetchone()
         if row:
             tables = set(json.loads(row[1])) if row[1] else set(ALL_TABLES)
             return {"enabled": bool(row[0]), "tables": tables}
@@ -116,13 +128,11 @@ def _load_sub(uid: int) -> Dict:
 def _save_sub(uid: int, sub: Dict):
     """保存订阅到数据库"""
     try:
-        conn = sqlite3.connect(SUBS_DB_PATH)
-        conn.execute(
-            "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
-            (uid, int(sub["enabled"]), json.dumps(list(sub["tables"])))
-        )
-        conn.commit()
-        conn.close()
+        with _conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
+                (uid, int(sub["enabled"]), json.dumps(list(sub["tables"])))
+            )
     except Exception as e:
         logger.warning(f"保存订阅失败 uid={uid}: {e}")
 
@@ -134,9 +144,8 @@ _init_db()
 def _get_subscribers() -> list:
     """获取所有启用推送的用户ID列表"""
     try:
-        conn = sqlite3.connect(SUBS_DB_PATH)
-        rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
-        conn.close()
+        with _conn() as conn:
+            rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
         return [r[0] for r in rows]
     except Exception as e:
         logger.warning(f"获取订阅用户失败: {e}")

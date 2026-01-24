@@ -158,10 +158,6 @@ class MoneyFlowCard(RankingCard):
         market = user_handler.user_states.get('money_flow_market', 'futures')
         fields_state = self._ensure_field_state(user_handler)
 
-        # 调试：检查字段状态
-        print(f"[DEBUG] money_flow_fields state: {fields_state}")
-        print(f"[DEBUG] user_handler.user_states: {user_handler.user_states}")
-
         allowed = MONEY_FLOW_SPOT_PERIODS if market == "spot" else MONEY_FLOW_FUTURES_PERIODS
         period = normalize_period(period, allowed, default="15m")
         user_handler.user_states['money_flow_period'] = period
@@ -308,19 +304,42 @@ class MoneyFlowCard(RankingCard):
         # 从基础数据表读取
         try:
             base_map = self.provider.fetch_base(period)
+            # 若当前周期净流相关字段为空，回退到该字段最近的非空时间片
+            if flow_type in {"absolute", "inflow", "outflow"}:
+                def _pick_flow_value(row: Dict) -> float | None:
+                    if flow_type == "absolute":
+                        return _to_float_or_none(row.get("资金流向"))
+                    if flow_type == "inflow":
+                        return _to_float_or_none(row.get("主动买额") or row.get("主动买入额"))
+                    return _to_float_or_none(row.get("主动卖出额") or row.get("主动卖额"))
+
+                has_flow = any(_pick_flow_value(r) is not None for r in base_map.values())
+                if not has_flow:
+                    field_map = {
+                        "absolute": "资金流向",
+                        "inflow": "主动买额",
+                        "outflow": "主动卖出额",
+                    }
+                    base_map = self.provider.fetch_base_with_field(period, field_map[flow_type]) or base_map
             for sym, r in base_map.items():
+                inflow = _to_float_or_none(r.get("主动买额") or r.get("主动买入额"))
+                outflow = _to_float_or_none(r.get("主动卖出额") or r.get("主动卖额"))
+                net_flow = _to_float_or_none(r.get("资金流向"))
                 items.append({
                     "symbol": format_symbol(sym),
-                    "absolute": _to_float_or_none(r.get("资金流向")),
+                    "absolute": net_flow,
                     "volume": _to_float_or_none(r.get("成交额")),
-                    "inflow": _to_float_or_none(r.get("主动买额")),
-                    "outflow": _to_float_or_none(r.get("主动卖出额")),
+                    "inflow": inflow,
+                    "outflow": outflow,
                     "成交笔数": _to_float_or_none(r.get("成交笔数") or r.get("交易次数")),
                     "price": _to_float_or_none(r.get("当前价格")),
                     "quote_volume": _to_float_or_none(r.get("成交额")),
                 })
         except Exception:
             pass
+
+        if flow_type in {"absolute", "inflow", "outflow"}:
+            items = [item for item in items if item.get(flow_type) is not None]
 
         reverse = sort_order != "asc"
         def _key(row):

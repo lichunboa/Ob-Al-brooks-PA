@@ -429,12 +429,12 @@ class PGSignalEngine(BaseEngine):
         """获取数据库连接"""
         if self._conn is None or self._conn.closed:
             try:
-                import psycopg2
+                import psycopg
 
-                self._conn = psycopg2.connect(self.db_url, connect_timeout=3)
+                self._conn = psycopg.connect(self.db_url, connect_timeout=3)
                 self._conn.autocommit = True
             except ImportError:
-                logger.error("psycopg2 not installed")
+                logger.error("psycopg not installed")
                 return None
             except Exception as e:
                 logger.error(f"Database connection failed: {e}")

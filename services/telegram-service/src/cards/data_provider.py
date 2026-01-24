@@ -449,6 +449,52 @@ class RankingDataProvider:
                 latest[sym] = r
         return latest
 
+    def fetch_base_with_field(self, period: str, field: str) -> Dict[str, Dict]:
+        """按周期取基础数据 - 只取指定字段不为空的最新批次"""
+        rows = self._load_table_period("基础数据", period)
+        target_period = _normalize_period_value(period)
+        allowed = _get_allowed_symbols()
+        field = (field or "").strip()
+        if not field:
+            return self.fetch_base(period)
+
+        max_ts = datetime.min
+        for row in rows:
+            r = dict(row)
+            r_period = _normalize_period_value(str(r.get("周期", "")))
+            if r_period != target_period:
+                continue
+            sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
+                continue
+            val = r.get(field)
+            if val is None or val == "":
+                continue
+            ts = _parse_timestamp(str(r.get("数据时间", "")))
+            if ts > max_ts:
+                max_ts = ts
+
+        _update_latest(max_ts)
+        if max_ts == datetime.min:
+            return {}
+
+        latest: Dict[str, Dict] = {}
+        for row in rows:
+            r = dict(row)
+            r_period = _normalize_period_value(str(r.get("周期", "")))
+            if r_period != target_period:
+                continue
+            sym = str(r.get("交易对", "")).upper()
+            if allowed and sym not in allowed:
+                continue
+            val = r.get(field)
+            if val is None or val == "":
+                continue
+            ts = _parse_timestamp(str(r.get("数据时间", "")))
+            if ts == max_ts and sym and sym not in latest:
+                latest[sym] = r
+        return latest
+
     def fetch_metric(self, table: str, period: str) -> List[Dict]:
         """通用指标读取：按周期过滤，每个币种取自身最新一条（不强制同一时间戳），按配置过滤币种"""
         rows = self._load_table_period(table, period)

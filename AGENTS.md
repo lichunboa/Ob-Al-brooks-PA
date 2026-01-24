@@ -198,7 +198,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 - **配置统一**：所有配置集中在 `config/.env`，各服务共用
 - **数据流向**：`data-service → TimescaleDB → trading-service → SQLite → telegram/ai/signal/vis`
 
-### 4.2 服务清单（11 个）
+### 4.2 服务清单（12 个）
 
 | 服务 | 位置 | 职责 | 入口 |
 |:---|:---|:---|:---|
@@ -213,6 +213,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 | order-service | services-preview/ | 交易执行 | `src/__main__.py` |
 | predict-service | services-preview/ | 预测市场（Node.js） | `services/*/` |
 | fate-service | services-preview/ | 命理服务（端口 8001） | `services/telegram-service/` |
+| nofx-dev | services-preview/ | NOFX AI 交易系统（预览） | `main.go` |
 
 ### 4.3 模块边界
 
@@ -227,6 +228,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 | api-service | REST API 数据查询 | 只读数据库，禁止写入 |
 | vis-service | 可视化渲染 | 禁止写入数据库 |
 | order-service | 交易执行、做市 | 禁止修改数据采集逻辑 |
+| nofx-dev | NOFX AI 交易系统（预览） | 暂未定义 |
 
 > **注意**：telegram-service/signals 模块已解耦，仅保留适配层 (`adapter.py`) 和 UI (`ui.py`)，信号检测逻辑全部在 signal-service 中。
 > 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。

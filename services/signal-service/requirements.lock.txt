@@ -16,7 +16,8 @@ pathspec==1.0.3
 pexpect==4.9.0
 pluggy==1.6.0
 prompt_toolkit==3.0.52
-psycopg2-binary==2.9.11
+psycopg==3.3.2
+psycopg-binary==3.3.2
 ptyprocess==0.7.0
 pure_eval==0.2.3
 Pygments==2.19.2

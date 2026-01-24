@@ -7,6 +7,7 @@ import logging
 import os
 import sqlite3
 import threading
+from contextlib import contextmanager, suppress
 
 try:
     from ..config import get_subscription_db_path
@@ -33,23 +34,32 @@ class SubscriptionManager:
     def _init_db(self):
         """初始化数据库"""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS signal_subs (
-                user_id INTEGER PRIMARY KEY,
-                enabled INTEGER DEFAULT 1,
-                tables TEXT
-            )
-        """)
-        conn.commit()
-        conn.close()
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS signal_subs (
+                    user_id INTEGER PRIMARY KEY,
+                    enabled INTEGER DEFAULT 1,
+                    tables TEXT
+                )
+            """)
+
+    @contextmanager
+    def _conn(self):
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            yield conn
+            conn.commit()
+        finally:
+            if conn:
+                with suppress(Exception):
+                    conn.close()
 
     def _load(self, user_id: int) -> dict | None:
         """从数据库加载订阅"""
         try:
-            conn = sqlite3.connect(self.db_path)
-            row = conn.execute("SELECT enabled, tables FROM signal_subs WHERE user_id = ?", (user_id,)).fetchone()
-            conn.close()
+            with self._conn() as conn:
+                row = conn.execute("SELECT enabled, tables FROM signal_subs WHERE user_id = ?", (user_id,)).fetchone()
             if row:
                 tables = set(json.loads(row[1])) if row[1] else set(ALL_TABLES)
                 return {"enabled": bool(row[0]), "tables": tables}
@@ -60,13 +70,11 @@ class SubscriptionManager:
     def _save(self, user_id: int, sub: dict):
         """保存订阅到数据库"""
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
-                (user_id, int(sub["enabled"]), json.dumps(list(sub["tables"]))),
-            )
-            conn.commit()
-            conn.close()
+            with self._conn() as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
+                    (user_id, int(sub["enabled"]), json.dumps(list(sub["tables"]))),
+                )
         except Exception as e:
             logger.warning(f"保存订阅失败 uid={user_id}: {e}")
 
@@ -123,9 +131,8 @@ class SubscriptionManager:
     def get_enabled_subscribers(self) -> list[int]:
         """获取所有启用推送的用户ID"""
         try:
-            conn = sqlite3.connect(self.db_path)
-            rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
-            conn.close()
+            with self._conn() as conn:
+                rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
             return [r[0] for r in rows]
         except Exception as e:
             logger.warning(f"获取订阅用户失败: {e}")

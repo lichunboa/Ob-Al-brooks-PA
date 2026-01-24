@@ -230,9 +230,9 @@ def compute_vpvr_ridge_data(
         return None
     
     try:
-        import psycopg2
+        import psycopg
     except ImportError:
-        logger.error("psycopg2 未安装")
+        logger.error("psycopg 未安装")
         return None
     
     if db_url is None:
@@ -256,7 +256,7 @@ def compute_vpvr_ridge_data(
     
     try:
         # 连接超时 3s，查询超时 5s
-        with psycopg2.connect(db_url, connect_timeout=3) as conn:
+        with psycopg.connect(db_url, connect_timeout=3) as conn:
             with conn.cursor() as cur:
                 cur.execute("SET statement_timeout = '5s'")
                 
