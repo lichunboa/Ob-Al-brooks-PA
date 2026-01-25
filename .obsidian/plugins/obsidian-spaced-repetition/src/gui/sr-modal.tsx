@@ -125,6 +125,18 @@ export class FlashcardModal extends Modal {
     private async _doEditQuestionText(): Promise<void> {
         const currentQ: Question = this.reviewSequencer.currentQuestion;
 
+        // 1. Jump to file
+        const filePath = currentQ.note.filePath;
+        const lineNo = currentQ.lineNo;
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file) {
+            const leaf = this.app.workspace.getLeaf();
+            await leaf.openFile(file as any, {
+                eState: { line: lineNo }
+            });
+        }
+
+        // 2. Open Edit Modal (Original Behavior)
         // Just the question/answer text; without any preceding topic tag
         const textPrompt = currentQ.questionText.actualQuestion;
 
@@ -139,6 +151,7 @@ export class FlashcardModal extends Modal {
             })
             .catch((reason) => console.log(reason));
     }
+
 
     private _createBackButton() {
         this.backButton = this.modalEl.createDiv();
