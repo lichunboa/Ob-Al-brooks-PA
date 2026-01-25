@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 def _get_cooldown_db_path() -> str:
     """获取冷却数据库路径"""
-    # 兼容直接运行和作为模块导入
-    try:
-        from ..config import REPO_ROOT
-    except ImportError:
-        REPO_ROOT = Path(__file__).resolve().parents[4]
-    return str(REPO_ROOT / "libs/database/services/signal-service/cooldown.db")
+    # 独立运行模式：使用环境变量或默认数据目录
+    env_path = os.environ.get("COOLDOWN_DB_PATH")
+    if env_path:
+        return env_path
+    data_dir = Path(os.environ.get("DATA_DIR", "/app/data"))
+    return str(data_dir / "cooldown.db")
 
 
 class CooldownStorage:
@@ -30,11 +30,6 @@ class CooldownStorage:
     def __init__(self, db_path: str = None):
         raw_path = db_path or _get_cooldown_db_path()
         resolved = Path(raw_path).resolve()
-        repo_root = Path(_get_cooldown_db_path()).resolve().parents[4]
-        try:
-            resolved.relative_to(repo_root)
-        except ValueError:
-            raise ValueError(f"非法冷却存储路径: {resolved}")
         self.db_path = str(resolved)
         self._ensure_db()
 

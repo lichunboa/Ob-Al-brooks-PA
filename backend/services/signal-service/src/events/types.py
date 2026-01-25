@@ -36,6 +36,22 @@ class SignalEvent:
     # 扩展数据
     extra: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def message(self) -> str:
+        """生成完整消息（用于兼容性和日志）"""
+        # 如果有message_key，返回它；否则返回signal_type
+        if self.message_key:
+            # 简单的消息生成，实际翻译由消费端完成
+            if self.message_params:
+                try:
+                    # 尝试格式化参数
+                    param_str = ", ".join(f"{k}={v}" for k, v in self.message_params.items())
+                    return f"{self.message_key} ({param_str})"
+                except Exception:
+                    return self.message_key
+            return self.message_key
+        return self.signal_type
+
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {

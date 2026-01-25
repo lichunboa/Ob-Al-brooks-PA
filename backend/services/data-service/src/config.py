@@ -8,17 +8,14 @@ from pathlib import Path
 from typing import Optional
 
 # 服务根目录
-SERVICE_ROOT = Path(__file__).parent.parent  # src/config.py -> data-service
-PROJECT_ROOT = SERVICE_ROOT.parent.parent    # tradecat/
+SERVICE_ROOT = Path(__file__).resolve().parent.parent  # src/config.py -> data-service
+# 独立运行模式：不依赖 TradeCat 目录结构
+DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
+LOGS_DIR = Path(os.getenv("LOGS_DIR", "/app/logs"))
 
-# 加载 config/.env
-_env_file = PROJECT_ROOT / "config" / ".env"
-if _env_file.exists():
-    for line in _env_file.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
+# 确保目录存在
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _int_env(name: str, default: int) -> int:
@@ -36,13 +33,9 @@ class Settings:
     ))
     http_proxy: Optional[str] = field(default_factory=lambda: os.getenv("HTTP_PROXY") or os.getenv("HTTPS_PROXY"))
 
-    # 日志和数据目录改为项目内
-    log_dir: Path = field(default_factory=lambda: Path(os.getenv(
-        "DATA_SERVICE_LOG_DIR", str(PROJECT_ROOT / "services" / "data-service" / "logs")
-    )))
-    data_dir: Path = field(default_factory=lambda: Path(os.getenv(
-        "DATA_SERVICE_DATA_DIR", str(PROJECT_ROOT / "libs" / "database" / "csv")
-    )))
+    # 日志和数据目录
+    log_dir: Path = field(default_factory=lambda: LOGS_DIR)
+    data_dir: Path = field(default_factory=lambda: DATA_DIR)
 
     ws_gap_interval: int = field(default_factory=lambda: _int_env("BINANCE_WS_GAP_INTERVAL", 600))
     ws_gap_lookback: int = field(default_factory=lambda: _int_env("BINANCE_WS_GAP_LOOKBACK", 10080))

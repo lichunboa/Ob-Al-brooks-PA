@@ -7,3 +7,6 @@ psycopg2-binary>=2.9.9
 
 # 配置
 python-dotenv>=1.0.0
+
+# 交易所API (用于auto模式获取币种)
+ccxt>=4.0.0

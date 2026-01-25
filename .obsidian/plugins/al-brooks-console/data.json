@@ -33,5 +33,17 @@
         }
       ]
     }
-  ]
+  ],
+  "backend": {
+    "enabled": true,
+    "baseUrl": "http://localhost:8088",
+    "apiToken": "dev-token-123",
+    "timeout": 30000,
+    "autoRefreshInterval": 0,
+    "defaultSymbol": "BTCUSDT",
+    "defaultInterval": "5m",
+    "aiApiEndpoint": "http://127.0.0.1:8045",
+    "aiApiKey": "sk-302bf77c3e724acfa73d893a2d416c9d",
+    "aiModel": "gemini-3-pro"
+  }
 }

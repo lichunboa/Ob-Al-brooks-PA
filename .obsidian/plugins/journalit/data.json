@@ -1,0 +1,739 @@
+{
+  "general": {
+    "currency": "USD",
+    "displayName": "",
+    "homeStartupBehavior": "always",
+    "onboardingCompleted": false,
+    "journalFolderPath": ""
+  },
+  "trade": {
+    "autoOpenCreatedTrades": true,
+    "dateFormat": "DDMMYY",
+    "use24HourTime": false,
+    "skipWeekends": true,
+    "weekStartDay": "monday",
+    "useDirectPnLInput": false,
+    "useDollarValueInput": true,
+    "maeMfeInputMode": "dollar",
+    "tradingDayCutoffTime": "00:00",
+    "breakEvenRangeMin": 0,
+    "breakEvenRangeMax": 0,
+    "includeMissedTradesInCalculations": false,
+    "defaultRiskAmount": 0,
+    "displayRMultiples": true,
+    "showCopyTradingPnL": false,
+    "lossReview": {
+      "enabled": true,
+      "sections": [
+        {
+          "id": "pause-header",
+          "title": "**LOSS REVIEW**",
+          "type": "header",
+          "content": ""
+        },
+        {
+          "id": "pause-section",
+          "title": "**Pause**✋",
+          "type": "header",
+          "content": "Take a moment to step back.\nDo **NOT** start looking at entering a position until you have completed this loss review."
+        },
+        {
+          "id": "pause-checkbox",
+          "title": "",
+          "type": "checkbox",
+          "content": "Say out loud to yourself, **\"losses are part of the process, there are endless opportunities in the market.\"**"
+        },
+        {
+          "id": "review-plan",
+          "title": "**Review Your Plan**",
+          "type": "header",
+          "content": "***Did you stick to your trading plan without mistakes?***"
+        },
+        {
+          "id": "review-plan-checklist",
+          "title": "",
+          "type": "checkboxList",
+          "items": [
+            "→ If **yes**; there is nothing to be mad about, not every trade is going to work out regardless of how good the thesis is",
+            "→ If **no**; figure out what went wrong, learn from it and don't do it again"
+          ]
+        },
+        {
+          "id": "feelings",
+          "title": "**Write Down Your Feelings**",
+          "type": "header",
+          "content": "***Be honest about how you feel and note down your emotions:***"
+        },
+        {
+          "id": "feelings-text",
+          "title": "",
+          "type": "textarea",
+          "placeholder": "How are you feeling about this loss?"
+        },
+        {
+          "id": "learn-header",
+          "title": "**Learn From This Loss**",
+          "type": "header",
+          "content": "***If the loss was reasonable, write down the best things you did during the trade and ways of repeating those:***"
+        },
+        {
+          "id": "learn-reasonable",
+          "title": "",
+          "type": "textarea",
+          "placeholder": "What went well that you can repeat?"
+        },
+        {
+          "id": "learn-unreasonable-header",
+          "title": "",
+          "type": "header",
+          "content": "***If the loss was unreasonable, note where you went wrong and how you'll improve next time:***"
+        },
+        {
+          "id": "learn-unreasonable",
+          "title": "",
+          "type": "textarea",
+          "placeholder": "What went wrong and how will you improve?"
+        },
+        {
+          "id": "next-steps",
+          "title": "**Decide The Next Steps**",
+          "type": "header",
+          "content": "***Outline what you'll do based on the previous questions and follow the plan.***\n***You might choose to step back from the charts if it's your third loss in a row.***\n***Or you might want to continue trading if it's the first one.***\n***What will you pay attention to? How will you behave?***"
+        },
+        {
+          "id": "next-steps-text",
+          "title": "",
+          "type": "textarea",
+          "placeholder": "What are your next steps?"
+        },
+        {
+          "id": "final-check",
+          "title": "**Final Check**",
+          "type": "header",
+          "content": ""
+        },
+        {
+          "id": "final-check-list",
+          "title": "",
+          "type": "checkboxList",
+          "items": [
+            "If you feel **tilted**, take a break from the screen and play guitar, play with Leo, or get something to eat",
+            "If you feel **fine**, do not enter a trade until at least the next candle"
+          ]
+        },
+        {
+          "id": "overall-thoughts",
+          "title": "**Overall Trade Thoughts:**",
+          "type": "header",
+          "content": ""
+        },
+        {
+          "id": "overall-thoughts-text",
+          "title": "",
+          "type": "textarea",
+          "placeholder": "Any additional thoughts about this trade?"
+        }
+      ]
+    }
+  },
+  "tradeLog": {
+    "columnVisibility": {
+      "select": false,
+      "image": true,
+      "account": true,
+      "ticker": true,
+      "status": true,
+      "pnl": true,
+      "direction": true,
+      "setups": true,
+      "mistakes": true,
+      "tags": true,
+      "date": true,
+      "reviewed": true,
+      "duration": false,
+      "positionSize": false,
+      "expirationDate": false,
+      "daysToExpiry": false,
+      "thesis": false
+    },
+    "columnOrder": [
+      "select",
+      "image",
+      "account",
+      "ticker",
+      "status",
+      "pnl",
+      "direction",
+      "setups",
+      "mistakes",
+      "tags",
+      "date",
+      "reviewed",
+      "duration",
+      "positionSize",
+      "expirationDate",
+      "daysToExpiry",
+      "thesis"
+    ],
+    "columnWidths": {}
+  },
+  "reviewV2": {
+    "customWidgetTypes": [],
+    "templates": [],
+    "tradeTemplates": []
+  },
+  "templates": {
+    "defaultTrade": "builtin-trade-standard",
+    "defaultDrc": "builtin-drc-standard",
+    "defaultWeekly": "builtin-weekly-standard",
+    "defaultMonthly": "builtin-monthly-standard",
+    "defaultQuarterly": "builtin-quarterly-standard",
+    "defaultYearly": "builtin-yearly-standard"
+  },
+  "reviews": {
+    "globalAutoCreate": true
+  },
+  "uiCustomization": {},
+  "customTradeFields": {
+    "fields": []
+  },
+  "customFieldOptions": {},
+  "weekly": {
+    "reviewQuestions": [
+      "What worked well this week?",
+      "What didn't work this week?",
+      "Which setups were most profitable?",
+      "What mistakes cost me the most money?",
+      "What could I improve for next week?"
+    ],
+    "customTimeframes": [
+      "Monthly",
+      "Weekly",
+      "Daily"
+    ],
+    "recurringGoals": [],
+    "autoCreateOnFirstTrade": true,
+    "autoCreateWeeklyReviewOnNavigation": true
+  },
+  "monthly": {
+    "reviewQuestions": [
+      "What were the key lessons from this month?",
+      "Which strategies performed best?",
+      "What patterns do I notice in my trading?",
+      "What are my goals for next month?",
+      "How can I improve my risk management?"
+    ],
+    "customTimeframes": [
+      "Quarterly",
+      "Monthly",
+      "Weekly"
+    ],
+    "autoCreateOnFirstTrade": true,
+    "autoCreateMonthlyReviewOnNavigation": true
+  },
+  "quarterly": {
+    "reviewQuestions": [
+      "What were the major wins and losses this quarter?",
+      "Which trading strategies performed best over the quarter?",
+      "What market conditions did I handle well or poorly?",
+      "What are my goals for next quarter?",
+      "How has my trading evolved compared to previous quarters?"
+    ],
+    "customTimeframes": [
+      "Yearly",
+      "Quarterly",
+      "Monthly"
+    ],
+    "autoCreateOnFirstTrade": true,
+    "autoCreateQuarterlyReviewOnNavigation": true
+  },
+  "yearly": {
+    "reviewQuestions": [
+      "What were my biggest wins and losses this year?",
+      "Which trading strategies performed best over the year?",
+      "How did I handle different market conditions throughout the year?",
+      "What are my goals for next year?",
+      "How has my trading evolved compared to previous years?",
+      "What key lessons did I learn this year?"
+    ],
+    "customTimeframes": [
+      "Yearly",
+      "Quarterly",
+      "Monthly"
+    ],
+    "autoCreateOnFirstTrade": true,
+    "autoCreateYearlyReviewOnNavigation": true
+  },
+  "drc": {
+    "checklistItems": [
+      "Review market conditions",
+      "Check economic calendar",
+      "Set risk limits for the day",
+      "Review previous day's trades"
+    ],
+    "reviewQuestions": [
+      "What did I do well today?",
+      "What could I improve on?",
+      "What will I focus on for the next session?"
+    ],
+    "customTimeframes": [
+      "Daily",
+      "4H",
+      "1H",
+      "30M"
+    ],
+    "recurringGoals": [],
+    "autoCreateOnFirstTrade": true,
+    "autoCreateDRCOnNavigation": true
+  },
+  "dashboard": {
+    "layouts": {
+      "Default": {
+        "topSection": [
+          "netPnL",
+          "winRate",
+          "profitFactor",
+          "expectancy"
+        ],
+        "bottomSection": {
+          "lg": [
+            {
+              "i": "pnlChart",
+              "x": 0,
+              "y": 0,
+              "w": 6,
+              "h": 8
+            },
+            {
+              "i": "performanceCalendar",
+              "x": 6,
+              "y": 0,
+              "w": 6,
+              "h": 4
+            },
+            {
+              "i": "dailyPerformance",
+              "x": 6,
+              "y": 4,
+              "w": 6,
+              "h": 4
+            }
+          ],
+          "md": [
+            {
+              "i": "pnlChart",
+              "x": 0,
+              "y": 0,
+              "w": 6,
+              "h": 6
+            },
+            {
+              "i": "performanceCalendar",
+              "x": 0,
+              "y": 6,
+              "w": 6,
+              "h": 3
+            },
+            {
+              "i": "dailyPerformance",
+              "x": 0,
+              "y": 9,
+              "w": 6,
+              "h": 3
+            }
+          ],
+          "sm": [
+            {
+              "i": "pnlChart",
+              "x": 0,
+              "y": 0,
+              "w": 4,
+              "h": 6
+            },
+            {
+              "i": "performanceCalendar",
+              "x": 0,
+              "y": 6,
+              "w": 4,
+              "h": 3
+            },
+            {
+              "i": "dailyPerformance",
+              "x": 0,
+              "y": 9,
+              "w": 4,
+              "h": 3
+            }
+          ]
+        }
+      }
+    },
+    "activeLayout": "Default",
+    "defaultFilters": {
+      "dateRange": [
+        null,
+        null
+      ],
+      "accounts": [],
+      "tickers": [],
+      "setups": [],
+      "tags": [],
+      "tradeTypes": [],
+      "statuses": []
+    },
+    "lastUsedFilters": {
+      "dateRange": [
+        null,
+        null
+      ],
+      "accounts": [],
+      "tickers": [],
+      "setups": [],
+      "tags": [],
+      "tradeTypes": [],
+      "statuses": []
+    }
+  },
+  "home": {
+    "layouts": {
+      "Default": {
+        "lg": [
+          {
+            "i": "recentItems",
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 5
+          },
+          {
+            "i": "yearHeatmap",
+            "x": 4,
+            "y": 0,
+            "w": 8,
+            "h": 5
+          }
+        ],
+        "md": [
+          {
+            "i": "recentItems",
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 5
+          },
+          {
+            "i": "yearHeatmap",
+            "x": 0,
+            "y": 5,
+            "w": 6,
+            "h": 5
+          }
+        ],
+        "sm": [
+          {
+            "i": "recentItems",
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 5
+          },
+          {
+            "i": "yearHeatmap",
+            "x": 0,
+            "y": 5,
+            "w": 4,
+            "h": 5
+          }
+        ],
+        "xs": [
+          {
+            "i": "recentItems",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 5
+          },
+          {
+            "i": "yearHeatmap",
+            "x": 0,
+            "y": 5,
+            "w": 2,
+            "h": 5
+          }
+        ],
+        "xxs": [
+          {
+            "i": "recentItems",
+            "x": 0,
+            "y": 0,
+            "w": 1,
+            "h": 5
+          },
+          {
+            "i": "yearHeatmap",
+            "x": 0,
+            "y": 5,
+            "w": 1,
+            "h": 5
+          }
+        ]
+      }
+    },
+    "activeLayout": "Default",
+    "recentItems": [],
+    "quickLinks": [
+      {
+        "id": "add-trade",
+        "label": "Add Trade",
+        "icon": "plus-circle",
+        "color": "var(--interactive-accent)",
+        "action": "addTrade",
+        "visible": true,
+        "order": 0
+      },
+      {
+        "id": "trade-log",
+        "label": "Trade Log",
+        "icon": "folder-tree",
+        "color": "var(--text-accent)",
+        "action": "openTradeLog",
+        "visible": true,
+        "order": 1
+      },
+      {
+        "id": "trading-dashboard",
+        "label": "Trading Dashboard",
+        "icon": "grip",
+        "color": "var(--text-accent)",
+        "action": "openTradingDashboard",
+        "visible": true,
+        "order": 2
+      },
+      {
+        "id": "account-dashboard",
+        "label": "Account Dashboard",
+        "icon": "users",
+        "color": "var(--text-accent)",
+        "action": "openAccountDashboard",
+        "visible": true,
+        "order": 3
+      },
+      {
+        "id": "todays-drc",
+        "label": "Today's DRC",
+        "icon": "calendar",
+        "color": "var(--text-accent)",
+        "action": "openTodaysDRC",
+        "visible": true,
+        "order": 4
+      },
+      {
+        "id": "weekly-review",
+        "label": "This Week Review",
+        "icon": "calendar-check",
+        "color": "var(--text-accent)",
+        "action": "openWeeklyReview",
+        "visible": true,
+        "order": 5
+      },
+      {
+        "id": "monthly-review",
+        "label": "This Month Review",
+        "icon": "calendar-range",
+        "color": "var(--text-accent)",
+        "action": "openMonthlyReview",
+        "visible": true,
+        "order": 6
+      },
+      {
+        "id": "csv-import",
+        "label": "CSV Import",
+        "icon": "import",
+        "color": "var(--text-accent)",
+        "action": "openCSVImport",
+        "visible": true,
+        "order": 7
+      },
+      {
+        "id": "layout-builder",
+        "label": "Layout Builder",
+        "icon": "blocks",
+        "color": "var(--text-accent)",
+        "action": "openLayoutBuilder",
+        "visible": true,
+        "order": 8
+      }
+    ],
+    "activeWidgets": [
+      "recentItems",
+      "yearHeatmap"
+    ],
+    "embeddedNotes": {},
+    "goals": {},
+    "positionSizeDefaults": {
+      "riskPercentage": 1,
+      "assetType": "stock",
+      "lastFuturesSymbol": "ES",
+      "lastForexSymbol": "EURUSD"
+    },
+    "selectedPeriod": "lifetime"
+  },
+  "viewFilters": {
+    "dashboard": {
+      "dateRange": [
+        null,
+        null
+      ],
+      "accounts": [],
+      "tickers": [],
+      "setups": [],
+      "tags": [],
+      "tradeTypes": [],
+      "statuses": []
+    },
+    "reviews": {
+      "accounts": [],
+      "tickers": [],
+      "setups": [],
+      "tags": [],
+      "tradeTypes": [],
+      "statuses": []
+    }
+  },
+  "account": {
+    "defaultAccountType": "demo",
+    "defaultDrawdownType": "none",
+    "defaultDrawdownAmount": 0,
+    "showBalanceInDashboard": true,
+    "excludedAccountTypes": [
+      "archived"
+    ],
+    "includeWithdrawalsFromExcluded": {
+      "archived": true,
+      "demo": false
+    },
+    "accountTypeOrder": [
+      "funded",
+      "evaluation",
+      "demo",
+      "archived"
+    ],
+    "accountMetadata": {}
+  },
+  "backendIntegration": {
+    "serverUrl": "https://api.journalit.co",
+    "syncEnabled": true,
+    "userId": "aaron_mr_licb",
+    "showSyncNotifications": true,
+    "showNewTradeNotifications": true,
+    "showUpdateNotifications": true,
+    "lastSeenVersion": "1.6.3-beta.3",
+    "dismissedVersion": "1.6.3-beta.3",
+    "authToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0OTc2LCJlbWFpbCI6ImFhcm9uLm1yLmxpY2JAZ21haWwuY29tIiwidGllciI6InByZW1pdW0iLCJzdWJzY3JpcHRpb25fc3RhdHVzIjoiZnJlZSIsImlzX2JldGEiOnRydWUsImlzcyI6ImpvdXJuYWxpdC1iZXRhIiwic3ViIjoiYWFyb24ubXIubGljYkBnbWFpbC5jb20iLCJleHAiOjE3NzI3ODQwNjAsIm5iZiI6MTc2OTE1NTI2MCwiaWF0IjoxNzY5MTU1MjYwLCJqdGkiOiJiZXRhLTQ5NzYtMTc2OTE1NTI2MCJ9.uj_y4kmDw76rhObRwxGqmrsPtHsMkGrfD36Fef7gG3g",
+    "userEmail": "aaron.mr.licb@gmail.com",
+    "subscriptionTier": "premium",
+    "shownAuthMigrationNotice": false,
+    "tradeSyncMapping": {},
+    "ftpUserId": 4976,
+    "ftpUsername": "aaron_mr_licb",
+    "ftpPassword": "tkT$iiVZvU*bo46M",
+    "vaultIdentifier": "vault_b572f9f17fd3aea2",
+    "vaultPath": "vault_b572f9f17fd3aea2",
+    "lastSyncTime": "2026-01-25T11:56:02.794Z",
+    "syncCount": 28
+  },
+  "csvTemplates": [],
+  "csvHiddenBrokers": [],
+  "csvLastAssetType": {},
+  "initializedOptionTypes": [
+    "instrument",
+    "account_type",
+    "setup",
+    "mistake",
+    "tag",
+    "event"
+  ],
+  "symbolMappings": [],
+  "customOptions_options": {
+    "instrument": [
+      {
+        "name": "AAPL",
+        "assetType": "stock"
+      },
+      {
+        "name": "MSFT",
+        "assetType": "stock"
+      },
+      {
+        "name": "TSLA",
+        "assetType": "stock"
+      },
+      {
+        "name": "ES1",
+        "assetType": "futures",
+        "futuresData": {
+          "dollarPerPoint": 50,
+          "tickSize": 0.25,
+          "tickValue": 12.5
+        }
+      },
+      {
+        "name": "NQ1",
+        "assetType": "futures",
+        "futuresData": {
+          "dollarPerPoint": 20,
+          "tickSize": 0.25,
+          "tickValue": 5
+        }
+      },
+      {
+        "name": "EURUSD",
+        "assetType": "forex"
+      }
+    ],
+    "account": [],
+    "account_type": [
+      "Demo",
+      "Evaluation",
+      "Funded",
+      "Archived"
+    ],
+    "setup": [
+      "Breakout Setup",
+      "Reversal Pattern"
+    ],
+    "mistake": [
+      "Early Entry",
+      "Poor Position Sizing"
+    ],
+    "tag": [
+      "Swing Trade",
+      "Day Trade",
+      "Momentum",
+      "Reversal",
+      "Earnings"
+    ],
+    "event": [
+      {
+        "name": "FOMC Meeting",
+        "color": "gray"
+      },
+      {
+        "name": "Earnings Announcement",
+        "color": "gray"
+      },
+      {
+        "name": "Economic Data Release",
+        "color": "gray"
+      },
+      {
+        "name": "Fed Speech",
+        "color": "gray"
+      },
+      {
+        "name": "Market Holiday",
+        "color": "gray"
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "ws_212543a8",
+  "name": "Al-brooks-PA",
+  "slug": "al-brooks-pa",
+  "defaults": {
+    "model": "claude-sonnet-4-5-20250929",
+    "permissionMode": "safe",
+    "cyclablePermissionModes": [
+      "safe",
+      "ask",
+      "allow-all"
+    ],
+    "thinkingLevel": "think",
+    "enabledSourceSlugs": []
+  },
+  "localMcpServers": {
+    "enabled": true
+  },
+  "createdAt": 1769244855566,
+  "updatedAt": 1769244855572
+}

@@ -12,10 +12,9 @@ import os
 import sys
 from typing import Tuple, List, Dict, Any
 
-from src.config import PROJECT_ROOT, HTTP_PROXY
+from src.config import HTTP_PROXY
 
-# 导入工具
-sys.path.insert(0, str(PROJECT_ROOT)) if str(PROJECT_ROOT) not in sys.path else None
+# 独立运行模式：libs 模块通过环境变量或直接导入
 
 # LLM 后端选择：cli / api / openai_compat（默认 cli）
 LLM_BACKEND = os.getenv("LLM_BACKEND", "cli")

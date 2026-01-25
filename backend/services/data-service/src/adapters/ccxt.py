@@ -39,14 +39,40 @@ def get_client(exchange: str = "binance") -> ccxt.Exchange:
 
 
 # ========== 币种管理配置 ==========
-# 使用共享模块
+# 使用共享模块 - 安全的路径发现
 import sys
 from pathlib import Path
 
-_libs_path = str(Path(__file__).parents[4] / "libs")
-if _libs_path not in sys.path:
+
+def _find_libs_path() -> Optional[str]:
+    """安全地查找 libs 路径，支持不同的部署结构"""
+    current = Path(__file__).resolve()
+    parents = list(current.parents)
+
+    # 尝试在不同层级查找 libs 目录
+    for i in range(min(6, len(parents))):
+        candidate = parents[i] / "libs"
+        if candidate.exists():
+            return str(candidate)
+
+    # Docker 容器路径
+    if Path("/app/libs").exists():
+        return "/app/libs"
+
+    return None
+
+
+_libs_path = _find_libs_path()
+if _libs_path and _libs_path not in sys.path:
     sys.path.insert(0, _libs_path)
-from common.symbols import get_configured_symbols
+
+# 尝试导入共享模块，如果失败则提供空实现
+try:
+    from common.symbols import get_configured_symbols
+except ImportError:
+    logger.warning("无法导入 common.symbols，使用空币种配置")
+    def get_configured_symbols() -> List[str]:
+        return []
 
 
 def load_symbols(exchange: str = "binance") -> List[str]:

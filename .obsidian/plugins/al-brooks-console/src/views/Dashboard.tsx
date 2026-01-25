@@ -292,6 +292,7 @@ export class ConsoleView extends ItemView {
   private subscribeSettings: (
     listener: (settings: AlBrooksConsoleSettings) => void
   ) => () => void;
+  private saveSettingsCallback: (settings: AlBrooksConsoleSettings) => Promise<void>;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -303,7 +304,8 @@ export class ConsoleView extends ItemView {
     getSettings: () => AlBrooksConsoleSettings,
     subscribeSettings: (
       listener: (settings: AlBrooksConsoleSettings) => void
-    ) => () => void
+    ) => () => void,
+    saveSettings: (settings: AlBrooksConsoleSettings) => Promise<void>
   ) {
     super(leaf);
     this.index = index;
@@ -313,6 +315,7 @@ export class ConsoleView extends ItemView {
     this.version = version;
     this.getSettings = getSettings;
     this.subscribeSettings = subscribeSettings;
+    this.saveSettingsCallback = saveSettings;
   }
 
   getViewType() {
@@ -895,7 +898,7 @@ export class ConsoleView extends ItemView {
           todayContext={this.todayContext}
           settings={this.getSettings()}
           onSaveSettings={async (s) => {
-            // 这里需要保存设置的逻辑
+            await this.saveSettingsCallback(s);
           }}
           app={this.app}
           version={this.version}

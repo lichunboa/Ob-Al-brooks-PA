@@ -1,8 +1,7 @@
 """
 入口: python -m src
 
-ai-service 作为 telegram-service 的子模块运行，
-此入口仅用于独立测试和调试。
+ai-service 独立运行模式
 
 用法:
     cd services/ai-service
@@ -17,13 +16,10 @@ import sys
 from pathlib import Path
 
 SRC_DIR = Path(__file__).parent
-PROJECT_ROOT = SRC_DIR.parent
-REPO_ROOT = PROJECT_ROOT.parent.parent
+SERVICE_ROOT = SRC_DIR.parent  # ai-service/
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,10 +38,11 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        from config import PROJECT_ROOT as cfg_root
+        from config import SERVICE_ROOT, DATA_DIR, LOGS_DIR
         logger.info("=== AI Service 配置测试 ===")
-        logger.info("  PROJECT_ROOT: %s", cfg_root)
-        logger.info("  REPO_ROOT: %s", REPO_ROOT)
+        logger.info("  SERVICE_ROOT: %s", SERVICE_ROOT)
+        logger.info("  DATA_DIR: %s", DATA_DIR)
+        logger.info("  LOGS_DIR: %s", LOGS_DIR)
 
         try:
             from prompt import PromptRegistry

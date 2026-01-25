@@ -99,7 +99,11 @@ export default class AlBrooksConsolePlugin extends Plugin {
           this.integrations,
           this.manifest.version,
           () => this.settings,
-          (cb: (settings: AlBrooksConsoleSettings) => void) => this.onSettingsChanged(cb)
+          (cb: (settings: AlBrooksConsoleSettings) => void) => this.onSettingsChanged(cb),
+          async (newSettings: AlBrooksConsoleSettings) => {
+            this.settings = newSettings;
+            await this.saveSettings();
+          }
         )
     );
 

@@ -114,9 +114,32 @@ def _get_default_symbols() -> list[str]:
     # 解析选中的分组
     selected = [g.strip() for g in groups_str.split(",") if g.strip()]
 
-    # auto/all 返回默认
+    # auto/all 模式: 从交易所获取全部 USDT 永续合约
     if "auto" in selected or "all" in selected:
-        return _DEFAULT_SYMBOLS
+        try:
+            import ccxt
+            proxy = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
+            client = ccxt.binance({
+                "enableRateLimit": True,
+                "timeout": 30000,
+                "proxies": {"http": proxy, "https": proxy} if proxy else None,
+                "options": {"defaultType": "swap"},
+            })
+            client.load_markets()
+            all_symbols = sorted({
+                f"{m['base']}USDT" for m in client.markets.values()
+                if m.get("swap") and m.get("settle") == "USDT" and m.get("linear")
+            })
+            # 应用排除
+            exclude = os.environ.get("SYMBOLS_EXCLUDE", env.get("SYMBOLS_EXCLUDE", ""))
+            if exclude:
+                exclude_set = set(s.strip().upper() for s in exclude.split(",") if s.strip())
+                all_symbols = [s for s in all_symbols if s not in exclude_set]
+            logger.info("✅ 从交易所获取币种 (auto模式): %d 个币种", len(all_symbols))
+            return _validate_symbols(all_symbols)
+        except Exception as exc:
+            logger.error("❌ 从交易所获取币种失败: %s, 回退到默认", exc)
+            return _DEFAULT_SYMBOLS
 
     # 收集币种
     symbols = set()

@@ -1,0 +1,3230 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: tradecat-telegram\n"
+"PO-Revision-Date: 2026-01-06 00:00+0800\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+msgid "help.body"
+msgstr "📖 使用帮助\n/start - 开始使用\n/data - 数据面板\n/help - 帮助信息\n\n点击下方按钮查看数据："
+
+msgid "menu.home"
+msgstr "🏠 主菜单"
+
+msgid "menu.data"
+msgstr "📊 数据面板"
+
+msgid "start.initializing"
+msgstr "🚀 机器人正在初始化中，请稍等..."
+
+msgid "start.greet"
+msgstr "你好👋"
+
+msgid "start.fallback"
+msgstr "⚡️欢迎使用交易猫"
+
+msgid "start.error"
+msgstr "❌ 启动时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "lang.zh"
+msgstr "简体中文"
+
+msgid "lang.en"
+msgstr "English"
+
+msgid "lang.prompt"
+msgstr "🌐 请选择语言"
+
+msgid "lang.set"
+msgstr "语言已切换为 {lang_name}"
+
+msgid "ai.not_installed"
+msgstr "🤖 AI分析模块未安装\n\n请联系管理员配置 ai-service"
+
+msgid "ai.failed"
+msgstr "❌ AI分析启动失败: {error}"
+
+# 键盘
+msgid "kb.data"
+msgstr "📊 数据面板"
+
+msgid "kb.query"
+msgstr "🔍 币种查询"
+
+msgid "kb.ai"
+msgstr "🤖 AI分析"
+
+msgid "kb.signal"
+msgstr "🔔 信号"
+
+msgid "kb.home"
+msgstr "🏠 主菜单"
+
+msgid "kb.help"
+msgstr "ℹ️ 帮助"
+
+msgid "kb.lang"
+msgstr "🌐 语言"
+
+msgid "kb.config"
+msgstr "⚙️ 配置"
+
+msgid "menu.main_text"
+msgstr ""
+"⚡️ 交易猫\n"
+"\n"
+"📊 数据面板\n"
+"├─ 基础数据：MACD/RSI/布林带/支撑阻力/资金流向/\n"
+"├─ 合约数据：OI系列/主动买卖比/持仓变动/波动率/\n"
+"└─ 高级数据：EMA/K线形态/VPVR/VWAP/流动性/趋势/\n"
+"\n"
+"🚨 信号面板\n"
+"├─ 异常监控\n"
+"└─ 自选推送\n"
+"\n"
+"🤖 AI分析\n"
+"├─ 深度报告\n"
+"└─ 点位速览\n"
+"\n"
+"⏰ 更新时间：{time}（北京时间）\n"
+"👇 点击按钮开始"
+
+msgid "menu.ranking"
+msgstr ""
+"📊 数据面板\n"
+"├─ 选榜单进入详情\n"
+"├─ 选周期：1m/5m/15m/1h/4h/1d/1w\n"
+"├─ 排序：字段升/降序切换\n"
+"└─ 字段：按钮点一下开/关\n"
+"\n"
+"👇 请选择要查看的榜单"
+
+# AI 模块
+msgid "ai.list.title"
+msgstr "🤖 *AI 分析*"
+
+msgid "ai.list.usage"
+msgstr "💡 使用方法: 发送 `币种名@` 触发分析，例如: `BTC@`"
+
+msgid "ai.list.supported"
+msgstr "📊 可分析币种 ({count} 个)"
+
+msgid "ai.unsupported"
+msgstr "❌ 不支持的币种: {coin}\n\n请从支持列表中选择"
+
+msgid "ai.interval.title"
+msgstr "🤖 *AI 深度分析*"
+
+msgid "ai.prompt.label"
+msgstr "🧠 提示词"
+
+msgid "ai.interval.choose"
+msgstr "请选择分析周期:"
+
+msgid "ai.analyzing"
+msgstr "🔄 正在分析 *{symbol}* @ {interval} ...\n\n⏳ AI 分析需要 30-60 秒，请稍候"
+
+msgid "ai.cancelled"
+msgstr "已取消 AI 分析"
+
+msgid "ai.no_symbol"
+msgstr "❌ 未选择币种，请重新发送 `币种名@`"
+
+# ============ 通用按钮 ============
+msgid "btn.back_home"
+msgstr "🏠 返回主菜单"
+
+msgid "btn.back"
+msgstr "⬅️ 返回"
+
+msgid "btn.refresh"
+msgstr "🔄 刷新"
+
+msgid "btn.next_page"
+msgstr "下一页 ➡️"
+
+msgid "btn.prev_page"
+msgstr "⬅️ 上一页"
+
+msgid "btn.asc"
+msgstr "升序"
+
+msgid "btn.desc"
+msgstr "降序"
+
+msgid "btn.show_more"
+msgstr "👇显示点击下方按钮选择更多数据"
+
+msgid "btn.refresh_menu"
+msgstr "🔄 刷新菜单"
+
+msgid "btn.retry"
+msgstr "🔁 重试"
+
+msgid "btn.market_overview"
+msgstr "📈 市场概览"
+
+msgid "btn.position_ranking"
+msgstr "📊 持仓排行"
+
+msgid "btn.volume_ranking"
+msgstr "🔊 量能排行"
+
+msgid "btn.liquidation_ranking"
+msgstr "💥 爆仓排行"
+
+# ============ 面板按钮 ============
+msgid "panel.basic"
+msgstr "💵基础"
+
+msgid "panel.futures"
+msgstr "📑合约"
+
+msgid "panel.advanced"
+msgstr "🧠高级"
+
+msgid "panel.pattern"
+msgstr "🕯️形态"
+
+# ============ 市场类型 ============
+msgid "market.spot"
+msgstr "现货"
+
+msgid "market.futures"
+msgstr "合约"
+
+# ============ 周期 ============
+msgid "period.1m"
+msgstr "1分钟"
+
+msgid "period.5m"
+msgstr "5分钟"
+
+msgid "period.15m"
+msgstr "15分钟"
+
+msgid "period.30m"
+msgstr "30分钟"
+
+msgid "period.1h"
+msgstr "1小时"
+
+msgid "period.4h"
+msgstr "4小时"
+
+msgid "period.12h"
+msgstr "12小时"
+
+msgid "period.1d"
+msgstr "1天"
+
+msgid "period.1w"
+msgstr "1周"
+
+# ============ 排序/筛选 ============
+msgid "sort.by_volume"
+msgstr "成交额"
+
+msgid "sort.by_price"
+msgstr "价格"
+
+msgid "sort.by_change"
+msgstr "涨跌幅"
+
+msgid "sort.items"
+msgstr "{n}条"
+
+# ============ 资金流向 ============
+msgid "flow.absolute"
+msgstr "绝对值"
+
+msgid "flow.inflow"
+msgstr "流入"
+
+msgid "flow.outflow"
+msgstr "流出"
+
+msgid "flow.volume"
+msgstr "市值"
+
+# ============ 比率类型 ============
+msgid "ratio.position_market"
+msgstr "持仓/市值"
+
+msgid "ratio.volume_market"
+msgstr "交易量/市值"
+
+msgid "ratio.volume_oi"
+msgstr "交易量/持仓"
+
+# ============ 错误消息 ============
+msgid "error.not_ready"
+msgstr "❌ 系统未就绪，请稍后重试"
+
+msgid "error.query_failed"
+msgstr "❌ 查询失败: {error}"
+
+msgid "error.refresh_failed"
+msgstr "❌ 刷新失败，请稍后重试"
+
+msgid "error.export_failed"
+msgstr "❌ 导出失败: {error}"
+
+msgid "error.status_failed"
+msgstr "❌ 获取状态失败，请稍后重试"
+
+msgid "error.signal_failed"
+msgstr "❌ 信号界面失败: {error}"
+
+# ============ 功能提示 ============
+msgid "query.disabled"
+msgstr "⚠️ 单币查询功能暂时关闭"
+
+msgid "query.hint"
+msgstr "请先发送例如 btc! 触发单币查询"
+
+msgid "feature.coming_soon"
+msgstr "🚧 功能开发中，敬请期待！"
+
+msgid "signal.coming_soon"
+msgstr "🚧 信号订阅功能开发中，敬请期待！"
+
+# ============ 排行榜标题 ============
+msgid "ranking.volume"
+msgstr "📈 成交量排行 - 成交额热度榜 📈"
+
+msgid "ranking.spot_volume"
+msgstr "💹 {period}现货交易量排行榜 💹"
+
+msgid "ranking.position"
+msgstr "🐋 持仓量排行 - 大鲸追踪，资金嗅探 🐋"
+
+msgid "ranking.funding"
+msgstr "💱 资金费率排行"
+
+msgid "ranking.liquidation"
+msgstr "💥 爆仓排行"
+
+msgid "ranking.flow"
+msgstr "💧 资金流向排行"
+
+msgid "ranking.depth"
+msgstr "🧊 市场深度排行"
+
+msgid "ranking.sentiment"
+msgstr "🎭 市场情绪"
+
+msgid "ranking.overview"
+msgstr "📡 行情总览"
+
+# ============ 比率排行榜 ============
+msgid "ranking.ratio.position_market"
+msgstr "📊 持仓/市值比排行榜 📊"
+
+msgid "ranking.ratio.volume_market"
+msgstr "📊 交易量/市值比排行榜 📊"
+
+msgid "ranking.ratio.volume_oi"
+msgstr "📊 交易量/持仓量比排行榜 📊"
+
+# ============ 资金流向标题 ============
+msgid "flow.title.futures_long"
+msgstr "🟢 合约多头资金流入({period})"
+
+msgid "flow.title.futures_short"
+msgstr "🔴 合约空头资金流出({period})"
+
+msgid "flow.title.futures_volume"
+msgstr "📦 合约交易量排行({period})"
+
+msgid "flow.title.futures"
+msgstr "💧 资金流向排行 - 合约({period})"
+
+msgid "flow.title.spot_long"
+msgstr "🟢 现货多头资金流入({period})"
+
+msgid "flow.title.spot_short"
+msgstr "🔴 现货空头资金流出({period})"
+
+msgid "flow.title.spot_volume"
+msgstr "📦 现货交易量排行({period})"
+
+msgid "flow.title.spot"
+msgstr "💧 现货资金流向排行({period})"
+
+# ============ 资金流向描述 ============
+msgid "flow.desc.futures_long"
+msgstr "仅保留多头占优，按净流降序"
+
+msgid "flow.desc.futures_short"
+msgstr "仅保留空头占优，按净流升序"
+
+msgid "flow.desc.spot_long"
+msgstr "仅保留现货净流入，按净流降序"
+
+msgid "flow.desc.spot_short"
+msgstr "仅保留现货净流出，按净流升序"
+
+msgid "flow.desc.volume"
+msgstr "按该周期成交额排序"
+
+msgid "flow.desc.absolute"
+msgstr "按 |CVD| ({symbol}) / {sort}"
+
+msgid "flow.desc.definition_futures"
+msgstr "净流(CVD)=Taker买入 - Taker卖出，数据来自 Binance 合约"
+
+msgid "flow.desc.definition_spot"
+msgstr "净流(CVD)=Taker买入 - Taker卖出，数据来自 Binance 现货"
+
+# ============ 期权流向 ============
+msgid "flow.option.inflow"
+msgstr "💰 期权资金流入排行榜 💰"
+
+msgid "flow.option.sort_inflow"
+msgstr "资金流入强度(🔽)"
+
+msgid "flow.option.type_inflow"
+msgstr "🟢 仅显示资金流入的币种"
+
+msgid "flow.option.desc_inflow"
+msgstr "💡 所有数值均为正值，表示资金净流入"
+
+msgid "flow.option.outflow"
+msgstr "💰 期权资金流出排行榜 💰"
+
+msgid "flow.option.sort_outflow"
+msgstr "资金流出强度(🔼)"
+
+msgid "flow.option.type_outflow"
+msgstr "🔴 仅显示资金流出的币种"
+
+msgid "flow.option.desc_outflow"
+msgstr "💡 所有数值均为负值，表示资金净流出"
+
+msgid "flow.option.absolute"
+msgstr "💰 期权资金流向排行榜 💰"
+
+msgid "flow.option.sort_absolute"
+msgstr "资金流向强度({symbol}) / {sort}"
+
+msgid "flow.option.type_absolute"
+msgstr "📊 按绝对值排序，显示所有币种"
+
+msgid "flow.option.desc_absolute"
+msgstr "💡 +表示资金流入，-表示流出"
+
+# ============ 时间显示 ============
+msgid "time.update"
+msgstr "⏰ 更新 {time}"
+
+msgid "time.last_update"
+msgstr "⏰ 最后更新 {time}"
+
+msgid "time.cache"
+msgstr "📄 缓存时间: {time}"
+
+# ============ 数据提示 ============
+msgid "data.no_data"
+msgstr "暂无数据"
+
+msgid "data.loading"
+msgstr "🔄 数据准备中"
+
+msgid "data.coins_count"
+msgstr "📊 可查询币种 ({count} 个)"
+
+# ============ 单币快照 ============
+msgid "snapshot.error.no_symbol"
+msgstr "未提供有效币种"
+
+msgid "snapshot.error.no_period"
+msgstr "请至少开启一个周期列"
+
+msgid "snapshot.header.field"
+msgstr "字段\\周期"
+
+msgid "snapshot.header.compact"
+msgstr "字段\\周期/{columns}"
+
+msgid "snapshot.title.basic"
+msgstr "💵 {symbol} 基础数据"
+
+msgid "snapshot.title.futures"
+msgstr "📑 {symbol} 合约数据"
+
+msgid "snapshot.title.advanced"
+msgstr "🧠 {symbol} 高级数据"
+
+msgid "snapshot.title.default"
+msgstr "{symbol} 数据快照"
+
+msgid "snapshot.footer.hint"
+msgstr "💡 按钮可开关卡片/周期/面板；合约不含1m；高级默认少列防超长"
+
+msgid "snapshot.footer.page"
+msgstr "📑 页 {current}/{total}"
+
+# ============ 排行卡片通用 ============
+msgid "card.header.rank"
+msgstr "排名"
+
+msgid "card.header.symbol"
+msgstr "币种"
+
+msgid "card.header.rank_symbol"
+msgstr "排名/币种"
+
+msgid "btn.sort.desc"
+msgstr "降序"
+
+msgid "btn.sort.asc"
+msgstr "升序"
+
+msgid "btn.limit.10"
+msgstr "10条"
+
+msgid "btn.limit.20"
+msgstr "20条"
+
+msgid "btn.limit.30"
+msgstr "30条"
+
+msgid "btn.settings"
+msgstr "⚙️ 设置"
+
+# 信号开关
+msgid "signal.push.on"
+msgstr "开启推送"
+
+msgid "signal.push.off"
+msgstr "关闭推送"
+
+# ============ 通用排序提示 ============
+msgid "card.common.sort"
+msgstr "📊 排序 {period} {field}({symbol})"
+
+# ============ KDJ 排行 ============
+msgid "card.kdj.title"
+msgstr "🎯 KDJ 排行"
+
+msgid "card.kdj.desc"
+msgstr "KDJ 随机指标强度榜"
+
+msgid "card.kdj.hint"
+msgstr "💡 强度综合 J/K/D 与超买超卖，>0 偏多，<0 偏空"
+
+msgid "card.kdj.settings.title"
+msgstr "⚙️ KDJ 字段设置"
+
+msgid "card.kdj.settings.hint"
+msgstr "💡 关闭不关心的字段，避免数据过长"
+
+msgid "card.kdj.fallback"
+msgstr "🔄 KDJ 数据准备中"
+
+# ============ 期货情绪分歧榜 ============
+msgid "card.divergence.title"
+msgstr "⚖️ 情绪分歧榜"
+
+msgid "card.divergence.sort"
+msgstr "📊 排序 {period} {field}({symbol})"
+
+msgid "card.divergence.source"
+msgstr "💡 数据源：期货情绪聚合表（情绪差值）"
+
+msgid "card.divergence.fallback"
+msgstr "⚖️ 情绪分歧数据加载中，请稍后重试..."
+
+# ============ 趋势线榜 ============
+msgid "card.trendline.title"
+msgstr "📈 趋势线"
+
+msgid "card.trendline.sort"
+msgstr "📊 排序 {period} {field}({symbol})"
+
+msgid "card.trendline.source"
+msgstr "💡 指标仅保留方向与距离（Pine 等价）"
+
+msgid "card.trendline.fallback"
+msgstr "🔄 趋势线数据准备中"
+
+# ============ 导出 ============
+msgid "export.caption"
+msgstr "📊 {symbol} 完整数据报告"
+
+msgid "export.title"
+msgstr "{symbol} 完整数据报告"
+
+# ============ UI 提示 ============
+msgid "ui.please_wait"
+msgstr "⏳ 请稍等"
+
+msgid "ui.processing"
+msgstr "处理中..."
+
+msgid "ui.futures_no_1m"
+msgstr "合约视图不支持1m"
+
+msgid "ui.card_offline"
+msgstr "⚖️ 卡片已下线"
+
+msgid "ui.system_reloading"
+msgstr "系统正在重新加载，请稍后重试"
+
+# 卡片通用词条
+msgid "card.common.update_time"
+msgstr "⏰ 更新 {time}"
+
+msgid "card.common.last_update"
+msgstr "⏰ 最后更新 {time}"
+
+msgid "card.common.sort_info"
+msgstr "📊 排序 {period} {field}({symbol})"
+
+# CVD 卡片
+msgid "card.cvd.title"
+msgstr "🌊 CVD数据"
+
+msgid "card.cvd.hint"
+msgstr "💡 CVD = 主动买额 - 主动卖额，正为多头，负为空头"
+
+# MFI 卡片
+msgid "card.mfi.title"
+msgstr "💧 资金流量数据"
+
+msgid "card.mfi.hint"
+msgstr "💡 MFI 结合价量的超买超卖指标，>80 超买，<20 超卖"
+
+# OBV 卡片
+msgid "card.obv.title"
+msgstr "📊 OBV数据"
+
+msgid "card.obv.hint"
+msgstr "💡 OBV斜率刻画量价累积动能，强度越高动能越集中"
+
+# RSI谐波 卡片
+msgid "card.rsi_harmonic.title"
+msgstr "📊 RSI谐波数据"
+
+msgid "card.rsi_harmonic.hint"
+msgstr "💡 RSI2-33 全谐波信号，谐波值越高信号越显著"
+
+# 主动买卖比 卡片
+msgid "card.taker_ratio.title"
+msgstr "🧾 主动买卖比数据"
+
+msgid "card.taker_ratio.hint"
+msgstr "💡 买卖比 = 主动买成交额 ÷ 总成交额，越高代表买盘越强"
+
+# VWAP 卡片
+msgid "card.vwap.title"
+msgstr "📏 VWAP数据"
+
+msgid "card.vwap.hint"
+msgstr "💡 偏离>0 表示价格高于VWAP，偏离<0 表示低于VWAP"
+
+# 资金流向 卡片
+msgid "card.flow.title"
+msgstr "💧 资金流向数据"
+
+msgid "card.flow.hint"
+msgstr "💡 净流=流入-流出；可切换净流/成交额/流入/流出/价格等维度"
+
+# 资金费率 卡片
+msgid "card.funding.title"
+msgstr "💱 资金费率数据"
+
+msgid "card.funding.hint"
+msgstr "💡 可切换资金费率/加权费率及通用列"
+
+# VPVR 卡片
+msgid "card.vpvr.title"
+msgstr "📊 VPVR数据"
+
+msgid "card.vpvr.hint"
+msgstr "💡 宽度%= (上沿-下沿)/VPVR价"
+
+# 布林带 卡片
+msgid "card.bb.title"
+msgstr "📊 布林带数据"
+
+msgid "card.bb.hint"
+msgstr "💡 带宽衡量波动，百分比描述价格在通道内的位置"
+
+# 超级趋势 卡片
+msgid "card.supertrend.title"
+msgstr "📈 超级趋势数据"
+
+msgid "card.supertrend.hint"
+msgstr "💡 强度 = (价格-趋势带)/带宽；方向 1=多 -1=空"
+
+# EMA 卡片
+msgid "card.ema.title"
+msgstr "📈 EMA数据"
+
+msgid "card.ema.hint"
+msgstr "💡 强度基于 EMA 面积收敛/发散计算"
+
+# K线形态 卡片
+msgid "card.pattern.title"
+msgstr "📊 K线形态数据"
+
+msgid "card.pattern.hint"
+msgstr "💡 强度来源形态数量与权重（形态名已中文化）"
+
+# MACD 卡片
+msgid "card.macd.title"
+msgstr "📊 MACD数据"
+
+msgid "card.macd.hint"
+msgstr "💡 强度综合柱值与趋势，柱值>0 偏多，<0 偏空"
+
+# 持仓 卡片
+msgid "card.oi.title"
+msgstr "🐋 持仓量数据"
+
+msgid "card.oi.hint"
+msgstr "💡 持仓占比按多空拆分，可切换字段/排序"
+
+# 流动性 卡片
+msgid "card.liquidity.title"
+msgstr "💧 流动性数据"
+
+msgid "card.liquidity.hint"
+msgstr "💡 指数综合 Amihud/Kyle 与波动/成交量，数值越高代表流动性风险越高"
+
+# 市场深度 卡片
+msgid "card.depth.title"
+msgstr "🧊 市场深度数据"
+
+msgid "card.depth.hint"
+msgstr "💡 深度比=买卖盘量对比，搭配价差/买墙/卖墙查看流动性质量"
+
+# 支撑阻力 卡片
+msgid "card.sr.title"
+msgstr "📊 支撑阻力数据"
+
+msgid "card.sr.hint"
+msgstr "💡 结合 VPVR+Swing+聚类，识别关键支撑阻力位"
+
+# 成交量 卡片
+msgid "card.volume.title"
+msgstr "📊 成交量数据"
+
+msgid "card.volume.hint"
+msgstr "💡 量比=当前成交量/20期均量，>2 放量，<0.5 缩量"
+
+# Fallback entries
+msgid "card.atr.fallback"
+msgstr "📊 ATR 数据加载中..."
+
+msgid "card.bb.fallback"
+msgstr "📊 布林带数据加载中..."
+
+msgid "card.big_sentiment.fallback"
+msgstr "📊 大户情绪数据加载中..."
+
+msgid "card.crowding.fallback"
+msgstr "📊 风险拥挤度数据加载中..."
+
+msgid "card.cvd.fallback"
+msgstr "🌊 CVD 数据加载中..."
+
+msgid "card.depth.fallback"
+msgstr "🧊 市场深度数据加载中..."
+
+msgid "card.ema.fallback"
+msgstr "📈 EMA 数据加载中..."
+
+msgid "card.flow.fallback"
+msgstr "💧 资金流向数据加载中..."
+
+msgid "card.funding.fallback"
+msgstr "💱 资金费率数据加载中..."
+
+msgid "card.futures_sentiment.fallback"
+msgstr "📊 期货情绪数据加载中..."
+
+msgid "card.liquidity.fallback"
+msgstr "💧 流动性数据加载中..."
+
+msgid "card.macd.fallback"
+msgstr "📊 MACD 数据加载中..."
+
+msgid "card.market_sentiment.fallback"
+msgstr "📊 市场情绪数据加载中..."
+
+msgid "card.mfi.fallback"
+msgstr "💧 MFI 数据加载中..."
+
+msgid "card.obv.fallback"
+msgstr "📊 OBV 数据加载中..."
+
+msgid "card.oi.fallback"
+msgstr "🐋 持仓数据加载中..."
+
+msgid "card.oi_alert.fallback"
+msgstr "📊 OI 极值数据加载中..."
+
+msgid "card.oi_speed.fallback"
+msgstr "📊 OI 增减速数据加载中..."
+
+msgid "card.oi_streak.fallback"
+msgstr "📊 OI 连续性数据加载中..."
+
+msgid "card.oi_trend.fallback"
+msgstr "📊 OI 趋势数据加载中..."
+
+msgid "card.pattern.fallback"
+msgstr "📊 K线形态数据加载中..."
+
+msgid "card.reversal.fallback"
+msgstr "📊 翻转雷达数据加载中..."
+
+msgid "card.rsi_harmonic.fallback"
+msgstr "📊 RSI 谐波数据加载中..."
+
+msgid "card.sentiment_mom.fallback"
+msgstr "📊 情绪动量数据加载中..."
+
+msgid "card.sr.fallback"
+msgstr "📊 支撑阻力数据加载中..."
+
+msgid "card.supertrend.fallback"
+msgstr "📈 超级趋势数据加载中..."
+
+msgid "card.taker_dir.fallback"
+msgstr "📊 主动成交方向数据加载中..."
+
+msgid "card.taker_jump.fallback"
+msgstr "📊 主动跳变数据加载中..."
+
+msgid "card.taker_ratio.fallback"
+msgstr "🧾 主动买卖比数据加载中..."
+
+msgid "card.taker_streak.fallback"
+msgstr "📊 主动连续性数据加载中..."
+
+msgid "card.volatility.fallback"
+msgstr "📊 波动度数据加载中..."
+
+msgid "card.volume.fallback"
+msgstr "📊 成交量数据加载中..."
+
+msgid "card.volume_ratio.fallback"
+msgstr "📊 成交量比率数据加载中..."
+
+msgid "card.vpvr.fallback"
+msgstr "📊 VPVR 数据加载中..."
+
+msgid "card.vwap.fallback"
+msgstr "📏 VWAP 数据加载中..."
+
+msgid "card.liquidation.fallback"
+msgstr "📊 爆仓数据加载中..."
+
+# ATR 卡片
+msgid "card.atr.title"
+msgstr "📊 ATR数据"
+
+msgid "card.atr.hint"
+msgstr "💡 ATR衡量波动幅度，数值越高波动越大"
+
+# 成交量比率 卡片
+msgid "card.volume_ratio.title"
+msgstr "📊 成交量比率数据"
+
+msgid "card.volume_ratio.hint"
+msgstr "💡 量比=当前成交量/均量，>2 放量，<0.5 缩量"
+
+# app.py 用户消息
+msgid "data.initializing"
+msgstr "🔄 机器人正在初始化中，请稍后重试"
+
+msgid "data.service_unavailable"
+msgstr "❌ 数据服务不可用，请稍后重试"
+
+msgid "data.aggregating_futures_volume"
+msgstr "🔄 正在聚合合约交易量数据，请稍后查看"
+
+msgid "data.aggregating_spot_volume"
+msgstr "🔄 现货交易量数据正在聚合，请稍后再试"
+
+msgid "data.fetch_failed"
+msgstr "❌ 获取市场数据失败，请稍后重试"
+
+msgid "data.option_failed"
+msgstr "❌ 期权数据获取失败，请稍后重试"
+
+msgid "data.option_loading"
+msgstr "🔄 期权数据正在加载中，请稍后重试"
+
+msgid "data.aggregating_futures_cvd"
+msgstr "🔄 正在聚合合约CVD，请稍后查看"
+
+msgid "data.aggregating_spot_cvd"
+msgstr "🔄 正在聚合现货CVD，请稍后查看"
+
+msgid "data.no_flow_data"
+msgstr "📭 当前周期暂无匹配的资金流向数据"
+
+msgid "data.no_spot_flow"
+msgstr "📭 当前周期暂无匹配的现货资金流向"
+
+msgid "data.oi_loading"
+msgstr "🔄 持仓数据正在加载中，请稍后重试"
+
+msgid "data.cache_empty"
+msgstr "❌ 缓存为空"
+
+msgid "data.temporarily_unavailable"
+msgstr "📊 数据暂不可用，请稍后重试"
+
+msgid "error.unsupported_market"
+msgstr "❌ 不支持的市场类型"
+
+msgid "error.signal_not_init"
+msgstr "❌ 信号格式化器未初始化"
+
+msgid "feature.funding_offline"
+msgstr "⏸️ 资金费率排行功能已下线，敬请期待替代方案。"
+
+msgid "feature.depth_offline"
+msgstr "⏸️ 市场深度排行功能已下线，敬请期待替代方案。"
+
+msgid "feature.sentiment_offline"
+msgstr "⏸️ 市场情绪榜单已下线，敬请期待新的指标面板。"
+
+msgid "feature.ai_unavailable"
+msgstr "🤖 AI分析功能暂未开放，请稍后重试。"
+
+msgid "cache.status_title"
+msgstr "📊 缓存状态:"
+
+msgid "cache.no_files"
+msgstr "没有找到缓存文件"
+
+msgid "data.loading_hint"
+msgstr "🔄 数据正在后台加载中，请稍后重试\n💡 机器人刚启动时需要几秒钟加载数据"
+
+msgid "cache.current_use"
+msgstr "当前使用"
+
+msgid "cache.backup_file"
+msgstr "备份文件"
+
+msgid "query.title"
+msgstr "🔍 *币种查询*"
+
+msgid "query.prompt"
+msgstr "请发送币种名称触发查询："
+
+msgid "query.format"
+msgstr "格式：`币种名!`（加感叹号）"
+
+msgid "query.count"
+msgstr "📊 可查询币种 ({count} 个)"
+
+msgid "query.usage"
+msgstr "💡 使用方法:"
+
+msgid "query.usage_interactive"
+msgstr "• `BTC!` - 交互式查询"
+
+msgid "query.usage_export"
+msgstr "• `BTC!!` - 导出完整TXT文件"
+
+# 期货字段按钮 - 主动成交方向
+msgid "btn.field.taker_ratio"
+msgstr "主动多空比"
+
+msgid "btn.field.taker_bias"
+msgstr "主动偏离"
+
+msgid "btn.field.taker_momentum"
+msgstr "主动动量"
+
+# 期货字段按钮 - 大户情绪
+msgid "btn.field.top_ratio"
+msgstr "大户多空比"
+
+msgid "btn.field.top_bias"
+msgstr "大户偏离"
+
+msgid "btn.field.top_momentum"
+msgstr "大户动量"
+
+msgid "btn.field.top_volatility"
+msgstr "大户波动"
+
+# 期货字段按钮 - 全市场情绪
+msgid "btn.field.crowd_ratio"
+msgstr "全体多空比"
+
+msgid "btn.field.crowd_bias"
+msgstr "全体偏离"
+
+msgid "btn.field.crowd_volatility"
+msgstr "全体波动"
+
+# 期货字段按钮 - 持仓增减速
+msgid "btn.field.oi_change_pct"
+msgstr "持仓变动%"
+
+msgid "btn.field.oi_change"
+msgstr "持仓变动"
+
+msgid "btn.field.oi_value"
+msgstr "持仓金额"
+
+# 信号按钮
+msgid "btn.analyze"
+msgstr "分析"
+
+msgid "btn.ai_analyze"
+msgstr "AI分析"
+
+msgid "btn.back_kdj"
+msgstr "⬅️ 返回KDJ"
+
+# 卡片按钮 i18n
+msgid "card.atr.btn"
+msgstr "🧭 波动率"
+
+msgid "card.bollinger.btn"
+msgstr "🎗️ 布林带"
+
+msgid "card.crowd_sentiment.btn"
+msgstr "🌐 全体情绪"
+
+msgid "card.cvd.btn"
+msgstr "🌊 CVD"
+
+msgid "card.depth.btn"
+msgstr "🧊 市场深度"
+
+msgid "card.ema.btn"
+msgstr "🧮 EMA"
+
+msgid "card.funding_rate.btn"
+msgstr "💱 资金费率"
+
+msgid "card.kdj.btn"
+msgstr "🎯 KDJ"
+
+msgid "card.liquidity.btn"
+msgstr "💧 流动性"
+
+msgid "card.macd.btn"
+msgstr "🧲 MACD柱"
+
+msgid "card.mfi.btn"
+msgstr "💰 MFI"
+
+msgid "card.money_flow.btn"
+msgstr "🚰 资金流向"
+
+msgid "card.obv.btn"
+msgstr "📡 OBV"
+
+msgid "card.oi_aggregate.btn"
+msgstr "🐋 持仓聚合"
+
+msgid "card.oi_change.btn"
+msgstr "⚡ 持仓增减速"
+
+msgid "card.oi_continuous.btn"
+msgstr "📈 OI连续"
+
+msgid "card.oi_extreme.btn"
+msgstr "🚩 OI极值"
+
+msgid "card.oi_ranking.btn"
+msgstr "🐋 持仓量"
+
+msgid "card.oi_trend.btn"
+msgstr "📐 OI趋势"
+
+msgid "card.pattern.btn"
+msgstr "🕯️ 形态"
+
+msgid "card.reversal_radar.btn"
+msgstr "🛰️ 翻转雷达"
+
+msgid "card.risk_crowding.btn"
+msgstr "🚨 风险拥挤"
+
+msgid "card.rsi_harmonic.btn"
+msgstr "🔔 RSI谐波"
+
+msgid "card.sentiment_divergence.btn"
+msgstr "⚖️ 情绪分歧"
+
+msgid "card.sentiment_momentum.btn"
+msgstr "🚀 情绪动量"
+
+msgid "card.supertrend.btn"
+msgstr "📐 超级趋势"
+
+msgid "card.support_resistance.btn"
+msgstr "🧱 支撑阻力"
+
+msgid "card.support_resistance.title"
+msgstr "🧱 支撑阻力排行"
+
+msgid "card.taker_continuous.btn"
+msgstr "↕️ 主动连续"
+
+msgid "card.taker_direction.btn"
+msgstr "🚦 主动方向"
+
+msgid "card.taker_jump.btn"
+msgstr "⚡ 主动跳变"
+
+msgid "card.taker_ratio.btn"
+msgstr "🧾 主动买卖比"
+
+msgid "card.top_sentiment.btn"
+msgstr "🐳 大户情绪"
+
+msgid "card.trendline.btn"
+msgstr "📈 趋势线"
+
+msgid "card.volatility.btn"
+msgstr "🌊 波动度"
+
+msgid "card.volume.btn"
+msgstr "📊 成交量"
+
+msgid "card.volume_ratio.btn"
+msgstr "📦 成交量比率"
+
+msgid "card.vpvr.btn"
+msgstr "🏛️ VPVR"
+
+msgid "card.vwap.btn"
+msgstr "📏 VWAP"
+
+# 排序字段标签
+msgid "field.volume"
+msgstr "成交额"
+
+msgid "field.amplitude"
+msgstr "振幅"
+
+msgid "field.trades"
+msgstr "成交笔数"
+
+msgid "field.taker_ratio"
+msgstr "主动买卖比"
+
+msgid "field.buy_sell_ratio"
+msgstr "买卖比"
+
+msgid "field.price"
+msgstr "价格"
+
+msgid "field.bandwidth"
+msgstr "带宽评分"
+
+msgid "field.trend"
+msgstr "趋势"
+
+msgid "field.pattern"
+msgstr "形态"
+
+msgid "field.direction"
+msgstr "方向"
+
+msgid "field.slope"
+msgstr "斜率"
+
+msgid "field.volume_ratio"
+msgstr "量比"
+
+msgid "field.net_flow"
+msgstr "净流"
+
+msgid "field.inflow"
+msgstr "流入"
+
+msgid "field.outflow"
+msgstr "流出"
+
+msgid "field.harmonic"
+msgstr "谐波值"
+
+msgid "field.histogram"
+msgstr "柱值"
+
+msgid "field.signal_line"
+msgstr "信号线"
+
+msgid "field.change"
+msgstr "涨跌"
+
+msgid "field.position_share"
+msgstr "持仓占比"
+
+msgid "field.position_market"
+msgstr "持仓市占"
+
+msgid "field.volume_market"
+msgstr "量能市占"
+
+msgid "field.volume_oi"
+msgstr "量能OI比"
+
+msgid "field.liquidation_total"
+msgstr "总爆仓"
+
+msgid "field.liquidation_long"
+msgstr "多单"
+
+msgid "field.liquidation_short"
+msgstr "空单"
+
+msgid "field.depth_ratio"
+msgstr "深度比"
+
+msgid "field.spread"
+msgstr "价差"
+
+msgid "field.bid_wall"
+msgstr "买墙"
+
+msgid "field.ask_wall"
+msgstr "卖墙"
+
+msgid "field.funding_rate"
+msgstr "资金费率"
+
+msgid "field.funding_weight"
+msgstr "加权费率"
+
+msgid "field.break_price"
+msgstr "突破价"
+
+msgid "field.break_type"
+msgstr "类型"
+
+msgid "field.stability_pct"
+msgstr "稳定度分位"
+
+msgid "field.sentiment_diff_abs"
+msgstr "情绪差值绝对值"
+
+# TXT 导出 - 面板标题
+msgid "export.panel.basic"
+msgstr "📊 基础指标"
+
+msgid "export.panel.futures"
+msgstr "📈 期货情绪"
+
+msgid "export.panel.advanced"
+msgstr "🔬 高级指标"
+
+msgid "export.panel.pattern"
+msgstr "🕯️ K线形态"
+
+# TXT 导出 - 表头
+msgid "export.header.indicator_period"
+msgstr "指标\\周期"
+
+msgid "export.header.period"
+msgstr "周期"
+
+# TXT 导出 - 字段名
+msgid "export.field.bandwidth"
+msgstr "带宽"
+
+msgid "export.field.percent_b"
+msgstr "%B"
+
+msgid "export.field.mid_slope"
+msgstr "中轨斜率"
+
+msgid "export.field.j"
+msgstr "J"
+
+msgid "export.field.k"
+msgstr "K"
+
+msgid "export.field.d"
+msgstr "D"
+
+msgid "export.field.signal"
+msgstr "信号"
+
+msgid "export.field.macd"
+msgstr "MACD"
+
+msgid "export.field.dif"
+msgstr "DIF"
+
+msgid "export.field.dea"
+msgstr "DEA"
+
+msgid "export.field.rsi"
+msgstr "RSI"
+
+msgid "export.field.strength"
+msgstr "强度"
+
+msgid "export.field.obv"
+msgstr "OBV"
+
+msgid "export.field.change_rate"
+msgstr "变化率"
+
+msgid "export.field.vol_ratio"
+msgstr "量比"
+
+msgid "export.field.oi_value"
+msgstr "持仓金额"
+
+msgid "export.field.oi_change_pct"
+msgstr "持仓变动%"
+
+msgid "export.field.top_ratio"
+msgstr "大户多空比"
+
+msgid "export.field.crowd_ratio"
+msgstr "全体多空比"
+
+msgid "export.field.taker_ratio"
+msgstr "主动多空比"
+
+msgid "export.field.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "export.field.support"
+msgstr "支撑位"
+
+msgid "export.field.resistance"
+msgstr "阻力位"
+
+msgid "export.field.dist_support"
+msgstr "距支撑%"
+
+msgid "export.field.dist_resistance"
+msgstr "距阻力%"
+
+msgid "export.field.atr_pct"
+msgstr "ATR%"
+
+msgid "export.field.volatility"
+msgstr "波动"
+
+msgid "export.field.liquidity"
+msgstr "流动性"
+
+msgid "export.field.level"
+msgstr "等级"
+
+msgid "export.field.direction"
+msgstr "方向"
+
+msgid "export.field.duration"
+msgstr "持续"
+
+msgid "export.field.vwap_dev"
+msgstr "VWAP偏离%"
+
+msgid "export.field.pattern"
+msgstr "形态"
+
+msgid "export.field.count"
+msgstr "数量"
+
+# 快照字段名 - 基础
+msgid "snapshot.field.bandwidth"
+msgstr "带宽"
+
+msgid "snapshot.field.percent_b"
+msgstr "百分比"
+
+msgid "snapshot.field.mid_slope"
+msgstr "中轨斜率"
+
+msgid "snapshot.field.mid_price"
+msgstr "中轨价格"
+
+msgid "snapshot.field.upper_price"
+msgstr "上轨价格"
+
+msgid "snapshot.field.lower_price"
+msgstr "下轨价格"
+
+msgid "snapshot.field.vol_ratio"
+msgstr "量比"
+
+msgid "snapshot.field.signal"
+msgstr "信号"
+
+msgid "snapshot.field.support"
+msgstr "支撑位"
+
+msgid "snapshot.field.resistance"
+msgstr "阻力位"
+
+msgid "snapshot.field.dist_support"
+msgstr "距支撑%"
+
+msgid "snapshot.field.dist_resistance"
+msgstr "距阻力%"
+
+msgid "snapshot.field.dist_key"
+msgstr "距关键位%"
+
+msgid "snapshot.field.taker_buy"
+msgstr "主动买量"
+
+msgid "snapshot.field.taker_sell"
+msgstr "主动卖量"
+
+msgid "snapshot.field.taker_ratio"
+msgstr "主动买卖比"
+
+msgid "snapshot.field.j"
+msgstr "J"
+
+msgid "snapshot.field.k"
+msgstr "K"
+
+msgid "snapshot.field.d"
+msgstr "D"
+
+msgid "snapshot.field.direction"
+msgstr "方向"
+
+msgid "snapshot.field.macd"
+msgstr "MACD"
+
+msgid "snapshot.field.dif"
+msgstr "DIF"
+
+msgid "snapshot.field.dea"
+msgstr "DEA"
+
+msgid "snapshot.field.histogram"
+msgstr "柱状图"
+
+msgid "snapshot.field.obv"
+msgstr "OBV值"
+
+msgid "snapshot.field.obv_change"
+msgstr "OBV变化率"
+
+msgid "snapshot.field.harmonic"
+msgstr "谐波值"
+
+# 快照字段名 - 期货
+msgid "snapshot.field.oi_value"
+msgstr "持仓金额"
+
+msgid "snapshot.field.oi_contracts"
+msgstr "持仓张数"
+
+msgid "snapshot.field.oi_change_pct"
+msgstr "持仓变动%"
+
+msgid "snapshot.field.oi_change"
+msgstr "持仓变动"
+
+msgid "snapshot.field.oi_slope"
+msgstr "持仓斜率"
+
+msgid "snapshot.field.z_score"
+msgstr "Z分数"
+
+msgid "snapshot.field.oi_streak"
+msgstr "OI连续根数"
+
+msgid "snapshot.field.top_ratio"
+msgstr "大户多空比"
+
+msgid "snapshot.field.top_bias"
+msgstr "大户偏离"
+
+msgid "snapshot.field.top_momentum"
+msgstr "大户动量"
+
+msgid "snapshot.field.top_volatility"
+msgstr "大户波动"
+
+msgid "snapshot.field.crowd_ratio"
+msgstr "全体多空比"
+
+msgid "snapshot.field.crowd_bias"
+msgstr "全体偏离"
+
+msgid "snapshot.field.crowd_volatility"
+msgstr "全体波动"
+
+msgid "snapshot.field.taker_ls_ratio"
+msgstr "主动多空比"
+
+msgid "snapshot.field.taker_bias"
+msgstr "主动偏离"
+
+msgid "snapshot.field.taker_momentum"
+msgstr "主动动量"
+
+msgid "snapshot.field.taker_jump"
+msgstr "主动跳变"
+
+msgid "snapshot.field.taker_streak"
+msgstr "主动连续"
+
+msgid "snapshot.field.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "snapshot.field.reversal"
+msgstr "翻转信号"
+
+msgid "snapshot.field.volatility"
+msgstr "波动率"
+
+msgid "snapshot.field.risk_score"
+msgstr "风险分"
+
+msgid "snapshot.field.market_share"
+msgstr "市场占比"
+
+# 快照字段名 - 高级
+msgid "snapshot.field.ema7"
+msgstr "EMA7"
+
+msgid "snapshot.field.ema25"
+msgstr "EMA25"
+
+msgid "snapshot.field.ema99"
+msgstr "EMA99"
+
+msgid "snapshot.field.bandwidth_score"
+msgstr "带宽评分"
+
+msgid "snapshot.field.trend_dir"
+msgstr "趋势方向"
+
+msgid "snapshot.field.price"
+msgstr "价格"
+
+msgid "snapshot.field.atr_pct"
+msgstr "ATR%"
+
+msgid "snapshot.field.volatility_type"
+msgstr "波动"
+
+msgid "snapshot.field.upper"
+msgstr "上轨"
+
+msgid "snapshot.field.mid"
+msgstr "中轨"
+
+msgid "snapshot.field.lower"
+msgstr "下轨"
+
+msgid "snapshot.field.cvd"
+msgstr "CVD值"
+
+msgid "snapshot.field.change_rate"
+msgstr "变化率"
+
+msgid "snapshot.field.deviation"
+msgstr "偏离度"
+
+msgid "snapshot.field.deviation_pct"
+msgstr "偏离%"
+
+msgid "snapshot.field.distance_pct"
+msgstr "距离%"
+
+
+msgid "field.base_volume"
+msgstr "成交量"
+
+# 期货卡片标题
+msgid "card.crowd_sentiment.title"
+msgstr "🌐 全市场情绪榜"
+
+msgid "card.oi_aggregate.title"
+msgstr "🐋 合约持仓榜"
+
+msgid "card.oi_change.title"
+msgstr "⚡ 持仓增减速榜"
+
+msgid "card.oi_change.hint"
+msgstr "💡 数据源：期货情绪聚合表（持仓变动%/持仓变动）"
+
+msgid "card.oi_continuous.title"
+msgstr "📈 OI连续性榜"
+
+msgid "card.oi_extreme.title"
+msgstr "🚩 OI极值告警榜"
+
+msgid "card.oi_trend.title"
+msgstr "📐 OI趋势榜"
+
+msgid "card.reversal_radar.title"
+msgstr "🛰️ 翻转雷达"
+
+msgid "card.risk_crowding.title"
+msgstr "🚨 风险/拥挤度榜"
+
+msgid "card.sentiment_momentum.title"
+msgstr "🚀 情绪动量榜"
+
+msgid "card.taker_continuous.title"
+msgstr "↕️ 主动连续性榜"
+
+msgid "card.taker_direction.title"
+msgstr "🚦 主动成交方向榜"
+
+msgid "card.taker_jump.title"
+msgstr "⚡ 主动跳变榜"
+
+msgid "card.top_sentiment.title"
+msgstr "🐳 大户情绪榜"
+
+msgid "card.volatility.title"
+msgstr "🌊 波动度榜"
+
+# 期货卡片提示
+msgid "card.crowd_sentiment.hint"
+msgstr "💡 数据源：期货情绪聚合表（全体维度）"
+
+msgid "card.oi_aggregate.hint"
+msgstr "💡 数据源：期货情绪聚合表（最新一根）"
+
+msgid "card.oi_continuous.hint"
+msgstr "💡 数据源：期货情绪聚合表（OI 连续根数）"
+
+msgid "card.oi_extreme.hint"
+msgstr "💡 数据源：期货情绪聚合表（持仓Z分数绝对值）"
+
+msgid "card.oi_trend.hint"
+msgstr "💡 数据源：期货情绪聚合表（持仓斜率/Z分数）"
+
+msgid "card.reversal_radar.hint"
+msgstr "💡 信号 +1=空转多，-1=多转空；数据源：期货情绪聚合表"
+
+msgid "card.risk_crowding.hint"
+msgstr "💡 数据源：期货情绪聚合表（风险分）"
+
+msgid "card.sentiment_momentum.hint"
+msgstr "💡 数据源：期货情绪聚合表（动量）"
+
+msgid "card.taker_continuous.hint"
+msgstr "💡 数据源：期货情绪聚合表（主动连续根数）"
+
+msgid "card.taker_direction.hint"
+msgstr "💡 数据源：期货情绪聚合表（主动成交维度）"
+
+msgid "card.taker_jump.hint"
+msgstr "💡 数据源：期货情绪聚合表（主动跳变幅度）"
+
+msgid "card.top_sentiment.hint"
+msgstr "💡 数据源：期货情绪聚合表（大户维度）"
+
+msgid "card.volatility.hint"
+msgstr "💡 数据源：期货情绪聚合表（波动/稳定度）"
+
+# 补充缺失的快照字段
+msgid "snapshot.field.atr"
+msgstr "ATR"
+
+msgid "snapshot.field.mfi"
+msgstr "MFI"
+
+msgid "snapshot.field.vpvr_price"
+msgstr "VPVR价"
+
+msgid "snapshot.field.vwap_price"
+msgstr "VWAP价格"
+
+msgid "snapshot.field.current_price"
+msgstr "当前价格"
+
+msgid "snapshot.field.value_area_high"
+msgstr "价值区上沿"
+
+msgid "snapshot.field.value_area_low"
+msgstr "价值区下沿"
+
+msgid "snapshot.field.value_area_pos"
+msgstr "价值区位置"
+
+msgid "snapshot.field.value_area_width"
+msgstr "价值区宽度%"
+
+msgid "snapshot.field.value_area_coverage"
+msgstr "价值区覆盖率"
+
+msgid "snapshot.field.weighted_volume"
+msgstr "加权成交额"
+
+msgid "snapshot.field.bandwidth_pct"
+msgstr "带宽%"
+
+msgid "snapshot.field.trend_strength"
+msgstr "趋势强度"
+
+msgid "snapshot.field.trend_band"
+msgstr "趋势带"
+
+msgid "snapshot.field.duration_bars"
+msgstr "持续根数"
+
+msgid "snapshot.field.last_reversal"
+msgstr "最近翻转时间"
+
+msgid "snapshot.field.liquidity_score"
+msgstr "流动性得分"
+
+msgid "snapshot.field.liquidity_level"
+msgstr "流动性等级"
+
+msgid "snapshot.field.volume_score"
+msgstr "成交量得分"
+
+msgid "snapshot.field.volatility_score"
+msgstr "波动率得分"
+
+msgid "snapshot.field.volume_bias"
+msgstr "量能偏向"
+
+msgid "snapshot.field.amihud_raw"
+msgstr "Amihud原值"
+
+msgid "snapshot.field.amihud_score"
+msgstr "Amihud得分"
+
+msgid "snapshot.field.kyle_raw"
+msgstr "Kyle原值"
+
+msgid "snapshot.field.kyle_score"
+msgstr "Kyle得分"
+
+# 加载状态消息
+msgid "loading.data"
+msgstr "📊 数据加载中，请稍后重试..."
+
+msgid "loading.market"
+msgstr "📊 基础市场数据加载中，请稍后重试..."
+
+msgid "loading.money_flow"
+msgstr "💰 资金流向数据加载中，请稍后重试..."
+
+msgid "loading.depth"
+msgstr "📊 市场深度数据加载中，请稍后重试..."
+
+msgid "loading.volume_market"
+msgstr "📊 交易量/市值比数据加载中，请稍后重试..."
+
+msgid "loading.volume_oi"
+msgstr "📊 交易量/持仓量比数据加载中，请稍后重试..."
+
+msgid "loading.position_market"
+msgstr "📊 持仓/市值比数据加载中，请稍后重试..."
+
+msgid "welcome.title"
+msgstr "⚡️欢迎使用交易猫"
+
+msgid "welcome.status"
+msgstr "✅ 系统正常运行"
+
+msgid "status.initializing"
+msgstr "🚀 机器人正在初始化中，请稍等...\n\n💡 如果问题持续，请联系管理员"
+
+msgid "status.init_failed"
+msgstr "❌ 机器人初始化失败，请联系管理员\n\n🔧 错误信息已记录"
+
+msgid "feature.overbought_offline"
+msgstr "⚖️ 超买超卖卡片已下线，敬请期待替代方案。"
+
+msgid "time.hour_min"
+msgstr "{hour}时{min}分"
+
+msgid "feature.developing"
+msgstr "🚧 {name} 功能开发中，敬请期待！"
+
+msgid "feature.name.coin_search"
+msgstr "🔍 币种搜索"
+
+msgid "feature.name.help"
+msgstr "ℹ️ 帮助"
+
+msgid "feature.name.aggregated_alerts"
+msgstr "🚨 信号"
+
+msgid "feature.name.subscription"
+msgstr "💲 订阅"
+
+# 错误消息
+msgid "error.data_fetch"
+msgstr "❌ 获取数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.volume_fetch"
+msgstr "❌ 获取交易量数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.sentiment_fetch"
+msgstr "❌ 获取市场情绪数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.market_fetch"
+msgstr "❌ 获取基础行情数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.flow_fetch"
+msgstr "❌ 获取资金流向数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.depth_fetch"
+msgstr "❌ 获取市场深度数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "error.ratio_fetch"
+msgstr "❌ 获取持仓/市值比数据时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "loading.sentiment"
+msgstr "😊 市场情绪数据加载中，请稍后重试..."
+
+msgid "data.coinglass_offline"
+msgstr "⏸️ CoinGlass 数据源已下线，相关榜单暂不可用"
+
+msgid "lang.zh_CN"
+msgstr "简体中文"
+
+
+msgid "search.coming_soon"
+msgstr "💡 即将支持的功能：\n- 📊 价格走势分析\n- 💰 持仓量变化趋势\n- 📈 技术指标分析\n- 🔔 价格预警设置\n\n📞 如需帮助请联系客服：\n- 客服1: zancy1\n- 客服2: xiaocaixing\n- 客服3: wangbw123"
+
+# AI 分析消息
+msgid "ai.busy"
+msgstr "🚫 系统繁忙，同时进行的AI分析过多\n⏳ 请稍等片刻后重试\n💡 您可以先使用其他功能"
+
+msgid "ai.started"
+msgstr "🤖 {symbol} AI分析已启动\n\n⏳ 深度分析进行中，可能需要3-5分钟\n🔄 分析ID: {id}"
+
+msgid "ai.completed"
+msgstr "✅ {symbol} AI分析完成！\n\n🆔 分析ID: {id}\n⏱️ 用时: {duration}\n💰 当前价格: ${price}\n📊 价格变化: {change}\n⚠️ 风险等级: {risk}\n\n📋 详细分析报告请查看下一条消息..."
+
+msgid "ai.detail_title"
+msgstr "🤖 {symbol} 详细AI分析"
+
+msgid "ai.report_failed"
+msgstr "📄 详细分析报告生成失败"
+
+msgid "ai.trend.strong"
+msgstr "强"
+
+msgid "ai.trend.medium"
+msgstr "中"
+
+msgid "ai.trend.weak"
+msgstr "弱"
+
+# 信号表名
+msgid "signal.table.rsi"
+msgstr "RSI"
+
+msgid "signal.table.kdj"
+msgstr "KDJ"
+
+msgid "signal.table.harmonic"
+msgstr "谐波"
+
+msgid "signal.table.supertrend"
+msgstr "精准趋势"
+
+msgid "signal.table.ichimoku"
+msgstr "一目均衡"
+
+msgid "signal.table.zero_lag"
+msgstr "零延迟"
+
+msgid "signal.table.trend_cloud"
+msgstr "趋势云"
+
+msgid "signal.table.trendline"
+msgstr "趋势线"
+
+msgid "signal.table.long_short"
+msgstr "多空信号"
+
+msgid "signal.table.volume_signal"
+msgstr "量能信号"
+
+msgid "signal.table.gc_point"
+msgstr "GC点"
+
+msgid "signal.table.bb"
+msgstr "布林带"
+
+msgid "signal.table.donchian"
+msgstr "唐奇安"
+
+msgid "signal.table.keltner"
+msgstr "肯特纳"
+
+msgid "signal.table.support_resistance"
+msgstr "支撑阻力"
+
+msgid "signal.table.vol_ratio"
+msgstr "量比"
+
+msgid "signal.table.taker_ratio"
+msgstr "买卖比"
+
+msgid "signal.table.futures_sentiment"
+msgstr "期货情绪"
+
+msgid "signal.table.k_pattern"
+msgstr "K线形态"
+
+msgid "signal.table.smc"
+msgstr "SMC智能资金"
+
+msgid "signal.table.fib"
+msgstr "斐波那契"
+
+msgid "signal.table.liquidity"
+msgstr "流动性"
+
+msgid "signal.table.scalping"
+msgstr "剥头皮"
+
+msgid "signal.table.basic"
+msgstr "基础数据"
+
+# 信号格式化标签
+msgid "signal.label.price"
+msgstr "价格"
+
+msgid "signal.label.amplitude"
+msgstr "振幅"
+
+msgid "signal.label.buy_sell_ratio"
+msgstr "买卖比"
+
+msgid "signal.label.volume"
+msgstr "成交额"
+
+msgid "signal.label.net_inflow"
+msgstr "净流入"
+
+msgid "signal.label.trades"
+msgstr "交易次数"
+
+msgid "signal.label.position"
+msgstr "持仓"
+
+msgid "signal.label.big_ls"
+msgstr "大户多空"
+
+msgid "signal.label.all_ls"
+msgstr "全体多空"
+
+msgid "signal.label.taker_ls"
+msgstr "主动多空"
+
+msgid "signal.label.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "signal.label.risk_score"
+msgstr "风险分"
+
+msgid "signal.label.oi_streak"
+msgstr "OI连续"
+
+msgid "signal.label.sentiment_momentum"
+msgstr "情绪动量"
+
+msgid "signal.label.support"
+msgstr "支撑"
+
+msgid "signal.label.resistance"
+msgstr "阻力"
+
+msgid "signal.label.trend"
+msgstr "精准趋势"
+
+msgid "signal.label.volume_bias"
+msgstr "量能偏向"
+
+msgid "signal.section.market"
+msgstr "💰 行情"
+
+msgid "signal.section.futures"
+msgstr "📊 合约"
+
+msgid "signal.section.indicator"
+msgstr "📈 指标"
+
+msgid "signal.section.structure"
+msgstr "🏗️ 结构"
+
+msgid "signal.ratio.buy_dominant"
+msgstr "买盘主导"
+
+msgid "signal.ratio.sell_dominant"
+msgstr "卖盘主导"
+
+msgid "signal.ratio.balanced"
+msgstr "均衡"
+
+msgid "signal.vol.high"
+msgstr "放量"
+
+msgid "signal.vol.low"
+msgstr "缩量"
+
+msgid "signal.vol.normal"
+msgstr "正常"
+
+# 单币查询卡片名称
+msgid "card.name.vol_ratio"
+msgstr "成交量比率"
+
+msgid "card.name.taker_ratio"
+msgstr "主动买卖比"
+
+msgid "card.name.support_resistance"
+msgstr "支撑阻力"
+
+msgid "card.name.rsi_harmonic"
+msgstr "RSI谐波"
+
+msgid "card.name.bollinger"
+msgstr "布林带"
+
+msgid "card.name.macd"
+msgstr "MACD"
+
+msgid "card.name.kdj"
+msgstr "KDJ"
+
+msgid "card.name.obv"
+msgstr "OBV"
+
+msgid "card.name.ema"
+msgstr "EMA"
+
+msgid "card.name.atr"
+msgstr "ATR"
+
+msgid "card.name.cvd"
+msgstr "CVD"
+
+msgid "card.name.vwap"
+msgstr "VWAP"
+
+msgid "card.name.vpvr"
+msgstr "VPVR"
+
+msgid "card.name.liquidity"
+msgstr "流动"
+
+msgid "card.name.trendline"
+msgstr "线"
+
+msgid "card.name.supertrend"
+msgstr "精趋势"
+
+msgid "card.name.mfi"
+msgstr "MFI"
+
+msgid "card.name.k_pattern"
+msgstr "K线形态"
+
+msgid "card.name.position"
+msgstr "持仓数据"
+
+msgid "card.name.big_sentiment"
+msgstr "大户"
+
+msgid "card.name.all_sentiment"
+msgstr "全市场"
+
+msgid "card.name.taker"
+msgstr "主动成交"
+
+msgid "card.name.sentiment"
+msgstr "情绪综合"
+
+# 信号值翻译
+msgid "signal.value.shrink"
+msgstr "缩量"
+
+msgid "signal.value.expand"
+msgstr "放量"
+
+msgid "signal.value.continue"
+msgstr "延续"
+
+msgid "signal.value.golden_cross"
+msgstr "金叉"
+
+msgid "signal.value.death_cross"
+msgstr "死叉"
+
+# 数据值翻译
+msgid "data.value.shrink"
+msgstr "缩量"
+
+msgid "data.value.expand"
+msgstr "放量"
+
+msgid "data.value.normal"
+msgstr "正常"
+
+msgid "data.value.continue"
+msgstr "延续"
+
+msgid "data.value.golden_cross"
+msgstr "金叉"
+
+msgid "data.value.death_cross"
+msgstr "死叉"
+
+msgid "data.value.overbought"
+msgstr "超买"
+
+msgid "data.value.oversold"
+msgstr "超卖"
+
+msgid "data.value.up"
+msgstr "上涨"
+
+msgid "data.value.down"
+msgstr "下跌"
+
+msgid "data.value.sideways"
+msgstr "震荡"
+
+msgid "data.value.bullish"
+msgstr "多头"
+
+msgid "data.value.bearish"
+msgstr "空头"
+
+msgid "data.value.strong"
+msgstr "强"
+
+msgid "data.value.medium"
+msgstr "中"
+
+msgid "data.value.weak"
+msgstr "弱"
+
+msgid "error.request_failed"
+msgstr "❌ 处理请求时发生错误，请稍后重试。\n\n错误信息: {error}"
+
+msgid "pattern.title"
+msgstr "🕯️ {symbol} K线形态分析"
+
+msgid "pattern.period_count"
+msgstr "📊 {period} ({count}个形态)"
+
+msgid "pattern.no_data"
+msgstr "暂无形态数据"
+
+# AI 报告详细内容
+msgid "ai.cache_indicator"
+msgstr " | 🔄 缓存数据"
+
+msgid "ai.period"
+msgstr "周期"
+
+msgid "ai.1d_high"
+msgstr "1日高点"
+
+msgid "ai.1d_low"
+msgstr "1日低点"
+
+msgid "ai.trend_strength_label"
+msgstr "趋势强度"
+
+msgid "ai.full_report_hint"
+msgstr "📄 完整分析请查看下方文件"
+
+msgid "ai.report_title"
+msgstr "{symbol} AI分析报告"
+
+msgid "ai.analysis_time"
+msgstr "分析时间"
+
+msgid "ai.filename"
+msgstr "{symbol}_AI分析详细报告_{time}.txt"
+
+msgid "ai.file_caption"
+msgstr "📄 {symbol} 完整AI分析报告"
+
+msgid "ai.rsi_overbought"
+msgstr "超买"
+
+msgid "ai.rsi_oversold"
+msgstr "超卖"
+
+msgid "ai.rsi_normal"
+msgstr "正常"
+
+msgid "ai.report_header"
+msgstr "🎯 {symbol} AI分析报告"
+
+msgid "ai.current_price"
+msgstr "💰 当前价格"
+
+msgid "ai.price_change"
+msgstr "📊 价格变化"
+
+msgid "ai.risk_level"
+msgstr "⚠️ 风险等级"
+
+msgid "ai.key_indicators"
+msgstr "🔧 关键技术指标"
+
+msgid "ai.unavailable"
+msgstr "🤖 AI分析功能暂时不可用"
+
+msgid "ai.retry_hint"
+msgstr "🔄 建议稍后重试或查看技术指标"
+
+# AI 分析 - 简化报告
+msgid "ai.simple_report.header"
+msgstr "🎯 {symbol} AI分析报告"
+
+msgid "ai.simple_report.current_price"
+msgstr "💰 当前价格： ${price}"
+
+msgid "ai.simple_report.price_change"
+msgstr "📊 价格变化： {change}"
+
+msgid "ai.simple_report.risk_level"
+msgstr "⚠️ 风险等级： {risk}"
+
+msgid "ai.simple_report.key_indicators"
+msgstr "🔧 关键技术指标"
+
+# AI 分析 - 错误消息
+msgid "ai.send_failed"
+msgstr "❌ {symbol} 分析结果发送失败\n\n🆔 分析ID: {id}\n📝 错误: {error}\n🔄 请尝试重新分析"
+
+msgid "ai.timeout"
+msgstr "⏰ {symbol} AI分析处理时间异常\n\n🆔 分析ID: {id}\n🔄 可能遇到复杂的分析场景\n💡 请稍后检查分析结果或重新尝试"
+
+msgid "ai.error"
+msgstr "❌ {symbol} AI分析失败\n\n🆔 分析ID: {id}\n📝 错误: {error}\n🔄 建议稍后重试"
+
+# AI 分析 - 时间
+msgid "ai.duration.seconds"
+msgstr "{seconds}秒"
+
+msgid "ai.duration.unknown"
+msgstr "未知"
+
+# TXT 导出 - 新增字段
+msgid "export.field.mid_price"
+msgstr "中轨价格"
+
+msgid "export.field.upper_price"
+msgstr "上轨价格"
+
+msgid "export.field.lower_price"
+msgstr "下轨价格"
+
+msgid "export.field.atr"
+msgstr "ATR"
+
+msgid "export.field.dist_key"
+msgstr "距关键位%"
+
+msgid "export.field.taker_buy"
+msgstr "主动买量"
+
+
+msgid "export.field.harmonic"
+msgstr "谐波值"
+
+msgid "export.field.oi_contracts"
+msgstr "持仓张数"
+
+msgid "export.field.oi_change"
+msgstr "持仓变动"
+
+msgid "export.field.oi_slope"
+msgstr "持仓斜率"
+
+msgid "export.field.oi_zscore"
+msgstr "持仓Z分数"
+
+msgid "export.field.oi_streak"
+msgstr "OI连续根数"
+
+msgid "export.field.top_deviation"
+msgstr "大户偏离"
+
+msgid "export.field.top_momentum"
+msgstr "大户动量"
+
+msgid "export.field.top_volatility"
+msgstr "大户波动"
+
+msgid "export.field.crowd_deviation"
+msgstr "全体偏离"
+
+msgid "export.field.crowd_volatility"
+msgstr "全体波动"
+
+msgid "export.field.taker_ls_ratio"
+msgstr "主动多空比"
+
+msgid "export.field.taker_deviation"
+msgstr "主动偏离"
+
+msgid "export.field.taker_momentum"
+msgstr "主动动量"
+
+msgid "export.field.taker_jump"
+msgstr "主动跳变"
+
+msgid "export.field.taker_streak"
+msgstr "主动连续"
+
+msgid "export.field.sentiment_flip"
+msgstr "翻转信号"
+
+msgid "export.field.risk_score"
+msgstr "风险分"
+
+msgid "export.field.market_share"
+msgstr "市场占比"
+
+msgid "export.field.ema7"
+msgstr "EMA7"
+
+msgid "export.field.ema25"
+msgstr "EMA25"
+
+msgid "export.field.ema99"
+msgstr "EMA99"
+
+msgid "export.field.bandwidth_score"
+msgstr "带宽评分"
+
+msgid "export.field.price"
+msgstr "价格"
+
+msgid "export.field.vpvr_price"
+msgstr "VPVR价格"
+
+msgid "export.field.val_low"
+msgstr "价值区下沿"
+
+msgid "export.field.val_high"
+msgstr "价值区上沿"
+
+msgid "export.field.val_width"
+msgstr "价值区宽度%"
+
+msgid "export.field.val_coverage"
+msgstr "价值区覆盖率"
+
+msgid "export.field.val_position"
+msgstr "价值区位置"
+
+msgid "export.field.vwap_deviation"
+msgstr "偏离度"
+
+msgid "export.field.vwap_weighted"
+msgstr "加权成交额"
+
+msgid "export.field.vwap_bandwidth"
+msgstr "VWAP带宽%"
+
+msgid "export.field.vwap_upper"
+msgstr "VWAP上轨"
+
+msgid "export.field.vwap_lower"
+msgstr "VWAP下轨"
+
+msgid "export.field.vwap_price"
+msgstr "VWAP价格"
+
+msgid "export.field.current_price"
+msgstr "当前价格"
+
+msgid "export.field.dist_trendline"
+msgstr "距趋势线%"
+
+msgid "export.field.upper"
+msgstr "上轨"
+
+msgid "export.field.mid"
+msgstr "中轨"
+
+msgid "export.field.lower"
+msgstr "下轨"
+
+msgid "export.field.cvd"
+msgstr "CVD值"
+
+msgid "export.field.volume_bias"
+msgstr "量能偏向"
+
+msgid "export.field.trend_band"
+msgstr "趋势带"
+
+msgid "export.field.last_flip"
+msgstr "最近翻转"
+
+msgid "export.field.mfi"
+msgstr "MFI"
+
+msgid "export.field.amihud_score"
+msgstr "Amihud得分"
+
+msgid "export.field.kyle_score"
+msgstr "Kyle得分"
+
+msgid "export.field.vol_score"
+msgstr "波动率得分"
+
+msgid "export.field.volume_score"
+msgstr "成交量得分"
+
+msgid "export.field.amihud_raw"
+msgstr "Amihud原值"
+
+msgid "export.field.kyle_raw"
+msgstr "Kyle原值"
+
+
+msgid "signal.section.key_levels"
+msgstr "📍 关键位"
+
+msgid "signal.section.trend"
+msgstr "📈 趋势"
+
+msgid "signal.section.smart_money"
+msgstr "🏦 智能资金"
+
+msgid "signal.section.pattern"
+msgstr "🕯️ K线形态"
+
+msgid "signal.section.volatility"
+msgstr "⚡ 波动"
+
+msgid "signal.section.scalp"
+msgstr "🎯 剥头皮"
+
+# Signal formatter - field labels
+msgid "signal.field.price"
+msgstr "价格"
+
+msgid "signal.field.amplitude"
+msgstr "振幅"
+
+msgid "signal.field.buy_sell_ratio"
+msgstr "买卖比"
+
+msgid "signal.field.volume"
+msgstr "成交额"
+
+msgid "signal.field.net_inflow"
+msgstr "净流入"
+
+msgid "signal.field.trade_count"
+msgstr "交易次数"
+
+msgid "signal.field.position"
+msgstr "持仓"
+
+msgid "signal.field.big_ls"
+msgstr "大户多空"
+
+msgid "signal.field.all_ls"
+msgstr "全体多空"
+
+msgid "signal.field.taker_ls"
+msgstr "主动多空"
+
+msgid "signal.field.sentiment_diff"
+msgstr "情绪差值"
+
+msgid "signal.field.risk_score"
+msgstr "风险分"
+
+msgid "signal.field.oi_streak"
+msgstr "OI连续"
+
+msgid "signal.field.sentiment_momentum"
+msgstr "情绪动量"
+
+msgid "signal.field.big"
+msgstr "大户"
+
+msgid "signal.field.taker"
+msgstr "主动"
+
+msgid "signal.field.bars"
+msgstr "根"
+
+msgid "signal.field.rsi_position"
+msgstr "RSI位置"
+
+msgid "signal.field.rsi_divergence"
+msgstr "RSI背离"
+
+msgid "signal.field.vol_ratio"
+msgstr "量比"
+
+msgid "signal.field.bull_bear_power"
+msgstr "多空力量"
+
+msgid "signal.field.bull"
+msgstr "多"
+
+msgid "signal.field.bear"
+msgstr "空"
+
+msgid "signal.field.support"
+msgstr "支撑"
+
+msgid "signal.field.resistance"
+msgstr "阻力"
+
+msgid "signal.field.distance"
+msgstr "距"
+
+msgid "signal.field.precise_trend"
+msgstr "精准趋势"
+
+msgid "signal.field.volume_bias"
+msgstr "量能偏向"
+
+msgid "signal.field.bias"
+msgstr "偏向"
+
+msgid "signal.field.order_block"
+msgstr "订单块"
+
+msgid "signal.field.gap"
+msgstr "缺口"
+
+msgid "signal.field.structure"
+msgstr "结构"
+
+msgid "signal.field.score"
+msgstr "评分"
+
+msgid "signal.field.pattern_type"
+msgstr "形态"
+
+msgid "signal.field.pattern_count"
+msgstr "数量"
+
+msgid "signal.field.count_unit"
+msgstr "个"
+
+msgid "signal.field.strength"
+msgstr "强度"
+
+msgid "signal.field.atr_pct"
+msgstr "ATR%"
+
+msgid "signal.field.volatility"
+msgstr "波动"
+
+msgid "signal.field.liquidity"
+msgstr "流动性"
+
+msgid "signal.field.scalp_signal"
+msgstr "信号"
+
+msgid "signal.field.timeframe"
+msgstr "周期"
+
+msgid "signal.field.last_trigger"
+msgstr "上次触发"
+
+msgid "signal.field.ago"
+msgstr "前"
+
+# Signal formatter - dynamic labels
+msgid "signal.label.buy_dominant"
+msgstr "买盘主导"
+
+msgid "signal.label.sell_dominant"
+msgstr "卖盘主导"
+
+msgid "signal.label.balanced"
+msgstr "均衡"
+
+msgid "signal.label.high_volume"
+msgstr "放量"
+
+msgid "signal.label.low_volume"
+msgstr "缩量"
+
+msgid "signal.label.none"
+msgstr "无"
+
+# Signal simple format
+msgid "signal.simple.timeframe"
+msgstr "周期"
+
+msgid "signal.simple.price"
+msgstr "价格"
+
+msgid "signal.simple.strength"
+msgstr "强度"
+
+# Visualization module
+msgid "kb.vis"
+msgstr "📈 可视化"
+
+msgid "vis.menu.title"
+msgstr "📈 选择图表类型"
+
+msgid "vis.select_symbol"
+msgstr "{name}\n选择币种："
+
+msgid "vis.select_interval"
+msgstr "{name}\n选择周期："
+
+msgid "vis.rendering"
+msgstr "正在渲染..."
+
+msgid "vis.render_error"
+msgstr "渲染失败: {error}"
+
+msgid "vis.template.vpvr_ridge"
+msgstr "📊 VPVR山脊图"
+
+msgid "vis.template.vpvr_ridge_desc"
+msgstr "成交量分布随时间演变"
+
+msgid "vis.template.vpvr_strip"
+msgstr "🎯 VPVR条带图"
+
+msgid "vis.template.vpvr_strip_desc"
+msgstr "全市场价值区位置分布"
+
+msgid "vis.template.kline"
+msgstr "🕯️ K线图"
+
+msgid "vis.template.kline_desc"
+msgstr "K线+均线+量能"
+
+msgid "vis.template.macd"
+msgstr "📈 MACD"
+
+msgid "vis.template.macd_desc"
+msgstr "价格+MACD指标"
+
+msgid "vis.template.vpvr_heat"
+msgstr "🔥 VPVR热力图"
+
+msgid "vis.template.vpvr_heat_desc"
+msgstr "全市场成交量分布热力图"
+
+msgid "vis.template.vpvr_grid"
+msgstr "📋 VPVR卡片"
+
+msgid "vis.template.vpvr_grid_desc"
+msgstr "全市场价值区卡片概览"
+
+msgid "vis.category.single"
+msgstr "📊 单币图表"
+
+msgid "vis.category.market"
+msgstr "🌐 全市场图表"
+
+msgid "vis.error.no_data"
+msgstr "无法获取市场数据"
+
+msgid "vis.error.render_failed"
+msgstr "渲染失败"
+
+msgid "error.vis_failed"
+msgstr "可视化功能暂不可用"
+
+msgid "error.unknown_template"
+msgstr "未知模板"
+
+# Ranking sort labels
+msgid "ranking.sort.volume"
+msgstr "📊 排序 {period}交易量(USDT)({symbol}) / {sort}"
+
+msgid "ranking.sort.ratio"
+msgstr "📊 排序 比率({symbol}) / {sort}"
+
+msgid "ranking.sort.change"
+msgstr "📊 排序 {period}变化金额({symbol}) / {sort}"
+
+msgid "ranking.hint.position_market"
+msgstr "💡 持仓/市值比 = 持仓量 / 市值"
+
+msgid "ranking.hint.volume_market"
+msgstr "💡 交易量/市值比 = 1日交易量 / 市值"
+
+msgid "ranking.hint.volume_oi"
+msgstr "💡 交易量/持仓量比 = 1日交易量 / 持仓量"
+
+# Admin module
+msgid "kb.admin"
+msgstr "⚙️ 管理"
+
+msgid "admin.no_permission"
+msgstr "⛔ 您没有管理员权限"
+
+msgid "admin.title"
+msgstr "管理面板"
+
+msgid "admin.your_id"
+msgstr "您的ID"
+
+msgid "admin.admin_count"
+msgstr "管理员数量"
+
+msgid "admin.templates"
+msgstr "可视化模板"
+
+msgid "admin.hint"
+msgstr "管理员可访问高级配置和统计"
+
+msgid "admin.stats"
+msgstr "📊 统计"
+
+msgid "admin.users"
+msgstr "👥 用户"
+
+msgid "admin.cache"
+msgstr "🗄️ 缓存"
+
+msgid "admin.reload"
+msgstr "🔄 重载"
+
+msgid "admin.stats_title"
+msgstr "系统统计"
+
+msgid "admin.users_title"
+msgstr "管理员列表"
+
+msgid "admin.cache_title"
+msgstr "缓存状态"
+
+msgid "admin.reloaded"
+msgstr "配置已重载"
+
+# =============================================================================
+# env_manager.py - 配置管理 i18n
+# =============================================================================
+
+# 配置分类
+msgid "env.cat.symbols.name"
+msgstr "💰 币种管理"
+
+msgid "env.cat.symbols.desc"
+msgstr "设置要监控哪些币种"
+
+msgid "env.cat.features.name"
+msgstr "⚡ 功能开关"
+
+msgid "env.cat.features.desc"
+msgstr "开启或关闭某些功能"
+
+msgid "env.cat.proxy.name"
+msgstr "🌐 网络代理"
+
+msgid "env.cat.proxy.desc"
+msgstr "国内访问需要设置代理"
+
+msgid "env.cat.display.name"
+msgstr "🎨 显示设置"
+
+msgid "env.cat.display.desc"
+msgstr "语言、界面相关"
+
+msgid "env.cat.cards.name"
+msgstr "📊 卡片管理"
+
+msgid "env.cat.cards.desc"
+msgstr "控制显示哪些排行卡片"
+
+msgid "env.cat.indicators.name"
+msgstr "📈 指标计算"
+
+msgid "env.cat.indicators.desc"
+msgstr "控制计算哪些指标"
+
+# HTTP 代理
+msgid "env.http_proxy.name"
+msgstr "🌐 HTTP 代理"
+
+msgid "env.http_proxy.desc"
+msgstr "访问 Telegram/Binance 时使用的代理"
+
+msgid "env.http_proxy.help"
+msgstr "格式：http://IP:端口\n例如：http://127.0.0.1:7890"
+
+# HTTPS 代理
+msgid "env.https_proxy.name"
+msgstr "🔒 HTTPS 代理"
+
+msgid "env.https_proxy.desc"
+msgstr "通常和 HTTP 代理设置相同即可"
+
+msgid "env.https_proxy.help"
+msgstr "格式：http://IP:端口\n大多数情况下填和 HTTP 代理一样的值"
+
+# 监控币种
+msgid "env.symbols_groups.name"
+msgstr "💰 监控币种"
+
+msgid "env.symbols_groups.desc"
+msgstr "选择要监控的币种范围"
+
+msgid "env.symbols_groups.help"
+msgstr "选择一个预设分组，或输入自定义"
+
+msgid "env.symbols_groups.opt.main4"
+msgstr "🔥 主流4币"
+
+msgid "env.symbols_groups.opt.main4_detail"
+msgstr "BTC/ETH/SOL/BNB"
+
+msgid "env.symbols_groups.opt.main6"
+msgstr "⭐ 主流6币"
+
+msgid "env.symbols_groups.opt.main6_detail"
+msgstr "+XRP/DOGE"
+
+msgid "env.symbols_groups.opt.main20"
+msgstr "📊 主流20币"
+
+msgid "env.symbols_groups.opt.main20_detail"
+msgstr "常见主流币"
+
+msgid "env.symbols_groups.opt.auto"
+msgstr "🤖 智能选择"
+
+msgid "env.symbols_groups.opt.auto_detail"
+msgstr "自动选高交易量币"
+
+msgid "env.symbols_groups.opt.all"
+msgstr "🌍 全部币种"
+
+msgid "env.symbols_groups.opt.all_detail"
+msgstr "600+币种，资源消耗大"
+
+# 额外添加
+msgid "env.symbols_extra.name"
+msgstr "➕ 额外添加"
+
+msgid "env.symbols_extra.desc"
+msgstr "在分组基础上额外添加的币种"
+
+msgid "env.symbols_extra.help"
+msgstr "输入币种代码，多个用逗号分隔\n例如：PEPEUSDT,WIFUSDT"
+
+# 排除币种
+msgid "env.symbols_exclude.name"
+msgstr "➖ 排除币种"
+
+msgid "env.symbols_exclude.desc"
+msgstr "从分组中排除这些币种"
+
+msgid "env.symbols_exclude.help"
+msgstr "输入不想监控的币种\n例如：LUNAUSDT"
+
+# 屏蔽显示
+msgid "env.blocked_symbols.name"
+msgstr "🚫 屏蔽显示"
+
+msgid "env.blocked_symbols.desc"
+msgstr "这些币种不会出现在排行榜中"
+
+msgid "env.blocked_symbols.help"
+msgstr "用于隐藏异常或不想看到的币种\n例如：BNXUSDT,ALPACAUSDT"
+
+# 单币查询
+msgid "env.single_query.name"
+msgstr "🔍 单币查询"
+
+msgid "env.single_query.desc"
+msgstr "发送 BTC! 查询单币详情"
+
+msgid "env.single_query.help"
+msgstr "开启后可以发送如 BTC! 来查询单个币种"
+
+msgid "env.single_query.enabled_detail"
+msgstr "可用单币查询"
+
+msgid "env.single_query.disabled_detail"
+msgstr "节省资源"
+
+# 实时数据
+msgid "env.realtime_data.name"
+msgstr "📡 实时数据"
+
+msgid "env.realtime_data.desc"
+msgstr "从 Binance 获取实时价格"
+
+msgid "env.realtime_data.help"
+msgstr "关闭后使用缓存数据，开启需要代理"
+
+msgid "env.realtime_data.enabled_detail"
+msgstr "实时价格，需代理"
+
+msgid "env.realtime_data.disabled_detail"
+msgstr "使用缓存数据"
+
+# 界面语言
+msgid "env.locale.name"
+msgstr "🌍 界面语言"
+
+msgid "env.locale.desc"
+msgstr "Bot 显示的语言"
+
+msgid "env.locale.help"
+msgstr "切换后立即生效"
+
+msgid "env.locale.opt.zh"
+msgstr "🇨🇳 中文"
+
+msgid "env.locale.opt.en"
+msgstr "🇺🇸 English"
+
+# 隐藏字段
+msgid "env.hidden_fields.name"
+msgstr "🙈 隐藏字段"
+
+msgid "env.hidden_fields.desc"
+msgstr "单币快照中不显示的字段"
+
+msgid "env.hidden_fields.help"
+msgstr "输入要隐藏的字段名，用逗号分隔"
+
+msgid "env.hidden_fields.placeholder"
+msgstr "最近翻转时间"
+
+# 启用卡片
+msgid "env.cards_enabled.name"
+msgstr "📊 启用卡片"
+
+msgid "env.cards_enabled.desc"
+msgstr "只显示这些排行卡片"
+
+msgid "env.cards_enabled.help"
+msgstr "留空显示全部，或输入要显示的卡片名"
+
+msgid "env.cards_enabled.placeholder"
+msgstr "资金流向,MACD"
+
+# 禁用卡片
+msgid "env.cards_disabled.name"
+msgstr "🚫 禁用卡片"
+
+msgid "env.cards_disabled.desc"
+msgstr "不显示这些排行卡片"
+
+msgid "env.cards_disabled.help"
+msgstr "输入要隐藏的卡片名，用逗号分隔"
+
+msgid "env.cards_disabled.placeholder"
+msgstr "K线形态"
+
+# 启用指标
+msgid "env.indicators_enabled.name"
+msgstr "📈 启用指标"
+
+msgid "env.indicators_enabled.desc"
+msgstr "只计算这些指标"
+
+msgid "env.indicators_enabled.help"
+msgstr "留空计算全部，需重启生效"
+
+# 禁用指标
+msgid "env.indicators_disabled.name"
+msgstr "🚫 禁用指标"
+
+msgid "env.indicators_disabled.desc"
+msgstr "不计算这些指标"
+
+msgid "env.indicators_disabled.help"
+msgstr "可节省资源，需重启生效"
+
+msgid "env.indicators_disabled.placeholder"
+msgstr "k线形态"
+
+# 通用选项
+msgid "env.opt.enabled"
+msgstr "✅ 开启"
+
+msgid "env.opt.disabled"
+msgstr "⏸️ 关闭"
+
+# 消息
+msgid "env.msg.readonly"
+msgstr "🔒 {name} 是系统核心配置，需要在文件中手动修改哦"
+
+msgid "env.msg.not_supported"
+msgstr "🤔 暂不支持修改 {key}，如有需要请联系管理员"
+
+msgid "env.msg.file_not_ready"
+msgstr "📁 配置文件还没准备好，请先完成初始化"
+
+msgid "env.msg.save_hot"
+msgstr "✨ {name}\n\n已更新为：{value}\n\n🚀 立即生效！"
+
+msgid "env.msg.save_restart"
+msgstr "✨ {name}\n\n已更新为：{value}\n\n💡 重启后生效~"
+
+msgid "env.msg.no_permission"
+msgstr "😅 没有写入权限，请检查配置文件权限设置"
+
+msgid "env.msg.save_error"
+msgstr "😅 保存时遇到了问题，请稍后再试\n\n技术信息：{error}"
+
+msgid "env.msg.cleared"
+msgstr "（已清空）"
+
+msgid "env.msg.not_set"
+msgstr "未设置"
+
+msgid "env.msg.not_supported_edit"
+msgstr "🤔 这个配置项暂不支持修改"
+
+msgid "env.msg.choose_option"
+msgstr "💡 请从以下选项中选择："
+
+msgid "env.msg.proxy_format"
+msgstr "💡 代理格式需要这样写：\n• http://127.0.0.1:7890\n• socks5://127.0.0.1:1080\n\n请检查一下格式~"
+
+msgid "env.msg.symbol_format"
+msgstr "💡 币种格式需要以 USDT 结尾\n\n• 正确：BTCUSDT, ETHUSDT\n• 你输入的：{invalid}\n\n请修改一下~"
+
+# =============================================================================
+# pg_formatter.py / pg_engine.py - PG 信号 i18n
+# =============================================================================
+
+# 信号标题
+msgid "signal.pg.price_surge"
+msgstr "价格急涨"
+
+msgid "signal.pg.price_dump"
+msgstr "价格急跌"
+
+msgid "signal.pg.volume_spike"
+msgstr "成交量暴增"
+
+msgid "signal.pg.taker_buy_dominant"
+msgstr "主动买入主导"
+
+msgid "signal.pg.taker_sell_dominant"
+msgstr "主动卖出主导"
+
+msgid "signal.pg.oi_surge"
+msgstr "持仓量急增"
+
+msgid "signal.pg.oi_dump"
+msgstr "持仓量急减"
+
+msgid "signal.pg.top_extreme_long"
+msgstr "大户极度看多"
+
+msgid "signal.pg.top_extreme_short"
+msgstr "大户极度看空"
+
+msgid "signal.pg.taker_flip_long"
+msgstr "主动成交翻多"
+
+msgid "signal.pg.taker_flip_short"
+msgstr "主动成交翻空"
+
+# 信号消息
+msgid "signal.pg.msg.price_surge"
+msgstr "🚀 价格急涨! 5分钟涨幅 {pct}%"
+
+msgid "signal.pg.msg.price_dump"
+msgstr "💥 价格急跌! 5分钟跌幅 {pct}%"
+
+msgid "signal.pg.msg.volume_spike"
+msgstr "📊 成交量暴增! {ratio}倍 ({vol}M)"
+
+msgid "signal.pg.msg.taker_buy"
+msgstr "🟢 主动买入占比 {pct}% (>{threshold}%)"
+
+msgid "signal.pg.msg.taker_sell"
+msgstr "🔴 主动卖出占比 {pct}% (>{threshold}%)"
+
+msgid "signal.pg.msg.oi_surge"
+msgstr "📈 持仓量急增! 5分钟增加 {pct}% (${oi}B)"
+
+msgid "signal.pg.msg.oi_dump"
+msgstr "📉 持仓量急减! 5分钟减少 {pct}% (${oi}B)"
+
+msgid "signal.pg.msg.top_long"
+msgstr "⚠️ 大户极度看多! 多空比 {ratio} (>{threshold})"
+
+msgid "signal.pg.msg.top_short"
+msgstr "⚠️ 大户极度看空! 多空比 {ratio} (<{threshold})"
+
+msgid "signal.pg.msg.taker_flip_long"
+msgstr "🔄 主动成交翻多! {prev} → {curr}"
+
+msgid "signal.pg.msg.taker_flip_short"
+msgstr "🔄 主动成交翻空! {prev} → {curr}"
+
+# 格式化标签
+msgid "signal.pg.label.direction"
+msgstr "方向"
+
+msgid "signal.pg.label.price"
+msgstr "价格"
+
+msgid "signal.pg.label.change"
+msgstr "涨跌"
+
+msgid "signal.pg.label.strength"
+msgstr "强度"
+
+msgid "signal.pg.label.amplify"
+msgstr "放大"
+
+msgid "signal.pg.label.volume"
+msgstr "成交额"
+
+msgid "signal.pg.label.ratio"
+msgstr "占比"
+
+msgid "signal.pg.label.oi_change"
+msgstr "变化"
+
+msgid "signal.pg.label.oi_value"
+msgstr "持仓"
+
+msgid "signal.pg.label.ls_ratio"
+msgstr "多空比"
+
+msgid "signal.pg.label.flip"
+msgstr "变化"
+
+msgid "signal.pg.label.detail"
+msgstr "详情"
+
+# 批量格式化
+msgid "signal.pg.no_signal"
+msgstr "暂无信号"
+
+msgid "signal.pg.batch_title"
+msgstr "📡 实时信号 ({count}条)"
+
+msgid "signal.pg.more"
+msgstr "... 还有 {count} 条"
+
+# =============================================================================
+# 即时响应文本 - 方案C（详细提示）
+# =============================================================================
+msgid "loading.default"
+msgstr "处理中..."
+
+msgid "loading.refresh"
+msgstr "🔄 正在刷新..."
+
+msgid "loading.query"
+msgstr "🔍 正在查询..."
+
+msgid "loading.ai"
+msgstr "🤖 启动AI分析..."
+
+msgid "loading.vis"
+msgstr "📈 正在渲染图表..."
+
+msgid "loading.switch"
+msgstr "✅ 已切换"
+
+msgid "loading.stats"
+msgstr "📊 正在统计..."
+
+# 中间消息（慢操作）
+msgid "progress.ai"
+msgstr "🤖 正在对 {symbol} 进行深度分析，预计需要 10-30 秒..."
+
+msgid "progress.vis"
+msgstr "📈 正在渲染图表，请稍候..."
+
+msgid "progress.reload"
+msgstr "🔄 正在重新加载系统配置，请稍候..."
+
+# 完成/错误提示
+msgid "done.success"
+msgstr "✅ 操作完成"
+
+msgid "done.failed"
+msgstr "❌ 操作失败，请重试"
+
+msgid "done.no_data"
+msgstr "📭 暂无数据，请稍后再试"
+
+msgid "done.no_permission"
+msgstr "⛔ 您没有权限执行此操作"
+
+msgid "done.reload"
+msgstr "✅ 重载完成"
+
+# 环境变量管理
+msgid "admin.env.disabled"
+msgstr "⚠️ 环境变量管理功能已禁用"
+
+# 信号历史 / 统计
+msgid "signal.history.title"
+msgstr "信号历史"
+
+msgid "signal.history.header"
+msgstr "📜 {title} ({count}条)"
+
+msgid "signal.history.empty"
+msgstr "📜 信号历史\n\n暂无记录"
+
+msgid "signal.history.detail"
+msgstr "{time} | 强度:{strength}"
+
+msgid "signal.history.more"
+msgstr "... 还有 {count} 条"
+
+msgid "signal.stats.title"
+msgstr "📊 信号统计 (近{days}天)"
+
+msgid "signal.stats.total"
+msgstr "总数: {total}条"
+
+msgid "signal.stats.direction"
+msgstr "方向: {text}"
+
+msgid "signal.stats.source"
+msgstr "来源: {text}"
+
+msgid "signal.stats.top"
+msgstr "币种 Top5:"
+
+msgid "signal.stats.symbol_line"
+msgstr "  {symbol}: {count}条"
+
+msgid "signal.stats.empty"
+msgstr "📊 信号统计\n\n暂无数据"
+
+msgid "btn.history_recent"
+msgstr "📜 最近20条"
+
+msgid "btn.stats"
+msgstr "📊 统计"
+
+# Binance 链接按钮
+msgid "btn.binance"
+msgstr "🔗 Binance"

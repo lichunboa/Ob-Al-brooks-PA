@@ -15,8 +15,21 @@ from typing import Iterable, Optional
 
 # ==================== 路径与默认配置 ====================
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LOCALE_DIR = REPO_ROOT / "services" / "telegram-service" / "locales"
 logger = logging.getLogger(__name__)
+
+def _find_locale_dir() -> Path:
+    """查找 locales 目录，支持多种部署结构"""
+    candidates = [
+        REPO_ROOT / "services" / "telegram-service" / "locales",  # TradeCat 原始结构
+        REPO_ROOT / "locales",  # 容器内简化结构
+        Path("/app/locales"),   # 容器绝对路径
+    ]
+    for path in candidates:
+        if path.exists() and (path / "zh_CN").exists():
+            return path
+    return candidates[0]  # 回退到默认
+
+DEFAULT_LOCALE_DIR = _find_locale_dir()
 
 
 def normalize_locale(lang: Optional[str]) -> Optional[str]:

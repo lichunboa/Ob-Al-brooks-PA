@@ -3,5 +3,6 @@ psycopg[binary,pool]>=3.1.0
 aiohttp>=3.9.0
 ccxt>=4.0.0
 requests>=2.31.0
-# cryptofeed 编译依赖复杂，暂时用 ccxt 的 WebSocket 替代
 websockets>=13.0
+# cryptofeed 用于 WebSocket K线采集
+cryptofeed>=2.4.0

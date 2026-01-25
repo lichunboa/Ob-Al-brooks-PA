@@ -14,12 +14,10 @@ from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Set
 
-from src.config import INDICATOR_DB, PROJECT_ROOT
+from src.config import INDICATOR_DB
 
-# 添加 telegram-service 路径，复用 data_provider
-TELEGRAM_SRC = PROJECT_ROOT / "services" / "telegram-service" / "src"
-if str(TELEGRAM_SRC) not in sys.path:
-    sys.path.insert(0, str(TELEGRAM_SRC))
+# 独立运行模式：telegram-service 功能暂不可用
+# 后续可通过 API 调用获取数据
 
 # TimescaleDB 连接配置（优先 DATABASE_URL）
 DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("TIMESCALE_DATABASE_URL")

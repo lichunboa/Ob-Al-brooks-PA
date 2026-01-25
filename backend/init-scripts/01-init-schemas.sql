@@ -124,24 +124,54 @@ CREATE TABLE IF NOT EXISTS quality.data_quality_checks (
 );
 
 -- ============================================================
--- Legacy Layer: Compatibility with TradeCat trading-service
+-- Market Data Layer: TradeCat data-service compatible tables
 -- ============================================================
+
+-- K线数据表 (data-service 使用的表结构)
 CREATE TABLE IF NOT EXISTS market_data.candles_1m (
+    exchange VARCHAR(50) NOT NULL,
     symbol VARCHAR(20) NOT NULL,
-    open_time TIMESTAMPTZ NOT NULL,
+    bucket_ts TIMESTAMPTZ NOT NULL,
     open NUMERIC(20, 8) NOT NULL,
     high NUMERIC(20, 8) NOT NULL,
     low NUMERIC(20, 8) NOT NULL,
     close NUMERIC(20, 8) NOT NULL,
     volume NUMERIC(30, 8) NOT NULL,
-    quote_volume NUMERIC(30, 8) NOT NULL,
-    trades INTEGER NOT NULL,
+    quote_volume NUMERIC(30, 8),
+    trade_count INTEGER,
+    is_closed BOOLEAN DEFAULT TRUE,
+    source VARCHAR(50),
     taker_buy_volume NUMERIC(30, 8),
     taker_buy_quote_volume NUMERIC(30, 8),
-    PRIMARY KEY (symbol, open_time)
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (exchange, symbol, bucket_ts)
 );
 
-SELECT create_hypertable('market_data.candles_1m', 'open_time',
+SELECT create_hypertable('market_data.candles_1m', 'bucket_ts',
+    chunk_time_interval => INTERVAL '1 day',
+    if_not_exists => TRUE
+);
+
+-- 期货指标数据表 (Binance Futures metrics)
+CREATE TABLE IF NOT EXISTS market_data.binance_futures_metrics_5m (
+    symbol VARCHAR(20) NOT NULL,
+    exchange VARCHAR(50) NOT NULL DEFAULT 'binance_futures_um',
+    create_time TIMESTAMPTZ NOT NULL,
+    sum_open_interest NUMERIC(30, 8),
+    sum_open_interest_value NUMERIC(30, 2),
+    count_toptrader_long_short_ratio NUMERIC(10, 4),
+    sum_toptrader_long_short_ratio NUMERIC(10, 4),
+    count_long_short_ratio NUMERIC(10, 4),
+    sum_taker_long_short_vol_ratio NUMERIC(10, 4),
+    source VARCHAR(50) DEFAULT 'binance_api',
+    is_closed BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (symbol, create_time)
+);
+
+SELECT create_hypertable('market_data.binance_futures_metrics_5m', 'create_time',
     chunk_time_interval => INTERVAL '1 day',
     if_not_exists => TRUE
 );

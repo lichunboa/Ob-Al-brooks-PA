@@ -13,17 +13,14 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List
 
-SERVICE_ROOT = Path(__file__).parents[1]  # src/config.py -> src -> trading-service
-PROJECT_ROOT = SERVICE_ROOT.parents[1]    # trading-service -> services -> tradecat
+SERVICE_ROOT = Path(__file__).resolve().parents[1]  # src/config.py -> trading-service
+# 独立运行模式：不依赖 TradeCat 目录结构
+DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
+LOGS_DIR = Path(os.getenv("LOGS_DIR", "/app/logs"))
 
-# 加载 config/.env
-_env_file = PROJECT_ROOT / "config" / ".env"
-if _env_file.exists():
-    for line in _env_file.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
+# 确保目录存在
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _parse_intervals(env_key: str, default: str) -> List[str]:
@@ -41,7 +38,7 @@ class Config:
     # SQLite（写入指标结果）
     sqlite_path: Path = field(default_factory=lambda: Path(os.getenv(
         "INDICATOR_SQLITE_PATH",
-        str(PROJECT_ROOT / "libs/database/services/telegram-service/market_data.db")
+        str(DATA_DIR / "indicators.db")
     )))
 
     # 计算参数

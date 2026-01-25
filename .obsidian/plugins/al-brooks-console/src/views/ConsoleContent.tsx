@@ -12,11 +12,12 @@ import { TradingHubTab } from "./tabs/TradingHubTab";
 import { AnalyticsTab } from "./tabs/AnalyticsTab";
 import { LearnTab } from "./tabs/LearnTab";
 import { ManageTab } from "./tabs/ManageTab";
+import { BackendTab } from "./tabs/BackendTab";
 
 // Hooks moved to components (Context)
 // Manager handled by ManageTab now
 
-type DashboardPage = "trading" | "journal" | "analytics" | "learn" | "manage";
+type DashboardPage = "trading" | "journal" | "analytics" | "learn" | "manage" | "backend";
 
 export const ConsoleContent: React.FC = () => {
   const {
@@ -111,6 +112,7 @@ export const ConsoleContent: React.FC = () => {
           {renderTabButton("analytics", "复盘分析", "📈")}
           {renderTabButton("learn", "策略学习", "🎓")}
           {renderTabButton("manage", "数据管理", "🛡️")}
+          {renderTabButton("backend", "后端服务", "🔌")}
         </div>
       </div>
 
@@ -129,6 +131,7 @@ export const ConsoleContent: React.FC = () => {
         {activePage === "analytics" && <AnalyticsTab />}
         {activePage === "learn" && <LearnTab />}
         {activePage === "manage" && <ManageTab />}
+        {activePage === "backend" && <BackendTab />}
 
         {/* Journal Tab (Placeholder or Future Implementation) */}
         {activePage === "journal" && (

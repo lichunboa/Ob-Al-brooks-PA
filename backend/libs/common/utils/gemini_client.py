@@ -40,6 +40,10 @@ DEFAULT_MODEL = "gemini-3-flash-preview"
 # Gemini CLI 路径（自动检测）
 GEMINI_CLI = os.getenv("GEMINI_CLI_PATH") or "gemini"
 
+# Gemini SDK 配置（优先使用 SDK 如果配置了 API endpoint）
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("EXTERNAL_API_KEY")
+GEMINI_API_ENDPOINT = os.getenv("GEMINI_API_ENDPOINT") or os.getenv("LLM_API_BASE_URL")
+
 
 def _get_proxy_env() -> dict:
     """获取代理环境变量"""
@@ -56,6 +60,68 @@ def _get_proxy_env() -> dict:
     return env
 
 
+def _call_gemini_sdk(
+    system_prompt: Optional[str],
+    user_content: str,
+    model: str = DEFAULT_MODEL,
+    timeout: int = 120,
+) -> Tuple[bool, str]:
+    """
+    使用 google-generativeai SDK 调用 Gemini（支持自定义 endpoint）
+
+    Args:
+        system_prompt: 系统提示词
+        user_content: 用户内容
+        model: 模型名称
+        timeout: 超时时间（秒）
+
+    Returns:
+        (success, result): 成功标志和结果文本
+    """
+    try:
+        import google.generativeai as genai
+
+        # 配置 SDK
+        config_kwargs = {
+            "api_key": GEMINI_API_KEY,
+        }
+
+        # 如果配置了自定义 endpoint，使用 REST transport
+        if GEMINI_API_ENDPOINT:
+            config_kwargs["transport"] = "rest"
+            config_kwargs["client_options"] = {"api_endpoint": GEMINI_API_ENDPOINT}
+            logger.debug(f"使用自定义 Gemini endpoint: {GEMINI_API_ENDPOINT}")
+
+        genai.configure(**config_kwargs)
+
+        # 创建模型实例
+        gemini_model = genai.GenerativeModel(model)
+
+        # 构建提示词
+        if system_prompt:
+            full_prompt = f"{system_prompt}\n\n{user_content}"
+        else:
+            full_prompt = user_content
+
+        # 调用生成
+        logger.debug(f"调用 Gemini SDK: {model}")
+        response = gemini_model.generate_content(
+            full_prompt,
+            request_options={"timeout": timeout}
+        )
+
+        result = response.text
+        logger.debug(f"Gemini SDK 返回 {len(result)} 字符")
+        return True, result
+
+    except ImportError as e:
+        logger.error(f"google-generativeai SDK 未安装: {e}")
+        return False, f"SDK 未安装: {e}"
+    except Exception as e:
+        logger.error(f"Gemini SDK 调用失败: {e}")
+        return False, str(e)
+
+
 def call_gemini(
     prompt: str,
     model: str = DEFAULT_MODEL,
@@ -63,14 +129,18 @@ def call_gemini(
     use_proxy: bool = True,
 ) -> Tuple[bool, str]:
     """
-    调用 Gemini CLI（无系统提示词）
-    
+    调用 Gemini（自动选择 SDK 或 CLI 方式）
+
+    优先级：
+    1. 如果配置了 GEMINI_API_KEY 和 GEMINI_API_ENDPOINT，使用 SDK
+    2. 否则使用 CLI
+
     Args:
         prompt: 用户提示词
         model: 模型名称，默认 gemini-3-flash-preview
         timeout: 超时时间（秒）
-        use_proxy: 是否使用代理
-        
+        use_proxy: 是否使用代理（仅 CLI 模式）
+
     Returns:
         (success, result): 成功标志和结果文本
     """
@@ -91,21 +161,55 @@ def call_gemini_with_system(
     use_proxy: bool = True,
 ) -> Tuple[bool, str]:
     """
-    调用 Gemini CLI（带系统提示词）- 无头模式
-    
-    按照 GEMINI-HEADLESS.md 标准：
+    调用 Gemini（自动选择 SDK 或 CLI 方式）
+
+    优先级：
+    1. 如果配置了 GEMINI_API_KEY 和 GEMINI_API_ENDPOINT，使用 SDK
+    2. 否则使用 CLI
+
+    CLI 模式按照 GEMINI-HEADLESS.md 标准：
     - 系统提示词作为位置参数传入
     - 用户内容通过 stdin 传入
     - --allowed-tools '' 禁用工具调用
     - --output-format text 纯文本输出
-    
+
+    Args:
+        system_prompt: 系统提示词
+        user_content: 用户内容
+        model: 模型名称
+        timeout: 超时时间（秒）
+        use_proxy: 是否使用代理（仅 CLI 模式）
+
+    Returns:
+        (success, result): 成功标志和结果文本
+    """
+    # 如果配置了 API key 和 endpoint，使用 SDK 方式
+    if GEMINI_API_KEY and GEMINI_API_ENDPOINT:
+        logger.debug("使用 Gemini SDK 方式调用")
+        return _call_gemini_sdk(system_prompt, user_content, model, timeout)
+
+    # 否则使用 CLI 方式
+    logger.debug("使用 Gemini CLI 方式调用")
+    return _call_gemini_cli(system_prompt, user_content, model, timeout, use_proxy)
+
+
+def _call_gemini_cli(
+    system_prompt: Optional[str],
+    user_content: str,
+    model: str = DEFAULT_MODEL,
+    timeout: int = 120,
+    use_proxy: bool = True,
+) -> Tuple[bool, str]:
+    """
+    使用 Gemini CLI 调用（内部函数）
+
     Args:
         system_prompt: 系统提示词（作为位置参数）
         user_content: 用户内容（通过 stdin 传入）
         model: 模型名称
         timeout: 超时时间（秒）
         use_proxy: 是否使用代理
-        
+
     Returns:
         (success, result): 成功标志和结果文本
     """
@@ -116,17 +220,17 @@ def call_gemini_with_system(
         "--output-format", "text",
         "--allowed-tools", "",  # 禁用工具调用
     ]
-    
+
     # 系统提示词作为位置参数
     if system_prompt:
         cmd.append(system_prompt)
-    
+
     # 环境变量
     env = _get_proxy_env() if use_proxy else os.environ.copy()
-    
+
     try:
         logger.debug(f"执行 Gemini CLI: {' '.join(cmd[:6])}...")
-        
+
         result = subprocess.run(
             cmd,
             input=user_content,
@@ -135,16 +239,16 @@ def call_gemini_with_system(
             timeout=timeout,
             env=env,
         )
-        
+
         if result.returncode != 0:
             error_msg = result.stderr.strip() or f"退出码: {result.returncode}"
             logger.error(f"Gemini CLI 失败: {error_msg}")
             return False, error_msg
-        
+
         output = result.stdout.strip()
         logger.debug(f"Gemini 返回 {len(output)} 字符")
         return True, output
-        
+
     except subprocess.TimeoutExpired:
         logger.error(f"Gemini CLI 超时 ({timeout}s)")
         return False, f"超时 ({timeout}s)"

@@ -17,8 +17,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 
+# Copy libs (will be mounted or copied via docker-compose context)
+# Note: libs is optional, service works without it
+ARG INCLUDE_LIBS=false
+RUN mkdir -p /app/libs
+
 # Set environment
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/libs
 ENV PYTHONUNBUFFERED=1
 
 # Run the service

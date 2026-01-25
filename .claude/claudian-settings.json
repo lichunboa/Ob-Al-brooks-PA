@@ -39,7 +39,7 @@
     ]
   },
   "permissionMode": "yolo",
-  "model": "claude-opus-4-5-thinking",
+  "model": "haiku",
   "thinkingBudget": "medium",
   "enableAutoTitleGeneration": true,
   "titleGenerationModel": "",
@@ -52,7 +52,7 @@
     "~/Downloads"
   ],
   "persistentExternalContextPaths": [],
-  "environmentVariables": "ANTHROPIC_APILKEY=sk-302bf77c3e724acfa73d893a2d416c9d\nANTHROPIC_BASE_URL=http://127.0.0.1:8045\nANTHROPIC_MODEL=claude-opus-4-5-thinking",
+  "environmentVariables": "sk-302bf77c3e724acfa73d893a2d416c9d",
   "envSnippets": [],
   "keyboardNavigation": {
     "scrollUpKey": "w",
@@ -65,6 +65,6 @@
   "loadUserClaudeSettings": true,
   "lastClaudeModel": "opus",
   "lastCustomModel": "claude-opus-4-5-thinking",
-  "lastEnvHash": "ANTHROPIC_BASE_URL=http://127.0.0.1:8045|ANTHROPIC_MODEL=claude-opus-4-5-thinking",
+  "lastEnvHash": "",
   "maxTabs": 3
 }

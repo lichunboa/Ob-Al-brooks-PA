@@ -12,8 +12,6 @@
 #
 # ============================================================
 
-version: '3.8'
-
 services:
   # ============================================================
   # TimescaleDB - Time-series database
@@ -53,10 +51,13 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+      DATA_DIR: /app/data
+      LOGS_DIR: /app/logs
     command: ["python", "-m", "src", "--all"]
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./libs:/app/libs:ro
 
   # ============================================================
   # Trading Service - Technical indicators (from TradeCat)
@@ -66,7 +67,7 @@ services:
       context: ./services/trading-service
       dockerfile: Dockerfile
     container_name: al-brooks-trading-service
-    restart: unless-stopped
+    restart: "no"  # 一次性计算模式不需要重启
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -77,6 +78,9 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
       INDICATOR_SQLITE_PATH: /app/data/indicators.db
+      DATA_DIR: /app/data
+      LOGS_DIR: /app/logs
+    command: ["python", "-m", "src", "--once"]
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -98,6 +102,9 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
       INDICATOR_SQLITE_PATH: /app/data/indicators.db
+      DATA_DIR: /app/data
+      LOGS_DIR: /app/logs
+    command: ["python", "-m", "src", "--pg"]
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -110,7 +117,7 @@ services:
       context: ./services/ai-service
       dockerfile: Dockerfile
     container_name: al-brooks-ai-service
-    restart: unless-stopped
+    restart: "no"  # 测试模式不需要重启
     depends_on:
       trading-service:
         condition: service_started
@@ -118,6 +125,9 @@ services:
       - .env
     environment:
       INDICATOR_SQLITE_PATH: /app/data/indicators.db
+      DATA_DIR: /app/data
+      LOGS_DIR: /app/logs
+    command: ["python", "-m", "src", "--test"]
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -149,6 +159,32 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+
+  # ============================================================
+  # Telegram Service - Interactive Bot (from TradeCat)
+  # ============================================================
+  telegram-service:
+    build:
+      context: .
+      dockerfile: ./services/telegram-service/Dockerfile
+    container_name: al-brooks-telegram-service
+    restart: unless-stopped
+    depends_on:
+      - timescaledb
+      - data-service
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@timescaledb:5432/market_data
+      INDICATOR_SQLITE_PATH: /app/data/indicators.db
+      DATA_DIR: /app/data
+      LOGS_DIR: /app/logs
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./prompts:/app/prompts
+      # Map .env to config/.env as expected by telegram-service
+      - ./.env:/app/config/.env:ro
 
 volumes:
   timescaledb_data:

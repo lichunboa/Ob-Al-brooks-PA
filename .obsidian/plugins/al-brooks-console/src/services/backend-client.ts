@@ -9,6 +9,13 @@ export interface BackendConfig {
   baseUrl: string;
   apiToken?: string;
   timeout?: number;
+  // AI API 配置 (Gemini 反代)
+  aiApiEndpoint?: string;
+  aiApiKey?: string;
+  aiModel?: string;
+  // Telegram 推送配置
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 export interface CandleData {
@@ -111,7 +118,26 @@ export class BackendClient {
       baseUrl: config.baseUrl || "http://localhost:8088",
       apiToken: config.apiToken,
       timeout: config.timeout || 30000,
+      aiApiEndpoint: config.aiApiEndpoint || "http://127.0.0.1:8045",
+      aiApiKey: config.aiApiKey || "",
+      aiModel: config.aiModel || "gemini-3-pro-high",
+      telegramBotToken: config.telegramBotToken || "",
+      telegramChatId: config.telegramChatId || "",
     };
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<BackendConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): BackendConfig {
+    return { ...this.config };
   }
 
   /**
@@ -336,6 +362,275 @@ export class BackendClient {
       `/api/v1/al-brooks/patterns?symbol=${symbol}&interval=${interval}&limit=${limit}`
     );
   }
+
+  // ============================================================
+  // Direct AI Call (OpenAI Compatible API)
+  // ============================================================
+
+  /**
+   * Call AI via OpenAI-compatible proxy (supports Gemini, Claude, GPT, etc.)
+   * @param prompt User prompt
+   * @param systemPrompt Optional system prompt
+   * @returns AI response text
+   */
+  async callAI(prompt: string, systemPrompt?: string): Promise<string> {
+    if (!this.config.aiApiKey) {
+      throw new Error("AI API Key 未配置。请在设置中填写。");
+    }
+    if (!this.config.aiApiEndpoint) {
+      throw new Error("AI API Endpoint 未配置。请在设置中填写。");
+    }
+
+    // OpenAI-compatible API format (used by most proxies)
+    const url = `${this.config.aiApiEndpoint}/v1/chat/completions`;
+
+    const messages: Array<{ role: string; content: string }> = [];
+
+    if (systemPrompt) {
+      messages.push({ role: "system", content: systemPrompt });
+    }
+    messages.push({ role: "user", content: prompt });
+
+    const body = {
+      model: this.config.aiModel,
+      messages,
+      temperature: 0.7,
+      max_tokens: 8192,
+      stream: false,
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 分钟超时
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.config.aiApiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`AI API 错误 (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
+
+      if (!text) {
+        throw new Error("AI 返回空响应");
+      }
+
+      return text;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as Error).name === "AbortError") {
+        throw new Error("AI 请求超时 (120s)");
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Test AI connection
+   */
+  async testAIConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await this.callAI("请简短回复：你好！");
+      return {
+        success: true,
+        message: `连接成功！AI 回复: ${response.slice(0, 50)}...`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  // ============================================================
+  // Telegram 推送
+  // ============================================================
+
+  /**
+   * Send message to Telegram
+   * @param message Message text (supports Markdown)
+   * @param parseMode Parse mode: "Markdown" | "HTML" | undefined
+   */
+  async sendTelegramMessage(
+    message: string,
+    parseMode: "Markdown" | "HTML" | undefined = "Markdown"
+  ): Promise<{ success: boolean; message: string }> {
+    if (!this.config.telegramBotToken) {
+      throw new Error("Telegram Bot Token 未配置");
+    }
+    if (!this.config.telegramChatId) {
+      throw new Error("Telegram Chat ID 未配置");
+    }
+
+    const url = `https://api.telegram.org/bot${this.config.telegramBotToken}/sendMessage`;
+
+    const body: Record<string, string | undefined> = {
+      chat_id: this.config.telegramChatId,
+      text: message,
+    };
+
+    if (parseMode) {
+      body.parse_mode = parseMode;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(
+          data.description || `Telegram API 错误 (${response.status})`
+        );
+      }
+
+      return {
+        success: true,
+        message: `消息已发送 (message_id: ${data.result.message_id})`,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as Error).name === "AbortError") {
+        throw new Error("Telegram 请求超时");
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Test Telegram connection
+   */
+  async testTelegramConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const timestamp = new Date().toLocaleString("zh-CN", {
+        timeZone: "Asia/Shanghai",
+      });
+      const testMessage = `🦁 *AL Brooks 交易控制台*\n\n✅ 连接测试成功！\n\n🕐 时间: ${timestamp}`;
+      return await this.sendTelegramMessage(testMessage);
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Send trading signal to Telegram
+   */
+  async sendSignalToTelegram(signal: SignalData): Promise<{ success: boolean; message: string }> {
+    const directionEmoji = signal.direction === "BUY" ? "🟢" : signal.direction === "SELL" ? "🔴" : "🟡";
+    const strengthBar = "█".repeat(Math.round(signal.strength * 5)) + "░".repeat(5 - Math.round(signal.strength * 5));
+
+    const message = `
+${directionEmoji} *${signal.signal_name}*
+
+📊 *品种*: \`${signal.symbol}\`
+📈 *方向*: ${signal.direction}
+💪 *强度*: ${strengthBar} (${(signal.strength * 100).toFixed(0)}%)
+
+💬 ${signal.message}
+
+🕐 ${signal.timestamp}
+`.trim();
+
+    return await this.sendTelegramMessage(message);
+  }
+
+  /**
+   * Send market cycle update to Telegram
+   */
+  async sendMarketCycleToTelegram(cycle: MarketCycleData): Promise<{ success: boolean; message: string }> {
+    const cycleEmoji: Record<string, string> = {
+      strong_trend: "🚀",
+      weak_trend: "📊",
+      trading_range: "📦",
+      breakout: "💥",
+    };
+
+    const alwaysInEmoji: Record<string, string> = {
+      long: "🟢",
+      short: "🔴",
+      neutral: "⚪",
+    };
+
+    const cycleNames: Record<string, string> = {
+      strong_trend: "强趋势",
+      weak_trend: "弱趋势",
+      trading_range: "交易区间",
+      breakout: "突破",
+    };
+
+    const confidenceBar = "█".repeat(Math.round(cycle.confidence * 10)) + "░".repeat(10 - Math.round(cycle.confidence * 10));
+
+    const message = `
+${cycleEmoji[cycle.cycle] || "📊"} *市场周期更新*
+
+📊 *品种*: \`${cycle.symbol}\` (${cycle.interval})
+🔄 *周期*: ${cycleNames[cycle.cycle] || cycle.cycle}
+${alwaysInEmoji[cycle.always_in] || "⚪"} *Always In*: ${cycle.always_in.toUpperCase()}
+📈 *置信度*: ${confidenceBar} (${(cycle.confidence * 100).toFixed(0)}%)
+
+🕐 ${cycle.timestamp}
+`.trim();
+
+    return await this.sendTelegramMessage(message);
+  }
+
+  /**
+   * Send custom notification to Telegram
+   */
+  async sendNotificationToTelegram(
+    title: string,
+    content: string,
+    type: "info" | "success" | "warning" | "error" = "info"
+  ): Promise<{ success: boolean; message: string }> {
+    const typeEmoji: Record<string, string> = {
+      info: "ℹ️",
+      success: "✅",
+      warning: "⚠️",
+      error: "❌",
+    };
+
+    const timestamp = new Date().toLocaleString("zh-CN", {
+      timeZone: "Asia/Shanghai",
+    });
+
+    const message = `
+${typeEmoji[type]} *${title}*
+
+${content}
+
+🕐 ${timestamp}
+`.trim();
+
+    return await this.sendTelegramMessage(message);
+  }
 }
 
 /**
@@ -349,6 +644,11 @@ export function getBackendClient(config?: Partial<BackendConfig>): BackendClient
       baseUrl: config?.baseUrl || "http://localhost:8088",
       apiToken: config?.apiToken,
       timeout: config?.timeout,
+      aiApiEndpoint: config?.aiApiEndpoint,
+      aiApiKey: config?.aiApiKey,
+      aiModel: config?.aiModel,
+      telegramBotToken: config?.telegramBotToken,
+      telegramChatId: config?.telegramChatId,
     });
   }
   return defaultClient;

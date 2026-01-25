@@ -19,6 +19,16 @@ export interface BackendSettings {
   defaultSymbol: string;
   /** Default interval for candle data */
   defaultInterval: string;
+  /** AI API endpoint (Gemini proxy) */
+  aiApiEndpoint: string;
+  /** AI API key */
+  aiApiKey: string;
+  /** AI model name */
+  aiModel: string;
+  /** Telegram Bot Token */
+  telegramBotToken: string;
+  /** Telegram Chat ID */
+  telegramChatId: string;
 }
 
 export interface AlBrooksConsoleSettings {
@@ -44,11 +54,16 @@ export interface AlBrooksConsoleSettings {
 export const DEFAULT_BACKEND_SETTINGS: BackendSettings = {
   enabled: false,
   baseUrl: "http://localhost:8088",
-  apiToken: "",
+  apiToken: "dev-token-123",
   timeout: 30000,
   autoRefreshInterval: 0,
   defaultSymbol: "BTCUSDT",
   defaultInterval: "5m",
+  aiApiEndpoint: "http://127.0.0.1:8045",
+  aiApiKey: "",
+  aiModel: "gemini-3-pro-high",
+  telegramBotToken: "",
+  telegramChatId: "",
 };
 
 export const DEFAULT_SETTINGS: AlBrooksConsoleSettings = {
