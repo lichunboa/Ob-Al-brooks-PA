@@ -228,7 +228,8 @@ export const MemoryCalendar: React.FC<MemoryCalendarProps> = ({
                                 </div>
                             )}
                         </div>
-                    ))}
+                    );
+                })}
             </div>
         </div>
     );
