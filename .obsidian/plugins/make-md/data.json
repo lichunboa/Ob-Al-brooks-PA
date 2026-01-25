@@ -60,7 +60,6 @@
     "//Daily/Daily/SPX",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260113_0001_实盘_ES",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260114_1106_实盘_ES",
-    "//Categories 分类/Categories 分类/Al brooks",
     "//Daily/Daily/Trades/Daily/Trades/assets/Daily/Trades/assets/260116_1432_实盘_BTC",
     "//Notes 笔记/Notes 笔记/assets",
     "//Categories 分类/Categories 分类/Al brooks/Categories 分类/Al brooks/价格行为学/Categories 分类/Al brooks/价格行为学/assets",
@@ -74,11 +73,9 @@
     "//Daily/Daily/SPX/Daily/SPX/assets",
     "//Daily/Daily/SPX/Daily/SPX/assets/Daily/SPX/assets/SPX 2025.11",
     "//🦁 交易员控制台 (Trader Command)/🦁 交易员控制台 (Trader Command)/📋 任务与规划",
-    "//Templates",
     "//策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository)/太妃方案/策略仓库 (Strategy Repository)/太妃方案/assets",
     "//Categories 分类",
-    "//Categories 分类/Categories 分类/太妃价格行为",
-    "//Categories 分类/Categories 分类/太妃价格行为/Categories 分类/太妃价格行为/assets"
+    "//Categories 分类/Categories 分类/太妃价格行为"
   ],
   "expandFolderOnClick": true,
   "spacesFolder": "Tags",

@@ -19,10 +19,10 @@
   "pkmer",
   "quickadd",
   "smart-composer",
-  "obsidian-spaced-repetition",
   "tag-wrangler",
   "obsidian-tasks-plugin",
   "templater-obsidian",
   "zenboard",
-  "al-brooks-console"
+  "al-brooks-console",
+  "obsidian-spaced-repetition"
 ]
