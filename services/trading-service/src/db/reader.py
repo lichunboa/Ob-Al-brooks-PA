@@ -28,6 +28,10 @@ LOG = logging.getLogger("indicator_service.db")
 _pg_query_total = metrics.counter("pg_query_total", "PG 查询次数")
 _sqlite_commit_total = metrics.counter("sqlite_commit_total", "SQLite 提交次数")
 
+# 共享 PG 连接池（默认行工厂）
+_shared_pg_pool: ConnectionPool | None = None
+_shared_pg_pool_lock = threading.Lock()
+
 
 def get_db_counters() -> Dict[str, float]:
     """获取 DB 计数器快照"""
@@ -45,6 +49,29 @@ def inc_pg_query():
 def inc_sqlite_commit():
     """记录 SQLite commit 次数"""
     _sqlite_commit_total.inc()
+
+
+def get_shared_pg_pool() -> ConnectionPool:
+    """获取共享 PG 连接池"""
+    global _shared_pg_pool
+    if _shared_pg_pool is None:
+        with _shared_pg_pool_lock:
+            if _shared_pg_pool is None:
+                _shared_pg_pool = ConnectionPool(
+                    config.db_url,
+                    min_size=1,
+                    max_size=10,
+                    timeout=30,
+                    kwargs={"connect_timeout": 3},
+                )
+    return _shared_pg_pool
+
+
+@contextmanager
+def shared_pg_conn():
+    """共享 PG 连接上下文"""
+    with get_shared_pg_pool().connection() as conn:
+        yield conn
 
 
 class DataReader:

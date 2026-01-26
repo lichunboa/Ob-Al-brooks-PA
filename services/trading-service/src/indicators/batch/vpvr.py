@@ -3,6 +3,8 @@ import pandas as pd
 from dataclasses import dataclass
 from typing import List
 from ..base import Indicator, IndicatorMeta, register
+from ...config import config
+from ...db.reader import shared_pg_conn
 
 
 @dataclass(slots=True)
@@ -230,13 +232,13 @@ def compute_vpvr_ridge_data(
         return None
     
     try:
-        import psycopg
+        import psycopg  # noqa: F401
     except ImportError:
         logger.error("psycopg 未安装")
         return None
     
     if db_url is None:
-        db_url = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/market_data")
+        db_url = os.environ.get("DATABASE_URL", config.db_url)
     
     # interval 对应的物化视图表名
     table_map = {
@@ -255,20 +257,40 @@ def compute_vpvr_ridge_data(
                  symbol, interval, periods, lookback, bins, total_candles)
     
     try:
-        # 连接超时 3s，查询超时 5s
-        with psycopg.connect(db_url, connect_timeout=3) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SET statement_timeout = '5s'")
-                
-                # 直接读物化视图，按时间倒序（最新在前）
-                cur.execute(f"""
-                    SELECT bucket_ts, open, high, low, close, volume
-                    FROM market_data.{table_name}
-                    WHERE symbol = %s
-                    ORDER BY bucket_ts DESC
-                    LIMIT %s
-                """, (symbol, total_candles))
-                rows = cur.fetchall()
+        # 连接超时由共享池控制；查询超时用事务内 SET LOCAL
+        use_shared = db_url == config.db_url
+        if use_shared:
+            with shared_pg_conn() as conn:
+                with conn.transaction():
+                    with conn.cursor() as cur:
+                        cur.execute("SET LOCAL statement_timeout = '5s'")
+                        # 直接读物化视图，按时间倒序（最新在前）
+                        cur.execute(
+                            f"""
+                            SELECT bucket_ts, open, high, low, close, volume
+                            FROM market_data.{table_name}
+                            WHERE symbol = %s
+                            ORDER BY bucket_ts DESC
+                            LIMIT %s
+                            """,
+                            (symbol, total_candles),
+                        )
+                        rows = cur.fetchall()
+        else:
+            with psycopg.connect(db_url, connect_timeout=3) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SET statement_timeout = '5s'")
+                    cur.execute(
+                        f"""
+                        SELECT bucket_ts, open, high, low, close, volume
+                        FROM market_data.{table_name}
+                        WHERE symbol = %s
+                        ORDER BY bucket_ts DESC
+                        LIMIT %s
+                        """,
+                        (symbol, total_candles),
+                    )
+                    rows = cur.fetchall()
     except Exception as e:
         logger.error("数据库查询失败: %s", e)
         return None

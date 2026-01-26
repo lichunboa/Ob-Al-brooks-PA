@@ -108,8 +108,8 @@ check_proxy() {
 
 # 启动命令
 MODE="${MODE:-simple}"
-START_CMD="python3 -u src/simple_scheduler.py"
-[ "$MODE" = "listener" ] && START_CMD="python3 -u src/kline_listener.py"
+START_CMD="python3 -u -m src.simple_scheduler"
+[ "$MODE" = "listener" ] && START_CMD="python3 -u -m src.kline_listener"
 
 # ==================== 工具函数 ====================
 log() {
@@ -140,7 +140,7 @@ start_service() {
     
     cd "$SERVICE_DIR"
     source .venv/bin/activate
-    export PYTHONPATH=src
+    export PYTHONPATH="$SERVICE_DIR"
     nohup $START_CMD >> "$SERVICE_LOG" 2>&1 &
     local new_pid=$!
     echo "$new_pid" > "$SERVICE_PID"

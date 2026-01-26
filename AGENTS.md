@@ -198,10 +198,11 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 - **配置统一**：所有配置集中在 `config/.env`，各服务共用
 - **数据流向**：`data-service → TimescaleDB → trading-service → SQLite → telegram/ai/signal/vis`
 
-### 4.2 服务清单（12 个）
+### 4.2 服务清单（13 个）
 
 | 服务 | 位置 | 职责 | 入口 |
 |:---|:---|:---|:---|
+| aws-service | services/ | 本地 -> 远端 SQLite 同步 | `src/db_sync_service.py` |
 | data-service | services/ | 加密货币数据采集 | `src/__main__.py` |
 | trading-service | services/ | 指标计算 | `src/__main__.py` |
 | telegram-service | services/ | Bot 交互 | `src/main.py` |
@@ -219,6 +220,7 @@ sqlite3 libs/database/services/telegram-service/market_data.db
 
 | 服务 | 职责 | 禁止 |
 |:---|:---|:---|
+| aws-service | 本地 -> 远端 SQLite 同步 | 禁止参与指标计算与推送 |
 | data-service | 加密货币数据采集、存储到 TimescaleDB | 禁止计算指标 |
 | markets-service | 全市场数据采集（美股/A股/宏观） | 禁止计算指标 |
 | trading-service | 指标计算、写入 SQLite | 禁止直接推送消息 |
@@ -337,7 +339,8 @@ tradecat/
 │   ├── export_timescaledb_main4.sh # 导出 Main4 精简数据集（默认端口 5433）
 │   └── timescaledb_compression.sh  # 压缩管理（默认端口 5433）
 │
-├── services/                       # 稳定版微服务 (5个)
+├── services/                       # 稳定版微服务 (6个)
+│   ├── aws-service/                # 本地 -> 远端 SQLite 同步
 │   ├── data-service/               # 加密货币数据采集
 │   ├── trading-service/            # 指标计算（34个指标模块）
 │   ├── telegram-service/           # Telegram Bot（39张卡片）

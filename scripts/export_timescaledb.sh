@@ -33,7 +33,7 @@ log "导出 candles_1m (3.73亿行, 99GB -> ~15GB)..."
 psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
 COPY (SELECT * FROM market_data.candles_1m ORDER BY symbol, bucket_ts) 
 TO STDOUT WITH (FORMAT binary)
-" 2>>"$LOG_FILE" | zstd -19 -T4 > "$OUTPUT_DIR/candles_1m_$DATE.bin.zst" &
+" 2>>"$LOG_FILE" | zstd -19 -T10 > "$OUTPUT_DIR/candles_1m_$DATE.bin.zst" &
 PID_CANDLES=$!
 
 # 导出期货数据
@@ -41,7 +41,7 @@ log "导出 futures_metrics (9457万行, 5GB -> ~800MB)..."
 psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
 COPY (SELECT * FROM market_data.binance_futures_metrics_5m ORDER BY symbol, create_time) 
 TO STDOUT WITH (FORMAT binary)
-" 2>>"$LOG_FILE" | zstd -19 -T4 > "$OUTPUT_DIR/futures_metrics_$DATE.bin.zst" &
+" 2>>"$LOG_FILE" | zstd -19 -T10 > "$OUTPUT_DIR/futures_metrics_$DATE.bin.zst" &
 PID_FUTURES=$!
 
 # 导出 schema

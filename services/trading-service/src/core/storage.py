@@ -1,14 +1,12 @@
 """
 存储模块：结果落盘与后处理
 """
-from contextlib import contextmanager
 from typing import Dict
-from threading import Lock
 
 import pandas as pd
-from psycopg_pool import ConnectionPool
 
 from ..config import config
+from ..db.reader import shared_pg_conn
 
 
 # ==================== 写入结果 ====================
@@ -49,29 +47,6 @@ def write_indicator_result(indicator_name: str, result: pd.DataFrame, interval: 
 
 # ==================== 后处理 ====================
 
-_PG_POOL: ConnectionPool | None = None
-_PG_POOL_LOCK = Lock()
-
-
-def _get_pg_pool() -> ConnectionPool:
-    global _PG_POOL
-    if _PG_POOL is None:
-        with _PG_POOL_LOCK:
-            if _PG_POOL is None:
-                _PG_POOL = ConnectionPool(
-                    config.db_url,
-                    min_size=1,
-                    max_size=5,
-                    timeout=30,
-                )
-    return _PG_POOL
-
-
-@contextmanager
-def _pg_conn():
-    with _get_pg_pool().connection() as conn:
-        yield conn
-
 def update_market_share():
     """更新期货情绪聚合表的市场占比字段（基于全市场持仓总额）"""
     import sqlite3
@@ -80,7 +55,7 @@ def update_market_share():
     try:
         # 1. 从 PostgreSQL 获取全市场各周期持仓总额（只取最新时间点）
         totals = {}
-        with _pg_conn() as conn:
+        with shared_pg_conn() as conn:
             with conn.cursor() as cur:
                 # 5m 从原始表（取每个币种最新一条）
                 cur.execute("""

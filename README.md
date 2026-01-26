@@ -856,8 +856,9 @@ tradecat/
 │   ├── export_timescaledb.sh       # 数据导出
 │   └── timescaledb_compression.sh  # 压缩管理
 │
-├── 📂 services/                    # 稳定版微服务 (5个)
+├── 📂 services/                    # 稳定版微服务 (6个)
 │   │
+│   ├── 📂 aws-service/             # 本地 -> 远端 SQLite 同步服务
 │   ├── 📂 data-service/            # 加密货币数据采集服务
 │   │   ├── 📂 src/
 │   │   │   ├── 📂 collectors/      # 采集器

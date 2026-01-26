@@ -19,16 +19,14 @@ import time
 import signal
 import queue
 import pickle
-from contextlib import contextmanager
 from concurrent.futures import ProcessPoolExecutor, Future, as_completed, ThreadPoolExecutor
 from threading import Thread, Event, Lock
 from typing import Dict, List, Optional, Set
 from datetime import datetime, timezone
 import pandas as pd
 
-from psycopg_pool import ConnectionPool
-
 from ..config import config
+from ..db.reader import shared_pg_conn
 from ..indicators.base import get_all_indicators
 
 LOG = logging.getLogger("indicator_service.async_full")
@@ -53,30 +51,6 @@ INDICATOR_DEPS = {
     "数据监控.py": ["基础数据同步器.py"],
 }
 
-_PG_POOL: ConnectionPool | None = None
-_PG_POOL_LOCK = Lock()
-
-
-def _get_pg_pool() -> ConnectionPool:
-    global _PG_POOL
-    if _PG_POOL is None:
-        with _PG_POOL_LOCK:
-            if _PG_POOL is None:
-                _PG_POOL = ConnectionPool(
-                    config.db_url,
-                    min_size=1,
-                    max_size=5,
-                    timeout=30,
-                )
-    return _PG_POOL
-
-
-@contextmanager
-def _pg_conn():
-    with _get_pg_pool().connection() as conn:
-        yield conn
-
-
 def get_high_priority_symbols_fast(top_n: int = 30) -> Set[str]:
     """
     快速获取高优先级币种 - 合并SQL + 并行查询
@@ -87,7 +61,7 @@ def get_high_priority_symbols_fast(top_n: int = 30) -> Set[str]:
         """K线维度优先级 - 单SQL合并查询"""
         symbols = set()
         try:
-            with _pg_conn() as conn:
+            with shared_pg_conn() as conn:
                 # 合并3个维度到单个SQL
                 sql = """
                     WITH base AS (
@@ -271,7 +245,7 @@ def _get_futures_priority(top_n: int = 15) -> tuple[set, dict]:
     debug = {"oi_value": 0, "oi_change": 0, "taker_extreme": 0, "ls_extreme": 0, "top_ls_change": 0, "futures_total": 0}
 
     try:
-        with _pg_conn() as conn:
+        with shared_pg_conn() as conn:
             with conn.cursor() as cur:
                 # 查每个币种的最新数据（限制7天）
                 cur.execute("""

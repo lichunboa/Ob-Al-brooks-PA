@@ -857,8 +857,9 @@ tradecat/
 │   ├── export_timescaledb.sh       # Data export
 │   └── timescaledb_compression.sh  # Compression management
 │
-├── 📂 services/                    # Stable Microservices (5)
+├── 📂 services/                    # Stable Microservices (6)
 │   │
+│   ├── 📂 aws-service/             # Local -> remote SQLite sync service
 │   ├── 📂 data-service/            # Crypto data collection service
 │   │   ├── 📂 src/
 │   │   │   ├── 📂 collectors/      # Collectors

@@ -1,15 +1,11 @@
 """期货情绪聚合表 - 完整复刻原代码"""
 import statistics
-import threading
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, TypedDict
 
 import pandas as pd
-from psycopg_pool import ConnectionPool
 
-from ...config import config
-from ...db.reader import inc_pg_query
+from ...db.reader import inc_pg_query, shared_pg_conn
 from ..base import Indicator, IndicatorMeta, register
 
 # ==================== 数据契约 ====================
@@ -31,30 +27,6 @@ _HISTORY_CACHE: Dict[str, Dict[str, List[FuturesMetricsRow]]] = {}
 _CACHE_TS: Dict[str, float] = {}
 _CACHE_SYMBOLS: Dict[str, set] = {}
 _CACHE_TTL_SECONDS = 60
-
-_PG_POOL: ConnectionPool | None = None
-_PG_POOL_LOCK = threading.Lock()
-
-
-def _get_pg_pool() -> ConnectionPool:
-    global _PG_POOL
-    if _PG_POOL is None:
-        with _PG_POOL_LOCK:
-            if _PG_POOL is None:
-                _PG_POOL = ConnectionPool(
-                    config.db_url,
-                    min_size=1,
-                    max_size=5,
-                    timeout=30,
-                )
-    return _PG_POOL
-
-
-@contextmanager
-def _pg_conn():
-    with _get_pg_pool().connection() as conn:
-        yield conn
-
 
 def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) -> Dict[str, List[FuturesMetricsRow]]:
     """批量读取期货情绪历史数据（按币种）"""
@@ -89,7 +61,7 @@ def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) 
 
     result: Dict[str, List[FuturesMetricsRow]] = {s: [] for s in symbols}
     try:
-        with _pg_conn() as conn:
+        with shared_pg_conn() as conn:
             with conn.cursor() as cur:
                 inc_pg_query()
                 cur.execute(sql, (symbols, limit))
