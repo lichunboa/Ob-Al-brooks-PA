@@ -19,6 +19,7 @@ from cards.i18n import (
     resolve_lang,
     btn_auto as _btn_auto,
     translate_value,
+    translate_field,
     format_sort_field,
 )
 
