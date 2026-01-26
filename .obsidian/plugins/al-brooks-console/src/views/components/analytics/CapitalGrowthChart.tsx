@@ -24,6 +24,27 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     displayUnit = 'money',
     visibleAccounts = ['Live', 'Demo', 'Backtest'], // 默认显示全部
 }) => {
+    // 调试和空值保护
+    console.log('[CapitalGrowthChart] strategyLab:', strategyLab ? 'exists' : 'NULL/undefined');
+
+    // 如果数据未准备好，显示加载状态
+    if (!strategyLab || !strategyLab.curves) {
+        console.warn('[CapitalGrowthChart] strategyLab or curves is missing!', strategyLab);
+        return (
+            <Card>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "12px" }}>
+                    <div>
+                        <span style={{ fontWeight: 700, fontSize: "1.05em" }}>🧬 资金增长曲线</span>{" "}
+                        <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Cumulative Money)</span>
+                    </div>
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.85em", padding: "40px 16px", textAlign: "center" }}>
+                    数据加载中...
+                </div>
+            </Card>
+        );
+    }
+
     // Transform data for Recharts
     const data = React.useMemo(() => {
         const isR = displayUnit === 'r';
@@ -62,6 +83,26 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     const formatValue = (val: number) => {
         if (isR) return `${val > 0 ? '+' : ''}${val.toFixed(1)}R`;
         return formatCurrency(val, currencyMode).replace('$', '').replace('¥', '');
+    }
+
+    // 调试：输出图表数据
+    console.log('[CapitalGrowthChart] data:', data.length, 'points, sample:', data[0], data[data.length - 1]);
+
+    // 如果数据为空或只有初始点，显示空状态
+    if (data.length <= 1) {
+        return (
+            <Card>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "12px" }}>
+                    <div>
+                        <span style={{ fontWeight: 700, fontSize: "1.05em" }}>🧬 资金增长曲线</span>{" "}
+                        <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Cumulative Money)</span>
+                    </div>
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.85em", padding: "40px 16px", textAlign: "center" }}>
+                    暂无足够数据绘制曲线（需要至少2笔交易）
+                </div>
+            </Card>
+        );
     }
 
     return (
@@ -126,70 +167,68 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
                 </div>
             </div>
 
-            <div style={{ width: "100%", height: 250 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} stroke="var(--text-muted)" />
-                        <XAxis dataKey="index" type="category" hide={true} />
-                        <YAxis
-                            domain={['auto', 'auto']}
-                            tick={{ fontSize: 10, fill: "var(--text-muted)" }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(val) => `${val}`}
+            <div style={{ width: "100%", height: 250, overflow: "hidden" }}>
+                <LineChart width={600} height={250} data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} stroke="var(--text-muted)" />
+                    <XAxis dataKey="index" type="category" hide={true} />
+                    <YAxis
+                        domain={['auto', 'auto']}
+                        tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(val) => `${val}`}
+                    />
+                    <Tooltip
+                        contentStyle={{
+                            backgroundColor: "var(--background-primary)",
+                            border: "1px solid var(--background-modifier-border)",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            padding: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                        }}
+                        itemStyle={{ padding: 0 }}
+                        labelStyle={{ display: "none" }}
+                        formatter={(value: number) => {
+                            const symbol = isR ? '' : (currencyMode === 'CNY' ? '¥' : '$');
+                            const suffix = isR ? 'R' : '';
+                            return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}${suffix}`, null];
+                        }}
+                    />
+                    {/* 根据 visibleAccounts 条件渲染曲线 */}
+                    {visibleAccounts.includes('Backtest') && (
+                        <Line
+                            type="monotone"
+                            dataKey="Backtest"
+                            stroke={getRColorByAccountType("Backtest")}
+                            strokeWidth={1.5}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            connectNulls
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: "var(--background-primary)",
-                                border: "1px solid var(--background-modifier-border)",
-                                borderRadius: "6px",
-                                fontSize: "12px",
-                                padding: "8px",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                            }}
-                            itemStyle={{ padding: 0 }}
-                            labelStyle={{ display: "none" }}
-                            formatter={(value: number) => {
-                                const symbol = isR ? '' : (currencyMode === 'CNY' ? '¥' : '$');
-                                const suffix = isR ? 'R' : '';
-                                return [`${symbol}${typeof value === 'number' ? value.toFixed(2) : value}${suffix}`, null];
-                            }}
+                    )}
+                    {visibleAccounts.includes('Demo') && (
+                        <Line
+                            type="monotone"
+                            dataKey="Demo"
+                            stroke={getRColorByAccountType("Demo")}
+                            strokeWidth={1.5}
+                            dot={false}
+                            connectNulls
                         />
-                        {/* 根据 visibleAccounts 条件渲染曲线 */}
-                        {visibleAccounts.includes('Backtest') && (
-                            <Line
-                                type="monotone"
-                                dataKey="Backtest"
-                                stroke={getRColorByAccountType("Backtest")}
-                                strokeWidth={1.5}
-                                strokeDasharray="4 4"
-                                dot={false}
-                                connectNulls
-                            />
-                        )}
-                        {visibleAccounts.includes('Demo') && (
-                            <Line
-                                type="monotone"
-                                dataKey="Demo"
-                                stroke={getRColorByAccountType("Demo")}
-                                strokeWidth={1.5}
-                                dot={false}
-                                connectNulls
-                            />
-                        )}
-                        {visibleAccounts.includes('Live') && (
-                            <Line
-                                type="monotone"
-                                dataKey="Live"
-                                stroke={getRColorByAccountType("Live")}
-                                strokeWidth={2.5}
-                                dot={{ r: 1 }}
-                                activeDot={{ r: 4 }}
-                                connectNulls
-                            />
-                        )}
-                    </LineChart>
-                </ResponsiveContainer>
+                    )}
+                    {visibleAccounts.includes('Live') && (
+                        <Line
+                            type="monotone"
+                            dataKey="Live"
+                            stroke={getRColorByAccountType("Live")}
+                            strokeWidth={2.5}
+                            dot={{ r: 1 }}
+                            activeDot={{ r: 4 }}
+                            connectNulls
+                        />
+                    )}
+                </LineChart>
             </div>
         </Card>
     );

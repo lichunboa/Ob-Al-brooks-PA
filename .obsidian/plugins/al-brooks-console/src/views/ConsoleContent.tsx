@@ -6,17 +6,17 @@ import { Button } from "../ui/components/Button";
 // Components
 import { OpenTradeAssistant } from "./components/trading/OpenTradeAssistant";
 import { TodayKpiCard } from "./components/trading/TodayKpiCard";
+import { SignalTicker } from "./components/trading/SignalTicker";
+import { Notice } from "obsidian";
 
 // Tabs
 import { TradingHubTab } from "./tabs/TradingHubTab";
 import { AnalyticsTab } from "./tabs/AnalyticsTab";
 import { LearnTab } from "./tabs/LearnTab";
 import { ManageTab } from "./tabs/ManageTab";
+import { BackendTab } from "./tabs/BackendTab";
 
-// Hooks moved to components (Context)
-// Manager handled by ManageTab now
-
-type DashboardPage = "trading" | "journal" | "analytics" | "learn" | "manage";
+type DashboardPage = "trading" | "journal" | "analytics" | "learn" | "manage" | "backend";
 
 export const ConsoleContent: React.FC = () => {
   const {
@@ -29,7 +29,7 @@ export const ConsoleContent: React.FC = () => {
     openFile,
     integrations,
     index,
-    runCommand, // 新增：用于执行 Obsidian 命令（如复习卡片）
+    runCommand,
   } = useConsoleContext();
 
   const [activePage, setActivePage] = React.useState<DashboardPage>("trading");
@@ -75,9 +75,9 @@ export const ConsoleContent: React.FC = () => {
       height: "100%",
       color: "var(--text-normal)",
       fontFamily: "var(--font-interface)",
-      overflow: "hidden" // Ensure container doesn't overflow, let content scroll
+      overflow: "hidden"
     }}>
-      {/* Header / Navigation - 紧凑布局 */}
+      {/* Header / Navigation */}
       <div style={{
         flexShrink: 0,
         padding: "10px 16px 0",
@@ -94,43 +94,44 @@ export const ConsoleContent: React.FC = () => {
           can={(id) => integrations?.isCapabilityAvailable(id) ?? false}
           action={async (id) => {
             if (!integrations) return;
-            const intent = {
-              capabilityId: id,
-              payload: {}
-            };
+            // No-op for now
           }}
           runCommand={runCommand}
-          onRebuild={() => {
-          }}
+          onRebuild={() => { }}
           showRebuild={true}
         />
 
-        {/* Navigation Tabs - 紧凑 */}
+        {/* Navigation Tabs */}
         <div style={{ display: "flex", gap: "4px", marginTop: "8px", paddingBottom: "8px" }}>
           {renderTabButton("trading", "交易中心", "📊")}
           {renderTabButton("analytics", "复盘分析", "📈")}
           {renderTabButton("learn", "策略学习", "🎓")}
           {renderTabButton("manage", "数据管理", "🛡️")}
+          {renderTabButton("backend", "后端服务", "🔌")}
         </div>
+
+        {/* Signal Ticker - 信号横幅 */}
+        <SignalTicker
+          settings={settings.backend}
+          onSignalClick={(signal) => {
+            new Notice(`Signal: ${signal.symbol} ${signal.direction} - ${signal.signal_name}`);
+          }}
+        />
       </div>
 
       {/* Main Content Area */}
       <div style={{
         flex: 1,
         overflowY: "auto",
-        padding: "24px", // Increased padding
+        padding: "24px",
         background: "var(--background-primary)"
       }}>
-        {/* 
-                    Tabs are now self-contained and consume ConsoleContext directly.
-                    No props passing required!
-                */}
         {activePage === "trading" && <TradingHubTab />}
         {activePage === "analytics" && <AnalyticsTab />}
         {activePage === "learn" && <LearnTab />}
         {activePage === "manage" && <ManageTab />}
+        {activePage === "backend" && <BackendTab />}
 
-        {/* Journal Tab (Placeholder or Future Implementation) */}
         {activePage === "journal" && (
           <div style={{
             display: 'flex',

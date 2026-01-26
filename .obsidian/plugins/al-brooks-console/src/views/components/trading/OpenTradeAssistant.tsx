@@ -11,6 +11,7 @@ import { matchStrategies } from "../../../core/strategy-matcher";
 import { matchStrategiesV2 } from "../../../core/strategy-matcher-v2";
 import { recommendNextAttribute } from "../../../core/strategy-recommender";
 import { ExecutionFillPanel } from "./ExecutionFillPanel";
+import { useConsoleContext } from "../../../context/ConsoleContext";
 
 /**
  * 策略卡片数据接口
@@ -84,6 +85,11 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
     // 风险偏好筛选（用于策略推荐）
     const [riskPreference, setRiskPreference] = React.useState<"All" | "Low" | "Medium" | "High">("All");
 
+    const { backendClient } = useConsoleContext();
+    const [currentPrice, setCurrentPrice] = React.useState<number | null>(null);
+
+
+
     // 初始化或重置选中项
     React.useEffect(() => {
         // 如果没有选中项，或者当前选中项不在列表中，默认选中第一个
@@ -100,6 +106,27 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
         }
         return openTrade;
     }, [openTrades, selectedTradePath, openTrade]);
+
+    // Fetch price when ticker changes
+    React.useEffect(() => {
+        if (!currentTrade?.ticker) return;
+
+        const fetchPrice = async () => {
+            if (!backendClient || !backendClient.getCandles) return;
+            try {
+                const candles = await backendClient.getCandles(currentTrade.ticker!, "1m", 1);
+                if (candles && candles.length > 0) {
+                    setCurrentPrice(candles[0].close);
+                }
+            } catch (e) {
+                console.error("Failed to fetch price", e);
+            }
+        };
+
+        fetchPrice();
+        const interval = setInterval(fetchPrice, 5000); // Poll every 5s
+        return () => clearInterval(interval);
+    }, [currentTrade?.ticker, backendClient]);
 
     // 基于currentTrade动态计算策略 (使用V2引擎)
     const currentStrategy = React.useMemo(() => {
@@ -262,11 +289,16 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 );
             })()}
 
+
+
             <div
                 style={{
                     color: "var(--text-muted)",
                     fontSize: "0.9em",
                     marginBottom: "8px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
                 }}
             >
                 <InteractiveButton
@@ -275,6 +307,16 @@ export const OpenTradeAssistant: React.FC<OpenTradeAssistantProps> = ({
                 >
                     {currentTrade.ticker ?? "未知"} • {currentTrade.name}
                 </InteractiveButton>
+
+                {currentPrice && (
+                    <span style={{
+                        fontFamily: "var(--font-monospace)",
+                        color: "var(--text-accent)",
+                        fontWeight: 600
+                    }}>
+                        ${currentPrice.toFixed(2)}
+                    </span>
+                )}
             </div>
 
             {/* 市场周期和策略推荐 - 基于currentTrade */}
