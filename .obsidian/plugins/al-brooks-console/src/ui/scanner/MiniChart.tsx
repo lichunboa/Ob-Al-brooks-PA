@@ -126,8 +126,27 @@ export const MiniChart: React.FC<MiniChartProps> = ({
                         };
                     });
 
-                    seriesRef.current.setData(chartData);
-                    chartRef.current?.timeScale().fitContent();
+                    // 去重并确保时间戳严格递增 (lightweight-charts 要求)
+                    const uniqueData: CandlestickData[] = [];
+                    const seenTimes = new Set<number>();
+                    for (const d of chartData) {
+                        const t = d.time as number;
+                        if (!seenTimes.has(t) && !isNaN(t)) {
+                            seenTimes.add(t);
+                            uniqueData.push(d);
+                        }
+                    }
+
+                    // 再次排序确保时间递增
+                    uniqueData.sort((a, b) => (a.time as number) - (b.time as number));
+
+                    try {
+                        seriesRef.current.setData(uniqueData);
+                        chartRef.current?.timeScale().fitContent();
+                    } catch (chartError: any) {
+                        console.error(`[MiniChart] Chart rendering error for ${symbol}:`, chartError);
+                        setError("图表渲染失败");
+                    }
                 }
                 setLoading(false);
             } catch (e: any) {

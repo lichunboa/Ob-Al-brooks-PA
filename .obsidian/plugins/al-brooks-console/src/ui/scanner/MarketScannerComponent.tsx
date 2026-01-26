@@ -2,6 +2,7 @@ import * as React from "react";
 import { Activity, TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from "lucide-react";
 import { MiniChart } from "./MiniChart";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { StrategyIndicatorPanel } from "./StrategyIndicatorPanel";
 
 interface ScannerProps {
     apiHost: string;
@@ -21,10 +22,15 @@ interface SymbolCard {
 
 // 默认关注的品种列表
 // id用于显示，ticker用于请求后端API
-// 注意：后端当前只有美股数据，加密货币待后端采集后再添加
+// 后端支持：美股期货 (ES=F, NQ=F)、科技股 (NVDA, AAPL)、加密货币 (BTCUSDT, ETHUSDT 等)
 const DEFAULT_SYMBOLS: SymbolCard[] = [
+    // 🇺🇸 股票期货
     { id: "ES", ticker: "ES=F", name: "E-mini S&P 500", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
     { id: "NQ", ticker: "NQ=F", name: "E-mini Nasdaq", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
+    // 💰 加密货币
+    { id: "BTC", ticker: "BTCUSDT", name: "Bitcoin", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
+    { id: "ETH", ticker: "ETHUSDT", name: "Ethereum", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
+    // 📈 科技股
     { id: "NVDA", ticker: "NVDA", name: "NVIDIA", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
     { id: "AAPL", ticker: "AAPL", name: "Apple", price: 0, change: 0, changePercent: 0, signals: [], trend: "neutral", loading: true },
 ];
@@ -37,7 +43,7 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost }) => {
     // 获取单个品种的数据
     const fetchSymbolData = async (symbol: SymbolCard): Promise<Partial<SymbolCard>> => {
         try {
-            const res = await fetch(`${apiHost}/api/v1/candles/${symbol.ticker}?limit=2&interval=1h`);
+            const res = await fetch(`${apiHost}/api/v1/candles/${symbol.ticker}?limit=2&interval=5m`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
 
@@ -85,7 +91,7 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost }) => {
     // 初始加载和定时刷新
     React.useEffect(() => {
         refreshAll();
-        const interval = setInterval(refreshAll, 30000); // 30秒刷新一次
+        const interval = setInterval(refreshAll, 5000); // 5秒刷新一次（HTTP轮询最佳平衡）
         return () => clearInterval(interval);
     }, []);
 
@@ -197,7 +203,7 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost }) => {
                                     <MiniChart
                                         symbol={sym.ticker}
                                         apiHost={apiHost}
-                                        interval="1h"
+                                        interval="5m"
                                         height={100}
                                     />
                                 </ErrorBoundary>
@@ -236,22 +242,14 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost }) => {
                                 </span>
                             </div>
 
-                            {/* 信号区域 (预留) */}
-                            <div style={{
-                                fontSize: "0.85em",
-                                color: "var(--text-muted)",
-                                borderTop: "1px solid var(--background-modifier-border)",
-                                paddingTop: 12
-                            }}>
-                                <div style={{ fontWeight: 600, marginBottom: 4 }}>📡 信号:</div>
-                                {sym.signals.length > 0 ? (
-                                    sym.signals.map((sig, idx) => (
-                                        <div key={idx} style={{ padding: "2px 0" }}>{sig}</div>
-                                    ))
-                                ) : (
-                                    <div style={{ fontStyle: "italic" }}>暂无信号</div>
-                                )}
-                            </div>
+                            {/* 策略指标监控面板 */}
+                            <ErrorBoundary>
+                                <StrategyIndicatorPanel
+                                    apiHost={apiHost}
+                                    symbol={sym.ticker}
+                                    symbolName={sym.id}
+                                />
+                            </ErrorBoundary>
                         </div>
                     </div>
                 ))}
