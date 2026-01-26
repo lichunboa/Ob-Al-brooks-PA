@@ -1,6 +1,7 @@
 import './ui/styles/dashboard.css';
 import { Notice, Plugin, WorkspaceLeaf, TFile } from "obsidian";
 import { ConsoleView, VIEW_TYPE_CONSOLE } from "./views/Dashboard";
+import { MarketScannerView, MARKET_SCANNER_VIEW_TYPE } from "./views/MarketScannerView";
 import { ObsidianTradeIndex } from "./platforms/obsidian/obsidian-trade-index";
 import { ObsidianStrategyIndex } from "./platforms/obsidian/obsidian-strategy-index";
 import { ObsidianTodayContext } from "./platforms/obsidian/obsidian-today-context";
@@ -60,7 +61,6 @@ export default class AlBrooksConsolePlugin extends Plugin {
     console.log("🦁 交易员控制台：加载中…");
 
     await this.loadSettings();
-    await this.loadSettings();
     this.addSettingTab(new AlBrooksConsoleSettingTab(this.app, this));
 
     // Initialize Services
@@ -88,24 +88,28 @@ export default class AlBrooksConsolePlugin extends Plugin {
       void this.todayContext.initialize();
     });
 
-    this.registerView(
-      VIEW_TYPE_CONSOLE,
-      (leaf: WorkspaceLeaf) =>
-        new ConsoleView(
-          leaf,
-          this.index,
-          this.strategyIndex,
-          this.todayContext,
-          this.integrations,
-          this.manifest.version,
-          () => this.settings,
-          (cb: (settings: AlBrooksConsoleSettings) => void) => this.onSettingsChanged(cb),
-          async (newSettings: AlBrooksConsoleSettings) => {
-            this.settings = newSettings;
-            await this.saveSettings();
-          }
-        )
-    );
+    // 只在视图未注册时注册（防止热重载时重复注册）
+    const existingViews = (this.app as any).viewRegistry?.viewByType;
+    if (!existingViews || !existingViews[VIEW_TYPE_CONSOLE]) {
+      this.registerView(
+        VIEW_TYPE_CONSOLE,
+        (leaf: WorkspaceLeaf) =>
+          new ConsoleView(
+            leaf,
+            this.index,
+            this.strategyIndex,
+            this.todayContext,
+            this.integrations,
+            this.manifest.version,
+            () => this.settings,
+            (cb: (settings: AlBrooksConsoleSettings) => void) => this.onSettingsChanged(cb),
+            async (newSettings: AlBrooksConsoleSettings) => {
+              this.settings = newSettings;
+              await this.saveSettings();
+            }
+          )
+      );
+    }
 
     this.addRibbonIcon("bar-chart-2", "打开交易员控制台", () => {
       this.activateView();
@@ -141,6 +145,20 @@ export default class AlBrooksConsolePlugin extends Plugin {
       callback: () => {
         const path = "Templates/单笔交易模版 (Trade Note).md";
         this.app.workspace.openLinkText(path, "", true);
+      },
+    });
+
+    // 3. Register Market Scanner View
+    this.registerView(
+      MARKET_SCANNER_VIEW_TYPE,
+      (leaf: WorkspaceLeaf) => new MarketScannerView(leaf, this.settings)
+    );
+
+    this.addCommand({
+      id: "open-market-scanner",
+      name: "打开市场扫描仪 (Market Scanner)",
+      callback: () => {
+        this.activateScannerView();
       },
     });
   }
@@ -276,6 +294,24 @@ export default class AlBrooksConsolePlugin extends Plugin {
     } else {
       leaf = workspace.getRightLeaf(false);
       await leaf.setViewState({ type: VIEW_TYPE_CONSOLE, active: true });
+    }
+
+    if (leaf) {
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateScannerView() {
+    const { workspace } = this.app;
+
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(MARKET_SCANNER_VIEW_TYPE);
+
+    if (leaves.length > 0) {
+      leaf = leaves[0];
+    } else {
+      leaf = workspace.getLeaf('tab'); // Open in main area tab
+      await leaf.setViewState({ type: MARKET_SCANNER_VIEW_TYPE, active: true });
     }
 
     if (leaf) {

@@ -145,11 +145,14 @@ export const CoachFocus: React.FC<CoachFocusProps> = ({
 
     // 合并 SRS 数据和我们的 memory 数据
     const mergedStats = React.useMemo(() => {
+        // 今日待复习卡片数：优先使用 loadNext7[0] (包含累积过期卡片)
+        const todayDue = memory?.loadNext7?.[0]?.count ?? 0;
+
         if (srStats) {
             return {
                 total: srStats.totalCards,        // 所有卡片
                 reviewed: srStats.reviewedCards,  // 已复习过的
-                due: srStats.dueCards,            // 到期
+                due: todayDue || srStats.dueCards, // 今日待复习：使用loadNext7[0]或SRS的dueCards
                 new: srStats.newCards,            // 新卡片（未复习）
                 young: srStats.youngCards,        // 年轻卡片
                 mature: srStats.matureCards,      // 成熟卡片

@@ -20,7 +20,10 @@ import { useDashboardActions } from "../hooks/useDashboardActions";
 import { useLearnData } from "../hooks/useLearnData";
 
 // Define the Context Data Shape
+import { BackendV2Client } from "../services/api";
+import { DEFAULT_BACKEND_SETTINGS } from "../settings";
 export interface ConsoleContextValue {
+    // ... (existing props)
     // 基础 Props (来自 Obsidian View)
     index: TradeIndex;
     strategyIndex: StrategyIndex;
@@ -30,6 +33,9 @@ export interface ConsoleContextValue {
     version: string;
     app: any;
 
+    // Backend Client
+    backendClient: BackendV2Client;
+    // ... (rest of props)
     // 工具函数 (来自 Props)
     openFile: (path: string) => Promise<void>;
     resolveLink?: (linkText: string, fromPath: string) => string | undefined;
@@ -190,6 +196,10 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = (props) => {
     const [currencyMode, setCurrencyMode] = React.useState<'USD' | 'CNY'>('USD');
     const [displayUnit, setDisplayUnit] = React.useState<'money' | 'r'>('money');
 
+    // 7. Backend Client
+    const backendClient = React.useMemo(() => {
+        return new BackendV2Client(props.settings.backend || DEFAULT_BACKEND_SETTINGS);
+    }, [props.settings.backend]);
     const value: ConsoleContextValue = {
         // Pass-through Props
         index: props.index,
@@ -217,6 +227,8 @@ export const ConsoleProvider: React.FC<ConsoleProviderProps> = (props) => {
         integrations: props.integrations,
         enumPresets: props.enumPresets,
 
+        // Backend Client
+        backendClient,
         // Hook Data
         ...dashboardData,
         ...analyticsState,

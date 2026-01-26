@@ -77,14 +77,15 @@ export function buildMemorySnapshot(args: {
   let cnt_cloze = 0;
 
   const todayStripped = stripTime(today);
+  // loadNext7: 从今天开始的7天，索引0=今天，1=明天，...，6=第7天
+  // 过期的卡片会累积到今天（索引0）
   const loadNext7: Array<{ dateIso: string; count: number }> = Array.from(
     { length: 7 },
     (_, idx) => {
-      const offset = idx + 1;
       const d = new Date(
         today.getFullYear(),
         today.getMonth(),
-        today.getDate() + offset
+        today.getDate() + idx  // 从今天开始 (idx=0 是今天)
       );
       return { dateIso: toDateIso(d), count: 0 };
     }
@@ -330,16 +331,20 @@ export function buildMemorySnapshot(args: {
         fEaseCount += 1;
       }
 
-      // loadNext7: count scheduled reviews within next 7 days
+      // loadNext7: 计算从今天开始7天内的复习任务
+      // 过期卡片（diffDays <= 0）累积到今天（索引0）
       const dDateForLoad = parseIsoDate(d);
       if (dDateForLoad) {
         const diffDays = Math.floor(
           (stripTime(dDateForLoad).getTime() - todayStripped.getTime()) /
           86400000
         );
-        if (diffDays >= 1 && diffDays <= 7) {
-          const i = diffDays - 1;
-          if (loadNext7[i]) loadNext7[i].count += 1;
+        if (diffDays <= 0) {
+          // 过期或今天到期的卡片，累积到今天（索引0）
+          loadNext7[0].count += 1;
+        } else if (diffDays >= 1 && diffDays <= 6) {
+          // 未来1-6天的卡片（索引1-6）
+          if (loadNext7[diffDays]) loadNext7[diffDays].count += 1;
         }
       }
 
