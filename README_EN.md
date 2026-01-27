@@ -190,12 +190,12 @@ cp config/.env.example config/.env && chmod 600 config/.env
 # Change DATABASE_URL port to 5433 to match repo scripts (scripts default 5433, template defaults 5434)
 vim config/.env
 
-# 3) Start core services (data + trading + telegram + ai)
+# 3) Start core services (ai + data + signal + telegram + trading)
 ./scripts/start.sh start
 ./scripts/start.sh status
 ```
 
-> Note: top-level `./scripts/start.sh` manages `data-service`, `trading-service`, `telegram-service`, `ai-service` (ai-service is a sub-module; readiness check only, no standalone process).  
+> Note: top-level `./scripts/start.sh` manages `ai-service`, `data-service`, `signal-service`, `telegram-service`, `trading-service` (ai-service is a sub-module; readiness check only, no standalone process).  
 > Preview services are manual: `cd services-preview/markets-service && ./scripts/start.sh start` (multi-market); `cd services-preview/order-service && python -m src.market-maker.main` (market making, API key required); `cd services-preview/vis-service && ./scripts/start.sh start` (visualization, port 8087).
 
 ### ⚙️ Configuration (required)

@@ -54,12 +54,12 @@ cd /path/to/tradecat
 cp config/.env.example config/.env && chmod 600 config/.env
 vim config/.env
 
-# 3) 启动核心服务（data + trading + telegram + ai）
+# 3) 启动核心服务（ai + data + signal + telegram + trading）
 ./scripts/start.sh start
 ./scripts/start.sh status
 ```
 
-> 顶层 `./scripts/start.sh` 管理 data-service / trading-service / telegram-service / ai-service（ai-service 仅做就绪检查，无独立进程）。
+> 顶层 `./scripts/start.sh` 管理 ai-service / data-service / signal-service / telegram-service / trading-service（ai-service 仅做就绪检查，无独立进程）。
 
 ### 2.2 预览版服务启动
 
