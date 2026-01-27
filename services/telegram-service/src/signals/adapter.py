@@ -25,12 +25,12 @@ _send_func: Optional[Callable] = None
 _main_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
-def _translate_message(event: SignalEvent) -> str:
-    """翻译信号消息"""
+def _translate_message(event: SignalEvent, lang: str | None = None) -> str:
+    """翻译信号消息（按用户语言）"""
     try:
-        from bot.app import I18N
+        from cards.i18n import I18N
         # 尝试翻译 message_key
-        msg = I18N.gettext(event.message_key, **event.message_params)
+        msg = I18N.gettext(event.message_key, lang=lang, **event.message_params)
         # 如果翻译后仍是 key（未找到翻译），使用 extra 中的原始消息
         if msg == event.message_key:
             return event.extra.get("message", event.message_key)
@@ -38,6 +38,17 @@ def _translate_message(event: SignalEvent) -> str:
     except Exception:
         # 回退到 extra 中的原始消息
         return event.extra.get("message", event.message_key)
+
+
+def _translate_signal_type(signal_type: str, lang: str | None = None) -> str:
+    """翻译信号类型标签（按用户语言）"""
+    try:
+        from cards.i18n import I18N
+        key = f"signal.pg.type.{signal_type}"
+        text = I18N.gettext(key, lang=lang)
+        return text if text != key else signal_type
+    except Exception:
+        return signal_type
 
 
 def init_signal_service():
@@ -64,22 +75,23 @@ def init_pusher(send_func: Callable, loop: Optional[asyncio.AbstractEventLoop] =
 
         icon = {"BUY": "🟢", "SELL": "🔴", "ALERT": "⚠️"}.get(event.direction, "📊")
         bar = strength_bar(event.strength)
-        msg = _translate_message(event)
+        subscribers = _get_subscribers()
+        from cards.i18n import resolve_lang_by_user_id
 
-        text = f"""{icon} {event.direction} | {event.symbol}
+        async def push():
+            for uid in subscribers:
+                try:
+                    lang = resolve_lang_by_user_id(uid)
+                    msg = _translate_message(event, lang=lang)
+                    signal_label = _translate_signal_type(event.signal_type, lang=lang)
+                    text = f"""{icon} {event.direction} | {event.symbol}
 
-📌 {event.signal_type}
+📌 {signal_label}
 ⏱ 周期: {event.timeframe}
 💰 价格: {fmt_price(event.price)}
 📊 强度: [{bar}] {event.strength}%
 
 💬 {msg}"""
-
-        subscribers = _get_subscribers()
-
-        async def push():
-            for uid in subscribers:
-                try:
                     kb = get_signal_push_kb(event.symbol, uid=uid)
                     await _send_func(uid, text, kb)
                 except Exception as e:

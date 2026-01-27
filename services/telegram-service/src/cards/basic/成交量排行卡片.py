@@ -13,7 +13,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from cards.base import RankingCard, format_number
 from cards.data_provider import get_ranking_provider, format_symbol
-from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang
+from cards.i18n import btn_auto as _btn_auto, gettext as _t, resolve_lang, format_sort_field
 from cards.排行榜服务 import DEFAULT_PERIODS, normalize_period
 
 
@@ -180,13 +180,16 @@ class VolumeRankingCard(RankingCard):
         aligned = h.dynamic_align_format(rows) if rows else _t("data.no_data", lang=lang)
         time_info = h.get_current_time_display()
         sort_symbol = "🔽" if sort_order == "desc" else "🔼"
-        # Markdown 模式下需转义下划线，避免出现“Can't parse entities”错误
-        safe_sort_field = str(sort_field).replace("_", "\\_")
+        display_sort_field = format_sort_field(
+            sort_field,
+            lang=lang,
+            field_lists=[self.general_display_fields, self.special_display_fields],
+        )
 
         text = (
             f"{_t('card.volume.title', lang=lang)}\n"
             f"{_t('card.common.update_time', lang=lang).format(time=time_info['full'])}\n"
-            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=safe_sort_field, symbol=sort_symbol)}\n"
+            f"{_t('card.common.sort_info', lang=lang).format(period=period, field=display_sort_field, symbol=sort_symbol)}\n"
             f"{'/'.join(header_parts)}\n"
             f"```\n{aligned}\n```\n"
             f"{_t('card.volume.hint', lang=lang)}\n"

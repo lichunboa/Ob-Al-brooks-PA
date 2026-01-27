@@ -3081,6 +3081,40 @@ msgstr "🔄 主动成交翻多! {prev} → {curr}"
 msgid "signal.pg.msg.taker_flip_short"
 msgstr "🔄 主动成交翻空! {prev} → {curr}"
 
+# 信号类型标签
+msgid "signal.pg.type.price_surge"
+msgstr "价格拉升"
+
+msgid "signal.pg.type.price_dump"
+msgstr "价格下跌"
+
+msgid "signal.pg.type.volume_spike"
+msgstr "成交量放大"
+
+msgid "signal.pg.type.taker_buy_dominance"
+msgstr "主动买占优"
+
+msgid "signal.pg.type.taker_sell_dominance"
+msgstr "主动卖占优"
+
+msgid "signal.pg.type.oi_surge"
+msgstr "持仓激增"
+
+msgid "signal.pg.type.oi_dump"
+msgstr "持仓下降"
+
+msgid "signal.pg.type.top_trader_extreme_long"
+msgstr "大户极度看多"
+
+msgid "signal.pg.type.top_trader_extreme_short"
+msgstr "大户极度看空"
+
+msgid "signal.pg.type.taker_ratio_flip_long"
+msgstr "主动成交翻多"
+
+msgid "signal.pg.type.taker_ratio_flip_short"
+msgstr "主动成交翻空"
+
 # 格式化标签
 msgid "signal.pg.label.direction"
 msgstr "方向"

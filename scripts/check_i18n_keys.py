@@ -22,9 +22,40 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "services" / "telegram-service" / "src"
+
+
+def _discover_locale_dir() -> Path:
+    """自动发现 i18n 目录。"""
+    default = REPO_ROOT / "services" / "telegram-service" / "locales"
+    def _has_bot(locale_dir: Path) -> bool:
+        for lang in ("zh_CN", "en"):
+            lc = locale_dir / lang / "LC_MESSAGES"
+            if (lc / "bot.po").exists() or (lc / "bot.mo").exists():
+                return True
+        return False
+    if _has_bot(default):
+        return default
+    candidates: set[Path] = set()
+    for po in REPO_ROOT.rglob("bot.po"):
+        parts = po.parts
+        if "node_modules" in parts:
+            continue
+        if "libs" in parts and "external" in parts:
+            continue
+        if po.parent.name != "LC_MESSAGES":
+            continue
+        locale_dir = po.parents[2]
+        candidates.add(locale_dir)
+    for locale_dir in sorted(candidates):
+        if _has_bot(locale_dir):
+            return locale_dir
+    return default
+
+
+LOCALE_DIR = _discover_locale_dir()
 PO_FILES = [
-    REPO_ROOT / "services" / "telegram-service" / "locales" / "zh_CN" / "LC_MESSAGES" / "bot.po",
-    REPO_ROOT / "services" / "telegram-service" / "locales" / "en" / "LC_MESSAGES" / "bot.po",
+    LOCALE_DIR / "zh_CN" / "LC_MESSAGES" / "bot.po",
+    LOCALE_DIR / "en" / "LC_MESSAGES" / "bot.po",
 ]
 
 

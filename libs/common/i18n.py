@@ -19,6 +19,40 @@ DEFAULT_LOCALE_DIR = REPO_ROOT / "services" / "telegram-service" / "locales"
 logger = logging.getLogger(__name__)
 
 
+def _has_bot_catalog(locale_dir: Path) -> bool:
+    """检测目录下是否存在 bot.po/bot.mo。"""
+    if not locale_dir.exists():
+        return False
+    for lang in ("zh_CN", "en"):
+        lc = locale_dir / lang / "LC_MESSAGES"
+        if (lc / "bot.po").exists() or (lc / "bot.mo").exists():
+            return True
+    return False
+
+
+def _discover_locale_dir() -> Path:
+    """自动发现 i18n 目录（仅在默认目录不可用时启用）。"""
+    default = DEFAULT_LOCALE_DIR
+    if _has_bot_catalog(default):
+        return default
+    candidates: set[Path] = set()
+    for po in REPO_ROOT.rglob("bot.po"):
+        parts = po.parts
+        if "node_modules" in parts:
+            continue
+        if "libs" in parts and "external" in parts:
+            continue
+        if po.parent.name != "LC_MESSAGES":
+            continue
+        locale_dir = po.parents[2]
+        candidates.add(locale_dir)
+    # 优先找同时包含 zh_CN + en 的目录
+    for locale_dir in sorted(candidates):
+        if _has_bot_catalog(locale_dir):
+            return locale_dir
+    return default
+
+
 def normalize_locale(lang: Optional[str]) -> Optional[str]:
     """标准化语言代码，形如 zh-CN / en -> zh_CN / en。
 
@@ -143,6 +177,8 @@ class I18nService:
 
 def build_i18n_from_env(locale_dir: Path | str = DEFAULT_LOCALE_DIR) -> I18nService:
     """按环境变量构造 I18nService。"""
+    if Path(locale_dir) == DEFAULT_LOCALE_DIR:
+        locale_dir = _discover_locale_dir()
     default_locale = os.getenv("DEFAULT_LOCALE", "en")
     fallback_locale = os.getenv("FALLBACK_LOCALE", default_locale)
     supported_locales = parse_supported_locales(os.getenv("SUPPORTED_LOCALES", "zh-CN,en"))

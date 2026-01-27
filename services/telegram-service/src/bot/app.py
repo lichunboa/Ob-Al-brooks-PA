@@ -4812,10 +4812,18 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id is None:
         return
 
-    # 获取当前语言，切换到另一种
-    current_lang = _resolve_lang(update)
+    chat = getattr(update, "effective_chat", None)
+    target_id = user_id
+    # 群组/频道优先保存 chat_id 作为语言偏好，避免群内信号默认回退到英文
+    if chat and getattr(chat, "type", None) in ("group", "supergroup", "channel"):
+        target_id = getattr(chat, "id", user_id)
+        _load_user_locales()
+        current_lang = _user_locale_map.get(str(target_id), I18N.default_locale)
+    else:
+        current_lang = _resolve_lang(update)
+
     new_lang = "en" if current_lang == "zh_CN" else "zh_CN"
-    _save_user_locale(user_id, new_lang)
+    _save_user_locale(target_id, new_lang)
     # 同步刷新 cards/i18n 模块的缓存
     try:
         from cards.i18n import reload_user_locale
@@ -6149,67 +6157,10 @@ async def post_init(application):
 
     # 启动 PG 实时信号检测服务
     try:
-        from signals import start_pg_signal_loop, get_pg_engine, get_pg_formatter
-        from signals.ui import get_signal_push_kb, _get_subscribers
-        import time
-        from collections import deque
+        from signals import start_pg_signal_loop, get_pg_engine
 
-        pg_formatter = get_pg_formatter()
-        
-        # 速率限制：最大30条/分钟
-        _pg_push_times = deque(maxlen=30)
-        _PG_RATE_LIMIT = 30
-        _PG_RATE_WINDOW = 60
-
-        def on_pg_signal(signal, formatted_msg=None):
-            """PG信号回调 - 推送给订阅用户（主事件循环）"""
-            # 速率限制检查
-            now = time.time()
-            while _pg_push_times and _pg_push_times[0] < now - _PG_RATE_WINDOW:
-                _pg_push_times.popleft()
-            if len(_pg_push_times) >= _PG_RATE_LIMIT:
-                logger.warning(f"PG信号推送速率限制，跳过: {signal.symbol} - {signal.signal_type}")
-                return
-            _pg_push_times.append(now)
-
-            if not formatted_msg:
-                try:
-                    msg = I18N.gettext(signal.message_key, **(signal.message_params or {}))
-                    if msg == signal.message_key:
-                        msg = (signal.extra or {}).get("message", signal.message_key)
-                except Exception:
-                    msg = (signal.extra or {}).get("message", signal.message_key)
-                formatted_msg = pg_formatter.format_basic(
-                    symbol=signal.symbol,
-                    direction=signal.direction,
-                    signal_type=signal.signal_type,
-                    strength=signal.strength,
-                    price=signal.price,
-                    timeframe=signal.timeframe,
-                    message=msg,
-                )
-
-            async def push():
-                subscribers = _get_subscribers()
-                for uid in subscribers:
-                    try:
-                        kb = get_signal_push_kb(signal.symbol, uid=uid)
-                        await application.bot.send_message(
-                            chat_id=uid,
-                            text=formatted_msg,
-                            reply_markup=kb
-                        )
-                    except Exception as e:
-                        logger.warning(f"PG信号推送给 {uid} 失败: {e}")
-
-            if APP_LOOP and APP_LOOP.is_running():
-                asyncio.run_coroutine_threadsafe(push(), APP_LOOP)
-            else:
-                logger.warning("⚠️ 主事件循环不可用，跳过PG信号推送")
-
-        # 注册回调并启动（币种从 SYMBOLS_GROUPS 配置继承）
-        engine = get_pg_engine()  # 自动从 libs/common/symbols 获取配置
-        engine.register_callback(on_pg_signal)
+        # 仅启动 PG 引擎，推送由 SignalPublisher -> signals.adapter 统一处理
+        engine = get_pg_engine()
         start_pg_signal_loop(interval=60)
         logger.info(f"✅ PG实时信号检测服务已启动，监控: {engine.symbols}")
         print(f"🔔 PG实时信号检测服务已启动，监控 {len(engine.symbols)} 个币种")

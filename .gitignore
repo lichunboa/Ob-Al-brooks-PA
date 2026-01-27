@@ -111,111 +111,14 @@ services/markets-service/.venv
 services/order-service/.venv
 services/telegram-service/.venv
 services/trading-service/.venv
-
-
-book/
-
-# 交易猫
-
-# 感谢社区ca给我的资金,让我去完成我的梦想!!!真心感谢你们!!!
-# sol: Gysp4iZ6uNuAksAPR37fQwLDRFU9Rz255UjExhiwpump
-# bsc: 0x8a99b8d53eff6bc331af529aF74ad267f3167777
-# 
-# 本项目为永久开源项目,目前接受且只接受SOL(CA) / BSC(CA) 两个社群的捐赠。交易市场风云变幻,投资请谨慎。
-# 
-# 交易猫 (tradecat) 是一个收集全市场公开数据的免费数据+量化+做市等策略的公益项目
-# (让每个人都能免费享受机构级别的数据分析和订单执行能力)
-# (求支援服务器和数据源(万得,彭博都可以))
-# 还有免费的Telegram、X、Discord、新闻流、市场异动、技术指标,信号、polymarket、hyper、
-# 全网事件、链上异动、
-# tg和dc的舆情监控
-# (任意群,任意人)、大额转账、
-# web3安全事件,经济日历、
-# 全网新闻源、任意网站
-# 
-# 可以监控项目方推特和discord
-# 
-# 最好可以关注一下
-# 我的湿件工程仓库呀
-# https://github.com/tukuaiai/wetware-engineeringdroid
 .venv-pypi/
 .coverage
 
 # Large external libraries
 libs/external/
 dist/
-
-# Workflow 变动，陈述，审计，修改，重复
-# 可以根据您的要求设计一个基本的 "hook" 流程。以下是一个包含 "变动、陈述、审计、修改、重复" 的示例流程：
-# 
-# ### 1. **变动 (Change)**
-# 
-# * **目的**：识别需要进行的变动或调整。
-# * **操作**：监测并记录系统、项目或流程中的任何潜在变动或需要进行的变更。
-# * **触发点**：系统事件、用户输入、数据变化等。
-# 
-# ### 2. **陈述 (Statement)**
-# 
-# * **目的**：清晰地表达和记录变动的内容和目标。
-# * **操作**：将变动的描述清晰、简洁地记录下来，确保所有相关方都能理解。
-# * **触发点**：变动的产生后，进行详细的描述和确认。
-# 
-# ### 3. **审计 (Audit)**
-# 
-# * **目的**：对变动进行审查，确保其符合规定的标准和目标。
-# * **操作**：系统地审查变动的实施过程和结果，验证其合规性和效果。
-# * **触发点**：变动完成后，进行一轮审计，确保无误。
-# 
-# ### 4. **修改 (Modification)**
-# 
-# * **目的**：根据审计反馈进行调整和修正。
-# * **操作**：根据审计过程中的问题和建议，对变动进行必要的修正或优化。
-# * **触发点**：审计过程中发现的任何问题或偏差。
-# 
-# ### 5. **重复 (Repetition)**
-# 
-# * **目的**：确保变动持续有效，并进行定期复审。
-# * **操作**：周期性地重复审计和修改过程，以确保变动长时间内保持有效。
-# * **触发点**：按照设定的时间间隔或在出现新变动时触发重复检查。
-# 
-# ### 流程图示意：
-# 
-# 1. **变动** → 2. **陈述** → 3. **审计** → 4. **修改** → 5. **重复** → 回到 **变动**
-# 
-# 这个流程可以根据具体需求进行调整。如果需要更详细的图示或步骤分解，告诉我可以进一步设计！
-
-
-# droid --resume 082af25a-cc8f-4649-8ea0-533d6c2f55f7
-# 
-# droid --resume 22805b92-581b-413d-bbe6-c12fbc15d21f
-# 
-# droid --resume b65c8246-3e08-4485-80df-b2361633969b
-# 
-# droid --resume 082af25a-cc8f-4649-8ea0-533d6c2f55f7
-# 
-# 019bb828-d59d-7902-80cc-7bd7a3575f3d
-# 
-# 019bb844-6b05-7d23-afc5-4e7946fa7cf1
-
-
-增加bot，前端中的全部的即时响应和中间消息
-
-核心服务解耦
-
-ai服务多方法支持，传统多api（主要支持免费的）
-
-核心服务系统链接
-
-计算器性能优化
-
-核心服务集群全流程优化
-
-先部署到云使用
-
-019bc83d-cdd4-7490-9821-3e8da7f4d7dc
-
-# Large local logs
 polymarket-bot.out
+
 
 ai交易；codex resume 019be75d-562a-7b20-b6ad-ff65171ec762
 
@@ -246,3 +149,12 @@ codex resume 019bf0ce-6dd6-7373-a166-fc245eb6253c
 proxychains4 c
 
 services-preview/nofx-dev
+
+预测服务器；codex resume 019bf86c-fb15-7162-b1d2-5851c8358073
+服务器部署 codex resume 019bf257-12b8-7d20-8c2d-90c82cacf895
+data codex resume 019bf884-1d06-79a0-92b2-861c4a799b38        
+debug codex resume 019bfb19-add1-7051-9f93-25161946811c
+
+codex resume 019bfd0f-8b32-75d3-a19e-cdf05fa24e21
+
+数据做ai输入的规范化构建，降低token成本开销

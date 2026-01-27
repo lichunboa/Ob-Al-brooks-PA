@@ -3081,6 +3081,40 @@ msgstr "🔄 Taker flipped long! {prev} → {curr}"
 msgid "signal.pg.msg.taker_flip_short"
 msgstr "🔄 Taker flipped short! {prev} → {curr}"
 
+# Signal type labels
+msgid "signal.pg.type.price_surge"
+msgstr "Price surge"
+
+msgid "signal.pg.type.price_dump"
+msgstr "Price dump"
+
+msgid "signal.pg.type.volume_spike"
+msgstr "Volume spike"
+
+msgid "signal.pg.type.taker_buy_dominance"
+msgstr "Taker buy dominance"
+
+msgid "signal.pg.type.taker_sell_dominance"
+msgstr "Taker sell dominance"
+
+msgid "signal.pg.type.oi_surge"
+msgstr "Open interest surge"
+
+msgid "signal.pg.type.oi_dump"
+msgstr "Open interest dump"
+
+msgid "signal.pg.type.top_trader_extreme_long"
+msgstr "Top traders extreme long"
+
+msgid "signal.pg.type.top_trader_extreme_short"
+msgstr "Top traders extreme short"
+
+msgid "signal.pg.type.taker_ratio_flip_long"
+msgstr "Taker ratio flip long"
+
+msgid "signal.pg.type.taker_ratio_flip_short"
+msgstr "Taker ratio flip short"
+
 # Format labels
 msgid "signal.pg.label.direction"
 msgstr "Direction"

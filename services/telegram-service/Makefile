@@ -126,10 +126,7 @@ syntax:
 
 i18n-compile:
 	@echo "编译国际化文件..."
-	@for po in locales/*/LC_MESSAGES/*.po; do \
-		mo=$${po%.po}.mo; \
-		msgfmt -o $$mo $$po && echo "  ✅ $$mo"; \
-	done
+	@LOCALE_DIR=$$(python3 - <<'PY'\nfrom pathlib import Path\nroot = Path(__file__).resolve().parents[2]\ndefault = root / \"services\" / \"telegram-service\" / \"locales\"\n\ndef has_bot(p: Path) -> bool:\n    for lang in (\"zh_CN\", \"en\"):\n        lc = p / lang / \"LC_MESSAGES\"\n        if (lc / \"bot.po\").exists() or (lc / \"bot.mo\").exists():\n            return True\n    return False\n\nif has_bot(default):\n    print(default)\n    raise SystemExit(0)\n\ncandidates = set()\nfor po in root.rglob(\"bot.po\"):\n    parts = po.parts\n    if \"node_modules\" in parts:\n        continue\n    if \"libs\" in parts and \"external\" in parts:\n        continue\n    if po.parent.name != \"LC_MESSAGES\":\n        continue\n    candidates.add(po.parents[2])\n\nfor cand in sorted(candidates):\n    if has_bot(cand):\n        print(cand)\n        raise SystemExit(0)\n\nprint(default)\nPY\n); \\\n	for po in $$LOCALE_DIR/*/LC_MESSAGES/*.po; do \\\n		mo=$${po%.po}.mo; \\\n		msgfmt -o $$mo $$po && echo \"  ✅ $$mo\"; \\\n	done
 	@echo "✅ 国际化编译完成"
 
 # ==================== 运行服务 ====================

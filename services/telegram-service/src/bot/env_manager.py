@@ -28,7 +28,7 @@ ENV_PATH = _PROJECT_ROOT / "config" / ".env"
 def _get_i18n() -> Callable[[str, str], str]:
     """获取 i18n 翻译函数"""
     try:
-        from bot.app import I18N
+        from cards.i18n import I18N
         return lambda key, lang=None: I18N.gettext(key, lang=lang)
     except ImportError:
         return lambda key, lang=None: key

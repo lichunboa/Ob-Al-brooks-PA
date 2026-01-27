@@ -121,7 +121,7 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 
 **方式一：完整部署提示词（推荐）**
 
-📄 **[docs/DEPLOY_PROMPT.md](docs/DEPLOY_PROMPT.md)** - 包含详细的 10 步部署流程，支持：
+📄 **[README.md](README.md)** - 包含详细的 10 步部署流程，支持：
 - 系统依赖自动安装
 - 服务初始化和配置
 - HuggingFace 历史数据自动下载导入

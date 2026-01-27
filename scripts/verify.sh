@@ -73,8 +73,38 @@ done
 echo ""
 echo "4. i18n 翻译检查..."
 if command -v msgfmt &> /dev/null; then
-    if msgfmt --check -o /dev/null services/telegram-service/locales/zh_CN/LC_MESSAGES/bot.po >/dev/null && \
-       msgfmt --check -o /dev/null services/telegram-service/locales/en/LC_MESSAGES/bot.po >/dev/null; then
+    LOCALE_DIR=$(python3 - <<'PY'
+from pathlib import Path
+root = Path(__file__).resolve().parents[1]
+default = root / "services" / "telegram-service" / "locales"
+def has_bot(p: Path) -> bool:
+    for lang in ("zh_CN", "en"):
+        lc = p / lang / "LC_MESSAGES"
+        if (lc / "bot.po").exists() or (lc / "bot.mo").exists():
+            return True
+    return False
+if has_bot(default):
+    print(default)
+    raise SystemExit(0)
+candidates = set()
+for po in root.rglob("bot.po"):
+    parts = po.parts
+    if "node_modules" in parts:
+        continue
+    if "libs" in parts and "external" in parts:
+        continue
+    if po.parent.name != "LC_MESSAGES":
+        continue
+    candidates.add(po.parents[2])
+for cand in sorted(candidates):
+    if has_bot(cand):
+        print(cand)
+        raise SystemExit(0)
+print(default)
+PY
+)
+    if msgfmt --check -o /dev/null "$LOCALE_DIR/zh_CN/LC_MESSAGES/bot.po" >/dev/null && \
+       msgfmt --check -o /dev/null "$LOCALE_DIR/en/LC_MESSAGES/bot.po" >/dev/null; then
         success "i18n 词条检查通过"
     else
         fail "i18n 词条检查失败，请修复缺失或语法错误"
