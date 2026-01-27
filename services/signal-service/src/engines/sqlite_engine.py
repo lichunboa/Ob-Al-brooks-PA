@@ -4,6 +4,7 @@ SQLite 信号检测引擎
 """
 
 import logging
+import os
 import sqlite3
 import threading
 import time
@@ -24,6 +25,9 @@ from .base import BaseEngine, Signal
 from .pg_engine import _get_default_symbols  # 复用统一符号选择
 
 logger = logging.getLogger(__name__)
+
+_MAX_SQLITE_SCAN_ROWS = int(os.environ.get("SIGNAL_SQLITE_MAX_SCAN_ROWS", "50000"))
+_MAX_SQLITE_SYMBOL_PARAMS = int(os.environ.get("SIGNAL_SQLITE_SYMBOL_PARAMS", "900"))
 
 
 def _safe_float(val, default: float = 0.0) -> float:
@@ -162,19 +166,47 @@ class SQLiteSignalEngine(BaseEngine):
             logger.warning(f"非法表名: {table}")
             return {}
         try:
+            self._maybe_refresh_symbols()
+            symbols = sorted(self.allowed_symbols) if self.allowed_symbols else []
+            use_symbol_filter = bool(symbols) and len(symbols) <= _MAX_SQLITE_SYMBOL_PARAMS
+
             conn = self._get_conn()
             cursor = conn.cursor()
-            cursor.execute(
-                f'''
-                SELECT * FROM "{table}"
-                WHERE "周期" = ? OR "周期" IS NULL
-                ORDER BY
-                    COALESCE("更新时间","时间","时间戳") DESC,
-                    rowid DESC
-                ''',
-                (timeframe,),
-            )
-            rows = cursor.fetchall()
+            symbol_clause = ""
+            params = [timeframe]
+            if use_symbol_filter:
+                placeholders = ",".join(["?"] * len(symbols))
+                symbol_clause = f' AND upper("交易对") IN ({placeholders})'
+                params.extend(symbols)
+
+            query = f'''
+                SELECT * FROM (
+                    SELECT *,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY "交易对"
+                            ORDER BY COALESCE("更新时间","时间","时间戳") DESC, rowid DESC
+                        ) AS rn
+                    FROM "{table}"
+                    WHERE ("周期" = ? OR "周期" IS NULL){symbol_clause}
+                ) WHERE rn = 1
+            '''
+            try:
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+            except sqlite3.OperationalError:
+                fallback_query = f'''
+                    SELECT * FROM "{table}"
+                    WHERE ("周期" = ? OR "周期" IS NULL){symbol_clause}
+                    ORDER BY
+                        COALESCE("更新时间","时间","时间戳") DESC,
+                        rowid DESC
+                '''
+                fallback_params = list(params)
+                if _MAX_SQLITE_SCAN_ROWS > 0:
+                    fallback_query += " LIMIT ?"
+                    fallback_params.append(_MAX_SQLITE_SCAN_ROWS)
+                cursor.execute(fallback_query, fallback_params)
+                rows = cursor.fetchall()
             conn.close()
 
             result = {}
@@ -190,7 +222,6 @@ class SQLiteSignalEngine(BaseEngine):
                         self.stats["stale"] += 1
                         logger.debug("跳过陈旧行 %s %s ts=%s", table, symbol, ts_seconds)
                         continue
-                    self._maybe_refresh_symbols()
                     if self.allowed_symbols and symbol.upper() not in self.allowed_symbols:
                         self.stats["symbol_filtered"] += 1
                         continue

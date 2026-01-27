@@ -119,6 +119,8 @@ class SignalHistory:
         extra_obj = getattr(signal, "extra", None)
         if isinstance(extra_obj, dict):
             extra.update(extra_obj)
+        elif extra_obj is not None:
+            extra["raw"] = str(extra_obj)
         msg_params = getattr(signal, "message_params", None)
         if isinstance(msg_params, dict) and msg_params:
             extra["message_params"] = msg_params
@@ -135,7 +137,7 @@ class SignalHistory:
             "timeframe": timeframe,
             "price": price,
             "source": source,
-            "extra": json.dumps(extra, ensure_ascii=True) if extra else "",
+            "extra": json.dumps(extra, ensure_ascii=True),
         }
 
     def save(self, signal, source: str = "sqlite", max_retries: int = 2) -> int:
