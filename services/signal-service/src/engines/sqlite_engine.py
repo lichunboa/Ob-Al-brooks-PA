@@ -231,6 +231,34 @@ class SQLiteSignalEngine(BaseEngine):
             logger.warning(f"读取表 {table} 失败: {e}")
             return {}
 
+    def _get_table_data_cached(
+        self,
+        table: str,
+        timeframe: str,
+        cache: dict[tuple[str, str], dict[str, dict]],
+    ) -> dict[str, dict]:
+        """带缓存的表数据读取（单轮 check_signals 内复用）"""
+        key = (table, timeframe)
+        if key in cache:
+            return cache[key]
+        data = self._get_table_data(table, timeframe)
+        cache[key] = data
+        return data
+
+    def _get_symbol_all_tables_cached(
+        self,
+        symbol: str,
+        timeframe: str,
+        cache: dict[tuple[str, str], dict[str, dict]],
+    ) -> dict[str, dict]:
+        """基于缓存获取单个币种所有表的数据"""
+        result = {}
+        for table in RULES_BY_TABLE:
+            data = self._get_table_data_cached(table, timeframe, cache)
+            if symbol in data:
+                result[table] = data[symbol]
+        return result
+
     def _get_symbol_all_tables(self, symbol: str, timeframe: str) -> dict[str, dict]:
         """获取单个币种所有表的数据"""
         result = {}
@@ -262,6 +290,7 @@ class SQLiteSignalEngine(BaseEngine):
         """检查所有规则"""
         signals = []
         self.stats["checks"] += 1
+        table_cache: dict[tuple[str, str], dict[str, dict]] = {}
 
         for table, rules in RULES_BY_TABLE.items():
             active_rules = [r for r in rules if r.name in self.enabled_rules]
@@ -273,7 +302,7 @@ class SQLiteSignalEngine(BaseEngine):
                 all_timeframes.update(r.timeframes)
 
             for timeframe in all_timeframes:
-                current_data = self._get_table_data(table, timeframe)
+                current_data = self._get_table_data_cached(table, timeframe, table_cache)
 
                 for symbol, curr_row in current_data.items():
                     volume = _safe_float(curr_row.get("成交额") or curr_row.get("成交额（USDT）") or 0, 0.0)
@@ -314,7 +343,7 @@ class SQLiteSignalEngine(BaseEngine):
 
                                 # 格式化完整消息（如果有格式化器）
                                 if self.formatter:
-                                    curr_all = self._get_symbol_all_tables(symbol, timeframe)
+                                    curr_all = self._get_symbol_all_tables_cached(symbol, timeframe, table_cache)
                                     prev_all = {}
                                     for t in RULES_BY_TABLE:
                                         pk = f"{t}_{symbol}_{timeframe}"

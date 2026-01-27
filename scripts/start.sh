@@ -7,10 +7,10 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # 核心服务（与 init.sh 保持一致）
-# ai-service 作为 telegram-service 子模块运行，signal-service 为独立服务
-SERVICES=(data-service trading-service telegram-service)
+# ai-service 提供就绪检查（非独立进程），signal-service 为独立服务
+SERVICES=(data-service trading-service telegram-service ai-service)
 
-# 可选：启用全部核心服务（含 ai-service, signal-service）
+# 可选：启用全部核心服务（含 signal-service）
 # SERVICES=(data-service trading-service telegram-service ai-service signal-service)
 
 # 守护进程配置

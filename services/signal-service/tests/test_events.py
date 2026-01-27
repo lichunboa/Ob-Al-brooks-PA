@@ -145,3 +145,42 @@ def test_signal_publisher_clear_persist():
     )
 
     assert received == []
+
+
+def test_sqlite_cooldown_failure_no_mem_update(monkeypatch, tmp_path):
+    """SQLite 冷却写盘失败不更新内存"""
+    from types import SimpleNamespace
+    import src.engines.sqlite_engine as sqlite_engine
+
+    class FailingStorage:
+        def load_all(self):
+            return {}
+
+        def set(self, *args, **kwargs):
+            raise RuntimeError("fail")
+
+    monkeypatch.setattr(sqlite_engine, "get_cooldown_storage", lambda: FailingStorage())
+    engine = sqlite_engine.SQLiteSignalEngine(db_path=str(tmp_path / "signals.db"))
+
+    rule = SimpleNamespace(name="rule_x")
+    assert engine._set_cooldown(rule, "BTCUSDT", "1h") is False
+    assert "rule_x_BTCUSDT_1h" not in engine.cooldown
+
+
+def test_pg_cooldown_failure_no_mem_update(monkeypatch):
+    """PG 冷却写盘失败不更新内存"""
+    import src.engines.pg_engine as pg_engine
+
+    class FailingStorage:
+        def load_all(self):
+            return {}
+
+        def set(self, *args, **kwargs):
+            raise RuntimeError("fail")
+
+    monkeypatch.setattr(pg_engine, "get_cooldown_storage", lambda: FailingStorage())
+    engine = pg_engine.PGSignalEngine(db_url="postgresql://invalid", symbols=["BTCUSDT"])
+
+    key = "pg:BTCUSDT_test"
+    assert engine._set_cooldown(key) is False
+    assert key not in engine.cooldowns

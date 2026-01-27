@@ -175,13 +175,13 @@ cp config/.env.example config/.env && chmod 600 config/.env
 # 端口选择：保持 5434（新库）或改为 5433（旧库），见下方端口说明
 vim config/.env
 
-# 3) 启动核心服务（data + trading + telegram）
+# 3) 启动核心服务（data + trading + telegram + ai）
 ./scripts/start.sh start
 ./scripts/start.sh status
 ```
 
-> 说明：顶层 `./scripts/start.sh` 仅管理 `data-service`、`trading-service`、`telegram-service`。  
-> 预览版服务需手动启动：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；`ai-service` 作为 Telegram 子模块随 Bot 一起运行；`cd services-preview/vis-service && ./scripts/start.sh start`（可视化，端口 8087）。
+> 说明：顶层 `./scripts/start.sh` 管理 `data-service`、`trading-service`、`telegram-service`、`ai-service`（ai-service 为子模块，仅做就绪检查，无独立进程）。  
+> 预览版服务需手动启动：`cd services-preview/markets-service && ./scripts/start.sh start`（多市场采集）；`cd services-preview/order-service && python -m src.market-maker.main`（做市，需 API Key）；`cd services-preview/vis-service && ./scripts/start.sh start`（可视化，端口 8087）。
 
 ### ⚙️ 配置（必须）
 

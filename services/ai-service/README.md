@@ -50,6 +50,11 @@ register_ai_handlers(application, symbols_provider=get_active_symbols)
 ## 测试命令
 
 ```bash
+# 就绪检查（非独立进程）
+./scripts/start.sh start
+./scripts/start.sh status
+./scripts/start.sh stop
+
 # 检查依赖
 ./scripts/start.sh check
 
