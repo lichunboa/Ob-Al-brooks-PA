@@ -3,6 +3,7 @@
 存储和查询信号触发历史
 """
 
+import json
 import logging
 import os
 import sqlite3
@@ -92,42 +93,57 @@ class SignalHistory:
                 with suppress(Exception):
                     conn.close()
 
+    @staticmethod
+    def _normalize_signal(signal, source: str) -> dict:
+        """统一信号对象字段，兼容 SignalEvent / PGSignal / SQLite Signal"""
+        ts = getattr(signal, "timestamp", None)
+        if isinstance(ts, datetime):
+            timestamp = ts.isoformat()
+        elif isinstance(ts, str):
+            timestamp = ts
+        else:
+            timestamp = datetime.now().isoformat()
+
+        signal_type = getattr(signal, "signal_type", None) or getattr(signal, "rule_name", "")
+        direction = getattr(signal, "direction", "ALERT")
+        strength = getattr(signal, "strength", 0)
+        timeframe = getattr(signal, "timeframe", "1h")
+        price = getattr(signal, "price", 0)
+
+        message = getattr(signal, "message", None)
+        message_key = getattr(signal, "message_key", None)
+        if not message:
+            message = message_key or ""
+
+        extra = {}
+        extra_obj = getattr(signal, "extra", None)
+        if isinstance(extra_obj, dict):
+            extra.update(extra_obj)
+        msg_params = getattr(signal, "message_params", None)
+        if isinstance(msg_params, dict) and msg_params:
+            extra["message_params"] = msg_params
+        if message_key:
+            extra.setdefault("message_key", message_key)
+
+        return {
+            "timestamp": timestamp,
+            "symbol": getattr(signal, "symbol", ""),
+            "signal_type": signal_type,
+            "direction": direction,
+            "strength": strength,
+            "message": str(message) if message is not None else "",
+            "timeframe": timeframe,
+            "price": price,
+            "source": source,
+            "extra": json.dumps(extra, ensure_ascii=True) if extra else "",
+        }
+
     def save(self, signal, source: str = "sqlite", max_retries: int = 2) -> int:
         """保存信号到历史记录（带重试）"""
         for attempt in range(max_retries + 1):
             try:
                 with self._get_conn() as conn:
-                    # 处理不同类型的信号对象
-                    if hasattr(signal, "signal_type"):
-                        # PGSignal
-                        data = {
-                            "timestamp": signal.timestamp.isoformat(),
-                            "symbol": signal.symbol,
-                            "signal_type": signal.signal_type,
-                            "direction": signal.direction,
-                            "strength": signal.strength,
-                            "message": signal.message,
-                            "timeframe": getattr(signal, "timeframe", "5m"),
-                            "price": getattr(signal, "price", 0),
-                            "source": source,
-                            "extra": str(getattr(signal, "extra", {})),
-                        }
-                    else:
-                        # SQLite Signal
-                        data = {
-                            "timestamp": signal.timestamp.isoformat()
-                            if hasattr(signal, "timestamp")
-                            else datetime.now().isoformat(),
-                            "symbol": signal.symbol,
-                            "signal_type": signal.rule_name,
-                            "direction": signal.direction,
-                            "strength": signal.strength,
-                            "message": signal.message,
-                            "timeframe": getattr(signal, "timeframe", "1h"),
-                            "price": getattr(signal, "price", 0),
-                            "source": source,
-                            "extra": "",
-                        }
+                    data = self._normalize_signal(signal, source)
 
                     cursor = conn.execute(
                         """

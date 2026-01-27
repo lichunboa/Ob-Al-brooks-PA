@@ -122,6 +122,7 @@ class SignalPublisher:
         """清除所有订阅（用于测试）"""
         cls._callbacks.clear()
         cls._async_callbacks.clear()
+        _persist_callbacks.clear()
 
     @classmethod
     def subscriber_count(cls) -> int:

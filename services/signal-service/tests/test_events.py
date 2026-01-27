@@ -117,3 +117,31 @@ def test_signal_publisher_unsubscribe():
     assert SignalPublisher.subscriber_count() == 0
     
     SignalPublisher.clear()
+
+
+def test_signal_publisher_clear_persist():
+    """测试清理持久化回调"""
+    from src.events.publisher import SignalPublisher
+    from src.events.types import SignalEvent
+
+    SignalPublisher.clear()
+
+    received = []
+
+    def persist_callback(event: SignalEvent):
+        received.append(event)
+
+    SignalPublisher.register_persist(persist_callback)
+    SignalPublisher.clear()
+
+    SignalPublisher.publish(
+        SignalEvent(
+            symbol="BTCUSDT",
+            signal_type="test",
+            direction="BUY",
+            strength=50,
+            message_key="test.key",
+        )
+    )
+
+    assert received == []

@@ -686,13 +686,13 @@ class PGSignalEngine(BaseEngine):
     def _set_cooldown(self, signal_key: str) -> bool:
         """设置冷却并持久化。失败则返回 False，调用方应跳过推送。"""
         ts = time.time()
-        self.cooldowns[signal_key] = ts
         try:
             self._cooldown_storage.set(signal_key, ts)
+            self.cooldowns[signal_key] = ts
             return True
         except Exception as e:
             self.persistence_failures += 1
-            logger.error("写入冷却存储失败: %s", e)
+            logger.error("写入冷却存储失败: %s", e, exc_info=True)
             return False
 
     def run_loop(self, interval: int = 60):

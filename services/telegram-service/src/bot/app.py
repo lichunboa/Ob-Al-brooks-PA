@@ -171,15 +171,17 @@ def _resolve_lang(update) -> str:
     return I18N.resolve(None)
 
 
-def _t(update, message_id: str, **kwargs) -> str:
-    """获取带语言的翻译"""
+def _t(update, message_id: str, fallback: str | None = None, **kwargs) -> str:
+    """获取带语言的翻译（支持 fallback）"""
     lang = _resolve_lang(update)
     try:
         text = I18N.gettext(message_id, lang=lang, **kwargs)
     except Exception as exc:  # pragma: no cover - 防御性兜底
         logger.error("获取翻译失败: lang=%s key=%s err=%s", lang, message_id, exc)
-        return message_id
-    return text or message_id
+        return fallback or message_id
+    if not text or text == message_id:
+        return fallback or message_id
+    return text
 
 
 # ==================== 币种解析（允许中文符号） ====================

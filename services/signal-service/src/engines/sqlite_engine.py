@@ -26,6 +26,16 @@ from .pg_engine import _get_default_symbols  # 复用统一符号选择
 logger = logging.getLogger(__name__)
 
 
+def _safe_float(val, default: float = 0.0) -> float:
+    """安全转换为 float，异常返回默认值"""
+    try:
+        if val is None:
+            return default
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
 class SQLiteSignalEngine(BaseEngine):
     """SQLite 信号检测引擎"""
 
@@ -205,12 +215,17 @@ class SQLiteSignalEngine(BaseEngine):
         last = self.cooldown.get(key, 0)
         return time.time() - last > rule.cooldown
 
-    def _set_cooldown(self, rule: SignalRule, symbol: str, timeframe: str):
-        """设置冷却（同时持久化）"""
+    def _set_cooldown(self, rule: SignalRule, symbol: str, timeframe: str) -> bool:
+        """设置冷却（同时持久化）。失败返回 False。"""
         key = f"{rule.name}_{symbol}_{timeframe}"
         ts = time.time()
-        self.cooldown[key] = ts
-        self._cooldown_storage.set(key, ts)
+        try:
+            self._cooldown_storage.set(key, ts)
+            self.cooldown[key] = ts
+            return True
+        except Exception as e:
+            logger.error("写入冷却存储失败: %s", e, exc_info=True)
+            return False
 
     def check_signals(self) -> list[Signal]:
         """检查所有规则"""
@@ -230,7 +245,7 @@ class SQLiteSignalEngine(BaseEngine):
                 current_data = self._get_table_data(table, timeframe)
 
                 for symbol, curr_row in current_data.items():
-                    volume = curr_row.get("成交额") or curr_row.get("成交额（USDT）") or 0
+                    volume = _safe_float(curr_row.get("成交额") or curr_row.get("成交额（USDT）") or 0, 0.0)
                     cache_key = f"{table}_{symbol}_{timeframe}"
                     prev_row = self.baseline.get(cache_key)
 
@@ -241,7 +256,7 @@ class SQLiteSignalEngine(BaseEngine):
                     for rule in active_rules:
                         if timeframe not in rule.timeframes:
                             continue
-                        if volume < rule.min_volume:
+                        if volume < _safe_float(rule.min_volume, 0.0):
                             continue
 
                         try:
@@ -286,14 +301,19 @@ class SQLiteSignalEngine(BaseEngine):
                                         rule_message=rule_msg,
                                     )
 
-                                signals.append(signal)
-                                self._set_cooldown(rule, symbol, timeframe)
-                                self.stats["signals"] += 1
+                                if self._set_cooldown(rule, symbol, timeframe):
+                                    signals.append(signal)
+                                    self.stats["signals"] += 1
 
-                                logger.info(f"信号触发: {symbol} {rule.direction} - {rule.name} ({timeframe})")
+                                    logger.info(
+                                        f"信号触发: {symbol} {rule.direction} - {rule.name} ({timeframe})"
+                                    )
 
-                                # 发布事件
-                                self._publish_event(signal, rule)
+                                    # 发布事件
+                                    self._publish_event(signal, rule)
+                                else:
+                                    self.stats["errors"] += 1
+                                    logger.error("冷却持久化失败，跳过信号推送: %s", rule.name)
 
                         except Exception as e:
                             self.stats["errors"] += 1
