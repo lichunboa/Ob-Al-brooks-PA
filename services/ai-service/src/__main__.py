@@ -88,7 +88,13 @@ def main():
         logger.info("独立测试用法:")
         logger.info("  python -m src --test")
         logger.info("  python -m src --list-prompts")
+        import time
         logger.info("  python -m src --analyze BTCUSDT")
+        
+        # Keep container alive
+        logger.info("AI Service 已启动，处于待命状态。(如需执行任务，请在 telegram-service 中调用)")
+        while True:
+            time.sleep(3600)
 
 
 if __name__ == "__main__":

@@ -8,10 +8,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # 核心服务（与 init.sh 保持一致）
 # ai-service 作为 telegram-service 子模块运行，signal-service 为独立服务
-SERVICES=(data-service trading-service telegram-service)
-
-# 可选：启用全部核心服务（含 ai-service, signal-service）
-# SERVICES=(data-service trading-service telegram-service ai-service signal-service)
+# 核心服务（含 ai-service, signal-service, api-gateway）
+SERVICES=(data-service trading-service telegram-service ai-service signal-service api-gateway)
 
 # 守护进程配置
 DAEMON_PID="$ROOT/daemon.pid"
@@ -41,7 +39,8 @@ check_database() {
     
     # 解析连接信息
     local db_host=$(echo "$db_url" | sed -n 's|.*@\([^:/]*\).*|\1|p')
-    local db_port=$(echo "$db_url" | grep -oP ':\K\d+(?=/)' || echo "5432")
+    local db_port=$(echo "$db_url" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    [ -z "$db_port" ] && db_port="5432"
     [ -z "$db_host" ] && db_host="localhost"
     
     if command -v pg_isready &>/dev/null; then

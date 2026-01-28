@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# trading-service 启动/守护脚本
+# api-gateway 启动/守护脚本
 # 用法: ./scripts/start.sh {start|stop|status|restart|daemon}
 
 set -uo pipefail
@@ -22,87 +22,26 @@ safe_load_env() {
     local file="$1"
     [ -f "$file" ] || return 0
     
-    # 检查权限（生产环境强制 600）
-    if [[ "$file" == *"config/.env" ]] && [[ ! "$file" == *".example" ]]; then
-        local perm=$(stat -f "%OLp" "$file" 2>/dev/null || stat -c %a "$file" 2>/dev/null)
-        if [[ "$perm" != "600" && "$perm" != "400" ]]; then
-            if [[ "${CODESPACES:-}" == "true" ]]; then
-                echo "⚠️  Codespace 环境，跳过权限检查 ($file: $perm)"
-            else
-                echo "❌ 错误: $file 权限为 $perm，必须设为 600"
-                echo "   执行: chmod 600 $file"
-                exit 1
-            fi
-        fi
-    fi
-    
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
         [[ "$line" =~ ^[[:space:]]*export ]] && continue
-        [[ "$line" =~ \$\( ]] && continue
-        [[ "$line" =~ \` ]] && continue
         if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
             local key="${BASH_REMATCH[1]}"
             local val="${BASH_REMATCH[2]}"
             val="${val#\"}" && val="${val%\"}"
             val="${val#\'}" && val="${val%\'}"
+            # Strip inline comments
+            val="${val%% #*}"
             export "$key=$val"
         fi
     done < "$file"
 }
 
-# 加载全局配置 → 服务配置
+# 加载全局配置
 safe_load_env "$PROJECT_ROOT/config/.env"
-# 配置已统一到 config/.env
-
-# 校验 SYMBOLS_* 格式
-validate_symbols() {
-    local errors=0
-    for var in $(env | grep -E '^SYMBOLS_(GROUP_|EXTRA|EXCLUDE)' | cut -d= -f1); do
-        local val="${!var}"
-        [ -z "$val" ] && continue
-        for sym in ${val//,/ }; do
-            sym=$(echo "$sym" | tr '[:lower:]' '[:upper:]')
-            if [[ ! "$sym" =~ ^[A-Z0-9]+USDT$ ]]; then
-                echo "❌ 无效币种 $var: $sym"
-                errors=1
-            fi
-        done
-    done
-    [ $errors -eq 1 ] && exit 1
-}
-validate_symbols
-
-# 代理自检（重试3次+指数退避冷却）
-check_proxy() {
-    local proxy="${HTTP_PROXY:-${HTTPS_PROXY:-}}"
-    [ -z "$proxy" ] && return 0
-    
-    local retries=3
-    local delay=1
-    local i=0
-    
-    while [ $i -lt $retries ]; do
-        if curl -s --max-time 3 --proxy "$proxy" https://api.binance.com/api/v3/ping >/dev/null 2>&1; then
-            echo "✓ 代理可用: $proxy"
-            return 0
-        fi
-        ((i++))
-        if [ $i -lt $retries ]; then
-            echo "  代理检测失败，${delay}秒后重试 ($i/$retries)..."
-            sleep $delay
-            delay=$((delay * 2))
-        fi
-    done
-    
-    echo "⚠️  代理不可用（重试${retries}次失败），已禁用: $proxy"
-    unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
-}
 
 # 启动命令
-MODE="${MODE:-simple}"
-START_CMD="python3 -u src/simple_scheduler.py"
-[ "$MODE" = "listener" ] && START_CMD="python3 -u src/kline_listener.py"
+START_CMD="uvicorn src.main:app --host 0.0.0.0 --port 8088"
 
 # ==================== 工具函数 ====================
 log() {
@@ -132,7 +71,15 @@ start_service() {
     fi
     
     cd "$SERVICE_DIR"
-    source .venv/bin/activate
+    # Try multiple venv locations
+    if [ -d ".venv" ]; then
+        source .venv/bin/activate
+    elif [ -d "../.venv" ]; then
+        # fallback to parent venv if exists, or assume global?
+        # api-gateway has its own .venv usually
+        source .venv/bin/activate
+    fi
+    
     export PYTHONPATH=src
     nohup $START_CMD >> "$SERVICE_LOG" 2>&1 &
     local new_pid=$!
@@ -140,12 +87,13 @@ start_service() {
     
     sleep 1
     if is_running "$new_pid"; then
-        log "START 服务 (PID: $new_pid, MODE: $MODE)"
-        echo "✓ 服务已启动 (PID: $new_pid, MODE: $MODE)"
+        log "START 服务 (PID: $new_pid)"
+        echo "✓ 服务已启动 (PID: $new_pid)"
         return 0
     else
         log "ERROR 服务启动失败"
         echo "✗ 服务启动失败"
+        cat "$SERVICE_LOG"
         return 1
     fi
 }
@@ -193,10 +141,10 @@ status_service() {
 
 # ==================== 入口 ====================
 case "${1:-status}" in
-    start)   check_proxy; start_service ;;
+    start)   start_service ;;
     stop)    stop_service ;;
     status)  status_service ;;
-    restart) check_proxy; stop_service; sleep 2; start_service ;;
+    restart) stop_service; sleep 2; start_service ;;
     *)
         echo "用法: $0 {start|stop|status|restart}"
         exit 1

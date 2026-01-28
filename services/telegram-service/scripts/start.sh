@@ -22,7 +22,7 @@ safe_load_env() {
     
     # 检查权限（生产环境强制 600）
     if [[ "$file" == *"config/.env" ]] && [[ ! "$file" == *".example" ]]; then
-        local perm=$(stat -c %a "$file" 2>/dev/null)
+        local perm=$(stat -f "%OLp" "$file" 2>/dev/null || stat -c %a "$file" 2>/dev/null)
         if [[ "$perm" != "600" && "$perm" != "400" ]]; then
             if [[ "${CODESPACES:-}" == "true" ]]; then
                 echo "⚠️  Codespace 环境，跳过权限检查 ($file: $perm)"

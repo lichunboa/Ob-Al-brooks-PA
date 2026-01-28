@@ -52,11 +52,11 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 
 [简体中文](README.md) | English
 
-[![GitHub stars](https://img.shields.io/github/stars/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/network/members)
-[![GitHub release](https://img.shields.io/github/v/release/tukuaiai/tradecat)](https://github.com/tukuaiai/tradecat/releases)
-[![CI](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml/badge.svg)](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/tukuaiai/tradecat)](LICENSE)
+[![[Categories 分类/太妃价格行为/assets/L15B - ✨急赴磁体-✨区间突破回调/a5042db9a33b10095c158ebc405efadc_MD5.svg]]](https://github.com/tukuaiai/tradecat/stargazers)
+[![[Categories 分类/太妃价格行为/assets/L15B - ✨急赴磁体-✨区间突破回调/362c5d5e222a81388718b1fdad822b01_MD5.svg]]](https://github.com/tukuaiai/tradecat/network/members)
+[![[Categories 分类/太妃价格行为/assets/L15B - ✨急赴磁体-✨区间突破回调/b89b159e277f32039e3abf55719d8a6a_MD5.svg]]](https://github.com/tukuaiai/tradecat/releases)
+[![[Categories 分类/太妃价格行为/assets/L15B - ✨急赴磁体-✨区间突破回调/ec8764cf53a9e29d68e69bb06ff76687_MD5.svg]]](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml)
+[![[Categories 分类/太妃价格行为/assets/L15B - ✨急赴磁体-✨区间突破回调/cc234c30dd9019d1ef7828473993f7ff_MD5.svg]]](LICENSE)
 
 ---
 

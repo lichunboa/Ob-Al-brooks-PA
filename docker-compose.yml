@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # Infrastructure
+  # ============================================================
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: al-brooks-timescaledb
+    restart: unless-stopped
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: market_data
+    command: [ "postgres", "-c", "max_locks_per_transaction=128", "-c", "shared_buffers=256MB" ]
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tradecat-network
+
+  # ============================================================
+  # Backend Services
+  # ============================================================
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: tradecat-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs/api-gateway:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  data-service:
+    build:
+      context: ./services/data-service
+      dockerfile: Dockerfile
+    container_name: tradecat-data-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs/data-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  stock-service:
+    build:
+      context: ./services/stock-service
+      dockerfile: Dockerfile
+    container_name: tradecat-stock-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs/stock-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  trading-service:
+    build:
+      context: ./services/trading-service
+      dockerfile: Dockerfile
+    container_name: tradecat-trading-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./logs/trading-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+      - INDICATOR_SQLITE_PATH=/app/data/indicators.db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  signal-service:
+    build:
+      context: ./services/signal-service
+      dockerfile: Dockerfile
+    container_name: tradecat-signal-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./logs/signal-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+      - INDICATOR_SQLITE_PATH=/app/data/indicators.db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  telegram-service:
+    build:
+      context: ./services/telegram-service
+      dockerfile: Dockerfile
+    container_name: tradecat-telegram-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./logs/telegram-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+      - INDICATOR_SQLITE_PATH=/app/data/indicators.db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: tradecat-ai-service
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./logs/ai-service:/app/logs
+    env_file:
+      - ./config/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONPATH=/app
+      - INDICATOR_SQLITE_PATH=/app/data/indicators.db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - tradecat-network
+
+volumes:
+  timescaledb_data:
+    driver: local
+
+networks:
+  tradecat-network:
+    driver: bridge

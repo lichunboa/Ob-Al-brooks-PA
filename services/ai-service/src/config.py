@@ -9,20 +9,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # 项目路径
-SERVICE_ROOT = Path(__file__).resolve().parents[1]  # ai-service/
-PROJECT_ROOT = SERVICE_ROOT.parents[1]  # tradecat/
+# 项目路径
+SERVICE_ROOT = Path(__file__).resolve().parents[1]  # ai-service/ (or /app in Docker)
+
+# Docker 环境适配
+if os.path.exists("/app"):
+    PROJECT_ROOT = Path("/app")
+    INDICATOR_DB = Path("/app/data/market_data.db")
+else:
+    PROJECT_ROOT = SERVICE_ROOT.parents[1]  # tradecat/
+    INDICATOR_DB = PROJECT_ROOT / "libs" / "database" / "services" / "telegram-service" / "market_data.db"
 
 # 加载环境变量
 ENV_PATH = PROJECT_ROOT / "config" / ".env"
-if ENV_PATH.exists():
-    load_dotenv(ENV_PATH)
-
-# 添加项目根目录到 path
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# 数据库路径
-INDICATOR_DB = PROJECT_ROOT / "libs" / "database" / "services" / "telegram-service" / "market_data.db"
 
 # Bot Token（复用 telegram-service 配置）
 BOT_TOKEN = os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")

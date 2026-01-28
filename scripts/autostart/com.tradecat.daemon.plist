@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 服务标识 -->
+    <key>Label</key>
+    <string>com.tradecat.daemon</string>
+    
+    <!-- 启动程序 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/backend/tradecat-core &amp;&amp; ./scripts/start.sh daemon</string>
+    </array>
+    
+    <!-- 工作目录 -->
+    <key>WorkingDirectory</key>
+    <string>/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/backend/tradecat-core</string>
+    
+    <!-- 开机自动启动 -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- 如果崩溃，等待10秒后重启 -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    
+    <!-- 标准输出日志 -->
+    <key>StandardOutPath</key>
+    <string>/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/backend/tradecat-core/logs/launchd.out.log</string>
+    
+    <!-- 错误日志 -->
+    <key>StandardErrorPath</key>
+    <string>/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/backend/tradecat-core/logs/launchd.err.log</string>
+    
+    <!-- 环境变量 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>zh_CN.UTF-8</string>
+    </dict>
+</dict>
+</plist>

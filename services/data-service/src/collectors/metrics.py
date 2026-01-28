@@ -155,10 +155,14 @@ class MetricsCollector:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     c = MetricsCollector()
-    try:
-        c.run_once()
-    finally:
-        c.close()
+    logger.info("启动 Metrics 采集循环 (间隔 60s)")
+    while True:
+        try:
+            c.run_once()
+        except Exception as e:
+            logger.error("Metrics 采集失败: %s", e)
+        time.sleep(60)
+
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ safe_load_env() {
     
     # 检查权限（生产环境强制 600）
     if [[ "$file" == *"config/.env" ]] && [[ ! "$file" == *".example" ]]; then
-        local perm=$(stat -c %a "$file" 2>/dev/null)
+        local perm=$(stat -f "%OLp" "$file" 2>/dev/null || stat -c %a "$file" 2>/dev/null)
         if [[ "$perm" != "600" && "$perm" != "400" ]]; then
             if [[ "${CODESPACES:-}" == "true" ]]; then
                 echo "⚠️  Codespace 环境，跳过权限检查 ($file: $perm)"
@@ -60,7 +60,7 @@ validate_symbols() {
         local val="${!var}"
         [ -z "$val" ] && continue
         for sym in ${val//,/ }; do
-            sym="${sym^^}"
+            sym=$(echo "$sym" | tr '[:lower:]' '[:upper:]')
             if [[ ! "$sym" =~ ^[A-Z0-9]+USDT$ ]]; then
                 echo "❌ 无效币种 $var: $sym"
                 errors=1
@@ -101,8 +101,12 @@ check_proxy() {
 COMPONENTS=(backfill metrics ws)
 
 # 启动命令
-declare -A START_CMDS=(
-[backfill]="python3 -c \"
+# 启动命令
+get_start_cmd() {
+    local name=$1
+    case "$name" in
+        backfill)
+            echo "python3 -c \"
 import time, logging, sys
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger('backfill.patrol')
@@ -138,7 +142,9 @@ while True:
         logger.error('巡检异常: %s', e, exc_info=True)
     time.sleep(300)
 \""
-    [metrics]="python3 -c \"
+            ;;
+        metrics)
+            echo "python3 -c \"
 import time, logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 from collectors.metrics import MetricsCollector
@@ -147,8 +153,12 @@ while True:
     c.run_once()
     time.sleep(300)
 \""
-    [ws]="python3 -m collectors.ws"
-)
+            ;;
+        ws)
+            echo "python3 -m collectors.ws"
+            ;;
+    esac
+}
 
 # ==================== 工具函数 ====================
 log() {
@@ -185,7 +195,8 @@ start_component() {
     cd "$SERVICE_DIR"
     source .venv/bin/activate
     export PYTHONPATH=src
-    nohup bash -c "${START_CMDS[$name]}" >> "$log_file" 2>&1 &
+    local cmd=$(get_start_cmd "$name")
+    nohup bash -c "$cmd" >> "$log_file" 2>&1 &
     local new_pid=$!
     echo "$new_pid" > "$pid_file"
     

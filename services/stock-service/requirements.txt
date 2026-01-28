@@ -1,0 +1,5 @@
+yfinance>=0.2.36
+pandas>=2.0.0
+asyncpg>=0.29.0
+python-dotenv>=1.0.0
+apscheduler>=3.10.0

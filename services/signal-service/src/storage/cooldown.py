@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 def _get_cooldown_db_path() -> str:
     """获取冷却数据库路径"""
+    # Docker 环境检查
+    if os.path.exists("/app/data"):
+        return "/app/data/cooldown.db"
+    
     # 兼容直接运行和作为模块导入
     try:
         from ..config import REPO_ROOT
@@ -28,14 +32,12 @@ class CooldownStorage:
     """冷却状态持久化存储"""
 
     def __init__(self, db_path: str = None):
-        raw_path = db_path or _get_cooldown_db_path()
-        resolved = Path(raw_path).resolve()
-        repo_root = Path(_get_cooldown_db_path()).resolve().parents[4]
-        try:
-            resolved.relative_to(repo_root)
-        except ValueError:
-            raise ValueError(f"非法冷却存储路径: {resolved}")
-        self.db_path = str(resolved)
+        if not db_path and os.path.exists("/app/data"):
+             self.db_path = "/app/data/cooldown.db"
+        else:
+             raw_path = db_path or _get_cooldown_db_path()
+             self.db_path = str(Path(raw_path).resolve())
+        
         self._ensure_db()
 
     def _ensure_db(self):
