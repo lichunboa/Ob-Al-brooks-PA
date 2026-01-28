@@ -1,79 +1,49 @@
-# --- 操作系统文件 ---
+# Obsidian
+.obsidian/workspace*
+.obsidian/plugins/*/
+!.obsidian/plugins/al-brooks-console/
+.journalit/cache/
+.journalit/indexes/
+.trash/
+
+# Node.js
+node_modules/
+.next/
+out/
+dist/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.pytest_cache/
+
+# Backend (TradeCat-Backend is a separate repo)
+TradeCat-Backend/backend/tradecat-core/
+!TradeCat-Backend/backend/data-service/simple_server.py
+!TradeCat-Backend/backend/data-service/ws_server.py
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
 Thumbs.db
 
-# --- Obsidian 缓存与状态 (避免多设备冲突) ---
-# 注意：前面的点号 . 不能少
-.obsidian/cache
-.obsidian/workspace.json
-.obsidian/workspaces.json
-.obsidian/workspace-mobile.json
-.obsidian/workspace-leaf.json
+# Environment
+.env
+.env.local
+.env.*.local
 
-# --- 不建议同步的配置 ---
-.obsidian/daily-notes.json
-.obsidian/facets.json
-.obsidian/starred.json
-
-# --- 插件缓存 (可选) ---
-.obsidian/plugins/recent-files-obsidian/data.json
-
-# --- Make.md 插件缓存/状态（强烈建议不纳入版本控制） ---
-.makemd/*.mdc
-
-# --- 垃圾箱 ---
-.trash/
-
-# --- 忽略所有视频 ---
-*.mp4
-*.mov
-*.avi
-*.mkv
-*.webm
-
-# --- 忽略所有音频 ---
-*.mp3
-*.wav
-*.m4a
-
-# --- 忽略所有图片 ---
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
-*.bmp
-*.svg
-
-# --- 忽略所有 PDF ---
-*.pdf
-
-# --- 忽略附件专用文件夹 (双重保险) ---
-Assets/
-Media/
-Attachments/
-node_modules
-node_modules
-
-# --- Local dashboard/server logs ---
-audit.log
-
-# --- 导出快照/生成物（回归测试产物，不纳入版本控制） ---
-Exports/al-brooks-console/snapshot_*.json
-
-# --- 本地索引数据库（例如 Space/Dataview 等产生的 .mdb） ---
-Tags/**/.space/*.mdb
-
-# --- Backend Services ---
-# TradeCat 克隆的源码目录（不需要纳入版本控制，可单独管理）
-backend-tradecat-source/
-
-# Docker & Python 缓存
-**/__pycache__/
-**/*.pyc
-**/.env
-**/venv/
-**/.venv/
-
-# Backend logs
-backend/logs/
+# Build
+build/
+coverage/
