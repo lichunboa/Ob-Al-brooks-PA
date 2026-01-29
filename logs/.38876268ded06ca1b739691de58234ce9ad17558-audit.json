@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/mitchellcb/Library/Mobile Documents/iCloud~md~obsidian/Documents/Al-brooks-PA/logs/.38876268ded06ca1b739691de58234ce9ad17558-audit.json",
+    "files": [
+        {
+            "date": 1769168417733,
+            "name": "/Users/mitchellcb/Library/Mobile Documents/iCloud~md~obsidian/Documents/Al-brooks-PA/logs/mcp-puppeteer-2026-01-23.log",
+            "hash": "05e291e0746ce7928e853ddab0c27c5d480b2984d18abffb6da75e6ca59f982f"
+        },
+        {
+            "date": 1769270293439,
+            "name": "/Users/mitchellcb/Library/Mobile Documents/iCloud~md~obsidian/Documents/Al-brooks-PA/logs/mcp-puppeteer-2026-01-24.log",
+            "hash": "e30289f42fbbb1609b0f6f3901537d7fb37fc52f03cf8042ed48bdc70aeb9ed1"
+        }
+    ],
+    "hashType": "sha256"
+}

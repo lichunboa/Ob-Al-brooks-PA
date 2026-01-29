@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# Download images referenced by L04B - 突破后的顺势推动.md
+curl -s -L -o L04Bimg01.jpg "https://thumbnail0.baidupcs.com/thumbnail/1d0bf8e19rbec1bcb063881a7e88c694?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659574807989326&expires=8h&fid=288848323-250528-419840125646831&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-OwrcYXIaOcL61uMuMm2flSdz6lg%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg02.jpg "https://thumbnail0.baidupcs.com/thumbnail/8a71b19cdqe3f3c46ec8b3bd048e12a7?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659671736877320&expires=8h&fid=288848323-250528-72238671291022&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-tLQ2gHdVSE%2B%2BegyvO7AvPZGkFks%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg03.jpg "https://thumbnail0.baidupcs.com/thumbnail/4adf912edqcf7a4ba8024541f36c7d69?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659736574847704&expires=8h&fid=288848323-250528-426714308029675&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-ypZu8O31k0ZUfl9xSsajs2aK2m8%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg04.jpg "https://thumbnail0.baidupcs.com/thumbnail/05b3010beu3f5221eb1ba84d593784e6?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549660049768963714&expires=8h&fid=288848323-250528-1038549186357754&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-ZhImxpGeb2Ve1ZG2Iak%2BHGy3L%2Fk%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg05.jpg "https://thumbnail0.baidupcs.com/thumbnail/d148c799cie119bd1dd445cdd835b223?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659801366315524&expires=8h&fid=288848323-250528-857729485065217&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-WnvuiB0YOdJGIbNLCba2JVGZ5DU%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg06.jpg "https://thumbnail0.baidupcs.com/thumbnail/8fc618bd6pe391c9a14c60516a74f416?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549660108770283740&expires=8h&fid=288848323-250528-732414672789532&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-pDtf7MwCe74Dj4%2FNYN03Uke%2Fg8s%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg07.jpg "https://thumbnail0.baidupcs.com/thumbnail/a7d03efd1ja9495fc9587deeece30cf4?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659864985152566&expires=8h&fid=288848323-250528-508935430419477&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-57F9Y68kPt7B0PZcRMC0TaWuAoQ%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg08.jpg "https://thumbnail0.baidupcs.com/thumbnail/a443a6f81oe2f0db5db4c19d13fb4cb3?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549660170380747429&expires=8h&fid=288848323-250528-229520900409236&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-haOvmnNlYfDX4QZg6OQfusXqImI%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg09.jpg "https://thumbnail0.baidupcs.com/thumbnail/36745d97ft3f89cf1f84c7dbe88d0d32?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549660229458190865&expires=8h&fid=288848323-250528-768266315815738&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-3lcda5N8EyLi8W7h1qbmHbujFuw%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg10.jpg "https://thumbnail0.baidupcs.com/thumbnail/77aa8aebdl3f731d28bb1c1757879bd9?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659924583831270&expires=8h&fid=288848323-250528-286272191178557&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-U8Bj3m6GgTVMzGJsHtEZyBufhvQ%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg11.jpg "https://thumbnail0.baidupcs.com/thumbnail/b5b32e44ble5b69f6c3333b59fc6f053?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549660285968633755&expires=8h&fid=288848323-250528-194353292268213&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-iJE6otjsPSVK0L70JDUU7km5uRM%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+curl -s -L -o L04Bimg12.jpg "https://thumbnail0.baidupcs.com/thumbnail/78302aec5nf78dbafbd7a7b63e98ba53?chkbd=0&chkv=0&dp-callid=0&dp-logid=1549659989214617136&expires=8h&fid=288848323-250528-312801174305250&ft=image&quality=100&rt=pr&sign=FDTAER-DCb740ccc5511e5e8fedcff06b081203-n%2FW8%2B0aVdmA%2FKZZrafNhO1ckiyw%3D&size=c1080_u1080&time=1760605200&vuk=288848323"
+
+echo "Downloaded L04B images to: $(pwd)"
+
+echo "Listing files:"
+ls -l

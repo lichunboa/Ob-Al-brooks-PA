@@ -1,0 +1,41 @@
+formulas:
+  未命名: ""
+views:
+  - type: cards
+    name: 交易日记
+    filters:
+      and:
+        - categories.contains("交易日记")
+        - '!file.folder.contains("Templates")'
+    order:
+      - categories
+      - file.basename
+      - status
+      - file.tags
+      - file.mtime
+    sort:
+      - property: key_principles
+        direction: ASC
+      - property: file.mtime
+        direction: DESC
+      - property: cover
+        direction: DESC
+    image: note.cover
+    imageFit: contain
+    columnSize:
+      file.tags: 216
+    columnConfigs:
+      note.categories:
+        propertyId: note.categories
+        visualizationType: heatmap
+        displayName: categories
+        configuredAt: 1765723576572
+      note.status:
+        propertyId: note.status
+        visualizationType: line-chart
+        displayName: status
+        configuredAt: 1765723609543
+    gridColumns: 1
+    cardMinHeight: 200
+    dateAnchorProperty: note.confidence/信心
+    chartShowLegend: false

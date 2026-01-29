@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 安装依赖
+RUN apk add --no-cache libc6-compat
+
+# 复制 package 文件
+COPY package.json package-lock.json* ./
+RUN npm install
+
+# 设置环境
+ENV NODE_ENV development
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV WATCHPACK_POLLING true
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

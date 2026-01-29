@@ -1,0 +1,56 @@
+{
+  "id": "bf158664-af5e-416a-baad-4eb215af44ec",
+  "title": "哈喽",
+  "messages": [
+    {
+      "role": "user",
+      "content": {
+        "root": {
+          "children": [
+            {
+              "children": [
+                {
+                  "detail": 0,
+                  "format": 0,
+                  "mode": "normal",
+                  "style": "",
+                  "text": "哈喽",
+                  "type": "text",
+                  "version": 1
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "paragraph",
+              "version": 1,
+              "textFormat": 0,
+              "textStyle": ""
+            }
+          ],
+          "direction": "ltr",
+          "format": "",
+          "indent": 0,
+          "type": "root",
+          "version": 1
+        }
+      },
+      "promptContent": [
+        {
+          "type": "text",
+          "text": "\n\n哈喽\n\n"
+        }
+      ],
+      "id": "d0be308a-7c7c-4494-8fff-0487c2cecb91",
+      "mentionables": [
+        {
+          "type": "current-file",
+          "file": "Daily/Trades/260119_0216_实盘_BTC 2.md"
+        }
+      ]
+    }
+  ],
+  "createdAt": 1768982990009,
+  "updatedAt": 1768982990009,
+  "schemaVersion": 1
+}
