@@ -1,7 +1,7 @@
 # GitHub 赞助配置文件
 # 这些链接将显示在 GitHub 仓库主页的“赞助”按钮旁边。
 
-github: tukuaiai # 您的 GitHub 用户名，例如: [octocat]
+github: ab-console # 您的 GitHub 用户名，例如: [octocat]
 # patreon: your-patreon-username # 您的 Patreon 用户名
 # open_collective: your-opencollective-project-name # 您的 Open Collective 项目名称
 # ko_fi: your-ko-fi-username # 您的 Ko-fi 用户名

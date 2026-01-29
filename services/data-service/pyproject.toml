@@ -5,7 +5,7 @@ description = "Cryptocurrency data collection and storage service for Binance US
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["crypto", "data", "binance", "websocket"]
 classifiers = [
     "Development Status :: 4 - Beta",

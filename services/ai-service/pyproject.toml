@@ -1,11 +1,11 @@
 [project]
 name = "ai-service"
 version = "1.0.0"
-description = "AI analysis service for TradeCat - Wyckoff methodology and multi-model LLM support"
+description = "AI analysis service for AB Console - Wyckoff methodology and multi-model LLM support"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["ai", "llm", "wyckoff", "crypto", "analysis"]
 classifiers = [
     "Development Status :: 4 - Beta",

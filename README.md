@@ -1,12 +1,11 @@
 <p align="center">
-  <img src="https://github.com/tukuaiai.png" alt="TradeCat" width="100px">
 </p>
 
 <div align="center">
 
 # 🐱 交易猫
 
-本项目ai解读仓库（可能不完全准确）：https://zread.ai/tukuaiai/tradecat
+
 
 感谢社区捐助的资金，让我去完成我的梦想！！！真心感谢你们！！！
 
@@ -34,11 +33,11 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 
 [English](README_EN.md) | 简体中文
 
-[![GitHub stars](https://img.shields.io/github/stars/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/tukuaiai/tradecat?style=social)](https://github.com/tukuaiai/tradecat/network/members)
-[![GitHub release](https://img.shields.io/github/v/release/tukuaiai/tradecat)](https://github.com/tukuaiai/tradecat/releases)
-[![CI](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml/badge.svg)](https://github.com/tukuaiai/tradecat/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/tukuaiai/tradecat)](LICENSE)
+
+<!-- GitHub forks -->
+<!-- GitHub release -->
+[![CI](https://github.com/ab-console/ab-console/actions/workflows/ci.yml/badge.svg)](https://github.com/ab-console/ab-console/actions/workflows/ci.yml)
+<!-- License -->
 
 ---
 
@@ -64,7 +63,7 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 </p>
 
 <p>
-  <a href="https://t.me/tradecat_ai_channel"><img src="https://img.shields.io/badge/Telegram-频道-blue?style=for-the-badge&logo=telegram" alt="Telegram"></a>
+  <a href="https://t.me/ab_console_channel"><img src="https://img.shields.io/badge/Telegram-频道-blue?style=for-the-badge&logo=telegram" alt="Telegram"></a>
   <a href="https://t.me/glue_coding"><img src="https://img.shields.io/badge/Telegram-交流群-blue?style=for-the-badge&logo=telegram" alt="交流群"></a>
   <a href="https://x.com/123olp"><img src="https://img.shields.io/badge/Twitter-123olp-black?style=for-the-badge&logo=x" alt="Twitter"></a>
 </p>
@@ -84,7 +83,7 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 - [🔧 运维指南](#-运维指南)
 - [📞 联系方式](#-联系方式)
 
-> 🤖 **从零开始？** 复制这行到 AI 助手：`按照 https://github.com/tukuaiai/tradecat/blob/main/README.md 的说明帮我安装 TradeCat`
+> 🤖 **从零开始？** 复制这行到 AI 助手：`按照 https://github.com/ab-console/ab-console/blob/main/README.md 的说明帮我安装 AB Console`
 
 ---
 
@@ -127,7 +126,7 @@ bsc：`0xa396923a71ee7D9480b346a17dDeEb2c0C287BBC`,`0x60c062e7600f74079ea7b5e556
 <summary><strong>点击展开👉 📋 简化版安装提示词</strong></summary>
 
 ```
-按照 https://github.com/tukuaiai/tradecat/blob/main/README.md 的说明帮我安装 TradeCat
+按照 https://github.com/ab-console/ab-console/blob/main/README.md 的说明帮我安装 AB Console
 
 要求：
 1. 读取文档后直接执行安装命令，不要生成脚本
@@ -291,8 +290,8 @@ zstd -d futures_metrics_5m.bin.zst -c | psql -h localhost -p 5433 -U postgres -d
 #### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/tukuaiai/tradecat.git
-cd tradecat
+git clone https://github.com/ab-console/ab-console.git
+cd ab-console
 ```
 
 #### 2. 安装系统依赖
@@ -833,7 +832,7 @@ K线维度:
 <summary><strong>点击展开👉 📁 目录结构</strong></summary>
 
 ```
-tradecat/
+ab-console/
 │
 ├── 📂 config/                      # 统一配置（所有服务共用）
 │   ├── .env                        # 生产配置（含密钥，不提交）
@@ -1265,7 +1264,7 @@ PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "\l"
 <details open>
 <summary><strong>点击展开👉 📞 联系方式</strong></summary>
 
-- **Telegram 频道**: [tradecat_ai_channel](https://t.me/tradecat_ai_channel)
+- **Telegram 频道**: [ab_console_channel](https://t.me/ab_console_channel)
 - **Telegram 交流群**: [glue_coding](https://t.me/glue_coding)
 - **Twitter/X**: [123olp](https://x.com/123olp)
 - **Twitter/X**: [123olp](https://x.com/123olp)
@@ -1283,11 +1282,7 @@ PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "\l"
 
 ## Star History
 
-<a href="https://www.star-history.com/#tukuaiai/tradecat&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=tukuaiai/tradecat&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=tukuaiai/tradecat&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=tukuaiai/tradecat&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -1299,7 +1294,7 @@ PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "\l"
 
 ---
 
-**Made with ❤️ by [tukuaiai](https://github.com/tukuaiai)**
+**Made with ❤️ by AB Console Team**
 
 [⬆ 返回顶部](#-tradecat)
 

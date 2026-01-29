@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tradecat 统一启动脚本
+# ab-console 统一启动脚本
 # 用法: ./scripts/start.sh {start|stop|status|restart|daemon|daemon-stop}
 
 set -uo pipefail

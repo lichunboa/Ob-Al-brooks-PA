@@ -106,7 +106,7 @@ log "恢复脚本: restore_main4_$DATE.sh"
 cat > "$OUTPUT_DIR/dataset-metadata.json" << EOF
 {
   "title": "Binance Main4 (BTC/ETH/BNB/SOL) OHLCV & Futures Metrics 2018-2026",
-  "id": "tukuaiai/binance-crypto-main4",
+  "id": "ab-console/binance-crypto-main4",
   "licenses": [{"name": "CC0-1.0"}],
   "keywords": ["cryptocurrency", "bitcoin", "ethereum", "bnb", "solana", "trading", "timeseries", "binance", "ohlcv", "futures"]
 }
