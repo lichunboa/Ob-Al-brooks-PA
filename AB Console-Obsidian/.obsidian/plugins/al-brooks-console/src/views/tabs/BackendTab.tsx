@@ -494,8 +494,9 @@ const executeScript = async (scriptName: string): Promise<{ success: boolean; ou
     // Get vault root path
     // @ts-ignore
     const vaultPath = (window as any).app?.vault?.adapter?.basePath || "";
-    // 脚本现在位于 "📁 启动工具/" 目录下
-    const scriptPath = path.join(vaultPath, "📁 启动工具", scriptName);
+    // 脚本位于 Vault 父目录的 "📁 启动工具/" 目录下
+    const projectRoot = path.dirname(vaultPath);
+    const scriptPath = path.join(projectRoot, "📁 启动工具", scriptName);
     
     return new Promise((resolve) => {
       exec(`"${scriptPath}"`, { timeout: 120000 }, (error: any, stdout: string, stderr: string) => {
