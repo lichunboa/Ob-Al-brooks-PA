@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-tradecat 加密市场情报机器人
+AB Console 加密市场情报机器人
 """
 
 import os
@@ -1492,21 +1492,21 @@ class UserRequestHandler:
         )
 
     def get_position_ranking(self, limit=10, sort_order='desc', period='1d', sort_field: str = "position", update=None):
-        """获取持仓量排行榜 - 委托给TradeCatBot处理"""
+        """获取持仓量排行榜 - 委托给ABConsoleBot处理"""
         global bot
         if bot:
             return bot.get_position_ranking(limit=limit, sort_order=sort_order, period=period, sort_field=sort_field)
         else:
             # 如果全局bot不可用，创建临时实例
             try:
-                temp_bot = TradeCatBot()
+                temp_bot = ABConsoleBot()  # 兼容旧代码
                 return temp_bot.get_position_ranking(limit=limit, sort_order=sort_order, period=period, sort_field=sort_field)
             except Exception as e:
                 logger.error(f"创建临时bot实例失败: {e}")
                 return _t(update, "data.initializing")
 
     def get_position_ranking_keyboard(self, current_sort='desc', current_limit=10, current_period='1d', update=None):
-        """获取持仓量排行榜键盘 - 委托给TradeCatBot处理"""
+        """获取持仓量排行榜键盘 - 委托给ABConsoleBot处理"""
         global bot
         if bot:
             return bot.get_position_ranking_keyboard(
@@ -1518,7 +1518,7 @@ class UserRequestHandler:
         else:
             # 如果全局bot不可用，创建临时实例
             try:
-                temp_bot = TradeCatBot()
+                temp_bot = ABConsoleBot()  # 兼容旧代码
                 return temp_bot.get_position_ranking_keyboard(
                     current_sort=current_sort,
                     current_limit=current_limit,
@@ -2457,7 +2457,7 @@ class UserRequestHandler:
             [_btn(update, "btn.back_home", "main_menu")]
         ])
 
-class TradeCatBot:
+class ABConsoleBot:
     def __init__(self):
         self._active_symbols = None
         self._active_symbols_timestamp = 0
@@ -5464,7 +5464,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         safe_cache_status = escape_markdown_safe(str(cache_status)) if cache_status else "缓存状态获取失败"
         safe_current_file = escape_markdown_safe(str(bot._current_cache_file)) if bot._current_cache_file else "未知"
 
-        status_text = f"""🤖tradecat机器人状态
+        status_text = f"""🤖AB Console 机器人状态
 - 已初始化: {'✅' if bot._is_initialized else '❌'}
 - 后台更新: {'🔄 进行中' if bot._is_updating else '✅ 空闲'}
 - 当前使用文件: {safe_current_file}
@@ -6091,11 +6091,11 @@ def initialize_bot_sync():
     """同步初始化机器人实例（不加载缓存）"""
     global user_handler, bot
 
-    print("🚀 启动tradecat加密市场情报机器人...")
+    print("🚀 启动 AB Console 加密市场情报机器人...")
 
     try:
         user_handler = UserRequestHandler(card_registry=ensure_ranking_registry())
-        bot = TradeCatBot()
+        bot = ABConsoleBot()
         logger.info("✅ 核心组件初始化完成")
     except Exception as e:
         logger.error(f"❌ 组件初始化失败: {e}")

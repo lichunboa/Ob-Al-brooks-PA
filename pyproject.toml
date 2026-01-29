@@ -1,15 +1,15 @@
 [project]
-name = "tradecat"
+name = "ab-console"
 version = "0.1.0"
 description = "Quantitative Trading for Everyone - Data, Indicators, Signals, AI Analysis"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
-    {name = "TradeCat Team", email = "team@tradecat.dev"}
+    {name = "AB Console Team", email = "team@ab-console.local"}
 ]
 maintainers = [
-    {name = "tukuaiai"}
+    {name = "ab-console"}
 ]
 keywords = [
     "quantitative", "trading", "crypto", "bitcoin", "ethereum",
@@ -65,17 +65,17 @@ docs = [
     "mkdocs-material>=9.0.0",
     "mkdocstrings[python]>=0.24.0",
 ]
-all = ["tradecat[full,ai,dev,docs]"]
+all = ["ab-console[full,ai,dev,docs]"]
 
 [project.urls]
-Homepage = "https://tradecat.dev"
-Documentation = "https://docs.tradecat.dev"
-Repository = "https://github.com/tukuaiai/tradecat"
-Changelog = "https://github.com/tukuaiai/tradecat/blob/main/docs/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/tukuaiai/tradecat/issues"
+Homepage = "https://ab-console.local"
+Documentation = "https://docs.ab-console.local"
+Repository = "https://github.com/ab-console/ab-console"
+Changelog = "https://github.com/ab-console/ab-console/blob/main/docs/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/ab-console/ab-console/issues"
 
 [project.scripts]
-tradecat = "tradecat.cli:main"
+ab-console = "ab_console.cli:main"
 
 [build-system]
 requires = ["hatchling>=1.18.0"]
@@ -83,7 +83,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src/tradecat",
+    "/src/ab_console",
     "/tests",
     "/README.md",
     "/README_EN.md",
@@ -92,7 +92,7 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tradecat"]
+packages = ["src/ab_console"]
 
 [tool.ruff]
 line-length = 120
@@ -124,7 +124,7 @@ ignore = [
 "**/tests/**" = ["F401", "F811"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tradecat"]
+known-first-party = ["ab-console"]
 
 [tool.mypy]
 python_version = "3.9"
@@ -156,7 +156,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["src/tradecat"]
+source = ["src/ab-console"]
 branch = true
 data_file = "artifacts/coverage/.coverage"
 omit = ["*/tests/*", "*/__init__.py"]

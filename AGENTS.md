@@ -1,4 +1,4 @@
-# TradeCat - AI Agent 操作手册
+# AB Console - AI Agent 操作手册
 
 > 本文档面向 AI 编码 Agent，以可执行指令的视角编写，约束与指导 Agent 行为。
 

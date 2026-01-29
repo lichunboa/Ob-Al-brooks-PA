@@ -1,11 +1,11 @@
 [project]
 name = "vis-service"
 version = "0.1.0"
-description = "Visualization rendering service for TradeCat - K-line charts, indicators, VPVR"
+description = "Visualization rendering service for AB Console - K-line charts, indicators, VPVR"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["visualization", "charts", "kline", "trading"]
 classifiers = [
     "Development Status :: 3 - Alpha",

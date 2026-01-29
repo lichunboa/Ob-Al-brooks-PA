@@ -4,9 +4,9 @@
 
 ## 项目概述
 
-Fate Service 是 TradeCat 项目的命理服务模块，提供八字排盘、紫微斗数等功能。
+Fate Service 是 AB Console 项目的命理服务模块，提供八字排盘、紫微斗数等功能。
 
-**重要：本服务已迁移到 TradeCat 统一配置管理。**
+**重要：本服务已迁移到 AB Console 统一配置管理。**
 
 ---
 
@@ -299,7 +299,7 @@ make lint
 
 ## 版本历史
 
-- **2026-01-11**: 迁移到 TradeCat 统一配置管理
+- **2026-01-11**: 迁移到 AB Console 统一配置管理
   - 所有路径改为相对路径
   - 添加 `_paths.py` 统一路径管理
   - 添加 `startup_check()` 自动检查

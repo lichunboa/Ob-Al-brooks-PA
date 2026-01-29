@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# TradeCat 全市场数据库初始化脚本
+# AB Console 全市场数据库初始化脚本
 # 用法: ./init_market_db.sh [host] [port] [database]
 # ============================================================
 
@@ -15,7 +15,7 @@ PASSWORD=${PGPASSWORD:-postgres}
 DDL_DIR="$(dirname "$0")/ddl"
 
 echo "=============================================="
-echo "TradeCat 数据库初始化"
+echo "AB Console 数据库初始化"
 echo "=============================================="
 echo "Host: $HOST:$PORT"
 echo "Database: $DATABASE"

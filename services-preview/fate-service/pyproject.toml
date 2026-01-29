@@ -1,11 +1,11 @@
 [project]
 name = "fate-service"
 version = "0.1.0"
-description = "Fate calculation and analysis service for TradeCat - Chinese astrology and fortune telling"
+description = "Fate calculation and analysis service for AB Console - Chinese astrology and fortune telling"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["fate", "bazi", "astrology", "chinese-calendar"]
 classifiers = [
     "Development Status :: 3 - Alpha",

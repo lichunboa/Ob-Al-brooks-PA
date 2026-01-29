@@ -5,7 +5,7 @@ description = "对外数据消费 REST API 服务"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["api", "rest", "crypto", "data"]
 classifiers = [
     "Development Status :: 4 - Beta",

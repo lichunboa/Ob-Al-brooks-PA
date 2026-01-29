@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="AI Service for TradeCat")
+    parser = argparse.ArgumentParser(description="AI Service for AB Console")
     parser.add_argument("--test", action="store_true", help="测试配置")
     parser.add_argument("--list-prompts", action="store_true", help="列出可用提示词")
     parser.add_argument("--analyze", type=str, metavar="SYMBOL", help="测试分析指定币种")

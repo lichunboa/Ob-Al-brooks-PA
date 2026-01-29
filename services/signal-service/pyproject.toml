@@ -1,11 +1,11 @@
 [project]
 name = "signal-service"
 version = "0.1.0"
-description = "独立信号检测服务 - TradeCat"
+description = "独立信号检测服务 - AB Console"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["trading", "signals", "crypto"]
 classifiers = [
     "Development Status :: 3 - Alpha",

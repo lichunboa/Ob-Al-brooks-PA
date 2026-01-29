@@ -1,10 +1,10 @@
 # Fate Service
 
-> 专业级八字排盘服务 | TradeCat 微服务之一
+> 专业级八字排盘服务 | AB Console 微服务之一
 
 ## 项目简介
 
-Fate Service 是 TradeCat 项目的命理服务模块，提供专业的八字排盘、紫微斗数、择日等功能。
+Fate Service 是 AB Console 项目的命理服务模块，提供专业的八字排盘、紫微斗数、择日等功能。
 
 ## 快速开始
 
@@ -28,7 +28,7 @@ python3 -m venv .venv
 
 ### 3. 配置
 
-fate-service 使用 TradeCat 统一配置文件 `config/.env`：
+fate-service 使用 AB Console 统一配置文件 `config/.env`：
 
 ```bash
 # 复制配置模板（如果还没有）

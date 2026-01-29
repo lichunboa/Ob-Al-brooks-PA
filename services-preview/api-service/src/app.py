@@ -16,10 +16,11 @@ from src.routers import (
     indicator_router,
     signal_router,
 )
+from src.routers.obsidian import router as obsidian_router
 from src.utils.errors import ErrorCode
 
 app = FastAPI(
-    title="TradeCat API",
+    title="AB Console API",
     description="对外数据消费 REST API 服务 (CoinGlass V4 风格)",
     version=__version__,
     docs_url="/docs",
@@ -74,6 +75,16 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # 注册路由 (对齐 CoinGlass 路径风格)
 app.include_router(health_router, prefix="/api")
+
+# 根路径健康检查 (兼容 Obsidian 插件)
+@app.get("/health", tags=["health"])
+async def root_health():
+    return {
+        "status": "healthy",
+        "service": "api-service",
+        "version": __version__,
+        "timestamp": int(__import__("time").time() * 1000)
+    }
 app.include_router(coins_router, prefix="/api/futures")
 app.include_router(ohlc_router, prefix="/api/futures")
 app.include_router(open_interest_router, prefix="/api/futures")
@@ -81,3 +92,6 @@ app.include_router(funding_rate_router, prefix="/api/futures")
 app.include_router(futures_metrics_router, prefix="/api/futures")
 app.include_router(indicator_router, prefix="/api")
 app.include_router(signal_router, prefix="/api")
+
+# 注册 Obsidian 同步路由 (AB Console 专属)
+app.include_router(obsidian_router, prefix="/api/v1")

@@ -1,12 +1,12 @@
 # API 规范对比文档
 
-> 本文档对比 CoinGlass API V4 规范与 TradeCat API 的差异，用于指导 API 重构。
+> 本文档对比 CoinGlass API V4 规范与 AB Console API 的差异，用于指导 API 重构。
 
 ---
 
 ## 1. 基础信息对比
 
-| 项目 | CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| 项目 | CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|:---|
 | Base URL | `https://open-api-v4.coinglass.com` | `http://localhost:8089` | 不变 | - |
 | API 前缀 | `/api/futures/...` | `/api/v1/...` | `/api/futures/...` | ⚠️ 需改 |
@@ -17,7 +17,7 @@
 
 ## 2. 认证机制对比
 
-| 项目 | CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| 项目 | CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|:---|
 | 认证方式 | API Key | 无 | API Key (可选) | ⚠️ 需加 |
 | Header 名称 | `CG-API-KEY` | - | `X-API-KEY` | ⚠️ 需加 |
@@ -36,7 +36,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 3.1 成功响应
 
-| 项目 | CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| 项目 | CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|:---|
 | code 字段 | `"0"` (字符串) | 无 | `"0"` | ⚠️ 需改 |
 | msg 字段 | `"success"` | 无 | `"success"` | ⚠️ 需改 |
@@ -62,7 +62,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 }
 ```
 
-#### TradeCat 当前响应 (需修改)
+#### AB Console 当前响应 (需修改)
 ```json
 {
   "symbol": "BTCUSDT",
@@ -74,7 +74,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 3.2 错误响应
 
-| HTTP 状态码 | CoinGlass 含义 | TradeCat 目标 |
+| HTTP 状态码 | CoinGlass 含义 | AB Console 目标 |
 |:---|:---|:---|
 | 400 | 参数缺失或无效 | ✅ |
 | 401 | API Key 无效或缺失 | ⚠️ 需加 |
@@ -87,7 +87,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 3.3 业务错误码
 
-| 错误码 | CoinGlass 含义 | TradeCat 目标 |
+| 错误码 | CoinGlass 含义 | AB Console 目标 |
 |:---|:---|:---|
 | `"0"` | 成功 | ✅ |
 | `"40001"` | 参数错误，查看 msg | ✅ |
@@ -97,7 +97,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ## 4. 端点路径对比
 
-| 功能 | CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| 功能 | CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|:---|
 | 健康检查 | 无 | `GET /health` | `GET /api/health` | ⚠️ 需改 |
 | 支持币种 | `GET /api/futures/supported-coins` | `GET /api/v1/symbols` | `GET /api/futures/supported-coins` | ⚠️ 需改 |
@@ -115,7 +115,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 5.1 通用参数
 
-| 参数 | CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| 参数 | CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|:---|
 | `symbol` | 查询参数, `BTC` | 路径参数, `BTCUSDT` | 查询参数, 支持两种 | ⚠️ 需改 |
 | `exchange` | 查询参数, `Binance` | 无 | 查询参数 (可选) | ⚠️ 需加 |
@@ -126,7 +126,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 5.2 interval 可选值
 
-| CoinGlass V4 | TradeCat 目标 | 状态 |
+| CoinGlass V4 | AB Console 目标 | 状态 |
 |:---|:---|:---|
 | `1m` | `1m` | ✅ |
 | `5m` | `5m` | ✅ |
@@ -139,7 +139,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 5.3 symbol 格式
 
-| CoinGlass V4 | TradeCat 当前 | TradeCat 目标 |
+| CoinGlass V4 | AB Console 当前 | AB Console 目标 |
 |:---|:---|:---|
 | `BTC` | `BTCUSDT` | 支持 `BTC` 和 `BTCUSDT` 两种格式 |
 | `ETH` | `ETHUSDT` | 自动转换: `BTC` → `BTCUSDT` |
@@ -150,7 +150,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 6.1 OHLC 数据
 
-| CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|
 | `time` (毫秒) | `timestamp` (ISO) | `time` (毫秒) | ⚠️ 需改 |
 | `open` (字符串) | `open` (浮点) | `open` (字符串) | ⚠️ 需改 |
@@ -173,7 +173,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 6.2 Open Interest 数据
 
-| CoinGlass V4 | TradeCat 当前 | TradeCat 目标 |
+| CoinGlass V4 | AB Console 当前 | AB Console 目标 |
 |:---|:---|:---|
 | `time` | - | `time` |
 | `open` (OI开盘) | - | `open` |
@@ -183,7 +183,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 6.3 Funding Rate 数据
 
-| CoinGlass V4 | TradeCat 当前 | TradeCat 目标 |
+| CoinGlass V4 | AB Console 当前 | AB Console 目标 |
 |:---|:---|:---|
 | `time` | - | `time` |
 | `open` (FR开盘) | - | `open` |
@@ -193,7 +193,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ### 6.4 Supported Coins 数据
 
-| CoinGlass V4 | TradeCat 当前 | TradeCat 目标 | 状态 |
+| CoinGlass V4 | AB Console 当前 | AB Console 目标 | 状态 |
 |:---|:---|:---|:---|
 | `["BTC", "ETH", ...]` | `["BTCUSDT", ...]` + count | `["BTC", "ETH", ...]` | ⚠️ 需改 |
 
@@ -210,7 +210,7 @@ curl -X GET "https://open-api-v4.coinglass.com/api/futures/supported-coins" \
 
 ## 7. 速率限制对比
 
-| 项目 | CoinGlass V4 | TradeCat 目标 |
+| 项目 | CoinGlass V4 | AB Console 目标 |
 |:---|:---|:---|
 | 响应 Header | `API-KEY-MAX-LIMIT` | `X-RateLimit-Limit` |
 | 响应 Header | `API-KEY-USE-LIMIT` | `X-RateLimit-Remaining` |

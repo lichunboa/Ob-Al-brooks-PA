@@ -5,7 +5,7 @@ description = "量化指标计算微服务"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["trading", "indicators", "crypto", "technical-analysis"]
 classifiers = [
     "Development Status :: 4 - Beta",

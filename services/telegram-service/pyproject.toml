@@ -1,11 +1,11 @@
 [project]
 name = "telegram-service"
 version = "1.0.0"
-description = "Telegram Bot service for TradeCat - rankings, signals, and AI analysis"
+description = "Telegram Bot service for AB Console - rankings, signals, and AI analysis"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["telegram", "bot", "crypto", "trading"]
 classifiers = [
     "Development Status :: 4 - Beta",

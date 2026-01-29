@@ -1,11 +1,11 @@
 [project]
 name = "order-service"
 version = "0.1.0"
-description = "Trading execution service for TradeCat - Avellaneda-Stoikov market making"
+description = "Trading execution service for AB Console - Avellaneda-Stoikov market making"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "TradeCat Team" }]
+authors = [{ name = "AB Console Team" }]
 keywords = ["trading", "market-making", "crypto", "execution"]
 classifiers = [
     "Development Status :: 3 - Alpha",
