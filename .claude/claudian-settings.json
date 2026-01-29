@@ -1,0 +1,70 @@
+{
+  "userName": "",
+  "enableBlocklist": true,
+  "blockedCommands": {
+    "unix": [
+      "rm -rf",
+      "chmod 777",
+      "chmod -R 777"
+    ],
+    "windows": [
+      "del /s /q",
+      "rd /s /q",
+      "rmdir /s /q",
+      "format",
+      "diskpart",
+      "Remove-Item -Recurse -Force",
+      "Remove-Item -Force -Recurse",
+      "Remove-Item -r -fo",
+      "Remove-Item -fo -r",
+      "Remove-Item -Recurse",
+      "Remove-Item -r",
+      "ri -Recurse",
+      "ri -r",
+      "ri -Force",
+      "ri -fo",
+      "rm -r -fo",
+      "rm -Recurse",
+      "rm -Force",
+      "del -Recurse",
+      "del -Force",
+      "erase -Recurse",
+      "erase -Force",
+      "rd -Recurse",
+      "rmdir -Recurse",
+      "Format-Volume",
+      "Clear-Disk",
+      "Initialize-Disk",
+      "Remove-Partition"
+    ]
+  },
+  "permissionMode": "yolo",
+  "model": "haiku",
+  "thinkingBudget": "medium",
+  "enableAutoTitleGeneration": true,
+  "titleGenerationModel": "",
+  "show1MModel": false,
+  "excludedTags": [],
+  "mediaFolder": "",
+  "systemPrompt": "",
+  "allowedExportPaths": [
+    "~/Desktop",
+    "~/Downloads"
+  ],
+  "persistentExternalContextPaths": [],
+  "environmentVariables": "sk-302bf77c3e724acfa73d893a2d416c9d",
+  "envSnippets": [],
+  "keyboardNavigation": {
+    "scrollUpKey": "w",
+    "scrollDownKey": "s",
+    "focusInputKey": "i"
+  },
+  "locale": "zh-CN",
+  "claudeCliPath": "",
+  "claudeCliPathsByHost": {},
+  "loadUserClaudeSettings": true,
+  "lastClaudeModel": "opus",
+  "lastCustomModel": "claude-opus-4-5-thinking",
+  "lastEnvHash": "",
+  "maxTabs": 3
+}

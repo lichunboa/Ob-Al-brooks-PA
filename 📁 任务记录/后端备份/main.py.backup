@@ -1,0 +1,557 @@
+"""
+AB Console - API Gateway
+Main FastAPI application
+"""
+
+import os
+import logging
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+from fastapi import FastAPI, HTTPException, Query, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from .config import settings
+from .obsidian_sync import obsidian_sync
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper()),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+from .db import db
+from .sqlite_db import sqlite_db
+from .signal_db import signal_db
+
+# ============================================================
+# Auto Sync Task
+# ============================================================
+auto_sync_task = None
+
+async def auto_sync_loop():
+    """自动同步循环 - 每30秒同步一次"""
+    while True:
+        try:
+            result = await obsidian_sync.sync_all()
+            logger.info(f"Auto sync completed: {result}")
+        except Exception as e:
+            logger.error(f"Auto sync error: {e}")
+        await asyncio.sleep(30)  # 30秒同步一次
+
+# ============================================================
+# Lifespan
+# ============================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler"""
+    logger.info("Starting AB Console API Gateway...")
+    await db.connect()
+    await sqlite_db.connect()
+    await signal_db.connect()
+    
+    # 首次同步
+    await obsidian_sync.sync_all()
+    
+    # 启动自动同步任务
+    global auto_sync_task
+    auto_sync_task = asyncio.create_task(auto_sync_loop())
+    logger.info("Auto sync started (30s interval)")
+    
+    logger.info(f"API listening on {settings.api_host}:{settings.api_port}")
+    yield
+    
+    logger.info("Shutting down API Gateway...")
+    if auto_sync_task:
+        auto_sync_task.cancel()
+        try:
+            await auto_sync_task
+        except asyncio.CancelledError:
+            pass
+    await signal_db.disconnect()
+    await sqlite_db.disconnect()
+    await db.disconnect()
+
+# ============================================================
+# App
+# ============================================================
+app = FastAPI(
+    title="AB Console API",
+    description="Backend API for AB Console (Al Brooks Price Action trading system)",
+    version="2.1.0",
+    lifespan=lifespan,
+)
+
+# CORS
+# Parse CORS origins from string to list
+cors_origins_list = [origin.strip() for origin in settings.cors_origins.split(",")] if settings.cors_origins != "*" else ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# Auth
+# ============================================================
+async def verify_token(x_api_token: Optional[str] = Header(None)):
+    """Verify API token if configured"""
+    if settings.api_token and x_api_token != settings.api_token:
+        raise HTTPException(status_code=401, detail="Invalid API token")
+    return x_api_token
+
+
+# ============================================================
+# Models
+# ============================================================
+class HealthResponse(BaseModel):
+    status: str
+    timestamp: str
+    version: str
+
+
+class CandleData(BaseModel):
+    symbol: str
+    interval: str
+    open_time: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    quote_volume: float
+
+
+class IndicatorData(BaseModel):
+    symbol: str
+    interval: str
+    timestamp: str
+    rsi_14: Optional[float] = None
+    macd: Optional[float] = None
+    macd_signal: Optional[float] = None
+    macd_hist: Optional[float] = None
+    bb_upper: Optional[float] = None
+    bb_middle: Optional[float] = None
+    bb_lower: Optional[float] = None
+    sma_20: Optional[float] = None
+    ema_20: Optional[float] = None
+    atr_14: Optional[float] = None
+
+
+class SignalData(BaseModel):
+    symbol: str
+    signal_name: str
+    direction: str  # BUY, SELL, ALERT
+    strength: int
+    timestamp: str
+    message: str
+
+
+class AnalysisRequest(BaseModel):
+    symbol: str
+    prompt: str = "market_analysis"
+    interval: str = "1h"
+
+
+class AnalysisResponse(BaseModel):
+    symbol: str
+    analysis: str
+    timestamp: str
+    model: str
+
+
+# ============================================================
+# Routes: Health & Status
+# ============================================================
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Health check endpoint"""
+    return HealthResponse(
+        status="healthy",
+        timestamp=datetime.utcnow().isoformat(),
+        version="2.1.0",
+    )
+
+
+@app.get("/api/v1/sync/status")
+async def get_sync_status():
+    """Get Obsidian sync status"""
+    return obsidian_sync.get_status()
+
+
+@app.get("/api/v1/status")
+async def get_status():
+    """Get system status (public endpoint)"""
+    return {
+        "status": "running",
+        "services": {
+            "database": "connected" if db.pool else "disconnected",
+            "indicators_db": "connected" if sqlite_db.conn else "disconnected",
+            "signals_db": "connected" if signal_db.conn else "disconnected",
+            "data_service": "running",
+            "trading_service": "running",
+            "signal_service": "running",
+            "ai_service": "running",
+        },
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+# ============================================================
+# Routes: Market Data
+# ============================================================
+@app.get("/api/v1/candles/{symbol}", response_model=list[CandleData])
+async def get_candles(
+    symbol: str,
+    interval: str = Query("1h", description="K-line interval"),
+    limit: int = Query(100, ge=1, le=1000, description="Number of candles"),
+    format: str = Query("standard", description="Response format: standard or obsidian"),
+):
+    """Get K-line/candle data for a symbol
+    
+    format=obsidian: Returns ISO format open_time for Obsidian plugin compatibility
+    """
+    logger.info(f"Getting candles for {symbol}, interval={interval}, limit={limit}, format={format}")
+    
+    candles = await db.fetch_candles(
+        symbol=symbol,
+        interval=interval,
+        limit=limit
+    )
+    
+    # Obsidian format compatibility
+    if format == "obsidian":
+        obsidian_candles = []
+        for c in candles:
+            obsidian_candles.append({
+                "open_time": c["open_time"] if isinstance(c["open_time"], str) else datetime.fromtimestamp(c["time"]).isoformat(),
+                "open": c["open"],
+                "high": c["high"],
+                "low": c["low"],
+                "close": c["close"],
+                "volume": c.get("volume", 0),
+            })
+        return obsidian_candles
+    
+    return candles
+
+
+
+@app.get("/api/v1/symbols")
+async def get_symbols(token: str = Depends(verify_token)):
+    """Get list of available symbols"""
+    # TODO: Implement actual symbol list from database
+    return {
+        "symbols": [
+            "BTCUSDT",
+            "ETHUSDT",
+            "BNBUSDT",
+            "SOLUSDT",
+            "ES=F",
+            "NQ=F",
+            "NVDA",
+        ],
+        "count": 7,
+    }
+
+
+# ============================================================
+# Routes: Indicators - New for Obsidian
+# ============================================================
+@app.get("/api/v1/indicators/tables")
+async def get_indicator_tables(token: str = Depends(verify_token)):
+    """Get list of available indicator tables"""
+    tables = await sqlite_db.get_tables()
+    return {"tables": tables}
+
+@app.get("/api/v1/indicators/table/{table_name}")
+async def get_indicator_table_data(
+    table_name: str,
+    symbol: Optional[str] = Query(None),
+    limit: int = Query(50),
+    token: str = Depends(verify_token)
+):
+    """Get data from a specific indicator table"""
+    data = await sqlite_db.fetch_table_data(table_name, symbol, limit)
+    return data
+
+
+# ============================================================
+# Routes: Signals - New for Obsidian
+# ============================================================
+@app.get("/api/v1/signals/{symbol}")
+async def get_signals_by_symbol(
+    symbol: str,
+    limit: int = Query(50),
+    token: str = Depends(verify_token)
+):
+    """Get recent signals for a symbol"""
+    signals = await signal_db.get_recent_signals(limit, symbol)
+    return signals
+
+@app.get("/api/v1/signals")
+async def get_signals(
+    limit: int = Query(50),
+    direction: Optional[str] = Query(None),
+    token: str = Depends(verify_token)
+):
+    """Get recent signals from history"""
+    # Note: signal_db.get_recent_signals doesn't support direction filtering yet
+    # We can fetch and filter in memory for now
+    signals = await signal_db.get_recent_signals(limit, None)
+    
+    if direction:
+        signals = [s for s in signals if s.get("direction") == direction]
+        
+    return {"signals": signals, "count": len(signals)}
+
+
+# ============================================================
+# Routes: Strategies - Obsidian Integration
+# ============================================================
+class StrategyCreate(BaseModel):
+    name: str
+    description: str
+    status: str = "学习中 (Learning)"
+    directions: List[str] = ["做多 (Long)"]
+    timeframes: List[str] = ["5m", "15m"]
+    risk_level: str = "中 (Medium)"
+    risk_reward: str = "2:1"
+
+
+class StrategyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    directions: Optional[List[str]] = None
+    timeframes: Optional[List[str]] = None
+    risk_level: Optional[str] = None
+    risk_reward: Optional[str] = None
+
+
+@app.get("/api/v1/strategies")
+async def get_strategies():
+    """Get all strategies from Obsidian"""
+    strategies = obsidian_sync.load_strategies_json()
+    return {
+        "strategies": strategies,
+        "count": len(strategies),
+        "source": "obsidian"
+    }
+
+
+@app.post("/api/v1/strategies")
+async def create_strategy(strategy: StrategyCreate):
+    """Create a new strategy in Obsidian"""
+    try:
+        file_path = obsidian_sync.create_strategy(strategy.dict())
+        # 重新同步
+        await obsidian_sync.sync_all()
+        return {
+            "success": True,
+            "file_path": file_path,
+            "message": "Strategy created successfully"
+        }
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to create strategy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/v1/strategies/{strategy_id}")
+async def update_strategy(strategy_id: str, strategy: StrategyUpdate):
+    """Update a strategy in Obsidian"""
+    try:
+        update_data = {k: v for k, v in strategy.dict().items() if v is not None}
+        file_path = obsidian_sync.update_strategy(strategy_id, update_data)
+        # 重新同步
+        await obsidian_sync.sync_all()
+        return {
+            "success": True,
+            "file_path": file_path,
+            "message": "Strategy updated successfully"
+        }
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to update strategy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/strategies/sync")
+async def sync_strategies():
+    """Manually trigger strategy sync from Obsidian"""
+    result = await obsidian_sync.sync_all()
+    return {
+        "success": True,
+        "synced_strategies": result['strategies_count'],
+        "synced_trades": result['trades_count'],
+        "timestamp": result['sync_time']
+    }
+
+
+# ============================================================
+# Routes: Trades - Obsidian Integration
+# ============================================================
+class TradeCreate(BaseModel):
+    date: str
+    ticker: str
+    direction: str
+    entry_price: float
+    exit_price: Optional[float] = None
+    pnl: Optional[float] = None
+    strategy: Optional[str] = None
+
+
+@app.get("/api/v1/trades")
+async def get_trades():
+    """Get all trades from Obsidian"""
+    trades = obsidian_sync.load_trades_json()
+    return {
+        "trades": trades,
+        "count": len(trades),
+        "source": "obsidian"
+    }
+
+
+@app.post("/api/v1/trades")
+async def create_trade(trade: TradeCreate):
+    """Create a new trade record in Obsidian"""
+    try:
+        # Generate trade file
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%y%m%d_%H%M")
+        file_name = f"{timestamp}_实盘_{trade.ticker}.md"
+        
+        content = f"""---
+日期/date: {trade.date}
+品种/ticker: {trade.ticker}
+方向/direction: {trade.direction}
+入场价/entry_price: {trade.entry_price}
+出场价/exit_price: {trade.exit_price or ''}
+盈亏/pnl: {trade.pnl or ''}
+策略/strategy: {trade.strategy or ''}
+---
+
+# 交易记录
+
+## 入场分析
+
+
+## 出场分析
+
+
+## 复盘总结
+
+
+"""
+        
+        file_path = os.path.join(obsidian_sync.TRADES_PATH, file_name)
+        os.makedirs(obsidian_sync.TRADES_PATH, exist_ok=True)
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # 重新同步
+        await obsidian_sync.sync_all()
+        
+        return {
+            "success": True,
+            "file_path": file_path,
+            "message": "Trade created successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to create trade: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/trades/stats")
+async def get_trade_stats():
+    """Get trade statistics"""
+    trades = obsidian_sync.load_trades_json()
+    total = len(trades)
+    winning = len([t for t in trades if t.get('pnl', 0) > 0])
+    losing = len([t for t in trades if t.get('pnl', 0) < 0])
+    total_pnl = sum(t.get('pnl', 0) for t in trades)
+    win_rate = (winning / total * 100) if total > 0 else 0
+    
+    return {
+        "total_trades": total,
+        "winning_trades": winning,
+        "losing_trades": losing,
+        "win_rate": round(win_rate, 2),
+        "total_pnl": round(total_pnl, 2),
+        "avg_pnl": round(total_pnl / total, 2) if total > 0 else 0
+    }
+
+
+@app.post("/api/v1/trades/sync")
+async def sync_trades():
+    """Manually trigger trade sync from Obsidian"""
+    trades = obsidian_sync.scan_trades()
+    obsidian_sync.save_trades_json(trades)
+    return {
+        "success": True,
+        "synced_trades": len(trades),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/v1/sync/status")
+async def get_sync_status():
+    """Get Obsidian sync status"""
+    return obsidian_sync.get_status()
+
+
+@app.post("/api/v1/strategies/sync")
+async def sync_strategies_endpoint():
+    """Manually trigger strategies sync from Obsidian"""
+    try:
+        strategies = obsidian_sync.scan_strategies()
+        obsidian_sync.save_strategies_json(strategies)
+        trades = obsidian_sync.scan_trades()
+        obsidian_sync.save_trades_json(trades)
+        return {
+            "success": True,
+            "synced_strategies": len(strategies),
+            "synced_trades": len(trades),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed to sync strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================
+# Error Handler
+# ============================================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Unhandled exception: {exc}")
+    # Don't expose stack trace in production, but helpful for debugging now
+    # return JSONResponse(
+    #     status_code=500,
+    #     content={"detail": "Internal server error"},
+    # )
+    # Fallback to default behavior which might show detail if debug=True
+    raise exc
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=True,
+    )

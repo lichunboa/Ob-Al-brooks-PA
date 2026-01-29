@@ -1,0 +1,26 @@
+{
+    "manifest": {
+        "translationVersion": 1766523649291,
+        "pluginVersion": "1.11.4"
+    },
+    "description": {
+        "original": "Paste URL \"into\" selected text to create markdown links.",
+        "translation": "Paste URL \"into\" selected text to create markdown links."
+    },
+    "dict": {
+        ".log(\"loading url-into-selection\")": ".log(\"loading url-into-selection\")",
+        ".log(\"unloading url-into-selection\")": ".log(\"unloading url-into-selection\")",
+        ".error(\"empty clipboardData in ClipboardEvent\")": ".error(\"empty clipboardData in ClipboardEvent\")",
+        "name:\"\",editorCallback:async n=>{let r=await navigator.clipboard.readText();d(n,r,this.settings)}}),this.app.workspace.on(\"": "name:\"\",editorCallback:async n=>{let r=await navigator.clipboard.readText();d(n,r,this.settings)}}),this.app.workspace.on(\"",
+        "text:\"URL-into-selection Settings\"": "text:\"URL-into-selection Settings\"",
+        ".setName(\"Fallback Regular expression\")": ".setName(\"Fallback Regular expression\")",
+        ".setName(\"Behavior on pasting URL when nothing is selected\")": ".setName(\"Behavior on pasting URL when nothing is selected\")",
+        ".setName(\"Whitelist for image embed syntax\")": ".setName(\"Whitelist for image embed syntax\")",
+        ".setDesc(\"Regular expression used to match URLs when default match fails.\")": ".setDesc(\"Regular expression used to match URLs when default match fails.\")",
+        ".setDesc(\"Auto Select: Automatically select word surrounding the cursor.\")": ".setDesc(\"Auto Select: Automatically select word surrounding the cursor.\")",
+        ".setPlaceholder(\"Enter regular expression here..\")": ".setPlaceholder(\"Enter regular expression here..\")",
+        ".setPlaceholder(`Example:\nyoutu.?be|vimeo`)": ".setPlaceholder(`Example:\nyoutu.?be|vimeo`)",
+        ".appendText(\"![selection](url) will be used for URL that matches the following list.\")": ".appendText(\"![selection](url) will be used for URL that matches the following list.\")",
+        ".appendText(\"Rules are regex-based, split by line break.\")": ".appendText(\"Rules are regex-based, split by line break.\")"
+    }
+}
