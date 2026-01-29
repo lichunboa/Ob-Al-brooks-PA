@@ -1,8 +1,17 @@
 """K线数据路由 (对齐 CoinGlass /api/futures/ohlc/history)"""
 
 import asyncio
-import psycopg
+import os
+import socket
+import sys
+from pathlib import Path
 
+# 添加 data-service 路径以使用 ccxt 适配器
+_data_service_path = str(Path(__file__).parents[4] / "services" / "data-service" / "src")
+if _data_service_path not in sys.path:
+    sys.path.insert(0, _data_service_path)
+
+import psycopg
 from fastapi import APIRouter, Query
 from fastapi.concurrency import run_in_threadpool
 
@@ -74,63 +83,108 @@ async def get_candles_v1(
 ) -> list:
     """获取K线数据 (前端兼容格式) - /api/v1/candles/{symbol}
     
-    注意: 数据库不可用时返回空数组，前端应显示"数据不可用"状态
+    优先从数据库获取，数据库不可用时直接从交易所 API 获取
     """
+    import socket
+    
     symbol = normalize_symbol(symbol)
     
     if interval not in VALID_INTERVALS:
         return []
-    table = TABLE_BY_INTERVAL.get(interval)
-    if not table:
-        return []
     
-    # 先检查数据库健康状态
-    if not _check_db_health():
-        return []  # 数据库不可用，返回空数组
+    # 检查数据库端口是否开放
+    def check_port(host, port, timeout=1):
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except:
+            return False
     
-    def _fetch_rows():
-        with get_pg_pool().connection() as conn:
-            with conn.cursor() as cursor:
-                query = f"""
-                    SELECT symbol, bucket_ts, open, high, low, close, volume
-                    FROM {table}
-                    WHERE symbol = %s AND exchange = 'binance_futures_um'
-                """
-                params: list = [symbol]
-                
-                if since:
-                    query += " AND bucket_ts >= to_timestamp(%s / 1000.0)"
-                    params.append(since)
-                
-                query += " ORDER BY bucket_ts DESC LIMIT %s"
-                params.append(limit)
-                
-                cursor.execute(query, params)
-                return cursor.fetchall()
+    # 如果数据库可用，优先从数据库查询
+    if check_port("localhost", 5434):
+        table = TABLE_BY_INTERVAL.get(interval)
+        if table:
+            def _fetch_from_db():
+                with get_pg_pool().connection() as conn:
+                    with conn.cursor() as cursor:
+                        query = f"""
+                            SELECT symbol, bucket_ts, open, high, low, close, volume
+                            FROM {table}
+                            WHERE symbol = %s AND exchange = 'binance_futures_um'
+                        """
+                        params: list = [symbol]
+                        
+                        if since:
+                            query += " AND bucket_ts >= to_timestamp(%s / 1000.0)"
+                            params.append(since)
+                        
+                        query += " ORDER BY bucket_ts DESC LIMIT %s"
+                        params.append(limit)
+                        
+                        cursor.execute(query, params)
+                        return cursor.fetchall()
+            
+            try:
+                rows = await asyncio.wait_for(run_in_threadpool(_fetch_from_db), timeout=3.0)
+                if rows:
+                    return [
+                        {
+                            "open_time": int(row[1].timestamp() * 1000),
+                            "open": float(row[2]),
+                            "high": float(row[3]),
+                            "low": float(row[4]),
+                            "close": float(row[5]),
+                            "volume": float(row[6]) if row[6] else 0,
+                            "close_time": int(row[1].timestamp() * 1000) + 60000,
+                        }
+                        for row in reversed(rows)
+                    ]
+            except Exception:
+                pass  # 数据库查询失败，继续尝试从交易所获取
     
+    # 数据库不可用或查询失败，直接从交易所获取
     try:
-        # 使用更短的超时
-        rows = await asyncio.wait_for(run_in_threadpool(_fetch_rows), timeout=3.0)
+        # 动态导入 ccxt 适配器
+        from adapters.ccxt import fetch_ohlcv
         
-        if not rows:
-            return []
+        # 转换 interval 格式
+        ccxt_interval = interval  # ccxt 使用相同的格式: 1m, 5m, 15m, 1h, 4h, 1d
         
-        # 转换为前端需要的格式
-        return [
-            {
-                "open_time": int(row[1].timestamp() * 1000),
-                "open": float(row[2]),
-                "high": float(row[3]),
-                "low": float(row[4]),
-                "close": float(row[5]),
-                "volume": float(row[6]) if row[6] else 0,
-                "close_time": int(row[1].timestamp() * 1000) + 60000,
-            }
-            for row in reversed(rows)
-        ]
-    except Exception:
-        # 任何错误都返回空数组
-        return []
+        # 计算 since 时间
+        since_ms = since
+        if not since_ms and limit:
+            # 根据 limit 和 interval 估算起始时间
+            interval_minutes = {
+                "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+                "1h": 60, "2h": 120, "4h": 240, "1d": 1440
+            }.get(interval, 5)
+            import time
+            since_ms = int((time.time() - limit * interval_minutes * 60) * 1000)
+        
+        # 从 Binance 获取数据
+        candles = await asyncio.wait_for(
+            asyncio.to_thread(fetch_ohlcv, "binance", symbol, ccxt_interval, since_ms, limit),
+            timeout=10.0
+        )
+        
+        if candles:
+            return [
+                {
+                    "open_time": int(c[0]),
+                    "open": float(c[1]),
+                    "high": float(c[2]),
+                    "low": float(c[3]),
+                    "close": float(c[4]),
+                    "volume": float(c[5]),
+                    "close_time": int(c[0]) + 60000,  # 估算关闭时间
+                }
+                for c in candles
+            ]
+    except Exception as e:
+        # 交易所获取也失败，返回空数组
+        print(f"[ohlc] 从交易所获取数据失败: {e}")
+    
+    return []
 
 
 @router.get("/ohlc/history")
