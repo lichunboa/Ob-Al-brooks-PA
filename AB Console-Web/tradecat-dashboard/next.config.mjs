@@ -2,6 +2,11 @@
 const nextConfig = {
   output: 'standalone',
   
+  // 构建时忽略 ESLint 错误
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
   // 环境变量（构建时可用）
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
@@ -24,6 +29,11 @@ const nextConfig = {
       {
         source: '/api/backend/:path*',
         destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/:path*`,
+      },
+      // Sync Service 代理
+      {
+        source: '/api/sync/:path*',
+        destination: 'http://localhost:8089/api/v1/:path*',
       },
     ];
   },

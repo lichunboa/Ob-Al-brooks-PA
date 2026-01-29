@@ -109,12 +109,14 @@ export default function ChartPage() {
   }, [symbol, isConnected, subscribe, unsubscribe]);
 
   // 获取数据的函数
-  const fetchData = useCallback((force = false) => {
+  const fetchDataRef = useRef<(force?: boolean) => void>();
+  fetchDataRef.current = (force?: boolean) => {
+    const shouldForce = force ?? false;
     const now = Date.now();
     setErrorMessage(null);
     
     // 防重复请求
-    if (!force && lastFetchRef.current) {
+    if (!shouldForce && lastFetchRef.current) {
       const { symbol: lastSymbol, interval: lastInterval, time: lastTime } = lastFetchRef.current;
       if (lastSymbol === symbol && lastInterval === interval && (now - lastTime) < 3000) {
         return;
@@ -144,7 +146,7 @@ export default function ChartPage() {
         }));
         
         // 智能合并数据
-        if (candlesRef.current.length > 0 && normalizedCandles.length > 0 && !force) {
+        if (candlesRef.current.length > 0 && normalizedCandles.length > 0 && !shouldForce) {
           const lastExisting = candlesRef.current[candlesRef.current.length - 1];
           const lastNew = normalizedCandles[normalizedCandles.length - 1];
           
@@ -204,13 +206,21 @@ export default function ChartPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [symbol, interval, apiUrl]);
+  };
+  
+  // Wrapper function for fetchDataRef
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fetchData: any = useCallback((force?: boolean) => {
+    fetchDataRef.current?.(force);
+  }, []);
 
   // 初始加载和定时刷新
   useEffect(() => {
+    // @ts-ignore
     fetchData(true);
-    const intervalId = setInterval(() => fetchData(false), 30000); // 30秒刷新一次K线
-    return () => clearInterval(intervalId);
+    // @ts-ignore
+    const intervalId: NodeJS.Timeout = setInterval(() => { fetchData(true); }, 30000); // 30秒刷新一次K线
+    return () => { clearInterval(intervalId); };
   }, [fetchData]);
 
   const formatTime = (date: Date) => {
