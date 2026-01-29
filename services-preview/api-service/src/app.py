@@ -87,6 +87,7 @@ async def root_health():
     }
 app.include_router(coins_router, prefix="/api/futures")
 app.include_router(ohlc_router, prefix="/api/futures")
+app.include_router(ohlc_router, prefix="/api/v1")  # 前端兼容路由
 app.include_router(open_interest_router, prefix="/api/futures")
 app.include_router(funding_rate_router, prefix="/api/futures")
 app.include_router(futures_metrics_router, prefix="/api/futures")
