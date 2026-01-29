@@ -39,52 +39,30 @@ def _normalize_exchange(exchange: str) -> str:
     return ex or "binance_futures_um"
 
 
-def _generate_mock_candles(symbol: str, limit: int, interval: str) -> list:
-    """生成模拟K线数据"""
-    import random
+# 数据库健康状态缓存
+_db_health_cache = {"healthy": False, "last_check": 0}
+
+
+def _check_db_health() -> bool:
+    """检查数据库连接状态（带缓存）"""
     import time
+    global _db_health_cache
     
-    # 基于品种确定基准价格
-    base_price = 50000 if "BTC" in symbol else 3000 if "ETH" in symbol else 1500 if "SOL" in symbol else 200 if "NQ" in symbol else 5500 if "ES" in symbol else 2000 if "XAU" in symbol or "GC" in symbol else 150 if "NVDA" in symbol else 200 if "AAPL" in symbol else 1.1 if "EUR" in symbol else 100
+    now = time.time()
+    # 5秒内使用缓存结果
+    if now - _db_health_cache["last_check"] < 5:
+        return _db_health_cache["healthy"]
     
-    # 确定时间间隔(毫秒)
-    interval_ms = {
-        "1m": 60000, "5m": 300000, "15m": 900000, "30m": 1800000,
-        "1h": 3600000, "2h": 7200000, "4h": 14400000, "1d": 86400000
-    }.get(interval, 300000)
-    
-    data = []
-    now = int(time.time() * 1000)
-    
-    # 使用种子确保同一品种数据一致
-    seed = sum(ord(c) for c in symbol)
-    random.seed(seed)
-    
-    price = base_price
-    for i in range(limit):
-        timestamp = now - (limit - i) * interval_ms
-        
-        # 生成随机波动
-        change_pct = random.uniform(-0.005, 0.005)  # ±0.5%
-        open_p = price
-        close = price * (1 + change_pct)
-        high = max(open_p, close) * (1 + random.uniform(0, 0.003))
-        low = min(open_p, close) * (1 - random.uniform(0, 0.003))
-        volume = random.uniform(100, 10000)
-        
-        data.append({
-            "open_time": timestamp,
-            "open": round(open_p, 2),
-            "high": round(high, 2),
-            "low": round(low, 2),
-            "close": round(close, 2),
-            "volume": round(volume, 2),
-            "close_time": timestamp + interval_ms - 1,
-        })
-        
-        price = close
-    
-    return data
+    try:
+        pool = get_pg_pool()
+        with pool.connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                _db_health_cache = {"healthy": True, "last_check": now}
+                return True
+    except Exception:
+        _db_health_cache = {"healthy": False, "last_check": now}
+        return False
 
 
 @router.get("/candles/{symbol}")
@@ -94,14 +72,21 @@ async def get_candles_v1(
     limit: int = Query(default=100, ge=1, le=1000, description="返回数量"),
     since: int | None = Query(default=None, description="开始时间 (毫秒)"),
 ) -> list:
-    """获取K线数据 (前端兼容格式) - /api/v1/candles/{symbol}"""
+    """获取K线数据 (前端兼容格式) - /api/v1/candles/{symbol}
+    
+    注意: 数据库不可用时返回空数组，前端应显示"数据不可用"状态
+    """
     symbol = normalize_symbol(symbol)
     
     if interval not in VALID_INTERVALS:
-        return _generate_mock_candles(symbol, limit, interval)
+        return []
     table = TABLE_BY_INTERVAL.get(interval)
     if not table:
-        return _generate_mock_candles(symbol, limit, interval)
+        return []
+    
+    # 先检查数据库健康状态
+    if not _check_db_health():
+        return []  # 数据库不可用，返回空数组
     
     def _fetch_rows():
         with get_pg_pool().connection() as conn:
@@ -125,10 +110,10 @@ async def get_candles_v1(
     
     try:
         # 使用更短的超时
-        rows = await asyncio.wait_for(run_in_threadpool(_fetch_rows), timeout=2.0)
+        rows = await asyncio.wait_for(run_in_threadpool(_fetch_rows), timeout=3.0)
         
         if not rows:
-            return _generate_mock_candles(symbol, limit, interval)
+            return []
         
         # 转换为前端需要的格式
         return [
@@ -144,8 +129,8 @@ async def get_candles_v1(
             for row in reversed(rows)
         ]
     except Exception:
-        # 任何错误都返回模拟数据
-        return _generate_mock_candles(symbol, limit, interval)
+        # 任何错误都返回空数组
+        return []
 
 
 @router.get("/ohlc/history")
