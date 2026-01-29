@@ -216,44 +216,121 @@ const SyncStatusPanel: React.FC = () => {
   } | null>(null);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [syncResult, setSyncResult] = React.useState<string | null>(null);
+  const [syncServiceConnected, setSyncServiceConnected] = React.useState(false);
+  
+  // Sync Service URL (port 8089)
+  const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ':8089');
+
+  // Check sync-service health
+  const checkSyncService = async () => {
+    try {
+      const res = await fetch(`${syncServiceUrl}/api/v1/health`, { 
+        method: "GET",
+        signal: undefined
+      });
+      setSyncServiceConnected(res.ok);
+    } catch {
+      setSyncServiceConnected(false);
+    }
+  };
 
   const fetchSyncStatus = async () => {
     try {
-      const res = await fetch(`${settings.backend.baseUrl}/api/v1/sync/status`);
+      const res = await fetch(`${syncServiceUrl}/api/v1/status`, {
+        signal: undefined
+      });
       if (res.ok) {
         const data = await res.json();
-        setSyncStatus(data);
+        setSyncStatus({
+          last_sync: data.last_sync?.trades || data.last_sync?.strategies,
+          sync_count: 0, // Will be calculated from sync logs
+          strategies_count: data.stats?.total_strategies || 0,
+          trades_count: data.stats?.total_trades || 0,
+        });
+        setSyncServiceConnected(true);
       }
     } catch (e) {
-      // Silently fail
+      setSyncServiceConnected(false);
     }
   };
 
   React.useEffect(() => {
+    checkSyncService();
     fetchSyncStatus();
-    const interval = setInterval(fetchSyncStatus, 30000);
+    const interval = setInterval(() => {
+      checkSyncService();
+      fetchSyncStatus();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [settings.backend.baseUrl]);
+  }, [syncServiceUrl]);
 
   const triggerSync = async () => {
     setIsSyncing(true);
     setSyncResult(null);
     try {
-      const res = await fetch(`${settings.backend.baseUrl}/api/v1/strategies/sync`, {
+      // Trigger full sync via sync-service
+      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/full`, {
         method: "POST",
+        signal: undefined
       });
       if (res.ok) {
         const data = await res.json();
-        setSyncResult(`✅ 同步完成: ${data.synced_strategies} 策略, ${data.synced_trades} 交易`);
-        fetchSyncStatus();
+        setSyncResult(`✅ ${data.message || "同步已启动"}`);
+        // Poll for completion
+        setTimeout(fetchSyncStatus, 5000);
       } else {
-        setSyncResult("❌ 同步失败");
+        const error = await res.text();
+        setSyncResult(`❌ 同步失败: ${error}`);
       }
     } catch (e) {
-      setSyncResult("❌ 同步失败: 后端未运行");
+      setSyncResult("❌ 同步失败: Sync Service 未连接");
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncResult(null), 5000);
+    }
+  };
+  
+  const syncTradesOnly = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/trades`, {
+        method: "POST",
+        signal: undefined
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSyncResult(`✅ ${data.message || "交易同步已启动"}`);
+        setTimeout(fetchSyncStatus, 5000);
+      } else {
+        setSyncResult("❌ 交易同步失败");
+      }
+    } catch (e) {
+      setSyncResult("❌ 同步失败: Sync Service 未连接");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  
+  const syncStrategiesOnly = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/strategies`, {
+        method: "POST",
+        signal: undefined
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSyncResult(`✅ ${data.message || "策略同步已启动"}`);
+        setTimeout(fetchSyncStatus, 5000);
+      } else {
+        setSyncResult("❌ 策略同步失败");
+      }
+    } catch (e) {
+      setSyncResult("❌ 同步失败: Sync Service 未连接");
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -273,6 +350,30 @@ const SyncStatusPanel: React.FC = () => {
       <SectionHeader title="Obsidian 同步" subtitle="Vault Sync" icon="🔄" />
       
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: SPACE.sm }}>
+        {/* Sync Service Status */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "8px 12px",
+          background: syncServiceConnected ? V5_COLORS.live + "10" : V5_COLORS.textDim + "10",
+          borderRadius: "6px",
+          border: `1px solid ${syncServiceConnected ? V5_COLORS.live + "30" : "var(--background-modifier-border)"}`,
+        }}>
+          <span style={{
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: syncServiceConnected ? V5_COLORS.live : V5_COLORS.textDim,
+          }} />
+          <span style={{ fontSize: "12px", fontWeight: 500 }}>
+            Sync Service
+          </span>
+          <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto" }}>
+            {syncServiceConnected ? "已连接" : "未连接"}
+          </span>
+        </div>
+
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -302,8 +403,8 @@ const SyncStatusPanel: React.FC = () => {
             borderRadius: "6px",
             textAlign: "center",
           }}>
-            <div style={{ fontSize: "18px", fontWeight: 600 }}>{syncStatus?.sync_count ?? "-"}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>同步次数</div>
+            <div style={{ fontSize: "18px", fontWeight: 600 }}>{syncServiceConnected ? "✓" : "-"}</div>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>服务状态</div>
           </div>
         </div>
 
@@ -328,20 +429,56 @@ const SyncStatusPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Full Sync Button */}
         <InteractiveButton
           interaction="text"
           onClick={triggerSync}
-          disabled={isSyncing}
+          disabled={isSyncing || !syncServiceConnected}
           style={{
             padding: "10px",
             background: V5_COLORS.accent,
             color: "white",
             borderRadius: "6px",
             fontSize: "13px",
+            opacity: !syncServiceConnected ? 0.5 : 1,
           }}
         >
-          {isSyncing ? "🔄 同步中..." : "🔄 手动同步"}
+          {isSyncing ? "🔄 同步中..." : "🔄 完整同步"}
         </InteractiveButton>
+        
+        {/* Quick Sync Buttons */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <InteractiveButton
+            interaction="text"
+            onClick={syncTradesOnly}
+            disabled={isSyncing || !syncServiceConnected}
+            style={{
+              padding: "8px",
+              background: "var(--background-primary)",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "6px",
+              fontSize: "12px",
+              opacity: !syncServiceConnected ? 0.5 : 1,
+            }}
+          >
+            📊 同步交易
+          </InteractiveButton>
+          <InteractiveButton
+            interaction="text"
+            onClick={syncStrategiesOnly}
+            disabled={isSyncing || !syncServiceConnected}
+            style={{
+              padding: "8px",
+              background: "var(--background-primary)",
+              border: "1px solid var(--background-modifier-border)",
+              borderRadius: "6px",
+              fontSize: "12px",
+              opacity: !syncServiceConnected ? 0.5 : 1,
+            }}
+          >
+            🎯 同步策略
+          </InteractiveButton>
+        </div>
       </div>
     </GlassPanel>
   );

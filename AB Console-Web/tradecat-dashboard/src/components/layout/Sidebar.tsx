@@ -13,7 +13,8 @@ import {
   Settings,
   Menu,
   X,
-  Receipt
+  Receipt,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackendControl } from './BackendControl';
@@ -25,6 +26,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/', label: '仪表板', icon: LayoutDashboard },
+  { href: '/data-overview', label: '数据总览', icon: Database },
   { href: '/chart', label: 'K线图表', icon: CandlestickChart },
   { href: '/scanner', label: '市场扫描', icon: Scan },
   { href: '/signals', label: '信号监控', icon: Bell },

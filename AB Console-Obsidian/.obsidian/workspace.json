@@ -82,7 +82,7 @@
             }
           },
           {
-            "id": "295e7b8de7b10d77",
+            "id": "fb43eb47d10ff213",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -199,8 +199,8 @@
             "state": {
               "type": "review-queue-list-view",
               "state": {},
-              "icon": "lucide-ghost",
-              "title": "review-queue-list-view"
+              "icon": "SpacedRepIcon",
+              "title": "笔记复习序列"
             }
           },
           {
@@ -268,7 +268,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 633.5
+    "width": 735.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -292,13 +292,13 @@
       "templater-obsidian:Templater": false,
       "zenboard:Zenboard: Open dashboard": false,
       "obsidian-spaced-repetition:复习卡片": false,
-      "journalit:打开 Journalit": false,
       "copilot:Open Copilot Chat": false,
       "obsidian-excalidraw-plugin:新建绘图文件": false,
-      "al-brooks-console:打开交易员控制台": false
+      "al-brooks-console:打开交易员控制台": false,
+      "journalit:打开 Journalit": false
     }
   },
-  "active": "76640811242ed608",
+  "active": "8fc73566cacc2fd8",
   "lastOpenFiles": [
     "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_20均线缺口.md",
     "🦁 交易员控制台 (Trader Command)/🚀 新架构说明.md",
