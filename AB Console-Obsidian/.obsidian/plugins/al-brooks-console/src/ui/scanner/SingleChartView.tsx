@@ -356,6 +356,7 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
                       currentSymbol.id.includes(s.symbol.replace("=X", "").replace("=F", ""));
                     return symbolMatch;
                   })}
+                  backend={backend}
                 />
 
                 {/* 最新信号 */}
