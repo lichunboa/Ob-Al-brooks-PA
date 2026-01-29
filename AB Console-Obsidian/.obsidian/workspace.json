@@ -1,0 +1,310 @@
+{
+  "main": {
+    "id": "8d358b2decf10744",
+    "type": "split",
+    "children": [
+      {
+        "id": "c2cb3759d6bb4901",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3ce1808ea0499d77",
+            "type": "leaf",
+            "state": {
+              "type": "journalit-home-view",
+              "state": {},
+              "icon": "circle-dot-dashed",
+              "title": "Journalit"
+            }
+          },
+          {
+            "id": "343256f16e37a19c",
+            "type": "leaf",
+            "state": {
+              "type": "market-scanner-view",
+              "state": {},
+              "icon": "layout-grid",
+              "title": "Market Scanner"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6f6f1f823f55fac7",
+    "type": "split",
+    "children": [
+      {
+        "id": "7a54dc9d06ca8965",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cb5e2e0e9818b83f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "366897654488a404",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": true,
+                "collapseAll": false,
+                "extraContext": true,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "36a056dfbcc6eb97",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          },
+          {
+            "id": "3f63ebb7ca041242",
+            "type": "leaf",
+            "state": {
+              "type": "mk-path-view",
+              "state": {},
+              "icon": "layout-grid",
+              "title": "Navigator"
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "horizontal",
+    "width": 290.50312423706055
+  },
+  "right": {
+    "id": "035bced972071944",
+    "type": "split",
+    "children": [
+      {
+        "id": "24bca2bdd7d6eb4d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "286825724c004ccd",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "🦁 交易员控制台 (Trader Command)5.0.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "🦁 交易员控制台 (Trader Command)5.0 的反向链接列表"
+            }
+          },
+          {
+            "id": "bcf6c4ae505ff4e3",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "🦁 交易员控制台 (Trader Command)5.0.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "🦁 交易员控制台 (Trader Command)5.0 的出链列表"
+            }
+          },
+          {
+            "id": "4f966931707455bb",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": true,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "ea00dcaefe6bddc0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Categories 分类/Al brooks/价格行为学/01 术语.md",
+                "followCursor": true,
+                "showSearch": true,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "01 术语 的大纲"
+            }
+          },
+          {
+            "id": "a9fac31c447c10af",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "e638fcb74cbbdfc1",
+            "type": "leaf",
+            "state": {
+              "type": "copilot-chat-view",
+              "state": {},
+              "icon": "message-square",
+              "title": "Copilot"
+            }
+          },
+          {
+            "id": "1b7c55d8ffc9fabf",
+            "type": "leaf",
+            "state": {
+              "type": "al-brooks-console-view",
+              "state": {},
+              "icon": "bar-chart-2",
+              "title": "交易员控制台"
+            }
+          },
+          {
+            "id": "66343fd62f14f598",
+            "type": "leaf",
+            "state": {
+              "type": "review-queue-list-view",
+              "state": {},
+              "icon": "SpacedRepIcon",
+              "title": "笔记复习序列"
+            }
+          }
+        ],
+        "currentTab": 6
+      }
+    ],
+    "direction": "horizontal",
+    "width": 544.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:新建数据库": false,
+      "graph:查看关系图谱": false,
+      "switcher:打开快速切换": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "remotely-save:Remotely Save": false,
+      "obsidian-git:Open Git source control": false,
+      "obsidian-importer:Open Importer": false,
+      "obsidian-local-images-plus:Local Images Plus  0.16.4\r\nLocalize attachments (plugin folder)": false,
+      "omnisearch:Omnisearch": false,
+      "pdf-plus:PDF++: Toggle auto-copy": false,
+      "pdf-plus:PDF++: Toggle auto-focus": false,
+      "pdf-plus:PDF++: Toggle auto-paste": false,
+      "pkmer:Open Pkmer Market": false,
+      "smart-composer:Open smart composer": false,
+      "templater-obsidian:Templater": false,
+      "zenboard:Zenboard: Open dashboard": false,
+      "obsidian-spaced-repetition:复习卡片": false,
+      "copilot:Open Copilot Chat": false,
+      "obsidian-excalidraw-plugin:新建绘图文件": false,
+      "al-brooks-console:打开交易员控制台": false,
+      "journalit:打开 Journalit": false
+    }
+  },
+  "active": "343256f16e37a19c",
+  "lastOpenFiles": [
+    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_20均线缺口.md",
+    "🦁 交易员控制台 (Trader Command)/🚀 新架构说明.md",
+    "🦁 交易员控制台 (Trader Command)/📘 项目小白指南 (Project Guide for Beginners).md",
+    "🦁 交易员控制台 (Trader Command)/📋 美股开发计划.md",
+    "🦁 交易员控制台 (Trader Command)/📋 全面升级规划书 (Comprehensive Upgrade Roadmap).md",
+    "🦁 交易员控制台 (Trader Command)/📋 任务完成状态.md",
+    "🦁 交易员控制台 (Trader Command)/📋 任务完成状态 2026-01-28.md",
+    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/笔记规范指南.md",
+    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/模块分析报告.md",
+    "🦁 交易员控制台 (Trader Command)/📋 今日完成总结.md",
+    "🦁 交易员控制台 (Trader Command)/📋 交互迁移计划.md",
+    "🦁 交易员控制台 (Trader Command)/📊 TradeCat深度分析报告.md",
+    "🦁 交易员控制台 (Trader Command)/存档/🦁 交易员控制台 (Trader Command)5.0.md",
+    "🦁 交易员控制台 (Trader Command)/存档/🚀 插件升级优化方案 v2.0.md",
+    "🦁 交易员控制台 (Trader Command)/存档/🔧 系统问题诊断报告.md",
+    "🦁 交易员控制台 (Trader Command)/存档/📊 插件功能报告 v1.6.1.md",
+    "🦁 交易员控制台 (Trader Command)/存档/📊 TradeCat官方对比分析报告.md",
+    "🦁 交易员控制台 (Trader Command)/存档/🎉 修复完成总结报告.md",
+    "🦁 交易员控制台 (Trader Command)/存档/🎉 AI服务配置完成报告.md",
+    "🦁 交易员控制台 (Trader Command)/存档/✅ 修复进度报告.md",
+    "🦁 交易员控制台 (Trader Command)/docs/迁移计划-详细执行方案.md",
+    "🦁 交易员控制台 (Trader Command)/docs/架构分析-三分离方案.md",
+    "🦁 交易员控制台 (Trader Command)/docs",
+    "策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository).md",
+    "策略仓库 (Strategy Repository)/Al Brooks 策略/高1低1 (High 1Low 1).md",
+    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_首次均线缺口.md",
+    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_磁铁吸引.md",
+    "未命名.base",
+    "未命名 1.base",
+    "未命名 1 2.base",
+    "views.json",
+    "tools/generate-snapshot-from-legacy.js",
+    "tools",
+    "statuses/icons/todo.svg",
+    "statuses/icons/needs-review.svg",
+    "statuses/icons/in-progress.svg",
+    "statuses/icons/done.svg",
+    "statuses/icons/cancelled.svg",
+    "statuses/icons/backlog.svg",
+    "statuses/icons",
+    "statuses/config.json",
+    "statuses",
+    "Notes 笔记/assets/测量移动/测量移动-20251215232541562.png",
+    "Notes 笔记/assets/测量移动/测量移动-20251215232540256.png",
+    "Notes 笔记/assets/测量移动/测量移动-20251215232538980.png",
+    "Notes 笔记/assets/测量移动/测量移动-20251215232538978.png",
+    "Categories 分类/总揽.canvas",
+    "Categories 分类/太妃价格行为/太妃课程列表.canvas",
+    "价格行为实盘-复盘步骤.canvas",
+    "Excalidraw/未命名.canvas",
+    "未命名.canvas",
+    "Al-brooks-PA/太妃价格行为/太妃课程列表.canvas",
+    "Al-brooks-PA/价格行为实盘-复盘步骤.canvas",
+    "Al-brooks-PA/价格行为实盘-复盘步骤.canvas",
+    "Al-brooks-PA/太妃价格行为/太妃课程列表.canvas",
+    "价格行/太妃价格行为/太妃课程列表.canvas"
+  ]
+}

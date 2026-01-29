@@ -1,0 +1,27 @@
+{
+    "manifest": {
+        "translationVersion": 1766523655538,
+        "pluginVersion": "0.6.4"
+    },
+    "description": {
+        "original": "Rename, merge, toggle, and search tags from the tags view",
+        "translation": "Rename, merge, toggle, and search tags from the tags view"
+    },
+    "dict": {
+        "Notice(l)": "Notice(l)",
+        "Notice(u+\"; skipping frontmatter\")": "Notice(u+\"; skipping frontmatter\")",
+        "Notice(\"Unchanged or empty tag: No changes made.\")": "Notice(\"Unchanged or empty tag: No changes made.\")",
+        "Notice(`Operation ${u.aborted?\"cancelled\":\"complete\"}: ${f} file(s)": "Notice(`Operation ${u.aborted?\"cancelled\":\"complete\"}: ${f} file(s)",
+        "Notice(`\"${t}\" is not a valid Obsidian tag name`)": "Notice(`\"${t}\" is not a valid Obsidian tag name`)",
+        "Notice(\"error: \"+i)": "Notice(\"error: \"+i)",
+        ".log(e)": ".log(e)",
+        ".error(l)": ".error(l)",
+        ".error(u)": ".error(u)",
+        ".error(i)": ".error(i)",
+        "name:\"all\"": "name:\"all\"",
+        "text:\"0%\"": "text:\"0%\"",
+        ".setTitle(`Renaming #${s} (and any sub-tags)`)": ".setTitle(`Renaming #${s} (and any sub-tags)`)",
+        ".setTitle(\"WARNING: No Undo!\")": ".setTitle(\"WARNING: No Undo!\")",
+        ".setTitle(\"Create Tag Page\")": ".setTitle(\"Create Tag Page\")"
+    }
+}

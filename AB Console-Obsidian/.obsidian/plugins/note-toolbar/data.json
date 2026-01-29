@@ -1,0 +1,780 @@
+{
+  "debugEnabled": false,
+  "editorMenuAsToolbar": false,
+  "editorMenuToolbar": null,
+  "emptyViewToolbar": null,
+  "export": {
+    "includeIcons": true,
+    "replaceVars": true,
+    "useDataEls": true,
+    "useIds": true
+  },
+  "folderMappings": [
+    {
+      "folder": "*",
+      "toolbar": "dd66f6bc-12af-4bd9-b952-9cbcbfe28312"
+    }
+  ],
+  "icon": "circle-ellipsis",
+  "keepPropsState": false,
+  "lockCallouts": false,
+  "obsidianUiVisibility": {},
+  "onboarding": {
+    "new-toolbar-mapping": true
+  },
+  "ribbonAction": "toolbar",
+  "rules": [],
+  "scriptingEnabled": true,
+  "showEditInFabMenu": false,
+  "showLaunchpad": false,
+  "showToolbarIn": {
+    "audio": true,
+    "bases": true,
+    "canvas": true,
+    "image": true,
+    "kanban": true,
+    "pdf": true,
+    "video": true
+  },
+  "showToolbarInFileMenu": true,
+  "showToolbarInOther": "",
+  "textToolbar": null,
+  "textToolbarOnKeyboard": true,
+  "toolbarProp": "notetoolbar",
+  "toolbars": [
+    {
+      "uuid": "dd66f6bc-12af-4bd9-b952-9cbcbfe28312",
+      "customClasses": "",
+      "defaultItem": null,
+      "defaultStyles": [
+        "border",
+        "sticky",
+        "glass",
+        "button",
+        "even",
+        "left"
+      ],
+      "hasCommand": false,
+      "items": [
+        {
+          "uuid": "d7b994c2-2feb-403d-b0fd-36db50f59f16",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "😄",
+          "link": "Emoji Toolbar: Open emoji picker",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "obsidian-emoji-toolbar:emoji-picker:open-picker",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "b0a822a1-0f90-43f7-b3c0-55312934893e",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "⏰",
+          "link": "ZenBoard: Open Zenboard",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "zenboard:open-dashboard",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "2605ab3b-ecef-40fb-a239-c6e3c41b0a14",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "🕸️",
+          "link": "ExcaliBrain: ExcaliBrain 弹出窗口模式",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "excalibrain:excalibrain-start-popout",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "753c7ad2-6509-461b-9427-355bff91876f",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "🔁",
+          "link": "Remotely Save: 开始同步（start sync）",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "remotely-save:start-sync",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "24527853-8a87-4bd0-abdb-b684309aaac0",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "🧠理论",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "templater-obsidian:replace-in-file-templater",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/理论模版 (Concept Template).md"
+          }
+        },
+        {
+          "uuid": "2e929163-f597-4e28-84eb-edaaab9fabeb",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "👊单笔交易",
+          "link": "QuickAdd: New Live Trade",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "quickadd:choice:4fe2b2a9-956f-4d21-a597-d1f86878cdc3",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/实战交易模版 (Trade Log Template).md"
+          }
+        },
+        {
+          "uuid": "9146fd84-6997-4229-9ff3-d7c56842a754",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "🔗TD分享",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/TradingView 分享链接.md"
+          }
+        },
+        {
+          "uuid": "316b5a24-ece3-4610-84ab-d696f708aaf0",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "break"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "7d66e219-fbd5-48c0-b295-34e73f61deae",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "⚡️卡",
+          "link": "Spaced Repetition: 复习所有笔记中的卡片",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "obsidian-spaced-repetition:srs-review-flashcards",
+            "hasVars": false,
+            "type": "command"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "5f6ea2d7-781c-406a-9baf-05de627100dc",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "单行",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/单行.md"
+          }
+        },
+        {
+          "uuid": "1e9c2ecd-1bd1-45d8-856a-2c2a8b978ac3",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "单反",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/单反.md"
+          }
+        },
+        {
+          "uuid": "e7aec01f-b478-425a-a401-ebc08e6a1100",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "多行",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/多行.md"
+          }
+        },
+        {
+          "uuid": "7967420c-aa26-4b25-a4f9-8e92cab42391",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "多反",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/多反.md"
+          }
+        },
+        {
+          "uuid": "a831e3ff-26b5-40a4-9702-696ee8d8bebf",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "填空",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/填空.md"
+          }
+        },
+        {
+          "uuid": "e6ec787b-3496-43ab-bae2-4e485e3d52aa",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "separator"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "uuid": "cdbf6bb9-6069-4d4e-86ca-82371700e72c",
+          "hasCommand": false,
+          "icon": "",
+          "inGallery": false,
+          "label": "[[]]",
+          "link": "",
+          "linkAttr": {
+            "commandCheck": false,
+            "commandId": "",
+            "hasVars": false,
+            "type": "templater-obsidian"
+          },
+          "tooltip": "",
+          "visibility": {
+            "desktop": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "mobile": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            },
+            "tablet": {
+              "allViews": {
+                "components": [
+                  "icon",
+                  "label"
+                ]
+              }
+            }
+          },
+          "scriptConfig": {
+            "pluginFunction": "appendTemplate",
+            "sourceFile": "Templates/Note toolbar/[[]].md"
+          }
+        }
+      ],
+      "mobileStyles": [
+        "mgls",
+        "mstcky",
+        "mevn"
+      ],
+      "name": "PA",
+      "position": {
+        "desktop": {
+          "allViews": {
+            "position": "fabl"
+          }
+        },
+        "mobile": {
+          "allViews": {
+            "position": "top"
+          }
+        },
+        "tablet": {
+          "allViews": {
+            "position": "top"
+          }
+        }
+      },
+      "updated": "2026-01-27T16:48:33.586Z"
+    }
+  ],
+  "version": 20250313.1,
+  "whatsnew_version": "1.27"
+}
