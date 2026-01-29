@@ -87,7 +87,11 @@ async def get_candles_v1(
     """
     import socket
     
-    symbol = normalize_symbol(symbol)
+    # 保存原始 symbol 用于判断品种类型
+    original_symbol = symbol.upper().strip()
+    
+    # 标准化 symbol (用于数据库查询)
+    normalized_symbol = normalize_symbol(symbol)
     
     if interval not in VALID_INTERVALS:
         return []
@@ -112,7 +116,7 @@ async def get_candles_v1(
                             FROM {table}
                             WHERE symbol = %s AND exchange = 'binance_futures_um'
                         """
-                        params: list = [symbol]
+                        params: list = [normalized_symbol]
                         
                         if since:
                             query += " AND bucket_ts >= to_timestamp(%s / 1000.0)"
@@ -143,48 +147,139 @@ async def get_candles_v1(
                 pass  # 数据库查询失败，继续尝试从交易所获取
     
     # 数据库不可用或查询失败，直接从交易所获取
-    try:
-        # 动态导入 ccxt 适配器
-        from adapters.ccxt import fetch_ohlcv
-        
-        # 转换 interval 格式
-        ccxt_interval = interval  # ccxt 使用相同的格式: 1m, 5m, 15m, 1h, 4h, 1d
-        
-        # 计算 since 时间
-        since_ms = since
-        if not since_ms and limit:
-            # 根据 limit 和 interval 估算起始时间
-            interval_minutes = {
-                "1m": 1, "5m": 5, "15m": 15, "30m": 30,
-                "1h": 60, "2h": 120, "4h": 240, "1d": 1440
-            }.get(interval, 5)
-            import time
-            since_ms = int((time.time() - limit * interval_minutes * 60) * 1000)
-        
-        # 从 Binance 获取数据
-        candles = await asyncio.wait_for(
-            asyncio.to_thread(fetch_ohlcv, "binance", symbol, ccxt_interval, since_ms, limit),
-            timeout=10.0
-        )
-        
-        if candles:
-            return [
-                {
-                    "open_time": int(c[0]),
-                    "open": float(c[1]),
-                    "high": float(c[2]),
-                    "low": float(c[3]),
-                    "close": float(c[4]),
-                    "volume": float(c[5]),
-                    "close_time": int(c[0]) + 60000,  # 估算关闭时间
-                }
-                for c in candles
-            ]
-    except Exception as e:
-        # 交易所获取也失败，返回空数组
-        print(f"[ohlc] 从交易所获取数据失败: {e}")
+    
+    # 判断品种类型 (使用原始 symbol)
+    is_crypto = original_symbol.endswith("USDT") or (
+        original_symbol.isalpha() and len(original_symbol) <= 5 and original_symbol not in ["ES", "NQ", "YM", "CL", "GC", "XAU", "XAG"]
+    )
+    is_future = "=" in original_symbol or original_symbol in ["ES", "NQ", "YM", "CL", "GC", "XAU", "XAG"]
+    is_stock = not is_crypto and not is_future and original_symbol.isalpha() and len(original_symbol) <= 5
+    
+    # 加密货币 - 从 Binance 获取
+    if is_crypto:
+        try:
+            from adapters.ccxt import fetch_ohlcv
+            
+            ccxt_interval = interval
+            
+            since_ms = since
+            if not since_ms and limit:
+                interval_minutes = {
+                    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+                    "1h": 60, "2h": 120, "4h": 240, "1d": 1440
+                }.get(interval, 5)
+                import time
+                since_ms = int((time.time() - limit * interval_minutes * 60) * 1000)
+            
+            candles = await asyncio.wait_for(
+                asyncio.to_thread(fetch_ohlcv, "binance", normalized_symbol, ccxt_interval, since_ms, limit),
+                timeout=10.0
+            )
+            
+            if candles:
+                return [
+                    {
+                        "open_time": int(c[0]),
+                        "open": float(c[1]),
+                        "high": float(c[2]),
+                        "low": float(c[3]),
+                        "close": float(c[4]),
+                        "volume": float(c[5]),
+                        "close_time": int(c[0]) + 60000,
+                    }
+                    for c in candles
+                ]
+        except Exception as e:
+            print(f"[ohlc] 从 Binance 获取数据失败: {e}")
+    
+    # 期货/股票 - 从 Yahoo Finance 获取
+    else:
+        try:
+            # 对于期货，确保使用 Yahoo Finance 格式
+            yahoo_symbol = original_symbol
+            if "=" in original_symbol:
+                # ES=F 已经是 Yahoo Finance 格式
+                pass
+            elif original_symbol in ["ES", "NQ", "YM"]:
+                yahoo_symbol = f"{original_symbol}=F"
+            elif original_symbol in ["XAU", "XAG"]:
+                yahoo_symbol = f"{original_symbol}=F" if original_symbol == "XAU" else f"{original_symbol}=F"
+            
+            return await _fetch_from_yahoo(yahoo_symbol, interval, limit)
+        except Exception as e:
+            print(f"[ohlc] 从 Yahoo Finance 获取数据失败: {e}")
     
     return []
+
+
+async def _fetch_from_yahoo(symbol: str, interval: str, limit: int) -> list:
+    """从 Yahoo Finance 获取 K 线数据"""
+    import aiohttp
+    import time
+    
+    # 转换 interval 格式
+    yf_interval = {
+        "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
+        "1h": "1h", "2h": "1h", "4h": "1h", "1d": "1d"
+    }.get(interval, "5m")
+    
+    # 计算时间范围
+    range_map = {
+        "1m": "1d", "5m": "5d", "15m": "5d", "30m": "1mo",
+        "1h": "1mo", "2h": "3mo", "4h": "3mo", "1d": "1y"
+    }
+    yf_range = range_map.get(interval, "5d")
+    
+    # Yahoo Finance API URL
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+    params = {
+        "interval": yf_interval,
+        "range": yf_range,
+        "includeAdjustedClose": "true"
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            if resp.status != 200:
+                return []
+            
+            data = await resp.json()
+            result = data.get("chart", {}).get("result", [])
+            
+            if not result:
+                return []
+            
+            chart_data = result[0]
+            timestamps = chart_data.get("timestamp", [])
+            quote = chart_data.get("indicators", {}).get("quote", [{}])[0]
+            
+            opens = quote.get("open", [])
+            highs = quote.get("high", [])
+            lows = quote.get("low", [])
+            closes = quote.get("close", [])
+            volumes = quote.get("volume", [])
+            
+            candles = []
+            for i, ts in enumerate(timestamps):
+                if i < len(opens) and opens[i] is not None:
+                    candles.append({
+                        "open_time": int(ts) * 1000,
+                        "open": float(opens[i]),
+                        "high": float(highs[i]) if i < len(highs) and highs[i] is not None else float(opens[i]),
+                        "low": float(lows[i]) if i < len(lows) and lows[i] is not None else float(opens[i]),
+                        "close": float(closes[i]) if i < len(closes) and closes[i] is not None else float(opens[i]),
+                        "volume": float(volumes[i]) if i < len(volumes) and volumes[i] is not None else 0,
+                        "close_time": (int(ts) + 300) * 1000,  # Yahoo 数据是交易时间戳
+                    })
+            
+            # 限制返回数量
+            if len(candles) > limit:
+                candles = candles[-limit:]
+            
+            return candles
 
 
 @router.get("/ohlc/history")

@@ -1,8 +1,9 @@
 """FastAPI 应用 (对齐 CoinGlass V4 规范)"""
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
 from src import __version__
@@ -18,6 +19,9 @@ from src.routers import (
 )
 from src.routers.obsidian import router as obsidian_router
 from src.utils.errors import ErrorCode
+
+# Sync Service 代理配置
+SYNC_SERVICE_URL = "http://localhost:8089"
 
 app = FastAPI(
     title="AB Console API",
@@ -96,3 +100,34 @@ app.include_router(signal_router, prefix="/api")
 
 # 注册 Obsidian 同步路由 (AB Console 专属)
 app.include_router(obsidian_router, prefix="/api/v1")
+
+
+# ============================================================
+# 代理路由 - 转发到 Sync Service (端口 8089)
+# ============================================================
+@app.get("/api/v1/strategies/list")
+async def proxy_strategies_list():
+    """代理策略列表请求到 Sync Service"""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{SYNC_SERVICE_URL}/api/v1/strategies/list")
+            return resp.json()
+        except Exception as e:
+            return JSONResponse(
+                status_code=503,
+                content={"code": "SERVICE_UNAVAILABLE", "msg": f"Sync Service 不可用: {str(e)}"}
+            )
+
+
+@app.get("/api/v1/strategies/performance")
+async def proxy_strategies_performance():
+    """代理策略表现统计请求到 Sync Service"""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{SYNC_SERVICE_URL}/api/v1/strategies/performance")
+            return resp.json()
+        except Exception as e:
+            return JSONResponse(
+                status_code=503,
+                content={"code": "SERVICE_UNAVAILABLE", "msg": f"Sync Service 不可用: {str(e)}"}
+            )
