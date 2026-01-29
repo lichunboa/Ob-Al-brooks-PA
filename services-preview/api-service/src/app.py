@@ -1,7 +1,7 @@
 """FastAPI 应用 (对齐 CoinGlass V4 规范)"""
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
@@ -131,3 +131,31 @@ async def proxy_strategies_performance():
                 status_code=503,
                 content={"code": "SERVICE_UNAVAILABLE", "msg": f"Sync Service 不可用: {str(e)}"}
             )
+
+
+@app.get("/api/v1/signals")
+async def proxy_signals(
+    symbol: str = Query(None, description="过滤特定品种"),
+    direction: str = Query(None, description="过滤方向"),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """获取交易信号"""
+    # 返回模拟信号数据
+    import time
+    import random
+    
+    signals = [
+        {"id": "1", "symbol": "BTCUSDT", "signal_name": "20均线缺口", "direction": "BUY", "strength": 0.75, "pattern": "20 EMA Gap", "timeframe": "5m", "message": "价格回调至EMA20附近，出现做多机会", "timestamp": int(time.time() * 1000) - 300000},
+        {"id": "2", "symbol": "ETHUSDT", "signal_name": "失败突破", "direction": "SELL", "strength": 0.68, "pattern": "Failed Breakout", "timeframe": "15m", "message": "突破失败后回落，看空信号", "timestamp": int(time.time() * 1000) - 600000},
+        {"id": "3", "symbol": "BTCUSDT", "signal_name": "区间突破回调", "direction": "BUY", "strength": 0.70, "pattern": "Breakout Pullback", "timeframe": "1h", "message": "突破后回调，趋势继续向上", "timestamp": int(time.time() * 1000) - 900000},
+        {"id": "4", "symbol": "ES=F", "signal_name": "双重顶底", "direction": "SELL", "strength": 0.80, "pattern": "Double Top", "timeframe": "5m", "message": "形成双重顶形态，看空", "timestamp": int(time.time() * 1000) - 1200000},
+        {"id": "5", "symbol": "NQ=F", "signal_name": "楔形形态", "direction": "BUY", "strength": 0.72, "pattern": "Wedge", "timeframe": "15m", "message": "楔形收敛后向上突破", "timestamp": int(time.time() * 1000) - 1500000},
+    ]
+    
+    # 过滤
+    if symbol:
+        signals = [s for s in signals if symbol.upper() in s["symbol"].upper() or s["symbol"].upper() in symbol.upper()]
+    if direction:
+        signals = [s for s in signals if s["direction"] == direction.upper()]
+    
+    return {"signals": signals[:limit], "count": len(signals[:limit])}
