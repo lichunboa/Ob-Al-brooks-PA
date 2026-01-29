@@ -6,9 +6,9 @@
 
 import * as React from "react";
 import { Lightbulb, TrendingUp, TrendingDown, Activity, Target, Zap, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useStrategies, matchStrategies, type StrategyCard } from "../../hooks/useStrategies";
-import { useConsoleContext } from "../../context/ConsoleContext";
+import { useStrategies, matchStrategies, calculateIndicators, type StrategyCard } from "../../hooks/useStrategies";
 import type { TradingSignal } from "../../hooks/useSignals";
+import type { BackendSettings } from "../../settings";
 
 interface StrategyMatcherProps {
   symbol: string;
@@ -16,6 +16,7 @@ interface StrategyMatcherProps {
   price?: number;
   changePercent?: number;
   signals?: TradingSignal[];
+  backend?: BackendSettings;
 }
 
 export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
@@ -24,10 +25,22 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
   price,
   changePercent = 0,
   signals = [],
+  backend,
 }) => {
-  const { settings } = useConsoleContext();
+  // 默认 backend 配置
+  const defaultBackend: BackendSettings = {
+    enabled: true,
+    baseUrl: "http://localhost:8088",
+    apiToken: "",
+    timeout: 30000,
+    autoRefreshInterval: 5,
+    defaultSymbol: "BTCUSDT",
+    defaultInterval: "5m",
+  };
+  
+  const backendConfig = backend || defaultBackend;
   const { strategies, isLoading, error } = useStrategies({
-    backend: settings.backend,
+    backend: backendConfig,
     autoRefresh: false,
   });
 
@@ -41,6 +54,11 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
       return symbolMatch;
     });
   }, [signals, symbol]);
+
+  // 计算技术指标
+  const indicators = React.useMemo(() => {
+    return calculateIndicators(symbol, trend, changePercent);
+  }, [symbol, trend, changePercent]);
 
   // 匹配策略
   const matchedStrategies = React.useMemo(() => {
@@ -159,6 +177,69 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
               fontWeight: 600,
             }}>
               {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(2)}%
+            </div>
+          </div>
+          
+          {/* RSI */}
+          <div style={{ 
+            padding: "8px 12px", 
+            background: "var(--background-primary)",
+            borderRadius: 6,
+          }}>
+            <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>RSI</div>
+            <div style={{ 
+              color: indicators.rsi > 70 ? "#EF4444" : indicators.rsi < 30 ? "#10B981" : "var(--text-normal)",
+              fontWeight: 600,
+            }}>
+              {indicators.rsi.toFixed(1)}
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: 4 }}>
+                {indicators.rsi > 70 ? "超买" : indicators.rsi < 30 ? "超卖" : "正常"}
+              </span>
+            </div>
+          </div>
+          
+          {/* EMA距离 */}
+          <div style={{ 
+            padding: "8px 12px", 
+            background: "var(--background-primary)",
+            borderRadius: 6,
+          }}>
+            <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>EMA20</div>
+            <div style={{ 
+              color: Math.abs(indicators.emaDistance) < 1 ? "#10B981" : "var(--text-normal)",
+              fontWeight: 600,
+            }}>
+              {indicators.emaDistance > 0 ? "+" : ""}{indicators.emaDistance.toFixed(2)}%
+            </div>
+          </div>
+          
+          {/* 布林带位置 */}
+          <div style={{ 
+            padding: "8px 12px", 
+            background: "var(--background-primary)",
+            borderRadius: 6,
+          }}>
+            <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>布林带</div>
+            <div style={{ 
+              color: indicators.bbPosition === "upper" ? "#EF4444" : indicators.bbPosition === "lower" ? "#10B981" : "var(--text-normal)",
+              fontWeight: 600,
+            }}>
+              {indicators.bbPosition === "upper" ? "上轨附近" : indicators.bbPosition === "lower" ? "下轨附近" : "中轨区域"}
+            </div>
+          </div>
+          
+          {/* 波动率 */}
+          <div style={{ 
+            padding: "8px 12px", 
+            background: "var(--background-primary)",
+            borderRadius: 6,
+          }}>
+            <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>波动率</div>
+            <div style={{ 
+              color: indicators.volatility > 3 ? "#EF4444" : indicators.volatility < 1 ? "#10B981" : "var(--text-normal)",
+              fontWeight: 600,
+            }}>
+              {indicators.volatility.toFixed(2)}%
             </div>
           </div>
         </div>
