@@ -18,7 +18,7 @@
             }
           },
           {
-            "id": "76640811242ed608",
+            "id": "ec454986899433ab",
             "type": "leaf",
             "state": {
               "type": "market-scanner-view",
@@ -82,7 +82,7 @@
             }
           },
           {
-            "id": "fb43eb47d10ff213",
+            "id": "f01f70c823de43e7",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -91,8 +91,7 @@
               "title": "Navigator"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -184,77 +183,17 @@
             }
           },
           {
-            "id": "3fe09113c902153c",
-            "type": "leaf",
-            "state": {
-              "type": "git-view",
-              "state": {},
-              "icon": "lucide-ghost",
-              "title": "git-view"
-            }
-          },
-          {
-            "id": "a62abe74c9525d57",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "SpacedRepIcon",
-              "title": "笔记复习序列"
-            }
-          },
-          {
             "id": "e638fcb74cbbdfc1",
             "type": "leaf",
             "state": {
               "type": "copilot-chat-view",
               "state": {},
-              "icon": "lucide-ghost",
-              "title": "copilot-chat-view"
+              "icon": "message-square",
+              "title": "Copilot"
             }
           },
           {
-            "id": "de40f7ec03e34c97",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "lucide-ghost",
-              "title": "review-queue-list-view"
-            }
-          },
-          {
-            "id": "70558eca3138c889",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "lucide-ghost",
-              "title": "review-queue-list-view"
-            }
-          },
-          {
-            "id": "e6df0b4b3c3e5a4c",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "lucide-ghost",
-              "title": "review-queue-list-view"
-            }
-          },
-          {
-            "id": "62c619962c9671cf",
-            "type": "leaf",
-            "state": {
-              "type": "review-queue-list-view",
-              "state": {},
-              "icon": "SpacedRepIcon",
-              "title": "笔记复习序列"
-            }
-          },
-          {
-            "id": "8fc73566cacc2fd8",
+            "id": "afbf2674cc88a1cf",
             "type": "leaf",
             "state": {
               "type": "al-brooks-console-view",
@@ -264,11 +203,11 @@
             }
           }
         ],
-        "currentTab": 12
+        "currentTab": 6
       }
     ],
     "direction": "horizontal",
-    "width": 735.5
+    "width": 544.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -298,7 +237,7 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "8fc73566cacc2fd8",
+  "active": "afbf2674cc88a1cf",
   "lastOpenFiles": [
     "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_20均线缺口.md",
     "🦁 交易员控制台 (Trader Command)/🚀 新架构说明.md",
