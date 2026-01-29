@@ -1,0 +1,49 @@
+# Obsidian
+.obsidian/workspace*
+.obsidian/plugins/*/
+!.obsidian/plugins/al-brooks-console/
+.journalit/cache/
+.journalit/indexes/
+.trash/
+
+# Node.js
+node_modules/
+.next/
+out/
+dist/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.pytest_cache/
+
+# Backend (TradeCat-Backend is a separate repo)
+TradeCat-Backend/backend/tradecat-core/
+!TradeCat-Backend/backend/data-service/simple_server.py
+!TradeCat-Backend/backend/data-service/ws_server.py
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+build/
+coverage/
