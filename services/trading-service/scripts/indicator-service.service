@@ -1,0 +1,15 @@
+[Unit]
+Description=Indicator Calculation Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=lenovo
+WorkingDirectory=/home/lenovo/.projects/tukuai-pro/services/trading-service
+Environment=PYTHONPATH=/home/lenovo/.projects/tukuai-pro/services/trading-service/src
+ExecStart=/usr/bin/python3 -m indicator_service --daemon --log-file /home/lenovo/.projects/tukuai-pro/services/trading-service/logs/daemon.log
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
