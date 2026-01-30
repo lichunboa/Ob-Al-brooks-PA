@@ -1,3 +1,5 @@
+> **⚠️ 参考文档** — 第三方库 ccxt 官方文档副本，内容可能已过时，建议查阅 [ccxt 官方文档](https://docs.ccxt.com)。
+
 .
 
 ## [Overview](https://docs.ccxt.com/#/?id=overview)

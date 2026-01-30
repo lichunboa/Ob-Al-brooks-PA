@@ -5,7 +5,6 @@ categories:
 tags:
   - PA/Course
   - PA/Video
-  - PA/Beginner
 module_id: "05"
 title: "05 Starting Out开始"
 date: 2026-01-30
@@ -401,10 +400,10 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/scalp    - 剥头皮 Scalping
-#PA/Term/swing    - 波段 Swing
-#PA/Term/emotion  - 情绪 Emotion
-#PA/Term/beginner - 初学者 Beginner
+    - 剥头皮 Scalping
+    - 波段 Swing
+  - 情绪 Emotion
+ - 初学者 Beginner
 ```
 
 ---

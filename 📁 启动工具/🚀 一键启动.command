@@ -4,7 +4,7 @@
 # 启动所有服务：API + 数据采集 + 指标计算 + 信号检测
 # ============================================================
 
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/.."
 VAULT_ROOT="$(pwd)"
 BACKEND_DIR="$VAULT_ROOT/AB Console-Backend"
 
@@ -56,19 +56,11 @@ echo ""
 # ============================================================
 # 1. 检查数据库
 # ============================================================
-log_info "[1/6] 检查 TimescaleDB..."
-if docker exec tradecat-timescaledb pg_isready -U postgres > /dev/null 2>&1; then
-    log_success "TimescaleDB 已运行"
+log_info "[1/6] 检查数据库..."
+if command -v docker &> /dev/null && docker exec tradecat-timescaledb pg_isready -U postgres > /dev/null 2>&1; then
+    log_success "TimescaleDB 已运行 (Docker)"
 else
-    log_warn "启动 TimescaleDB..."
-    cd "$BACKEND_DIR" && docker compose up -d timescaledb 2>/dev/null
-    sleep 5
-    if docker exec tradecat-timescaledb pg_isready -U postgres > /dev/null 2>&1; then
-        log_success "TimescaleDB 启动成功"
-    else
-        log_error "TimescaleDB 启动失败"
-        exit 1
-    fi
+    log_info "TimescaleDB (Docker) 未运行，跳过 — 服务将使用 SQLite"
 fi
 
 # ============================================================
@@ -159,12 +151,19 @@ fi
 # 6. 启动 Web Dashboard (如果未运行)
 # ============================================================
 echo ""
-log_info "[6/6] 检查 Web Dashboard..."
+log_info "[6/6] 启动 Web Dashboard..."
 if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
     log_success "Web Dashboard 已在运行 (端口 3000)"
 else
-    log_warn "Web Dashboard 未运行"
-    log_info "启动命令: cd 'AB Console-Web/tradecat-dashboard' && npm run dev"
+    cd "$BACKEND_DIR/web"
+    nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
+    sleep 8
+    if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Web Dashboard 启动成功 (端口 3000)"
+    else
+        log_warn "Web Dashboard 启动中，请稍等..."
+        log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
+    fi
 fi
 
 # ============================================================
@@ -178,7 +177,6 @@ echo ""
 
 echo "【核心服务】"
 check_service 8088 "API Service      "
-check_service 5434 "TimescaleDB      "
 check_service 3000 "Web Dashboard    "
 
 echo ""

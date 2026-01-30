@@ -1,3 +1,5 @@
+> **📖 参考文档** — 币安 API 文档汇总，内容可能已过时，建议同时参阅 [币安官方 API 文档](https://developers.binance.com/docs/)。
+
 # 币安API完整文档汇总
 
 ## 概述

@@ -236,10 +236,10 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/ema      - 指数平滑移动平均线
-#PA/Term/scalp    - 剥头皮 Scalping
-#PA/Term/context  - 走势环境 Context
-#PA/Term/trap     - 被套 Trapped
+      - 指数平滑移动平均线
+    - 剥头皮 Scalping
+  - 走势环境 Context
+     - 被套 Trapped
 ```
 
 ---

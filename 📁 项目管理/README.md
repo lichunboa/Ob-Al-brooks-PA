@@ -1,111 +1,65 @@
-# 🦁 AB Console 交易员控制台
+# AB Console - 项目管理
 
-> Al Brooks 价格行为交易系统的完整解决方案
+Al Brooks 价格行为交易系统 — 集 Obsidian 知识管理、后端数据服务、Web Dashboard 于一体。
 
----
-
-## 📁 项目结构
-
-为了优化 Obsidian 性能，项目已重新组织为三个独立文件夹：
+## 项目结构
 
 ```
 Al-brooks-PA/
-├── AB Console-Obsidian/          # Obsidian Vault（知识管理）
-├── AB Console-Web/               # Web Dashboard（实时交易）
-├── AB Console-Backend/           # 后端服务（数据服务）
-└── docs/                       # 项目文档
+├── AB Console-Obsidian/       Obsidian 知识库 (可独立运行)
+│   ├── Categories 分类/       Al Brooks 课程笔记
+│   ├── Tags/                  标签体系
+│   ├── Templates/             模板
+│   ├── .obsidian/plugins/     插件 (含交易控制台)
+│   └── ...
+│
+├── AB Console-Backend/        后端服务 + Web Dashboard
+│   ├── services/              核心服务 (data/trading/signal/ai/telegram)
+│   ├── services-preview/      预览服务 (api-service 等)
+│   ├── web/                   Web Dashboard (Next.js)
+│   ├── libs/                  共享库 + SQLite 数据库
+│   ├── scripts/               管理脚本
+│   ├── config/                配置文件 (.env)
+│   └── docs/                  后端文档
+│
+├── 📁 启动工具/               一键启动/停止脚本
+├── 📁 任务记录/               历史任务记录
+├── 📁 开发文档/               开发文档
+├── 📁 项目管理/               本目录
+├── docs/                      项目级文档
+└── AGENTS.md                  AI Agent 操作手册
 ```
 
-**注意**: 
-- 品牌名：**AB Console** (Al Brooks Console)
-- 项目最初名为 TradeCat，后更名。文件夹名保持不变以兼容历史代码。
-- 在 Obsidian 中打开 `AB Console-Obsidian` 文件夹作为 Vault。
+## 快速开始
 
----
+### 1. 仅使用 Obsidian (学习模式)
 
-## 🚀 快速开始
+直接用 Obsidian 打开 `AB Console-Obsidian/` 即可。
+内置交易控制台插件提供策略管理、复盘分析、间隔复习等功能。
 
-### 一键启动
+### 2. 启动后端 (增强模式)
 
 ```bash
-./start-all.sh    # 启动所有服务
-./stop-all.sh     # 停止所有服务
+bash "📁 启动工具/🚀 一键启动.command"
 ```
 
-### 手动启动
+启动后提供：
+- **API Service** (8088) — 数据查询接口
+- **data-service** — Binance 实时数据采集
+- **trading-service** — 38 个技术指标计算
+- **signal-service** — 127 条交易信号检测
+- **Web Dashboard** (3000) — 实时交易界面
 
-**1. 启动后端服务**
+### 3. 停止服务
 
 ```bash
-cd "AB Console-Backend/backend/data-service"
-python3 server_full.py   # HTTP API (端口 8088)
-python3 ws_server.py     # WebSocket (端口 8090)
+bash "📁 启动工具/🛑 一键停止.command"
 ```
 
-**2. 启动 Web Dashboard**
+## 访问地址
 
-```bash
-cd "AB Console-Web/tradecat-dashboard"
-npm run dev
-
-# 访问 http://localhost:3000
-```
-
-**3. 使用 Obsidian**
-
-1. 在 Obsidian 中打开 `AB Console-Obsidian` 文件夹
-2. 启用 "Al Brooks Console" 插件
-
----
-
-## 📊 功能特性
-
-### Web Dashboard
-- 📈 K线图表 (Lightweight Charts v5)
-- 📡 实时市场数据 (WebSocket)
-- 🔍 市场扫描仪
-- 🔔 信号监控
-- 📋 策略管理 (与 Obsidian 双向同步)
-- 📝 交易记录
-- ⚙️ 系统设置
-
-### Obsidian Vault
-- 📚 策略卡片仓库
-- 🗓️ 每日交易日志
-- 📊 复盘分析
-- 🎯 SRS 学习系统
-
-### 后端服务
-- 💹 Binance API 集成
-- 📊 实时 K线数据
-- 🔄 WebSocket 推送
-- 📝 Obsidian 文件同步
-- 📈 策略信号计算
-
----
-
-## 🔗 访问地址
-
-| 服务 | URL | 说明 |
-|------|-----|------|
-| Web Dashboard | http://localhost:3000 | 主界面 |
-| HTTP API | http://localhost:8088 | REST API |
-| WebSocket | ws://localhost:8090 | 实时数据 |
-
----
-
-## 📝 技术栈
-
-**前端**: Next.js 14 + React 18 + TypeScript + Tailwind CSS + Lightweight Charts v5
-
-**后端**: Python 3.12 + HTTP Server + WebSocket + Binance API
-
-**数据存储**: Obsidian Markdown + YAML Frontmatter
-
----
-
-## 🤝 品牌说明
-
-**AB Console** = **A**l **B**rooks Console
-
-专为 Al Brooks 价格行为方法论设计的交易员工作台。
+| 服务 | 地址 |
+|------|------|
+| Web Dashboard | http://localhost:3000 |
+| API 文档 | http://localhost:8088/docs |
+| API 健康检查 | http://localhost:8088/health |

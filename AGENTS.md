@@ -1,6 +1,30 @@
 # AB Console - AI Agent 操作手册
 
 > 本文档面向 AI 编码 Agent，以可执行指令的视角编写，约束与指导 Agent 行为。
+> 更新于 2026-01-31。
+
+---
+
+## 0. 项目结构（重要）
+
+```
+Al-brooks-PA/                          项目根目录
+├── AB Console-Obsidian/               Obsidian 知识库 (独立运行)
+├── AB Console-Backend/                后端服务 + Web Dashboard
+│   ├── services/                      核心服务 (data/trading/signal/ai/telegram/sync)
+│   ├── services-preview/              预览服务 (api-service 等)
+│   ├── web/                           Web Dashboard (Next.js, 端口 3000)
+│   ├── libs/                          共享库 + SQLite 数据库
+│   ├── scripts/                       管理脚本
+│   ├── config/                        配置文件 (.env)
+│   ├── Makefile, pyproject.toml       构建工具
+│   └── docs/                          后端文档
+├── 📁 启动工具/                       一键启动/停止脚本
+├── docs/                              项目级文档
+└── AGENTS.md                          本文件
+```
+
+> **注意**: 所有后端路径都在 `AB Console-Backend/` 下。例如 `services/data-service/` 的完整路径是 `AB Console-Backend/services/data-service/`。
 
 ---
 
@@ -8,20 +32,20 @@
 
 ### 1.1 允许的操作
 
-- 修改 `services/*/src/` 下的业务代码
-- 修改 `services-preview/*/src/` 下的业务代码
-- 修改 `config/.env.example` 全局配置模板
-- 添加/修改技术指标 (`services/trading-service/src/indicators/`)
-- 添加/修改排行榜卡片 (`services/telegram-service/src/cards/`)
-- 修改启动脚本 (`services/*/scripts/`, `scripts/`)
-- 更新文档 (`README.md`, `README_EN.md`, `AGENTS.md`)
-- 修改 `Makefile`、`pyproject.toml`
+- 修改 `AB Console-Backend/services/*/src/` 下的业务代码
+- 修改 `AB Console-Backend/services-preview/*/src/` 下的业务代码
+- 修改 `AB Console-Backend/config/.env.example` 全局配置模板
+- 添加/修改技术指标 (`AB Console-Backend/services/trading-service/src/indicators/`)
+- 修改启动脚本 (`AB Console-Backend/scripts/`, `📁 启动工具/`)
+- 修改 Obsidian 插件 (`AB Console-Obsidian/.obsidian/plugins/al-brooks-console/src/`)
+- 更新文档 (`README.md`, `AGENTS.md`, `docs/`)
+- 修改 `AB Console-Backend/Makefile`、`AB Console-Backend/pyproject.toml`
 
 ### 1.2 禁止的操作
 
-- **禁止修改** `config/.env` 生产配置文件
+- **禁止修改** `AB Console-Backend/config/.env` 生产配置文件
 - **禁止修改** 数据库 schema（除非明确要求）
-- **禁止删除** `libs/database/` 下的数据文件
+- **禁止删除** `AB Console-Backend/libs/database/` 下的数据文件
 - **禁止修改** `.gitignore` 中已忽略的敏感文件
 - **禁止** 大范围重构，除非任务明确要求
 - **禁止** 添加未经验证的第三方依赖
@@ -30,10 +54,9 @@
 
 | 路径 | 说明 | 操作限制 |
 |:---|:---|:---|
-| `config/.env` | 生产配置（含密钥） | 只读 |
-| `libs/database/services/telegram-service/market_data.db` | SQLite 指标数据 | 只读 |
-| `libs/database/services/signal-service/cooldown.db` | 信号冷却持久化 | 只读 |
-| `backups/timescaledb/` | 数据库备份 | 禁止修改 |
+| `AB Console-Backend/config/.env` | 生产配置（含密钥） | 只读 |
+| `AB Console-Backend/libs/database/services/telegram-service/market_data.db` | SQLite 指标数据 | 只读 |
+| `AB Console-Backend/libs/database/services/signal-service/cooldown.db` | 信号冷却持久化 | 只读 |
 
 > 提醒：服务启动脚本会检查 `config/.env` 权限（需 600/400），不符合直接退出。
 
@@ -44,19 +67,14 @@
 ### 2.1 最短可复现场景
 
 ```bash
-# 进入项目根目录
-cd /path/to/tradecat
+# 一键启动全部后端服务 + Web Dashboard
+bash "📁 启动工具/🚀 一键启动.command"
 
-# 1) 初始化：创建各服务 .venv、安装依赖、复制配置模板
-./scripts/init.sh
-
-# 2) 填写全局配置（含 BOT_TOKEN / DB / 代理 等）
-cp config/.env.example config/.env && chmod 600 config/.env
-vim config/.env
-
-# 3) 启动核心服务（ai + data + signal + telegram + trading）
-./scripts/start.sh start
-./scripts/start.sh status
+# 或者手动启动
+cd "AB Console-Backend"
+./scripts/init.sh                     # 初始化 .venv
+./scripts/start.sh start             # 启动核心服务
+./scripts/start.sh status            # 查看状态
 ```
 
 > 顶层 `./scripts/start.sh` 管理 ai-service / data-service / signal-service / telegram-service / trading-service（ai-service 仅做就绪检查，无独立进程）。

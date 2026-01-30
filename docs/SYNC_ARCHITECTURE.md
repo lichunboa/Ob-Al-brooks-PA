@@ -1,3 +1,5 @@
+> **⚠️ 历史文档 (2026-01 重组前)** — 本文记录的路径和架构可能已过时，仅供参考。当前项目结构请查看 `📁 开发文档/PROJECT_STRUCTURE.md`。
+
 # AB Console 双向同步架构设计
 
 > 定义 Web Dashboard 与 Obsidian Vault 之间的数据同步规范

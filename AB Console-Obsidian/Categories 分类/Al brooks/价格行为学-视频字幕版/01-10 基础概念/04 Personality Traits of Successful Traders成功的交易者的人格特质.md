@@ -316,11 +316,11 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/management - 持仓管理 Management
-#PA/Term/emotion    - 情绪 Emotion
-#PA/Term/patience   - 耐心 Patience
-#PA/Term/scalp      - 剥头皮 Scalping
-#PA/Term/swing      - 波段 Swing
+ - 持仓管理 Management
+    - 情绪 Emotion
+   - 耐心 Patience
+      - 剥头皮 Scalping
+      - 波段 Swing
 ```
 
 ---

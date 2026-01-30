@@ -300,10 +300,10 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/hft      - 高频交易 High Frequency Trading
-#PA/Term/program  - 程序化交易 Program Trading
-#PA/Term/institution - 机构 Institution
-#PA/Term/trap     - 陷阱/骗线 Trap
+      - 高频交易 High Frequency Trading
+  - 程序化交易 Program Trading
+ - 机构 Institution
+     - 陷阱/骗线 Trap
 ```
 
 ---

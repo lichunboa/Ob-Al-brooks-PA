@@ -24,7 +24,7 @@ source: "Al Brooks《价格行为交易》53课版"
 
 > 我是阿尔布鲁克斯，这是我的外汇交易价格行为课程，这一讲主要来讲什么是价格行为？价格行为就是指价格动作的形态，只要是有价格的产品就可以。
 
-**【概念标签】** #PA/Term/pa | 价格行为基础定义
+**【概念标签】**  | 价格行为基础定义
 
 > 包括外汇股票，期权，债券等等等，也适用于各种图表。柱状图散点图体积图范围图K线图等。同时也适用于各个周期的走势图。比如一分钟图，五分钟图，日线图，月线图。
 
@@ -364,16 +364,16 @@ CNBC成功交易员讲什么：
 
 ### 术语标签
 ```
-#PA/Term/pa       - 价格行为 Price Action
-#PA/Term/ema      - 均线 EMA
-#PA/Term/db       - 双底 Double Bottom
-#PA/Term/dt       - 双顶 Double Top
-#PA/Term/btc      - 收线追进 Buy The Close
-#PA/Term/hh       - 更高高点 Higher High
-#PA/Term/hl       - 更高低点 Higher Low
-#PA/Term/context  - 走势环境 Context
-#PA/Term/signal   - 信号 Signal
-#PA/Term/setup    - 形态 Setup
+       - 价格行为 Price Action
+      - 均线 EMA
+       - 双底 Double Bottom
+       - 双顶 Double Top
+      - 收线追进 Buy The Close
+       - 更高高点 Higher High
+       - 更高低点 Higher Low
+  - 走势环境 Context
+   - 信号 Signal
+    - 形态 Setup
 ```
 
 ---

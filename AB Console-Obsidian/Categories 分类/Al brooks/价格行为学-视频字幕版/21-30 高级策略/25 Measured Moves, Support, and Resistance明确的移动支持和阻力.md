@@ -50,5 +50,5 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ## 🔗 知识库关联
 
-- #PA/Course/25
-- #PA/Video/高级策略
+- 25
+- 高级策略

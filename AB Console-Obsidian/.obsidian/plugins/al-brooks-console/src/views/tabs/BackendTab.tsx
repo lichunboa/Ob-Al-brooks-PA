@@ -592,7 +592,7 @@ const BackendControlPanel: React.FC = () => {
     { 
       id: "start-all", 
       label: "🚀 启动后端", 
-      script: "🚀 启动 AB Console.command",
+      script: "🚀 一键启动.command",
       desc: "启动完整后端服务",
       color: V5_COLORS.live,
       showWhen: "stopped"
@@ -600,7 +600,7 @@ const BackendControlPanel: React.FC = () => {
     { 
       id: "stop-all", 
       label: "🛑 停止全部", 
-      script: "🛑 停止 AB Console.command",
+      script: "🛑 一键停止.command",
       desc: "停止所有服务",
       color: V5_COLORS.loss,
       showWhen: "running"
