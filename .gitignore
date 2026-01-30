@@ -1,49 +1,165 @@
-# Obsidian
-.obsidian/workspace*
-.obsidian/plugins/*/
-!.obsidian/plugins/al-brooks-console/
-.journalit/cache/
-.journalit/indexes/
-.trash/
+# ====================
+# 环境配置
+# ====================
+.env
+.env.*
+!.env.example
+1
+2
+3
+4
+5
+6
+AUDIT_REPORT.md
+CODE_LOCATIONS.md
+CODE_OF_CONDUCT.md
+!.github/CODE_OF_CONDUCT.md
+OPTIMIZATION_TODO.md
+MARKETING.md
+book/
+.ruff_cache/
+tmp_liuyao_repos_20260118/
 
-# Node.js
-node_modules/
-.next/
-out/
-dist/
-*.log
-
+# ====================
 # Python
+# ====================
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.so
-*.egg-info/
-.pytest_cache/
+.venv/
+venv/
+*.png
+services/aws-service/
 
-# Backend (TradeCat-Backend is a separate repo)
-TradeCat-Backend/backend/tradecat-core/
-!TradeCat-Backend/backend/data-service/simple_server.py
-!TradeCat-Backend/backend/data-service/ws_server.py
+# ====================
+# Node
+# ====================
+node_modules/
 
+# ====================
+# 运行时
+# ====================
+logs/
+pids/
+*.pid
+*.log
+cache/
+artifacts/
+*.cache
+*.db
+
+# ====================
 # IDE
+# ====================
 .idea/
 .vscode/
 *.swp
-*.swo
-*~
 
-# OS
-.DS_Store
-Thumbs.db
+# ====================
+# 备份与导出
+# ====================
+backups/
+exports/
+data_export/
+*.zst
+*.dump
+.history/
 
-# Environment
-.env
-.env.local
-.env.*.local
+# ====================
+# 守护进程
+# ====================
+daemon.pid
+daemon.log
+run/
 
-# Build
-build/
-coverage/
+# ====================
+# 本地历史
+# ====================
+.history/
+
+# ====================
+# 服务特定
+# ====================
+services/telegram-service/data/
+libs/database/csv/downloads/
+libs/database/db/state/
+libs/database/telegram-cards/
+# libs/external/  # fate-service 外部库需要提交
+
+# ====================
+# 配置文件（含凭证）
+# ====================
+**/config.json
+!**/config.example.json
+**/ft_userdir/
+
+# 敏感配置（绝对不提交）
+config/.env
+
+# 保留模板
+!config/.env.example
+
+# SQLite 临时文件
+*.db-shm
+*.db-wal
+*.db-journal
+services/ai-service/data/
+services/markets-service/.venv
+services/ai-service/.venv
+services/data-service/.venv
+services/markets-service/.venv
+services/order-service/.venv
+services/telegram-service/.venv
+services/trading-service/.venv
+.venv-pypi/
+.coverage
+
+# Large external libraries
+libs/external/
+dist/
+polymarket-bot.out
+
+
+ai交易；codex resume 019be75d-562a-7b20-b6ad-ff65171ec762
+
+币种查询，ai分析前端；codex resume 019be754-b4f2-7a23-98d6-a494cea5ae5f
+
+整理/运维；codex resume 019be615-aa82-7002-a688-4094cec52d19
+
+数据库优化；codex resume 019be782-1aae-7020-adab-826c8ade30c6
+
+数据库读写；codex resume 019be77b-9ece-7aa0-ab84-714faaa9f338
+
+性能审计；codex resume 019be77f-8345-7dd1-8e76-242686252b8b
+
+git；codex resume 019be60a-8ae2-7041-bec0-32d2ddd6ed5a
+
+性能；codex resume 019be61a-c9c1-7d30-8cba-37ac42a2e327
+
+云部署前端；codex resume 019beca2-bfe8-7c41-b5c7-63e89bdb98c7
+
+上云，把消费数据库计算好后推送到aws数据库里面，前端部署到aws提升响应速度
+
+修复gemini认证
+
+codex resume 019bf0ce-6dd6-7373-a166-fc245eb6253c
+
+数据库导入；codex resume 019bf257-12b8-7d20-8c2d-90c82cacf895
+
+proxychains4 c
+
+services-preview/nofx-dev
+
+预测服务器；codex resume 019bf86c-fb15-7162-b1d2-5851c8358073
+服务器部署 codex resume 019bf257-12b8-7d20-8c2d-90c82cacf895
+data codex resume 019bf884-1d06-79a0-92b2-861c4a799b38        
+debug codex resume 019bfb19-add1-7051-9f93-25161946811c
+
+codex resume 019bfd0f-8b32-75d3-a19e-cdf05fa24e21
+
+数据做ai输入的规范化构建，降低token成本开销
+
+信号整理，做强度过滤规则按钮
+
+https://x.com/immersivetran/status/2015978209209434389?s=20
+学习这个里面的可视化工具 https://github.com/owid

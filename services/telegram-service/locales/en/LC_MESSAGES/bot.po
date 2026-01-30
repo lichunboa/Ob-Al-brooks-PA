@@ -1,0 +1,3264 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: tradecat-telegram\n"
+"PO-Revision-Date: 2026-01-06 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "help.body"
+msgstr "📖 Help\n/start - Start\n/data - Data panel\n/help - Help\n\nTap a button below to view data:"
+
+msgid "menu.home"
+msgstr "🏠 Main menu"
+
+msgid "menu.data"
+msgstr "📊 Data panel"
+
+msgid "start.initializing"
+msgstr "🚀 Bot is initializing, please wait..."
+
+msgid "start.greet"
+msgstr "Hello 👋"
+
+msgid "start.fallback"
+msgstr "⚡️ Welcome to TradeCat"
+
+msgid "start.error"
+msgstr "❌ Failed to start, please retry later.\n\nDetails: {error}"
+
+msgid "lang.zh"
+msgstr "简体中文"
+
+msgid "lang.en"
+msgstr "English"
+
+msgid "lang.prompt"
+msgstr "🌐 Choose your language"
+
+msgid "lang.set"
+msgstr "Language switched to {lang_name}"
+
+msgid "ai.not_installed"
+msgstr "🤖 AI analysis module is not installed\n\nPlease contact the admin to configure ai-service"
+
+msgid "ai.failed"
+msgstr "❌ Failed to start AI analysis: {error}"
+
+# Keyboard
+msgid "kb.data"
+msgstr "📊 Data panel"
+
+msgid "kb.query"
+msgstr "🔍 Coin query"
+
+msgid "kb.ai"
+msgstr "🤖 AI analysis"
+
+msgid "kb.signal"
+msgstr "🔔 Signals"
+
+msgid "kb.home"
+msgstr "🏠 Main menu"
+
+msgid "kb.help"
+msgstr "ℹ️ Help"
+
+msgid "kb.lang"
+msgstr "🌐 Language"
+
+msgid "kb.config"
+msgstr "⚙️ Config"
+
+msgid "menu.main_text"
+msgstr ""
+"⚡️ TradeCat\n"
+"\n"
+"📊 Data panel\n"
+"├─ Basic: MACD/RSI/Bollinger/Support-Resistance/Flow/\n"
+"├─ Futures: OI series/Buy-Sell ratio/Position change/Volatility/\n"
+"└─ Advanced: EMA/Candle patterns/VPVR/VWAP/Liquidity/Trend/\n"
+"\n"
+"🚨 Signals\n"
+"├─ Anomaly monitor\n"
+"└─ Watchlist pushes\n"
+"\n"
+"🤖 AI analysis\n"
+"├─ Deep report\n"
+"└─ Quick levels\n"
+"\n"
+"⏰ Updated at: {time} (Beijing time)\n"
+"👇 Tap a button to start"
+
+msgid "menu.ranking"
+msgstr ""
+"📊 Data panel\n"
+"├─ Pick a board to view details\n"
+"├─ Choose interval: 1m/5m/15m/1h/4h/1d/1w\n"
+"├─ Sorting: toggle asc/desc\n"
+"└─ Fields: tap to show/hide\n"
+"\n"
+"👇 Select a board"
+
+# AI module
+msgid "ai.list.title"
+msgstr "🤖 AI Analysis"
+
+msgid "ai.list.usage"
+msgstr "💡 Quick use\nSend BNB@ to analyze\nSend BNB@@ for TXT"
+
+msgid "ai.list.supported"
+msgstr "📊 Supported symbols ({count})"
+
+msgid "ai.unsupported"
+msgstr "❌ Unsupported symbol: {coin}\n\nPlease choose from the list"
+
+msgid "ai.interval.title"
+msgstr "🤖 *AI Deep Analysis*"
+
+msgid "ai.prompt.label"
+msgstr "Prompt"
+
+msgid "ai.interval.choose"
+msgstr "Select timeframe:"
+
+msgid "ai.analyzing"
+msgstr "🔄 Analysing *{symbol}* @ {interval} ...\n\n⏳ AI analysis takes 30–60s, please wait"
+
+msgid "ai.cancelled"
+msgstr "AI analysis cancelled"
+
+msgid "ai.no_symbol"
+msgstr "❌ No symbol selected, please send `symbol@` again"
+
+# ============ Common Buttons ============
+msgid "btn.back_home"
+msgstr "🏠 Back to menu"
+
+msgid "btn.back"
+msgstr "⬅️ Back"
+
+msgid "btn.refresh"
+msgstr "🔄 Refresh"
+
+msgid "btn.next_page"
+msgstr "Next ➡️"
+
+msgid "btn.prev_page"
+msgstr "⬅️ Previous"
+
+msgid "btn.asc"
+msgstr "Ascending"
+
+msgid "btn.desc"
+msgstr "Descending"
+
+msgid "btn.show_more"
+msgstr "👇 Tap buttons below for more data"
+
+msgid "btn.refresh_menu"
+msgstr "🔄 Refresh menu"
+
+msgid "btn.retry"
+msgstr "🔁 Retry"
+
+msgid "btn.market_overview"
+msgstr "📈 Market overview"
+
+msgid "btn.position_ranking"
+msgstr "📊 Position ranking"
+
+msgid "btn.volume_ranking"
+msgstr "🔊 Volume ranking"
+
+msgid "btn.liquidation_ranking"
+msgstr "💥 Liquidation ranking"
+
+# ============ Panel Buttons ============
+msgid "panel.basic"
+msgstr "💵Basic"
+
+msgid "panel.futures"
+msgstr "📑Futures"
+
+msgid "panel.advanced"
+msgstr "🧠Advanced"
+
+msgid "panel.pattern"
+msgstr "🕯️Pattern"
+
+# ============ Market Type ============
+msgid "market.spot"
+msgstr "Spot"
+
+msgid "market.futures"
+msgstr "Futures"
+
+# ============ Period ============
+msgid "period.1m"
+msgstr "1min"
+
+msgid "period.5m"
+msgstr "5min"
+
+msgid "period.15m"
+msgstr "15min"
+
+msgid "period.30m"
+msgstr "30min"
+
+msgid "period.1h"
+msgstr "1hour"
+
+msgid "period.4h"
+msgstr "4hours"
+
+msgid "period.12h"
+msgstr "12hours"
+
+msgid "period.1d"
+msgstr "1day"
+
+msgid "period.1w"
+msgstr "1week"
+
+# ============ Sort/Filter ============
+msgid "sort.by_volume"
+msgstr "Volume"
+
+msgid "sort.by_price"
+msgstr "Price"
+
+msgid "sort.by_change"
+msgstr "Change"
+
+msgid "sort.items"
+msgstr "{n} items"
+
+# ============ Money Flow ============
+msgid "flow.absolute"
+msgstr "Absolute"
+
+msgid "flow.inflow"
+msgstr "Inflow"
+
+msgid "flow.outflow"
+msgstr "Outflow"
+
+msgid "flow.volume"
+msgstr "Volume"
+
+# ============ Ratio Type ============
+msgid "ratio.position_market"
+msgstr "OI/MCap"
+
+msgid "ratio.volume_market"
+msgstr "Vol/MCap"
+
+msgid "ratio.volume_oi"
+msgstr "Vol/OI"
+
+# ============ Error Messages ============
+msgid "error.not_ready"
+msgstr "❌ System not ready, please retry later"
+
+msgid "error.query_failed"
+msgstr "❌ Query failed: {error}"
+
+msgid "error.refresh_failed"
+msgstr "❌ Refresh failed, please retry later"
+
+msgid "error.export_failed"
+msgstr "❌ Export failed: {error}"
+
+msgid "error.status_failed"
+msgstr "❌ Failed to get status, please retry later"
+
+msgid "error.signal_failed"
+msgstr "❌ Signal panel failed: {error}"
+
+# ============ Feature Hints ============
+msgid "query.disabled"
+msgstr "⚠️ Coin query is temporarily disabled"
+
+msgid "query.hint"
+msgstr "Please send e.g. BNB! to trigger coin query"
+
+msgid "feature.coming_soon"
+msgstr "🚧 Feature coming soon!"
+
+msgid "signal.coming_soon"
+msgstr "🚧 Signal subscription coming soon!"
+
+# ============ Ranking Titles ============
+msgid "ranking.volume"
+msgstr "📈 Volume Ranking 📈"
+
+msgid "ranking.spot_volume"
+msgstr "💹 {period} Spot Volume Ranking 💹"
+
+msgid "ranking.position"
+msgstr "🐋 Open Interest Ranking 🐋"
+
+msgid "ranking.funding"
+msgstr "💱 Funding Rate Ranking"
+
+msgid "ranking.liquidation"
+msgstr "💥 Liquidation Ranking"
+
+msgid "ranking.flow"
+msgstr "💧 Money Flow Ranking"
+
+msgid "ranking.depth"
+msgstr "🧊 Market Depth Ranking"
+
+msgid "ranking.sentiment"
+msgstr "🎭 Market Sentiment"
+
+msgid "ranking.overview"
+msgstr "📡 Market Overview"
+
+# ============ Ratio Rankings ============
+msgid "ranking.ratio.position_market"
+msgstr "📊 OI/Market Cap Ratio 📊"
+
+msgid "ranking.ratio.volume_market"
+msgstr "📊 Volume/Market Cap Ratio 📊"
+
+msgid "ranking.ratio.volume_oi"
+msgstr "📊 Volume/OI Ratio 📊"
+
+# ============ Flow Titles ============
+msgid "flow.title.futures_long"
+msgstr "🟢 Futures Long Inflow ({period})"
+
+msgid "flow.title.futures_short"
+msgstr "🔴 Futures Short Outflow ({period})"
+
+msgid "flow.title.futures_volume"
+msgstr "📦 Futures Volume ({period})"
+
+msgid "flow.title.futures"
+msgstr "💧 Money Flow - Futures ({period})"
+
+msgid "flow.title.spot_long"
+msgstr "🟢 Spot Long Inflow ({period})"
+
+msgid "flow.title.spot_short"
+msgstr "🔴 Spot Short Outflow ({period})"
+
+msgid "flow.title.spot_volume"
+msgstr "📦 Spot Volume ({period})"
+
+msgid "flow.title.spot"
+msgstr "💧 Money Flow - Spot ({period})"
+
+# ============ Flow Descriptions ============
+msgid "flow.desc.futures_long"
+msgstr "Keep long-dominant coins, sorted by net inflow (desc)"
+
+msgid "flow.desc.futures_short"
+msgstr "Keep short-dominant coins, sorted by net outflow (asc)"
+
+msgid "flow.desc.spot_long"
+msgstr "Keep spot net inflow, sorted by net inflow (desc)"
+
+msgid "flow.desc.spot_short"
+msgstr "Keep spot net outflow, sorted by net outflow (asc)"
+
+msgid "flow.desc.volume"
+msgstr "Sorted by traded quote volume for the period"
+
+msgid "flow.desc.absolute"
+msgstr "Sorted by |CVD| ({symbol}) / {sort}"
+
+msgid "flow.desc.definition_futures"
+msgstr "Net flow (CVD)=Taker buy - Taker sell, source: Binance Futures"
+
+msgid "flow.desc.definition_spot"
+msgstr "Net flow (CVD)=Taker buy - Taker sell, source: Binance Spot"
+
+# ============ Option Flow ============
+msgid "flow.option.inflow"
+msgstr "💰 Options Inflow Ranking 💰"
+
+msgid "flow.option.sort_inflow"
+msgstr "Inflow strength (🔽)"
+
+msgid "flow.option.type_inflow"
+msgstr "🟢 Showing symbols with net inflow only"
+
+msgid "flow.option.desc_inflow"
+msgstr "💡 Values are positive, meaning net inflow"
+
+msgid "flow.option.outflow"
+msgstr "💰 Options Outflow Ranking 💰"
+
+msgid "flow.option.sort_outflow"
+msgstr "Outflow strength (🔼)"
+
+msgid "flow.option.type_outflow"
+msgstr "🔴 Showing symbols with net outflow only"
+
+msgid "flow.option.desc_outflow"
+msgstr "💡 Values are negative, meaning net outflow"
+
+msgid "flow.option.absolute"
+msgstr "💰 Options Money Flow Ranking 💰"
+
+msgid "flow.option.sort_absolute"
+msgstr "Money flow strength ({symbol}) / {sort}"
+
+msgid "flow.option.type_absolute"
+msgstr "📊 Sorted by absolute value, show all symbols"
+
+msgid "flow.option.desc_absolute"
+msgstr "💡 + for inflow, - for outflow"
+
+# ============ Time Display ============
+msgid "time.update"
+msgstr "⏰ Updated {time}"
+
+msgid "time.last_update"
+msgstr "⏰ Last updated {time}"
+
+msgid "time.cache"
+msgstr "📄 Cache time: {time}"
+
+# ============ Data Hints ============
+msgid "data.no_data"
+msgstr "No data"
+
+msgid "data.loading"
+msgstr "🔄 Loading data"
+
+msgid "data.coins_count"
+msgstr "📊 Available coins ({count})"
+
+# ============ Single token snapshot ============
+msgid "snapshot.error.no_symbol"
+msgstr "Symbol is required"
+
+msgid "snapshot.error.no_period"
+msgstr "Please enable at least one timeframe"
+
+msgid "snapshot.header.field"
+msgstr "Field/TF"
+
+msgid "snapshot.header.compact"
+msgstr "Field/TF/{columns}"
+
+msgid "snapshot.title.basic"
+msgstr "💵 {symbol} Basics"
+
+msgid "snapshot.title.futures"
+msgstr "📑 {symbol} Futures"
+
+msgid "snapshot.title.advanced"
+msgstr "🧠 {symbol} Advanced"
+
+msgid "snapshot.title.default"
+msgstr "{symbol} Snapshot"
+
+msgid "snapshot.footer.hint"
+msgstr "💡 Toggle cards/periods/panels; futures hide 1m; advanced keeps fewer columns"
+
+msgid "snapshot.footer.page"
+msgstr "📑 Page {current}/{total}"
+
+# ============ Ranking common ============
+msgid "card.header.rank"
+msgstr "Rank"
+
+msgid "card.header.symbol"
+msgstr "Symbol"
+
+msgid "card.header.rank_symbol"
+msgstr "Rank/Symbol"
+
+msgid "btn.sort.desc"
+msgstr "Desc"
+
+msgid "btn.sort.asc"
+msgstr "Asc"
+
+msgid "btn.limit.10"
+msgstr "Top 10"
+
+msgid "btn.limit.20"
+msgstr "Top 20"
+
+msgid "btn.limit.30"
+msgstr "Top 30"
+
+msgid "btn.settings"
+msgstr "⚙️ Settings"
+
+# Signal toggle
+msgid "signal.push.on"
+msgstr "Enable alerts"
+
+msgid "signal.push.off"
+msgstr "Disable alerts"
+
+# ============ Common sort hint ============
+msgid "card.common.sort"
+msgstr "📊 Sort {period} {field}({symbol})"
+
+# ============ KDJ ranking ============
+msgid "card.kdj.title"
+msgstr "🎯 KDJ Ranking"
+
+msgid "card.kdj.desc"
+msgstr "KDJ strength leaderboard"
+
+msgid "card.kdj.hint"
+msgstr "💡 Combines J/K/D and overbought/oversold; >0 bullish, <0 bearish"
+
+msgid "card.kdj.settings.title"
+msgstr "⚙️ KDJ Fields"
+
+msgid "card.kdj.settings.hint"
+msgstr "💡 Turn off fields you don't need to keep the list concise"
+
+msgid "card.kdj.fallback"
+msgstr "🔄 KDJ data loading"
+
+# ============ Futures divergence ============
+msgid "card.divergence.title"
+msgstr "⚖️ Divergence Ranking"
+
+msgid "card.divergence.sort"
+msgstr "📊 Sort {period} {field}({symbol})"
+
+msgid "card.divergence.source"
+msgstr "💡 Source: Futures sentiment aggregation (divergence)"
+
+msgid "card.divergence.fallback"
+msgstr "⚖️ Divergence data loading, please retry..."
+
+# ============ Trendline ============
+msgid "card.trendline.title"
+msgstr "📈 Trendline"
+
+msgid "card.trendline.sort"
+msgstr "📊 Sort {period} {field}({symbol})"
+
+msgid "card.trendline.source"
+msgstr "💡 Keep only direction and distance (Pine equivalent)"
+
+msgid "card.trendline.fallback"
+msgstr "🔄 Trendline data is loading"
+
+# ============ Export ============
+msgid "export.caption"
+msgstr "📊 {symbol} Full Data Report"
+
+msgid "export.title"
+msgstr "{symbol} Full Data Report"
+
+# ============ UI Hints ============
+msgid "ui.please_wait"
+msgstr "⏳ Please wait"
+
+msgid "ui.processing"
+msgstr "Processing..."
+
+msgid "ui.futures_no_1m"
+msgstr "Futures view doesn't support 1m"
+
+msgid "ui.card_offline"
+msgstr "⚖️ Card offline"
+
+msgid "ui.system_reloading"
+msgstr "System reloading, please try again later"
+
+# Card common entries
+msgid "card.common.update_time"
+msgstr "⏰ Updated {time}"
+
+msgid "card.common.last_update"
+msgstr "⏰ Last update {time}"
+
+msgid "card.common.sort_info"
+msgstr "📊 Sort {period} {field}({symbol})"
+
+# CVD card
+msgid "card.cvd.title"
+msgstr "🌊 CVD Data"
+
+msgid "card.cvd.hint"
+msgstr "💡 CVD = Buy Volume - Sell Volume, positive = bullish, negative = bearish"
+
+# MFI card
+msgid "card.mfi.title"
+msgstr "💧 MFI Data"
+
+msgid "card.mfi.hint"
+msgstr "💡 MFI combines price and volume, >80 overbought, <20 oversold"
+
+# OBV card
+msgid "card.obv.title"
+msgstr "📊 OBV Data"
+
+msgid "card.obv.hint"
+msgstr "💡 OBV slope measures volume momentum, higher = stronger momentum"
+
+# RSI Harmonic card
+msgid "card.rsi_harmonic.title"
+msgstr "📊 RSI Harmonic Data"
+
+msgid "card.rsi_harmonic.hint"
+msgstr "💡 RSI2-33 full harmonic signal, higher value = stronger signal"
+
+# Taker Ratio card
+msgid "card.taker_ratio.title"
+msgstr "🧾 Taker Buy/Sell Ratio"
+
+msgid "card.taker_ratio.hint"
+msgstr "💡 Ratio = Taker Buy Volume ÷ Total Volume, higher = stronger buying"
+
+# VWAP card
+msgid "card.vwap.title"
+msgstr "📏 VWAP Data"
+
+msgid "card.vwap.hint"
+msgstr "💡 Deviation>0 = price above VWAP, <0 = below VWAP"
+
+# Flow card
+msgid "card.flow.title"
+msgstr "💧 Fund Flow Data"
+
+msgid "card.flow.hint"
+msgstr "💡 Net flow = Inflow - Outflow; switch between net/volume/inflow/outflow/price"
+
+# Funding card
+msgid "card.funding.title"
+msgstr "💱 Funding Rate Data"
+
+msgid "card.funding.hint"
+msgstr "💡 Switch between funding rate/weighted rate and common columns"
+
+# VPVR card
+msgid "card.vpvr.title"
+msgstr "📊 VPVR Data"
+
+msgid "card.vpvr.hint"
+msgstr "💡 Width% = (Upper - Lower) / VPVR Price"
+
+# Bollinger Bands card
+msgid "card.bb.title"
+msgstr "📊 Bollinger Bands Data"
+
+msgid "card.bb.hint"
+msgstr "💡 Bandwidth measures volatility, %B shows position within bands"
+
+# SuperTrend card
+msgid "card.supertrend.title"
+msgstr "📈 SuperTrend Data"
+
+msgid "card.supertrend.hint"
+msgstr "💡 Strength = (Price - Trend Band) / Bandwidth; Direction 1=Long -1=Short"
+
+# EMA card
+msgid "card.ema.title"
+msgstr "📈 EMA Data"
+
+msgid "card.ema.hint"
+msgstr "💡 Strength based on EMA area convergence/divergence"
+
+# Pattern card
+msgid "card.pattern.title"
+msgstr "📊 Candlestick Pattern Data"
+
+msgid "card.pattern.hint"
+msgstr "💡 Strength from pattern count and weight (pattern names localized)"
+
+# MACD card
+msgid "card.macd.title"
+msgstr "📊 MACD Data"
+
+msgid "card.macd.hint"
+msgstr "💡 Strength combines histogram and trend, >0 bullish, <0 bearish"
+
+# OI card
+msgid "card.oi.title"
+msgstr "🐋 Open Interest Data"
+
+msgid "card.oi.hint"
+msgstr "💡 OI ratio split by long/short, switch fields/sorting"
+
+# Liquidity card
+msgid "card.liquidity.title"
+msgstr "💧 Liquidity Data"
+
+msgid "card.liquidity.hint"
+msgstr "💡 Index combines Amihud/Kyle with volatility/volume, higher = higher liquidity risk"
+
+# Depth card
+msgid "card.depth.title"
+msgstr "🧊 Market Depth Data"
+
+msgid "card.depth.hint"
+msgstr "💡 Depth ratio = bid/ask volume comparison, check spread/bid wall/ask wall"
+
+# Support/Resistance card
+msgid "card.sr.title"
+msgstr "📊 Support/Resistance Data"
+
+msgid "card.sr.hint"
+msgstr "💡 Combines VPVR+Swing+Clustering to identify key S/R levels"
+
+# Volume card
+msgid "card.volume.title"
+msgstr "📊 Volume Data"
+
+msgid "card.volume.hint"
+msgstr "💡 Volume ratio = current/20-period avg, >2 high volume, <0.5 low volume"
+
+# Fallback entries
+msgid "card.atr.fallback"
+msgstr "📊 Loading ATR data..."
+
+msgid "card.bb.fallback"
+msgstr "📊 Loading Bollinger Bands data..."
+
+msgid "card.big_sentiment.fallback"
+msgstr "📊 Loading whale sentiment data..."
+
+msgid "card.crowding.fallback"
+msgstr "📊 Loading crowding risk data..."
+
+msgid "card.cvd.fallback"
+msgstr "🌊 Loading CVD data..."
+
+msgid "card.depth.fallback"
+msgstr "🧊 Loading market depth data..."
+
+msgid "card.ema.fallback"
+msgstr "📈 Loading EMA data..."
+
+msgid "card.flow.fallback"
+msgstr "💧 Loading fund flow data..."
+
+msgid "card.funding.fallback"
+msgstr "💱 Loading funding rate data..."
+
+msgid "card.futures_sentiment.fallback"
+msgstr "📊 Loading futures sentiment data..."
+
+msgid "card.liquidity.fallback"
+msgstr "💧 Loading liquidity data..."
+
+msgid "card.macd.fallback"
+msgstr "📊 Loading MACD data..."
+
+msgid "card.market_sentiment.fallback"
+msgstr "📊 Loading market sentiment data..."
+
+msgid "card.mfi.fallback"
+msgstr "💧 Loading MFI data..."
+
+msgid "card.obv.fallback"
+msgstr "📊 Loading OBV data..."
+
+msgid "card.oi.fallback"
+msgstr "🐋 Loading open interest data..."
+
+msgid "card.oi_alert.fallback"
+msgstr "📊 Loading OI alert data..."
+
+msgid "card.oi_speed.fallback"
+msgstr "📊 Loading OI speed data..."
+
+msgid "card.oi_streak.fallback"
+msgstr "📊 Loading OI streak data..."
+
+msgid "card.oi_trend.fallback"
+msgstr "📊 Loading OI trend data..."
+
+msgid "card.pattern.fallback"
+msgstr "📊 Loading candlestick pattern data..."
+
+msgid "card.reversal.fallback"
+msgstr "📊 Loading reversal radar data..."
+
+msgid "card.rsi_harmonic.fallback"
+msgstr "📊 Loading RSI harmonic data..."
+
+msgid "card.sentiment_mom.fallback"
+msgstr "📊 Loading sentiment momentum data..."
+
+msgid "card.sr.fallback"
+msgstr "📊 Loading support/resistance data..."
+
+msgid "card.supertrend.fallback"
+msgstr "📈 Loading SuperTrend data..."
+
+msgid "card.taker_dir.fallback"
+msgstr "📊 Loading taker direction data..."
+
+msgid "card.taker_jump.fallback"
+msgstr "📊 Loading taker jump data..."
+
+msgid "card.taker_ratio.fallback"
+msgstr "🧾 Loading taker ratio data..."
+
+msgid "card.taker_streak.fallback"
+msgstr "📊 Loading taker streak data..."
+
+msgid "card.volatility.fallback"
+msgstr "📊 Loading volatility data..."
+
+msgid "card.volume.fallback"
+msgstr "📊 Loading volume data..."
+
+msgid "card.volume_ratio.fallback"
+msgstr "📊 Loading volume ratio data..."
+
+msgid "card.vpvr.fallback"
+msgstr "📊 Loading VPVR data..."
+
+msgid "card.vwap.fallback"
+msgstr "📏 Loading VWAP data..."
+
+msgid "card.liquidation.fallback"
+msgstr "📊 Loading liquidation data..."
+
+# ATR card
+msgid "card.atr.title"
+msgstr "📊 ATR Data"
+
+msgid "card.atr.hint"
+msgstr "💡 ATR measures volatility, higher value = higher volatility"
+
+# Volume Ratio card
+msgid "card.volume_ratio.title"
+msgstr "📊 Volume Ratio Data"
+
+msgid "card.volume_ratio.hint"
+msgstr "💡 Ratio = current volume / avg volume, >2 high, <0.5 low"
+
+# app.py user messages
+msgid "data.initializing"
+msgstr "🔄 Bot is initializing, please try again later"
+
+msgid "data.service_unavailable"
+msgstr "❌ Data service unavailable, please try again later"
+
+msgid "data.aggregating_futures_volume"
+msgstr "🔄 Aggregating futures volume data, please wait"
+
+msgid "data.aggregating_spot_volume"
+msgstr "🔄 Aggregating spot volume data, please wait"
+
+msgid "data.fetch_failed"
+msgstr "❌ Failed to fetch market data, please try again later"
+
+msgid "data.option_failed"
+msgstr "❌ Failed to fetch option data, please try again later"
+
+msgid "data.option_loading"
+msgstr "🔄 Option data is loading, please try again later"
+
+msgid "data.aggregating_futures_cvd"
+msgstr "🔄 Aggregating futures CVD, please wait"
+
+msgid "data.aggregating_spot_cvd"
+msgstr "🔄 Aggregating spot CVD, please wait"
+
+msgid "data.no_flow_data"
+msgstr "📭 No fund flow data for current period"
+
+msgid "data.no_spot_flow"
+msgstr "📭 No spot fund flow data for current period"
+
+msgid "data.oi_loading"
+msgstr "🔄 Open interest data is loading, please try again later"
+
+msgid "data.cache_empty"
+msgstr "❌ Cache is empty"
+
+msgid "data.temporarily_unavailable"
+msgstr "📊 Data temporarily unavailable, please try again later"
+
+msgid "error.unsupported_market"
+msgstr "❌ Unsupported market type"
+
+msgid "error.signal_not_init"
+msgstr "❌ Signal formatter not initialized"
+
+msgid "feature.funding_offline"
+msgstr "⏸️ Funding rate ranking is offline, stay tuned for alternatives."
+
+msgid "feature.depth_offline"
+msgstr "⏸️ Market depth ranking is offline, stay tuned for alternatives."
+
+msgid "feature.sentiment_offline"
+msgstr "⏸️ Market sentiment ranking is offline, stay tuned for new indicators."
+
+msgid "feature.ai_unavailable"
+msgstr "🤖 AI analysis is not available, please try again later."
+
+msgid "cache.status_title"
+msgstr "📊 Cache Status:"
+
+msgid "cache.no_files"
+msgstr "No cache files found"
+
+msgid "data.loading_hint"
+msgstr "🔄 Data is loading in background, please try again later\n💡 Bot needs a few seconds to load data after startup"
+
+msgid "cache.current_use"
+msgstr "Current"
+
+msgid "cache.backup_file"
+msgstr "Backup"
+
+msgid "query.title"
+msgstr "🔍 Symbol Query"
+
+msgid "query.prompt"
+msgstr "Send symbol name to query:"
+
+msgid "query.format"
+msgstr "Format: `SYMBOL!` (with exclamation mark)"
+
+msgid "query.count"
+msgstr "📊 Available symbols ({count})"
+
+msgid "query.usage"
+msgstr "💡 Quick use"
+
+msgid "query.usage_interactive"
+msgstr "`BNB!` Interactive query"
+
+msgid "query.usage_export"
+msgstr "`BNB!!` Export full TXT"
+
+# Futures field buttons - Taker direction
+msgid "btn.field.taker_ratio"
+msgstr "Taker L/S"
+
+msgid "btn.field.taker_bias"
+msgstr "Taker Bias"
+
+msgid "btn.field.taker_momentum"
+msgstr "Taker Mom"
+
+# Futures field buttons - Top traders
+msgid "btn.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "btn.field.top_bias"
+msgstr "Top Bias"
+
+msgid "btn.field.top_momentum"
+msgstr "Top Mom"
+
+msgid "btn.field.top_volatility"
+msgstr "Top Vol"
+
+# Futures field buttons - Crowd sentiment
+msgid "btn.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "btn.field.crowd_bias"
+msgstr "Crowd Bias"
+
+msgid "btn.field.crowd_volatility"
+msgstr "Crowd Vol"
+
+# Futures field buttons - OI changes
+msgid "btn.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "btn.field.oi_change"
+msgstr "OI Chg"
+
+msgid "btn.field.oi_value"
+msgstr "OI Value"
+
+# Signal buttons
+msgid "btn.analyze"
+msgstr "Analyze"
+
+msgid "btn.ai_analyze"
+msgstr "AI Analyze"
+
+msgid "btn.back_kdj"
+msgstr "⬅️ Back to KDJ"
+
+# Card button i18n
+msgid "card.atr.btn"
+msgstr "🧭 ATR"
+
+msgid "card.bollinger.btn"
+msgstr "🎗️ Bollinger"
+
+msgid "card.crowd_sentiment.btn"
+msgstr "🌐 Crowd"
+
+msgid "card.cvd.btn"
+msgstr "🌊 CVD"
+
+msgid "card.depth.btn"
+msgstr "🧊 Depth"
+
+msgid "card.ema.btn"
+msgstr "🧮 EMA"
+
+msgid "card.funding_rate.btn"
+msgstr "💱 Funding"
+
+msgid "card.kdj.btn"
+msgstr "🎯 KDJ"
+
+msgid "card.liquidity.btn"
+msgstr "💧 Liquidity"
+
+msgid "card.macd.btn"
+msgstr "🧲 MACD"
+
+msgid "card.mfi.btn"
+msgstr "💰 MFI"
+
+msgid "card.money_flow.btn"
+msgstr "🚰 Flow"
+
+msgid "card.obv.btn"
+msgstr "📡 OBV"
+
+msgid "card.oi_aggregate.btn"
+msgstr "🐋 OI Agg"
+
+msgid "card.oi_change.btn"
+msgstr "⚡ OI Chg"
+
+msgid "card.oi_continuous.btn"
+msgstr "📈 OI Cont"
+
+msgid "card.oi_extreme.btn"
+msgstr "🚩 OI Alert"
+
+msgid "card.oi_ranking.btn"
+msgstr "🐋 OI Rank"
+
+msgid "card.oi_trend.btn"
+msgstr "📐 OI Trend"
+
+msgid "card.pattern.btn"
+msgstr "🕯️ Pattern"
+
+msgid "card.reversal_radar.btn"
+msgstr "🛰️ Reversal"
+
+msgid "card.risk_crowding.btn"
+msgstr "🚨 Risk"
+
+msgid "card.rsi_harmonic.btn"
+msgstr "🔔 RSI Harm"
+
+msgid "card.sentiment_divergence.btn"
+msgstr "⚖️ Diverge"
+
+msgid "card.sentiment_momentum.btn"
+msgstr "🚀 Momentum"
+
+msgid "card.supertrend.btn"
+msgstr "📐 SuperTrend"
+
+msgid "card.support_resistance.btn"
+msgstr "🧱 S/R"
+
+msgid "card.support_resistance.title"
+msgstr "🧱 Support/Resistance"
+
+msgid "card.taker_continuous.btn"
+msgstr "↕️ Taker Cont"
+
+msgid "card.taker_direction.btn"
+msgstr "🚦 Taker Dir"
+
+msgid "card.taker_jump.btn"
+msgstr "⚡ Taker Jump"
+
+msgid "card.taker_ratio.btn"
+msgstr "🧾 Taker Ratio"
+
+msgid "card.top_sentiment.btn"
+msgstr "🐳 Top Trader"
+
+msgid "card.trendline.btn"
+msgstr "📈 Trendline"
+
+msgid "card.volatility.btn"
+msgstr "🌊 Volatility"
+
+msgid "card.volume.btn"
+msgstr "📊 Volume"
+
+msgid "card.volume_ratio.btn"
+msgstr "📦 Vol Ratio"
+
+msgid "card.vpvr.btn"
+msgstr "🏛️ VPVR"
+
+msgid "card.vwap.btn"
+msgstr "📏 VWAP"
+
+# Sort field labels
+msgid "field.volume"
+msgstr "Volume"
+
+msgid "field.amplitude"
+msgstr "Amplitude"
+
+msgid "field.trades"
+msgstr "Trades"
+
+msgid "field.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "field.buy_sell_ratio"
+msgstr "B/S Ratio"
+
+msgid "field.price"
+msgstr "Price"
+
+msgid "field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "field.trend"
+msgstr "Trend"
+
+msgid "field.pattern"
+msgstr "Pattern"
+
+msgid "field.direction"
+msgstr "Direction"
+
+msgid "field.slope"
+msgstr "Slope"
+
+msgid "field.volume_ratio"
+msgstr "Vol Ratio"
+
+msgid "field.net_flow"
+msgstr "Net Flow"
+
+msgid "field.inflow"
+msgstr "Inflow"
+
+msgid "field.outflow"
+msgstr "Outflow"
+
+msgid "field.harmonic"
+msgstr "Harmonic"
+
+msgid "field.histogram"
+msgstr "Histogram"
+
+msgid "field.signal_line"
+msgstr "Signal"
+
+msgid "field.change"
+msgstr "Change"
+
+msgid "field.position_share"
+msgstr "Position Share"
+
+msgid "field.position_market"
+msgstr "OI Mkt Share"
+
+msgid "field.volume_market"
+msgstr "Vol Mkt Share"
+
+msgid "field.volume_oi"
+msgstr "Vol/OI"
+
+msgid "field.liquidation_total"
+msgstr "Liquidation"
+
+msgid "field.liquidation_long"
+msgstr "Long Liq"
+
+msgid "field.liquidation_short"
+msgstr "Short Liq"
+
+msgid "field.depth_ratio"
+msgstr "Depth Ratio"
+
+msgid "field.spread"
+msgstr "Spread"
+
+msgid "field.bid_wall"
+msgstr "Bid Wall"
+
+msgid "field.ask_wall"
+msgstr "Ask Wall"
+
+msgid "field.funding_rate"
+msgstr "Funding Rate"
+
+msgid "field.funding_weight"
+msgstr "Weighted Rate"
+
+msgid "field.break_price"
+msgstr "Break Price"
+
+msgid "field.break_type"
+msgstr "Break Type"
+
+msgid "field.stability_pct"
+msgstr "Stability Pctl"
+
+msgid "field.sentiment_diff_abs"
+msgstr "Sentiment Diff Abs"
+
+# TXT export - Panel titles
+msgid "export.panel.basic"
+msgstr "📊 Basic Indicators"
+
+msgid "export.panel.futures"
+msgstr "📈 Futures Sentiment"
+
+msgid "export.panel.advanced"
+msgstr "🔬 Advanced Indicators"
+
+msgid "export.panel.pattern"
+msgstr "🕯️ Candlestick Patterns"
+
+# TXT export - Headers
+msgid "export.header.indicator_period"
+msgstr "Indicator\\Period"
+
+msgid "export.header.period"
+msgstr "Period"
+
+# TXT export - Field names
+msgid "export.field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "export.field.percent_b"
+msgstr "%B"
+
+msgid "export.field.mid_slope"
+msgstr "Mid Slope"
+
+msgid "export.field.j"
+msgstr "J"
+
+msgid "export.field.k"
+msgstr "K"
+
+msgid "export.field.d"
+msgstr "D"
+
+msgid "export.field.signal"
+msgstr "Signal"
+
+msgid "export.field.macd"
+msgstr "MACD"
+
+msgid "export.field.dif"
+msgstr "DIF"
+
+msgid "export.field.dea"
+msgstr "DEA"
+
+msgid "export.field.rsi"
+msgstr "RSI"
+
+msgid "export.field.strength"
+msgstr "Strength"
+
+msgid "export.field.obv"
+msgstr "OBV"
+
+msgid "export.field.change_rate"
+msgstr "Chg Rate"
+
+msgid "export.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "export.field.oi_value"
+msgstr "OI Value"
+
+msgid "export.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "export.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "export.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "export.field.taker_ratio"
+msgstr "Taker L/S"
+
+msgid "export.field.sentiment_diff"
+msgstr "Sent Diff"
+
+msgid "export.field.support"
+msgstr "Support"
+
+msgid "export.field.resistance"
+msgstr "Resistance"
+
+msgid "export.field.dist_support"
+msgstr "Dist S%"
+
+msgid "export.field.dist_resistance"
+msgstr "Dist R%"
+
+msgid "export.field.atr_pct"
+msgstr "ATR%"
+
+msgid "export.field.volatility"
+msgstr "Volatility"
+
+msgid "export.field.liquidity"
+msgstr "Liquidity"
+
+msgid "export.field.level"
+msgstr "Level"
+
+msgid "export.field.direction"
+msgstr "Direction"
+
+msgid "export.field.duration"
+msgstr "Duration"
+
+msgid "export.field.vwap_dev"
+msgstr "VWAP Dev%"
+
+msgid "export.field.pattern"
+msgstr "Pattern"
+
+msgid "export.field.count"
+msgstr "Count"
+
+# Snapshot field names - Basic
+msgid "snapshot.field.bandwidth"
+msgstr "Bandwidth"
+
+msgid "snapshot.field.percent_b"
+msgstr "%B"
+
+msgid "snapshot.field.mid_slope"
+msgstr "Mid Slope"
+
+msgid "snapshot.field.mid_price"
+msgstr "Mid Price"
+
+msgid "snapshot.field.upper_price"
+msgstr "Upper"
+
+msgid "snapshot.field.lower_price"
+msgstr "Lower"
+
+msgid "snapshot.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "snapshot.field.signal"
+msgstr "Signal"
+
+msgid "snapshot.field.support"
+msgstr "Support"
+
+msgid "snapshot.field.resistance"
+msgstr "Resistance"
+
+msgid "snapshot.field.dist_support"
+msgstr "Dist S%"
+
+msgid "snapshot.field.dist_resistance"
+msgstr "Dist R%"
+
+msgid "snapshot.field.dist_key"
+msgstr "Dist Key%"
+
+msgid "snapshot.field.taker_buy"
+msgstr "Taker Buy"
+
+msgid "snapshot.field.taker_sell"
+msgstr "Taker Sell"
+
+msgid "snapshot.field.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "snapshot.field.j"
+msgstr "J"
+
+msgid "snapshot.field.k"
+msgstr "K"
+
+msgid "snapshot.field.d"
+msgstr "D"
+
+msgid "snapshot.field.direction"
+msgstr "Direction"
+
+msgid "snapshot.field.macd"
+msgstr "MACD"
+
+msgid "snapshot.field.dif"
+msgstr "DIF"
+
+msgid "snapshot.field.dea"
+msgstr "DEA"
+
+msgid "snapshot.field.histogram"
+msgstr "Histogram"
+
+msgid "snapshot.field.obv"
+msgstr "OBV"
+
+msgid "snapshot.field.obv_change"
+msgstr "OBV Chg"
+
+msgid "snapshot.field.harmonic"
+msgstr "Harmonic"
+
+# Snapshot field names - Futures
+msgid "snapshot.field.oi_value"
+msgstr "OI Value"
+
+msgid "snapshot.field.oi_contracts"
+msgstr "OI Contracts"
+
+msgid "snapshot.field.oi_change_pct"
+msgstr "OI Chg%"
+
+msgid "snapshot.field.oi_change"
+msgstr "OI Chg"
+
+msgid "snapshot.field.oi_slope"
+msgstr "OI Slope"
+
+msgid "snapshot.field.z_score"
+msgstr "Z-Score"
+
+msgid "snapshot.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "snapshot.field.top_ratio"
+msgstr "Top L/S"
+
+msgid "snapshot.field.top_bias"
+msgstr "Top Bias"
+
+msgid "snapshot.field.top_momentum"
+msgstr "Top Mom"
+
+msgid "snapshot.field.top_volatility"
+msgstr "Top Vol"
+
+msgid "snapshot.field.crowd_ratio"
+msgstr "Crowd L/S"
+
+msgid "snapshot.field.crowd_bias"
+msgstr "Crowd Bias"
+
+msgid "snapshot.field.crowd_volatility"
+msgstr "Crowd Vol"
+
+msgid "snapshot.field.taker_ls_ratio"
+msgstr "Taker L/S"
+
+msgid "snapshot.field.taker_bias"
+msgstr "Taker Bias"
+
+msgid "snapshot.field.taker_momentum"
+msgstr "Taker Mom"
+
+msgid "snapshot.field.taker_jump"
+msgstr "Taker Jump"
+
+msgid "snapshot.field.taker_streak"
+msgstr "Taker Streak"
+
+msgid "snapshot.field.sentiment_diff"
+msgstr "Sent Diff"
+
+msgid "snapshot.field.reversal"
+msgstr "Reversal"
+
+msgid "snapshot.field.volatility"
+msgstr "Volatility"
+
+msgid "snapshot.field.risk_score"
+msgstr "Risk Score"
+
+msgid "snapshot.field.market_share"
+msgstr "Mkt Share"
+
+# Snapshot field names - Advanced
+msgid "snapshot.field.ema7"
+msgstr "EMA7"
+
+msgid "snapshot.field.ema25"
+msgstr "EMA25"
+
+msgid "snapshot.field.ema99"
+msgstr "EMA99"
+
+msgid "snapshot.field.bandwidth_score"
+msgstr "BW Score"
+
+msgid "snapshot.field.trend_dir"
+msgstr "Trend Dir"
+
+msgid "snapshot.field.price"
+msgstr "Price"
+
+msgid "snapshot.field.atr_pct"
+msgstr "ATR%"
+
+msgid "snapshot.field.volatility_type"
+msgstr "Vol Type"
+
+msgid "snapshot.field.upper"
+msgstr "Upper"
+
+msgid "snapshot.field.mid"
+msgstr "Mid"
+
+msgid "snapshot.field.lower"
+msgstr "Lower"
+
+msgid "snapshot.field.cvd"
+msgstr "CVD"
+
+msgid "snapshot.field.change_rate"
+msgstr "Chg Rate"
+
+msgid "snapshot.field.deviation"
+msgstr "Deviation"
+
+msgid "snapshot.field.deviation_pct"
+msgstr "Dev%"
+
+msgid "snapshot.field.distance_pct"
+msgstr "Dist%"
+
+
+msgid "field.base_volume"
+msgstr "Volume"
+
+# Futures card titles
+msgid "card.crowd_sentiment.title"
+msgstr "🌐 Crowd Sentiment"
+
+msgid "card.oi_aggregate.title"
+msgstr "🐋 OI Aggregate"
+
+msgid "card.oi_change.title"
+msgstr "⚡ OI Change Rate"
+
+msgid "card.oi_change.hint"
+msgstr "💡 Source: futures sentiment aggregate (OI change % / OI change)"
+
+msgid "card.oi_continuous.title"
+msgstr "📈 OI Streak"
+
+msgid "card.oi_extreme.title"
+msgstr "🚩 OI Extreme Alert"
+
+msgid "card.oi_trend.title"
+msgstr "📐 OI Trend"
+
+msgid "card.reversal_radar.title"
+msgstr "🛰️ Reversal Radar"
+
+msgid "card.risk_crowding.title"
+msgstr "🚨 Risk/Crowding"
+
+msgid "card.sentiment_momentum.title"
+msgstr "🚀 Sentiment Momentum"
+
+msgid "card.taker_continuous.title"
+msgstr "↕️ Taker Streak"
+
+msgid "card.taker_direction.title"
+msgstr "🚦 Taker Direction"
+
+msgid "card.taker_jump.title"
+msgstr "⚡ Taker Jump"
+
+msgid "card.top_sentiment.title"
+msgstr "🐳 Top Trader Sentiment"
+
+msgid "card.volatility.title"
+msgstr "🌊 Volatility"
+
+# Futures card hints
+msgid "card.crowd_sentiment.hint"
+msgstr "💡 Source: Futures sentiment (crowd dimension)"
+
+msgid "card.oi_aggregate.hint"
+msgstr "💡 Source: Futures sentiment (latest bar)"
+
+msgid "card.oi_continuous.hint"
+msgstr "💡 Source: Futures sentiment (OI streak)"
+
+msgid "card.oi_extreme.hint"
+msgstr "💡 Source: Futures sentiment (OI Z-score abs)"
+
+msgid "card.oi_trend.hint"
+msgstr "💡 Source: Futures sentiment (OI slope/Z-score)"
+
+msgid "card.reversal_radar.hint"
+msgstr "💡 Signal +1=short→long, -1=long→short"
+
+msgid "card.risk_crowding.hint"
+msgstr "💡 Source: Futures sentiment (risk score)"
+
+msgid "card.sentiment_momentum.hint"
+msgstr "💡 Source: Futures sentiment (momentum)"
+
+msgid "card.taker_continuous.hint"
+msgstr "💡 Source: Futures sentiment (taker streak)"
+
+msgid "card.taker_direction.hint"
+msgstr "💡 Source: Futures sentiment (taker dimension)"
+
+msgid "card.taker_jump.hint"
+msgstr "💡 Source: Futures sentiment (taker jump)"
+
+msgid "card.top_sentiment.hint"
+msgstr "💡 Source: Futures sentiment (top trader dimension)"
+
+msgid "card.volatility.hint"
+msgstr "💡 Source: Futures sentiment (volatility)"
+
+# Additional snapshot fields
+msgid "snapshot.field.atr"
+msgstr "ATR"
+
+msgid "snapshot.field.mfi"
+msgstr "MFI"
+
+msgid "snapshot.field.vpvr_price"
+msgstr "VPVR Price"
+
+msgid "snapshot.field.vwap_price"
+msgstr "VWAP Price"
+
+msgid "snapshot.field.current_price"
+msgstr "Current Price"
+
+msgid "snapshot.field.value_area_high"
+msgstr "VA High"
+
+msgid "snapshot.field.value_area_low"
+msgstr "VA Low"
+
+msgid "snapshot.field.value_area_pos"
+msgstr "VA Position"
+
+msgid "snapshot.field.value_area_width"
+msgstr "VA Width%"
+
+msgid "snapshot.field.value_area_coverage"
+msgstr "VA Coverage"
+
+msgid "snapshot.field.weighted_volume"
+msgstr "Weighted Vol"
+
+msgid "snapshot.field.bandwidth_pct"
+msgstr "Bandwidth%"
+
+msgid "snapshot.field.trend_strength"
+msgstr "Trend Strength"
+
+msgid "snapshot.field.trend_band"
+msgstr "Trend Band"
+
+msgid "snapshot.field.duration_bars"
+msgstr "Duration Bars"
+
+msgid "snapshot.field.last_reversal"
+msgstr "Last Reversal"
+
+msgid "snapshot.field.liquidity_score"
+msgstr "Liquidity Score"
+
+msgid "snapshot.field.liquidity_level"
+msgstr "Liquidity Level"
+
+msgid "snapshot.field.volume_score"
+msgstr "Volume Score"
+
+msgid "snapshot.field.volatility_score"
+msgstr "Volatility Score"
+
+msgid "snapshot.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "snapshot.field.amihud_raw"
+msgstr "Amihud Raw"
+
+msgid "snapshot.field.amihud_score"
+msgstr "Amihud Score"
+
+msgid "snapshot.field.kyle_raw"
+msgstr "Kyle Raw"
+
+msgid "snapshot.field.kyle_score"
+msgstr "Kyle Score"
+
+# Loading status messages
+msgid "loading.data"
+msgstr "📊 Loading data, please retry later..."
+
+msgid "loading.market"
+msgstr "📊 Loading market data, please retry later..."
+
+msgid "loading.money_flow"
+msgstr "💰 Loading money flow data, please retry later..."
+
+msgid "loading.depth"
+msgstr "📊 Loading market depth data, please retry later..."
+
+msgid "loading.volume_market"
+msgstr "📊 Loading volume/market cap ratio, please retry later..."
+
+msgid "loading.volume_oi"
+msgstr "📊 Loading volume/OI ratio, please retry later..."
+
+msgid "loading.position_market"
+msgstr "📊 Loading position/market cap ratio, please retry later..."
+
+msgid "welcome.title"
+msgstr "⚡️ Welcome to TradeCat"
+
+msgid "welcome.status"
+msgstr "✅ System running normally"
+
+msgid "status.initializing"
+msgstr "🚀 Bot is initializing, please wait...\n\n💡 Contact admin if issue persists"
+
+msgid "status.init_failed"
+msgstr "❌ Bot initialization failed, please contact admin\n\n🔧 Error has been logged"
+
+msgid "feature.overbought_offline"
+msgstr "⚖️ Overbought/Oversold card is offline, stay tuned for alternatives."
+
+msgid "time.hour_min"
+msgstr "{hour}:{min}"
+
+msgid "feature.developing"
+msgstr "🚧 {name} is under development, stay tuned!"
+
+msgid "feature.name.coin_search"
+msgstr "🔍 Coin Search"
+
+msgid "feature.name.help"
+msgstr "ℹ️ Help"
+
+msgid "feature.name.aggregated_alerts"
+msgstr "🚨 Signals"
+
+msgid "feature.name.subscription"
+msgstr "💲 Subscription"
+
+# Error messages
+msgid "error.data_fetch"
+msgstr "❌ Error fetching data, please retry later.\n\nError: {error}"
+
+msgid "error.volume_fetch"
+msgstr "❌ Error fetching volume data, please retry later.\n\nError: {error}"
+
+msgid "error.sentiment_fetch"
+msgstr "❌ Error fetching sentiment data, please retry later.\n\nError: {error}"
+
+msgid "error.market_fetch"
+msgstr "❌ Error fetching market data, please retry later.\n\nError: {error}"
+
+msgid "error.flow_fetch"
+msgstr "❌ Error fetching money flow data, please retry later.\n\nError: {error}"
+
+msgid "error.depth_fetch"
+msgstr "❌ Error fetching market depth data, please retry later.\n\nError: {error}"
+
+msgid "error.ratio_fetch"
+msgstr "❌ Error fetching position/market cap ratio, please retry later.\n\nError: {error}"
+
+msgid "loading.sentiment"
+msgstr "😊 Loading sentiment data, please retry later..."
+
+msgid "data.coinglass_offline"
+msgstr "⏸️ CoinGlass data source is offline, related rankings unavailable"
+
+msgid "lang.zh_CN"
+msgstr "简体中文"
+
+
+msgid "search.coming_soon"
+msgstr "💡 Coming soon:\n- 📊 Price trend analysis\n- 💰 Position change trends\n- 📈 Technical indicator analysis\n- 🔔 Price alerts\n\n📞 Need help? Contact support:\n- Support1: zancy1\n- Support2: xiaocaixing\n- Support3: wangbw123"
+
+# AI analysis messages
+msgid "ai.busy"
+msgstr "🚫 System busy, too many concurrent AI analyses\n⏳ Please retry later\n💡 You can use other features first"
+
+msgid "ai.started"
+msgstr "🤖 {symbol} AI analysis started\n\n⏳ Deep analysis in progress, may take 3-5 minutes\n🔄 Analysis ID: {id}"
+
+msgid "ai.completed"
+msgstr "✅ {symbol} AI analysis completed!\n\n🆔 Analysis ID: {id}\n⏱️ Duration: {duration}\n💰 Current price: ${price}\n📊 Price change: {change}\n⚠️ Risk level: {risk}\n\n📋 See detailed report in next message..."
+
+msgid "ai.detail_title"
+msgstr "🤖 {symbol} Detailed AI Analysis"
+
+msgid "ai.report_failed"
+msgstr "📄 Failed to generate detailed report"
+
+msgid "ai.trend.strong"
+msgstr "Strong"
+
+msgid "ai.trend.medium"
+msgstr "Medium"
+
+msgid "ai.trend.weak"
+msgstr "Weak"
+
+# Signal table names
+msgid "signal.table.rsi"
+msgstr "RSI"
+
+msgid "signal.table.kdj"
+msgstr "KDJ"
+
+msgid "signal.table.harmonic"
+msgstr "Harmonic"
+
+msgid "signal.table.supertrend"
+msgstr "SuperTrend"
+
+msgid "signal.table.ichimoku"
+msgstr "Ichimoku"
+
+msgid "signal.table.zero_lag"
+msgstr "Zero Lag"
+
+msgid "signal.table.trend_cloud"
+msgstr "Trend Cloud"
+
+msgid "signal.table.trendline"
+msgstr "Trendline"
+
+msgid "signal.table.long_short"
+msgstr "Long/Short"
+
+msgid "signal.table.volume_signal"
+msgstr "Volume Signal"
+
+msgid "signal.table.gc_point"
+msgstr "GC Point"
+
+msgid "signal.table.bb"
+msgstr "Bollinger"
+
+msgid "signal.table.donchian"
+msgstr "Donchian"
+
+msgid "signal.table.keltner"
+msgstr "Keltner"
+
+msgid "signal.table.support_resistance"
+msgstr "S/R"
+
+msgid "signal.table.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "signal.table.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "signal.table.futures_sentiment"
+msgstr "Futures"
+
+msgid "signal.table.k_pattern"
+msgstr "K Pattern"
+
+msgid "signal.table.smc"
+msgstr "SMC"
+
+msgid "signal.table.fib"
+msgstr "Fibonacci"
+
+msgid "signal.table.liquidity"
+msgstr "Liquidity"
+
+msgid "signal.table.scalping"
+msgstr "Scalping"
+
+msgid "signal.table.basic"
+msgstr "Basic"
+
+# Signal formatting labels
+msgid "signal.label.price"
+msgstr "Price"
+
+msgid "signal.label.amplitude"
+msgstr "Amplitude"
+
+msgid "signal.label.buy_sell_ratio"
+msgstr "Buy/Sell"
+
+msgid "signal.label.volume"
+msgstr "Volume"
+
+msgid "signal.label.net_inflow"
+msgstr "Net Inflow"
+
+msgid "signal.label.trades"
+msgstr "Trades"
+
+msgid "signal.label.position"
+msgstr "Position"
+
+msgid "signal.label.big_ls"
+msgstr "Big L/S"
+
+msgid "signal.label.all_ls"
+msgstr "All L/S"
+
+msgid "signal.label.taker_ls"
+msgstr "Taker L/S"
+
+msgid "signal.label.sentiment_diff"
+msgstr "Sentiment Diff"
+
+msgid "signal.label.risk_score"
+msgstr "Risk Score"
+
+msgid "signal.label.oi_streak"
+msgstr "OI Streak"
+
+msgid "signal.label.sentiment_momentum"
+msgstr "Sentiment Momentum"
+
+msgid "signal.label.support"
+msgstr "Support"
+
+msgid "signal.label.resistance"
+msgstr "Resistance"
+
+msgid "signal.label.trend"
+msgstr "Trend"
+
+msgid "signal.label.volume_bias"
+msgstr "Volume Bias"
+
+msgid "signal.section.market"
+msgstr "💰 Market"
+
+msgid "signal.section.futures"
+msgstr "📊 Futures"
+
+msgid "signal.section.indicator"
+msgstr "📈 Indicators"
+
+msgid "signal.section.structure"
+msgstr "🏗️ Structure"
+
+msgid "signal.ratio.buy_dominant"
+msgstr "Buy Dominant"
+
+msgid "signal.ratio.sell_dominant"
+msgstr "Sell Dominant"
+
+msgid "signal.ratio.balanced"
+msgstr "Balanced"
+
+msgid "signal.vol.high"
+msgstr "High Vol"
+
+msgid "signal.vol.low"
+msgstr "Low Vol"
+
+msgid "signal.vol.normal"
+msgstr "Normal"
+
+# Single token query card names
+msgid "card.name.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "card.name.taker_ratio"
+msgstr "Taker Ratio"
+
+msgid "card.name.support_resistance"
+msgstr "S/R"
+
+msgid "card.name.rsi_harmonic"
+msgstr "RSI Harmonic"
+
+msgid "card.name.bollinger"
+msgstr "Bollinger"
+
+msgid "card.name.macd"
+msgstr "MACD"
+
+msgid "card.name.kdj"
+msgstr "KDJ"
+
+msgid "card.name.obv"
+msgstr "OBV"
+
+msgid "card.name.ema"
+msgstr "EMA"
+
+msgid "card.name.atr"
+msgstr "ATR"
+
+msgid "card.name.cvd"
+msgstr "CVD"
+
+msgid "card.name.vwap"
+msgstr "VWAP"
+
+msgid "card.name.vpvr"
+msgstr "VPVR"
+
+msgid "card.name.liquidity"
+msgstr "Liquidity"
+
+msgid "card.name.trendline"
+msgstr "Trendline"
+
+msgid "card.name.supertrend"
+msgstr "SuperTrend"
+
+msgid "card.name.mfi"
+msgstr "MFI"
+
+msgid "card.name.k_pattern"
+msgstr "K Pattern"
+
+msgid "card.name.position"
+msgstr "Position"
+
+msgid "card.name.big_sentiment"
+msgstr "Big Trader"
+
+msgid "card.name.all_sentiment"
+msgstr "All Market"
+
+msgid "card.name.taker"
+msgstr "Taker"
+
+msgid "card.name.sentiment"
+msgstr "Sentiment"
+
+# Signal value translations
+msgid "signal.value.shrink"
+msgstr "Low Vol"
+
+msgid "signal.value.expand"
+msgstr "High Vol"
+
+msgid "signal.value.continue"
+msgstr "Continue"
+
+msgid "signal.value.golden_cross"
+msgstr "Golden X"
+
+msgid "signal.value.death_cross"
+msgstr "Death X"
+
+# Data value translations
+msgid "data.value.shrink"
+msgstr "Low"
+
+msgid "data.value.expand"
+msgstr "High"
+
+msgid "data.value.normal"
+msgstr "Normal"
+
+msgid "data.value.continue"
+msgstr "Continue"
+
+msgid "data.value.golden_cross"
+msgstr "Golden X"
+
+msgid "data.value.death_cross"
+msgstr "Death X"
+
+msgid "data.value.overbought"
+msgstr "Overbought"
+
+msgid "data.value.oversold"
+msgstr "Oversold"
+
+msgid "data.value.up"
+msgstr "Up"
+
+msgid "data.value.down"
+msgstr "Down"
+
+msgid "data.value.sideways"
+msgstr "Sideways"
+
+msgid "data.value.bullish"
+msgstr "Bullish"
+
+msgid "data.value.bearish"
+msgstr "Bearish"
+
+msgid "data.value.strong"
+msgstr "Strong"
+
+msgid "data.value.medium"
+msgstr "Medium"
+
+msgid "data.value.weak"
+msgstr "Weak"
+
+msgid "error.request_failed"
+msgstr "❌ Error processing request, please retry later.\n\nError: {error}"
+
+msgid "pattern.title"
+msgstr "🕯️ {symbol} Candlestick Patterns"
+
+msgid "pattern.period_count"
+msgstr "📊 {period} ({count} patterns)"
+
+msgid "pattern.no_data"
+msgstr "No pattern data"
+
+# AI report detailed content
+msgid "ai.cache_indicator"
+msgstr " | 🔄 Cached"
+
+msgid "ai.period"
+msgstr "Period"
+
+msgid "ai.1d_high"
+msgstr "1d High"
+
+msgid "ai.1d_low"
+msgstr "1d Low"
+
+msgid "ai.trend_strength_label"
+msgstr "Trend Strength"
+
+msgid "ai.full_report_hint"
+msgstr "📄 See full report below"
+
+msgid "ai.report_title"
+msgstr "{symbol} AI Analysis Report"
+
+msgid "ai.analysis_time"
+msgstr "Analysis Time"
+
+msgid "ai.filename"
+msgstr "{symbol}_AI_Report_{time}.txt"
+
+msgid "ai.file_caption"
+msgstr "📄 {symbol} Full AI Report"
+
+msgid "ai.rsi_overbought"
+msgstr "Overbought"
+
+msgid "ai.rsi_oversold"
+msgstr "Oversold"
+
+msgid "ai.rsi_normal"
+msgstr "Normal"
+
+msgid "ai.report_header"
+msgstr "🎯 {symbol} AI Analysis Report"
+
+msgid "ai.current_price"
+msgstr "💰 Current Price"
+
+msgid "ai.price_change"
+msgstr "📊 Price Change"
+
+msgid "ai.risk_level"
+msgstr "⚠️ Risk Level"
+
+msgid "ai.key_indicators"
+msgstr "🔧 Key Indicators"
+
+msgid "ai.unavailable"
+msgstr "🤖 AI analysis temporarily unavailable"
+
+msgid "ai.retry_hint"
+msgstr "🔄 Please retry later or check technical indicators"
+
+# AI Analysis - Simple Report
+msgid "ai.simple_report.header"
+msgstr "🎯 {symbol} AI Analysis Report"
+
+msgid "ai.simple_report.current_price"
+msgstr "💰 Current Price: ${price}"
+
+msgid "ai.simple_report.price_change"
+msgstr "📊 Price Change: {change}"
+
+msgid "ai.simple_report.risk_level"
+msgstr "⚠️ Risk Level: {risk}"
+
+msgid "ai.simple_report.key_indicators"
+msgstr "🔧 Key Indicators"
+
+# AI Analysis - Error Messages
+msgid "ai.send_failed"
+msgstr "❌ {symbol} analysis result send failed\n\n🆔 Analysis ID: {id}\n📝 Error: {error}\n🔄 Please retry"
+
+msgid "ai.timeout"
+msgstr "⏰ {symbol} AI analysis processing time abnormal\n\n🆔 Analysis ID: {id}\n🔄 May have encountered complex analysis scenario\n💡 Please check results later or retry"
+
+msgid "ai.error"
+msgstr "❌ {symbol} AI analysis failed\n\n🆔 Analysis ID: {id}\n📝 Error: {error}\n🔄 Please retry later"
+
+# AI Analysis - Duration
+msgid "ai.duration.seconds"
+msgstr "{seconds}s"
+
+msgid "ai.duration.unknown"
+msgstr "Unknown"
+
+# TXT Export - New Fields
+msgid "export.field.mid_price"
+msgstr "Mid Price"
+
+msgid "export.field.upper_price"
+msgstr "Upper Price"
+
+msgid "export.field.lower_price"
+msgstr "Lower Price"
+
+msgid "export.field.atr"
+msgstr "ATR"
+
+msgid "export.field.dist_key"
+msgstr "Dist Key%"
+
+msgid "export.field.taker_buy"
+msgstr "Taker Buy"
+
+
+msgid "export.field.harmonic"
+msgstr "Harmonic"
+
+msgid "export.field.oi_contracts"
+msgstr "OI Contracts"
+
+msgid "export.field.oi_change"
+msgstr "OI Change"
+
+msgid "export.field.oi_slope"
+msgstr "OI Slope"
+
+msgid "export.field.oi_zscore"
+msgstr "OI Z-Score"
+
+msgid "export.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "export.field.top_deviation"
+msgstr "Top Deviation"
+
+msgid "export.field.top_momentum"
+msgstr "Top Momentum"
+
+msgid "export.field.top_volatility"
+msgstr "Top Volatility"
+
+msgid "export.field.crowd_deviation"
+msgstr "Crowd Deviation"
+
+msgid "export.field.crowd_volatility"
+msgstr "Crowd Volatility"
+
+msgid "export.field.taker_ls_ratio"
+msgstr "Taker L/S Ratio"
+
+msgid "export.field.taker_deviation"
+msgstr "Taker Deviation"
+
+msgid "export.field.taker_momentum"
+msgstr "Taker Momentum"
+
+msgid "export.field.taker_jump"
+msgstr "Taker Jump"
+
+msgid "export.field.taker_streak"
+msgstr "Taker Streak"
+
+msgid "export.field.sentiment_flip"
+msgstr "Flip Signal"
+
+msgid "export.field.risk_score"
+msgstr "Risk Score"
+
+msgid "export.field.market_share"
+msgstr "Market Share"
+
+msgid "export.field.ema7"
+msgstr "EMA7"
+
+msgid "export.field.ema25"
+msgstr "EMA25"
+
+msgid "export.field.ema99"
+msgstr "EMA99"
+
+msgid "export.field.bandwidth_score"
+msgstr "Bandwidth Score"
+
+msgid "export.field.price"
+msgstr "Price"
+
+msgid "export.field.vpvr_price"
+msgstr "VPVR Price"
+
+msgid "export.field.val_low"
+msgstr "Value Area Low"
+
+msgid "export.field.val_high"
+msgstr "Value Area High"
+
+msgid "export.field.val_width"
+msgstr "Value Area Width%"
+
+msgid "export.field.val_coverage"
+msgstr "Value Area Coverage"
+
+msgid "export.field.val_position"
+msgstr "Value Area Position"
+
+msgid "export.field.vwap_deviation"
+msgstr "Deviation"
+
+msgid "export.field.vwap_weighted"
+msgstr "Weighted Volume"
+
+msgid "export.field.vwap_bandwidth"
+msgstr "VWAP Bandwidth%"
+
+msgid "export.field.vwap_upper"
+msgstr "VWAP Upper"
+
+msgid "export.field.vwap_lower"
+msgstr "VWAP Lower"
+
+msgid "export.field.vwap_price"
+msgstr "VWAP Price"
+
+msgid "export.field.current_price"
+msgstr "Current Price"
+
+msgid "export.field.dist_trendline"
+msgstr "Dist Trendline%"
+
+msgid "export.field.upper"
+msgstr "Upper"
+
+msgid "export.field.mid"
+msgstr "Mid"
+
+msgid "export.field.lower"
+msgstr "Lower"
+
+msgid "export.field.cvd"
+msgstr "CVD"
+
+msgid "export.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "export.field.trend_band"
+msgstr "Trend Band"
+
+msgid "export.field.last_flip"
+msgstr "Last Flip"
+
+msgid "export.field.mfi"
+msgstr "MFI"
+
+msgid "export.field.amihud_score"
+msgstr "Amihud Score"
+
+msgid "export.field.kyle_score"
+msgstr "Kyle Score"
+
+msgid "export.field.vol_score"
+msgstr "Volatility Score"
+
+msgid "export.field.volume_score"
+msgstr "Volume Score"
+
+msgid "export.field.amihud_raw"
+msgstr "Amihud Raw"
+
+msgid "export.field.kyle_raw"
+msgstr "Kyle Raw"
+
+
+msgid "signal.section.key_levels"
+msgstr "📍 Key Levels"
+
+msgid "signal.section.trend"
+msgstr "📈 Trend"
+
+msgid "signal.section.smart_money"
+msgstr "🏦 Smart Money"
+
+msgid "signal.section.pattern"
+msgstr "🕯️ Pattern"
+
+msgid "signal.section.volatility"
+msgstr "⚡ Volatility"
+
+msgid "signal.section.scalp"
+msgstr "🎯 Scalping"
+
+# Signal formatter - field labels
+msgid "signal.field.price"
+msgstr "Price"
+
+msgid "signal.field.amplitude"
+msgstr "Amplitude"
+
+msgid "signal.field.buy_sell_ratio"
+msgstr "Buy/Sell"
+
+msgid "signal.field.volume"
+msgstr "Volume"
+
+msgid "signal.field.net_inflow"
+msgstr "Net Inflow"
+
+msgid "signal.field.trade_count"
+msgstr "Trades"
+
+msgid "signal.field.position"
+msgstr "OI"
+
+msgid "signal.field.big_ls"
+msgstr "Top L/S"
+
+msgid "signal.field.all_ls"
+msgstr "All L/S"
+
+msgid "signal.field.taker_ls"
+msgstr "Taker L/S"
+
+msgid "signal.field.sentiment_diff"
+msgstr "Sentiment Diff"
+
+msgid "signal.field.risk_score"
+msgstr "Risk Score"
+
+msgid "signal.field.oi_streak"
+msgstr "OI Streak"
+
+msgid "signal.field.sentiment_momentum"
+msgstr "Sentiment Mom"
+
+msgid "signal.field.big"
+msgstr "Top"
+
+msgid "signal.field.taker"
+msgstr "Taker"
+
+msgid "signal.field.bars"
+msgstr " bars"
+
+msgid "signal.field.rsi_position"
+msgstr "RSI Position"
+
+msgid "signal.field.rsi_divergence"
+msgstr "RSI Divergence"
+
+msgid "signal.field.vol_ratio"
+msgstr "Vol Ratio"
+
+msgid "signal.field.bull_bear_power"
+msgstr "Bull/Bear"
+
+msgid "signal.field.bull"
+msgstr "Bull"
+
+msgid "signal.field.bear"
+msgstr "Bear"
+
+msgid "signal.field.support"
+msgstr "Support"
+
+msgid "signal.field.resistance"
+msgstr "Resistance"
+
+msgid "signal.field.distance"
+msgstr "dist"
+
+msgid "signal.field.precise_trend"
+msgstr "Precise Trend"
+
+msgid "signal.field.volume_bias"
+msgstr "Volume Bias"
+
+msgid "signal.field.bias"
+msgstr "Bias"
+
+msgid "signal.field.order_block"
+msgstr "Order Block"
+
+msgid "signal.field.gap"
+msgstr "Gap"
+
+msgid "signal.field.structure"
+msgstr "Structure"
+
+msgid "signal.field.score"
+msgstr "Score"
+
+msgid "signal.field.pattern_type"
+msgstr "Pattern"
+
+msgid "signal.field.pattern_count"
+msgstr "Count"
+
+msgid "signal.field.count_unit"
+msgstr ""
+
+msgid "signal.field.strength"
+msgstr "Strength"
+
+msgid "signal.field.atr_pct"
+msgstr "ATR%"
+
+msgid "signal.field.volatility"
+msgstr "Volatility"
+
+msgid "signal.field.liquidity"
+msgstr "Liquidity"
+
+msgid "signal.field.scalp_signal"
+msgstr "Signal"
+
+msgid "signal.field.timeframe"
+msgstr "Timeframe"
+
+msgid "signal.field.last_trigger"
+msgstr "Last Trigger"
+
+msgid "signal.field.ago"
+msgstr " ago"
+
+# Signal formatter - dynamic labels
+msgid "signal.label.buy_dominant"
+msgstr "Buy Dominant"
+
+msgid "signal.label.sell_dominant"
+msgstr "Sell Dominant"
+
+msgid "signal.label.balanced"
+msgstr "Balanced"
+
+msgid "signal.label.high_volume"
+msgstr "High Vol"
+
+msgid "signal.label.low_volume"
+msgstr "Low Vol"
+
+msgid "signal.label.none"
+msgstr "None"
+
+# Signal simple format
+msgid "signal.simple.timeframe"
+msgstr "Timeframe"
+
+msgid "signal.simple.price"
+msgstr "Price"
+
+msgid "signal.simple.strength"
+msgstr "Strength"
+
+# Visualization module
+msgid "kb.vis"
+msgstr "📈 Charts"
+
+msgid "vis.menu.title"
+msgstr "📈 Select Chart Type"
+
+msgid "vis.select_symbol"
+msgstr "{name}\nSelect Symbol:"
+
+msgid "vis.select_interval"
+msgstr "{name}\nSelect Interval:"
+
+msgid "vis.rendering"
+msgstr "Rendering..."
+
+msgid "vis.render_error"
+msgstr "Render failed: {error}"
+
+msgid "vis.template.vpvr_ridge"
+msgstr "📊 VPVR Ridge"
+
+msgid "vis.template.vpvr_ridge_desc"
+msgstr "Volume distribution over time"
+
+msgid "vis.template.vpvr_strip"
+msgstr "🎯 VPVR Strip"
+
+msgid "vis.template.vpvr_strip_desc"
+msgstr "Market-wide value area positions"
+
+msgid "vis.template.kline"
+msgstr "🕯️ Candlestick"
+
+msgid "vis.template.kline_desc"
+msgstr "Candlestick + MA + Volume"
+
+msgid "vis.template.macd"
+msgstr "📈 MACD"
+
+msgid "vis.template.macd_desc"
+msgstr "Price + MACD Indicator"
+
+msgid "vis.template.vpvr_heat"
+msgstr "🔥 VPVR Heatmap"
+
+msgid "vis.template.vpvr_heat_desc"
+msgstr "Market-wide volume distribution heatmap"
+
+msgid "vis.template.vpvr_grid"
+msgstr "📋 VPVR Grid"
+
+msgid "vis.template.vpvr_grid_desc"
+msgstr "Market-wide value area overview"
+
+msgid "vis.category.single"
+msgstr "📊 Single Token Charts"
+
+msgid "vis.category.market"
+msgstr "🌐 Market-wide Charts"
+
+msgid "vis.error.no_data"
+msgstr "Unable to fetch market data"
+
+msgid "vis.error.render_failed"
+msgstr "Render failed"
+
+msgid "error.vis_failed"
+msgstr "Visualization unavailable"
+
+msgid "error.unknown_template"
+msgstr "Unknown template"
+
+# Ranking sort labels
+msgid "ranking.sort.volume"
+msgstr "📊 Sort {period} Volume(USDT)({symbol}) / {sort}"
+
+msgid "ranking.sort.ratio"
+msgstr "📊 Sort Ratio({symbol}) / {sort}"
+
+msgid "ranking.sort.change"
+msgstr "📊 Sort {period} Change({symbol}) / {sort}"
+
+msgid "ranking.hint.position_market"
+msgstr "💡 OI/MCap Ratio = Open Interest / Market Cap"
+
+msgid "ranking.hint.volume_market"
+msgstr "💡 Vol/MCap Ratio = 1d Volume / Market Cap"
+
+msgid "ranking.hint.volume_oi"
+msgstr "💡 Vol/OI Ratio = 1d Volume / Open Interest"
+
+# Admin module
+msgid "kb.admin"
+msgstr "⚙️ Admin"
+
+msgid "admin.no_permission"
+msgstr "⛔ You do not have admin permission"
+
+msgid "admin.title"
+msgstr "Admin Panel"
+
+msgid "admin.your_id"
+msgstr "Your ID"
+
+msgid "admin.admin_count"
+msgstr "Admin Count"
+
+msgid "admin.templates"
+msgstr "Vis Templates"
+
+msgid "admin.hint"
+msgstr "Admins can access advanced settings and stats"
+
+msgid "admin.stats"
+msgstr "📊 Stats"
+
+msgid "admin.users"
+msgstr "👥 Users"
+
+msgid "admin.cache"
+msgstr "🗄️ Cache"
+
+msgid "admin.reload"
+msgstr "🔄 Reload"
+
+msgid "admin.stats_title"
+msgstr "System Statistics"
+
+msgid "admin.users_title"
+msgstr "Admin List"
+
+msgid "admin.cache_title"
+msgstr "Cache Status"
+
+msgid "admin.reloaded"
+msgstr "Config reloaded"
+
+# =============================================================================
+# env_manager.py - Config management i18n
+# =============================================================================
+
+# Config categories
+msgid "env.cat.symbols.name"
+msgstr "💰 Symbols"
+
+msgid "env.cat.symbols.desc"
+msgstr "Configure which symbols to monitor"
+
+msgid "env.cat.features.name"
+msgstr "⚡ Features"
+
+msgid "env.cat.features.desc"
+msgstr "Enable or disable features"
+
+msgid "env.cat.proxy.name"
+msgstr "🌐 Proxy"
+
+msgid "env.cat.proxy.desc"
+msgstr "Network proxy settings"
+
+msgid "env.cat.display.name"
+msgstr "🎨 Display"
+
+msgid "env.cat.display.desc"
+msgstr "Language and UI settings"
+
+msgid "env.cat.cards.name"
+msgstr "📊 Cards"
+
+msgid "env.cat.cards.desc"
+msgstr "Control which ranking cards to show"
+
+msgid "env.cat.indicators.name"
+msgstr "📈 Indicators"
+
+msgid "env.cat.indicators.desc"
+msgstr "Control which indicators to calculate"
+
+# HTTP Proxy
+msgid "env.http_proxy.name"
+msgstr "🌐 HTTP Proxy"
+
+msgid "env.http_proxy.desc"
+msgstr "Proxy for accessing Telegram/Binance"
+
+msgid "env.http_proxy.help"
+msgstr "Format: http://IP:port\nExample: http://127.0.0.1:7890"
+
+# HTTPS Proxy
+msgid "env.https_proxy.name"
+msgstr "🔒 HTTPS Proxy"
+
+msgid "env.https_proxy.desc"
+msgstr "Usually same as HTTP proxy"
+
+msgid "env.https_proxy.help"
+msgstr "Format: http://IP:port\nUsually same value as HTTP proxy"
+
+# Symbols Groups
+msgid "env.symbols_groups.name"
+msgstr "💰 Symbols"
+
+msgid "env.symbols_groups.desc"
+msgstr "Select symbol groups to monitor"
+
+msgid "env.symbols_groups.help"
+msgstr "Choose a preset group or enter custom"
+
+msgid "env.symbols_groups.opt.main4"
+msgstr "🔥 Top 4"
+
+msgid "env.symbols_groups.opt.main4_detail"
+msgstr "BTC/ETH/SOL/BNB"
+
+msgid "env.symbols_groups.opt.main6"
+msgstr "⭐ Top 6"
+
+msgid "env.symbols_groups.opt.main6_detail"
+msgstr "+XRP/DOGE"
+
+msgid "env.symbols_groups.opt.main20"
+msgstr "📊 Top 20"
+
+msgid "env.symbols_groups.opt.main20_detail"
+msgstr "Common majors"
+
+msgid "env.symbols_groups.opt.auto"
+msgstr "🤖 Auto"
+
+msgid "env.symbols_groups.opt.auto_detail"
+msgstr "Auto-select high volume"
+
+msgid "env.symbols_groups.opt.all"
+msgstr "🌍 All"
+
+msgid "env.symbols_groups.opt.all_detail"
+msgstr "600+ symbols, high resource"
+
+# Extra symbols
+msgid "env.symbols_extra.name"
+msgstr "➕ Extra Symbols"
+
+msgid "env.symbols_extra.desc"
+msgstr "Add more symbols to the group"
+
+msgid "env.symbols_extra.help"
+msgstr "Enter symbol codes, comma separated\nExample: PEPEUSDT,WIFUSDT"
+
+# Exclude symbols
+msgid "env.symbols_exclude.name"
+msgstr "➖ Exclude"
+
+msgid "env.symbols_exclude.desc"
+msgstr "Remove symbols from the group"
+
+msgid "env.symbols_exclude.help"
+msgstr "Enter symbols to exclude\nExample: LUNAUSDT"
+
+# Blocked symbols
+msgid "env.blocked_symbols.name"
+msgstr "🚫 Hidden"
+
+msgid "env.blocked_symbols.desc"
+msgstr "Hide these from rankings"
+
+msgid "env.blocked_symbols.help"
+msgstr "Hide anomalous or unwanted symbols\nExample: BNXUSDT,ALPACAUSDT"
+
+# Single query
+msgid "env.single_query.name"
+msgstr "🔍 Coin Query"
+
+msgid "env.single_query.desc"
+msgstr "Send BNB! to query coin details"
+
+msgid "env.single_query.help"
+msgstr "When enabled, send e.g. BNB! to query single coin"
+
+msgid "env.single_query.enabled_detail"
+msgstr "Coin query available"
+
+msgid "env.single_query.disabled_detail"
+msgstr "Save resources"
+
+# Realtime data
+msgid "env.realtime_data.name"
+msgstr "📡 Realtime Data"
+
+msgid "env.realtime_data.desc"
+msgstr "Get realtime prices from Binance"
+
+msgid "env.realtime_data.help"
+msgstr "When disabled uses cached data, needs proxy when enabled"
+
+msgid "env.realtime_data.enabled_detail"
+msgstr "Realtime, needs proxy"
+
+msgid "env.realtime_data.disabled_detail"
+msgstr "Use cached data"
+
+# Locale
+msgid "env.locale.name"
+msgstr "🌍 Language"
+
+msgid "env.locale.desc"
+msgstr "Bot display language"
+
+msgid "env.locale.help"
+msgstr "Takes effect immediately"
+
+msgid "env.locale.opt.zh"
+msgstr "🇨🇳 Chinese"
+
+msgid "env.locale.opt.en"
+msgstr "🇺🇸 English"
+
+# Hidden fields
+msgid "env.hidden_fields.name"
+msgstr "🙈 Hidden Fields"
+
+msgid "env.hidden_fields.desc"
+msgstr "Fields hidden in coin snapshot"
+
+msgid "env.hidden_fields.help"
+msgstr "Enter field names to hide, comma separated"
+
+msgid "env.hidden_fields.placeholder"
+msgstr "Last Reversal"
+
+# Cards enabled
+msgid "env.cards_enabled.name"
+msgstr "📊 Enabled Cards"
+
+msgid "env.cards_enabled.desc"
+msgstr "Only show these ranking cards"
+
+msgid "env.cards_enabled.help"
+msgstr "Leave empty to show all, or enter card names"
+
+msgid "env.cards_enabled.placeholder"
+msgstr "Money Flow,MACD"
+
+# Cards disabled
+msgid "env.cards_disabled.name"
+msgstr "🚫 Disabled Cards"
+
+msgid "env.cards_disabled.desc"
+msgstr "Hide these ranking cards"
+
+msgid "env.cards_disabled.help"
+msgstr "Enter card names to hide, comma separated"
+
+msgid "env.cards_disabled.placeholder"
+msgstr "K Pattern"
+
+# Indicators enabled
+msgid "env.indicators_enabled.name"
+msgstr "📈 Enabled Indicators"
+
+msgid "env.indicators_enabled.desc"
+msgstr "Only calculate these indicators"
+
+msgid "env.indicators_enabled.help"
+msgstr "Leave empty for all, restart required"
+
+# Indicators disabled
+msgid "env.indicators_disabled.name"
+msgstr "🚫 Disabled Indicators"
+
+msgid "env.indicators_disabled.desc"
+msgstr "Skip these indicators"
+
+msgid "env.indicators_disabled.help"
+msgstr "Save resources, restart required"
+
+msgid "env.indicators_disabled.placeholder"
+msgstr "k pattern"
+
+# Common options
+msgid "env.opt.enabled"
+msgstr "✅ Enabled"
+
+msgid "env.opt.disabled"
+msgstr "⏸️ Disabled"
+
+# Messages
+msgid "env.msg.readonly"
+msgstr "🔒 {name} is a core config, please edit manually in file"
+
+msgid "env.msg.not_supported"
+msgstr "🤔 Modifying {key} is not supported, contact admin if needed"
+
+msgid "env.msg.file_not_ready"
+msgstr "📁 Config file not ready, please complete initialization first"
+
+msgid "env.msg.save_hot"
+msgstr "✨ {name}\n\nUpdated to: {value}\n\n🚀 Effective immediately!"
+
+msgid "env.msg.save_restart"
+msgstr "✨ {name}\n\nUpdated to: {value}\n\n💡 Restart to take effect~"
+
+msgid "env.msg.no_permission"
+msgstr "😅 No write permission, please check file permissions"
+
+msgid "env.msg.save_error"
+msgstr "😅 Error saving config, please try later\n\nDetails: {error}"
+
+msgid "env.msg.cleared"
+msgstr "(cleared)"
+
+msgid "env.msg.not_set"
+msgstr "Not set"
+
+msgid "env.msg.not_supported_edit"
+msgstr "🤔 This config is not editable"
+
+msgid "env.msg.choose_option"
+msgstr "💡 Please choose from:"
+
+msgid "env.msg.proxy_format"
+msgstr "💡 Proxy format should be:\n• http://127.0.0.1:7890\n• socks5://127.0.0.1:1080\n\nPlease check format~"
+
+msgid "env.msg.symbol_format"
+msgstr "💡 Symbols must end with USDT\n\n• Correct: BTCUSDT, ETHUSDT\n• You entered: {invalid}\n\nPlease fix~"
+
+# =============================================================================
+# pg_formatter.py / pg_engine.py - PG Signal i18n
+# =============================================================================
+
+# Signal titles
+msgid "signal.pg.price_surge"
+msgstr "Price Surge"
+
+msgid "signal.pg.price_dump"
+msgstr "Price Dump"
+
+msgid "signal.pg.volume_spike"
+msgstr "Volume Spike"
+
+msgid "signal.pg.taker_buy_dominant"
+msgstr "Taker Buy Dominant"
+
+msgid "signal.pg.taker_sell_dominant"
+msgstr "Taker Sell Dominant"
+
+msgid "signal.pg.oi_surge"
+msgstr "OI Surge"
+
+msgid "signal.pg.oi_dump"
+msgstr "OI Dump"
+
+msgid "signal.pg.top_extreme_long"
+msgstr "Top Traders Extreme Long"
+
+msgid "signal.pg.top_extreme_short"
+msgstr "Top Traders Extreme Short"
+
+msgid "signal.pg.taker_flip_long"
+msgstr "Taker Flip Long"
+
+msgid "signal.pg.taker_flip_short"
+msgstr "Taker Flip Short"
+
+# Signal messages
+msgid "signal.pg.msg.price_surge"
+msgstr "🚀 Price surge! 5min +{pct}%"
+
+msgid "signal.pg.msg.price_dump"
+msgstr "💥 Price dump! 5min -{pct}%"
+
+msgid "signal.pg.msg.volume_spike"
+msgstr "📊 Volume spike! {ratio}x ({vol}M)"
+
+msgid "signal.pg.msg.taker_buy"
+msgstr "🟢 Taker buy ratio {pct}% (>{threshold}%)"
+
+msgid "signal.pg.msg.taker_sell"
+msgstr "🔴 Taker sell ratio {pct}% (>{threshold}%)"
+
+msgid "signal.pg.msg.oi_surge"
+msgstr "📈 OI surge! 5min +{pct}% (${oi}B)"
+
+msgid "signal.pg.msg.oi_dump"
+msgstr "📉 OI dump! 5min -{pct}% (${oi}B)"
+
+msgid "signal.pg.msg.top_long"
+msgstr "⚠️ Top traders extreme long! L/S {ratio} (>{threshold})"
+
+msgid "signal.pg.msg.top_short"
+msgstr "⚠️ Top traders extreme short! L/S {ratio} (<{threshold})"
+
+msgid "signal.pg.msg.taker_flip_long"
+msgstr "🔄 Taker flipped long! {prev} → {curr}"
+
+msgid "signal.pg.msg.taker_flip_short"
+msgstr "🔄 Taker flipped short! {prev} → {curr}"
+
+# Signal type labels
+msgid "signal.pg.type.price_surge"
+msgstr "Price surge"
+
+msgid "signal.pg.type.price_dump"
+msgstr "Price dump"
+
+msgid "signal.pg.type.volume_spike"
+msgstr "Volume spike"
+
+msgid "signal.pg.type.taker_buy_dominance"
+msgstr "Taker buy dominance"
+
+msgid "signal.pg.type.taker_sell_dominance"
+msgstr "Taker sell dominance"
+
+msgid "signal.pg.type.oi_surge"
+msgstr "Open interest surge"
+
+msgid "signal.pg.type.oi_dump"
+msgstr "Open interest dump"
+
+msgid "signal.pg.type.top_trader_extreme_long"
+msgstr "Top traders extreme long"
+
+msgid "signal.pg.type.top_trader_extreme_short"
+msgstr "Top traders extreme short"
+
+msgid "signal.pg.type.taker_ratio_flip_long"
+msgstr "Taker ratio flip long"
+
+msgid "signal.pg.type.taker_ratio_flip_short"
+msgstr "Taker ratio flip short"
+
+# Format labels
+msgid "signal.pg.label.direction"
+msgstr "Direction"
+
+msgid "signal.pg.label.price"
+msgstr "Price"
+
+msgid "signal.pg.label.change"
+msgstr "Change"
+
+msgid "signal.pg.label.strength"
+msgstr "Strength"
+
+msgid "signal.pg.label.amplify"
+msgstr "Amplify"
+
+msgid "signal.pg.label.volume"
+msgstr "Volume"
+
+msgid "signal.pg.label.ratio"
+msgstr "Ratio"
+
+msgid "signal.pg.label.oi_change"
+msgstr "Change"
+
+msgid "signal.pg.label.oi_value"
+msgstr "OI"
+
+msgid "signal.pg.label.ls_ratio"
+msgstr "L/S Ratio"
+
+msgid "signal.pg.label.flip"
+msgstr "Change"
+
+msgid "signal.pg.label.detail"
+msgstr "Detail"
+
+# Batch format
+msgid "signal.pg.no_signal"
+msgstr "No signals"
+
+msgid "signal.pg.batch_title"
+msgstr "📡 Realtime Signals ({count})"
+
+msgid "signal.pg.more"
+msgstr "... {count} more"
+
+# =============================================================================
+# Instant Response Text - Plan C (Detailed)
+# =============================================================================
+msgid "loading.default"
+msgstr "Processing..."
+
+msgid "loading.refresh"
+msgstr "🔄 Refreshing..."
+
+msgid "loading.query"
+msgstr "🔍 Querying..."
+
+msgid "loading.ai"
+msgstr "🤖 Starting AI analysis..."
+
+msgid "loading.vis"
+msgstr "📈 Rendering chart..."
+
+msgid "loading.switch"
+msgstr "✅ Switched"
+
+msgid "loading.stats"
+msgstr "📊 Calculating stats..."
+
+# Progress messages (slow operations)
+msgid "progress.ai"
+msgstr "🤖 Analyzing {symbol}, this may take 10-30 seconds..."
+
+msgid "progress.vis"
+msgstr "📈 Rendering chart, please wait..."
+
+msgid "progress.reload"
+msgstr "🔄 Reloading system configuration, please wait..."
+
+# Done/Error messages
+msgid "done.success"
+msgstr "✅ Done"
+
+msgid "done.failed"
+msgstr "❌ Failed, please retry"
+
+msgid "done.no_data"
+msgstr "📭 No data available, please try again later"
+
+msgid "done.no_permission"
+msgstr "⛔ You don't have permission for this action"
+
+msgid "done.reload"
+msgstr "✅ Reload complete"
+
+# Env manager
+msgid "admin.env.disabled"
+msgstr "⚠️ Environment variable manager is disabled"
+
+# Signal history / stats
+msgid "signal.history.title"
+msgstr "Signal History"
+
+msgid "signal.history.header"
+msgstr "📜 {title} ({count} entries)"
+
+msgid "signal.history.empty"
+msgstr "📜 Signal History\n\nNo records yet"
+
+msgid "signal.history.detail"
+msgstr "{time} | Strength:{strength}"
+
+msgid "signal.history.more"
+msgstr "... {count} more"
+
+msgid "signal.stats.title"
+msgstr "📊 Signal stats (last {days} days)"
+
+msgid "signal.stats.total"
+msgstr "Total: {total}"
+
+msgid "signal.stats.direction"
+msgstr "Direction: {text}"
+
+msgid "signal.stats.source"
+msgstr "Source: {text}"
+
+msgid "signal.stats.top"
+msgstr "Top 5 symbols:"
+
+msgid "signal.stats.symbol_line"
+msgstr "  {symbol}: {count}"
+
+msgid "signal.stats.empty"
+msgstr "📊 Signal stats\n\nNo data"
+
+msgid "btn.history_recent"
+msgstr "📜 Last 20"
+
+msgid "btn.stats"
+msgstr "📊 Stats"
+
+# Binance link button
+msgid "btn.binance"
+msgstr "🔗 Binance"

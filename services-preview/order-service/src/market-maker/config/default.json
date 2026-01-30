@@ -1,0 +1,37 @@
+{
+  "exchange": {
+    "name": "binanceusdm",
+    "api_key": "<YOUR_API_KEY>",
+    "api_secret": "<YOUR_API_SECRET>",
+    "testnet": true,
+    "proxy": "http://127.0.0.1:9910",
+    "hedge_mode": true,
+    "strict_no_rest_markets": true,
+    "markets_path": "config/markets.json",
+    "markets_sha256_path": "config/markets.sha256",
+    "use_rest_snapshot": false,
+    "account_stale_seconds": 60
+  },
+  "strategy": {
+    "symbols": ["BTC/USDT:USDT", "ETH/USDT:USDT"],
+    "gamma": 0.1,
+    "T": 0.05,
+    "max_inventory": 0.01,
+    "order_size": 0.001,
+    "min_spread_bps": 2,
+    "order_interval": 1.0,
+    "mid_none_limit": 3,
+    "order_ttl_seconds": 0.0,
+    "order_price_deviation_bps": 0.0,
+    "cancel_cooldown_seconds": 0.2
+  },
+  "risk": {
+    "per_symbol_limit": 200,
+    "global_limit": 2000,
+    "flat_threshold": 400,
+    "cooldown": 10,
+    "risk_log_details": false,
+    "flat_retries": 2,
+    "flat_retry_backoff": 0.5
+  }
+}

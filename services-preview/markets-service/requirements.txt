@@ -1,0 +1,35 @@
+# markets-service 依赖 (成熟开源库)
+
+# === 核心框架 ===
+pydantic>=2.0
+python-dotenv>=1.0.0
+
+# === 数据库 ===
+psycopg[binary,pool]>=3.1.0
+
+# === 加密货币 ===
+ccxt>=4.0.0                    # 33k stars, 100+ 交易所
+cryptofeed>=2.4.0              # 2.7k stars, WebSocket
+
+# === A股/国内市场 ===
+akshare>=1.14.0                # 15k stars, 最全面
+baostock>=0.8.8                # 2k stars, 完全免费
+
+# === 美股/全球 ===
+yfinance>=0.2.40               # 14k stars, Yahoo Finance
+pandas-datareader>=0.10        # 3k stars, 多源聚合
+
+# === 宏观经济 ===
+fredapi>=0.5.0                 # 美联储 FRED 官方
+
+# === 衍生品定价 ===
+QuantLib>=1.30                 # 5k+ stars, 期权/债券定价
+
+# === 综合聚合 (可选) ===
+openbb>=4.0                    # 35k stars, 100+ 数据源聚合
+
+# === 通用 ===
+pandas>=2.0
+numpy>=1.24
+aiohttp>=3.9.0
+requests>=2.31.0
