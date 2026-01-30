@@ -43,8 +43,8 @@ docker-compose --profile dev up dashboard-dev
 docker-compose up -d dashboard
 
 # 或者单独构建
-docker build -t tradecat-dashboard .
-docker run -p 3000:3000 tradecat-dashboard
+docker build -t ab-console-dashboard .
+docker run -p 3000:3000 ab-console-dashboard
 ```
 
 ## 项目结构
@@ -95,7 +95,7 @@ Web Dashboard 需要以下后端服务：
 1. **HTTP API** (`http://localhost:8080`): 历史数据查询
 2. **WebSocket** (`ws://localhost:8088`): 实时数据推送
 
-详见 `backend/tradecat-core/` 项目。
+详见 `backend/core/` 项目。
 
 ## 迁移状态
 
