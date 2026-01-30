@@ -14,7 +14,7 @@ services:
       - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8088}
     restart: unless-stopped
     networks:
-      - tradecat-network
+      - ab-console-network
 
   # 开发模式（热更新）
   dashboard-dev:
@@ -37,8 +37,8 @@ services:
     profiles:
       - dev
     networks:
-      - tradecat-network
+      - ab-console-network
 
 networks:
-  tradecat-network:
+  ab-console-network:
     driver: bridge
