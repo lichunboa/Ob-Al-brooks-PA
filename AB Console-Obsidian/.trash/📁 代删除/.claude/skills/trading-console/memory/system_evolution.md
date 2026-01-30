@@ -1,0 +1,17 @@
+# System Evolution Memory (自我进化记忆库)
+
+此文件由 Agent 在每次维护或解决问题后自动更新。
+**用途**: 记录系统特有的“怪癖”、最佳实践、已知的坑以及用户的偏好。
+**规则**: 每次任务结束前，检查是否有新的经验需要写入。
+
+## 🧠 Core Principles (核心原则)
+1.  **Single Source of Truth**: 永远信赖 `window.paData`，不要尝试去从十几万行 Markdown 里重新正则匹配。
+2.  **Safety First**: 修改属性必须使用 `pa-utils.js` (refactored v5.1) 里的 `safeStr`/`safeNum`，禁止硬编码 `page["field"]`。
+3.  **Modular**: 当需要修改核心逻辑时，优先检查 `scripts/core/` 下的子模块，而不是 `pa-core.js`。
+
+## 🐛 Known Quirks & Fixes (已知怪癖与修复)
+- **Scroll Issue**: Dataview 刷新会强制置顶。已通过 `pa-cache.js` 解决，刷新时必须传入 `{preserveScroll: true}`。
+- **Template Logic**: `Trade Note.md` 极其依赖 Frontmatter 命名。如果修改了 `pa-config.js` 里的 `labels`，必须同步更新模板的 DataviewJS 映射。
+
+## 📈 Evolution Log (进化日志)
+* [2025-12-31] System decoupled into `loaders/analyzers/cache`. Smart Analyst integrated.

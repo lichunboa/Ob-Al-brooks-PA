@@ -18,7 +18,7 @@
             }
           },
           {
-            "id": "343256f16e37a19c",
+            "id": "c6ccb90b6bf8caba",
             "type": "leaf",
             "state": {
               "type": "market-scanner-view",
@@ -82,7 +82,7 @@
             }
           },
           {
-            "id": "3f63ebb7ca041242",
+            "id": "54fcfaa4467944d5",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -194,16 +194,6 @@
             }
           },
           {
-            "id": "1b7c55d8ffc9fabf",
-            "type": "leaf",
-            "state": {
-              "type": "al-brooks-console-view",
-              "state": {},
-              "icon": "bar-chart-2",
-              "title": "交易员控制台"
-            }
-          },
-          {
             "id": "66343fd62f14f598",
             "type": "leaf",
             "state": {
@@ -212,13 +202,23 @@
               "icon": "SpacedRepIcon",
               "title": "笔记复习序列"
             }
+          },
+          {
+            "id": "3ab66b7981f4db44",
+            "type": "leaf",
+            "state": {
+              "type": "al-brooks-console-view",
+              "state": {},
+              "icon": "bar-chart-2",
+              "title": "交易员控制台"
+            }
           }
         ],
-        "currentTab": 6
+        "currentTab": 7
       }
     ],
     "direction": "horizontal",
-    "width": 544.5
+    "width": 475.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -248,54 +248,54 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "343256f16e37a19c",
+  "active": "3ab66b7981f4db44",
   "lastOpenFiles": [
-    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_20均线缺口.md",
-    "🦁 交易员控制台 (Trader Command)/🚀 新架构说明.md",
-    "🦁 交易员控制台 (Trader Command)/📘 项目小白指南 (Project Guide for Beginners).md",
-    "🦁 交易员控制台 (Trader Command)/📋 美股开发计划.md",
-    "🦁 交易员控制台 (Trader Command)/📋 全面升级规划书 (Comprehensive Upgrade Roadmap).md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务完成状态.md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务完成状态 2026-01-28.md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/笔记规范指南.md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/模块分析报告.md",
-    "🦁 交易员控制台 (Trader Command)/📋 今日完成总结.md",
-    "🦁 交易员控制台 (Trader Command)/📋 交互迁移计划.md",
-    "🦁 交易员控制台 (Trader Command)/📊 TradeCat深度分析报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🦁 交易员控制台 (Trader Command)5.0.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🚀 插件升级优化方案 v2.0.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🔧 系统问题诊断报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/📊 插件功能报告 v1.6.1.md",
-    "🦁 交易员控制台 (Trader Command)/存档/📊 TradeCat官方对比分析报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🎉 修复完成总结报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🎉 AI服务配置完成报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/✅ 修复进度报告.md",
-    "🦁 交易员控制台 (Trader Command)/docs/迁移计划-详细执行方案.md",
-    "🦁 交易员控制台 (Trader Command)/docs/架构分析-三分离方案.md",
-    "🦁 交易员控制台 (Trader Command)/docs",
-    "策略仓库 (Strategy Repository)/策略仓库 (Strategy Repository).md",
-    "策略仓库 (Strategy Repository)/Al Brooks 策略/高1低1 (High 1Low 1).md",
-    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_首次均线缺口.md",
-    "策略仓库 (Strategy Repository)/Al Brooks 策略/策略卡片_磁铁吸引.md",
-    "未命名.base",
-    "未命名 1.base",
-    "未命名 1 2.base",
-    "views.json",
-    "tools/generate-snapshot-from-legacy.js",
-    "tools",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/21-30 高级策略/25 Measured Moves, Support, and Resistance明确的移动，支持和阻力.md",
+    "检查报告_53课规则检查.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/53 Recent Charts近期图表.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/52 Best Trades最佳交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/51 Trading Options On Daily Charts日线图的交易方法.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/50 Trading Options for Day Trades日内的交易方法.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/49 Extreme Scalping极度剥头皮.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/48 Trading Swings Into The Close震荡收窄交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/47 Trading Swings In Middle Of Day日内震荡交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/46 Trading Opening Range Swings震幅交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/45 Trading in Trading Ranges区间交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/44 Trading Channel Reversals通道反转交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/43 Trading a Weak Bear Channel弱熊势通道交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/42 Trading a Weak Bull Channel弱牛势通道交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧/41 Trading a Strong Bear Channel强熊势通道交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/40 Trading a Strong Bull Channel强牛势通道交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/39 Trading a Strong Bear Breakout强熊势突破交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/38 Trading a Strong Bull Breakout强牛势突破交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/37 Trading MTR Failures失败的主要趋势反转交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/36 Trading MTR Bottoms大底交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/35 Trading MTR Tops大顶交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/34 How to Trade如何交易.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/33 Taking Profits获利回吐.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/32 Scaling In缩放.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理/31 Protective Stops For Scalps剥头皮的保护止损.md",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/21-30 高级策略/30 Actual Risk实际风险.md",
+    "assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png",
+    "assets/单笔交易模版 (Trade Note)",
+    "assets",
+    "PA/Journal",
+    "PA",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/41-53 实战技巧",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/31-40 交易管理",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/21-30 高级策略",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/11-20 形态与结构",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版/01-10 基础概念",
+    "Categories 分类/Al brooks/价格行为学-视频字幕版",
     "statuses/icons/todo.svg",
     "statuses/icons/needs-review.svg",
     "statuses/icons/in-progress.svg",
     "statuses/icons/done.svg",
     "statuses/icons/cancelled.svg",
     "statuses/icons/backlog.svg",
-    "statuses/icons",
-    "statuses/config.json",
-    "statuses",
     "Notes 笔记/assets/测量移动/测量移动-20251215232541562.png",
     "Notes 笔记/assets/测量移动/测量移动-20251215232540256.png",
     "Notes 笔记/assets/测量移动/测量移动-20251215232538980.png",
-    "Notes 笔记/assets/测量移动/测量移动-20251215232538978.png",
     "Categories 分类/总揽.canvas",
     "Categories 分类/太妃价格行为/太妃课程列表.canvas",
     "价格行为实盘-复盘步骤.canvas",
