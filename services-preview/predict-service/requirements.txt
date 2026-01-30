@@ -1,4 +1,0 @@
-# predict-service Python utilities
-# Note: Main services are Node.js (see package.json in services/*)
-
-python-dotenv>=1.0.0

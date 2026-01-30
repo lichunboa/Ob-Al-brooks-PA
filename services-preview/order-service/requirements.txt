@@ -1,3 +1,0 @@
-ccxt>=4.0.0
-cryptofeed>=2.4.0
-aiohttp>=3.9.0

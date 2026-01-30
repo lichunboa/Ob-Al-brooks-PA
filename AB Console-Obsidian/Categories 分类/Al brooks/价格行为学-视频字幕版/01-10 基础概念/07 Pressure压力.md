@@ -660,12 +660,12 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/pressure   - 压力 Pressure
-#PA/Term/buying     - 买方压力 Buying Pressure
-#PA/Term/selling    - 卖方压力 Selling Pressure
-#PA/Term/alwaysin   - 永远在场 Always In
-#PA/Term/gap        - 缺口 Gap
-#PA/Term/channel    - 通道 Channel
+   - 压力 Pressure
+     - 买方压力 Buying Pressure
+    - 卖方压力 Selling Pressure
+   - 永远在场 Always In
+        - 缺口 Gap
+    - 通道 Channel
 ```
 
 ---

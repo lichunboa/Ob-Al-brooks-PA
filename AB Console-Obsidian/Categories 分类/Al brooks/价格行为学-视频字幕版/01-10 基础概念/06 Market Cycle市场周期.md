@@ -471,15 +471,15 @@ source: "Al Brooks《价格行为交易》53课版"
 
 ### 术语标签
 ```
-#PA/Term/trend    - 趋势 Trend
-#PA/Term/tr       - 交易区间 Trading Range
-#PA/Term/pb       - 回调 Pullback
-#PA/Term/channel  - 通道 Channel
-#PA/Term/spike    - 极速K线 Spike
-#PA/Term/hh       - 更高高点 Higher High
-#PA/Term/hl       - 更高低点 Higher Low
-#PA/Term/lh       - 更低高点 Lower High
-#PA/Term/ll       - 更低低点 Lower Low
+    - 趋势 Trend
+       - 交易区间 Trading Range
+       - 回调 Pullback
+  - 通道 Channel
+    - 极速K线 Spike
+       - 更高高点 Higher High
+       - 更高低点 Higher Low
+       - 更低高点 Lower High
+       - 更低低点 Lower Low
 ```
 
 ---

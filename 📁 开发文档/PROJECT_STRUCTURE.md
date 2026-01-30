@@ -1,98 +1,109 @@
-# AB Console 项目结构
+# AB Console - 项目结构说明
 
-> 🦁 Al Brooks 价格行为交易系统
+> 更新于 2026-01-31，项目重组后的最新结构。
 
-本项目分为三个独立的部分：
+## 架构概览
 
-## 📁 文件夹说明
+项目采用**两层架构**：
 
-### AB Console-Obsidian/
-Obsidian Vault（知识管理部分）
-- 交易笔记
-- 复盘分析
-- 策略卡片
-- 模板
+1. **AB Console-Obsidian** — Obsidian 知识库，可独立运行
+2. **AB Console-Backend** — 后端服务集群 + Web Dashboard，启动后为 Obsidian 提供增强功能
 
-**使用方法**: 在 Obsidian 中打开此文件夹作为 Vault
-
-### AB Console-Web/
-Web Dashboard（实时交易界面）
-- Next.js 14 项目
-- K线图表
-- 市场扫描
-- 信号监控
-- 交易记录
-
-**使用方法**: 
-```bash
-cd "AB Console-Web/tradecat-dashboard"
-npm run dev
+```
+Al-brooks-PA/
+├── AB Console-Obsidian/       # Obsidian Vault (独立运行)
+├── AB Console-Backend/        # 后端 + Web (独立运行)
+│   ├── services/              # 核心后端服务
+│   ├── services-preview/      # 预览版服务
+│   ├── web/                   # Web Dashboard (Next.js)
+│   ├── libs/                  # 共享库 + 数据库
+│   ├── scripts/               # 管理脚本
+│   ├── config/                # 配置 (.env)
+│   ├── docs/                  # 后端文档
+│   ├── Makefile               # 构建工具
+│   ├── docker-compose.yml     # Docker 编排 (可选)
+│   └── pyproject.toml         # Python 项目配置
+├── docs/                      # 项目级文档
+├── 📁 启动工具/               # 一键启动脚本
+├── 📁 任务记录/               # 历史任务记录
+├── 📁 开发文档/               # 本目录
+├── 📁 项目管理/               # 项目管理
+└── AGENTS.md                  # AI Agent 手册
 ```
 
-### AB Console-Backend/
-后端服务（数据服务）
-- Python HTTP API 服务
-- WebSocket 实时数据服务
-- Binance API 接入
-- 策略计算引擎
-- Obsidian 双向同步
+## AB Console-Obsidian
 
-**使用方法**:
-```bash
-cd "AB Console-Backend/backend/data-service"
-python3 server_full.py
-python3 ws_server.py
-```
+Obsidian 知识库，用于 Al Brooks 价格行为交易学习。
 
-### docs/
-项目文档
-- 架构设计文档
-- API 文档
-- 同步架构设计
+### 核心内容
 
-## 🚀 快速启动
+- `Categories 分类/` — Al Brooks 视频课程笔记、PPT 笔记
+- `Tags/` — 价格行为标签体系
+- `Templates/` — 策略卡片、交易记录、课程理论模板
+- `Daily/` — 每日笔记
+- `策略仓库/` — 交易策略集合
 
-### 一键启动所有服务
-```bash
-./start-all.sh
-```
+### 自定义插件
 
-### 手动启动
+- **al-brooks-console** — 交易控制台 (交易中心、复盘分析、策略学习、数据管理、后端服务)
+- **journalit** — 交易日志管理
+- **obsidian-spaced-repetition** — 间隔重复学习
 
-**1. 启动后端**
-```bash
-cd "AB Console-Backend/backend/data-service"
-python3 server_full.py      # HTTP API (端口 8088)
-python3 ws_server.py         # WebSocket (端口 8090)
-```
+## AB Console-Backend
 
-**2. 启动 Web Dashboard**
-```bash
-cd "AB Console-Web/tradecat-dashboard"
-npm run dev
-```
+Python 后端服务集群，提供数据采集、指标计算、信号检测等功能。
 
-**3. 打开 Obsidian**
-在 Obsidian 中打开 `AB Console-Obsidian` 文件夹
+### 核心服务 (`services/`)
 
-## 📊 服务端口
+| 服务 | 说明 | 运行方式 |
+|------|------|----------|
+| data-service | Binance 期货数据采集 (WebSocket) | 常驻进程 |
+| trading-service | 38 个技术指标计算 | 单次运行 |
+| signal-service | 127 条交易信号规则检测 | 常驻进程 |
+| ai-service | AI 分析 (就绪检查) | 按需调用 |
+| telegram-service | Telegram 机器人通知 | 常驻进程 |
+| sync-service | Obsidian 数据同步 | 常驻进程 |
+
+### 预览服务 (`services-preview/`)
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Web Dashboard | 3000 | Next.js 前端 |
-| HTTP API | 8088 | REST API |
-| WebSocket | 8090 | 实时数据推送 |
-| WS Health | 8089 | WebSocket 健康检查 |
+| api-service | 8088 | FastAPI 统一 API 网关 |
+| markets-service | - | 多市场数据采集 |
+| vis-service | - | 数据可视化 |
 
-## 🔗 关键页面
+### Web Dashboard (`web/`)
 
-- http://localhost:3000 - 仪表板
-- http://localhost:3000/chart - K线图表
-- http://localhost:3000/scanner - 市场扫描
-- http://localhost:3000/signals - 信号监控
-- http://localhost:3000/strategies - 策略管理
-- http://localhost:3000/trades - 交易记录
+Next.js 14 + React 18 + Tailwind CSS + Lightweight Charts
 
-## 📝 品牌说明
+- 路径: `AB Console-Backend/web/`
+- 端口: 3000
+- 启动: `cd "AB Console-Backend/web" && npm run dev`
 
-**AB Console** (Al Brooks Console) 是本系统的品牌名称。
+### 数据存储
+
+- **SQLite** — 指标数据、信号记录 (`libs/database/services/`)
+- **TimescaleDB** — K 线历史数据 (可选，Docker)
+
+### 启动方式
+
+```bash
+# 一键启动全部
+bash "📁 启动工具/🚀 一键启动.command"
+
+# 或手动启动 API
+cd "AB Console-Backend/services-preview/api-service"
+source .venv/bin/activate
+uvicorn src.app:app --port 8088
+```
+
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 前端 (Obsidian) | TypeScript, React, esbuild |
+| 前端 (Web) | Next.js 14, React 18, Tailwind CSS |
+| 后端 | Python 3.9+, FastAPI, SQLAlchemy |
+| 数据库 | SQLite (主), TimescaleDB (可选) |
+| 数据源 | Binance Futures API, WebSocket |
+| AI | OpenAI, Anthropic, Google Generative AI |

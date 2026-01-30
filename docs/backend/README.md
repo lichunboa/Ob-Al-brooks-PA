@@ -1,190 +1,70 @@
-# 后端服务文档
+# AB Console - 后端服务文档
 
-## 简介
+> 更新于 2026-01-31
 
-AB Console 后端服务提供市场数据获取和策略计算功能。
+## 概述
 
-## 架构
+后端服务位于 `AB Console-Backend/`，提供数据采集、技术指标计算、交易信号检测、API 网关等功能。
+
+## 服务架构
 
 ```
-backend/tradecat-core/services/websocket-service/
-├── simple_server.py       # 简化版 HTTP 服务（当前使用）
-├── src/                   # 完整版 WebSocket 服务（开发中）
-│   ├── main.py
-│   ├── strategies/
-│   └── handlers/
-└── requirements.txt
+API Service (端口 8088, FastAPI)
+    ↓
+┌──────────────┬──────────────┬──────────────┐
+│ data-service │trading-service│signal-service│
+│  数据采集     │  指标计算     │  信号检测     │
+└──────┬───────┴──────┬───────┴──────┬───────┘
+       ↓              ↓              ↓
+    SQLite          SQLite         SQLite
 ```
 
-## 当前服务 (simple_server.py)
+## 核心服务
 
-简化版 HTTP 服务，提供：
-- 真实市场数据（Binance API）
-- 策略信号计算
-- HTTP REST API
-
-### 启动
-
-```bash
-cd backend/tradecat-core/services/websocket-service
-python3 simple_server.py
-
-# 服务运行在 http://localhost:8088
-```
-
-### API 端点
-
-#### 健康检查
-```http
-GET /health
-
-Response:
-{
-  "status": "healthy",
-  "service": "data-service",
-  "version": "2.0.0",
-  "data_source": "binance"
-}
-```
-
-#### 获取 K线数据
-```http
-GET /api/v1/candles?symbol=BTCUSDT&interval=5m&limit=100
-
-Response:
-{
-  "symbol": "BTCUSDT",
-  "interval": "5m",
-  "source": "binance",  // 或 "mock"
-  "candles": [
-    {
-      "time": 1706432000,    // Unix 时间戳（秒）
-      "open": 40000.0,
-      "high": 40100.0,
-      "low": 39900.0,
-      "close": 40050.0,
-      "volume": 100.5
-    }
-  ]
-}
-```
-
-**参数说明:**
-- `symbol`: 交易对，如 BTCUSDT, ETHUSDT
-- `interval`: 时间框架，可选值: 1m, 5m, 15m, 30m, 1h, 4h, 1d
-- `limit`: 返回的 K线数量，最大 1000
-
-#### 策略信号分析
-```http
-GET /api/v1/signals/analyze?symbol=BTCUSDT&interval=5m
-
-Response:
-{
-  "symbol": "BTCUSDT",
-  "interval": "5m",
-  "candles_analyzed": 100,
-  "signals": [
-    {
-      "type": "BUY",           // 或 "SELL"
-      "name": "H1突破",
-      "description": "收盘价突破前高 0.5%",
-      "confidence": 75,        // 置信度 0-100
-      "timestamp": 1706432000,
-      "metadata": {...}
-    }
-  ]
-}
-```
-
-#### 策略列表
-```http
-GET /api/v1/strategies
-
-Response:
-{
-  "strategies": [
-    {"id": "h1_breakout", "name": "H1突破", "enabled": true},
-    {"id": "l1_breakout", "name": "L1突破", "enabled": true},
-    {"id": "trend_strength", "name": "趋势强度", "enabled": true}
-  ]
-}
-```
-
-## 数据源
-
-### Binance API
-
-- **官方文档**: https://binance-docs.github.io/apidocs/spot/en/
-- **K线 endpoint**: `GET /api/v3/klines`
-- **限制**: 1200 请求/分钟（IP 限制）
-
-### 故障转移
-
-当 Binance API 不可用时，自动使用模拟数据：
-```python
-candles = fetch_binance_candles(symbol, interval, limit)
-if candles is None:
-    candles = generate_mock_candles(symbol, interval, limit)
-```
-
-## 策略引擎
-
-### 支持的策略
-
-| 策略 | 类型 | 描述 |
+| 服务 | 路径 | 说明 |
 |------|------|------|
-| H1突破 | BUY | 收盘价突破前一根K线的高点 |
-| L1突破 | SELL | 收盘价跌破前一根K线的低点 |
-| 趋势强度 | BUY/SELL | 连续多根K线同向运动 |
+| api-service | `services-preview/api-service/` | FastAPI 统一 API 网关 (端口 8088) |
+| data-service | `services/data-service/` | Binance 期货 WebSocket 数据采集 |
+| trading-service | `services/trading-service/` | 38 个技术指标计算 |
+| signal-service | `services/signal-service/` | 127 条交易信号规则 |
+| ai-service | `services/ai-service/` | AI 分析 (就绪检查) |
+| telegram-service | `services/telegram-service/` | Telegram 机器人通知 |
+| sync-service | `services/sync-service/` | Obsidian 数据同步 |
 
-### 添加新策略
+## API 端点
 
-在 `SimpleStrategyEngine.analyze()` 方法中添加：
+基础地址: `http://localhost:8088`
 
-```python
-# 自定义策略检测
-if your_condition:
-    signals.append({
-        'type': 'BUY',  # 或 'SELL'
-        'name': '策略名称',
-        'description': '策略描述',
-        'confidence': 70,  # 0-100
-        'timestamp': current['time'],
-        'symbol': symbol,
-        'interval': interval,
-        'metadata': {...}
-    })
-```
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/docs` | Swagger 文档 |
+| GET | `/api/futures/ohlc/history` | K 线历史数据 |
+| GET | `/api/v1/obsidian/sync/status` | Obsidian 同步状态 |
+| POST | `/api/v1/obsidian/sync/strategies` | 同步策略 |
+| POST | `/api/v1/obsidian/sync/trades` | 同步交易记录 |
 
-## 部署
+## 数据存储
 
-### Docker（推荐）
+- **SQLite** — 主存储，位于 `libs/database/services/`
+  - `telegram-service/market_data.db` — 技术指标数据
+  - `signal-service/cooldown.db` — 信号冷却状态
+  - `signal-service/signal_history.db` — 信号历史
+- **TimescaleDB** — K 线历史数据 (可选，需 Docker)
 
-```bash
-docker build -t tradecat-backend .
-docker run -p 8088:8088 tradecat-backend
-```
-
-### 直接运行
+## 启动方式
 
 ```bash
-# 安装依赖（如果需要）
-pip install -r requirements.txt
+# 一键启动
+bash "📁 启动工具/🚀 一键启动.command"
 
-# 启动服务
-python3 simple_server.py
+# 手动启动 API
+cd "AB Console-Backend/services-preview/api-service"
+source .venv/bin/activate
+uvicorn src.app:app --host 0.0.0.0 --port 8088 --reload
 ```
 
-## 开发计划
+## 配置
 
-- [x] Binance API 接入
-- [x] 基础策略引擎
-- [x] HTTP REST API
-- [ ] WebSocket 实时推送
-- [ ] 数据库存储（TimescaleDB）
-- [ ] 用户认证
-- [ ] 更多技术指标
-
----
-
-*详见完整 API 文档: [API文档.md](./API文档.md)*
+生产配置: `AB Console-Backend/config/.env`
+配置模板: `AB Console-Backend/config/.env.example`

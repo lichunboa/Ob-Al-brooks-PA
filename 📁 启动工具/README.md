@@ -1,105 +1,69 @@
-# 🦁 AB Console 启动工具
+# AB Console - 启动工具
 
-一键管理 AB Console 后端服务。
+一键管理所有 AB Console 后端服务。
 
-## 📁 文件说明
+## 文件说明
 
-| 文件 | 功能 |
+| 脚本 | 功能 |
 |------|------|
-| 🚀 一键启动.command | 启动所有服务（API + 数据采集 + 指标计算 + 信号） |
-| 🛑 一键停止.command | 停止所有服务 |
-| 📊 状态检查.command | 查看所有服务状态 + 交互式操作 |
+| `🚀 一键启动.command` | 启动全部后端服务 + Web Dashboard |
+| `🛑 一键停止.command` | 停止所有服务 |
+| `📊 状态检查.command` | 查看服务运行状态 |
 
-## 🚀 快速开始
+## 使用方式
 
-### 1. 启动服务
-双击 `🚀 一键启动.command` 启动所有服务。
+### 方式 1: 在 Obsidian 控制台中
 
-### 2. 检查状态
-双击 `📊 状态检查.command` 查看服务运行状态。
+打开控制台 → 后端服务 → 点击「启动后端」按钮
 
-### 3. 停止服务
-双击 `🛑 一键停止.command` 停止所有服务。
+### 方式 2: 终端运行
 
-## 📊 服务架构
+```bash
+# 启动
+bash "📁 启动工具/🚀 一键启动.command"
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        AB Console                            │
-├─────────────────────────────────────────────────────────────┤
-│  🌐 Web Dashboard (localhost:3000)                          │
-│     └── Next.js 前端界面                                     │
-├─────────────────────────────────────────────────────────────┤
-│  📡 API Service (localhost:8088)                            │
-│     ├── REST API 接口                                        │
-│     ├── Obsidian 同步                                        │
-│     └── K线/指标/信号查询                                    │
-├─────────────────────────────────────────────────────────────┤
-│  ⚙️  核心服务                                                │
-│     ├── data-service    → 实时采集 Binance 数据              │
-│     ├── trading-service → 计算技术指标 (RSI/MACD/布林带等)   │
-│     └── signal-service  → 检测交易信号 (127条规则)           │
-├─────────────────────────────────────────────────────────────┤
-│  💾 数据存储                                                 │
-│     ├── TimescaleDB (端口 5434) → K线数据                   │
-│     └── SQLite → 指标结果 + 交易信号                        │
-└─────────────────────────────────────────────────────────────┘
+# 停止
+bash "📁 启动工具/🛑 一键停止.command"
+
+# 状态
+bash "📁 启动工具/📊 状态检查.command"
 ```
 
-## 🌐 访问地址
+### 方式 3: 双击运行
 
-| 服务 | 地址 | 说明 |
+在 Finder 中双击 `.command` 文件即可。
+
+## 启动的服务
+
+| 服务 | 端口 | 说明 |
 |------|------|------|
-| Web Dashboard | http://localhost:3000/chart | 可视化界面 |
-| API 文档 | http://localhost:8088/docs | Swagger 文档 |
-| 健康检查 | http://localhost:8088/health | API 状态 |
-| Obsidian 同步 | http://localhost:8088/api/v1/obsidian/sync/status | 同步状态 |
+| API Service | 8088 | REST API 网关 (FastAPI) |
+| data-service | - | WebSocket 实时数据采集 |
+| trading-service | - | 技术指标计算 (38 个指标) |
+| signal-service | - | 交易信号检测 (127 条规则) |
+| Web Dashboard | 3000 | Next.js 交易界面 |
 
-## 🔧 故障排查
+## 访问地址
 
-### API 未响应
+- Web Dashboard: http://localhost:3000
+- API 文档: http://localhost:8088/docs
+- API 健康检查: http://localhost:8088/health
+
+## 查看日志
+
 ```bash
-# 重启 API Service
-cd "AB Console-Backend/services-preview/api-service"
-./scripts/start.sh restart
-```
-
-### 数据库连接失败
-```bash
-# 检查 TimescaleDB
-docker exec tradecat-timescaledb pg_isready -U postgres
-
-# 重启数据库
-cd "AB Console-Backend"
-docker compose restart timescaledb
-```
-
-### 查看日志
-```bash
-# data-service (数据采集)
+# 数据采集
 tail -f "AB Console-Backend/services/data-service/logs/ws.log"
 
-# trading-service (指标计算)
+# 指标计算
 tail -f "AB Console-Backend/services/trading-service/logs/indicator_run.log"
 
-# signal-service (信号检测)
+# 信号检测
 tail -f "AB Console-Backend/services/signal-service/logs/signal.log"
 
-# API Service
+# API 服务
 tail -f "AB Console-Backend/services-preview/api-service/logs/api.log"
+
+# Web Dashboard
+tail -f /tmp/ab-web-dashboard.log
 ```
-
-## 📋 功能清单
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| ✅ 实时 K线数据 | 已启用 | BTC/ETH/SOL/BNB 实时更新 |
-| ✅ 技术指标 | 已启用 | 38个指标 (RSI/MACD/布林带等) |
-| ✅ 交易信号 | 已启用 | 127条规则自动检测 |
-| ✅ Obsidian 同步 | 已启用 | 策略/交易记录同步 |
-| ✅ Web Dashboard | 已启用 | 可视化界面 |
-| ✅ 期货情绪 | 已启用 | 资金费率/持仓/买卖比 |
-
----
-
-**双击 🚀 一键启动.command 开始使用！** 🎉
