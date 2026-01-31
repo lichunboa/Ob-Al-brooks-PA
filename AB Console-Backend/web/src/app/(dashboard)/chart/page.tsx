@@ -1,248 +1,222 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TradingViewChart } from '@/components/chart/TradingViewChart';
-import { TimeFrame, Candle, ChartSignal } from '@/types';
-import { RefreshCw, ChevronDown, Wifi, WifiOff, Database, AlertCircle } from 'lucide-react';
-import { useWebSocket } from '@/hooks/useWebSocket';
-
-// 后端策略信号响应类型
-interface StrategySignalResponse {
-  type: 'BUY' | 'SELL' | 'NEUTRAL';
-  name: string;
-  description: string;
-  confidence: number;
-  timestamp: number;
-}
+import { TimeFrame, ChartSignal } from '@/types';
+import { RefreshCw, ChevronDown, Wifi, WifiOff, Database, Bell } from 'lucide-react';
+import { useChartData } from '@/hooks/useChartData';
+import { useSignals, TradingSignal, filterSignalsBySymbol } from '@/hooks/useSignals';
+import { useStrategies, matchStrategies, calculateIndicators } from '@/hooks/useStrategies';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
 
 // 品种类型
 interface SymbolInfo {
   id: string;
   name: string;
-  category: string;
+  ticker: string;
+  category: 'crypto' | 'stock' | 'forex' | 'future' | 'metal';
   exchange: string;
-  note?: string;
 }
 
-// WebSocket 实时数据
-interface WSMarketData {
-  price: number;
-  change24h: number;
-  high24h: number;
-  low24h: number;
-  volume24h: number;
-}
+// 默认品种列表（与插件版对齐）
+const DEFAULT_SYMBOLS: SymbolInfo[] = [
+  { id: 'ES', name: 'E-mini S&P 500', ticker: 'ES=F', category: 'future', exchange: 'CME' },
+  { id: 'NQ', name: 'E-mini Nasdaq', ticker: 'NQ=F', category: 'future', exchange: 'CME' },
+  { id: 'BTC', name: 'Bitcoin', ticker: 'BTCUSDT', category: 'crypto', exchange: 'Binance' },
+  { id: 'ETH', name: 'Ethereum', ticker: 'ETHUSDT', category: 'crypto', exchange: 'Binance' },
+  { id: 'SOL', name: 'Solana', ticker: 'SOLUSDT', category: 'crypto', exchange: 'Binance' },
+  { id: 'NVDA', name: 'NVIDIA', ticker: 'NVDA', category: 'stock', exchange: 'NASDAQ' },
+  { id: 'AAPL', name: 'Apple', ticker: 'AAPL', category: 'stock', exchange: 'NASDAQ' },
+  { id: 'EURUSD', name: 'EUR/USD', ticker: 'EURUSD=X', category: 'forex', exchange: 'Forex' },
+  { id: 'GBPUSD', name: 'GBP/USD', ticker: 'GBPUSD=X', category: 'forex', exchange: 'Forex' },
+  { id: 'USDJPY', name: 'USD/JPY', ticker: 'USDJPY=X', category: 'forex', exchange: 'Forex' },
+  { id: 'XAUUSD', name: 'Gold', ticker: 'GC=F', category: 'metal', exchange: 'COMEX' },
+];
 
-// K线数据响应
-interface CandlesResponse {
-  symbol: string;
-  interval: string;
-  source: 'binance' | 'mock';
-  candles: Candle[];
-}
+const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
+  crypto: { emoji: '💰', label: '加密货币', color: '#F59E0B' },
+  stock: { emoji: '📈', label: '股票', color: '#3B82F6' },
+  forex: { emoji: '💱', label: '外汇', color: '#8B5CF6' },
+  future: { emoji: '📊', label: '期货', color: '#10B981' },
+  metal: { emoji: '🥇', label: '贵金属', color: '#FBBF24' },
+};
 
-export default function ChartPage() {
-  const [symbol, setSymbol] = useState('BTCUSDT');
-  const [interval, setInterval] = useState<TimeFrame>('5m');
-  const [candles, setCandles] = useState<Candle[]>([]);
-  const [signals, setSignals] = useState<ChartSignal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBackendAvailable, setIsBackendAvailable] = useState(false);
-  const [dataSource, setDataSource] = useState<'binance' | 'mock' | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [symbols, setSymbols] = useState<SymbolInfo[]>([]);
-  const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
-  const [realtimePrice, setRealtimePrice] = useState<number | null>(null);
-  const [priceChange24h, setPriceChange24h] = useState<number>(0);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
-  const candlesRef = useRef<Candle[]>([]);
-  const lastFetchRef = useRef<{ symbol: string; interval: string; time: number } | null>(null);
+const INTERVALS: { value: TimeFrame; label: string }[] = [
+  { value: '1m', label: '1分' },
+  { value: '5m', label: '5分' },
+  { value: '15m', label: '15分' },
+  { value: '30m', label: '30分' },
+  { value: '1h', label: '1时' },
+  { value: '4h', label: '4时' },
+  { value: '1d', label: '日线' },
+];
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088';
+// 信号卡片组件
+const SignalMiniCard: React.FC<{ signal: TradingSignal }> = ({ signal }) => {
+  const directionConfig = {
+    BUY: { emoji: '🟢', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+    SELL: { emoji: '🔴', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },
+    ALERT: { emoji: '🟡', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)' },
+  }[signal.direction];
 
-  // WebSocket 连接
-  const { isConnected, subscribe, unsubscribe } = useWebSocket({
-    url: wsUrl,
-    onMessage: (data) => {
-      if (data.type === 'data' && data.symbol === symbol) {
-        const marketData: WSMarketData = data.data;
-        setRealtimePrice(marketData.price);
-        setPriceChange24h(marketData.change24h);
-        
-        // 更新最后一根K线的收盘价
-        if (candlesRef.current.length > 0) {
-          const lastCandle = candlesRef.current[candlesRef.current.length - 1];
-          if (Math.abs(lastCandle.close - marketData.price) / lastCandle.close > 0.0001) {
-            const updated = [...candlesRef.current];
-            updated[updated.length - 1] = {
-              ...lastCandle,
-              close: marketData.price,
-              high: Math.max(lastCandle.high, marketData.price),
-              low: Math.min(lastCandle.low, marketData.price)
-            };
-            candlesRef.current = updated;
-            setCandles(updated);
-          }
-        }
-      }
-    }
+  const timeStr = new Date(signal.timestamp).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
-  // 加载品种列表
-  useEffect(() => {
-    fetch(`${apiUrl}/api/v1/symbols`)
-      .then(res => res.json())
-      .then(data => {
-        setSymbols(data.symbols || []);
-      })
-      .catch(console.error);
-  }, [apiUrl]);
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-2 rounded-md text-xs cursor-pointer min-w-[140px] max-w-[200px]"
+      style={{
+        background: directionConfig.bg,
+        border: `1px solid ${directionConfig.color}30`,
+      }}
+    >
+      <span>{directionConfig.emoji}</span>
+      <span className="font-semibold">{signal.symbol}</span>
+      <span className="flex-1 truncate text-slate-400">{signal.signal_name}</span>
+      <span className="text-slate-500 text-[10px]">{timeStr}</span>
+    </div>
+  );
+};
 
-  // 订阅/取消订阅品种
-  useEffect(() => {
-    if (isConnected) {
-      unsubscribe(symbol);
-      subscribe(symbol);
+export default function ChartPage() {
+  const [selectedSymbol, setSelectedSymbol] = useState('BTC');
+  const [timeframe, setTimeframe] = useState<TimeFrame>('5m');
+  const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+  const syncApiUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089';
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088/ws';
+
+  const currentSymbol = DEFAULT_SYMBOLS.find((s) => s.id === selectedSymbol) || DEFAULT_SYMBOLS[2];
+
+  // WebSocket 实时数据
+  const {
+    priceData: realtimePrice,
+    isConnected: isWsConnected,
+    error: wsError,
+  } = useRealtimeData({
+    wsUrl,
+    symbol: currentSymbol.ticker,
+    enabled: true,
+  });
+
+  // 使用新的 hooks
+  const {
+    candles,
+    isLoading: isChartLoading,
+    isFromCache,
+    error: chartError,
+    lastUpdate,
+    refresh: refreshChart,
+  } = useChartData({
+    symbol: currentSymbol.ticker,
+    timeframe,
+    apiUrl,
+    autoRefresh: true,
+  });
+
+  const {
+    signals,
+    unreadCount,
+    isLoading: isSignalsLoading,
+    lastCheck,
+  } = useSignals({
+    apiUrl,
+    autoRefresh: true,
+    refreshInterval: 10,
+  });
+
+  const {
+    strategies,
+    isLoading: isStrategiesLoading,
+  } = useStrategies({
+    apiUrl,
+    syncApiUrl,
+    autoRefresh: false,
+  });
+
+  // 计算品种趋势（基于最后一根K线）
+  const trend = useMemo<'bullish' | 'bearish' | 'neutral'>(() => {
+    if (candles.length < 2) return 'neutral';
+    const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2];
+    const change = last.close - prev.close;
+    if (change > 0) return 'bullish';
+    if (change < 0) return 'bearish';
+    return 'neutral';
+  }, [candles]);
+
+  // 计算涨跌幅
+  const changePercent = useMemo(() => {
+    if (candles.length < 2) return 0;
+    const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2];
+    return ((last.close - prev.close) / prev.close) * 100;
+  }, [candles]);
+
+  // 当前价格（优先使用 WebSocket 实时数据）
+  const currentPrice = useMemo(() => {
+    if (realtimePrice?.price) {
+      return realtimePrice.price;
     }
-  }, [symbol, isConnected, subscribe, unsubscribe]);
+    if (candles.length === 0) return 0;
+    return candles[candles.length - 1].close;
+  }, [candles, realtimePrice]);
 
-  // 获取数据的函数
-  const fetchDataRef = useRef<(force?: boolean) => void>();
-  fetchDataRef.current = (force?: boolean) => {
-    const shouldForce = force ?? false;
-    const now = Date.now();
-    setErrorMessage(null);
-    
-    // 防重复请求
-    if (!shouldForce && lastFetchRef.current) {
-      const { symbol: lastSymbol, interval: lastInterval, time: lastTime } = lastFetchRef.current;
-      if (lastSymbol === symbol && lastInterval === interval && (now - lastTime) < 3000) {
-        return;
-      }
+  // 24h 涨跌幅（优先使用 WebSocket 数据）
+  const changePercent24h = useMemo(() => {
+    if (realtimePrice?.change24h !== undefined) {
+      return realtimePrice.change24h;
     }
-    
-    lastFetchRef.current = { symbol, interval, time: now };
-    setIsLoading(true);
-    
-    const timestamp = Date.now();
-    
-    // 获取 K线数据
-    fetch(`${apiUrl}/api/v1/candles?symbol=${symbol}&interval=${interval}&limit=100&t=${timestamp}`)
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error('Backend not available');
-      })
-      .then((data: CandlesResponse) => {
-        const candlesData: Candle[] = data.candles || [];
-        
-        // 确保时间戳是秒级（Binance返回毫秒，后端已转换为秒）
-        const normalizedCandles = candlesData.map(c => ({
-          ...c,
-          time: c.time > 1000000000000 ? Math.floor(c.time / 1000) : c.time
-        }));
-        
-        // 智能合并数据
-        if (candlesRef.current.length > 0 && normalizedCandles.length > 0 && !shouldForce) {
-          const lastExisting = candlesRef.current[candlesRef.current.length - 1];
-          const lastNew = normalizedCandles[normalizedCandles.length - 1];
-          
-          if (lastExisting.time === lastNew.time) {
-            const merged = [...candlesRef.current.slice(0, -1), lastNew];
-            candlesRef.current = merged;
-            setCandles(merged);
-          } else {
-            candlesRef.current = normalizedCandles;
-            setCandles(normalizedCandles);
-          }
-        } else {
-          candlesRef.current = normalizedCandles;
-          setCandles(normalizedCandles);
-        }
-        
-        setIsBackendAvailable(true);
-        setDataSource(data.source);
-        setLastUpdate(new Date());
-        
-        // 显示数据源警告
-        if (data.source === 'mock') {
-          setErrorMessage('使用模拟数据 - Binance API 连接失败');
-        }
-        
-        // 获取策略信号
-        return fetch(`${apiUrl}/api/v1/signals/analyze?symbol=${symbol}&interval=${interval}&t=${timestamp}`);
-      })
-      .then(signalsResponse => {
-        if (signalsResponse && signalsResponse.ok) {
-          return signalsResponse.json();
-        }
-        throw new Error('Signals not available');
-      })
-      .then(signalsData => {
-        const backendSignals: StrategySignalResponse[] = signalsData.signals || [];
-        const chartSignals: ChartSignal[] = backendSignals.map((sig) => ({
-          time: sig.timestamp,
-          position: sig.type === 'BUY' ? 'belowBar' : 'aboveBar',
-          color: sig.type === 'BUY' ? '#10B981' : '#EF4444',
-          shape: sig.type === 'BUY' ? 'arrowUp' : 'arrowDown',
-          text: `${sig.name} (${sig.confidence}%)`,
-          size: Math.max(1, Math.min(3, sig.confidence / 30)),
-        }));
-        setSignals(chartSignals);
-      })
-      .catch(error => {
-        console.log('Backend not available:', error);
-        setErrorMessage('后端连接失败 - 使用本地模拟数据');
-        const mockCandles = generateMockCandles(symbol, interval);
-        candlesRef.current = mockCandles;
-        setCandles(mockCandles);
-        setSignals([]);
-        setIsBackendAvailable(false);
-        setDataSource('mock');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-  
-  // Wrapper function for fetchDataRef
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fetchData: any = useCallback((force?: boolean) => {
-    fetchDataRef.current?.(force);
-  }, []);
+    return changePercent;
+  }, [changePercent, realtimePrice]);
 
-  // 初始加载和定时刷新
-  useEffect(() => {
-    // @ts-ignore
-    fetchData(true);
-    // @ts-ignore
-    const intervalId: NodeJS.Timeout = setInterval(() => { fetchData(true); }, 30000); // 30秒刷新一次K线
-    return () => { clearInterval(intervalId); };
-  }, [fetchData]);
+  // 过滤当前品种的信号
+  const symbolSignals = useMemo(() => {
+    return filterSignalsBySymbol(signals, currentSymbol.id).slice(0, 5);
+  }, [signals, currentSymbol.id]);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('zh-CN', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-  };
+  // 转换信号为图表标记
+  const chartSignals: ChartSignal[] = useMemo(() => {
+    return symbolSignals.map((s) => ({
+      time: Math.floor(s.timestamp / 1000),
+      position: (s.direction === 'BUY' ? 'belowBar' : 'aboveBar') as 'belowBar' | 'aboveBar',
+      color: s.direction === 'BUY' ? '#10B981' : '#EF4444',
+      shape: (s.direction === 'BUY' ? 'arrowUp' : 'arrowDown') as 'arrowUp' | 'arrowDown' | 'circle',
+      text: s.signal_name,
+    }));
+  }, [symbolSignals]);
+
+  // 匹配策略
+  const matchedStrategies = useMemo(() => {
+    return matchStrategies(
+      strategies,
+      symbolSignals.map((s) => ({
+        signal_name: s.signal_name,
+        pattern: s.pattern,
+        direction: s.direction,
+        symbol: s.symbol,
+        timeframe: s.timeframe,
+      })),
+      { trend, price: currentPrice, changePercent: changePercent24h, timeframe }
+    );
+  }, [strategies, symbolSignals, trend, currentPrice, changePercent, timeframe]);
+
+  // 技术指标
+  const indicators = useMemo(() => {
+    return calculateIndicators(selectedSymbol, trend, changePercent24h);
+  }, [selectedSymbol, trend, changePercent]);
 
   const handleSelectSymbol = (sym: SymbolInfo) => {
-    setSymbol(sym.id);
+    setSelectedSymbol(sym.id);
     setShowSymbolDropdown(false);
-    candlesRef.current = [];
-    setRealtimePrice(null);
-    fetchData(true);
   };
-
-  const currentSymbol = symbols.find(s => s.id === symbol);
 
   return (
     <div className="h-full flex flex-col">
+      {/* 顶部工具栏 */}
       <div className="mb-4 flex items-center gap-4 flex-wrap">
         {/* 品种选择 */}
         <div className="flex items-center gap-2 relative">
@@ -251,56 +225,36 @@ export default function ChartPage() {
             onClick={() => setShowSymbolDropdown(!showSymbolDropdown)}
             className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-colors min-w-[160px]"
           >
-            <span>{currentSymbol?.name || symbol}</span>
-            {realtimePrice && (
-              <span className={`text-xs ${priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${realtimePrice.toLocaleString(undefined, {minimumFractionDigits: 2})}
-              </span>
-            )}
+            <span>{CATEGORY_CONFIG[currentSymbol.category].emoji}</span>
+            <span>{currentSymbol.name}</span>
+            <span className={`text-xs ${changePercent24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
             <ChevronDown className="w-4 h-4 ml-auto text-slate-400" />
           </button>
-          
+
           {showSymbolDropdown && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setShowSymbolDropdown(false)}
-              />
+              <div className="fixed inset-0 z-40" onClick={() => setShowSymbolDropdown(false)} />
               <div className="absolute top-full left-0 mt-1 w-72 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 max-h-96 overflow-auto">
-                {['crypto', 'future', 'stock', 'forex'].map(category => {
-                  const categorySymbols = symbols.filter(s => s.category === category);
-                  if (categorySymbols.length === 0) return null;
-                  
-                  const categoryNames: Record<string, string> = {
-                    crypto: '加密货币',
-                    future: '期货',
-                    stock: '股票',
-                    forex: '外汇'
-                  };
-                  
+                {DEFAULT_SYMBOLS.map((sym) => {
+                  const config = CATEGORY_CONFIG[sym.category];
                   return (
-                    <div key={category}>
-                      <div className="px-3 py-2 text-xs font-medium text-slate-500 bg-slate-800/50 sticky top-0">
-                        {categoryNames[category]}
+                    <button
+                      key={sym.id}
+                      onClick={() => handleSelectSymbol(sym)}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-800 transition-colors flex items-center justify-between ${
+                        sym.id === selectedSymbol ? 'bg-blue-600/20 text-blue-400' : 'text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{config.emoji}</span>
+                        <div>
+                          <div className="font-medium">{sym.name}</div>
+                          <div className="text-xs text-slate-500">{sym.ticker}</div>
+                        </div>
                       </div>
-                      {categorySymbols.map(sym => (
-                        <button
-                          key={sym.id}
-                          onClick={() => handleSelectSymbol(sym)}
-                          className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-800 transition-colors flex items-center justify-between ${
-                            sym.id === symbol ? 'bg-blue-600/20 text-blue-400' : 'text-white'
-                          }`}
-                        >
-                          <div>
-                            <div className="font-medium">{sym.name}</div>
-                            <div className="text-xs text-slate-500">{sym.id} · {sym.exchange}</div>
-                          </div>
-                          {sym.note && (
-                            <span className="text-xs text-yellow-500">{sym.note}</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -308,137 +262,213 @@ export default function ChartPage() {
           )}
         </div>
 
-        {/* WebSocket 状态 */}
-        <div className="flex items-center gap-2 text-xs">
-          {isConnected ? (
-            <span className="flex items-center gap-1 text-green-400">
-              <Wifi className="w-3 h-3" />
-              实时
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-slate-500">
-              <WifiOff className="w-3 h-3" />
-              轮询
-            </span>
-          )}
-          {signals.length > 0 && (
-            <span className="text-green-400 ml-2">
-              信号: {signals.length}
-            </span>
-          )}
+        {/* 周期选择器 */}
+        <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+          {INTERVALS.map((int) => (
+            <button
+              key={int.value}
+              onClick={() => setTimeframe(int.value)}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                timeframe === int.value
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              {int.label}
+            </button>
+          ))}
         </div>
 
-        {/* 数据源状态 */}
-        {dataSource && (
-          <div className="flex items-center gap-2 text-xs">
-            {dataSource === 'binance' ? (
-              <span className="flex items-center gap-1 text-blue-400">
-                <Database className="w-3 h-3" />
-                Binance
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-yellow-400">
-                <AlertCircle className="w-3 h-3" />
-                模拟
+        {/* 信号数量 */}
+        {signals.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg text-xs">
+            <Bell className="w-3 h-3 text-green-400" />
+            <span>{signals.length} 信号</span>
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.5 bg-green-500 text-white rounded-full text-[10px]">
+                {unreadCount}
               </span>
             )}
           </div>
         )}
 
+        {/* 数据源状态 */}
+        <div className="flex items-center gap-2 text-xs">
+          {isWsConnected ? (
+            <span className="flex items-center gap-1 text-green-400">
+              <Wifi className="w-3 h-3" />
+              WebSocket
+            </span>
+          ) : chartError ? (
+            <span className="flex items-center gap-1 text-yellow-400">
+              <WifiOff className="w-3 h-3" />
+              模拟数据
+            </span>
+          ) : isFromCache ? (
+            <span className="flex items-center gap-1 text-blue-400">
+              <Database className="w-3 h-3" />
+              缓存
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-slate-400">
+              <Wifi className="w-3 h-3" />
+              HTTP
+            </span>
+          )}
+        </div>
+
         {/* 刷新按钮 */}
         <div className="flex items-center gap-2 ml-auto">
           {lastUpdate && (
             <span className="text-xs text-slate-500">
-              更新于: {formatTime(lastUpdate)}
+              更新: {lastUpdate.toLocaleTimeString('zh-CN')}
             </span>
           )}
           <button
-            onClick={() => fetchData(true)}
-            disabled={isLoading}
+            onClick={() => refreshChart(true)}
+            disabled={isChartLoading}
             className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isChartLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* 错误提示 */}
-      {errorMessage && (
-        <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg flex items-center gap-2 text-yellow-400 text-sm">
-          <AlertCircle className="w-4 h-4" />
-          {errorMessage}
+      {/* 主内容区 */}
+      <div className="flex-1 flex gap-4 min-h-0">
+        {/* 左侧：图表 */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+            <TradingViewChart
+              symbol={currentSymbol.ticker}
+              interval={timeframe}
+              candles={candles}
+              signals={chartSignals}
+              onTimeFrameChange={setTimeframe}
+              className="h-full"
+            />
+          </div>
         </div>
-      )}
 
-      <div className="flex-1 relative">
-        <TradingViewChart
-          symbol={symbol}
-          interval={interval}
-          candles={candles}
-          signals={signals}
-          onTimeFrameChange={setInterval}
-          className="h-full"
-        />
-        
-        {isLoading && candles.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
-            <div className="flex items-center gap-2 text-slate-400">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              加载中...
+        {/* 右侧：策略和信号面板 */}
+        <div className="w-80 flex flex-col gap-4 overflow-y-auto">
+          {/* 市场状态 */}
+          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
+            <h3 className="text-sm font-medium text-white mb-3">市场状态</h3>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-slate-800 rounded p-2">
+                <div className="text-slate-400 mb-1">趋势</div>
+                <div
+                  className={`font-semibold ${
+                    trend === 'bullish' ? 'text-green-400' : trend === 'bearish' ? 'text-red-400' : 'text-slate-300'
+                  }`}
+                >
+                  {trend === 'bullish' ? '看涨 📈' : trend === 'bearish' ? '看跌 📉' : '震荡 ➡️'}
+                </div>
+              </div>
+              <div className="bg-slate-800 rounded p-2">
+                <div className="text-slate-400 mb-1">涨跌幅</div>
+                <div className={`font-semibold ${changePercent24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {changePercent24h >= 0 ? '+' : ''}
+                  {changePercent24h.toFixed(2)}%
+                </div>
+              </div>
+              <div className="bg-slate-800 rounded p-2">
+                <div className="text-slate-400 mb-1">RSI</div>
+                <div
+                  className={`font-semibold ${
+                    indicators.rsi > 70 ? 'text-red-400' : indicators.rsi < 30 ? 'text-green-400' : 'text-slate-300'
+                  }`}
+                >
+                  {indicators.rsi.toFixed(1)}
+                  {indicators.rsi > 70 && ' 超买'}
+                  {indicators.rsi < 30 && ' 超卖'}
+                </div>
+              </div>
+              <div className="bg-slate-800 rounded p-2">
+                <div className="text-slate-400 mb-1">波动率</div>
+                <div className="font-semibold text-slate-300">{indicators.volatility.toFixed(2)}%</div>
+              </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* 信号面板 */}
-      {signals.length > 0 && (
-        <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-800">
-          <h3 className="text-sm font-medium text-white mb-2">策略信号</h3>
-          <div className="flex flex-wrap gap-2">
-            {signals.map((signal, index) => (
-              <div
-                key={index}
-                className="px-3 py-1.5 bg-slate-800 rounded text-xs"
-                style={{ color: signal.color }}
-              >
-                {signal.text}
+          {/* 相关信号 */}
+          {symbolSignals.length > 0 && (
+            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
+              <h3 className="text-sm font-medium text-white mb-3">相关信号</h3>
+              <div className="flex flex-col gap-2">
+                {symbolSignals.map((signal) => (
+                  <SignalMiniCard key={signal.id} signal={signal} />
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          {/* 匹配策略 */}
+          <div className="flex-1 bg-slate-900 rounded-lg border border-slate-800 p-4 overflow-y-auto">
+            <h3 className="text-sm font-medium text-white mb-3">
+              策略匹配
+              {matchedStrategies.length > 0 && (
+                <span className="ml-2 text-xs text-slate-400">
+                  ({matchedStrategies.length}个)
+                </span>
+              )}
+            </h3>
+
+            {isStrategiesLoading ? (
+              <div className="text-center text-slate-500 text-sm py-4">加载策略...</div>
+            ) : matchedStrategies.length === 0 ? (
+              <div className="text-center text-slate-500 text-sm py-4">
+                {strategies.length === 0 ? '暂无策略数据' : '当前条件下无匹配策略'}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {matchedStrategies.map((strategy) => (
+                  <div
+                    key={strategy.id}
+                    className="bg-slate-800 rounded-lg p-3 border border-slate-700"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white truncate">{strategy.name}</span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded"
+                        style={{
+                          background:
+                            strategy.matchScore >= 80
+                              ? 'rgba(16, 185, 129, 0.2)'
+                              : strategy.matchScore >= 50
+                              ? 'rgba(245, 158, 11, 0.2)'
+                              : 'rgba(107, 114, 128, 0.2)',
+                          color:
+                            strategy.matchScore >= 80
+                              ? '#10B981'
+                              : strategy.matchScore >= 50
+                              ? '#F59E0B'
+                              : '#6B7280',
+                        }}
+                      >
+                        {strategy.matchScore}
+                      </span>
+                    </div>
+                    {strategy.matchedSignals.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {strategy.matchedSignals.slice(0, 3).map((sig, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-1.5 py-0.5 bg-slate-700 text-slate-300 rounded"
+                          >
+                            {sig}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
-}
-
-// 模拟数据生成器
-function generateMockCandles(symbol: string, interval: string, count: number = 100): Candle[] {
-  const candles: Candle[] = [];
-  const basePrice = symbol.includes('BTC') ? 40000 : symbol.includes('ETH') ? 2000 : 100;
-  const now = Math.floor(Date.now() / 1000);
-  
-  const intervalSeconds = {
-    '1m': 60, '5m': 300, '15m': 900, '30m': 1800,
-    '1h': 3600, '4h': 14400, '1d': 86400
-  }[interval] || 300;
-
-  const alignedNow = now - (now % intervalSeconds);
-  let lastClose = basePrice;
-
-  for (let i = count; i > 0; i--) {
-    const time = alignedNow - i * intervalSeconds;
-    const volatility = basePrice * 0.002;
-    
-    const open = lastClose;
-    const change = (Math.random() - 0.5) * volatility * 2;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
-    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-    const volume = Math.random() * 100 + 50;
-
-    candles.push({ time, open, high, low, close, volume });
-    lastClose = close;
-  }
-
-  return candles;
 }

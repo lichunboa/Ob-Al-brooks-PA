@@ -16,6 +16,7 @@ from src.routers import (
     futures_metrics_router,
     indicator_router,
     signal_router,
+    ws_router,
 )
 from src.routers.obsidian import router as obsidian_router
 from src.utils.errors import ErrorCode
@@ -97,6 +98,7 @@ app.include_router(funding_rate_router, prefix="/api/futures")
 app.include_router(futures_metrics_router, prefix="/api/futures")
 app.include_router(indicator_router, prefix="/api")
 app.include_router(signal_router, prefix="/api")
+app.include_router(ws_router)  # WebSocket 路由不需要前缀
 
 # 注册 Obsidian 同步路由 (AB Console 专属)
 app.include_router(obsidian_router, prefix="/api/v1")

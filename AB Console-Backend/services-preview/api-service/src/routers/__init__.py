@@ -8,6 +8,7 @@ from .funding_rate import router as funding_rate_router
 from .futures_metrics import router as futures_metrics_router
 from .indicator import router as indicator_router
 from .signal import router as signal_router
+from .ws import router as ws_router
 
 __all__ = [
     "health_router",
@@ -18,4 +19,5 @@ __all__ = [
     "futures_metrics_router",
     "indicator_router",
     "signal_router",
+    "ws_router",
 ]
