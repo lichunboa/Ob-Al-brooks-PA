@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { Lightbulb, TrendingUp, TrendingDown, Activity, Target, Zap, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useStrategies, matchStrategies, calculateIndicators, type StrategyCard } from "../../hooks/useStrategies";
+import { useStrategies, matchStrategies, calculateIndicators, normalizeTimeframe, type StrategyCard } from "../../hooks/useStrategies";
 import type { TradingSignal } from "../../hooks/useSignals";
 import type { BackendSettings } from "../../settings";
 
@@ -48,14 +48,17 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
 
   const [expandedStrategy, setExpandedStrategy] = React.useState<string | null>(null);
 
-  // 过滤当前品种相关的信号
+  // 过滤当前品种 + 当前周期的信号
   const relevantSignals = React.useMemo(() => {
     return signals.filter((s) => {
-      const symbolMatch = s.symbol.includes(symbol) || 
+      const symbolMatch = s.symbol.includes(symbol) ||
         symbol.includes(s.symbol.replace("=X", "").replace("=F", ""));
-      return symbolMatch;
+      // 信号必须匹配当前图表周期（无周期的信号视为通用信号，保留）
+      const tfMatch = !s.timeframe ||
+        normalizeTimeframe(s.timeframe) === normalizeTimeframe(timeframe);
+      return symbolMatch && tfMatch;
     });
-  }, [signals, symbol]);
+  }, [signals, symbol, timeframe]);
 
   // 计算技术指标
   const indicators = React.useMemo(() => {

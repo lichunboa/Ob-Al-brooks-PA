@@ -244,8 +244,8 @@ export function matchStrategies(
       if (tfMatch) {
         score += 8;
       } else {
-        // 周期不匹配，降权
-        score = Math.floor(score * 0.6);
+        // 策略有明确周期要求但和当前图表不匹配，直接排除
+        score = 0;
       }
     }
 
@@ -285,7 +285,7 @@ export function matchStrategies(
 /**
  * 归一化 timeframe 字符串以便比较
  */
-function normalizeTimeframe(tf: string): string {
+export function normalizeTimeframe(tf: string): string {
   const s = tf.toLowerCase().trim();
   // 统一常见格式：1h, 1H, 1hour → "1h"
   if (s === "1h" || s === "1hour" || s === "60m" || s === "60min") return "1h";
