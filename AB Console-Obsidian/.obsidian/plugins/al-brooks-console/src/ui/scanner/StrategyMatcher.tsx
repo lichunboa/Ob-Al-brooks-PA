@@ -17,6 +17,7 @@ interface StrategyMatcherProps {
   changePercent?: number;
   signals?: TradingSignal[];
   backend?: BackendSettings;
+  timeframe?: string;
 }
 
 export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
@@ -26,6 +27,7 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
   changePercent = 0,
   signals = [],
   backend,
+  timeframe = "5m",
 }) => {
   // 默认 backend 配置
   const defaultBackend: BackendSettings = {
@@ -69,10 +71,11 @@ export const StrategyMatcher: React.FC<StrategyMatcherProps> = ({
         pattern: s.pattern,
         direction: s.direction,
         symbol: s.symbol,
+        timeframe: s.timeframe,
       })),
-      { trend, price, changePercent }
+      { trend, price, changePercent, timeframe }
     );
-  }, [strategies, relevantSignals, trend, price, changePercent]);
+  }, [strategies, relevantSignals, trend, price, changePercent, timeframe]);
 
   // 获取分类图标
   const getCategoryIcon = (category?: string) => {
