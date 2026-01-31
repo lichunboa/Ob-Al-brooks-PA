@@ -1,5 +1,5 @@
 # ====================
-# 根目录旧路径（已迁移至 AB Console-Obsidian/）
+# 根目录旧路径（已清理，防止再出现）
 # ====================
 /.obsidian/
 /.space/
@@ -8,6 +8,36 @@
 /.smtcmp_vector_db.tar.gz
 /.claude-plugin/
 /.makemd/
+/Categories 分类/
+/Clippings 简报/
+/Daily/
+/Excalidraw/
+/Notes 笔记/
+/Tags/
+/Templates/
+/策略仓库 (Strategy Repository)/
+/copilot/
+/labels/
+/services/
+/services-preview/
+/libs/
+/tools/
+/未命名*
+/task.md
+
+# ====================
+# Obsidian vault 内非 vault 文件
+# ====================
+AB Console-Obsidian/copilot/
+AB Console-Obsidian/labels/
+AB Console-Obsidian/logs/
+AB Console-Obsidian/sessions/
+AB Console-Obsidian/statuses/
+AB Console-Obsidian/tools/
+AB Console-Obsidian/AGENTS.md
+AB Console-Obsidian/views.json
+AB Console-Obsidian/未命名*
+AB Console-Obsidian/task.md
 
 # ====================
 # 系统文件
