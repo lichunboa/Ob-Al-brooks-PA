@@ -1,27 +1,24 @@
 #!/bin/bash
 # ============================================================
-# 🦁 AB Console - 一键启动工具
-# 启动所有服务：API + 数据采集 + 指标计算 + 信号检测
+# AB Console - 一键启动工具
+# 自动启动 Docker + 数据库 + 全部后端服务 + Web Dashboard
 # ============================================================
 
 cd "$(dirname "$0")/.."
 VAULT_ROOT="$(pwd)"
 BACKEND_DIR="$VAULT_ROOT/AB Console-Backend"
 
-# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# 日志函数
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# 检查服务是否运行
 check_service() {
     local port=$1
     local name=$2
@@ -34,7 +31,6 @@ check_service() {
     fi
 }
 
-# 检查进程
 check_process() {
     local pattern=$1
     local name=$2
@@ -47,34 +43,92 @@ check_process() {
     fi
 }
 
+# PID 文件路径
+BOT_PID_FILE="$BACKEND_DIR/services/telegram-service/pids/bot.pid"
+SIGNAL_PID_FILE="$BACKEND_DIR/services/signal-service/logs/signal-service.pid"
+DB_READY=false
+
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          🦁 AB Console - 一键启动工具                       ║"
+echo "║          AB Console - 一键启动工具                         ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
 # ============================================================
-# 1. 检查数据库
+# 1. Docker + TimescaleDB
 # ============================================================
-log_info "[1/6] 检查数据库..."
-if command -v docker &> /dev/null && docker exec tradecat-timescaledb pg_isready -U postgres > /dev/null 2>&1; then
-    log_success "TimescaleDB 已运行 (Docker)"
+log_info "[1/8] 启动 Docker + TimescaleDB..."
+
+if ! command -v docker &> /dev/null; then
+    log_warn "Docker 未安装，跳过数据库 — 使用 SQLite 模式"
 else
-    log_info "TimescaleDB (Docker) 未运行，跳过 — 服务将使用 SQLite"
+    # 检查 Docker Desktop 是否运行
+    if ! docker info > /dev/null 2>&1; then
+        log_info "启动 Docker Desktop..."
+        open /Applications/Docker.app 2>/dev/null
+        # 等待 Docker 就绪（最多 60 秒）
+        WAIT=0
+        while ! docker info > /dev/null 2>&1 && [ $WAIT -lt 60 ]; do
+            sleep 2
+            WAIT=$((WAIT + 2))
+            printf "\r  等待 Docker 就绪... %ds" "$WAIT"
+        done
+        echo ""
+        if docker info > /dev/null 2>&1; then
+            log_success "Docker Desktop 已就绪"
+        else
+            log_warn "Docker 启动超时 (60s)，跳过数据库 — 使用 SQLite 模式"
+        fi
+    fi
+
+    # Docker 已就绪，启动 TimescaleDB
+    if docker info > /dev/null 2>&1; then
+        if docker ps 2>/dev/null | grep -q timescaledb; then
+            log_success "TimescaleDB 已在运行"
+            DB_READY=true
+        elif docker ps -a 2>/dev/null | grep -q timescaledb; then
+            # 容器存在但已停止，重新启动
+            log_info "启动 TimescaleDB 容器..."
+            docker start ab-timescaledb > /dev/null 2>&1 || docker start tradecat-timescaledb > /dev/null 2>&1
+            sleep 3
+            if docker ps 2>/dev/null | grep -q timescaledb; then
+                log_success "TimescaleDB 启动成功"
+                DB_READY=true
+            else
+                log_warn "TimescaleDB 启动失败"
+            fi
+        else
+            # 容器不存在，创建新的
+            log_info "创建 TimescaleDB 容器..."
+            docker run -d --name ab-timescaledb \
+                -p 5434:5432 \
+                -e POSTGRES_PASSWORD=postgres \
+                -e POSTGRES_DB=market_data \
+                -v ab-timescaledb-data:/var/lib/postgresql/data \
+                timescale/timescaledb:latest-pg16 > /dev/null 2>&1
+            sleep 5
+            if docker ps 2>/dev/null | grep -q timescaledb; then
+                log_success "TimescaleDB 创建并启动成功"
+                DB_READY=true
+            else
+                log_warn "TimescaleDB 创建失败"
+            fi
+        fi
+    fi
 fi
 
 # ============================================================
-# 2. 启动 API Service
+# 2. 启动 API Service (端口 8088)
 # ============================================================
 echo ""
-log_info "[2/6] 启动 API Service..."
+log_info "[2/8] 启动 API Service..."
 cd "$BACKEND_DIR/services-preview/api-service"
 if lsof -i :8088 -sTCP:LISTEN > /dev/null 2>&1; then
     log_success "API Service 已在运行"
 else
     ./scripts/start.sh start 2>&1 | tail -3
     sleep 3
-    if curl -s http://localhost:8088/health > /dev/null 2>&1; then
+    if lsof -i :8088 -sTCP:LISTEN > /dev/null 2>&1; then
         log_success "API Service 启动成功"
     else
         log_error "API Service 启动失败"
@@ -82,76 +136,121 @@ else
 fi
 
 # ============================================================
-# 3. 启动 data-service (实时数据采集)
+# 3. 启动 Telegram Bot
 # ============================================================
 echo ""
-log_info "[3/6] 启动 data-service (WebSocket 数据采集)..."
-cd "$BACKEND_DIR/services/data-service"
-if pgrep -f "data-service.*--ws" > /dev/null 2>&1; then
-    log_success "data-service 已在运行"
+log_info "[3/8] 启动 Telegram Bot..."
+cd "$BACKEND_DIR/services/telegram-service"
+if [ -f "$BOT_PID_FILE" ] && kill -0 "$(cat "$BOT_PID_FILE")" 2>/dev/null; then
+    log_success "Telegram Bot 已在运行"
 else
-    source .venv/bin/activate
-    nohup python -m src --ws > logs/ws.log 2>&1 &
-    sleep 5
-    if pgrep -f "data-service.*--ws" > /dev/null 2>&1; then
-        log_success "data-service 启动成功 (WebSocket)"
+    ./scripts/start.sh start 2>&1 | tail -3
+    sleep 3
+    if [ -f "$BOT_PID_FILE" ] && kill -0 "$(cat "$BOT_PID_FILE")" 2>/dev/null; then
+        log_success "Telegram Bot 启动成功"
     else
-        log_warn "data-service 可能需要初始化"
+        log_warn "Telegram Bot 启动可能需要时间"
     fi
 fi
 
 # ============================================================
-# 4. 启动 trading-service (指标计算)
+# 4. 检查指标数据 (SQLite)
 # ============================================================
 echo ""
-log_info "[4/6] 启动 trading-service (指标计算)..."
-# trading-service 是单次运行模式，计算一次后退出
-# 检查最近是否有计算记录
+log_info "[4/8] 检查指标数据..."
 cd "$BACKEND_DIR"
 SQLITE_DB="libs/database/services/telegram-service/market_data.db"
 if [ -f "$SQLITE_DB" ]; then
     TABLE_COUNT=$(sqlite3 "$SQLITE_DB" ".tables" 2>/dev/null | wc -w)
     if [ "$TABLE_COUNT" -gt 10 ]; then
-        log_success "trading-service 指标已计算 ($TABLE_COUNT 张表)"
+        log_success "指标数据就绪 ($TABLE_COUNT 张表)"
     else
-        log_warn "指标数据不足，启动计算..."
-        cd "$BACKEND_DIR/services/trading-service"
-        source .venv/bin/activate
-        python -m src --once > logs/indicator_run.log 2>&1 &
-        log_info "指标计算后台运行中 (约需 30-60 秒)"
+        log_warn "指标表较少 ($TABLE_COUNT 张)，部分排行榜可能为空"
     fi
 else
-    log_warn "初始化指标数据库..."
-    cd "$BACKEND_DIR/services/trading-service"
-    source .venv/bin/activate
-    python -m src --once > logs/indicator_run.log 2>&1 &
-    log_info "指标计算后台运行中 (约需 30-60 秒)"
+    log_warn "指标数据库不存在，排行榜将使用币安 API 实时数据"
 fi
 
 # ============================================================
 # 5. 启动 signal-service (信号检测)
 # ============================================================
 echo ""
-log_info "[5/6] 启动 signal-service (交易信号检测)..."
+log_info "[5/8] 启动信号检测..."
 cd "$BACKEND_DIR/services/signal-service"
-if pgrep -f "signal-service.*--all" > /dev/null 2>&1; then
-    log_success "signal-service 已在运行"
+if [ -f "$SIGNAL_PID_FILE" ] && kill -0 "$(cat "$SIGNAL_PID_FILE")" 2>/dev/null; then
+    log_success "signal-service 已在运行 (PID: $(cat "$SIGNAL_PID_FILE"))"
 else
-    source .venv/bin/activate
-    nohup python -m src --all > logs/signal.log 2>&1 &
-    sleep 3
-    if pgrep -f "signal-service.*--all" > /dev/null 2>&1; then
-        log_success "signal-service 启动成功 (127条规则)"
+    if [ -d ".venv" ]; then
+        ./scripts/start.sh start 2>&1 | tail -3
+        sleep 2
+        if [ -f "$SIGNAL_PID_FILE" ] && kill -0 "$(cat "$SIGNAL_PID_FILE")" 2>/dev/null; then
+            log_success "signal-service 启动成功 (PID: $(cat "$SIGNAL_PID_FILE"))"
+        else
+            log_warn "signal-service 启动失败 (非关键)"
+        fi
     else
-        log_warn "signal-service 启动可能需要时间"
+        log_warn "signal-service 虚拟环境不存在，跳过"
     fi
 fi
 
 # ============================================================
-# 6. 启动 Web Dashboard (如果未运行)
+# 6. 启动 data-service (实时数据采集)
 # ============================================================
 echo ""
-log_info "[6/6] 启动 Web Dashboard..."
+log_info "[6/8] 启动 data-service..."
+DATA_SVC_PID_FILE="$BACKEND_DIR/services/data-service/logs/ws.pid"
+if [ "$DB_READY" = true ]; then
+    cd "$BACKEND_DIR/services/data-service"
+    # 检查是否已在运行（通过 PID 文件）
+    if [ -f "$DATA_SVC_PID_FILE" ] && kill -0 "$(cat "$DATA_SVC_PID_FILE")" 2>/dev/null; then
+        log_success "data-service 已在运行 (PID: $(cat "$DATA_SVC_PID_FILE"))"
+    elif [ -d ".venv" ]; then
+        mkdir -p logs
+        source .venv/bin/activate 2>/dev/null
+        nohup python -m src --ws > logs/ws.log 2>&1 &
+        echo $! > "$DATA_SVC_PID_FILE"
+        deactivate 2>/dev/null
+        sleep 3
+        if kill -0 "$(cat "$DATA_SVC_PID_FILE")" 2>/dev/null; then
+            log_success "data-service 启动成功 (PID: $(cat "$DATA_SVC_PID_FILE"))"
+        else
+            log_warn "data-service 启动失败，查看: AB Console-Backend/services/data-service/logs/ws.log"
+            rm -f "$DATA_SVC_PID_FILE"
+        fi
+    else
+        log_warn "data-service 虚拟环境不存在，跳过"
+    fi
+else
+    log_info "跳过 data-service (TimescaleDB 未就绪)"
+fi
+
+# ============================================================
+# 7. 启动 trading-service (指标计算)
+# ============================================================
+echo ""
+log_info "[7/8] 启动 trading-service..."
+TRADING_SVC_PID_FILE="$BACKEND_DIR/services/trading-service/logs/trading.pid"
+if [ "$DB_READY" = true ]; then
+    cd "$BACKEND_DIR/services/trading-service"
+    if [ -d ".venv" ]; then
+        mkdir -p logs
+        source .venv/bin/activate 2>/dev/null
+        nohup python -m src --once > logs/indicator_run.log 2>&1 &
+        echo $! > "$TRADING_SVC_PID_FILE"
+        deactivate 2>/dev/null
+        log_success "指标计算已启动 (PID: $!, 后台运行)"
+    else
+        log_warn "trading-service 虚拟环境不存在，跳过"
+    fi
+else
+    log_info "跳过 trading-service (TimescaleDB 未就绪)"
+fi
+
+# ============================================================
+# 8. 启动 Web Dashboard (端口 3000)
+# ============================================================
+echo ""
+log_info "[8/8] 启动 Web Dashboard..."
 if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
     log_success "Web Dashboard 已在运行 (端口 3000)"
 else
@@ -171,34 +270,56 @@ fi
 # ============================================================
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                     📊 服务状态总结                         ║"
+echo "║                     服务状态总结                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
+echo "【数据库】"
+if [ "$DB_READY" = true ]; then
+    echo -e "${GREEN}✓${NC} TimescaleDB (端口 5434)"
+else
+    echo -e "${YELLOW}○${NC} TimescaleDB (未运行 - SQLite 模式)"
+fi
+
+echo ""
 echo "【核心服务】"
 check_service 8088 "API Service      "
 check_service 3000 "Web Dashboard    "
 
 echo ""
+echo "【Telegram Bot】"
+if [ -f "$BOT_PID_FILE" ] && kill -0 "$(cat "$BOT_PID_FILE")" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Telegram Bot (PID: $(cat "$BOT_PID_FILE"))"
+else
+    echo -e "${RED}✗${NC} Telegram Bot"
+fi
+
+echo ""
 echo "【后台进程】"
-check_process "data-service.*--ws"   "data-service     "
-check_process "signal-service.*--all" "signal-service   "
-check_process "trading-service"       "trading-service  "
+if [ -f "$SIGNAL_PID_FILE" ] && kill -0 "$(cat "$SIGNAL_PID_FILE")" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} signal-service (PID: $(cat "$SIGNAL_PID_FILE"))"
+else
+    echo -e "${RED}✗${NC} signal-service"
+fi
+if [ -f "$DATA_SVC_PID_FILE" ] && kill -0 "$(cat "$DATA_SVC_PID_FILE")" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} data-service (PID: $(cat "$DATA_SVC_PID_FILE"))"
+else
+    echo -e "${RED}✗${NC} data-service"
+fi
+if [ -f "$TRADING_SVC_PID_FILE" ] && kill -0 "$(cat "$TRADING_SVC_PID_FILE")" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} trading-service (PID: $(cat "$TRADING_SVC_PID_FILE"), 一次性任务)"
+else
+    echo -e "${YELLOW}○${NC} trading-service (一次性任务，可能已完成)"
+fi
 
 echo ""
 echo "【API 测试】"
 if curl -s http://localhost:8088/health > /dev/null 2>&1; then
-    BTC_PRICE=$(curl -s "http://localhost:8088/api/futures/ohlc/history?symbol=BTCUSDT&interval=1m&limit=1" 2>/dev/null | grep -o '"close":"[^"]*"' | cut -d'"' -f4 | cut -d'.' -f1)
-    if [ -n "$BTC_PRICE" ]; then
-        log_success "API 正常 | BTC: \$$BTC_PRICE"
-    else
-        log_success "API 正常"
-    fi
+    log_success "API 正常"
 else
     log_error "API 未响应"
 fi
 
-# Obsidian 同步状态
 SYNC_STATUS=$(curl -s http://localhost:8088/api/v1/obsidian/sync/status 2>/dev/null | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 if [ "$SYNC_STATUS" = "active" ]; then
     STRATEGIES=$(curl -s http://localhost:8088/api/v1/obsidian/sync/status 2>/dev/null | grep -o '"strategies_count":[0-9]*' | cut -d':' -f2)
@@ -208,18 +329,18 @@ fi
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                     🌐 访问地址                             ║"
+echo "║                     访问地址                                ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo "  📱 Web Dashboard:  http://localhost:3000/chart"
-echo "  📡 API 文档:       http://localhost:8088/docs"
-echo "  🔌 API 健康:      http://localhost:8088/health"
-echo "  📊 Obsidian 同步: http://localhost:8088/api/v1/obsidian/sync/status"
+echo "  Web Dashboard:  http://localhost:3000/chart"
+echo "  API 文档:       http://localhost:8088/docs"
+echo "  API 健康:       http://localhost:8088/health"
+echo "  Obsidian 同步:  http://localhost:8088/api/v1/obsidian/sync/status"
 echo ""
-echo "【常用命令】"
-echo "  查看日志:    tail -f 'AB Console-Backend/services/data-service/logs/ws.log'"
-echo "  停止服务:    pkill -f 'python.*(data|signal|trading)'"
-echo "  重启 API:    cd 'AB Console-Backend/services-preview/api-service' && ./scripts/start.sh restart"
+echo "【Telegram Bot 命令】"
+echo "  /ai    - AI 智能分析"
+echo "  /vis   - 可视化面板"
+echo "  /start - 显示所有命令"
 echo ""
 log_success "启动完成！"
 echo ""
