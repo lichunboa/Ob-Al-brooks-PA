@@ -216,7 +216,7 @@ export function useCandles(symbol: string, interval: string) {
 
 // HTTP 获取历史数据（初始加载）
 async function fetchHistoricalData(symbol: string, interval: string): Promise<Candle[]> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
   
   try {
     const response = await fetch(

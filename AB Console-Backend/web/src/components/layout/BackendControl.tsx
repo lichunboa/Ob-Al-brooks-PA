@@ -19,7 +19,7 @@ export const BackendControl: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const wsHealthUrl = apiUrl.replace('8088', '8089');
+  const syncUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089';
 
   // 检查后端状态
   const checkStatus = async () => {
@@ -48,7 +48,7 @@ export const BackendControl: React.FC = () => {
 
     // 检查 WebSocket（通过健康检查端口）
     try {
-      const wsCheck = await fetch(`${wsHealthUrl}/health`, {
+      const wsCheck = await fetch(`${syncUrl}/api/v1/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(3000)
       });

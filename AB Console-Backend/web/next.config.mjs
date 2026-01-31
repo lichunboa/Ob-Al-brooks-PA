@@ -28,12 +28,12 @@ const nextConfig = {
     return [
       {
         source: '/api/backend/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/:path*`,
       },
       // Sync Service 代理
       {
         source: '/api/sync/:path*',
-        destination: 'http://localhost:8089/api/v1/:path*',
+        destination: `${process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089'}/api/v1/:path*`,
       },
     ];
   },

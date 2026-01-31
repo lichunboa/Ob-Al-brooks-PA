@@ -60,7 +60,7 @@ export default function ChartPage() {
   const lastFetchRef = useRef<{ symbol: string; interval: string; time: number } | null>(null);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8090';
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088';
 
   // WebSocket 连接
   const { isConnected, subscribe, unsubscribe } = useWebSocket({
