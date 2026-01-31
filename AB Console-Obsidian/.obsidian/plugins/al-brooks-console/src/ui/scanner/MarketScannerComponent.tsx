@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Activity, TrendingUp, TrendingDown, RefreshCw, Bell, Filter, LayoutGrid, Maximize2 } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, RefreshCw, Bell, Filter, LayoutGrid, Maximize2, Wifi, WifiOff } from "lucide-react";
 import { MiniChart } from "./MiniChart";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { StrategyIndicatorPanel } from "./StrategyIndicatorPanel";
 import { useSignals, type TradingSignal } from "../../hooks/useSignals";
 import { StrategyMatcher } from "./StrategyMatcher";
 import { SingleChartView } from "./SingleChartView";
+import { useRealtimeData } from "../../hooks/useRealtimeData";
 import type { BackendSettings } from "../../settings";
 
 interface ScannerProps {
@@ -109,6 +110,19 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost, backen
         backend: backendSettings,
         autoRefresh: true,
         refreshInterval: 10,
+    });
+
+    // WebSocket 实时数据连接（单一视图模式）
+    const currentSymbolTicker = React.useMemo(() => {
+        const sym = symbols.find(s => s.id === selectedSymbol);
+        return sym?.ticker || "BTCUSDT";
+    }, [selectedSymbol, symbols]);
+
+    const wsUrl = apiHost.replace("http://", "ws://").replace("https://", "wss://") + "/ws";
+    const { priceData: realtimePrice, isConnected: isWsConnected } = useRealtimeData({
+        wsUrl,
+        symbol: currentSymbolTicker,
+        enabled: viewMode === "single" && backendSettings.enabled,
     });
 
     const filteredSymbols = React.useMemo(() => {
@@ -387,6 +401,8 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost, backen
                         chartInterval={chartInterval}
                         onIntervalChange={setChartInterval}
                         signals={signals}
+                        realtimePrice={realtimePrice}
+                        isWsConnected={isWsConnected}
                     />
                 </div>
             )}

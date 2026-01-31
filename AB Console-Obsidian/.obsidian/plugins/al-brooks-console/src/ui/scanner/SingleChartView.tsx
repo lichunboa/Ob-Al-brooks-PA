@@ -2,7 +2,7 @@ import * as React from "react";
 import { LightweightChart, type ChartSignal } from "../../views/components/LightweightChart";
 import { StrategyMatcher } from "./StrategyMatcher";
 import { StrategyIndicatorPanel } from "./StrategyIndicatorPanel";
-import { TrendingUp, TrendingDown, Activity, BarChart3, Layers, Clock, AlignEndHorizontal } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, BarChart3, Layers, Clock, AlignEndHorizontal, Wifi, WifiOff } from "lucide-react";
 import type { TradingSignal } from "../../hooks/useSignals";
 import { useStrategyMarkers } from "../../hooks/useStrategyMarkers";
 import type { BackendSettings } from "../../settings";
@@ -26,6 +26,8 @@ interface SingleChartViewProps {
   chartInterval: string;
   onIntervalChange: (interval: string) => void;
   signals?: TradingSignal[];
+  realtimePrice?: { price: number; change24h: number } | null;
+  isWsConnected?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
@@ -53,8 +55,14 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
   chartInterval,
   onIntervalChange,
   signals = [],
+  realtimePrice,
+  isWsConnected = false,
 }) => {
   const currentSymbol = symbols.find((s) => s.id === selectedSymbol) || symbols[0];
+  
+  // 使用 WebSocket 实时价格或 HTTP 价格
+  const displayPrice = realtimePrice?.price ?? currentSymbol?.price ?? 0;
+  const displayChangePercent = realtimePrice?.change24h ?? currentSymbol?.changePercent ?? 0;
 
   // 将 TradingSignal 转换为 ChartSignal
   // 转换后端信号为图表信号
@@ -121,22 +129,32 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
 
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               {/* 价格和涨跌 */}
-              {currentSymbol?.price > 0 && (
+              {displayPrice > 0 && (
                 <div style={{ textAlign: "right", marginRight: 12 }}>
                   <div style={{
                     fontWeight: 700,
                     fontSize: "1.3em",
                     fontFamily: "var(--font-monospace)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
                   }}>
-                    ${currentSymbol.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {/* WebSocket 状态指示器 */}
+                    <span title={isWsConnected ? "WebSocket 实时连接" : "HTTP 轮询模式"}>
+                      {isWsConnected ? (
+                        <Wifi size={14} color="#10B981" />
+                      ) : (
+                        <WifiOff size={14} color="var(--text-muted)" />
+                      )}
+                    </span>
                   </div>
                   <div style={{
                     fontSize: "0.85em",
-                    color: currentSymbol.trend === "bullish" ? "#10B981" : 
-                           currentSymbol.trend === "bearish" ? "#EF4444" : "var(--text-muted)",
+                    color: displayChangePercent >= 0 ? "#10B981" : "#EF4444",
                   }}>
-                    {currentSymbol.changePercent >= 0 ? "+" : ""}
-                    {currentSymbol.changePercent.toFixed(2)}%
+                    {displayChangePercent >= 0 ? "+" : ""}
+                    {displayChangePercent.toFixed(2)}%
                   </div>
                 </div>
               )}
@@ -341,7 +359,8 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    涨跌幅: {currentSymbol.changePercent >= 0 ? "+" : ""}{currentSymbol.changePercent.toFixed(2)}%
+                    涨跌幅: {displayChangePercent >= 0 ? "+" : ""}{displayChangePercent.toFixed(2)}%
+                    {isWsConnected && <span style={{ color: "#10B981", marginLeft: 4 }}>● 实时</span>}
                   </div>
                 </div>
 
@@ -349,8 +368,8 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
                 <StrategyMatcher
                   symbol={currentSymbol.id}
                   trend={currentSymbol.trend}
-                  price={currentSymbol.price}
-                  changePercent={currentSymbol.changePercent}
+                  price={displayPrice}
+                  changePercent={displayChangePercent}
                   signals={signals.filter((s) => {
                     const symbolMatch = s.symbol.includes(currentSymbol.id) || 
                       currentSymbol.id.includes(s.symbol.replace("=X", "").replace("=F", ""));
