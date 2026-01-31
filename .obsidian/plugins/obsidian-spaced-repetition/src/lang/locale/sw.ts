@@ -1,3 +1,0 @@
-// Kiswahili
-
-export default {};
