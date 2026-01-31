@@ -1,0 +1,410 @@
+"""
+Obsidian 数据同步模块
+集成策略卡片、交易记录的读写同步
+"""
+
+import os
+import re
+import json
+import asyncio
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
+# 配置路径 - 支持环境变量覆盖
+VAULT_PATH = os.environ.get("VAULT_PATH", os.path.expanduser("~/Desktop/Obsidian/Al-brooks-PA"))
+STRATEGY_REPO_PATH = os.path.join(VAULT_PATH, "AB Console-Obsidian/策略仓库 (Strategy Repository)/Al Brooks 策略")
+TRADES_PATH = os.path.join(VAULT_PATH, "AB Console-Obsidian/Daily/Trades")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.expanduser("~/.ab-console"))
+STRATEGIES_FILE = os.path.join(DATA_DIR, "strategies.json")
+TRADES_FILE = os.path.join(DATA_DIR, "trades.json")
+
+
+class ObsidianSync:
+    """Obsidian Vault 同步管理器"""
+    
+    def __init__(self):
+        self.strategies_cache: List[Dict] = []
+        self.trades_cache: List[Dict] = []
+        self.last_sync_time: Optional[datetime] = None
+        self.sync_count = 0
+        
+    # ============================================================
+    # Frontmatter 解析
+    # ============================================================
+    
+    @staticmethod
+    def parse_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
+        """解析 Markdown frontmatter"""
+        pattern = r'^---\s*\n(.*?)\n---\s*\n(.*)$'
+        match = re.match(pattern, content, re.DOTALL)
+        
+        if not match:
+            return {}, content
+        
+        frontmatter_text = match.group(1)
+        body = match.group(2).strip()
+        
+        # 简单 YAML 解析
+        frontmatter = {}
+        current_key = None
+        current_list = []
+        
+        for line in frontmatter_text.split('\n'):
+            line = line.rstrip()
+            if not line:
+                continue
+            
+            if line.strip().startswith('- '):
+                if current_key:
+                    item = line.strip()[2:].strip()
+                    current_list.append(item)
+            else:
+                if current_key and current_list:
+                    frontmatter[current_key] = current_list
+                    current_list = []
+                
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    current_key = key
+                    
+                    if value:
+                        if (value.startswith('"') and value.endswith('"')) or \
+                           (value.startswith("'") and value.endswith("'")):
+                            value = value[1:-1]
+                        frontmatter[key] = value
+        
+        if current_key and current_list:
+            frontmatter[current_key] = current_list
+        
+        return frontmatter, body
+    
+    # ============================================================
+    # 策略同步
+    # ============================================================
+    
+    def parse_strategy_file(self, file_path: str) -> Optional[Dict]:
+        """解析策略 Markdown 文件"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            frontmatter, body = self.parse_frontmatter(content)
+            if not frontmatter:
+                return None
+            
+            file_name = os.path.basename(file_path).replace('.md', '')
+            strategy_id = re.sub(r'[^\w\s-]', '', file_name).strip().replace(' ', '-').lower()
+            
+            directions = frontmatter.get('方向/direction', [])
+            if isinstance(directions, str):
+                directions = [directions]
+            
+            timeframes = frontmatter.get('时间周期/timeframe', [])
+            if isinstance(timeframes, str):
+                timeframes = [timeframes]
+            
+            patterns = frontmatter.get('观察到的形态/patterns_observed', [])
+            if isinstance(patterns, str):
+                patterns = [patterns]
+            
+            entry_criteria = frontmatter.get('入场条件/entry_criteria', [])
+            if isinstance(entry_criteria, str):
+                entry_criteria = [entry_criteria]
+            
+            return {
+                'id': strategy_id,
+                'name': frontmatter.get('策略名称/strategy_name', file_name),
+                'description': body.split('\n')[0] if body else '',
+                'status': frontmatter.get('策略状态/strategy_status', '学习中'),
+                'directions': directions if directions else ['做多'],
+                'timeframes': timeframes if timeframes else ['5m', '15m'],
+                'risk_level': frontmatter.get('风险等级/risk_level', '中'),
+                'risk_reward': frontmatter.get('盈亏比/risk_reward', ''),
+                'source': frontmatter.get('来源/source', ''),
+                'setup_category': frontmatter.get('设置类别/setup_category', ''),
+                'patterns': patterns,
+                'entry_criteria': entry_criteria,
+                'stop_loss': frontmatter.get('止损建议/stop_loss_recommendation', []),
+                'take_profit': frontmatter.get('目标建议/take_profit_recommendation', []),
+                'file_path': file_path,
+                'enabled': True,
+            }
+        except Exception as e:
+            logger.error(f"Failed to parse {file_path}: {e}")
+            return None
+    
+    def scan_strategies(self) -> List[Dict]:
+        """从 Obsidian 扫描所有策略"""
+        strategies = []
+        
+        if not os.path.exists(STRATEGY_REPO_PATH):
+            logger.warning(f"Strategy repo not found: {STRATEGY_REPO_PATH}")
+            return strategies
+        
+        for file_name in os.listdir(STRATEGY_REPO_PATH):
+            if not file_name.endswith('.md'):
+                continue
+            
+            file_path = os.path.join(STRATEGY_REPO_PATH, file_name)
+            strategy = self.parse_strategy_file(file_path)
+            if strategy:
+                strategies.append(strategy)
+                logger.info(f"Loaded strategy: {strategy['name']}")
+        
+        return strategies
+    
+    def save_strategies_json(self, strategies: List[Dict]):
+        """保存策略到 JSON 缓存"""
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(strategies, f, indent=2, ensure_ascii=False)
+    
+    def load_strategies_json(self) -> List[Dict]:
+        """从 JSON 加载策略缓存"""
+        if not os.path.exists(STRATEGIES_FILE):
+            return []
+        try:
+            with open(STRATEGIES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load strategies: {e}")
+            return []
+    
+    def generate_strategy_markdown(self, strategy: Dict) -> str:
+        """生成策略 Markdown"""
+        def format_list(items):
+            if not items:
+                return " []"
+            return "\n" + "\n".join([f"  - {item}" for item in items])
+        
+        return f"""---
+categories:
+  - 策略
+tags:
+  - PA/Strategy
+策略名称/strategy_name: {strategy.get('name', '未命名')}
+策略状态/strategy_status: {strategy.get('status', '学习中')}
+方向/direction:{format_list(strategy.get('directions', ['做多']))}
+市场周期/market_cycle:
+  - 强趋势 (Strong Trend)
+  - 突破模式 (Breakout Mode)
+设置类别/setup_category: {strategy.get('setup_category', '趋势回调')}
+时间周期/timeframe:{format_list(strategy.get('timeframes', ['5m', '15m']))}
+风险等级/risk_level: {strategy.get('risk_level', '中')}
+观察到的形态/patterns_observed:{format_list(strategy.get('patterns', []))}
+信号K/signal_bar_quality:
+  - 强阳收盘 (Strong Bull Close)
+  - 强阴收盘 (Strong Bear Close)
+入场条件/entry_criteria:{format_list(strategy.get('entry_criteria', ['满足条件时入场']))}
+风险提示/risk_alerts: []
+止损建议/stop_loss_recommendation:{format_list(strategy.get('stop_loss', ['保守止损']))}
+目标建议/take_profit_recommendation:{format_list(strategy.get('take_profit', ['测试极值']))}
+盈亏比/risk_reward: {strategy.get('risk_reward', '2:1')}
+来源/source: {strategy.get('source', 'AB Console')}
+---
+
+# 🎯 策略概览
+
+**一句话描述**:
+{strategy.get('description', '')}
+
+## 📋 策略规则
+
+### 入场条件
+{chr(10).join(['- ' + c for c in strategy.get('entry_criteria', ['条件满足'])])}
+
+## 📝 交易记录
+
+| 日期 | 品种 | 方向 | 盈亏 | 备注 |
+|------|------|------|------|------|
+
+## 💡 学习笔记
+
+
+"""
+    
+    def create_strategy(self, strategy: Dict) -> str:
+        """在 Obsidian 创建策略"""
+        name = strategy.get('name', '未命名')
+        file_name = f"{name}.md"
+        file_path = os.path.join(STRATEGY_REPO_PATH, file_name)
+        
+        if os.path.exists(file_path):
+            raise FileExistsError(f"Strategy already exists: {file_path}")
+        
+        os.makedirs(STRATEGY_REPO_PATH, exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(self.generate_strategy_markdown(strategy))
+        
+        return file_path
+    
+    def update_strategy(self, strategy_id: str, strategy: Dict) -> str:
+        """更新 Obsidian 中的策略"""
+        strategies = self.load_strategies_json()
+        existing = None
+        
+        for s in strategies:
+            if s.get('id') == strategy_id or s.get('name') == strategy.get('original_name'):
+                existing = s
+                break
+        
+        if not existing:
+            raise FileNotFoundError(f"Strategy not found: {strategy_id}")
+        
+        file_path = existing.get('file_path')
+        if not file_path or not os.path.exists(file_path):
+            file_path = os.path.join(STRATEGY_REPO_PATH, f"{existing.get('name', strategy_id)}.md")
+        
+        # 保留原有正文
+        body_content = ""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            _, body = self.parse_frontmatter(content)
+            body_content = body
+        except:
+            pass
+        
+        # 合并数据
+        merged_strategy = {**existing, **strategy}
+        new_name = strategy.get('name', existing.get('name'))
+        old_name = existing.get('name', '')
+        
+        new_file_path = os.path.join(STRATEGY_REPO_PATH, f"{new_name}.md")
+        
+        # 生成新内容
+        new_content = self.generate_strategy_markdown(merged_strategy)
+        
+        if body_content:
+            lines = new_content.split('\n')
+            body_start = 0
+            for i, line in enumerate(lines):
+                if line.startswith('# 🎯 策略概览'):
+                    body_start = i
+                    break
+            new_content = '\n'.join(lines[:body_start]) + '\n' + body_content
+        
+        # 写入文件
+        with open(new_file_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        
+        # 如果改名，删除旧文件
+        if new_name != old_name and file_path != new_file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        
+        return new_file_path
+    
+    # ============================================================
+    # 交易记录同步
+    # ============================================================
+    
+    def parse_trade_file(self, file_path: str) -> Optional[Dict]:
+        """解析交易记录 Markdown"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            frontmatter, body = self.parse_frontmatter(content)
+            if not frontmatter:
+                return None
+            
+            file_name = os.path.basename(file_path).replace('.md', '')
+            
+            return {
+                'id': file_name,
+                'date': frontmatter.get('日期/date', ''),
+                'ticker': frontmatter.get('品种/ticker', ''),
+                'direction': frontmatter.get('方向/direction', ''),
+                'entry_price': frontmatter.get('入场价/entry_price', 0),
+                'exit_price': frontmatter.get('出场价/exit_price', 0),
+                'pnl': frontmatter.get('盈亏/pnl', 0),
+                'strategy': frontmatter.get('策略/strategy', ''),
+                'file_path': file_path,
+            }
+        except Exception as e:
+            logger.error(f"Failed to parse trade {file_path}: {e}")
+            return None
+    
+    def scan_trades(self) -> List[Dict]:
+        """扫描交易记录"""
+        trades = []
+        
+        if not os.path.exists(TRADES_PATH):
+            return trades
+        
+        for file_name in os.listdir(TRADES_PATH):
+            if not file_name.endswith('.md'):
+                continue
+            
+            file_path = os.path.join(TRADES_PATH, file_name)
+            trade = self.parse_trade_file(file_path)
+            if trade:
+                trades.append(trade)
+        
+        return trades
+    
+    def save_trades_json(self, trades: List[Dict]):
+        """保存交易记录到 JSON"""
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(TRADES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(trades, f, indent=2, ensure_ascii=False)
+    
+    def load_trades_json(self) -> List[Dict]:
+        """从 JSON 加载交易记录"""
+        if not os.path.exists(TRADES_FILE):
+            return []
+        try:
+            with open(TRADES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load trades: {e}")
+            return []
+    
+    # ============================================================
+    # 同步控制
+    # ============================================================
+    
+    async def sync_all(self) -> Dict:
+        """执行完整同步"""
+        logger.info("Starting Obsidian sync...")
+        
+        # 同步策略
+        strategies = self.scan_strategies()
+        self.save_strategies_json(strategies)
+        logger.info(f"Synced {len(strategies)} strategies")
+        
+        # 同步交易记录
+        trades = self.scan_trades()
+        self.save_trades_json(trades)
+        logger.info(f"Synced {len(trades)} trades")
+        
+        self.strategies_cache = strategies
+        self.trades_cache = trades
+        self.last_sync_time = datetime.now()
+        self.sync_count += 1
+        
+        return {
+            'strategies_count': len(strategies),
+            'trades_count': len(trades),
+            'sync_time': self.last_sync_time.isoformat(),
+            'sync_count': self.sync_count,
+        }
+    
+    def get_status(self) -> Dict:
+        """获取同步状态"""
+        return {
+            'last_sync': self.last_sync_time.isoformat() if self.last_sync_time else None,
+            'sync_count': self.sync_count,
+            'strategies_count': len(self.strategies_cache),
+            'trades_count': len(self.trades_cache),
+        }
+
+
+# 全局实例
+obsidian_sync = ObsidianSync()

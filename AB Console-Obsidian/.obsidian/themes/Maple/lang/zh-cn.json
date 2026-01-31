@@ -1,0 +1,43 @@
+{
+    "manifest": {
+        "translationVersion": 0,
+        "pluginVersion": "1.3.2"
+    },
+    "dict": {
+        "title: Animation Duration (ms)": "title: 未授权用户",
+        "title: List Item Line Height": "title: 未授权用户",
+        "description: Adjust the line height for items in file explorer, outline panel,": "description: 未授权用户",
+        "title: Panel Divider Color": "title: 未授权用户",
+        "title: Colors": "title: 未授权用户",
+        "title: Color Scheme": "title: 未授权用户",
+        "title: Light Mode": "title: 未授权用户",
+        "title: Base Color": "title: 未授权用户",
+        "title: Highlight Color": "title: 未授权用户",
+        "title: Custom Highlight Color (Active)": "title: 未授权用户",
+        "title: Custom Highlight Color (Inactive)": "title: 未授权用户",
+        "title: Modify Background Colors": "title: 未授权用户",
+        "title: Primary Background Color": "title: 未授权用户",
+        "description: Background color for main area, e.g. editor, setting panel": "description: 未授权用户",
+        "title: Block Background Color": "title: 未授权用户",
+        "description: Background color for blocks in main area, e.g. codeblock, blockquote": "description: 未授权用户",
+        "title: Secondary Background Color": "title: 未授权用户",
+        "description: Background color in secondary area, e.g. sidebar": "description: 未授权用户",
+        "title: Top Bar Background Color": "title: 未授权用户",
+        "description: Background color in the top area, e.g. titlebar, tab container": "description: 未授权用户",
+        "title: Dark Mode": "title: 未授权用户",
+        "title: Background Brightness": "title: 未授权用户",
+        "description: Increase the brightness of background color": "description: 未授权用户",
+        "title: Layout": "title: 未授权用户",
+        "title: Enable Card Layout": "title: 未授权用户",
+        "description: Styles maybe broken when using stacked tabs": "description: 未授权用户",
+        "title: Add Border to Cards": "title: 未授权用户",
+        "title: Card Spacing": "title: 未授权用户",
+        "title: Background Type": "title: 未授权用户",
+        "description: '\"gradient\" is ineffective when the color scheme is \"Minimal\"'": "description: 未授权用户",
+        "title: Light Theme Background Image": "title: 未授权用户",
+        "description: Any CSS \"background-image\" value, e.g. url(\"/your/image/url\")": "description: 未授权用户",
+        "title: Light Theme Background Opacity": "title: 未授权用户",
+        "title: Dark Theme Background Image": "title: 未授权用户",
+        "title: Dark Theme Background Opacity": "title: 未授权用户"
+    }
+}
