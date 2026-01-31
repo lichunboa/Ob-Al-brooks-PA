@@ -1,0 +1,19 @@
+# Sync Service Dependencies
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.0
+pydantic-settings==2.6.0
+
+# Database
+psycopg[binary]==3.2.5
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# Utilities
+python-dateutil==2.9.0
+pyyaml==6.0.2
+python-multipart==0.0.17
+
+# Observability
+prometheus-client==0.21.0
+structlog==24.4.0

@@ -1,0 +1,35 @@
+export interface StrategyCard {
+  path: string;
+  name: string;
+  canonicalName: string;
+  /** Raw status text from frontmatter (e.g. "实战中", "Active"). Optional for backward-compat. */
+  statusRaw?: string;
+  /** Optional risk/reward field from frontmatter (legacy Playbook: riskReward). */
+  riskReward?: string;
+  /** Optional source field from frontmatter (legacy Playbook: source). */
+  source?: string;
+  /** Direction field from frontmatter (e.g. "做多 (Long)", "做空 (Short)"). */
+  direction?: string[];
+  marketCycles: string[];
+  setupCategories: string[];
+  patternsObserved: string[];
+  signalBarQuality?: string[];
+  entryCriteria?: string[];
+  riskAlerts?: string[];
+  stopLossRecommendation?: string[];
+  takeProfitRecommendation?: string[];
+  /** Explicit timeframe tags (e.g. "5m", "15m"). */
+  timeframe?: string[];
+  /** Expected risk level (e.g. "High", "Low"). */
+  riskLevel?: string[];
+}
+
+export interface StrategyIndex {
+  initialize(): Promise<void>;
+  list(): StrategyCard[];
+  byName(name: string): StrategyCard | undefined;
+  lookup(alias: string): StrategyCard | undefined;
+  byPattern(pattern: string): StrategyCard | undefined;
+  /** Optional change subscription (e.g. Obsidian vault/metadata updates). */
+  onChanged?(handler: () => void): () => void;
+}

@@ -1,0 +1,181 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "remove": "Eliminar",
+    "clear": "Limpiar",
+    "clearAll": "Limpiar todo",
+    "loading": "Cargando",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "confirm": "Confirmar",
+    "settings": "Configuración",
+    "advanced": "Avanzado",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "platform": "Plataforma"
+  },
+  "settings": {
+    "title": "Configuración de Claudian",
+    "customization": "Personalización",
+    "userName": {
+      "name": "¿Cómo debería Claudian llamarte?",
+      "desc": "Tu nombre para saludos personalizados (dejar vacío para saludos genéricos)"
+    },
+    "excludedTags": {
+      "name": "Etiquetas excluidas",
+      "desc": "Las notas con estas etiquetas no se cargarán automáticamente como contexto (una por línea, sin #)"
+    },
+    "mediaFolder": {
+      "name": "Carpeta de medios",
+      "desc": "Carpeta que contiene archivos adjuntos/imagenes. Cuando las notas usan ![[image.jpg]], Claude buscará aquí. Dejar vacío para la raíz del depósito."
+    },
+    "systemPrompt": {
+      "name": "Prompt de sistema personalizado",
+      "desc": "Instrucciones adicionales añadidas al prompt de sistema por defecto"
+    },
+    "autoTitle": {
+      "name": "Generar automáticamente títulos de conversación",
+      "desc": "Genera automáticamente títulos de conversación después del primer mensaje del usuario."
+    },
+    "titleModel": {
+      "name": "Modelo de generación de títulos",
+      "desc": "Modelo utilizado para generar automáticamente títulos de conversación.",
+      "auto": "Auto (Haiku)"
+    },
+    "navMappings": {
+      "name": "Mapeos de navegación estilo Vim",
+      "desc": "Un mapeo por línea. Formato: \"map <tecla> <acción>\" (acciones: scrollUp, scrollDown, focusInput)."
+    },
+    "hotkeys": "Atajos de teclado",
+    "inlineEditHotkey": {
+      "name": "Atajo de edición en línea",
+      "descNoKey": "No hay atajo configurado. Clic para configurar.",
+      "descWithKey": "Actual: {hotkey}",
+      "btnSet": "Configurar atajo",
+      "btnChange": "Cambiar"
+    },
+    "openChatHotkey": {
+      "name": "Atajo para abrir chat",
+      "descNoKey": "No hay atajo configurado. Clic para configurar.",
+      "descWithKey": "Actual: {hotkey}",
+      "btnSet": "Configurar atajo",
+      "btnChange": "Cambiar"
+    },
+    "newTabHotkey": {
+      "name": "Atajo nueva pestaña",
+      "descNoKey": "No hay atajo configurado. Clic para configurar.",
+      "descWithKey": "Actual: {hotkey}",
+      "btnSet": "Configurar atajo",
+      "btnChange": "Cambiar"
+    },
+    "newSessionHotkey": {
+      "name": "Atajo nueva sesión",
+      "descNoKey": "No hay atajo configurado. Clic para configurar.",
+      "descWithKey": "Actual: {hotkey}",
+      "btnSet": "Configurar atajo",
+      "btnChange": "Cambiar"
+    },
+    "closeTabHotkey": {
+      "name": "Atajo cerrar pestaña",
+      "descNoKey": "No hay atajo configurado. Clic para configurar.",
+      "descWithKey": "Actual: {hotkey}",
+      "btnSet": "Configurar atajo",
+      "btnChange": "Cambiar"
+    },
+    "slashCommands": {
+      "name": "Comandos slash",
+      "desc": "Crea plantillas de prompts personalizadas activadas por /command. Usa $ARGUMENTS para todos los argumentos, $1/$2 para argumentos posicionales, @file para contenido de archivo y !`bash` para salida de comandos."
+    },
+    "mcpServers": {
+      "name": "Servidores MCP",
+      "desc": "Configura servidores Model Context Protocol para extender las capacidades de Claude con herramientas y fuentes de datos externas. Los servidores con modo de guardado de contexto requieren @mention para activarse."
+    },
+    "plugins": {
+      "name": "Plugins de Claude Code",
+      "desc": "Habilita o deshabilita plugins de Claude Code descubiertos desde ~/.claude/plugins. Los plugins habilitados se almacenan por bóveda."
+    },
+    "safety": "Seguridad",
+    "loadUserSettings": {
+      "name": "Cargar configuración de usuario Claude",
+      "desc": "Carga ~/.claude/settings.json. Cuando está habilitado, las reglas de permisos del usuario pueden eludir el modo seguro."
+    },
+    "enableBlocklist": {
+      "name": "Habilitar lista negra de comandos",
+      "desc": "Bloquea comandos bash potencialmente peligrosos"
+    },
+    "blockedCommands": {
+      "name": "Comandos bloqueados ({platform})",
+      "desc": "Patrones a bloquear en {platform} (uno por línea). Soporta expresiones regulares.",
+      "unixName": "Comandos bloqueados (Unix/Git Bash)",
+      "unixDesc": "Los patrones Unix también se bloquean en Windows porque Git Bash puede invocarlos."
+    },
+    "exportPaths": {
+      "name": "Rutas de exportación permitidas",
+      "desc": "Rutas fuera del depósito donde se pueden exportar archivos (una por línea). Soporta ~ para el directorio home."
+    },
+    "environment": "Entorno",
+    "customVariables": {
+      "name": "Variables personalizadas",
+      "desc": "Variables de entorno para Claude SDK (formato KEY=VALUE, una por línea)"
+    },
+    "envSnippets": {
+      "name": "Fragmentos de entorno",
+      "addBtn": "Añadir fragmento",
+      "editBtn": "Editar",
+      "deleteBtn": "Eliminar",
+      "useBtn": "Usar",
+      "noSnippets": "No hay fragmentos de entorno guardados.",
+      "modal": {
+        "title": "Fragmento de entorno",
+        "name": "Nombre",
+        "namePlaceholder": "ej: API de producción",
+        "description": "Descripción",
+        "descPlaceholder": "Descripción opcional",
+        "envVars": "Variables de entorno",
+        "envVarsPlaceholder": "ANTHROPIC_API_KEY=your-key\nANTHROPIC_BASE_URL=https://api.example.com",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+      }
+    },
+    "advanced": "Avanzado",
+    "show1MModel": {
+      "name": "Habilitar Sonnet con ventana de contexto de 1M",
+      "desc": "Reemplazar Sonnet estándar con Sonnet (1M) en el selector de modelos. Mismo precio bajo 200k tokens. Requiere suscripción Max."
+    },
+    "maxTabs": {
+      "name": "Máximo de pestañas de chat",
+      "desc": "Número máximo de pestañas de chat simultáneas (3-10). Cada pestaña usa una sesión de Claude separada.",
+      "warning": "Más de 5 pestañas puede afectar el rendimiento y el uso de memoria.",
+      "range": "{min} - {max}"
+    },
+    "cliPath": {
+      "name": "Ruta CLI Claude",
+      "desc": "Ruta personalizada a Claude Code CLI. Dejar vacío para detección automática.",
+      "descWindows": "Para el instalador nativo, use claude.exe. Para instalaciones con npm/pnpm/yarn u otros gestores de paquetes, use la ruta cli.js (no claude.cmd).",
+      "descUnix": "Pegue la salida de \"which claude\" — funciona tanto para instalaciones nativas como npm/pnpm/yarn.",
+      "validation": {
+        "notExist": "La ruta no existe",
+        "isDirectory": "La ruta es un directorio, no un archivo"
+      }
+    },
+    "language": {
+      "name": "Idioma",
+      "desc": "Cambiar el idioma de visualización de la interfaz del plugin",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文",
+      "ja": "日本語",
+      "ko": "한국어",
+      "de": "Deutsch",
+      "fr": "Français",
+      "es": "Español",
+      "ru": "Русский",
+      "pt": "Português"
+    }
+  }
+}
