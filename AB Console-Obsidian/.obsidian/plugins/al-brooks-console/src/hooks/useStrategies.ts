@@ -153,167 +153,144 @@ export function matchStrategies(
     pattern?: string;
     direction?: string;
     symbol?: string;
+    timeframe?: string;
   }>,
   marketConditions: {
     trend: "bullish" | "bearish" | "neutral";
     price?: number;
     changePercent?: number;
+    timeframe?: string;
   }
 ): Array<StrategyCard & { matchScore: number; matchedSignals: string[] }> {
   if (!strategies.length) return [];
 
-  const indicators = calculateIndicators("", marketConditions.trend, marketConditions.changePercent || 0);
+  // 如果没有信号，不做匹配（避免所有品种显示相同策略）
+  if (signals.length === 0) return [];
+
+  const currentTimeframe = marketConditions.timeframe || "5m";
 
   const scored = strategies.map((strategy) => {
     let score = 0;
     const matchedSignals: string[] = [];
 
     const strategyName = strategy.name?.toLowerCase() || "";
-    const strategyCategory = strategy.category?.toLowerCase() || "";
     const setupType = strategy.setup_type?.toLowerCase() || "";
-    const rules = (strategy.rules || []).join(" ").toLowerCase();
     const frontmatter = strategy.raw_frontmatter || {};
-    
-    // 从 frontmatter 获取更多匹配字段
+
+    // 从 frontmatter 获取匹配字段
     const patterns = (frontmatter["观察到的形态/patterns_observed"] as string[]) || [];
     const directions = (frontmatter["方向/direction"] as string[]) || [];
     const marketCycles = (frontmatter["市场周期/market_cycle"] as string[]) || [];
+    const timeframes = (frontmatter["时间周期/timeframe"] as string[]) || [];
     const riskLevel = (frontmatter["风险等级/risk_level"] as string) || "";
 
-    // 1. 基础分：每个策略都有基础分
-    score += 5;
-
-    // 2. 信号名称匹配 (最高权重)
+    // 1. 信号匹配 (核心权重)
     for (const signal of signals) {
       const signalName = signal.signal_name?.toLowerCase() || "";
       const pattern = signal.pattern?.toLowerCase() || "";
       const signalDirection = signal.direction?.toLowerCase() || "";
+      const signalTimeframe = signal.timeframe?.toLowerCase() || "";
 
-      // 信号名称与策略名称匹配
+      // 信号名称与策略名称直接匹配（最强信号）
       if (signalName && strategyName.includes(signalName)) {
         score += 40;
-        matchedSignals.push(`name:${signal.signal_name}`);
-      }
-      
-      // 信号形态与策略名称匹配
-      if (pattern && strategyName.includes(pattern)) {
-        score += 35;
-        matchedSignals.push(`pattern:${signal.pattern}`);
+        matchedSignals.push(signal.signal_name || "");
       }
 
-      // 信号形态与策略观察形态匹配
-      if (pattern && patterns.some(p => p.toLowerCase().includes(pattern))) {
+      // 信号 pattern 与策略名称匹配
+      if (pattern && strategyName.toLowerCase().includes(pattern.toLowerCase())) {
+        score += 35;
+        matchedSignals.push(signal.pattern || "");
+      }
+
+      // 信号 pattern 与策略 patterns_observed 匹配
+      if (pattern && patterns.some(p => p.toLowerCase().includes(pattern.toLowerCase()))) {
         score += 30;
-        matchedSignals.push(`observed:${signal.pattern}`);
+        if (!matchedSignals.includes(signal.pattern || "")) {
+          matchedSignals.push(signal.pattern || "");
+        }
       }
 
       // 方向匹配
       if (signalDirection) {
-        const directionMatches = directions.some(d => 
-          d.toLowerCase().includes(signalDirection) ||
-          (signalDirection === "buy" && d.toLowerCase().includes("long")) ||
-          (signalDirection === "sell" && d.toLowerCase().includes("short"))
-        );
+        const directionMatches = directions.some(d => {
+          const dl = d.toLowerCase();
+          return (signalDirection === "buy" && (dl.includes("long") || dl.includes("多"))) ||
+                 (signalDirection === "sell" && (dl.includes("short") || dl.includes("空")));
+        });
         if (directionMatches) {
-          score += 20;
-          matchedSignals.push(`direction:${signal.direction}`);
+          score += 15;
+          matchedSignals.push(signalDirection === "buy" ? "方向:做多" : "方向:做空");
+        }
+      }
+
+      // 信号 timeframe 与策略 timeframe 匹配
+      if (signalTimeframe && timeframes.length > 0) {
+        const tfMatches = timeframes.some(tf =>
+          normalizeTimeframe(tf) === normalizeTimeframe(signalTimeframe)
+        );
+        if (tfMatches) {
+          score += 10;
+          matchedSignals.push(`周期:${signalTimeframe}`);
         }
       }
     }
 
-    // 3. 技术指标驱动的匹配（当没有信号时）
-    if (signals.length === 0) {
-      // RSI 超卖 + 做多策略
-      if (indicators.rsi < 35) {
-        if (directions.some(d => d.toLowerCase().includes("long") || d.toLowerCase().includes("多"))) {
-          score += 20;
-          matchedSignals.push("RSI超卖-适合做多");
-        }
-      }
-      // RSI 超买 + 做空策略
-      if (indicators.rsi > 65) {
-        if (directions.some(d => d.toLowerCase().includes("short") || d.toLowerCase().includes("空"))) {
-          score += 20;
-          matchedSignals.push("RSI超买-适合做空");
-        }
-      }
-      // EMA 接近（震荡市场）+ 区间策略
-      if (Math.abs(indicators.emaDistance) < 0.5) {
-        if (setupType.includes("区间") || marketCycles.some(m => m.toLowerCase().includes("range") || m.toLowerCase().includes("区间"))) {
-          score += 15;
-          matchedSignals.push("EMA靠近-震荡策略");
-        }
-      }
-      // EMA 偏离（趋势市场）+ 趋势策略
-      if (Math.abs(indicators.emaDistance) > 1) {
-        if (setupType.includes("趋势") || marketCycles.some(m => m.toLowerCase().includes("trend") || m.toLowerCase().includes("趋势"))) {
-          score += 15;
-          matchedSignals.push("EMA偏离-趋势策略");
-        }
-      }
-      // 布林带下轨 + 反弹策略
-      if (indicators.bbPosition === "lower") {
-        if (patterns.some(p => p.toLowerCase().includes("反弹") || p.toLowerCase().includes("反转"))) {
-          score += 15;
-          matchedSignals.push("布林带下轨-反弹策略");
-        }
-      }
-      // 布林带上轨 + 回调策略
-      if (indicators.bbPosition === "upper") {
-        if (patterns.some(p => p.toLowerCase().includes("回调") || p.toLowerCase().includes("缺口"))) {
-          score += 15;
-          matchedSignals.push("布林带上轨-回调策略");
-        }
+    // 2. 当前图表周期与策略适用周期匹配
+    if (timeframes.length > 0) {
+      const tfMatch = timeframes.some(tf =>
+        normalizeTimeframe(tf) === normalizeTimeframe(currentTimeframe)
+      );
+      if (tfMatch) {
+        score += 8;
+      } else {
+        // 周期不匹配，降权
+        score = Math.floor(score * 0.6);
       }
     }
 
-    // 4. 市场周期匹配
+    // 3. 市场周期匹配（额外加分）
     if (marketConditions.trend === "bullish") {
-      if (marketCycles.some(m => m.toLowerCase().includes("bull") || m.toLowerCase().includes("趋势"))) {
-        score += 12;
-        matchedSignals.push("trend:看涨");
+      if (marketCycles.some(m => {
+        const ml = m.toLowerCase();
+        return ml.includes("bull") || ml.includes("strong trend") || ml.includes("强趋势");
+      })) {
+        score += 8;
+        matchedSignals.push("趋势:看涨");
       }
     } else if (marketConditions.trend === "bearish") {
-      if (marketCycles.some(m => m.toLowerCase().includes("bear") || m.toLowerCase().includes("区间"))) {
-        score += 12;
-        matchedSignals.push("trend:看跌");
+      if (marketCycles.some(m => {
+        const ml = m.toLowerCase();
+        return ml.includes("bear") || ml.includes("strong trend") || ml.includes("强趋势");
+      })) {
+        score += 8;
+        matchedSignals.push("趋势:看跌");
       }
-    } else {
-      // neutral - 匹配区间交易
-      if (marketCycles.some(m => m.toLowerCase().includes("range") || m.toLowerCase().includes("区间"))) {
-        score += 12;
-        matchedSignals.push("trend:震荡");
-      }
-    }
-
-    // 5. 基于涨跌幅的额外匹配
-    if (marketConditions.changePercent !== undefined) {
-      const change = Math.abs(marketConditions.changePercent);
-      if (change > 2 && (setupType.includes("突破") || patterns.some(p => p.toLowerCase().includes("突破")))) {
-        score += 10;
-        matchedSignals.push("大波动-突破");
-      }
-      if (change < 0.5 && setupType.includes("区间")) {
-        score += 10;
-        matchedSignals.push("低波动-区间");
-      }
-    }
-
-    // 6. 风险等级偏好：中等风险优先
-    if (riskLevel.toLowerCase().includes("中")) {
-      score += 3;
     }
 
     return {
       ...strategy,
       matchScore: score,
-      matchedSignals: [...new Set(matchedSignals)],
+      matchedSignals: [...new Set(matchedSignals.filter(Boolean))],
     };
   });
 
-  // 过滤并排序（只要有基础分就显示，最多5个）
+  // 只返回有实际信号匹配的策略（score > 0 表示有信号命中）
   return scored
-    .filter((s) => s.matchScore >= 5)
+    .filter((s) => s.matchScore >= 20)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 5);
+}
+
+/**
+ * 归一化 timeframe 字符串以便比较
+ */
+function normalizeTimeframe(tf: string): string {
+  const s = tf.toLowerCase().trim();
+  // 统一常见格式：1h, 1H, 1hour → "1h"
+  if (s === "1h" || s === "1hour" || s === "60m" || s === "60min") return "1h";
+  if (s === "4h" || s === "4hour" || s === "240m") return "4h";
+  if (s === "1d" || s === "1day" || s === "daily") return "1d";
+  if (s === "1w" || s === "1week" || s === "weekly") return "1w";
+  return s.replace("min", "m");
 }

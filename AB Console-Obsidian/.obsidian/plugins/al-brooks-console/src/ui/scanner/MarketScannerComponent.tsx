@@ -519,7 +519,9 @@ export const MarketScannerComponent: React.FC<ScannerProps> = ({ apiHost, backen
                                         trend={sym.trend}
                                         price={sym.price}
                                         changePercent={sym.changePercent}
+                                        signals={signals}
                                         backend={backendSettings}
+                                        timeframe={chartInterval}
                                     />
                                 </div>
                             </div>
