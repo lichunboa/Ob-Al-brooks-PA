@@ -58,6 +58,7 @@ interface UseChartDataOptions {
   timeframe: TimeFrame;
   apiUrl: string;
   autoRefresh?: boolean;
+  limit?: number; // K线数量限制
 }
 
 interface UseChartDataResult {
@@ -70,7 +71,7 @@ interface UseChartDataResult {
 }
 
 export function useChartData(options: UseChartDataOptions): UseChartDataResult {
-  const { symbol, timeframe, apiUrl, autoRefresh = true } = options;
+  const { symbol, timeframe, apiUrl, autoRefresh = true, limit: userLimit } = options;
 
   const [candles, setCandles] = useState<Candle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,9 +112,10 @@ export function useChartData(options: UseChartDataOptions): UseChartDataResult {
     const cached = chartCache.get(cacheKey);
     const now = Date.now();
     const threshold = getFreshnessThreshold(timeframe);
+    const limit = userLimit || 100;
 
     if (!cached || cached.candles.length === 0) {
-      return { needFullFetch: true, limit: 100 };
+      return { needFullFetch: true, limit };
     }
 
     // 检查缓存是否还新鲜
@@ -125,8 +127,8 @@ export function useChartData(options: UseChartDataOptions): UseChartDataResult {
     const lastCandle = cached.candles[cached.candles.length - 1];
     const since = lastCandle.time * 1000; // 转换为毫秒
 
-    return { needFullFetch: false, limit: 20, since };
-  }, [symbol, timeframe]);
+    return { needFullFetch: false, limit: Math.min(50, limit), since };
+  }, [symbol, timeframe, userLimit]);
 
   // 主数据获取函数
   const fetchData = useCallback(async (force = false) => {
@@ -188,9 +190,10 @@ export function useChartData(options: UseChartDataOptions): UseChartDataResult {
           existingMap.set(candle.time, candle);
         }
         
+        const maxCandles = userLimit || 200;
         mergedCandles = Array.from(existingMap.values())
           .sort((a, b) => a.time - b.time)
-          .slice(-200); // 最多保留200根
+          .slice(-maxCandles); // 根据用户设置保留最多 K线
       } else {
         mergedCandles = newCandles;
       }

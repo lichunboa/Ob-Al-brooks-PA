@@ -51,6 +51,8 @@ const INTERVALS: { value: TimeFrame; label: string }[] = [
   { value: '1d', label: '日线' },
 ];
 
+const CANDLE_LIMITS = [100, 200, 500, 1000];
+
 // 信号卡片组件
 const SignalMiniCard: React.FC<{ signal: TradingSignal }> = ({ signal }) => {
   const directionConfig = {
@@ -83,6 +85,7 @@ const SignalMiniCard: React.FC<{ signal: TradingSignal }> = ({ signal }) => {
 export default function ChartPage() {
   const [selectedSymbol, setSelectedSymbol] = useState('BTC');
   const [timeframe, setTimeframe] = useState<TimeFrame>('5m');
+  const [candleLimit, setCandleLimit] = useState(200); // 默认200根K线
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
@@ -115,6 +118,7 @@ export default function ChartPage() {
     timeframe,
     apiUrl,
     autoRefresh: true,
+    limit: candleLimit,
   });
 
   const {
@@ -275,6 +279,23 @@ export default function ChartPage() {
               }`}
             >
               {int.label}
+            </button>
+          ))}
+        </div>
+
+        {/* K线数量选择器 */}
+        <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+          {CANDLE_LIMITS.map((limit) => (
+            <button
+              key={limit}
+              onClick={() => setCandleLimit(limit)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                candleLimit === limit
+                  ? 'bg-purple-600 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              {limit}
             </button>
           ))}
         </div>

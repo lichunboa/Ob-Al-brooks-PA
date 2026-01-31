@@ -17,8 +17,29 @@ interface UseRealtimeDataOptions {
   enabled?: boolean;
 }
 
+interface CandleUpdate {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface SignalUpdate {
+  id: string;
+  symbol: string;
+  signal_name: string;
+  direction: 'BUY' | 'SELL' | 'ALERT';
+  strength: number;
+  timestamp: number;
+  timeframe: string;
+}
+
 interface UseRealtimeDataResult {
   priceData: PriceData | null;
+  candleUpdate: CandleUpdate | null;
+  newSignals: SignalUpdate[];
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
@@ -34,6 +55,8 @@ export function useRealtimeData(options: UseRealtimeDataOptions): UseRealtimeDat
   const { wsUrl, symbol, enabled = true } = options;
 
   const [priceData, setPriceData] = useState<PriceData | null>(null);
+  const [candleUpdate, setCandleUpdate] = useState<CandleUpdate | null>(null);
+  const [newSignals, setNewSignals] = useState<SignalUpdate[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +95,12 @@ export function useRealtimeData(options: UseRealtimeDataOptions): UseRealtimeDat
           
           if (data.type === 'price_update' && data.symbol === symbol) {
             setPriceData(data.data);
+          } else if (data.type === 'candle_update' && data.symbol === symbol) {
+            setCandleUpdate(data.data);
+          } else if (data.type === 'signal' && data.data.symbol === symbol) {
+            setNewSignals(prev => [data.data, ...prev].slice(0, 10));
+          } else if (data.type === 'signals_batch' && data.symbol === symbol) {
+            setNewSignals(data.data);
           } else if (data.type === 'subscribed') {
             console.log('[WebSocket] Subscribed to', data.symbol);
           }
@@ -149,6 +178,8 @@ export function useRealtimeData(options: UseRealtimeDataOptions): UseRealtimeDat
 
   return {
     priceData,
+    candleUpdate,
+    newSignals,
     isConnected,
     isConnecting,
     error,
