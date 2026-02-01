@@ -2,6 +2,83 @@
   "recentItems": [
     {
       "type": "file",
+      "title": "SPX 09.02 周二",
+      "path": "Daily/SPX/SPX 09.02 周二.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:24:15.920Z"
+    },
+    {
+      "type": "file",
+      "title": "SPX 09.03 周三",
+      "path": "Daily/SPX/SPX 09.03 周三.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:24:07.701Z"
+    },
+    {
+      "type": "file",
+      "title": "260115_2241_实盘_ES",
+      "path": "Daily/Trades/260115_2241_实盘_ES.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:23:55.233Z"
+    },
+    {
+      "type": "file",
+      "title": "交易日记",
+      "path": "Daily/交易日记.base",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:23:49.068Z"
+    },
+    {
+      "type": "file",
+      "title": "260117_2113_实盘_ES",
+      "path": "Daily/Trades/260117_2113_实盘_ES.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:23:45.034Z"
+    },
+    {
+      "type": "file",
+      "title": "260114_1144_实盘_ES",
+      "path": "Daily/Trades/260114_1144_实盘_ES.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:23:39.139Z"
+    },
+    {
+      "type": "file",
+      "title": "260117_2118_实盘_ES",
+      "path": "Daily/Trades/260117_2118_实盘_ES.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:23:01.911Z"
+    },
+    {
+      "type": "file",
+      "title": "SPX 2025.9",
+      "path": "Daily/SPX/SPX 2025.9.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:22:16.205Z"
+    },
+    {
+      "type": "file",
+      "title": "SPX 2025.10",
+      "path": "Daily/SPX/SPX 2025.10.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:22:14.812Z"
+    },
+    {
+      "type": "file",
+      "title": "SPX 2025.11",
+      "path": "Daily/SPX/SPX 2025.11.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:22:08.352Z"
+    },
+    {
+      "type": "file",
+      "title": "260118_1539_实盘_ ES",
+      "path": "Daily/Trades/260118_1539_实盘_ ES.md",
+      "icon": "file-text",
+      "openedAt": "2026-01-31T22:21:10.863Z"
+    },
+    {
+      "type": "file",
       "title": "context的重要性例子 22699d8757ab81d4878bc79e56fe7d53",
       "path": "Categories 分类/Al brooks/价格行为学/context的重要性例子 22699d8757ab81d4878bc79e56fe7d53.md",
       "icon": "file-text",
@@ -62,69 +139,6 @@
       "path": "Categories 分类/Al brooks/价格行为学/10 6 Ali总结一周chart 【看大知小】 22699d8757ab81ee81deddbf30aaa91d.md",
       "icon": "file-text",
       "openedAt": "2026-01-31T20:24:16.985Z"
-    },
-    {
-      "type": "file",
-      "title": "08D Weak Sell Signal Bar and Weak Context wait to  22699d8757ab81b0859dcdf4e5dbb4a8",
-      "path": "Categories 分类/Al brooks/价格行为学/08D Weak Sell Signal Bar and Weak Context wait to  22699d8757ab81b0859dcdf4e5dbb4a8.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T20:24:13.586Z"
-    },
-    {
-      "type": "file",
-      "title": "07B Starting Out 22699d8757ab81c0aa88c4ea9526c864",
-      "path": "Categories 分类/Al brooks/价格行为学/07B Starting Out 22699d8757ab81c0aa88c4ea9526c864.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T20:24:11.773Z"
-    },
-    {
-      "type": "file",
-      "title": "02A Chart Basics and Price Action Chart, Market 22699d8757ab81a3838bfbaa1f66f39b",
-      "path": "Categories 分类/Al brooks/价格行为学/02A Chart Basics and Price Action Chart, Market 22699d8757ab81a3838bfbaa1f66f39b.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T20:24:09.243Z"
-    },
-    {
-      "type": "file",
-      "title": "260117_2118_实盘_ES",
-      "path": "Daily/Trades/260117_2118_实盘_ES.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:49:32.520Z"
-    },
-    {
-      "type": "file",
-      "title": "交易日记",
-      "path": "Daily/交易日记.base",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:49:22.961Z"
-    },
-    {
-      "type": "file",
-      "title": "买卖压力",
-      "path": "Notes 笔记/买卖压力.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:49:16.812Z"
-    },
-    {
-      "type": "file",
-      "title": "01 术语",
-      "path": "Categories 分类/Al brooks/价格行为学/01 术语.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:49:02.504Z"
-    },
-    {
-      "type": "file",
-      "title": "PA知识图谱",
-      "path": "Excalidraw/PA知识图谱.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:49:02.114Z"
-    },
-    {
-      "type": "file",
-      "title": "课程",
-      "path": "课程/课程.md",
-      "icon": "file-text",
-      "openedAt": "2026-01-31T19:48:42.811Z"
     }
   ]
 }

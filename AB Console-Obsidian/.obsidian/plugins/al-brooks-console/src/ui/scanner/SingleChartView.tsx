@@ -370,12 +370,9 @@ export const SingleChartView: React.FC<SingleChartViewProps> = ({
                   trend={currentSymbol.trend}
                   price={displayPrice}
                   changePercent={displayChangePercent}
-                  signals={signals.filter((s) => {
-                    const symbolMatch = s.symbol.includes(currentSymbol.id) || 
-                      currentSymbol.id.includes(s.symbol.replace("=X", "").replace("=F", ""));
-                    return symbolMatch;
-                  })}
+                  signals={signals}
                   backend={backend}
+                  timeframe={chartInterval}
                 />
 
                 {/* 最新信号 */}
