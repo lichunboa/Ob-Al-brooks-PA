@@ -30,6 +30,8 @@ services:
     restart: unless-stopped
     ports:
       - "8088:8088"
+    env_file:
+      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - API_HOST=0.0.0.0
@@ -47,6 +49,8 @@ services:
       dockerfile: Dockerfile
     container_name: ab-data-service
     restart: unless-stopped
+    env_file:
+      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
     depends_on:
@@ -61,6 +65,8 @@ services:
       dockerfile: Dockerfile
     container_name: ab-trading-service
     restart: unless-stopped
+    env_file:
+      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
     depends_on:
@@ -129,11 +135,11 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"
+    env_file:
+      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
-      - BOT_TOKEN=8507333164:AAG_ObiNaxYww6V5T2XyK7Rm01EIj-VEaFw
-      - TELEGRAM_BOT_TOKEN=8507333164:AAG_ObiNaxYww6V5T2XyK7Rm01EIj-VEaFw
-      - CLAWDBOT_WEBHOOK=http://host.docker.internal:18789/webhook/albrooks
+      - CLAWDBOT_WEBHOOK=${CLAWDBOT_WEBHOOK:-http://host.docker.internal:18789/webhook/albrooks}
       - WEBHOOK_MODE=false
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
@@ -167,9 +173,10 @@ services:
       dockerfile: Dockerfile
     container_name: ab-forwarder
     restart: unless-stopped
+    env_file:
+      - ./config/.env
     environment:
       - TELEGRAM_API=http://telegram-service:8090/api/catbo-forward
-      - USER_ID=756069822
       - SIGNAL_FILE=/app/signals/signals.jsonl
     volumes:
       - /tmp/clawdbot_signals.jsonl:/app/signals/signals.jsonl:ro
