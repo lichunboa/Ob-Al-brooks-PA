@@ -16,6 +16,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from config import settings
+from health_server import start_health_server, stop_health_server
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,9 @@ class Scheduler:
         for name, info in self._procs.items():
             self._start(name, info)
 
+        # 启动健康检查服务器
+        start_health_server(self, port=8081)
+
         while self._running:
             for name, info in self._procs.items():
                 if info["proc"] and info["proc"].poll() is not None:
@@ -48,6 +52,9 @@ class Scheduler:
                         self._start(name, info)
             time.sleep(5)
 
+        # 停止健康检查服务器
+        stop_health_server()
+
         for info in self._procs.values():
             if info["proc"]:
                 info["proc"].terminate()
@@ -55,7 +62,9 @@ class Scheduler:
     def _start(self, name: str, info: dict) -> None:
         log = settings.log_dir / f"{name}.log"
         with open(log, "a") as f:
-            info["proc"] = subprocess.Popen(info["cmd"], stdout=f, stderr=subprocess.STDOUT, cwd=str(SRC_DIR))
+            info["proc"] = subprocess.Popen(
+                info["cmd"], stdout=f, stderr=subprocess.STDOUT, cwd=str(SRC_DIR)
+            )
         logger.info("启动 %s (PID=%d)", name, info["proc"].pid)
 
 
@@ -65,9 +74,12 @@ def main() -> None:
     parser.add_argument("--metrics", action="store_true", help="指标采集")
     parser.add_argument("--backfill", action="store_true", help="历史补齐")
     parser.add_argument("--all", action="store_true", help="全部启动")
+    parser.add_argument("--health-port", type=int, default=8081, help="健康检查端口")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
     py = sys.executable
     sched = Scheduler()
@@ -82,6 +94,9 @@ def main() -> None:
     if not sched._procs:
         print("用法: python src/__main__.py --ws|--metrics|--backfill|--all")
         sys.exit(1)
+
+    # 设置健康检查端口
+    start_health_server(sched, port=args.health_port)
 
     sched.run()
 

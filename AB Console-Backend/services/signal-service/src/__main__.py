@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
     parser.add_argument("--stats", action="store_true", help="显示统计")
     parser.add_argument("--test", action="store_true", help="测试配置")
+    parser.add_argument("--health-port", type=int, default=8083, help="健康检查端口")
     args = parser.parse_args()
 
     if args.test:
@@ -144,6 +145,10 @@ def main():
         logger.error("请指定要启动的引擎: --sqlite, --pg, 或 --all")
         sys.exit(1)
 
+    # 启动健康检查服务器
+    from health import start_health_server, stop_health_server
+    start_health_server(engines, port=args.health_port)
+
     # 主线程保持运行
     logger.info(f"Signal Service 正在运行，已启动 {len(threads)} 个引擎")
     logger.info("按 Ctrl+C 停止服务")
@@ -175,6 +180,10 @@ def main():
         # 等待线程结束
         for t in threads:
             t.join(timeout=5)
+        
+        # 停止健康检查服务器
+        stop_health_server()
+        
         logger.info("服务已退出")
 
 
