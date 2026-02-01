@@ -27,8 +27,7 @@
               "title": "Market Scanner"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -82,7 +81,7 @@
             }
           },
           {
-            "id": "b3fa91c571b2dda7",
+            "id": "c20ac9daaf1cc658",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -218,7 +217,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 660.5
+    "width": 598.5
   },
   "left-ribbon": {
     "hiddenItems": {

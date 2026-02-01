@@ -157,14 +157,25 @@ const DataHealthItem: React.FC<DataHealthItemProps> = ({ symbol, delayMinutes, l
 
 // Strategy Quick Actions Panel
 const StrategyQuickPanel: React.FC = () => {
-  const { runCommand } = useConsoleContext();
+  const { runCommand, settings } = useConsoleContext();
 
   const actions = [
     { id: "open-strategy-repo", label: "策略仓库", icon: "📁", desc: "管理交易策略" },
-    { id: "open-backtest", label: "回测中心", icon: "📊", desc: "验证策略效果" },
-    { id: "create-strategy", label: "新建策略", icon: "➕", desc: "创建自定义策略" },
     { id: "signal-rules", label: "信号规则", icon: "📡", desc: "配置检测规则" },
   ];
+
+  const openSignalRules = () => {
+    // 动态导入 SignalRulesModal
+    import("../../ui/components/SignalRulesModal").then(({ SignalRulesModal }) => {
+      const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ":8089");
+      const modal = new SignalRulesModal(
+        // @ts-ignore
+        window.app,
+        `${syncServiceUrl}/api/v1`
+      );
+      modal.open();
+    });
+  };
 
   return (
     <GlassPanel>
@@ -176,13 +187,10 @@ const StrategyQuickPanel: React.FC = () => {
             key={action.id}
             interaction="text"
             onClick={() => {
-              // 打开市场扫描仪或其他面板
               if (action.id === "open-strategy-repo") {
-                // 可以打开策略仓库视图
                 runCommand?.("al-brooks-console:open-market-scanner");
-              } else {
-                // 其他功能待实现
-                console.log(`[BackendTab] Action: ${action.id}`);
+              } else if (action.id === "signal-rules") {
+                openSignalRules();
               }
             }}
             style={{
@@ -692,12 +700,16 @@ const BackendControlPanel: React.FC = () => {
           <InteractiveButton
             interaction="text"
             onClick={() => {
-              // @ts-ignore
-              (window as any).app?.setting?.open();
-              setTimeout(() => {
-                const tab = document.querySelector('.modal-container [data-tab="al-brooks-console"]');
-                if (tab) (tab as HTMLElement).click();
-              }, 100);
+              // 打开后端配置编辑器
+              import("../../ui/components/ConfigEditorModal").then(({ ConfigEditorModal }) => {
+                const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ":8089");
+                const modal = new ConfigEditorModal(
+                  // @ts-ignore
+                  window.app,
+                  `${syncServiceUrl}/api/v1`
+                );
+                modal.open();
+              });
             }}
             style={{
               padding: "12px",
