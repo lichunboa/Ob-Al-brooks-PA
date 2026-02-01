@@ -7,6 +7,7 @@ import {
   ChevronDown, Search, X, Settings, AlertCircle, Calendar
 } from 'lucide-react';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { config } from '@/lib/config';
 
 // 信号类型
 interface TradingSignal {
@@ -48,8 +49,8 @@ export default function SignalsPage() {
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088/ws';
+  const apiUrl = config.apiUrl;
+  const wsUrl = `${config.wsUrl}/ws`;
 
   // WebSocket 实时连接
   const { newSignals: realtimeSignals, isConnected: isWsConnected } = useRealtimeData({

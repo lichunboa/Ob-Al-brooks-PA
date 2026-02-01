@@ -8,6 +8,7 @@ import { useChartData } from '@/hooks/useChartData';
 import { useSignals, TradingSignal, filterSignalsBySymbol } from '@/hooks/useSignals';
 import { useStrategies, matchStrategies, calculateIndicators } from '@/hooks/useStrategies';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { config } from '@/lib/config';
 
 // 品种类型
 interface SymbolInfo {
@@ -88,9 +89,9 @@ export default function ChartPage() {
   const [candleLimit, setCandleLimit] = useState(200); // 默认200根K线
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const syncApiUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089';
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088/ws';
+  const apiUrl = config.apiUrl;
+  const syncApiUrl = config.syncApiUrl;
+  const wsUrl = `${config.wsUrl}/ws`;
 
   const currentSymbol = DEFAULT_SYMBOLS.find((s) => s.id === selectedSymbol) || DEFAULT_SYMBOLS[2];
 

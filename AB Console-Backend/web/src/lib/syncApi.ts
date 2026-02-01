@@ -3,11 +3,13 @@
  * Connects to sync-service (port 8089)
  */
 
+import { config } from '@/lib/config';
+
 // 使用 Next.js 代理避免 CORS 问题
 // 浏览器 → localhost:3000/api/sync/... → Next.js → localhost:8089/api/v1/...
-const SYNC_SERVICE_URL = typeof window !== 'undefined' 
+const SYNC_SERVICE_URL = typeof window !== 'undefined'
   ? '/api/sync'  // 浏览器端使用代理
-  : (process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089');  // 服务端直接连接
+  : config.syncApiUrl;  // 服务端直接连接
 
 // 是否为浏览器环境（使用代理）
 const IS_BROWSER = typeof window !== 'undefined';

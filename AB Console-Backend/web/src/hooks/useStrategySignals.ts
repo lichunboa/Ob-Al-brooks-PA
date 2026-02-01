@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChartSignal, TimeFrame } from '@/types';
+import { config } from '@/lib/config';
 
 interface StrategySignal {
   type: 'BUY' | 'SELL' | 'NEUTRAL';
@@ -48,7 +49,7 @@ export function useStrategySignals({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+      const apiUrl = config.apiUrl;
       const response = await fetch(
         `${apiUrl}/api/v1/signals/analyze?symbol=${symbol}&interval=${interval}`
       );
@@ -110,7 +111,7 @@ export function useAvailableStrategies() {
     const fetchStrategies = async () => {
       setIsLoading(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+        const apiUrl = config.apiUrl;
         const response = await fetch(`${apiUrl}/api/v1/strategies`);
         
         if (response.ok) {
@@ -129,7 +130,7 @@ export function useAvailableStrategies() {
 
   const updateEnabledStrategies = async (strategyIds: string[]) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+      const apiUrl = config.apiUrl;
       const response = await fetch(`${apiUrl}/api/v1/strategies/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

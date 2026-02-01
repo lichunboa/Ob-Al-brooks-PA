@@ -79,6 +79,9 @@ services:
       - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+    volumes:
+      - market_data:/app/data            # 写入 market_data.db (共享给其他服务)
+      - ./libs:/app/libs                 # 共享库
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
       interval: 60s
@@ -149,6 +152,8 @@ services:
       - ./libs:/app/libs
       # 数据持久化
       - signal_data:/app/data
+      # 只读访问 trading-service 的指标数据
+      - market_data:/app/market-data:ro
       # 日志目录
       - ./services/signal-service/logs:/app/logs
     depends_on:
@@ -190,6 +195,7 @@ services:
       - ./services/signal-service/src:/app/services/signal-service/src
       - ./libs:/app/libs
       - ./services/telegram-service/logs:/app/logs
+      - market_data:/app/market-data:ro  # 只读访问 trading-service 的指标数据
     working_dir: /app
     command: bash -c "pip install fastapi uvicorn pydantic -q && python -m src.bot.app"
     depends_on:
@@ -224,6 +230,8 @@ services:
 
 volumes:
   timescaledb_data:
+    driver: local
+  market_data:        # trading-service 写入指标, telegram/signal 只读访问
     driver: local
   signal_data:
     driver: local

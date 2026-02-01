@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, Activity, LayoutGrid, Maximize2 } from 'lucide-react';
+import { config } from '@/lib/config';
 
 // 品种配置
 interface SymbolCard {
@@ -41,7 +42,7 @@ export default function ScannerPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+  const apiUrl = config.apiUrl;
 
   // 获取单个品种数据
   const fetchSymbolData = async (symbol: SymbolCard): Promise<Partial<SymbolCard>> => {

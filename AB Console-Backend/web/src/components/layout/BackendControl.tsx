@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Server, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { config } from '@/lib/config';
 
 interface BackendStatus {
   http: 'online' | 'offline' | 'checking';
@@ -18,8 +19,8 @@ export const BackendControl: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-  const syncUrl = process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089';
+  const apiUrl = config.apiUrl;
+  const syncUrl = config.syncApiUrl;
 
   // 检查后端状态
   const checkStatus = async () => {

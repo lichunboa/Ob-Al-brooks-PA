@@ -1,0 +1,43 @@
+# docker-compose.override.yml - 开发环境覆盖配置
+#
+# 此文件在 `docker-compose up` 时自动加载，提供开发环境特有的配置：
+#   - 源代码热重载（volume 映射本地代码目录）
+#   - 调试模式
+#   - 详细日志
+#
+# 生产环境使用:
+#   docker-compose -f docker-compose.yml up -d
+# 开发环境使用（默认）:
+#   docker-compose up -d
+#
+version: '3.8'
+
+services:
+  data-service:
+    volumes:
+      - ./services/data-service/src:/app/src
+      - ./libs:/app/libs
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  trading-service:
+    volumes:
+      - ./services/trading-service/src:/app/src
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  signal-service:
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  telegram-service:
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  sync-service:
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  forwarder:
+    volumes:
+      - ./forwarder:/app

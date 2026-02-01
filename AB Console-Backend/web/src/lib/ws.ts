@@ -1,8 +1,9 @@
 // WebSocket 客户端封装
 import { io, Socket } from 'socket.io-client';
 import { Candle, Signal, WSEvents } from '@/types';
+import { config } from '@/lib/config';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088';
+const WS_URL = config.wsUrl;
 
 class WebSocketClient {
   private socket: Socket | null = null;
@@ -216,7 +217,7 @@ export function useCandles(symbol: string, interval: string) {
 
 // HTTP 获取历史数据（初始加载）
 async function fetchHistoricalData(symbol: string, interval: string): Promise<Candle[]> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+  const apiUrl = config.apiUrl;
   
   try {
     const response = await fetch(

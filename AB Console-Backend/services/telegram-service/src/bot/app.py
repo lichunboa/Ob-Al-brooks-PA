@@ -6461,6 +6461,98 @@ async def catbo_forward(request: ForwardAnalysisRequest):
         logger.error(f"转发失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class ClawdbotReportRequest(BaseModel):
+    """Clawdbot 详细分析报告"""
+    user_id: str
+    report: dict  # 包含 signal, analysis, trade_plan 等字段
+    source: str = "clawdbot"
+    timestamp: str = ""
+
+@api_app.post("/api/clawdbot-report")
+async def receive_clawdbot_report(request: ClawdbotReportRequest):
+    """接收 Clawdbot 的详细分析报告并推送给用户
+
+    Clawdbot 七步分析后的完整报告通过此端点发送到后端 Bot，
+    后端 Bot 负责格式化并推送给订阅用户。
+    """
+    try:
+        from telegram import Bot
+        bot = Bot(token=BOT_TOKEN)
+
+        # 格式化详细报告
+        report = request.report
+        symbol = report.get('symbol', 'UNKNOWN')
+        direction = report.get('direction', 'N/A')
+        strength = report.get('strength', 0)
+        analysis = report.get('analysis', {})
+        trade_plan = report.get('trade_plan', {})
+        score = report.get('score', 0)
+
+        # 构建 Markdown 格式的详细报告
+        lines = [
+            f"🚨 <b>Clawdbot 深度分析 - {symbol}</b>",
+            f"",
+            f"【后端信号】{strength:.0%} 强度 | {direction} | {report.get('timeframe', '5m')}",
+            f"",
+        ]
+
+        # Al Brooks 七步分析
+        if analysis:
+            lines.append("【Al Brooks 七步分析】")
+            for step_key in ['always_in', 'cycle', 'leg', 'count', 'signal_bar', 'entry', 'protection']:
+                step_val = analysis.get(step_key, '')
+                if step_val:
+                    lines.append(f"  • {step_key}: {step_val}")
+            lines.append("")
+
+        # 策略匹配
+        strategy = report.get('strategy', '')
+        if strategy:
+            match_score = report.get('match_score', 0)
+            lines.append(f"【策略匹配】🔥 {strategy} (匹配度: {match_score}%)")
+            lines.append("")
+
+        # 条件评分
+        if score:
+            lines.append(f"【条件评分】{score} 分")
+            score_details = report.get('score_details', {})
+            for k, v in score_details.items():
+                lines.append(f"  ├─ {k}: {v}")
+            lines.append("")
+
+        # 交易计划
+        if trade_plan:
+            lines.append("【交易计划】")
+            lines.append(f"  方向: {trade_plan.get('direction', direction)} {symbol}")
+            lines.append(f"  入场: {trade_plan.get('entry', 'N/A')}")
+            lines.append(f"  止损: {trade_plan.get('stop_loss', 'N/A')}")
+            lines.append(f"  目标: {trade_plan.get('target', 'N/A')}")
+            rr = trade_plan.get('risk_reward', '')
+            if rr:
+                lines.append(f"  盈亏比: {rr}")
+            lines.append("")
+
+        # Al Brooks 金句
+        quote = report.get('quote', '')
+        if quote:
+            lines.append(f"【Al Brooks 金句】\n  \"{quote}\"")
+
+        message_text = "\n".join(lines)
+
+        await bot.send_message(
+            chat_id=int(request.user_id),
+            text=message_text[:4096],
+            parse_mode="HTML"
+        )
+
+        logger.info(f"✅ Clawdbot 报告已推送: {symbol} {direction} → user {request.user_id}")
+        return {"ok": True, "message": "report delivered"}
+
+    except Exception as e:
+        logger.error(f"Clawdbot 报告推送失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_app.get("/api/health")
 async def health_check():
     """健康检查"""

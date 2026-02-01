@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { SidebarToggle } from './Sidebar';
 import { Wifi, WifiOff } from 'lucide-react';
+import { config } from '@/lib/config';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -14,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   useEffect(() => {
     // 简单的连接检查，不使用 async/await
     const checkConnection = () => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+      const apiUrl = config.apiUrl;
       
       fetch(`${apiUrl}/health`, { cache: 'no-store' })
         .then(response => {

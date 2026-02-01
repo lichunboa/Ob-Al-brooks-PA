@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Play, Pause, TrendingUp, TrendingDown, 
-  Activity, RefreshCw, BookOpen, CheckCircle, 
+import {
+  Play, Pause, TrendingUp, TrendingDown,
+  Activity, RefreshCw, BookOpen, CheckCircle,
   Clock, Target, AlertCircle, ExternalLink, Plus, X
 } from 'lucide-react';
+import { config } from '@/lib/config';
 
 // 策略定义 - 与 Obsidian 策略卡片 frontmatter 对齐
 interface Strategy {
@@ -59,7 +60,7 @@ export default function StrategiesPage() {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
+  const apiUrl = config.apiUrl;
 
   // 加载策略列表（从 Obsidian 同步）
   const fetchStrategies = useCallback(async () => {

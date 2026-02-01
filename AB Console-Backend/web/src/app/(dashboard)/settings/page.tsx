@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, Server, Bell, Palette, Database, 
+import {
+  Settings, Server, Bell, Palette, Database,
   Shield, Save, RotateCcw, CheckCircle, AlertCircle,
   Moon, Sun, Monitor, Volume2, VolumeX
 } from 'lucide-react';
+import { config } from '@/lib/config';
 
 interface AppSettings {
   // API设置
@@ -30,7 +31,7 @@ interface AppSettings {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  apiUrl: 'http://localhost:8088',
+  apiUrl: config.apiUrl,
   apiKey: '',
   theme: 'dark',
   chartType: 'candles',
