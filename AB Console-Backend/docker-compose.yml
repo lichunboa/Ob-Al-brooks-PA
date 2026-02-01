@@ -69,6 +69,26 @@ services:
     networks:
       - ab-console-network
 
+  # Sync Service - Obsidian 数据同步
+  sync-service:
+    build:
+      context: ./services/sync-service
+      dockerfile: Dockerfile
+    container_name: ab-sync-service
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+    volumes:
+      - ./services/sync-service/src:/app/src
+      - ./services/sync-service/data:/app/data
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks:
+      - ab-console-network
+
   # Signal Service - Al Brooks 信号检测
   signal-service:
     build:
