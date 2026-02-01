@@ -286,3 +286,21 @@ async def _notify_clawdbot(event: SignalEvent):
         _enqueue_failed_signal(signal_data, "both channels failed")
     elif file_ok:
         logger.info(f"信号已写入文件: {event.symbol} {event.direction} strength={event.strength}")
+
+
+# ========== Clawdbot 分析转发接口 ==========
+async def forward_clawdbot_analysis(user_id: str, message: str, parse_mode: str = "HTML"):
+    """将 Clawdbot 的详细分析转发给用户（通过 @catbo26bot）"""
+    if not _send_func:
+        logger.error("转发失败: _send_func 未初始化")
+        return False
+    
+    try:
+        from telegram import InlineKeyboardMarkup
+        # 直接使用 _send_func 发送给用户
+        await _send_func(int(user_id), message, reply_markup=InlineKeyboardMarkup([]))
+        logger.info(f"Clawdbot 分析已转发给用户 {user_id}")
+        return True
+    except Exception as e:
+        logger.error(f"转发 Clawdbot 分析失败: {e}")
+        return False

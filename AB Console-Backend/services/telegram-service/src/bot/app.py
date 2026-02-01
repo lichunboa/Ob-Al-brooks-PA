@@ -6420,6 +6420,53 @@ def main():
         traceback.print_exc()
 
 
+# ========== FastAPI 转发接口（Clawdbot 分析转发） ==========
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import uvicorn
+from threading import Thread
+
+# 创建 FastAPI 应用
+api_app = FastAPI(title="Telegram Service API", version="1.0.0")
+
+class ForwardAnalysisRequest(BaseModel):
+    user_id: str
+    message: str
+    parse_mode: str = "HTML"
+
+@api_app.post("/api/catbo-forward")
+async def catbo_forward(request: ForwardAnalysisRequest):
+    """接收 Clawdbot 的详细分析并转发给用户"""
+    try:
+        from telegram import Bot
+        bot = Bot(token=BOT_TOKEN)
+        await bot.send_message(
+            chat_id=int(request.user_id),
+            text=request.message[:4096],  # Telegram 消息长度限制
+            parse_mode=request.parse_mode
+        )
+        return {"ok": True, "message": " forwarded successfully"}
+    except Exception as e:
+        logger.error(f"转发失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_app.get("/api/health")
+async def health_check():
+    """健康检查"""
+    return {"status": "ok", "service": "telegram-service"}
+
+def start_api_server():
+    """在后台线程启动 API 服务器"""
+    try:
+        uvicorn.run(api_app, host="0.0.0.0", port=8090, log_level="warning")
+    except Exception as e:
+        logger.error(f"API 服务器启动失败: {e}")
+
 if __name__ == "__main__":
+    # 启动 API 服务器（后台线程）
+    api_thread = Thread(target=start_api_server, daemon=True)
+    api_thread.start()
+    logger.info("✅ FastAPI 转发接口已启动 (port: 8090)")
+    
     # 使用完整启动模式，包含所有功能
     main()
