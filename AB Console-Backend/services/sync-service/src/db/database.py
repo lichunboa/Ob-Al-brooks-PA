@@ -101,6 +101,69 @@ class SyncLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# ========== 配置管理模型 ==========
+
+class SettingModel(Base):
+    """通用配置表"""
+    __tablename__ = "settings"
+    __table_args__ = {"schema": "config"}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    category = Column(String(50), nullable=False, index=True)
+    key = Column(String(100), nullable=False)
+    value = Column(JSON, nullable=False)
+    description = Column(Text)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        # 确保 category + key 唯一
+        {"schema": "config", "comment": "通用配置表"}
+    )
+
+
+class SignalRuleModel(Base):
+    """信号规则配置表"""
+    __tablename__ = "signal_rules"
+    __table_args__ = {"schema": "config"}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    rule_id = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(200), nullable=False)
+    category = Column(String(50), nullable=False, index=True)
+    description = Column(Text)
+    conditions = Column(JSON, nullable=False)
+    parameters = Column(JSON, default=dict)
+    is_enabled = Column(Boolean, default=True, index=True)
+    priority = Column(Integer, default=0)
+    cooldown_seconds = Column(Integer, default=300)
+    min_strength = Column(Numeric(3, 2), default=0.5)
+    timeframes = Column(JSON, default=list)  # ["5m", "15m", "1h"]
+    symbols = Column(JSON, default=list)  # 空表示全部
+    exclude_symbols = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100))
+    updated_by = Column(String(100))
+
+
+class MonitoringConfigModel(Base):
+    """监控配置表"""
+    __tablename__ = "monitoring"
+    __table_args__ = {"schema": "config"}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    type = Column(String(50), nullable=False, index=True)  # indicator, pattern, signal
+    name = Column(String(100), nullable=False)
+    config = Column(JSON, default=dict)
+    is_active = Column(Boolean, default=True, index=True)
+    alert_enabled = Column(Boolean, default=False)
+    alert_threshold = Column(Numeric(10, 4))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # 全局引擎和会话工厂
 _engine = None
 _SessionLocal = None
@@ -135,12 +198,67 @@ def init_db():
             pool_pre_ping=True,
         )
     
+    # 创建config schema（如果不存在）
+    from sqlalchemy import text
+    with _engine.connect() as conn:
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS config"))
+        conn.commit()
+    
     # 创建表
     Base.metadata.create_all(bind=_engine)
+    
+    # 插入默认配置
+    _init_default_settings()
     
     _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
     print(f"✅ 数据库已连接: {db_url.split('://')[0]}://***")
     return _engine
+
+
+def _init_default_settings():
+    """初始化默认配置"""
+    try:
+        with db_session() as db:
+            # 检查是否已有配置
+            existing = db.query(SettingModel).first()
+            if existing:
+                return
+            
+            # 插入默认配置
+            defaults = [
+                SettingModel(
+                    category="system",
+                    key="default_symbols",
+                    value={"groups": ["main4"], "custom": []},
+                    description="默认监控的币种分组"
+                ),
+                SettingModel(
+                    category="system",
+                    key="default_timeframes",
+                    value=["5m", "15m", "1h", "4h"],
+                    description="默认监控的时间周期"
+                ),
+                SettingModel(
+                    category="system",
+                    key="signal_cooldown",
+                    value={"default": 300},
+                    description="信号冷却时间（秒）"
+                ),
+                SettingModel(
+                    category="system",
+                    key="data_refresh_interval",
+                    value={"default": 60},
+                    description="数据刷新间隔（秒）"
+                ),
+            ]
+            
+            for setting in defaults:
+                db.add(setting)
+            
+            db.commit()
+            print("✅ 默认配置已初始化")
+    except Exception as e:
+        print(f"⚠️ 默认配置初始化失败: {e}")
 
 
 def get_db() -> Generator[Session, None, None]:

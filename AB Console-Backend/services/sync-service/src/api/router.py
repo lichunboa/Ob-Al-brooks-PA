@@ -9,6 +9,7 @@ from db.database import get_db
 from api.trades import router as trades_router
 from api.strategies import router as strategies_router
 from api.sync import router as sync_router
+from api.config import router as config_router
 
 # 启动时间
 _start_time = time.time()
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/api/v1")
 router.include_router(trades_router, prefix="/trades", tags=["trades"])
 router.include_router(strategies_router, prefix="/strategies", tags=["strategies"])
 router.include_router(sync_router, prefix="/sync", tags=["sync"])
+router.include_router(config_router, tags=["config"])
 
 
 @router.get("/health")
