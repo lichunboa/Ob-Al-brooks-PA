@@ -26,7 +26,7 @@ services:
     build:
       context: ./services-preview/api-service
       dockerfile: Dockerfile
-    container_name: tradecat-api-service
+    container_name: ab-api-service
     restart: unless-stopped
     ports:
       - "8088:8088"
@@ -45,7 +45,7 @@ services:
     build:
       context: ./services/data-service
       dockerfile: Dockerfile
-    container_name: tradecat-data-service
+    container_name: ab-data-service
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
@@ -59,7 +59,7 @@ services:
     build:
       context: ./services/trading-service
       dockerfile: Dockerfile
-    container_name: tradecat-trading-service
+    container_name: ab-trading-service
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
@@ -140,10 +140,31 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # 自动转发服务 - 发送详版给 Telegram Bot (本地构建)
+  forwarder:
+    build:
+      context: ./forwarder
+      dockerfile: Dockerfile
+    container_name: ab-forwarder
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_API=http://telegram-service:8090/api/catbo-forward
+      - USER_ID=756069822
+      - SIGNAL_FILE=/app/signals/signals.jsonl
+    volumes:
+      - /tmp/clawdbot_signals.jsonl:/app/signals/signals.jsonl:ro
+      - forwarder_data:/app/data
+    depends_on:
+      - telegram-service
+    networks:
+      - ab-console-network
+
 volumes:
   timescaledb_data:
     driver: local
   signal_data:
+    driver: local
+  forwarder_data:
     driver: local
 
 networks:
