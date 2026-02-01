@@ -18,7 +18,7 @@
             }
           },
           {
-            "id": "5a6995a8f4729070",
+            "id": "d5310b44a857de73",
             "type": "leaf",
             "state": {
               "type": "market-scanner-view",
@@ -82,7 +82,7 @@
             }
           },
           {
-            "id": "5c4f5c663ed640f4",
+            "id": "772f99bf0866bd19",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -204,7 +204,7 @@
             }
           },
           {
-            "id": "e06574b398e76026",
+            "id": "0dd2ef730d674f8e",
             "type": "leaf",
             "state": {
               "type": "al-brooks-console-view",
@@ -218,7 +218,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 671.5
+    "width": 660.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -248,8 +248,19 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "5a6995a8f4729070",
+  "active": "d5310b44a857de73",
   "lastOpenFiles": [
+    "Daily/SPX/SPX 09.02 周二.md",
+    "Daily/SPX/SPX 09.03 周三.md",
+    "Daily/Trades/260115_2241_实盘_ES.md",
+    "Daily/交易日记.base",
+    "Daily/Trades/260117_2113_实盘_ES.md",
+    "Daily/Trades/260114_1144_实盘_ES.md",
+    "Daily/Trades/260117_2118_实盘_ES.md",
+    "Daily/SPX/SPX 2025.9.md",
+    "Daily/SPX/SPX 2025.10.md",
+    "Daily/SPX/SPX 2025.11.md",
+    "Daily/Trades/260118_1539_实盘_ ES.md",
     "Categories 分类/Al brooks/价格行为学/context的重要性例子 22699d8757ab81d4878bc79e56fe7d53.md",
     "Categories 分类/Al brooks/价格行为学/5 1 2025[live] 22699d8757ab81408a9ed0f5178789ba.md",
     "Categories 分类/Al brooks/价格行为学/43B 1st reversal usually minor 22699d8757ab818bb6c3f866e3cc2a80.md",
@@ -262,17 +273,13 @@
     "Categories 分类/Al brooks/价格行为学/08D Weak Sell Signal Bar and Weak Context wait to  22699d8757ab81b0859dcdf4e5dbb4a8.md",
     "Categories 分类/Al brooks/价格行为学/07B Starting Out 22699d8757ab81c0aa88c4ea9526c864.md",
     "Categories 分类/Al brooks/价格行为学/02A Chart Basics and Price Action Chart, Market 22699d8757ab81a3838bfbaa1f66f39b.md",
-    "Daily/Trades/260117_2118_实盘_ES.md",
-    "Daily/交易日记.base",
     "Notes 笔记/买卖压力.md",
     "Categories 分类/Al brooks/价格行为学/01 术语.md",
     "Excalidraw/PA知识图谱.md",
-    "课程/课程.md",
     "statuses",
     "sessions",
     "copilot",
     "tools/generate-snapshot-from-legacy.js",
-    "tools/Untitled.md",
     "tools",
     "statuses/icons/todo.svg",
     "statuses/icons/needs-review.svg",
@@ -284,14 +291,6 @@
     "statuses/config.json",
     "sessions/260125-clear-inlet/session.jsonl",
     "sessions/260124-fresh-storm/session.jsonl",
-    "copilot/copilot-conversations/我把tradingview的分享链接填在obsidian中,怎么让他显示图标@20260127_232725.md",
-    "copilot/copilot-conversations/你好@20260124_123709.md",
-    "copilot/copilot-conversations/halou@20260121_163234.md",
-    "AGENTS.md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/笔记规范指南.md",
-    "🦁 交易员控制台 (Trader Command)/📋 任务与规划/模块分析报告.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🦁 交易员控制台 (Trader Command)5.0.md",
-    "🦁 交易员控制台 (Trader Command)/存档/🚀 插件升级优化方案 v2.0.md",
     "assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png",
     "Notes 笔记/assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png",
     "Notes 笔记/assets/测量移动/测量移动-20251215232541562.png",

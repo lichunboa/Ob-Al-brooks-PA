@@ -23,7 +23,7 @@ if str(AI_SERVICE_PATH) not in sys.path:
     sys.path.insert(0, str(AI_SERVICE_PATH))
 
 # 添加项目根目录
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', '/app'))
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 

@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Tuple, Callable
 logger = logging.getLogger(__name__)
 
 # 项目根目录
-_PROJECT_ROOT = Path(__file__).parents[4]
+_PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', Path(__file__).parents[4] if len(Path(__file__).parents) > 4 else Path('/app')))
 ENV_PATH = _PROJECT_ROOT / "config" / ".env"
 
 # =============================================================================

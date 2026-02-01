@@ -69,8 +69,80 @@ services:
     networks:
       - ab-console-network
 
+  # Signal Service - Al Brooks 信号检测
+  signal-service:
+    build:
+      context: ./services/signal-service
+      dockerfile: Dockerfile
+    container_name: ab-signal-service
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - SQLITE_DB_PATH=/app/data/signals.db
+      - COOLDOWN_DB_PATH=/app/data/cooldown.db
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src:/app/libs
+    volumes:
+      # 映射本地代码目录，方便修改
+      - ./services/signal-service/src:/app/src
+      - ./libs:/app/libs
+      # 数据持久化
+      - signal_data:/app/data
+      # 日志目录
+      - ./services/signal-service/logs:/app/logs
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks:
+      - ab-console-network
+    # 使用 host 网络模式以便访问本机 Clawdbot webhook
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Telegram Service - 完整功能（Bot + API）
+  telegram-service:
+    build:
+      context: ./services/telegram-service
+      dockerfile: Dockerfile
+    container_name: ab-telegram-service
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - BOT_TOKEN=8375182106:AAFqQZ6jg5qtdKBi65Ahj2skMwoo5d1OV3Y
+      - TELEGRAM_BOT_TOKEN=8375182106:AAFqQZ6jg5qtdKBi65Ahj2skMwoo5d1OV3Y
+      - CLAWDBOT_WEBHOOK=http://host.docker.internal:18789/webhook/albrooks
+      - WEBHOOK_MODE=false
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src:/app/libs
+      # Docker 路径配置
+      - PROJECT_ROOT=/app
+      - SIGNAL_SERVICE_SRC=/app/services/signal-service/src
+      - LIBS_PATH=/app/libs
+    volumes:
+      # 完整映射，保留所有功能
+      - ./services/telegram-service/src:/app/src
+      - ./services/telegram-service/config:/app/config
+      - ./services/signal-service/src:/app/services/signal-service/src
+      - ./libs:/app/libs
+      - ./services/telegram-service/logs:/app/logs
+    working_dir: /app
+    command: bash -c "pip install fastapi uvicorn pydantic -q && python -m src.bot.app"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      signal-service:
+        condition: service_started
+    networks:
+      - ab-console-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   timescaledb_data:
+    driver: local
+  signal_data:
     driver: local
 
 networks:

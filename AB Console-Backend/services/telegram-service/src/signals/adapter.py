@@ -10,8 +10,15 @@ from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-# 添加 signal-service 到路径
-_SIGNAL_SERVICE_SRC = Path(__file__).resolve().parents[4] / "services" / "signal-service" / "src"
+# 添加 signal-service 到路径（支持 Docker 环境）
+import os
+if os.environ.get('SIGNAL_SERVICE_SRC'):
+    _SIGNAL_SERVICE_SRC = Path(os.environ.get('SIGNAL_SERVICE_SRC'))
+elif Path(__file__).resolve().parents[4].exists():
+    _SIGNAL_SERVICE_SRC = Path(__file__).resolve().parents[4] / "services" / "signal-service" / "src"
+else:
+    # Docker 默认路径
+    _SIGNAL_SERVICE_SRC = Path("/app/services/signal-service/src")
 if str(_SIGNAL_SERVICE_SRC) not in sys.path:
     sys.path.insert(0, str(_SIGNAL_SERVICE_SRC))
 

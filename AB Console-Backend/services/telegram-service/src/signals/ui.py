@@ -14,7 +14,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from cards.i18n import btn as _btn, gettext as _t, lang_context, resolve_lang, resolve_lang_by_user_id
 
 # 从 signal-service 导入
-_SIGNAL_SERVICE_SRC = Path(__file__).resolve().parents[4] / "services" / "signal-service" / "src"
+_SIGNAL_SERVICE_SRC = Path(os.environ.get('SIGNAL_SERVICE_SRC', '/app/services/signal-service/src'))
 if str(_SIGNAL_SERVICE_SRC) not in sys.path:
     sys.path.insert(0, str(_SIGNAL_SERVICE_SRC))
 

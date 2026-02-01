@@ -20,7 +20,7 @@ LOGGER = logging.getLogger(__name__)
 # ============ 币种过滤（使用共享模块）============
 import sys as _sys
 from pathlib import Path as _Path
-_libs_path = str(_Path(__file__).parents[4] / "libs")
+_libs_path = str(_Path(os.environ.get('LIBS_PATH', '/app/libs')))
 if _libs_path not in _sys.path:
     _sys.path.insert(0, _libs_path)
 from common.symbols import get_configured_symbols_set

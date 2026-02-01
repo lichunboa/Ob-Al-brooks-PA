@@ -16,12 +16,17 @@ logger = logging.getLogger(__name__)
 
 def _get_cooldown_db_path() -> str:
     """获取冷却数据库路径"""
-    # 兼容直接运行和作为模块导入
-    try:
-        from ..config import REPO_ROOT
-    except ImportError:
-        REPO_ROOT = Path(__file__).resolve().parents[4]
-    return str(REPO_ROOT / "libs/database/services/signal-service/cooldown.db")
+    # 优先使用环境变量
+    if os.environ.get('COOLDOWN_DB_PATH'):
+        return os.environ.get('COOLDOWN_DB_PATH')
+    
+    # 其次使用 SQLITE_DB_PATH 环境变量
+    if os.environ.get('SQLITE_DB_PATH'):
+        db_path = Path(os.environ.get('SQLITE_DB_PATH'))
+        return str(db_path.parent / 'cooldown.db')
+    
+    # 默认路径（Docker 环境）
+    return "/app/data/cooldown.db"
 
 
 class CooldownStorage:
@@ -30,10 +35,10 @@ class CooldownStorage:
     def __init__(self, db_path: str = None):
         raw_path = db_path or _get_cooldown_db_path()
         resolved = Path(raw_path).resolve()
-        repo_root = Path(_get_cooldown_db_path()).resolve().parents[4]
-        try:
-            resolved.relative_to(repo_root)
-        except ValueError:
+        # 安全检查：确保路径在 /app/data 下（Docker环境）
+        allowed_roots = [Path("/app/data").resolve(), Path("/tmp").resolve()]
+        is_allowed = any(str(resolved).startswith(str(root)) for root in allowed_roots)
+        if not is_allowed and not str(resolved).startswith(str(Path.home())):
             raise ValueError(f"非法冷却存储路径: {resolved}")
         self.db_path = str(resolved)
         self._ensure_db()
