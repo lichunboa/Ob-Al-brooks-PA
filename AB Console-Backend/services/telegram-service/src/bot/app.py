@@ -615,7 +615,18 @@ def format_beijing_time(dt_str, format_str="%Y-%m-%d %H:%M:%S"):
 
 
 # 配置（全部改由环境变量管理）
-BOT_TOKEN = _require_env('BOT_TOKEN', required=True)
+# 支持命令行参数传入 Token: python app.py --token <TOKEN>
+import argparse
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument('--token', type=str, default=None, help='Bot Token (覆盖环境变量)')
+_args, _remaining = _parser.parse_known_args()
+
+if _args.token:
+    os.environ['BOT_TOKEN'] = _args.token
+    BOT_TOKEN = _args.token
+    logger.info(f"🔑 使用命令行传入的 Token: {BOT_TOKEN[:10]}...{BOT_TOKEN[-10:]}")
+else:
+    BOT_TOKEN = _require_env('BOT_TOKEN', required=True)
 # Binance API 已废弃，数据由 data-service 采集
 BINANCE_API_DISABLED = True  # 强制禁用
 

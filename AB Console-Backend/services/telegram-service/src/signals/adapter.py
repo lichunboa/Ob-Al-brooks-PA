@@ -258,13 +258,19 @@ async def _notify_clawdbot(event: SignalEvent):
     # 通道1: 写入信号文件（带文件锁）
     file_ok = _write_signal_to_file(signal_data)
 
-    # 通道2: HTTP webhook
+    # 通道2: HTTP webhook (推送给Clawdbot)
     http_ok = False
     try:
         session = await _get_http_session()
+        # 获取第一个订阅者作为目标用户
+        from .ui import _get_subscribers
+        subscribers = _get_subscribers()
+        user_id = list(subscribers)[0] if subscribers else "756069822"  # 默认用户
+        
         payload = {
             **signal_data,
             "source": "signal-service",
+            "user_id": str(user_id),  # 添加用户ID
         }
         headers = {"Authorization": f"Bearer {_CLAWDBOT_WEBHOOK_TOKEN}"}
         async with session.post(

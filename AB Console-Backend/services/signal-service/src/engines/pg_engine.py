@@ -99,43 +99,50 @@ def _get_default_symbols() -> list[str]:
     """
     import os
 
+    # 优先从环境变量读取（启动脚本设置）
+    signal_symbols = os.environ.get("SIGNAL_SYMBOLS", "").strip()
+    if signal_symbols:
+        return _validate_symbols([s.strip() for s in signal_symbols.split(",") if s.strip()])
+
+    # 从 .env 文件读取
     env = _load_env_file()
+    signal_symbols = env.get("SIGNAL_SYMBOLS", "").strip()
+    if signal_symbols:
+        return _validate_symbols([s.strip() for s in signal_symbols.split(",") if s.strip()])
 
-    # 优先读取 SIGNAL_SYMBOLS（signal-service 专用）
-    direct = os.environ.get("SIGNAL_SYMBOLS", env.get("SIGNAL_SYMBOLS", "")).strip()
-    if direct:
-        symbols = [s.strip().upper() for s in direct.split(",") if s.strip()]
-        if symbols:
-            return _validate_symbols(symbols)
+    # 使用 SYMBOLS_GROUPS 配置
+    groups = os.environ.get("SYMBOLS_GROUPS") or env.get("SYMBOLS_GROUPS", "main4")
+    symbols = set()
 
-    # 将 .env 中的 SYMBOLS_* 注入环境，避免未 source 时读取不到
-    for key, val in env.items():
-        if key.startswith("SYMBOLS_") and key not in os.environ:
-            os.environ[key] = val
+    for group in groups.split(","):
+        group = group.strip()
+        group_key = f"SYMBOLS_GROUP_{group}"
+        group_symbols = os.environ.get(group_key) or env.get(group_key, "")
+        if group_symbols:
+            for s in group_symbols.split(","):
+                s = s.strip()
+                if s:
+                    symbols.add(s)
 
-    # 与全局符号选择逻辑保持一致（支持 all/auto）
-    try:
-        import sys
-        from pathlib import Path
+    # 添加额外币种
+    extra = os.environ.get("SYMBOLS_EXTRA") or env.get("SYMBOLS_EXTRA", "")
+    if extra:
+        for s in extra.split(","):
+            s = s.strip()
+            if s:
+                symbols.add(s)
 
-        libs_path = str(Path(__file__).parents[4] / "libs")
-        if libs_path not in sys.path:
-            sys.path.insert(0, libs_path)
-        from common.symbols import get_configured_symbols
-    except Exception:
-        get_configured_symbols = None
+    # 排除指定币种
+    exclude = os.environ.get("SYMBOLS_EXCLUDE") or env.get("SYMBOLS_EXCLUDE", "")
+    if exclude:
+        exclude_set = {s.strip() for s in exclude.split(",") if s.strip()}
+        symbols = symbols - exclude_set
 
-    if get_configured_symbols:
-        configured = get_configured_symbols()
-        if configured:
-            return _validate_symbols(configured)
+    if symbols:
+        return _validate_symbols(list(symbols))
 
-    # 兜底：保持原默认
-    return _DEFAULT_SYMBOLS
-
-
-# 默认币种（main4）
-_DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+    # 默认返回 main4
+    return ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
 
 
 class PGSignalRules:
@@ -250,7 +257,7 @@ class PGSignalRules:
             total_vol = _safe_float(curr.get("quote_volume", 0))
             if total_vol == 0:
                 return None
-            sell_ratio = 1 - taker_buy / total_vol
+            sell_ratio = 1 - (taker_buy / total_vol)
             if sell_ratio >= threshold:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
@@ -266,7 +273,7 @@ class PGSignalRules:
             logger.warning(f"check_taker_sell_dominance error: {e}")
         return None
 
-    def check_oi_surge(self, curr: dict, prev: dict, threshold_pct: float = 5.0) -> PGSignal | None:
+    def check_oi_surge(self, curr: dict, prev: dict, threshold_pct: float = 3.0) -> PGSignal | None:
         """持仓量急增信号"""
         if not prev or not curr:
             return None
@@ -281,17 +288,18 @@ class PGSignalRules:
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_surge",
                     direction="ALERT",
-                    strength=min(80, int(55 + change_pct * 3)),
+                    strength=min(80, int(50 + change_pct * 10)),
                     message_key="signal.pg.msg.oi_surge",
-                    message_params={"pct": f"{change_pct:.2f}", "oi": f"{curr_oi / 1e9:.2f}"},
-                    extra={"oi_change_pct": change_pct, "oi_value": curr_oi},
+                    message_params={"pct": f"{change_pct:.2f}"},
+                    price=0.0,
+                    extra={"oi_change_pct": change_pct},
                 )
         except Exception as e:
             logger.warning(f"check_oi_surge error: {e}")
         return None
 
-    def check_oi_dump(self, curr: dict, prev: dict, threshold_pct: float = 5.0) -> PGSignal | None:
-        """持仓量急减信号"""
+    def check_oi_dump(self, curr: dict, prev: dict, threshold_pct: float = 3.0) -> PGSignal | None:
+        """持仓量急降信号"""
         if not prev or not curr:
             return None
         try:
@@ -305,70 +313,76 @@ class PGSignalRules:
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_dump",
                     direction="ALERT",
-                    strength=min(80, int(55 + abs(change_pct) * 3)),
+                    strength=min(80, int(50 + abs(change_pct) * 10)),
                     message_key="signal.pg.msg.oi_dump",
-                    message_params={"pct": f"{abs(change_pct):.2f}", "oi": f"{curr_oi / 1e9:.2f}"},
-                    extra={"oi_change_pct": change_pct, "oi_value": curr_oi},
+                    message_params={"pct": f"{abs(change_pct):.2f}"},
+                    price=0.0,
+                    extra={"oi_change_pct": change_pct},
                 )
         except Exception as e:
             logger.warning(f"check_oi_dump error: {e}")
         return None
 
     def check_top_trader_extreme_long(self, curr: dict, threshold: float = 3.0) -> PGSignal | None:
-        """大户极度看多"""
+        """大户极端做多"""
         if not curr:
             return None
         try:
-            ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 1), 1.0)
-            if ratio >= threshold:
+            long_ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 0))
+            if long_ratio >= threshold:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_long",
-                    direction="ALERT",
-                    strength=min(85, int(60 + ratio * 8)),
+                    direction="BUY",
+                    strength=min(85, int(50 + long_ratio * 10)),
                     message_key="signal.pg.msg.top_long",
-                    message_params={"ratio": f"{ratio:.2f}", "threshold": f"{threshold}"},
-                    extra={"top_trader_ratio": ratio},
+                    message_params={"ratio": f"{long_ratio:.2f}", "threshold": f"{threshold:.0f}"},
+                    price=_safe_float(curr.get("close", 0)),
+                    extra={"long_ratio": long_ratio},
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_long error: {e}")
         return None
 
     def check_top_trader_extreme_short(self, curr: dict, threshold: float = 0.5) -> PGSignal | None:
-        """大户极度看空"""
+        """大户极端做空"""
         if not curr:
             return None
         try:
-            ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 1), 1.0)
-            if ratio <= threshold:
+            long_ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 0))
+            if long_ratio > 0 and long_ratio <= threshold:
+                short_ratio = 1 / long_ratio
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_short",
-                    direction="ALERT",
-                    strength=min(85, int(60 + (1 / ratio) * 5)),
+                    direction="SELL",
+                    strength=min(85, int(50 + short_ratio * 10)),
                     message_key="signal.pg.msg.top_short",
-                    message_params={"ratio": f"{ratio:.2f}", "threshold": f"{threshold}"},
-                    extra={"top_trader_ratio": ratio},
+                    message_params={"ratio": f"{short_ratio:.2f}", "threshold": f"{threshold:.2f}"},
+                    price=_safe_float(curr.get("close", 0)),
+                    extra={"long_ratio": long_ratio, "short_ratio": short_ratio},
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_short error: {e}")
         return None
 
     def check_taker_ratio_flip_long(self, curr: dict, prev: dict) -> PGSignal | None:
-        """主动成交多空比翻多"""
+        """吃单比率翻多"""
         if not prev or not curr:
             return None
         try:
-            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 1), 1.0)
-            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 1), 1.0)
-            if prev_ratio < 1.0 and curr_ratio >= 1.2:
+            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 0))
+            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 0))
+            # 从 <1 变为 >1，表示从空头主导变为多头主导
+            if prev_ratio < 1 and curr_ratio > 1:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_long",
                     direction="BUY",
-                    strength=70,
-                    message_key="signal.pg.msg.taker_flip_long",
-                    message_params={"prev": f"{prev_ratio:.2f}", "curr": f"{curr_ratio:.2f}"},
+                    strength=min(75, int(50 + curr_ratio * 20)),
+                    message_key="signal.pg.msg.flip_long",
+                    message_params={"ratio": f"{curr_ratio:.2f}"},
+                    price=_safe_float(curr.get("close", 0)),
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio},
                 )
         except Exception as e:
@@ -376,20 +390,22 @@ class PGSignalRules:
         return None
 
     def check_taker_ratio_flip_short(self, curr: dict, prev: dict) -> PGSignal | None:
-        """主动成交多空比翻空"""
+        """吃单比率翻空"""
         if not prev or not curr:
             return None
         try:
-            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 1), 1.0)
-            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 1), 1.0)
-            if prev_ratio > 1.0 and curr_ratio <= 0.8:
+            curr_ratio = _safe_float(curr.get("sum_taker_long_short_vol_ratio", 0))
+            prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 0))
+            # 从 >1 变为 <1，表示从多头主导变为空头主导
+            if prev_ratio > 1 and curr_ratio < 1:
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_short",
                     direction="SELL",
-                    strength=70,
-                    message_key="signal.pg.msg.taker_flip_short",
-                    message_params={"prev": f"{prev_ratio:.2f}", "curr": f"{curr_ratio:.2f}"},
+                    strength=min(75, int(50 + (1 / curr_ratio if curr_ratio > 0 else 1) * 20)),
+                    message_key="signal.pg.msg.flip_short",
+                    message_params={"ratio": f"{curr_ratio:.2f}"},
+                    price=_safe_float(curr.get("close", 0)),
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio},
                 )
         except Exception as e:
@@ -398,47 +414,54 @@ class PGSignalRules:
 
 
 class PGSignalEngine(BaseEngine):
-    """基于 TimescaleDB 的信号检测引擎（解耦版）"""
+    """基于 PostgreSQL 的信号引擎"""
 
-    def __init__(self, db_url: str = None, symbols: list[str] = None):
+    def __init__(self, symbols: list[str] = None):
         super().__init__()
-        self.db_url = db_url or get_database_url()
-        raw_symbols = symbols or _get_default_symbols()
-        self.symbols = _validate_symbols(raw_symbols) if symbols else raw_symbols
-
-        # 状态
-        self.baseline_candles: dict[str, dict] = {}
-        self.baseline_metrics: dict[str, dict] = {}
+        self.symbols = _validate_symbols(symbols or _get_default_symbols())
+        self.db_url = get_database_url()
         self.cooldowns: dict[str, float] = {}
         self.cooldown_seconds = COOLDOWN_SECONDS
+        self.baseline_candles: dict[str, dict] = {}
+        self.baseline_metrics: dict[str, dict] = {}
+        self.rules = PGSignalRules()
+        self._cooldown_storage = get_cooldown_storage()
+        self.persistence_failures = 0
         self._conn = None
         self._conn_last_check = 0.0
-        self._cooldown_storage = get_cooldown_storage()
-        # 只加载 PG 前缀的冷却记录，避免与 SQLite 互相干扰
-        self.cooldowns = {
-            k: v for k, v in self._cooldown_storage.load_all().items() if k.startswith("pg:")
+        self.stats = {
+            "checks": 0,
+            "signals": 0,
+            "errors": 0,
+            "stale": 0,
+            "db_reconnects": 0,
         }
-        if self.cooldowns:
-            logger.info("PG 冷却记录已加载: %d", len(self.cooldowns))
-        self.persistence_failures = 0
-
-        # 统计
-        self.stats = {"checks": 0, "signals": 0, "errors": 0, "stale": 0}
+        self._running = False
+        self._max_reconnect_attempts = 5  # 最大重连次数
+        self._reconnect_delay = 5  # 重连延迟（秒）
 
     def _get_conn(self):
-        """获取数据库连接"""
+        """获取数据库连接，带重试机制"""
         if self._conn is None or self._conn.closed:
-            try:
-                import psycopg
-
-                self._conn = psycopg.connect(self.db_url, connect_timeout=3)
-                self._conn.autocommit = True
-            except ImportError:
-                logger.error("psycopg not installed")
-                return None
-            except Exception as e:
-                logger.error(f"Database connection failed: {e}")
-                return None
+            for attempt in range(self._max_reconnect_attempts):
+                try:
+                    import psycopg
+                    self._conn = psycopg.connect(self.db_url, connect_timeout=5)
+                    self._conn.autocommit = True
+                    self.stats["db_reconnects"] += 1
+                    if attempt > 0:
+                        logger.info(f"数据库重连成功（尝试 {attempt + 1}/{self._max_reconnect_attempts}）")
+                    return self._conn
+                except ImportError:
+                    logger.error("psycopg not installed")
+                    return None
+                except Exception as e:
+                    logger.error(f"Database connection failed (attempt {attempt + 1}/{self._max_reconnect_attempts}): {e}")
+                    if attempt < self._max_reconnect_attempts - 1:
+                        time.sleep(self._reconnect_delay)
+                    else:
+                        logger.error("Max reconnection attempts reached, giving up")
+                        return None
         return self._conn
 
     def _ensure_conn(self):
@@ -590,58 +613,66 @@ class PGSignalEngine(BaseEngine):
         return result
 
     def check_signals(self) -> list[PGSignal]:
-        """检查所有信号"""
-        signals = []
+        """检查信号"""
         self.stats["checks"] += 1
+        signals = []
 
-        candles = self._fetch_latest_candles()
-        metrics = self._fetch_latest_metrics()
-        rules = PGSignalRules()
+        try:
+            candles = self._fetch_latest_candles()
+            metrics = self._fetch_latest_metrics()
+        except Exception as e:
+            logger.error(f"Failed to fetch data: {e}")
+            return signals
+
+        if not candles:
+            logger.warning("No candle data available")
+            return signals
 
         for symbol in self.symbols:
-            curr_candle = candles.get(symbol)
-            prev_candle = self.baseline_candles.get(symbol)
-            curr_metric = metrics.get(symbol)
-            prev_metric = self.baseline_metrics.get(symbol)
+            try:
+                curr_candle = candles.get(symbol)
+                prev_candle = self.baseline_candles.get(symbol)
+                curr_metric = metrics.get(symbol)
+                prev_metric = self.baseline_metrics.get(symbol)
 
-            if not curr_candle:
-                continue
+                if not curr_candle:
+                    continue
 
-            # 数据新鲜度检查
-            ts_candle = curr_candle.get("bucket_ts")
-            if not self._is_fresh(ts_candle, "1m", 60):
-                self.stats["stale"] += 1
-                logger.warning("跳过陈旧K线数据 %s ts=%s", symbol, ts_candle)
-                continue
-            if curr_metric:
-                ts_metric = curr_metric.get("create_time")
-                if not self._is_fresh(ts_metric, "5m", 300):
+                # 数据新鲜度检查
+                ts_candle = curr_candle.get("bucket_ts")
+                if not self._is_fresh(ts_candle, "1m", 60):
                     self.stats["stale"] += 1
-                    logger.warning("跳过陈旧期货指标 %s ts=%s", symbol, ts_metric)
-                    curr_metric = None
+                    logger.warning("跳过陈旧K线数据 %s ts=%s", symbol, ts_candle)
+                    continue
+                if curr_metric:
+                    ts_metric = curr_metric.get("create_time")
+                    if not self._is_fresh(ts_metric, "5m", 300):
+                        self.stats["stale"] += 1
+                        logger.warning("跳过陈旧期货指标 %s ts=%s", symbol, ts_metric)
+                        curr_metric = None
 
-            checkers = [
-                (rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
-                (rules.check_price_dump, [curr_candle, prev_candle, 2.0]),
-                (rules.check_volume_spike, [curr_candle, prev_candle, 5.0]),
-                (rules.check_taker_buy_dominance, [curr_candle, 0.7]),
-                (rules.check_taker_sell_dominance, [curr_candle, 0.7]),
-            ]
+                checkers = [
+                    (self.rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
+                    (self.rules.check_price_dump, [curr_candle, prev_candle, 2.0]),
+                    (self.rules.check_volume_spike, [curr_candle, prev_candle, 5.0]),
+                    (self.rules.check_taker_buy_dominance, [curr_candle, 0.7]),
+                    (self.rules.check_taker_sell_dominance, [curr_candle, 0.7]),
+                ]
 
-            if curr_metric:
-                checkers.extend(
-                    [
-                        (rules.check_oi_surge, [curr_metric, prev_metric, 3.0]),
-                        (rules.check_oi_dump, [curr_metric, prev_metric, 3.0]),
-                        (rules.check_top_trader_extreme_long, [curr_metric, 3.0]),
-                        (rules.check_top_trader_extreme_short, [curr_metric, 0.5]),
-                        (rules.check_taker_ratio_flip_long, [curr_metric, prev_metric]),
-                        (rules.check_taker_ratio_flip_short, [curr_metric, prev_metric]),
-                    ]
-                )
+                if curr_metric:
+                    checkers.extend(
+                        [
+                            (self.rules.check_oi_surge, [curr_metric, prev_metric, 3.0]),
+                            (self.rules.check_oi_dump, [curr_metric, prev_metric, 3.0]),
+                            (self.rules.check_top_trader_extreme_long, [curr_metric, 3.0]),
+                            (self.rules.check_top_trader_extreme_short, [curr_metric, 0.5]),
+                            (self.rules.check_taker_ratio_flip_long, [curr_metric, prev_metric]),
+                            (self.rules.check_taker_ratio_flip_short, [curr_metric, prev_metric]),
+                        ]
+                    )
 
-            for checker, args in checkers:
-                try:
+                for checker, args in checkers:
+                    try:
                         signal = checker(*args)
                         if signal:
                             signal_key = f"pg:{signal.symbol}_{signal.signal_type}"
@@ -656,32 +687,39 @@ class PGSignalEngine(BaseEngine):
                                 else:
                                     self.stats["errors"] += 1
                                     logger.error("冷却持久化失败，跳过信号推送: %s", signal_key)
-                except Exception as e:
-                    logger.warning(f"Check error: {e}")
-                    self.stats["errors"] += 1
+                    except Exception as e:
+                        logger.warning(f"Check error: {e}")
+                        self.stats["errors"] += 1
 
-            self.baseline_candles[symbol] = curr_candle
-            if curr_metric:
-                self.baseline_metrics[symbol] = curr_metric
+                self.baseline_candles[symbol] = curr_candle
+                if curr_metric:
+                    self.baseline_metrics[symbol] = curr_metric
+            except Exception as e:
+                logger.error(f"Error processing symbol {symbol}: {e}")
+                self.stats["errors"] += 1
 
         return signals
 
     def _publish_event(self, signal: PGSignal):
         """发布信号事件"""
-        event = SignalEvent(
-            symbol=signal.symbol,
-            signal_type=signal.signal_type,
-            direction=signal.direction,
-            strength=signal.strength,
-            message_key=signal.message_key,
-            message_params=signal.message_params,
-            timestamp=signal.timestamp,
-            timeframe=signal.timeframe,
-            price=signal.price,
-            source="pg",
-            extra=signal.extra,
-        )
-        SignalPublisher.publish(event)
+        try:
+            event = SignalEvent(
+                symbol=signal.symbol,
+                signal_type=signal.signal_type,
+                direction=signal.direction,
+                strength=signal.strength,
+                message_key=signal.message_key,
+                message_params=signal.message_params,
+                timestamp=signal.timestamp,
+                timeframe=signal.timeframe,
+                price=signal.price,
+                source="pg",
+                extra=signal.extra,
+            )
+            SignalPublisher.publish(event)
+        except Exception as e:
+            logger.error(f"Failed to publish event: {e}")
+            self.stats["errors"] += 1
 
     def _set_cooldown(self, signal_key: str) -> bool:
         """设置冷却并持久化。失败则返回 False，调用方应跳过推送。"""
@@ -696,20 +734,36 @@ class PGSignalEngine(BaseEngine):
             return False
 
     def run_loop(self, interval: int = 60):
-        """持续运行"""
+        """持续运行，带异常恢复"""
         self._running = True
         logger.info(f"PG Signal Engine started, interval: {interval}s, symbols: {self.symbols}")
+
+        consecutive_errors = 0
+        max_consecutive_errors = 10
 
         while self._running:
             try:
                 signals = self.check_signals()
                 if signals:
-                    for signal in signals:
-                        self._emit_signal(signal)
                     logger.info(f"Found {len(signals)} PG signals")
+                consecutive_errors = 0  # 重置错误计数
             except Exception as e:
-                logger.error(f"Run loop error: {e}")
+                consecutive_errors += 1
+                logger.error(f"Run loop error ({consecutive_errors}/{max_consecutive_errors}): {e}")
+                if consecutive_errors >= max_consecutive_errors:
+                    logger.critical(f"Too many consecutive errors ({max_consecutive_errors}), stopping engine")
+                    break
             time.sleep(interval)
+
+    def stop(self):
+        """停止引擎"""
+        self._running = False
+        if self._conn:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+            self._conn = None
 
     def get_stats(self) -> dict:
         return {**self.stats, "symbols": len(self.symbols), "cooldowns": len(self.cooldowns)}

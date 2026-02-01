@@ -12,6 +12,8 @@ Signal Service 入口
 import argparse
 import logging
 import sys
+import threading
+import time
 from pathlib import Path
 
 # 确保 src 在路径中
@@ -19,8 +21,14 @@ SRC_DIR = Path(__file__).parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
+# 全局运行标志
+_running = True
 
 
 def main():
@@ -81,8 +89,9 @@ def main():
             logger.info(f"PG 检测到 {len(signals)} 个信号")
         return
 
-    # 持续运行
-    import threading
+    # 持续运行模式
+    engines = []
+    threads = []
 
     # 注册持久化：把事件写入历史表
     try:
@@ -95,16 +104,20 @@ def main():
     except Exception as e:
         logger.warning(f"历史持久化注册失败: {e}")
 
-    threads = []
-
     if args.sqlite or args.all:
         from engines import get_sqlite_engine
 
         def run_sqlite():
             engine = get_sqlite_engine()
-            engine.run_loop(interval=args.interval)
+            engines.append(("SQLite", engine))
+            while True:
+                try:
+                    engine.run_loop(interval=args.interval)
+                except Exception as e:
+                    logger.error(f"SQLite engine crashed: {e}")
+                    time.sleep(5)  # 等待后重试
 
-        t = threading.Thread(target=run_sqlite, daemon=True, name="SQLiteEngine")
+        t = threading.Thread(target=run_sqlite, daemon=False, name="SQLiteEngine")
         t.start()
         threads.append(t)
         logger.info("SQLite 引擎已启动")
@@ -114,9 +127,15 @@ def main():
 
         def run_pg():
             engine = get_pg_engine()
-            engine.run_loop(interval=args.interval)
+            engines.append(("PG", engine))
+            while True:
+                try:
+                    engine.run_loop(interval=args.interval)
+                except Exception as e:
+                    logger.error(f"PG engine crashed: {e}")
+                    time.sleep(5)  # 等待后重试
 
-        t = threading.Thread(target=run_pg, daemon=True, name="PGEngine")
+        t = threading.Thread(target=run_pg, daemon=False, name="PGEngine")
         t.start()
         threads.append(t)
         logger.info("PG 引擎已启动")
@@ -125,12 +144,38 @@ def main():
         logger.error("请指定要启动的引擎: --sqlite, --pg, 或 --all")
         sys.exit(1)
 
-    # 等待
+    # 主线程保持运行
+    logger.info(f"Signal Service 正在运行，已启动 {len(threads)} 个引擎")
+    logger.info("按 Ctrl+C 停止服务")
+
     try:
-        for t in threads:
-            t.join()
+        while True:
+            # 检查线程是否还在运行
+            alive_threads = [t for t in threads if t.is_alive()]
+            if len(alive_threads) != len(threads):
+                dead_count = len(threads) - len(alive_threads)
+                logger.warning(f"有 {dead_count} 个引擎线程已停止")
+                # 等待所有线程结束或重启
+                if len(alive_threads) == 0:
+                    logger.error("所有引擎都已停止，服务退出")
+                    break
+            time.sleep(1)
     except KeyboardInterrupt:
-        logger.info("收到中断信号，退出...")
+        logger.info("收到中断信号，正在停止服务...")
+        _running = False
+        # 给引擎一些时间清理
+        for name, engine in engines:
+            try:
+                if hasattr(engine, 'stop'):
+                    engine.stop()
+                    logger.info(f"{name} 引擎已停止")
+            except Exception as e:
+                logger.warning(f"停止 {name} 引擎时出错: {e}")
+
+        # 等待线程结束
+        for t in threads:
+            t.join(timeout=5)
+        logger.info("服务已退出")
 
 
 if __name__ == "__main__":
