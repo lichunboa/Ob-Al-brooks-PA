@@ -1,19 +1,30 @@
 /**
  * 统一配置模块
  *
- * 所有环境变量和默认值集中管理，避免各页面重复硬编码。
+ * 浏览器端使用相对路径 /api/backend (走 Next.js rewrite 代理到后端)，
+ * 这样局域网设备（手机等）也能正常访问。
+ * 服务端（SSR）使用绝对地址直连后端。
+ *
  * 使用方式：import { config } from '@/lib/config';
  */
 
+const isBrowser = typeof window !== 'undefined';
+
 export const config = {
-  /** 后端 HTTP API 地址 */
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088',
+  /** 后端 HTTP API 地址（浏览器走代理，SSR 直连） */
+  apiUrl: isBrowser
+    ? '/api/backend'
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'),
 
-  /** WebSocket 地址 */
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088',
+  /** WebSocket 地址（WS 不走代理，需要绝对地址） */
+  wsUrl: isBrowser
+    ? `ws://${window.location.hostname}:8088`
+    : (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8088'),
 
-  /** Sync Service 地址 */
-  syncApiUrl: process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089',
+  /** Sync Service 地址（浏览器走代理） */
+  syncApiUrl: isBrowser
+    ? '/api/sync'
+    : (process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089'),
 
   /** 默认交易对列表 */
   defaultSymbols: [
