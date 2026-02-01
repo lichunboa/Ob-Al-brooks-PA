@@ -6464,7 +6464,39 @@ async def catbo_forward(request: ForwardAnalysisRequest):
 @api_app.get("/api/health")
 async def health_check():
     """健康检查"""
-    return {"status": "ok", "service": "telegram-service"}
+    from health import get_health_report
+    report = await get_health_report()
+    
+    # 根据状态设置HTTP状态码
+    if report['status'] == 'healthy':
+        status_code = 200
+    elif report['status'] == 'degraded':
+        status_code = 200  # 仍可用
+    else:
+        status_code = 503  # Service Unavailable
+    
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content=report, status_code=status_code)
+
+
+@api_app.get("/health/live")
+async def liveness_probe():
+    """Kubernetes存活探针"""
+    from health import get_liveness
+    return get_liveness()
+
+
+@api_app.get("/health/ready")
+async def readiness_probe():
+    """Kubernetes就绪探针"""
+    from health import get_readiness
+    report = await get_readiness()
+    
+    from fastapi.responses import JSONResponse
+    if report['status'] == 'ready':
+        return JSONResponse(content=report)
+    else:
+        return JSONResponse(content=report, status_code=503)
 
 def start_api_server():
     """在后台线程启动 API 服务器"""

@@ -49,10 +49,18 @@ services:
       dockerfile: Dockerfile
     container_name: ab-data-service
     restart: unless-stopped
+    ports:
+      - "8081:8081"
     env_file:
       - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -65,12 +73,22 @@ services:
       dockerfile: Dockerfile
     container_name: ab-trading-service
     restart: unless-stopped
+    ports:
+      - "8082:8082"
     env_file:
       - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
       timescaledb:
+        condition: service_healthy
+      data-service:
         condition: service_healthy
     networks:
       - ab-console-network
@@ -84,8 +102,16 @@ services:
     restart: unless-stopped
     ports:
       - "8089:8089"
+    env_file:
+      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     volumes:
       - ./services/sync-service/src:/app/src
       - ./services/sync-service/data:/app/data
@@ -102,13 +128,21 @@ services:
       dockerfile: Dockerfile
     container_name: ab-signal-service
     restart: unless-stopped
+    ports:
+      - "8083:8083"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - SQLITE_DB_PATH=/app/data/signals.db
       - COOLDOWN_DB_PATH=/app/data/cooldown.db
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
-    command: bash -c "pip install psycopg[binary] -q && python -m src --all"
+    command: bash -c "pip install psycopg[binary] -q && python -m src --all --health-port 8083"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     volumes:
       # 映射本地代码目录，方便修改
       - ./services/signal-service/src:/app/src
@@ -120,6 +154,8 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
+      trading-service:
+        condition: service_started
     networks:
       - ab-console-network
     # 使用 host 网络模式以便访问本机 Clawdbot webhook
