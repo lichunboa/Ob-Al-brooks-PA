@@ -195,10 +195,10 @@ export class ConfigEditorModal extends Modal {
     } else if (typeof currentValue === "object") {
       // 对象用JSON文本区域
       const textarea = valueEl.createEl("textarea", {
-        value: JSON.stringify(currentValue, null, 2),
         cls: "setting-textarea",
-        rows: 4,
       }) as HTMLTextAreaElement;
+      textarea.value = JSON.stringify(currentValue, null, 2);
+      textarea.rows = 4;
       textarea.onchange = () => {
         try {
           this.editedValues.set(
