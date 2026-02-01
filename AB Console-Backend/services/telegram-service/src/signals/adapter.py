@@ -97,15 +97,24 @@ def init_pusher(send_func: Callable, loop: Optional[asyncio.AbstractEventLoop] =
                 except Exception as e:
                     logger.warning(f"推送给 {uid} 失败: {e}")
 
+        async def push_all():
+            """推送给订阅用户 + Clawdbot（在同一个协程中顺序执行）"""
+            await push()
+            if event.strength >= _CLAWDBOT_THRESHOLD:
+                await _notify_clawdbot(event)
+
         # 只在主事件循环内发送，避免跨线程/跨事件循环污染 HTTP 客户端
-        if _main_loop and _main_loop.is_running():
-            asyncio.run_coroutine_threadsafe(push(), _main_loop)
-            return
-        try:
-            running = asyncio.get_running_loop()
-            asyncio.run_coroutine_threadsafe(push(), running)
-        except RuntimeError:
-            logger.warning("⚠️ 主事件循环不可用，跳过信号推送")
+        target_loop = _main_loop if (_main_loop and _main_loop.is_running()) else None
+        if not target_loop:
+            try:
+                target_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                target_loop = None
+
+        if target_loop:
+            asyncio.run_coroutine_threadsafe(push_all(), target_loop)
+        else:
+            logger.warning("主事件循环不可用，跳过信号推送")
 
     SignalPublisher.subscribe(on_signal_event)
     logger.info("信号推送器已初始化")
@@ -136,3 +145,144 @@ def start_pg_signal_loop(interval: int = 60):
 def get_pg_formatter(lang: str = "zh"):
     """获取格式化器"""
     return BaseFormatter()
+
+
+# ========== Clawdbot 集成 ==========
+import json
+import os
+import fcntl
+import aiohttp
+from datetime import datetime, timezone
+
+_CLAWDBOT_WEBHOOK_URL = os.environ.get(
+    "CLAWDBOT_WEBHOOK_URL", "http://127.0.0.1:18789/hooks/al-brooks-signal"
+)
+_CLAWDBOT_WEBHOOK_TOKEN = os.environ.get(
+    "CLAWDBOT_WEBHOOK_TOKEN", "1c542049f68669b0983b8119a471ae74a7909f2fb17ace2675fed4a9a7de03c2"
+)
+# strength 是 int(0-100)，阈值也用同一刻度
+_CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "50"))
+
+# 信号文件目录（避免使用全局可写的 /tmp）
+_CLAWDBOT_SIGNAL_DIR = Path(os.environ.get(
+    "CLAWDBOT_SIGNAL_DIR",
+    os.path.expanduser("~/.clawdbot/signals")
+))
+_CLAWDBOT_SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
+_CLAWDBOT_SIGNAL_FILE = _CLAWDBOT_SIGNAL_DIR / "signals.jsonl"
+_CLAWDBOT_FAILED_QUEUE = _CLAWDBOT_SIGNAL_DIR / "failed_queue.jsonl"
+
+# 文件轮转阈值
+_SIGNAL_FILE_MAX_BYTES = 5 * 1024 * 1024  # 5MB
+
+# 复用 aiohttp session（模块级，进程生命周期内复用）
+_http_session: Optional[aiohttp.ClientSession] = None
+
+
+async def _get_http_session() -> aiohttp.ClientSession:
+    """获取或创建复用的 HTTP session"""
+    global _http_session
+    if _http_session is None or _http_session.closed:
+        _http_session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=5)
+        )
+    return _http_session
+
+
+def _rotate_signal_file_if_needed():
+    """信号文件超过阈值时轮转"""
+    try:
+        if _CLAWDBOT_SIGNAL_FILE.exists() and _CLAWDBOT_SIGNAL_FILE.stat().st_size > _SIGNAL_FILE_MAX_BYTES:
+            rotated = _CLAWDBOT_SIGNAL_DIR / f"signals.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.jsonl"
+            _CLAWDBOT_SIGNAL_FILE.rename(rotated)
+            logger.info(f"信号文件已轮转: {rotated.name}")
+            # 保留最近 5 个归档文件
+            archives = sorted(_CLAWDBOT_SIGNAL_DIR.glob("signals.2*.jsonl"))
+            for old in archives[:-5]:
+                old.unlink(missing_ok=True)
+    except Exception as e:
+        logger.warning(f"信号文件轮转失败: {e}")
+
+
+def _write_signal_to_file(signal_data: dict) -> bool:
+    """带文件锁的原子写入"""
+    try:
+        _rotate_signal_file_if_needed()
+        with open(_CLAWDBOT_SIGNAL_FILE, "a") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                f.write(json.dumps(signal_data, default=str) + "\n")
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        return True
+    except Exception as e:
+        logger.error(f"写入信号文件失败: {e}")
+        return False
+
+
+def _enqueue_failed_signal(signal_data: dict, reason: str):
+    """将发送失败的信号写入磁盘队列，防止丢失"""
+    try:
+        entry = {
+            "signal": signal_data,
+            "failed_at": datetime.now(timezone.utc).isoformat(),
+            "reason": reason,
+        }
+        with open(_CLAWDBOT_FAILED_QUEUE, "a") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                f.write(json.dumps(entry, default=str) + "\n")
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        logger.warning(f"信号已进入失败队列: {signal_data.get('symbol')} - {reason}")
+    except Exception as e:
+        logger.error(f"写入失败队列也失败，信号可能丢失: {e} | signal={signal_data}")
+
+
+async def _notify_clawdbot(event: SignalEvent):
+    """通知 Clawdbot 进行 Al Brooks 深度分析"""
+    if event.strength < _CLAWDBOT_THRESHOLD:
+        return
+
+    signal_data = {
+        "symbol": event.symbol,
+        "direction": event.direction,
+        "strength": event.strength,
+        "timeframe": event.timeframe,
+        "price": event.price,
+        "signal_type": event.signal_type,
+        "timestamp": event.timestamp.isoformat() if isinstance(event.timestamp, datetime) else str(event.timestamp),
+        "received_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # 通道1: 写入信号文件（带文件锁）
+    file_ok = _write_signal_to_file(signal_data)
+
+    # 通道2: HTTP webhook
+    http_ok = False
+    try:
+        session = await _get_http_session()
+        payload = {
+            **signal_data,
+            "source": "signal-service",
+        }
+        headers = {"Authorization": f"Bearer {_CLAWDBOT_WEBHOOK_TOKEN}"}
+        async with session.post(
+            _CLAWDBOT_WEBHOOK_URL, json=payload, headers=headers
+        ) as resp:
+            if resp.status in (200, 202):
+                http_ok = True
+                logger.info(f"Clawdbot webhook 成功: {event.symbol} {event.direction} (HTTP {resp.status})")
+            else:
+                body = await resp.text()
+                logger.warning(f"Clawdbot webhook 异常: HTTP {resp.status} - {body[:200]}")
+    except aiohttp.ClientError as e:
+        logger.warning(f"Clawdbot webhook 连接失败: {type(e).__name__}: {e}")
+    except Exception as e:
+        logger.warning(f"Clawdbot webhook 未知错误: {e}")
+
+    # 双通道都失败时，写入失败队列
+    if not file_ok and not http_ok:
+        _enqueue_failed_signal(signal_data, "both channels failed")
+    elif file_ok:
+        logger.info(f"信号已写入文件: {event.symbol} {event.direction} strength={event.strength}")

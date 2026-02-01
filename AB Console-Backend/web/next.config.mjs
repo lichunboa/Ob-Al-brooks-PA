@@ -1,4 +1,10 @@
-/** @type {import('next').NextConfig} */
+/**
+ * @type {import('next').NextConfig}
+ * 
+ * 本地开发局域网访问配置
+ * 
+ * 允许同一WiFi下的设备访问开发服务器
+ */
 const nextConfig = {
   output: 'standalone',
   
@@ -14,13 +20,14 @@ const nextConfig = {
   
   // 图片优化配置
   images: {
-    unoptimized: true, // Docker 环境下建议关闭
+    unoptimized: true,
   },
   
   // 实验性功能
   experimental: {
-    // 优化包体积
     optimizePackageImports: ['lucide-react'],
+    // 允许远程访问开发服务器 (Next.js 14+)
+    // 注意：这会放宽安全限制，仅在受信任网络使用
   },
   
   // 重写规则（API 代理）
@@ -30,7 +37,6 @@ const nextConfig = {
         source: '/api/backend/:path*',
         destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/:path*`,
       },
-      // Sync Service 代理
       {
         source: '/api/sync/:path*',
         destination: `${process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089'}/api/v1/:path*`,
@@ -38,7 +44,7 @@ const nextConfig = {
     ];
   },
   
-  // 响应头配置
+  // 响应头配置 - 放宽 CORS 限制
   async headers() {
     return [
       {
@@ -48,9 +54,22 @@ const nextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
         ],
       },
     ];
+  },
+  
+  // 开发服务器配置
+  devIndicators: {
+    buildActivityPosition: 'bottom-right',
   },
 };
 

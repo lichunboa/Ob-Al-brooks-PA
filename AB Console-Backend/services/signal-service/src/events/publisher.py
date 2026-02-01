@@ -1,10 +1,13 @@
 """
-信号发布器 - 支持回调订阅
+信号发布器 - 支持回调订阅 + 磁盘持久化队列
 """
 
+import json
 import logging
+import os
 import threading
 from collections.abc import Callable
+from pathlib import Path
 
 from .types import SignalEvent
 
@@ -13,6 +16,13 @@ logger = logging.getLogger(__name__)
 # 可选持久化回调列表（用于写历史、审计）
 _persist_callbacks: list[Callable[[SignalEvent], None]] = []
 _callbacks_lock = threading.Lock()
+
+# 磁盘持久化队列目录
+_PUBLISH_FAIL_DIR = Path(os.environ.get(
+    "SIGNAL_FAIL_DIR",
+    os.path.expanduser("~/.clawdbot/signals")
+))
+_PUBLISH_FAIL_FILE = _PUBLISH_FAIL_DIR / "publish_failures.jsonl"
 
 
 class SignalPublisher:
@@ -87,11 +97,54 @@ class SignalPublisher:
                 cls._persist_failures += 1
                 logger.error(f"持久化回调失败 [{callback.__name__}]: {e}", exc_info=True)
 
+        all_failed = True
         for callback in callbacks:
             try:
                 callback(event)
+                all_failed = False
             except Exception as e:
                 logger.warning(f"信号回调执行失败 [{callback.__name__}]: {e}")
+
+        # 所有回调都失败时，持久化到磁盘防止信号丢失
+        if callbacks and all_failed:
+            cls._persist_failed_signal(event, "all callbacks failed")
+
+    @classmethod
+    def _persist_failed_signal(cls, event: SignalEvent, reason: str):
+        """将发送失败的信号写入磁盘队列"""
+        try:
+            _PUBLISH_FAIL_DIR.mkdir(parents=True, exist_ok=True)
+            entry = {
+                "event": event.to_dict(),
+                "reason": reason,
+                "failed_at": __import__("datetime").datetime.now(
+                    __import__("datetime").timezone.utc
+                ).isoformat(),
+            }
+            with open(_PUBLISH_FAIL_FILE, "a") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+            logger.info(f"失败信号已持久化: {event.symbol} {event.direction}")
+        except Exception as e:
+            logger.error(f"持久化失败信号也失败: {e} | {event.symbol}")
+
+    @classmethod
+    def get_failed_signals(cls) -> list[dict]:
+        """读取失败队列（供重试使用）"""
+        if not _PUBLISH_FAIL_FILE.exists():
+            return []
+        signals = []
+        for line in _PUBLISH_FAIL_FILE.read_text().strip().splitlines():
+            try:
+                signals.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return signals
+
+    @classmethod
+    def clear_failed_signals(cls):
+        """清空失败队列（重试成功后调用）"""
+        if _PUBLISH_FAIL_FILE.exists():
+            _PUBLISH_FAIL_FILE.unlink()
 
     @classmethod
     async def publish_async(cls, event: SignalEvent):
