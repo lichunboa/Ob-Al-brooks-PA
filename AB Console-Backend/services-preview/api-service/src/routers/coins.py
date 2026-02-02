@@ -11,8 +11,19 @@ from src.config import get_settings
 from src.utils.errors import ErrorCode, api_response, error_response
 from src.utils.symbol import to_base_symbol
 
-# 添加 libs/common 到路径以使用全局币种管理
-libs_path = Path(__file__).parent.parent.parent.parent.parent / "libs" / "common"
+# 添加 libs/common 到路径以使用全局币种管理（兼容 Docker 和本地）
+_file_path = Path(__file__)
+libs_path = None
+for i in range(min(5, len(_file_path.parents))):
+    candidate = _file_path.parents[i] / "libs" / "common"
+    if candidate.exists():
+        libs_path = candidate
+        break
+
+# Docker 默认路径
+if libs_path is None:
+    libs_path = Path("/app/libs/common")
+
 if str(libs_path) not in sys.path:
     sys.path.insert(0, str(libs_path))
 

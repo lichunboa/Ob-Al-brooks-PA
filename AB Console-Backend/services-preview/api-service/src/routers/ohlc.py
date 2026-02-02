@@ -6,8 +6,19 @@ import socket
 import sys
 from pathlib import Path
 
-# 添加 data-service 路径以使用 ccxt 适配器
-_data_service_path = str(Path(__file__).parents[4] / "services" / "data-service" / "src")
+# 添加 data-service 路径以使用 ccxt 适配器（兼容 Docker 和本地）
+_file_path = Path(__file__)
+_data_service_path = None
+for i in range(min(5, len(_file_path.parents))):
+    candidate = _file_path.parents[i] / "services" / "data-service" / "src"
+    if candidate.exists():
+        _data_service_path = str(candidate)
+        break
+
+# Docker 默认路径
+if _data_service_path is None:
+    _data_service_path = "/app/data-service-src"  # 如果需要可以映射卷
+
 if _data_service_path not in sys.path:
     sys.path.insert(0, _data_service_path)
 

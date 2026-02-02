@@ -24,8 +24,8 @@ services:
   # 官方 API Service (预览版)
   api-service:
     build:
-      context: ./services-preview/api-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services-preview/api-service/Dockerfile
     container_name: ab-api-service
     restart: unless-stopped
     ports:
@@ -34,7 +34,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - API_HOST=0.0.0.0
       - API_PORT=8088
-      - PYTHONPATH=/app/src
+      - PYTHONPATH=/app/src:/app/libs
     depends_on:
       timescaledb:
         condition: service_healthy

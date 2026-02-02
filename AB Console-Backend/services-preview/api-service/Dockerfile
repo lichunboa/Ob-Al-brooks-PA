@@ -5,11 +5,14 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 安装依赖
-COPY requirements.txt .
+COPY services-preview/api-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 复制 libs 目录（共享库）
+COPY libs/ /app/libs/
+
 # 复制源代码
-COPY src/ ./src/
+COPY services-preview/api-service/src/ /app/src/
 
 # 暴露端口
 EXPOSE 8088
