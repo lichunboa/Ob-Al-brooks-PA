@@ -19,5 +19,8 @@ COPY src/ ./src/
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
-# 启动命令 - 运行 WebSocket 采集器
-CMD ["python3", "-m", "collectors.ws"]
+# 健康检查端口
+EXPOSE 8081
+
+# 启动命令 - 运行所有采集器
+CMD ["python", "-m", "src", "--all", "--health-port", "8081"]

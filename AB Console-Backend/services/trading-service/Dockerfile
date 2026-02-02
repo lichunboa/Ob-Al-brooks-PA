@@ -38,5 +38,5 @@ ENV PYTHONUNBUFFERED=1
 # 数据卷
 VOLUME ["/app/data", "/app/logs"]
 
-# 默认启动命令 - 一次性计算模式（Docker 中建议配合 restart 策略循环运行）
-CMD ["python3", "-m", "src", "--once"]
+# 默认启动命令 - 持续异步运行模式
+CMD ["python", "-m", "src", "--full-async", "--health-port", "8082"]

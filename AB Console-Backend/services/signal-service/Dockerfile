@@ -27,8 +27,8 @@ ENV SQLITE_DB_PATH=/app/data/signals.db
 # 创建数据目录和冷却目录
 RUN mkdir -p /app/data /app/libs/database/services/signal-service
 
-# 暴露端口（如果有API）
-EXPOSE 8080
+# 暴露健康检查端口
+EXPOSE 8083
 
 # 启动命令
-CMD ["python", "-m", "src", "--all"]
+CMD ["python", "-m", "src", "--all", "--health-port", "8083"]

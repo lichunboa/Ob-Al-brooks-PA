@@ -15,4 +15,4 @@ COPY src/ ./src/
 EXPOSE 8088
 
 # 启动命令
-CMD ["python", "-m", "src.main"]
+CMD ["python", "-m", "src"]

@@ -30,12 +30,11 @@ services:
     restart: unless-stopped
     ports:
       - "8088:8088"
-    env_file:
-      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - API_HOST=0.0.0.0
       - API_PORT=8088
+      - PYTHONPATH=/app/src
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -51,10 +50,10 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8081"
-    env_file:
-      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
       interval: 30s
@@ -75,10 +74,10 @@ services:
     restart: unless-stopped
     ports:
       - "8082:8082"
-    env_file:
-      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src:/app/libs
     volumes:
       - market_data:/app/data            # 写入 market_data.db (共享给其他服务)
       - ./libs:/app/libs                 # 共享库
@@ -105,10 +104,10 @@ services:
     restart: unless-stopped
     ports:
       - "8089:8089"
-    env_file:
-      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/api/v1/health')"]
       interval: 30s
@@ -176,18 +175,16 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"
-    env_file:
-      - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - CLAWDBOT_WEBHOOK_URL=${CLAWDBOT_WEBHOOK_URL:-http://host.docker.internal:18789/hooks/al-brooks-signal}
       - WEBHOOK_MODE=false
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
-      # Docker 路径配置
       - PROJECT_ROOT=/app
       - SIGNAL_SERVICE_SRC=/app/services/signal-service/src
       - LIBS_PATH=/app/libs
+      - BOT_TOKEN=${BOT_TOKEN}
     volumes:
       # 完整映射，保留所有功能
       - ./services/telegram-service/src:/app/src
@@ -215,8 +212,6 @@ services:
       dockerfile: Dockerfile
     container_name: ab-forwarder
     restart: unless-stopped
-    env_file:
-      - ./config/.env
     environment:
       - TELEGRAM_API=http://telegram-service:8090/api/catbo-forward
       - SIGNAL_FILE=/app/signals/signals.jsonl
