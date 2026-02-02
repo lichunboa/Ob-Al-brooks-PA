@@ -184,7 +184,7 @@ services:
       - PROJECT_ROOT=/app
       - SIGNAL_SERVICE_SRC=/app/services/signal-service/src
       - LIBS_PATH=/app/libs
-      - BOT_TOKEN=${BOT_TOKEN}
+      - BOT_TOKEN=8507333164:AAG_ObiNaxYww6V5T2XyK7Rm01EIj-VEaFw
     volumes:
       # 完整映射，保留所有功能
       - ./services/telegram-service/src:/app/src
