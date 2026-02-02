@@ -154,9 +154,17 @@ class MetricsCollector:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    symbols = load_symbols(settings.ccxt_exchange)
+    logger.info("使用配置币种 %d 个", len(symbols))
+
     c = MetricsCollector()
     try:
-        c.run_once()
+        while True:
+            c.run_once(symbols)
+            # 每 5 分钟采集一次（与 Binance 数据粒度对齐）
+            time.sleep(300)
+    except KeyboardInterrupt:
+        logger.info("收到退出信号")
     finally:
         c.close()
 
