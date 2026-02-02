@@ -161,14 +161,27 @@ import fcntl
 import aiohttp
 from datetime import datetime, timezone
 
-_CLAWDBOT_WEBHOOK_URL = os.environ.get(
-    "CLAWDBOT_WEBHOOK_URL", "http://127.0.0.1:18789/hooks/al-brooks-signal"
+_CLAWDBOT_WEBHOOK_URL = (
+    os.environ.get("CLAWDBOT_WEBHOOK_URL")
+    or os.environ.get("CLAWDBOT_WEBHOOK")
+    or "http://host.docker.internal:18789/hooks/al-brooks-signal"
 )
 _CLAWDBOT_WEBHOOK_TOKEN = os.environ.get(
     "CLAWDBOT_WEBHOOK_TOKEN", "1c542049f68669b0983b8119a471ae74a7909f2fb17ace2675fed4a9a7de03c2"
 )
 # strength 是 int(0-100)，阈值也用同一刻度
-_CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "50"))
+_CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "60"))
+
+# 后端 API 回调地址（Clawdbot 分析完后将详细报告发回这里）
+_BACKEND_REPORT_URL = os.environ.get(
+    "BACKEND_REPORT_URL", "http://127.0.0.1:8090/api/clawdbot-report"
+)
+_BACKEND_NOTE_URL = os.environ.get(
+    "BACKEND_NOTE_URL", "http://127.0.0.1:8090/api/create-trade-note"
+)
+
+# 推送统计（模块级计数器）
+_push_stats = {"webhook_ok": 0, "webhook_fail": 0, "file_ok": 0, "file_fail": 0}
 
 # 信号文件目录（避免使用全局可写的 /tmp）
 _CLAWDBOT_SIGNAL_DIR = Path(os.environ.get(
@@ -191,9 +204,42 @@ async def _get_http_session() -> aiohttp.ClientSession:
     global _http_session
     if _http_session is None or _http_session.closed:
         _http_session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=5)
+            timeout=aiohttp.ClientTimeout(total=10)
         )
     return _http_session
+
+
+async def _post_with_retry(
+    session: aiohttp.ClientSession,
+    url: str,
+    json_data: dict,
+    headers: dict,
+    max_retries: int = 2,
+) -> tuple[bool, int | None]:
+    """带重试的 HTTP POST（指数退避）"""
+    for attempt in range(max_retries + 1):
+        try:
+            async with session.post(url, json=json_data, headers=headers) as resp:
+                if resp.status in (200, 202):
+                    return True, resp.status
+                body = await resp.text()
+                logger.warning(
+                    f"POST {url} attempt {attempt+1}/{max_retries+1}: "
+                    f"HTTP {resp.status} - {body[:200]}"
+                )
+        except Exception as e:
+            logger.warning(
+                f"POST {url} attempt {attempt+1}/{max_retries+1} failed: "
+                f"{type(e).__name__}: {e}"
+            )
+        if attempt < max_retries:
+            await asyncio.sleep(2 ** attempt)
+    return False, None
+
+
+def get_push_stats() -> dict:
+    """返回推送统计（供健康检查/调试用）"""
+    return dict(_push_stats)
 
 
 def _rotate_signal_file_if_needed():
@@ -264,8 +310,9 @@ async def _notify_clawdbot(event: SignalEvent):
 
     # 通道1: 写入信号文件（带文件锁）
     file_ok = _write_signal_to_file(signal_data)
+    _push_stats["file_ok" if file_ok else "file_fail"] += 1
 
-    # 通道2: HTTP webhook (推送给Clawdbot)
+    # 通道2: HTTP webhook (推送给Clawdbot，带重试)
     http_ok = False
     try:
         session = await _get_http_session()
@@ -273,26 +320,31 @@ async def _notify_clawdbot(event: SignalEvent):
         from .ui import _get_subscribers
         subscribers = _get_subscribers()
         user_id = list(subscribers)[0] if subscribers else "756069822"  # 默认用户
-        
+
         payload = {
             **signal_data,
             "source": "signal-service",
-            "user_id": str(user_id),  # 添加用户ID
+            "user_id": str(user_id),
+            # 回调配置：告知 Clawdbot 分析完后把详细报告发到哪里
+            "backend_api": {
+                "report_url": _BACKEND_REPORT_URL,
+                "note_url": _BACKEND_NOTE_URL,
+            },
         }
         headers = {"Authorization": f"Bearer {_CLAWDBOT_WEBHOOK_TOKEN}"}
-        async with session.post(
-            _CLAWDBOT_WEBHOOK_URL, json=payload, headers=headers
-        ) as resp:
-            if resp.status in (200, 202):
-                http_ok = True
-                logger.info(f"Clawdbot webhook 成功: {event.symbol} {event.direction} (HTTP {resp.status})")
-            else:
-                body = await resp.text()
-                logger.warning(f"Clawdbot webhook 异常: HTTP {resp.status} - {body[:200]}")
-    except aiohttp.ClientError as e:
-        logger.warning(f"Clawdbot webhook 连接失败: {type(e).__name__}: {e}")
+
+        http_ok, status = await _post_with_retry(
+            session, _CLAWDBOT_WEBHOOK_URL, payload, headers, max_retries=2
+        )
+        if http_ok:
+            logger.info(
+                f"Clawdbot webhook 成功: {event.symbol} {event.direction} "
+                f"strength={event.strength} (HTTP {status})"
+            )
     except Exception as e:
         logger.warning(f"Clawdbot webhook 未知错误: {e}")
+
+    _push_stats["webhook_ok" if http_ok else "webhook_fail"] += 1
 
     # 双通道都失败时，写入失败队列
     if not file_ok and not http_ok:

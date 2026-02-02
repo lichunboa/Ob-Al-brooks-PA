@@ -6492,7 +6492,7 @@ async def receive_clawdbot_report(request: ClawdbotReportRequest):
         lines = [
             f"🚨 <b>Clawdbot 深度分析 - {symbol}</b>",
             f"",
-            f"【后端信号】{strength:.0%} 强度 | {direction} | {report.get('timeframe', '5m')}",
+            f"【后端信号】{strength}% 强度 | {direction} | {report.get('timeframe', '5m')}",
             f"",
         ]
 
@@ -6550,6 +6550,160 @@ async def receive_clawdbot_report(request: ClawdbotReportRequest):
 
     except Exception as e:
         logger.error(f"Clawdbot 报告推送失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class TradeNoteRequest(BaseModel):
+    """Clawdbot 交易笔记创建请求"""
+    symbol: str
+    direction: str  # 做多/做空
+    timeframe: str = "5m"
+    entry_price: float = 0
+    stop_loss: float = 0
+    take_profit: float = 0
+    strategy_name: str = ""
+    market_cycle: str = ""
+    always_in: str = ""
+    setup_category: str = ""
+    patterns_observed: list = []
+    signal_bar_quality: list = []
+    analysis_summary: str = ""
+    score: int = 0
+
+
+@api_app.post("/api/create-trade-note")
+async def create_trade_note(request: TradeNoteRequest):
+    """根据 Clawdbot 分析结果自动创建 Obsidian 交易笔记
+
+    在 OBSIDIAN_VAULT_PATH/Daily/Trades/ 中创建符合模板格式的 .md 文件。
+    账户类型固定为"模拟"，标签为 PA/Trade。
+    """
+    import os
+    from datetime import datetime, timezone
+
+    vault_path = os.environ.get("OBSIDIAN_VAULT_PATH", "")
+    if not vault_path:
+        raise HTTPException(status_code=500, detail="OBSIDIAN_VAULT_PATH 未配置")
+
+    trades_dir = os.path.join(vault_path, "Daily", "Trades")
+    os.makedirs(trades_dir, exist_ok=True)
+
+    now = datetime.now(timezone.utc)
+    filename = f"{now.strftime('%y%m%d_%H%M')}_模拟_{request.symbol}.md"
+    filepath = os.path.join(trades_dir, filename)
+
+    # 格式化 patterns/signal_bar 为 YAML 列表
+    def yaml_list(items):
+        if not items:
+            return ""
+        return "\n".join(f"  - {item}" for item in items)
+
+    patterns_yaml = yaml_list(request.patterns_observed)
+    signal_bar_yaml = yaml_list(request.signal_bar_quality)
+
+    # 按模板生成 frontmatter（27 字段）
+    frontmatter = f"""---
+封面/cover:
+categories:
+  - 交易日记
+tags:
+  - PA/Trade
+date: {now.strftime('%Y-%m-%d')}
+账户类型/account_type: 模拟
+品种/ticker: {request.symbol}
+时间周期/timeframe: {request.timeframe}
+日内类型/day_type:
+总是方向/always_in: {request.always_in}
+市场周期/market_cycle: {request.market_cycle}
+方向/direction: {request.direction}
+设置类别/setup_category: {request.setup_category}
+观察到的形态/patterns_observed:
+{patterns_yaml}
+信号K/signal_bar_quality:
+{signal_bar_yaml}
+策略名称/strategy_name: {request.strategy_name}
+管理计划/management_plan:
+订单类型/order_type:
+入场/entry_price: {request.entry_price if request.entry_price else ''}
+止损/stop_loss: {request.stop_loss if request.stop_loss else ''}
+目标位/take_profit: {request.take_profit if request.take_profit else ''}
+初始风险/initial_risk:
+净利润/net_profit:
+执行评价/execution_quality:
+结果/outcome:
+---"""
+
+    # 生成笔记正文
+    body = f"""
+---
+
+# Clawdbot 模拟交易 — {request.symbol} {request.direction}
+
+## 🧭 1) 市场背景（Context）
+
+{request.analysis_summary}
+
+- Always In: {request.always_in}
+- 市场周期: {request.market_cycle}
+- 评分: {request.score}/100
+
+---
+
+## 🧩 2) Setup / 形态（Setup & Patterns）
+
+- 策略匹配: **{request.strategy_name}**
+- 观察到的形态: {', '.join(request.patterns_observed) if request.patterns_observed else '待填写'}
+- 信号K质量: {', '.join(request.signal_bar_quality) if request.signal_bar_quality else '待填写'}
+
+---
+
+## 🎯 3) 入场（Entry）
+
+- 入场位置: {request.entry_price}
+- 止损位置: {request.stop_loss}
+- 目标位置: {request.take_profit}
+
+---
+
+## 🧰 4) 持仓管理（Trade Management）
+
+- [ ] Set & Forget
+- [ ] Trailing
+- [ ] Scale In/Out
+- [ ] Scratch / Early Exit
+
+---
+
+## 🏁 5) 结果与复盘（Outcome & Review）
+
+### 核心教训
+
+-
+
+### 失败/错误复盘
+
+- [ ] 看错背景（Context Error）
+- [ ] 进得太早/太晚（Timing Error）
+- [ ] 心态问题（FOMO/Fear）
+- [ ] 概率问题（Good Trade, Bad Outcome）
+
+> 由 Clawdbot 自动创建 | {now.strftime('%Y-%m-%d %H:%M UTC')}
+"""
+
+    content = frontmatter + body
+
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"交易笔记已创建: {filepath}")
+        return {
+            "ok": True,
+            "message": "trade note created",
+            "path": filepath,
+            "filename": filename,
+        }
+    except Exception as e:
+        logger.error(f"创建交易笔记失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
