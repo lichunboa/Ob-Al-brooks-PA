@@ -106,8 +106,7 @@ class SyncLog(Base):
 class SettingModel(Base):
     """通用配置表"""
     __tablename__ = "settings"
-    __table_args__ = {"schema": "config"}
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     category = Column(String(50), nullable=False, index=True)
     key = Column(String(100), nullable=False)
@@ -115,17 +114,11 @@ class SettingModel(Base):
     description = Column(Text)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
-    __table_args__ = (
-        # 确保 category + key 唯一
-        {"schema": "config", "comment": "通用配置表"}
-    )
 
 
 class SignalRuleModel(Base):
     """信号规则配置表"""
     __tablename__ = "signal_rules"
-    __table_args__ = {"schema": "config"}
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     rule_id = Column(String(100), nullable=False, unique=True, index=True)
@@ -150,7 +143,6 @@ class SignalRuleModel(Base):
 class MonitoringConfigModel(Base):
     """监控配置表"""
     __tablename__ = "monitoring"
-    __table_args__ = {"schema": "config"}
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(100), nullable=False, index=True)
@@ -198,11 +190,12 @@ def init_db():
             pool_pre_ping=True,
         )
     
-    # 创建config schema（如果不存在）
-    from sqlalchemy import text
-    with _engine.connect() as conn:
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS config"))
-        conn.commit()
+    # PostgreSQL 需要创建 config schema
+    if not db_url.startswith("sqlite"):
+        from sqlalchemy import text
+        with _engine.connect() as conn:
+            conn.execute(text("CREATE SCHEMA IF NOT EXISTS config"))
+            conn.commit()
     
     # 创建表
     Base.metadata.create_all(bind=_engine)

@@ -180,7 +180,7 @@ services:
       - ./config/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
-      - CLAWDBOT_WEBHOOK=${CLAWDBOT_WEBHOOK:-http://host.docker.internal:18789/webhook/albrooks}
+      - CLAWDBOT_WEBHOOK_URL=${CLAWDBOT_WEBHOOK_URL:-http://host.docker.internal:18789/hooks/al-brooks-signal}
       - WEBHOOK_MODE=false
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
