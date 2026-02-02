@@ -228,6 +228,23 @@ services:
     networks:
       - ab-console-network
 
+  # Web Dashboard - Next.js 前端
+  web-dashboard:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: ab-web-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8088
+    depends_on:
+      - api-service
+    networks:
+      - ab-console-network
+
 volumes:
   timescaledb_data:
     driver: local
