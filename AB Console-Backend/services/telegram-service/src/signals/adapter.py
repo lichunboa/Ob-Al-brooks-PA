@@ -167,7 +167,7 @@ _CLAWDBOT_WEBHOOK_URL = (
     or "http://host.docker.internal:18789/hooks/al-brooks-signal"
 )
 _CLAWDBOT_WEBHOOK_TOKEN = os.environ.get(
-    "CLAWDBOT_WEBHOOK_TOKEN", "1c542049f68669b0983b8119a471ae74a7909f2fb17ace2675fed4a9a7de03c2"
+    "CLAWDBOT_WEBHOOK_TOKEN", "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
 )
 # strength 是 int(0-100)，阈值也用同一刻度
 _CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "60"))
