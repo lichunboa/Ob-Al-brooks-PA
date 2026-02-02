@@ -1,48 +1,92 @@
 # Clawdbot 交易信号管道配置手册
 
-**版本**: v1.1
-**更新**: 2026-02-01
-**适用**: AB Console Backend + Clawdbot 信号集成
+**版本**: v2.1
+**更新**: 2026-02-03
+**适用**: AB Console Backend + OpenClaw (Clawdbot) 双机器人信号集成
 
 ---
 
 ## 1. 架构总览
 
+### 1.1 双机器人架构
+
 ```
-signal-service (129规则)
-       |
-  SignalPublisher.publish()
-       |
-  on_signal_event()
-       |
-       +---> push()          --> Telegram @catbo26bot (简单信号)
-       |
-       +---> _notify_clawdbot()
-                |
-                +---> 通道1: ~/.clawdbot/signals/signals.jsonl (文件，带锁)
-                |
-                +---> 通道2: POST /hooks/al-brooks-signal (HTTP webhook)
-                |
-                +---> 失败队列: ~/.clawdbot/signals/failed_queue.jsonl
-                            |
-                      Clawdbot AI Agent
-                            |
-                      Al Brooks 深度分析
-                            |
-                      Telegram @chunboClawd_bot (详细交易计划)
+                              ┌─────────────────────────────────────┐
+                              │         signal-service              │
+                              │         (129条规则)                  │
+                              └──────────────┬──────────────────────┘
+                                             │
+                                   SignalPublisher.publish()
+                                             │
+                              ┌──────────────┴──────────────────────┐
+                              │      telegram-service/adapter.py     │
+                              │         (strength >= 60)             │
+                              └──────────────┬──────────────────────┘
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    │                        │                        │
+            通道1: 文件              通道2: HTTP Webhook        失败队列
+    ~/.clawdbot/signals/       POST /hooks/al-brooks-signal    failed_queue.jsonl
+        signals.jsonl                        │
+                    │                        │
+                    └────────────────────────┼────────────────────────┘
+                                             │
+                              ┌──────────────┴──────────────────────┐
+                              │     OpenClaw (Clawdbot) AI Agent     │
+                              │         @chunboClawd_bot             │
+                              │                                      │
+                              │  1. Al Brooks 七步分析法              │
+                              │  2. 匹配11大策略卡片                   │
+                              │  3. 条件累积评分 (0-100)              │
+                              │  4. 生成交易计划                      │
+                              └──────────────┬──────────────────────┘
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    │                        │                        │
+            用户 Telegram              后端 API 回调            Obsidian 笔记
+         (简版报告 + 互动)        POST /api/clawdbot-report    POST /api/create-trade-note
+                                         │                        │
+                              ┌──────────┴──────────┐    ┌────────┴────────┐
+                              │ @abconsole_backend_bot│    │ Daily/Trades/   │
+                              │   (详版分析报告)       │    │ 自动创建交易笔记  │
+                              └─────────────────────┘    └─────────────────┘
 ```
+
+### 1.2 双机器人职责
+
+| 机器人 | Token | 职责 |
+|--------|-------|------|
+| `@chunboClawd_bot` | OpenClaw 配置 | 用户交互、简版报告、AI 分析 |
+| `@abconsole_backend_bot` | `8507333164:AAG_...` | 详版报告存档、原有 39 卡片/快照功能 |
 
 ---
 
-## 2. Clawdbot 配置
+## 2. OpenClaw 配置
 
 ### 2.1 配置文件位置
 
 ```
-~/.clawdbot/clawdbot.json
+~/.clawdbot/openclaw.json
 ```
 
-### 2.2 Hooks 配置（webhook 接收）
+### 2.2 信号处理脚本（当前方案）
+
+OpenClaw 使用文件轮询方式处理信号：
+
+```
+脚本位置: ~/.openclaw/workspace/al_brooks_processor.py
+信号文件: ~/.clawdbot/signals/signals.jsonl
+状态文件: ~/.clawdbot/signals/.processed
+```
+
+处理流程：
+1. 定时检查信号文件修改时间
+2. 读取新信号（JSON Lines 格式）
+3. 调用 `al-brooks-trader` skill 进行七步分析
+4. POST 详细报告到后端 API
+5. 发送简要报告给用户
+
+### 2.3 Hooks 配置（备用方案 - webhook 接收）
 
 ```json
 {
@@ -60,56 +104,50 @@ signal-service (129规则)
         "name": "Al Brooks Signal",
         "deliver": true,
         "channel": "telegram",
-        "messageTemplate": "【交易信号到达】请使用 Al Brooks 价格行为分析法进行深度分析：\n\n品种: {{symbol}}\n方向: {{direction}}\n强度: {{strength}}\n周期: {{timeframe}}\n价格: {{price}}\n信号类型: {{signal_type}}\n时间戳: {{timestamp}}\n来源: {{source}}\n\n请执行以下分析：\n1. Al Brooks 七步分析法\n2. 匹配11大交易策略\n3. 计算条件累积评分（0-100分）\n4. 生成详细交易计划（入场点、止损、目标、仓位）\n5. 给出明确的操作建议"
+        "transform": "al-brooks-dual-send",
+        "messageTemplate": "..."
       }
     ]
   }
 }
 ```
 
-### 2.3 Hooks 配置字段说明
+### 2.4 Transform 模块
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `hooks.enabled` | bool | Y | 启用 webhook 功能 |
-| `hooks.token` | string | Y | Bearer 认证 token |
-| `hooks.path` | string | N | 基础路径前缀，默认 `/hooks` |
-| `hooks.maxBodyBytes` | int | N | 最大请求体，默认 256KB |
-| `hooks.mappings` | array | N | 自定义端点映射列表 |
-| `hooks.presets` | string[] | N | 预设映射，如 `["gmail"]` |
+Transform 模块位于 `~/.clawdbot/transforms/al-brooks-dual-send.js`，负责：
 
-### 2.4 Mapping 对象字段
+1. 接收原始信号 payload
+2. 提取后端 API 回调地址
+3. 构造指令消息，指导 AI Agent 执行双输出
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | string | 映射唯一标识 |
-| `match.path` | string | URL 路径匹配（不含 `/hooks/` 前缀） |
-| `match.source` | string | 按 payload 中的 source 字段匹配 |
-| `action` | `"wake"` / `"agent"` | wake=唤醒主会话, agent=启动独立代理 |
-| `wakeMode` | `"now"` / `"next-heartbeat"` | 立即执行或等下次心跳 |
-| `name` | string | 显示名称 |
-| `deliver` | bool | 是否将结果发送到 channel |
-| `channel` | string | 投递渠道: telegram/whatsapp/discord/slack/last |
-| `to` | string | 目标用户（可选） |
-| `messageTemplate` | string | 消息模板，支持 `{{field}}` 变量 |
-| `model` | string | 指定 AI 模型（可选） |
-| `sessionKey` | string | 会话 key（可选，用于保持上下文） |
-| `timeoutSeconds` | int | 超时秒数（可选） |
+```javascript
+// al-brooks-dual-send.js 核心逻辑
+export default async function transform(ctx) {
+    const payload = ctx.payload;
+    const reportUrl = payload.backend_api?.report_url || 'http://127.0.0.1:8090/api/clawdbot-report';
+    const noteUrl = payload.backend_api?.note_url || 'http://127.0.0.1:8090/api/create-trade-note';
 
-### 2.5 模板变量
-
-模板支持以下变量来源：
-
-```
-{{field}}           -> payload 顶层字段
-{{payload.field}}   -> 显式 payload 字段
-{{headers.field}}   -> 请求头
-{{query.field}}     -> URL 查询参数
-{{path}}            -> 匹配的路径
-{{now}}             -> 当前 ISO 时间戳
+    // 返回指令消息，AI Agent 将：
+    // 1. 发送简版报告给用户
+    // 2. POST 详版报告到 reportUrl
+    // 3. (可选) POST 交易笔记到 noteUrl
+    return { message: [...].join('\n') };
+}
 ```
 
-数组访问: `{{messages[0].subject}}`
+### 2.5 Skill 文档
+
+AI Agent 的分析能力由 Skill 文档定义：
+
+```
+docs/clawdbot-integration/al-brooks-skill/SKILL.md
+```
+
+Skill 文档包含：
+- 11 大策略卡片速查表
+- 双输出格式要求
+- 知识库引用指南
+- 演进机制说明
 
 ---
 
@@ -125,258 +163,209 @@ AB Console-Backend/services/telegram-service/src/signals/adapter.py
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `CLAWDBOT_WEBHOOK_URL` | `http://127.0.0.1:18789/hooks/al-brooks-signal` | Webhook 端点 |
+| `CLAWDBOT_WEBHOOK_URL` | `http://host.docker.internal:18789/hooks/al-brooks-signal` | Webhook 端点 |
 | `CLAWDBOT_WEBHOOK_TOKEN` | (内置默认) | Bearer 认证 token |
-| `CLAWDBOT_THRESHOLD` | `50` | 推送阈值 (0-100 整数刻度) |
-| `CLAWDBOT_SIGNAL_DIR` | `~/.clawdbot/signals` | 信号文件目录 |
+| `CLAWDBOT_THRESHOLD` | `60` | 推送阈值 (0-100 整数刻度) |
+| `BACKEND_REPORT_URL` | `http://127.0.0.1:8090/api/clawdbot-report` | 详版报告回调 |
+| `BACKEND_NOTE_URL` | `http://127.0.0.1:8090/api/create-trade-note` | 交易笔记回调 |
 
-### 3.3 strength 字段语义
+### 3.3 Docker 网络注意事项
 
-**统一规范**: `strength` 是 `int` 类型，范围 `0-100`。
+在 Docker 容器中运行时：
+- Clawdbot 运行在宿主机，容器内需使用 `host.docker.internal` 访问
+- docker-compose.yml 已配置 `extra_hosts: host.docker.internal:host-gateway`
+- 后端 API 回调地址使用容器内地址 `127.0.0.1:8090`
 
-| 范围 | 含义 | 后端行为 |
-|------|------|---------|
-| 0-49 | 低强度信号 | 仅推送给 Telegram 订阅用户 |
-| 50-100 | 中高强度信号 | 推送给用户 + Clawdbot 深度分析 |
+### 3.4 推送重试机制
 
-**阈值调整**:
-- 测试阶段: `CLAWDBOT_THRESHOLD=50`（大部分信号都推送）
-- 生产环境: `CLAWDBOT_THRESHOLD=75`（仅高概率信号）
-
-### 3.4 双通道推送机制
-
-| 通道 | 方式 | 优先级 | 失败处理 |
-|------|------|--------|---------|
-| 文件通道 | `~/.clawdbot/signals/signals.jsonl` | 主通道 | 记录错误日志 |
-| HTTP 通道 | `POST /hooks/al-brooks-signal` | 辅助通道 | 记录详细错误（状态码+响应体） |
-| 失败队列 | `~/.clawdbot/signals/failed_queue.jsonl` | 兜底 | 双通道都失败时写入 |
-
-### 3.5 信号文件格式 (JSONL)
-
-```jsonl
-{"symbol":"BTCUSDT","direction":"BUY","strength":82,"timeframe":"5m","price":97500.5,"signal_type":"20均线缺口","timestamp":"2026-02-01T08:30:00","received_at":"2026-02-01T08:30:01+00:00"}
-```
-
-### 3.6 文件轮转
-
-- 阈值: 5MB
-- 轮转后文件名: `signals.20260201_083000.jsonl`
-- 保留最近 5 个归档
-- 带 `fcntl.flock` 文件锁，防并发写入损坏
-
----
-
-## 4. 信号发布器持久化
-
-### 4.1 文件位置
-
-```
-AB Console-Backend/services/signal-service/src/events/publisher.py
-```
-
-### 4.2 失败恢复机制
-
-当 `SignalPublisher.publish()` 的**所有回调都失败**时，信号会被写入磁盘：
-
-```
-~/.clawdbot/signals/publish_failures.jsonl
-```
-
-可通过以下方法访问：
+adapter.py 实现了指数退避重试：
 
 ```python
-from events import SignalPublisher
+async def _post_with_retry(url, json_data, headers, max_retries=2):
+    for attempt in range(max_retries + 1):
+        try:
+            async with _http_session.post(url, json=json_data, headers=headers, timeout=10) as resp:
+                if resp.status in (200, 202):
+                    return True
+        except Exception as e:
+            if attempt < max_retries:
+                await asyncio.sleep(2 ** attempt)  # 1s, 2s
+    return False
+```
 
-# 读取失败信号
-failed = SignalPublisher.get_failed_signals()
+### 3.5 推送统计
 
-# 重试成功后清空
-SignalPublisher.clear_failed_signals()
+```python
+from signals.adapter import get_push_stats
+
+stats = get_push_stats()
+# {'webhook_ok': 42, 'webhook_fail': 3, 'file_ok': 45, 'file_fail': 0}
 ```
 
 ---
 
-## 5. 服务管理
+## 4. 后端 API 端点
 
-### 5.1 Clawdbot Gateway
+### 4.1 详版报告接收
+
+```
+POST /api/clawdbot-report
+```
+
+请求体：
+```json
+{
+  "symbol": "BTCUSDT",
+  "direction": "BUY",
+  "strength": 82,
+  "timeframe": "5m",
+  "price": 97500.5,
+  "signal_type": "20均线缺口",
+  "analysis": "详细的 Al Brooks 分析内容...",
+  "strategy_match": "策略卡片名称",
+  "entry_price": 97500,
+  "stop_loss": 97000,
+  "take_profit": 98500,
+  "position_size": "2%",
+  "score": 82,
+  "timestamp": "2026-02-02T08:30:00Z"
+}
+```
+
+### 4.2 交易笔记创建
+
+```
+POST /api/create-trade-note
+```
+
+请求体：
+```json
+{
+  "symbol": "BTCUSDT",
+  "direction": "BUY",
+  "timeframe": "5m",
+  "entry_price": 97500,
+  "stop_loss": 97000,
+  "take_profit": 98500,
+  "strategy": "20均线缺口",
+  "score": 82,
+  "analysis": "分析摘要..."
+}
+```
+
+响应：
+```json
+{
+  "success": true,
+  "file_path": "Daily/Trades/260202_0830_模拟_BTCUSDT.md"
+}
+```
+
+---
+
+## 5. 服务端口汇总
+
+| 服务 | 端口 | 协议 | 说明 |
+|------|------|------|------|
+| Clawdbot Gateway | 18789 | WebSocket + HTTP | OpenClaw AI Agent |
+| API Service | 8088 | HTTP | 主 API 服务 |
+| Sync Service | 8089 | HTTP | Obsidian 同步 |
+| Telegram Service | 8090 | HTTP | Bot + 回调 API |
+| Signal Service | 8083 | HTTP | 信号检测健康检查 |
+| TimescaleDB | 5434 | PostgreSQL | 时序数据库 |
+| Web Dashboard | 3000 | HTTP | 前端面板 |
+
+---
+
+## 6. Docker Compose 部署
+
+### 6.1 启动所有服务
 
 ```bash
-# 状态检查
-launchctl list | grep clawdbot
-curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:18789/
-
-# 重启
-launchctl kickstart -k gui/$(id -u)/com.clawdbot.gateway
-
-# 日志
-tail -f ~/.clawdbot/logs/gateway.log       # 主日志
-tail -f ~/.clawdbot/logs/gateway.err.log   # 错误日志
-tail -f /tmp/clawdbot/clawdbot-$(date +%Y-%m-%d).log  # 详细运行日志
+cd "AB Console-Backend"
+export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
+docker compose up -d
 ```
 
-### 5.2 LaunchAgent 配置
-
-```
-~/Library/LaunchAgents/com.clawdbot.gateway.plist
-```
-
-- 命令: `node clawdbot/dist/entry.js gateway --port 18789`
-- KeepAlive: true（崩溃自动重启）
-- RunAtLoad: true（登录自动启动）
-
-### 5.3 Telegram Service
+### 6.2 查看服务状态
 
 ```bash
-# 启动
-cd "AB Console-Backend/services/telegram-service"
-source .venv/bin/activate
-python src/bot/app.py &
-
-# 停止
-pkill -f "telegram-service.*app.py"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep ab-
 ```
 
-### 5.4 Webhook 手动测试
+### 6.3 查看日志
 
 ```bash
-curl -X POST http://127.0.0.1:18789/hooks/al-brooks-signal \
-  -H "Authorization: Bearer <TOKEN>" \
+docker logs -f ab-telegram-service --tail 50
+```
+
+---
+
+## 7. 故障排查
+
+### 7.1 Clawdbot 无法从容器访问
+
+```bash
+# 检查 host.docker.internal 是否可达
+docker exec ab-telegram-service python -c "
+import urllib.request
+try:
+    r = urllib.request.urlopen('http://host.docker.internal:18789/', timeout=3)
+    print(f'Clawdbot reachable: HTTP {r.status}')
+except Exception as e:
+    print(f'Clawdbot unreachable: {e}')
+"
+```
+
+### 7.2 详版报告未发送到后端 Bot
+
+1. 检查 transform 模块是否正确加载
+2. 检查 AI Agent 是否执行了 HTTP POST
+3. 查看 telegram-service 日志中的 `/api/clawdbot-report` 请求
+
+```bash
+docker logs ab-telegram-service 2>&1 | grep clawdbot-report
+```
+
+### 7.3 交易笔记未创建
+
+1. 检查评分是否 >= 70（笔记创建阈值）
+2. 检查 Obsidian vault 路径配置
+3. 查看 API 响应
+
+```bash
+curl -X POST http://localhost:8090/api/create-trade-note \
   -H "Content-Type: application/json" \
-  -d '{
-    "symbol": "BTCUSDT",
-    "direction": "BUY",
-    "strength": 85,
-    "timeframe": "5m",
-    "price": 97500.5,
-    "signal_type": "20均线缺口",
-    "timestamp": "2026-02-01T08:30:00",
-    "source": "signal-service"
-  }'
-
-# 成功返回: {"ok":true,"runId":"<uuid>"}  HTTP 202
+  -d '{"symbol":"BTCUSDT","direction":"BUY","timeframe":"5m","entry_price":97500,"stop_loss":97000,"take_profit":98500,"strategy":"测试","score":85}'
 ```
 
 ---
 
-## 6. 关键文件路径
+## 8. 配置变更历史
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-02-03 | v2.1 | OpenClaw 文件轮询方案确认、信号处理脚本配置、API 端点验证通过 |
+| 2026-02-02 | v2.0 | 双机器人架构、Transform 模块、后端 API 回调、交易笔记自动创建 |
+| 2026-02-02 | v2.0 | 推送阈值 50 -> 60、重试机制、推送统计 |
+| 2026-02-02 | v2.0 | Docker 网络修复 (host.docker.internal) |
+| 2026-02-02 | v2.0 | Skill 文档重写（灵活分析 vs 模板化） |
+| 2026-02-01 | v1.1 | 初始 Clawdbot 集成 |
+
+---
+
+## 9. 关键文件路径
 
 | 用途 | 路径 |
 |------|------|
-| Clawdbot 主配置 | `~/.clawdbot/clawdbot.json` |
-| Clawdbot gateway 日志 | `~/.clawdbot/logs/gateway.log` |
-| Clawdbot 错误日志 | `~/.clawdbot/logs/gateway.err.log` |
-| Clawdbot 运行时日志 | `/tmp/clawdbot/clawdbot-YYYY-MM-DD.log` |
+| OpenClaw 配置 | `~/.clawdbot/openclaw.json` |
+| 信号处理脚本 | `~/.openclaw/workspace/al_brooks_processor.py` |
 | 信号文件 | `~/.clawdbot/signals/signals.jsonl` |
-| 失败队列 | `~/.clawdbot/signals/failed_queue.jsonl` |
-| 发布失败队列 | `~/.clawdbot/signals/publish_failures.jsonl` |
-| 后端适配器 | `AB Console-Backend/services/telegram-service/src/signals/adapter.py` |
-| 信号发布器 | `AB Console-Backend/services/signal-service/src/events/publisher.py` |
-| 事件类型定义 | `AB Console-Backend/services/signal-service/src/events/types.py` |
-| LaunchAgent | `~/Library/LaunchAgents/com.clawdbot.gateway.plist` |
-| Al Brooks Skill 文档 | `docs/clawdbot-integration/al-brooks-skill/` |
-
----
-
-## 7. 端口汇总
-
-| 服务 | 端口 | 协议 |
-|------|------|------|
-| Clawdbot Gateway | 18789 | WebSocket + HTTP |
-| Clawdbot Browser Control | 18791 | HTTP |
-| API Service | 8088 | HTTP |
-| Sync Service | 8089 | HTTP |
-| TimescaleDB | 5434 | PostgreSQL |
-| Web Dashboard | 3000 | HTTP |
-
----
-
-## 8. 已知问题与待修复项
-
-### 已修复 (2026-02-01)
-
-| 编号 | 问题 | 修复内容 |
-|------|------|---------|
-| C-3 | asyncio 死路 | `_notify_clawdbot` 合并到 `push_all()` 协程，统一通过 `run_coroutine_threadsafe` 调度 |
-| H-2 | strength 类型混乱 | 阈值统一为 int(0-100)，`_CLAWDBOT_THRESHOLD=50` |
-| H-1 | 信号丢失无恢复 | 添加磁盘失败队列 `publish_failures.jsonl` + `failed_queue.jsonl` |
-| H-5 | HTTP 错误被吞没 | 分类记录 HTTP 状态码、响应体、连接错误 |
-| H-6 | 信号文件无限增长 | 5MB 轮转 + 保留最近 5 个归档 |
-| - | 无文件锁 | 添加 `fcntl.flock` 防并发损坏 |
-| - | session 不复用 | 模块级 `_http_session` 复用 |
-| - | hooks 配置格式错误 | `hooks.entries` -> `hooks.mappings` 数组格式 |
-| - | webhook URL 路径错误 | `/webhook/` -> `/hooks/` |
-| - | webhook 缺少认证 | 添加 `Authorization: Bearer` 头 |
-
-### 待修复
-
-| 编号 | 严重度 | 问题 | 建议 |
-|------|--------|------|------|
-| C-1 | CRITICAL | 凭证硬编码 | 所有 token/apiKey 迁移到环境变量或 secret manager |
-| C-2 | CRITICAL | `/tmp` 仍被旧代码引用 | 更新 `signal_listener.py` 和 `HEARTBEAT.md` 中的路径 |
-| H-3 | HIGH | PG 引擎冷却键不含 timeframe | 冷却键格式改为 `pg:{symbol}_{signal_type}_{timeframe}` |
-| H-4 | HIGH | DB 单连接无连接池 | 引入连接池或至少指数退避重试 |
-| M-1 | MEDIUM | `SignalEvent.from_dict()` 无验证 | 添加 direction/strength 范围校验 |
-| M-3 | MEDIUM | `signal_listener.py` bare except | 改为具体异常类型 + 日志 |
-| M-6 | MEDIUM | daemon 线程无优雅停止 | 主进程退出时调用 `engine.stop()` |
-| M-7 | MEDIUM | SQLite 表名 f-string 拼接 | 已有白名单保护，低优先级 |
-
----
-
-## 9. 故障排查
-
-### 9.1 Clawdbot 无法启动
-
-```bash
-# 检查配置是否合法
-cat ~/.clawdbot/logs/gateway.err.log | tail -20
-
-# 常见错误:
-# "Unrecognized key" -> 配置字段名错误，参考本文档第 2 节
-# "hooks.enabled requires hooks.token" -> 缺少 token
-# "MODULE_NOT_FOUND" -> node 版本或 clawdbot 安装损坏
-
-# 修复后重启
-launchctl kickstart -k gui/$(id -u)/com.clawdbot.gateway
-```
-
-### 9.2 信号没有推送到 Clawdbot
-
-```bash
-# 1. 检查信号文件是否有新内容
-ls -la ~/.clawdbot/signals/signals.jsonl
-
-# 2. 检查失败队列
-cat ~/.clawdbot/signals/failed_queue.jsonl
-
-# 3. 手动测试 webhook
-curl -X POST http://127.0.0.1:18789/hooks/al-brooks-signal \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"TEST","direction":"BUY","strength":90,"timeframe":"5m","price":100,"signal_type":"test","source":"manual"}'
-
-# 4. 检查 telegram-service 日志
-grep -i clawdbot AB\ Console-Backend/services/telegram-service/logs/*.log
-```
-
-### 9.3 Telegram 没有收到消息
-
-```bash
-# 检查 clawdbot 是否连接了 Telegram
-grep telegram ~/.clawdbot/logs/gateway.log | tail -5
-
-# 检查 bot 是否在线
-curl -s "https://api.telegram.org/bot<BOT_TOKEN>/getMe"
-```
-
----
-
-## 10. 配置变更历史
-
-| 日期 | 变更 | 原因 |
-|------|------|------|
-| 2026-02-01 | `hooks.entries` -> `hooks.mappings` | 原格式不被 clawdbot 识别，导致服务崩溃 |
-| 2026-02-01 | webhook URL `/webhook/` -> `/hooks/` | 对齐 clawdbot 实际路由前缀 |
-| 2026-02-01 | 添加 Bearer 认证头 | clawdbot hooks 要求 token 认证 |
-| 2026-02-01 | strength 阈值 0.5 -> 50 | 统一为 int(0-100) 刻度 |
-| 2026-02-01 | 信号文件从 `/tmp` -> `~/.clawdbot/signals/` | 安全加固 |
-| 2026-02-01 | 添加文件锁、轮转、失败队列 | 可靠性加固 |
+| 处理状态文件 | `~/.clawdbot/signals/.processed` |
+| Transform 模块 | `~/.clawdbot/transforms/al-brooks-dual-send.js` |
+| Skill 文档 | `docs/clawdbot-integration/al-brooks-skill/SKILL.md` |
+| 后端适配器 | `services/telegram-service/src/signals/adapter.py` |
+| Bot 主程序 | `services/telegram-service/src/bot/app.py` |
+| Docker Compose | `docker-compose.yml` + `docker-compose.override.yml` |
+| 启动工具 | `📁 启动工具/🚀 一键启动.command` |
+| 状态检查 | `📁 启动工具/📊 状态检查.command` |
