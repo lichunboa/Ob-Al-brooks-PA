@@ -2,47 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Settings, Server, Bell, Palette, Database,
-  Shield, Save, RotateCcw, CheckCircle, AlertCircle,
-  Moon, Sun, Monitor, Volume2, VolumeX
+  Server, Database, Save, RotateCcw, CheckCircle,
 } from 'lucide-react';
 import { config } from '@/lib/config';
 
 interface AppSettings {
-  // API设置
   apiUrl: string;
-  apiKey: string;
-  
-  // 显示设置
-  theme: 'dark' | 'light' | 'auto';
-  chartType: 'candles' | 'line' | 'area';
   defaultTimeframe: string;
-  
-  // 通知设置
-  notificationsEnabled: boolean;
-  soundEnabled: boolean;
-  signalAlerts: boolean;
-  priceAlerts: boolean;
-  
-  // 数据设置
+  defaultCandleCount: number;
   autoRefresh: boolean;
   refreshInterval: number;
-  cacheEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   apiUrl: config.apiUrl,
-  apiKey: '',
-  theme: 'dark',
-  chartType: 'candles',
   defaultTimeframe: '5m',
-  notificationsEnabled: true,
-  soundEnabled: false,
-  signalAlerts: true,
-  priceAlerts: false,
+  defaultCandleCount: 200,
   autoRefresh: true,
   refreshInterval: 10,
-  cacheEnabled: true
 };
 
 export default function SettingsPage() {
@@ -50,26 +27,24 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
-  // 从localStorage加载设置
   useEffect(() => {
-    const saved = localStorage.getItem('ab-console-settings');
-    if (saved) {
+    const stored = localStorage.getItem('ab-console-settings');
+    if (stored) {
       try {
-        setSettings(JSON.parse(saved));
+        const parsed = JSON.parse(stored);
+        setSettings(prev => ({ ...prev, ...parsed }));
       } catch {
         console.error('Failed to parse settings');
       }
     }
   }, []);
 
-  // 保存设置
   const saveSettings = () => {
     localStorage.setItem('ab-console-settings', JSON.stringify(settings));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  // 重置设置
   const resetSettings = () => {
     if (confirm('确定要重置所有设置吗？')) {
       setSettings(DEFAULT_SETTINGS);
@@ -77,36 +52,29 @@ export default function SettingsPage() {
     }
   };
 
-  // 测试API连接
   const testConnection = async () => {
     setTestStatus('testing');
     try {
-      const res = await fetch(`${settings.apiUrl}/health`, { 
+      const res = await fetch(`${settings.apiUrl}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
-      if (res.ok) {
-        setTestStatus('success');
-      } else {
-        setTestStatus('error');
-      }
+      setTestStatus(res.ok ? 'success' : 'error');
     } catch {
       setTestStatus('error');
     }
     setTimeout(() => setTestStatus('idle'), 3000);
   };
 
-  // 更新设置
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   return (
     <div className="h-full overflow-auto">
-      {/* 标题栏 */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-white">设置</h2>
-        
         <div className="flex items-center gap-2">
           <button
             onClick={resetSettings}
@@ -135,159 +103,88 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-3xl">
-        {/* API设置 */}
+        {/* 连接设置 */}
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
               <Server className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h3 className="font-bold text-white">API设置</h3>
+              <h3 className="font-bold text-white">连接设置</h3>
               <p className="text-sm text-slate-400">配置后端服务连接</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-slate-400">API地址</label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="text"
-                  value={settings.apiUrl}
-                  onChange={(e) => updateSetting('apiUrl', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-                  placeholder="http://localhost:8088"
-                />
-                <button
-                  onClick={testConnection}
-                  disabled={testStatus === 'testing'}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    testStatus === 'success' 
-                      ? 'bg-green-600/20 text-green-400 border border-green-600/50'
-                      : testStatus === 'error'
-                      ? 'bg-red-600/20 text-red-400 border border-red-600/50'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {testStatus === 'testing' ? '测试中...' : 
-                   testStatus === 'success' ? '连接成功' :
-                   testStatus === 'error' ? '连接失败' : '测试连接'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-400">API密钥 (可选)</label>
+          <div>
+            <label className="text-sm text-slate-400">后端地址</label>
+            <div className="flex gap-2 mt-1">
               <input
-                type="password"
-                value={settings.apiKey}
-                onChange={(e) => updateSetting('apiKey', e.target.value)}
-                className="w-full mt-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-                placeholder="输入API密钥"
+                type="text"
+                value={settings.apiUrl}
+                onChange={(e) => updateSetting('apiUrl', e.target.value)}
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+                placeholder="http://localhost:8088"
               />
+              <button
+                onClick={testConnection}
+                disabled={testStatus === 'testing'}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                  testStatus === 'success'
+                    ? 'bg-green-600/20 text-green-400 border border-green-600/50'
+                    : testStatus === 'error'
+                    ? 'bg-red-600/20 text-red-400 border border-red-600/50'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {testStatus === 'testing' ? '测试中...' :
+                 testStatus === 'success' ? '连接成功' :
+                 testStatus === 'error' ? '连接失败' : '测试连接'}
+              </button>
             </div>
           </div>
         </section>
 
-        {/* 显示设置 */}
+        {/* 图表设置 */}
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
-              <Palette className="w-5 h-5 text-purple-400" />
+            <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center text-lg">
+              📊
             </div>
             <div>
-              <h3 className="font-bold text-white">显示设置</h3>
-              <p className="text-sm text-slate-400">自定义界面外观</p>
+              <h3 className="font-bold text-white">图表设置</h3>
+              <p className="text-sm text-slate-400">K线图默认参数</p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-slate-400">主题</label>
-              <div className="grid grid-cols-3 gap-2 mt-1">
-                {(['dark', 'light', 'auto'] as const).map((theme) => (
-                  <button
-                    key={theme}
-                    onClick={() => updateSetting('theme', theme)}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      settings.theme === theme
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {theme === 'dark' && <Moon className="w-4 h-4" />}
-                    {theme === 'light' && <Sun className="w-4 h-4" />}
-                    {theme === 'auto' && <Monitor className="w-4 h-4" />}
-                    {theme === 'dark' ? '深色' : theme === 'light' ? '浅色' : '自动'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-slate-400">默认图表类型</label>
-                <select
-                  value={settings.chartType}
-                  onChange={(e) => updateSetting('chartType', e.target.value as AppSettings['chartType'])}
-                  className="w-full mt-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-                >
-                  <option value="candles">K线图</option>
-                  <option value="line">折线图</option>
-                  <option value="area">面积图</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-slate-400">默认时间框架</label>
-                <select
-                  value={settings.defaultTimeframe}
-                  onChange={(e) => updateSetting('defaultTimeframe', e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
-                >
-                  <option value="1m">1分钟</option>
-                  <option value="5m">5分钟</option>
-                  <option value="15m">15分钟</option>
-                  <option value="1h">1小时</option>
-                  <option value="4h">4小时</option>
-                  <option value="1d">日线</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 通知设置 */}
-        <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
-              <Bell className="w-5 h-5 text-green-400" />
+              <label className="text-sm text-slate-400">默认时间周期</label>
+              <select
+                value={settings.defaultTimeframe}
+                onChange={(e) => updateSetting('defaultTimeframe', e.target.value)}
+                className="w-full mt-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+              >
+                <option value="1m">1分钟</option>
+                <option value="5m">5分钟</option>
+                <option value="15m">15分钟</option>
+                <option value="1h">1小时</option>
+                <option value="4h">4小时</option>
+                <option value="1d">日线</option>
+              </select>
             </div>
             <div>
-              <h3 className="font-bold text-white">通知设置</h3>
-              <p className="text-sm text-slate-400">配置提醒方式</p>
+              <label className="text-sm text-slate-400">默认K线数量</label>
+              <select
+                value={settings.defaultCandleCount}
+                onChange={(e) => updateSetting('defaultCandleCount', parseInt(e.target.value))}
+                className="w-full mt-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+              >
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={500}>500</option>
+                <option value={1000}>1000</option>
+              </select>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              { key: 'notificationsEnabled', label: '启用通知', icon: Bell },
-              { key: 'soundEnabled', label: '声音提醒', icon: settings.soundEnabled ? Volume2 : VolumeX },
-              { key: 'signalAlerts', label: '信号提醒', icon: AlertCircle },
-              { key: 'priceAlerts', label: '价格提醒', icon: Database },
-            ].map(({ key, label, icon: Icon }) => (
-              <label key={key} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer hover:bg-slate-800 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm text-white">{label}</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings[key as keyof AppSettings] as boolean}
-                  onChange={(e) => updateSetting(key as keyof AppSettings, e.target.checked as any)}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-600"
-                />
-              </label>
-            ))}
           </div>
         </section>
 
@@ -299,7 +196,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="font-bold text-white">数据设置</h3>
-              <p className="text-sm text-slate-400">配置数据刷新和缓存</p>
+              <p className="text-sm text-slate-400">数据刷新策略</p>
             </div>
           </div>
 
@@ -331,16 +228,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-
-            <label className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer hover:bg-slate-800 transition-colors">
-              <span className="text-sm text-white">启用缓存</span>
-              <input
-                type="checkbox"
-                checked={settings.cacheEnabled}
-                onChange={(e) => updateSetting('cacheEnabled', e.target.checked)}
-                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-600"
-              />
-            </label>
           </div>
         </section>
 
@@ -355,10 +242,9 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-400">Al Brooks 价格行为交易系统</p>
             </div>
           </div>
-          
+
           <div className="text-sm text-slate-500 space-y-1">
             <p>版本: v2.0.0-beta</p>
-            <p>构建时间: 2026-01-29</p>
             <p>技术栈: Next.js + Tailwind CSS + Lightweight Charts</p>
           </div>
         </section>
