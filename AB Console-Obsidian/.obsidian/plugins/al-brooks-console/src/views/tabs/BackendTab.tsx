@@ -295,10 +295,24 @@ const executeDockerCommand = async (action: "start" | "stop"): Promise<{ success
       ? "docker compose up -d"
       : "docker compose stop";
 
+    // Docker Desktop on macOS 需要设置 DOCKER_HOST 和 PATH
+    const os = require("os");
+    const homeDir = os.homedir();
+    const dockerSocketPath = `${homeDir}/.docker/run/docker.sock`;
+    const dockerBinPath = "/Applications/Docker.app/Contents/Resources/bin";
+
     return new Promise((resolve) => {
       exec(
         dockerCmd,
-        { cwd: backendDir, timeout: 120000 },
+        {
+          cwd: backendDir,
+          timeout: 120000,
+          env: {
+            ...process.env,
+            DOCKER_HOST: `unix://${dockerSocketPath}`,
+            PATH: `${dockerBinPath}:${process.env.PATH || "/usr/local/bin:/usr/bin:/bin"}`,
+          },
+        },
         (error: any, stdout: string, stderr: string) => {
           if (error) {
             resolve({ success: false, output: stderr || error.message });
