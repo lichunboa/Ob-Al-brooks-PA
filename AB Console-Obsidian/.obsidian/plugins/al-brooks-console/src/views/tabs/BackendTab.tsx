@@ -155,338 +155,123 @@ const DataHealthItem: React.FC<DataHealthItemProps> = ({ symbol, delayMinutes, l
   );
 };
 
-// Strategy Quick Actions Panel
-const StrategyQuickPanel: React.FC = () => {
-  const { runCommand, settings } = useConsoleContext();
+// Category display names
+const CATEGORY_LABELS: Record<string, string> = {
+  momentum: "动量",
+  pattern: "形态",
+  trend: "趋势",
+  volatility: "波动率",
+  volume: "成交量",
+  futures: "期货",
+};
 
-  const actions = [
-    { id: "open-strategy-repo", label: "策略仓库", icon: "📁", desc: "管理交易策略" },
-    { id: "signal-rules", label: "信号规则", icon: "📡", desc: "配置检测规则" },
-  ];
+// Signal Monitor Panel
+const SignalMonitorPanel: React.FC = () => {
+  const { settings } = useConsoleContext();
+  const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ":8089");
+
+  const [categories, setCategories] = React.useState<
+    { category: string; count: number; enabled_count: number }[]
+  >([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const fetchCategories = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${syncServiceUrl}/api/v1/config/signal-rules/categories`, {
+        signal: undefined,
+      });
+      if (res.ok) {
+        setCategories(await res.json());
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsLoading(false);
+    }
+  }, [syncServiceUrl]);
+
+  React.useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const totalRules = categories.reduce((s, c) => s + c.count, 0);
+  const totalEnabled = categories.reduce((s, c) => s + c.enabled_count, 0);
 
   const openSignalRules = () => {
-    // 动态导入 SignalRulesModal
     import("../../ui/components/SignalRulesModal").then(({ SignalRulesModal }) => {
-      const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ":8089");
       const modal = new SignalRulesModal(
         // @ts-ignore
         window.app,
         `${syncServiceUrl}/api/v1`
       );
       modal.open();
+    }).catch((err) => {
+      console.error("Failed to load SignalRulesModal:", err);
     });
   };
 
   return (
     <GlassPanel>
-      <SectionHeader title="策略系统" subtitle="快速入口" icon="🎯" />
-      
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: SPACE.sm }}>
-        {actions.map((action) => (
-          <InteractiveButton
-            key={action.id}
-            interaction="text"
-            onClick={() => {
-              if (action.id === "open-strategy-repo") {
-                runCommand?.("al-brooks-console:open-market-scanner");
-              } else if (action.id === "signal-rules") {
-                openSignalRules();
-              }
-            }}
-            style={{
-              padding: "12px",
-              background: "var(--background-primary)",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "8px",
-              textAlign: "left",
-            }}
-          >
-            <div style={{ fontSize: "20px", marginBottom: "4px" }}>{action.icon}</div>
-            <div style={{ fontSize: "13px", fontWeight: 600 }}>{action.label}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {action.desc}
-            </div>
-          </InteractiveButton>
-        ))}
-      </div>
-    </GlassPanel>
-  );
-};
+      <SectionHeader title="信号监控" subtitle="Signal Rules" icon="📡" />
 
-// Sync Status Panel
-const SyncStatusPanel: React.FC = () => {
-  const { settings } = useConsoleContext();
-  const [syncStatus, setSyncStatus] = React.useState<{
-    last_sync?: string;
-    sync_count: number;
-    strategies_count: number;
-    trades_count: number;
-  } | null>(null);
-  const [isSyncing, setIsSyncing] = React.useState(false);
-  const [syncResult, setSyncResult] = React.useState<string | null>(null);
-  const [syncServiceConnected, setSyncServiceConnected] = React.useState(false);
-  
-  // Sync Service URL (port 8089)
-  const syncServiceUrl = settings.backend.baseUrl.replace(/:\d+$/, ':8089');
-
-  // Check sync-service health
-  const checkSyncService = async () => {
-    try {
-      const res = await fetch(`${syncServiceUrl}/api/v1/health`, { 
-        method: "GET",
-        signal: undefined
-      });
-      setSyncServiceConnected(res.ok);
-    } catch {
-      setSyncServiceConnected(false);
-    }
-  };
-
-  const fetchSyncStatus = async () => {
-    try {
-      const res = await fetch(`${syncServiceUrl}/api/v1/status`, {
-        signal: undefined
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSyncStatus({
-          last_sync: data.last_sync?.trades || data.last_sync?.strategies,
-          sync_count: 0, // Will be calculated from sync logs
-          strategies_count: data.stats?.total_strategies || 0,
-          trades_count: data.stats?.total_trades || 0,
-        });
-        setSyncServiceConnected(true);
-      }
-    } catch (e) {
-      setSyncServiceConnected(false);
-    }
-  };
-
-  React.useEffect(() => {
-    checkSyncService();
-    fetchSyncStatus();
-    const interval = setInterval(() => {
-      checkSyncService();
-      fetchSyncStatus();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [syncServiceUrl]);
-
-  const triggerSync = async () => {
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-      // Trigger full sync via sync-service
-      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/full`, {
-        method: "POST",
-        signal: undefined
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSyncResult(`✅ ${data.message || "同步已启动"}`);
-        // Poll for completion
-        setTimeout(fetchSyncStatus, 5000);
-      } else {
-        const error = await res.text();
-        setSyncResult(`❌ 同步失败: ${error}`);
-      }
-    } catch (e) {
-      setSyncResult("❌ 同步失败: Sync Service 未连接");
-    } finally {
-      setIsSyncing(false);
-      setTimeout(() => setSyncResult(null), 5000);
-    }
-  };
-  
-  const syncTradesOnly = async () => {
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/trades`, {
-        method: "POST",
-        signal: undefined
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSyncResult(`✅ ${data.message || "交易同步已启动"}`);
-        setTimeout(fetchSyncStatus, 5000);
-      } else {
-        setSyncResult("❌ 交易同步失败");
-      }
-    } catch (e) {
-      setSyncResult("❌ 同步失败: Sync Service 未连接");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-  
-  const syncStrategiesOnly = async () => {
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch(`${syncServiceUrl}/api/v1/sync/obsidian/strategies`, {
-        method: "POST",
-        signal: undefined
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSyncResult(`✅ ${data.message || "策略同步已启动"}`);
-        setTimeout(fetchSyncStatus, 5000);
-      } else {
-        setSyncResult("❌ 策略同步失败");
-      }
-    } catch (e) {
-      setSyncResult("❌ 同步失败: Sync Service 未连接");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const formatTime = (iso?: string) => {
-    if (!iso) return "从未";
-    const date = new Date(iso);
-    const now = new Date();
-    const diff = (now.getTime() - date.getTime()) / 1000;
-    if (diff < 60) return "刚刚";
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-    return date.toLocaleDateString("zh-CN");
-  };
-
-  return (
-    <GlassPanel>
-      <SectionHeader title="Obsidian 同步" subtitle="Vault Sync" icon="🔄" />
-      
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: SPACE.sm }}>
-        {/* Sync Service Status */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "8px 12px",
-          background: syncServiceConnected ? V5_COLORS.live + "10" : V5_COLORS.textDim + "10",
-          borderRadius: "6px",
-          border: `1px solid ${syncServiceConnected ? V5_COLORS.live + "30" : "var(--background-modifier-border)"}`,
-        }}>
-          <span style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            background: syncServiceConnected ? V5_COLORS.live : V5_COLORS.textDim,
-          }} />
-          <span style={{ fontSize: "12px", fontWeight: 500 }}>
-            Sync Service
+        {/* Summary stats */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "10px 12px",
+            background: "var(--background-primary)",
+            borderRadius: "6px",
+            border: "1px solid var(--background-modifier-border)",
+          }}
+        >
+          <span style={{ fontSize: "13px", fontWeight: 600 }}>
+            {isLoading ? "..." : `${totalEnabled}/${totalRules}`}
           </span>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto" }}>
-            {syncServiceConnected ? "已连接" : "未连接"}
-          </span>
+          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>规则启用中</span>
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "8px",
-        }}>
-          <div style={{
-            padding: "10px",
-            background: "var(--background-primary)",
-            borderRadius: "6px",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: "18px", fontWeight: 600 }}>{syncStatus?.strategies_count ?? "-"}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>策略</div>
-          </div>
-          <div style={{
-            padding: "10px",
-            background: "var(--background-primary)",
-            borderRadius: "6px",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: "18px", fontWeight: 600 }}>{syncStatus?.trades_count ?? "-"}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>交易</div>
-          </div>
-          <div style={{
-            padding: "10px",
-            background: "var(--background-primary)",
-            borderRadius: "6px",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: "18px", fontWeight: 600 }}>{syncServiceConnected ? "✓" : "-"}</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>服务状态</div>
-          </div>
-        </div>
-
-        <div style={{
-          padding: "8px 12px",
-          background: "var(--background-primary)",
-          borderRadius: "6px",
-          fontSize: "12px",
-          color: "var(--text-muted)",
-        }}>
-          上次同步: {formatTime(syncStatus?.last_sync)}
-        </div>
-
-        {syncResult && (
-          <div style={{
-            padding: "8px 12px",
-            background: syncResult.includes("✅") ? V5_COLORS.live + "15" : V5_COLORS.loss + "15",
-            borderRadius: "6px",
-            fontSize: "12px",
-          }}>
-            {syncResult}
+        {/* Per-category breakdown */}
+        {categories.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
+            {categories.map((cat) => (
+              <div
+                key={cat.category}
+                style={{
+                  padding: "8px",
+                  background: "var(--background-primary)",
+                  borderRadius: "6px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: "14px", fontWeight: 600 }}>
+                  {cat.enabled_count}/{cat.count}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  {CATEGORY_LABELS[cat.category] || cat.category}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Full Sync Button */}
+        {/* Open signal rules button */}
         <InteractiveButton
           interaction="text"
-          onClick={triggerSync}
-          disabled={isSyncing || !syncServiceConnected}
+          onClick={openSignalRules}
           style={{
             padding: "10px",
-            background: V5_COLORS.accent,
-            color: "white",
-            borderRadius: "6px",
+            background: "var(--background-primary)",
+            border: "1px solid var(--background-modifier-border)",
+            borderRadius: "8px",
             fontSize: "13px",
-            opacity: !syncServiceConnected ? 0.5 : 1,
           }}
         >
-          {isSyncing ? "🔄 同步中..." : "🔄 完整同步"}
+          📡 信号规则管理
         </InteractiveButton>
-        
-        {/* Quick Sync Buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-          <InteractiveButton
-            interaction="text"
-            onClick={syncTradesOnly}
-            disabled={isSyncing || !syncServiceConnected}
-            style={{
-              padding: "8px",
-              background: "var(--background-primary)",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "6px",
-              fontSize: "12px",
-              opacity: !syncServiceConnected ? 0.5 : 1,
-            }}
-          >
-            📊 同步交易
-          </InteractiveButton>
-          <InteractiveButton
-            interaction="text"
-            onClick={syncStrategiesOnly}
-            disabled={isSyncing || !syncServiceConnected}
-            style={{
-              padding: "8px",
-              background: "var(--background-primary)",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "6px",
-              fontSize: "12px",
-              opacity: !syncServiceConnected ? 0.5 : 1,
-            }}
-          >
-            🎯 同步策略
-          </InteractiveButton>
-        </div>
       </div>
     </GlassPanel>
   );
@@ -521,7 +306,16 @@ const executeScript = async (scriptName: string): Promise<{ success: boolean; ou
 };
 
 // Backend Control Panel with Script Execution
-const BackendControlPanel: React.FC = () => {
+interface BackendControlPanelProps {
+  serviceStatus?: {
+    database: string;
+    data_service: string;
+    trading_service: string;
+    signal_service: string;
+  } | null;
+}
+
+const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus }) => {
   const { settings } = useConsoleContext();
   const [isStarting, setIsStarting] = React.useState(false);
   const [isExecuting, setIsExecuting] = React.useState<string | null>(null);
@@ -709,6 +503,8 @@ const BackendControlPanel: React.FC = () => {
                   `${syncServiceUrl}/api/v1`
                 );
                 modal.open();
+              }).catch((err) => {
+                console.error("Failed to load ConfigEditorModal:", err);
               });
             }}
             style={{
@@ -740,43 +536,58 @@ const BackendControlPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Quick Access Buttons */}
+        {/* Service Sub-Status + Quick Access */}
         {backendStatus === "running" && (
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "1fr 1fr", 
-            gap: "8px",
-            marginTop: "4px",
-            paddingTop: "12px",
-            borderTop: "1px solid var(--background-modifier-border)",
-          }}>
-            <InteractiveButton
-              interaction="text"
-              onClick={openWebDashboard}
-              style={{
-                padding: "10px",
-                background: "var(--background-primary)",
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "6px",
-                fontSize: "12px",
-              }}
-            >
-              🌐 打开 Web Dashboard
-            </InteractiveButton>
-            <InteractiveButton
-              interaction="text"
-              onClick={openApiDocs}
-              style={{
-                padding: "10px",
-                background: "var(--background-primary)",
-                border: "1px solid var(--background-modifier-border)",
-                borderRadius: "6px",
-                fontSize: "12px",
-              }}
-            >
-              📚 打开 API 文档
-            </InteractiveButton>
-          </div>
+          <>
+            {serviceStatus && (
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "6px",
+                marginTop: "4px",
+                paddingTop: "12px",
+                borderTop: "1px solid var(--background-modifier-border)",
+              }}>
+                <ServiceStatusBadge name="数据库" status={serviceStatus.database} />
+                <ServiceStatusBadge name="数据采集" status={serviceStatus.data_service} />
+                <ServiceStatusBadge name="指标计算" status={serviceStatus.trading_service} />
+                <ServiceStatusBadge name="信号检测" status={serviceStatus.signal_service} />
+              </div>
+            )}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+              marginTop: "4px",
+            }}>
+              <InteractiveButton
+                interaction="text"
+                onClick={openWebDashboard}
+                style={{
+                  padding: "10px",
+                  background: "var(--background-primary)",
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                🌐 打开 Web Dashboard
+              </InteractiveButton>
+              <InteractiveButton
+                interaction="text"
+                onClick={openApiDocs}
+                style={{
+                  padding: "10px",
+                  background: "var(--background-primary)",
+                  border: "1px solid var(--background-modifier-border)",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                }}
+              >
+                📚 打开 API 文档
+              </InteractiveButton>
+            </div>
+          </>
         )}
 
         {/* Manual Commands Help */}
@@ -816,7 +627,7 @@ export const BackendTab: React.FC = () => {
   const { settings } = useConsoleContext();
   const backendSettings = settings.backend;
 
-  const { isConnected, isChecking, status, error, checkConnection } = useBackendConnection(backendSettings);
+  const { isConnected, status } = useBackendConnection(backendSettings);
   const { statusMap } = useDataSourceStatus(backendSettings);
 
   const [dataHealth, setDataHealth] = React.useState<
@@ -868,65 +679,16 @@ export const BackendTab: React.FC = () => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACE.lg, maxWidth: "600px" }}>
-      {/* Backend Control */}
-      <BackendControlPanel />
+      {/* 1. Backend Control (with service sub-status) */}
+      <BackendControlPanel serviceStatus={status?.services ?? null} />
 
-      {/* Obsidian Sync Status */}
-      <SyncStatusPanel />
+      {/* 2. Signal Monitor */}
+      <SignalMonitorPanel />
 
-      {/* Strategy Quick Actions */}
-      <StrategyQuickPanel />
+      {/* 3. AI Chat */}
+      <AIChatPanel />
 
-      {/* Connection Status */}
-      <GlassPanel>
-        <SectionHeader title="连接状态" subtitle="Backend API" icon="🔌" />
-        
-        <div style={{ marginTop: SPACE.sm }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "12px",
-              background: isConnected ? V5_COLORS.live + "10" : V5_COLORS.loss + "10",
-              borderRadius: "8px",
-              border: `1px solid ${isConnected ? V5_COLORS.live + "30" : V5_COLORS.loss + "30"}`,
-            }}
-          >
-            <span
-              style={{
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                background: isConnected ? V5_COLORS.live : V5_COLORS.loss,
-                boxShadow: isConnected ? `0 0 6px ${V5_COLORS.live}` : "none",
-              }}
-            />
-            <span style={{ fontWeight: 600, fontSize: "14px" }}>
-              {isChecking ? "检测中..." : isConnected ? "已连接" : "未连接"}
-            </span>
-            <InteractiveButton
-              interaction="text"
-              onClick={checkConnection}
-              disabled={isChecking}
-              style={{ marginLeft: "auto", fontSize: "12px", padding: "4px 8px" }}
-            >
-              {isChecking ? "..." : "刷新"}
-            </InteractiveButton>
-          </div>
-
-          {status && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "10px" }}>
-              <ServiceStatusBadge name="数据库" status={status.services.database} />
-              <ServiceStatusBadge name="数据采集" status={status.services.data_service} />
-              <ServiceStatusBadge name="指标计算" status={status.services.trading_service} />
-              <ServiceStatusBadge name="信号检测" status={status.services.signal_service} />
-            </div>
-          )}
-        </div>
-      </GlassPanel>
-
-      {/* Data Source Status */}
+      {/* 4. Data Source Status */}
       <GlassPanel>
         <SectionHeader title="数据源" subtitle="Availability" icon="🌐" />
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: SPACE.sm }}>
@@ -934,9 +696,6 @@ export const BackendTab: React.FC = () => {
           <DataSourceStatusBadge source="YAHOO" isAvailable={statusMap.YAHOO.isAvailable} />
         </div>
       </GlassPanel>
-
-      {/* AI Chat */}
-      <AIChatPanel />
 
       {/* Data Health */}
       <GlassPanel>
