@@ -44,8 +44,8 @@ services:
   # 核心服务
   data-service:
     build:
-      context: ./services/data-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/data-service/Dockerfile
     container_name: ab-data-service
     restart: unless-stopped
     ports:

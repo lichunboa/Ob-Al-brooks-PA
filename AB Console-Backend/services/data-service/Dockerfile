@@ -10,14 +10,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖
-COPY requirements.txt .
+COPY services/data-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制代码
-COPY src/ ./src/
+COPY services/data-service/src/ ./src/
+
+# 复制公共库
+COPY libs/common/ ./common/
 
 # 环境变量
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app/src:/app
 ENV PYTHONUNBUFFERED=1
 
 # 健康检查端口
