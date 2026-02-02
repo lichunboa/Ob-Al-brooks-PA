@@ -4,3 +4,5 @@ aiohttp>=3.9.0
 ccxt>=4.0.0
 requests>=2.31.0
 cryptofeed>=2.4.0
+fastapi>=0.115.0
+uvicorn>=0.32.0

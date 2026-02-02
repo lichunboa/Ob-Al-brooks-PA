@@ -43,7 +43,19 @@ def get_client(exchange: str = "binance") -> ccxt.Exchange:
 import sys
 from pathlib import Path
 
-_libs_path = str(Path(__file__).parents[4] / "libs")
+# 安全计算 libs 路径（兼容 Docker 和本地）
+_file_path = Path(__file__)
+_libs_path = None
+for i in range(min(4, len(_file_path.parents))):
+    candidate = str(_file_path.parents[i] / "libs")
+    if Path(candidate).exists():
+        _libs_path = candidate
+        break
+
+# 如果找不到，使用默认路径
+if _libs_path is None:
+    _libs_path = "/app/libs"  # Docker 默认路径
+
 if _libs_path not in sys.path:
     sys.path.insert(0, _libs_path)
 from common.symbols import get_configured_symbols
