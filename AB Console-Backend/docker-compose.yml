@@ -180,16 +180,24 @@ services:
       - CLAWDBOT_WEBHOOK_URL=${CLAWDBOT_WEBHOOK_URL:-http://host.docker.internal:18789/hooks/al-brooks-signal}
       - WEBHOOK_MODE=false
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src:/app/libs
+      - PYTHONPATH=/app/src:/app/libs:/app/ai-service
       - PROJECT_ROOT=/app
       - SIGNAL_SERVICE_SRC=/app/services/signal-service/src
       - LIBS_PATH=/app/libs
+      - AI_SERVICE_PATH=/app/ai-service
       - BOT_TOKEN=8507333164:AAG_ObiNaxYww6V5T2XyK7Rm01EIj-VEaFw
+      # AI/LLM 配置
+      - LLM_BACKEND=api
+      - LLM_API_BASE_URL=https://api.moonshot.cn/v1
+      - EXTERNAL_API_KEY=sk-kimi-TcQKBNT8lRJRS0eHChAQRaMiENbq4S5vNcmZz1K0hd7dLl5QpDvj2HOXZwfpCfEY
+      - LLM_MODEL=moonshot-v1-8k
+      - LLM_MAX_TOKENS=32000
     volumes:
       # 完整映射，保留所有功能
       - ./services/telegram-service/src:/app/src
       - ./services/telegram-service/config:/app/config
       - ./services/signal-service/src:/app/services/signal-service/src
+      - ./services/ai-service:/app/ai-service
       - ./libs:/app/libs
       - ./services/telegram-service/logs:/app/logs
       - market_data:/app/market-data:ro  # 只读访问 trading-service 的指标数据
