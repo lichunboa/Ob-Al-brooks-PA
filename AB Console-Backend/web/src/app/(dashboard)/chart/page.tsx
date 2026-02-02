@@ -161,22 +161,16 @@ export default function ChartPage() {
     return ((last.close - prev.close) / prev.close) * 100;
   }, [candles]);
 
-  // 当前价格（优先使用 WebSocket 实时数据）
+  // 当前价格（直接使用 K 线数据，保证与图表一致）
   const currentPrice = useMemo(() => {
-    if (realtimePrice?.price) {
-      return realtimePrice.price;
-    }
     if (candles.length === 0) return 0;
     return candles[candles.length - 1].close;
-  }, [candles, realtimePrice]);
+  }, [candles]);
 
-  // 24h 涨跌幅（优先使用 WebSocket 数据）
+  // 24h 涨跌幅（基于 K 线数据计算）
   const changePercent24h = useMemo(() => {
-    if (realtimePrice?.change24h !== undefined) {
-      return realtimePrice.change24h;
-    }
     return changePercent;
-  }, [changePercent, realtimePrice]);
+  }, [changePercent]);
 
   // 过滤当前品种的信号
   const symbolSignals = useMemo(() => {
