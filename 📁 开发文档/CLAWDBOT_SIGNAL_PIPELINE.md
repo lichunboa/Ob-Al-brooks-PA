@@ -164,10 +164,16 @@ AB Console-Backend/services/telegram-service/src/signals/adapter.py
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `CLAWDBOT_WEBHOOK_URL` | `http://host.docker.internal:18789/hooks/al-brooks-signal` | Webhook 端点 |
-| `CLAWDBOT_WEBHOOK_TOKEN` | (内置默认) | Bearer 认证 token |
+| `CLAWDBOT_WEBHOOK_TOKEN` | `hooks-5fed4a9a7de03c2...` | **hooks.token**（非 gateway.auth.token） |
 | `CLAWDBOT_THRESHOLD` | `60` | 推送阈值 (0-100 整数刻度) |
 | `BACKEND_REPORT_URL` | `http://127.0.0.1:8090/api/clawdbot-report` | 详版报告回调 |
 | `BACKEND_NOTE_URL` | `http://127.0.0.1:8090/api/create-trade-note` | 交易笔记回调 |
+
+> **重要**: OpenClaw 有两个 token：
+> - `gateway.auth.token` — Gateway API 认证
+> - `hooks.token` — Webhook 端点认证（后端使用这个）
+>
+> 查看命令：`cat ~/.openclaw/openclaw.json | jq '.hooks.token'`
 
 ### 3.3 Docker 网络注意事项
 
@@ -345,6 +351,8 @@ curl -X POST http://localhost:8090/api/create-trade-note \
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-02-03 | v2.1 | 修复 webhook 401 认证（使用 hooks.token 而非 gateway.auth.token） |
+| 2026-02-03 | v2.1 | 修复 data-service common 模块缺失、信号文件 volume 映射 |
 | 2026-02-03 | v2.1 | OpenClaw 文件轮询方案确认、信号处理脚本配置、API 端点验证通过 |
 | 2026-02-02 | v2.0 | 双机器人架构、Transform 模块、后端 API 回调、交易笔记自动创建 |
 | 2026-02-02 | v2.0 | 推送阈值 50 -> 60、重试机制、推送统计 |
