@@ -153,28 +153,7 @@ if [ "$USE_COMPOSE" = true ] && [ "$DB_READY" = true ]; then
 
     # 跳到状态总结
     echo ""
-    log_info "[4-7] 服务已通过 Docker Compose 管理，跳过本地模式启动"
-
-    # Web Dashboard（如果不在 compose 中）
-    echo ""
-    log_info "[8/8] 启动 Web Dashboard..."
-    if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-        log_success "Web Dashboard 已在运行 (端口 3000)"
-    else
-        cd "$BACKEND_DIR/web"
-        if [ -d "node_modules" ]; then
-            nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
-            sleep 8
-            if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-                log_success "Web Dashboard 启动成功 (端口 3000)"
-            else
-                log_warn "Web Dashboard 启动中，请稍等..."
-                log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
-            fi
-        else
-            log_warn "Web Dashboard 依赖未安装，运行: cd '$BACKEND_DIR/web' && npm install"
-        fi
-    fi
+    log_info "[4-8] 所有服务已通过 Docker Compose 管理（包括 Web Dashboard）"
 
 else
     # ============================================================
