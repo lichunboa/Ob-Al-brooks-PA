@@ -319,9 +319,9 @@ try:
     
     class SignalRequest(BaseModel):
         """信号请求模型"""
-        symbol: str = Field(..., regex=r'^[A-Z0-9]+USDT$', description="交易对")
+        symbol: str = Field(..., pattern=r'^[A-Z0-9]+USDT$', description="交易对")
         direction: Literal['BUY', 'SELL'] = Field(..., description="方向")
-        timeframe: str = Field(..., regex=r'^(1m|5m|15m|1h|4h|1d)$', description="时间周期")
+        timeframe: str = Field(..., pattern=r'^(1m|5m|15m|1h|4h|1d)$', description="时间周期")
         strength: float = Field(..., ge=0.0, le=1.0, description="信号强度")
         price: Optional[float] = Field(None, gt=0, description="价格")
         
@@ -334,8 +334,8 @@ try:
     
     class SignalQuery(BaseModel):
         """信号查询模型"""
-        symbol: Optional[str] = Field(None, regex=r'^[A-Z0-9]+USDT$')
-        timeframe: Optional[str] = Field(None, regex=r'^(1m|5m|15m|1h|4h|1d)$')
+        symbol: Optional[str] = Field(None, pattern=r'^[A-Z0-9]+USDT$')
+        timeframe: Optional[str] = Field(None, pattern=r'^(1m|5m|15m|1h|4h|1d)$')
         limit: int = Field(100, ge=1, le=1000)
         
 except ImportError:

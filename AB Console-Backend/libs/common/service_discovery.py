@@ -136,7 +136,7 @@ class AppConfig:
         if not token:
             raise ValueError(
                 "BOT_TOKEN环境变量未设置! "
-                "请在config/.env中配置"")
+                "请在config/.env中配置")
         return token
     
     # 币种配置
