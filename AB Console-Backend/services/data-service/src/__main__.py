@@ -95,9 +95,7 @@ def main() -> None:
         print("用法: python src/__main__.py --ws|--metrics|--backfill|--all")
         sys.exit(1)
 
-    # 设置健康检查端口
-    start_health_server(sched, port=args.health_port)
-
+    # 启动调度器（内部会启动健康检查服务器）
     sched.run()
 
 
