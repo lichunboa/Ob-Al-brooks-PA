@@ -277,31 +277,39 @@ const SignalMonitorPanel: React.FC = () => {
   );
 };
 
-// Script Executor Helper
-const executeScript = async (scriptName: string): Promise<{ success: boolean; output: string }> => {
+// Docker Command Executor Helper
+const executeDockerCommand = async (action: "start" | "stop"): Promise<{ success: boolean; output: string }> => {
   try {
     // @ts-ignore - Obsidian has Node.js access
     const { exec } = require("child_process");
     const path = require("path");
-    
-    // Get vault root path
+
+    // Get project root path (Vault parent directory)
     // @ts-ignore
     const vaultPath = (window as any).app?.vault?.adapter?.basePath || "";
-    // 脚本位于 Vault 父目录的 "📁 启动工具/" 目录下
     const projectRoot = path.dirname(vaultPath);
-    const scriptPath = path.join(projectRoot, "📁 启动工具", scriptName);
-    
+    const backendDir = path.join(projectRoot, "AB Console-Backend");
+
+    // Docker 命令
+    const dockerCmd = action === "start"
+      ? "docker compose up -d"
+      : "docker compose stop";
+
     return new Promise((resolve) => {
-      exec(`"${scriptPath}"`, { timeout: 120000 }, (error: any, stdout: string, stderr: string) => {
-        if (error) {
-          resolve({ success: false, output: stderr || error.message });
-        } else {
-          resolve({ success: true, output: stdout || "执行成功" });
+      exec(
+        dockerCmd,
+        { cwd: backendDir, timeout: 120000 },
+        (error: any, stdout: string, stderr: string) => {
+          if (error) {
+            resolve({ success: false, output: stderr || error.message });
+          } else {
+            resolve({ success: true, output: stdout || `Docker Compose ${action} 成功` });
+          }
         }
-      });
+      );
     });
   } catch (e) {
-    return { success: false, output: `无法执行脚本: ${e}` };
+    return { success: false, output: `执行 Docker 命令失败: ${e}` };
   }
 };
 
@@ -327,7 +335,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
   React.useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch(`${settings.backend.baseUrl}/health`, { 
+        const res = await fetch(`${settings.backend.baseUrl}/health`, {
           method: "GET",
           signal: undefined
         });
@@ -341,7 +349,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
         setBackendStatus("stopped");
       }
     };
-    
+
     checkBackend();
     const interval = setInterval(checkBackend, 5000);
     return () => clearInterval(interval);
@@ -364,16 +372,16 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
     }
   };
 
-  const runScript = async (script: string, action: string) => {
-    setIsExecuting(action);
+  const runDockerAction = async (action: "start" | "stop", actionId: string) => {
+    setIsExecuting(actionId);
     setScriptOutput(null);
-    
-    const result = await executeScript(script);
-    
+
+    const result = await executeDockerCommand(action);
+
     setScriptOutput(result.output.slice(0, 500)); // Limit output length
     setIsExecuting(null);
-    
-    // Check status after script execution
+
+    // Check status after command execution
     setTimeout(checkConnection, 3000);
   };
 
@@ -389,28 +397,28 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
     navigator.clipboard.writeText(cmd);
   };
 
-  // Quick command buttons data
+  // Quick command buttons data - 使用 docker compose 命令
   const quickCommands = [
-    { 
-      id: "start-all", 
-      label: "🚀 启动后端", 
-      script: "🚀 一键启动.command",
-      desc: "启动完整后端服务",
+    {
+      id: "start-all",
+      label: "🚀 启动后端",
+      command: 'cd "$PROJECT_ROOT/AB Console-Backend" && docker compose up -d',
+      desc: "启动 Docker Compose 服务",
       color: V5_COLORS.live,
       showWhen: "stopped"
     },
-    { 
-      id: "stop-all", 
-      label: "🛑 停止全部", 
-      script: "🛑 一键停止.command",
+    {
+      id: "stop-all",
+      label: "🛑 停止全部",
+      command: 'cd "$PROJECT_ROOT/AB Console-Backend" && docker compose stop',
       desc: "停止所有服务",
       color: V5_COLORS.loss,
       showWhen: "running"
     },
   ];
 
-  const visibleCommands = quickCommands.filter(cmd => 
-    cmd.showWhen === "always" || 
+  const visibleCommands = quickCommands.filter(cmd =>
+    cmd.showWhen === "always" ||
     (cmd.showWhen === "running" && backendStatus === "running") ||
     (cmd.showWhen === "stopped" && backendStatus !== "running")
   );
@@ -418,7 +426,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
   return (
     <GlassPanel>
       <SectionHeader title="后端控制" subtitle="一键管理 AB Console 服务" icon="🖥️" />
-      
+
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: SPACE.sm }}>
         {/* Status Indicator */}
         <div
@@ -427,11 +435,11 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
             alignItems: "center",
             gap: "12px",
             padding: "12px",
-            background: backendStatus === "running" ? V5_COLORS.live + "10" : 
-                       backendStatus === "starting" ? V5_COLORS.back + "10" : V5_COLORS.textDim + "10",
+            background: backendStatus === "running" ? V5_COLORS.live + "10" :
+              backendStatus === "starting" ? V5_COLORS.back + "10" : V5_COLORS.textDim + "10",
             borderRadius: "8px",
-            border: `1px solid ${backendStatus === "running" ? V5_COLORS.live + "30" : 
-                                backendStatus === "starting" ? V5_COLORS.back + "30" : "var(--background-modifier-border)"}`,
+            border: `1px solid ${backendStatus === "running" ? V5_COLORS.live + "30" :
+              backendStatus === "starting" ? V5_COLORS.back + "30" : "var(--background-modifier-border)"}`,
           }}
         >
           <span
@@ -439,14 +447,14 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
               width: "10px",
               height: "10px",
               borderRadius: "50%",
-              background: backendStatus === "running" ? V5_COLORS.live : 
-                         backendStatus === "starting" ? V5_COLORS.back : V5_COLORS.textDim,
+              background: backendStatus === "running" ? V5_COLORS.live :
+                backendStatus === "starting" ? V5_COLORS.back : V5_COLORS.textDim,
               animation: backendStatus === "starting" ? "pulse 1s infinite" : undefined,
             }}
           />
           <span style={{ fontWeight: 600, fontSize: "14px" }}>
-            {backendStatus === "running" ? "🟢 运行中" : 
-             backendStatus === "starting" ? "🟡 连接中..." : "🔴 未连接"}
+            {backendStatus === "running" ? "🟢 运行中" :
+              backendStatus === "starting" ? "🟡 连接中..." : "🔴 未连接"}
           </span>
           <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto" }}>
             {settings.backend.baseUrl}
@@ -459,7 +467,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
             <InteractiveButton
               key={cmd.id}
               interaction="text"
-              onClick={() => runScript(cmd.script, cmd.id)}
+              onClick={() => runDockerAction(cmd.id === "start-all" ? "start" : "stop", cmd.id)}
               disabled={isExecuting !== null}
               style={{
                 padding: "12px",
@@ -475,7 +483,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
               {isExecuting === cmd.id ? "⏳ 执行中..." : cmd.label}
             </InteractiveButton>
           ))}
-          
+
           <InteractiveButton
             interaction="text"
             onClick={checkConnection}
@@ -490,7 +498,7 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
           >
             {isStarting ? "🔄 检测中..." : "🔄 刷新状态"}
           </InteractiveButton>
-          
+
           <InteractiveButton
             interaction="text"
             onClick={() => {
@@ -602,13 +610,13 @@ const BackendControlPanel: React.FC<BackendControlPanelProps> = ({ serviceStatus
           }}>
             <div style={{ fontWeight: 600, marginBottom: "4px" }}>💡 手动启动方式:</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <div 
+              <div
                 style={{ cursor: "pointer", fontFamily: "monospace" }}
                 onClick={() => copyCommand('cd "AB Console-Backend" && docker-compose up -d')}
               >
                 🐳 cd &quot;AB Console-Backend&quot; && docker-compose up -d
               </div>
-              <div 
+              <div
                 style={{ cursor: "pointer", fontFamily: "monospace" }}
                 onClick={() => copyCommand('./start-all.sh')}
               >
@@ -710,7 +718,7 @@ export const BackendTab: React.FC = () => {
             {isLoadingHealth ? "..." : "刷新"}
           </InteractiveButton>
         </div>
-        
+
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: SPACE.sm, maxHeight: "200px", overflowY: "auto" }}>
           {!isConnected ? (
             <div style={{ padding: "12px", textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>
