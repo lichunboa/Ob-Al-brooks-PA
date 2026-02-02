@@ -37,8 +37,8 @@ def _load_all_metrics(interval: str = "5m"):
         table = "binance_futures_metrics_5m"
         time_col = "create_time"
     else:
-        table = f"binance_futures_metrics_{interval}_last"
-        time_col = "bucket"
+        table = f"metrics_{interval}"
+        time_col = "create_time"
 
     try:
         with shared_pg_conn() as conn:

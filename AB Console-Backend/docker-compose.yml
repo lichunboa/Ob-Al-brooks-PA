@@ -180,7 +180,7 @@ services:
       - CLAWDBOT_WEBHOOK_URL=${CLAWDBOT_WEBHOOK_URL:-http://host.docker.internal:18789/hooks/al-brooks-signal}
       - WEBHOOK_MODE=false
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src:/app/libs:/app/ai-service
+      - PYTHONPATH=/app/ai-service:/app/src:/app/libs
       - PROJECT_ROOT=/app
       - SIGNAL_SERVICE_SRC=/app/services/signal-service/src
       - LIBS_PATH=/app/libs
@@ -213,19 +213,21 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 自动转发服务 - 发送详版给 Telegram Bot (本地构建)
+  # 自动转发服务 - 发送详版给 Telegram Bot (简化版)
   forwarder:
-    build:
-      context: ./forwarder
-      dockerfile: Dockerfile
+    image: python:3.11-slim
     container_name: ab-forwarder
     restart: unless-stopped
     environment:
       - TELEGRAM_API=http://telegram-service:8090/api/catbo-forward
       - SIGNAL_FILE=/app/signals/signals.jsonl
+      - USER_ID=${TELEGRAM_USER_ID:-756069822}
     volumes:
-      - /tmp/clawdbot_signals.jsonl:/app/signals/signals.jsonl:ro
+      - /tmp/openclaw_signals.jsonl:/app/signals/signals.jsonl:ro
       - forwarder_data:/app/data
+      - ./forwarder/simple_forwarder.py:/app/simple_forwarder.py:ro
+    command: >
+      sh -c "pip install --no-cache-dir requests && python -u /app/simple_forwarder.py"
     depends_on:
       - telegram-service
     networks:
@@ -236,13 +238,16 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://api-service:8088
+        - NEXT_PUBLIC_WS_URL=ws://api-service:8088
+        - NEXT_PUBLIC_SYNC_API_URL=http://sync-service:8089
     container_name: ab-web-dashboard
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:8088
     depends_on:
       - api-service
     networks:

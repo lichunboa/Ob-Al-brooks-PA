@@ -221,7 +221,7 @@ async function fetchHistoricalData(symbol: string, interval: string): Promise<Ca
   
   try {
     const response = await fetch(
-      `${apiUrl}/api/v1/candles?symbol=${symbol}&interval=${interval}&limit=500`
+      `${apiUrl}/api/v1/candles/${symbol}?interval=${interval}&limit=500`
     );
     
     if (!response.ok) {

@@ -33,8 +33,8 @@ def _fetch_metrics_times_batch(symbols: List[str], limit: int, interval: str = "
         table = "binance_futures_metrics_5m"
         time_col = "create_time"
     else:
-        table = f"binance_futures_metrics_{interval}_last"
-        time_col = "bucket"
+        table = f"metrics_{interval}"
+        time_col = "create_time"
 
     sql = f"""
         WITH ranked AS (

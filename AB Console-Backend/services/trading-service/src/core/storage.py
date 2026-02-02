@@ -74,8 +74,8 @@ def update_market_share():
                 for interval in ["15m", "1h", "4h", "1d", "1w"]:
                     cur.execute(f"""
                         SELECT SUM(sum_open_interest_value)
-                        FROM market_data.binance_futures_metrics_{interval}_last
-                        WHERE bucket = (SELECT MAX(bucket) FROM market_data.binance_futures_metrics_{interval}_last)
+                        FROM market_data.metrics_{interval}
+                        WHERE create_time = (SELECT MAX(create_time) FROM market_data.metrics_{interval})
                     """)
                     row = cur.fetchone()
                     if row and row[0]:

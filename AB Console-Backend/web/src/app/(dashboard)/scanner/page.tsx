@@ -49,7 +49,7 @@ export default function ScannerPage() {
     try {
       const timestamp = Date.now();
       const res = await fetch(
-        `${apiUrl}/api/v1/candles?symbol=${symbol.ticker}&interval=${chartInterval}&limit=2&t=${timestamp}`
+        `${apiUrl}/api/v1/candles/${symbol.ticker}?interval=${chartInterval}&limit=2&t=${timestamp}`
       );
       
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

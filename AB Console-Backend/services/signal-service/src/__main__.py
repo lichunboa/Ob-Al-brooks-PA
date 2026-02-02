@@ -105,6 +105,35 @@ def main():
     except Exception as e:
         logger.warning(f"历史持久化注册失败: {e}")
 
+    # 注册 OpenClaw 信号文件写入回调
+    try:
+        import json
+        from datetime import datetime, timezone
+        from events import SignalPublisher
+
+        OPENCLAW_SIGNAL_FILE = "/tmp/openclaw_signals.jsonl"
+
+        def write_openclaw_signal(ev):
+            """写入信号到 OpenClaw 信号文件"""
+            signal_data = {
+                "symbol": ev.symbol,
+                "direction": ev.direction,
+                "strength": ev.strength,
+                "timeframe": ev.timeframe,
+                "price": ev.price,
+                "signal_type": ev.signal_type,
+                "timestamp": int(datetime.now(timezone.utc).timestamp()),
+                "received_at": datetime.now(timezone.utc).isoformat(),
+            }
+            with open(OPENCLAW_SIGNAL_FILE, "a") as f:
+                f.write(json.dumps(signal_data) + "\n")
+            logger.info(f"[OpenClaw] 信号已写入: {ev.symbol} {ev.direction}")
+
+        SignalPublisher.subscribe(write_openclaw_signal)
+        logger.info(f"已注册 OpenClaw 信号文件回调: {OPENCLAW_SIGNAL_FILE}")
+    except Exception as e:
+        logger.warning(f"OpenClaw 信号文件回调注册失败: {e}")
+
     if args.sqlite or args.all:
         from engines import get_sqlite_engine
 

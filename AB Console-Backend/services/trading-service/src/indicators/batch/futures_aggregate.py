@@ -39,9 +39,9 @@ def _fetch_metrics_history_batch(symbols: List[str], limit: int, interval: str) 
         time_col = "create_time"
         closed_col = "is_closed"
     else:
-        table = f"binance_futures_metrics_{interval}_last"
-        time_col = "bucket"
-        closed_col = "complete"
+        table = f"metrics_{interval}"
+        time_col = "create_time"
+        closed_col = "is_closed"
 
     sql = f"""
         WITH ranked AS (
