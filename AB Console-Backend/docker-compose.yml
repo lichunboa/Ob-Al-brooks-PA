@@ -201,6 +201,8 @@ services:
       - ./libs:/app/libs
       - ./services/telegram-service/logs:/app/logs
       - market_data:/app/market-data:ro  # 只读访问 trading-service 的指标数据
+      # 信号文件映射到宿主机，供 OpenClaw 读取
+      - ~/.clawdbot/signals:/root/.clawdbot/signals
     working_dir: /app
     command: bash -c "pip install fastapi uvicorn pydantic -q && python -m src.bot.app"
     depends_on:
