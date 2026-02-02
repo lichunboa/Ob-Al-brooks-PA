@@ -88,6 +88,17 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
         timeVisible: true,
         secondsVisible: interval === '1m' || interval === '5m',
       },
+      localization: {
+        timeFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return date.toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        },
+      },
       handleScroll: {
         vertTouchDrag: false,
       },
