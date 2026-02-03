@@ -155,6 +155,30 @@ if [ "$USE_COMPOSE" = true ] && [ "$DB_READY" = true ]; then
     echo ""
     log_info "[4-8] 所有服务已通过 Docker Compose 管理（包括 Web Dashboard）"
 
+    # 触发数据回填（补齐历史数据缺口）
+    echo ""
+    log_info "触发数据回填..."
+    if docker exec ab-data-service python -c "
+from collectors.backfill import GapScanner, RestBackfiller
+from db import get_engine
+import logging
+logging.basicConfig(level=logging.INFO)
+engine = get_engine()
+scanner = GapScanner(engine)
+gaps = scanner.scan_gaps(lookback_days=1)
+if gaps:
+    print(f'发现 {len(gaps)} 个数据缺口，开始回填...')
+    filler = RestBackfiller(engine)
+    filler.fill_gaps(gaps)
+    print('回填完成')
+else:
+    print('无数据缺口')
+" 2>/dev/null; then
+        log_success "数据回填完成"
+    else
+        log_warn "数据回填跳过（非关键）"
+    fi
+
 else
     # ============================================================
     # 本地模式 — 逐个启动服务
