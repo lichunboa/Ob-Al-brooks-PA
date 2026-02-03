@@ -15,6 +15,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.1] - 2026-02-04
+
+### Added
+- **数据自动对齐系统** - 新增 `auto_align.py` 模块
+  - 每 60 秒检查数据库最新时间
+  - 延迟 > 2 分钟自动触发 REST API 补齐
+  - 延迟 > 10 分钟发送 Telegram 告警
+  - 独立于 WebSocket，主动补齐缺口
+- **信号阈值配置** - docker-compose.yml 添加 `CLAWDBOT_THRESHOLD` 环境变量
+- **小明模拟交易角色** - 10万美金初始资金，1%仓位管理
+- **全局 Heartbeat 追踪** - 替代单独的 trade-tracker cron jobs
+
+### Changed
+- **WebSocket 心跳优化**
+  - 心跳检测间隔: 30秒 → 15秒
+  - 停滞阈值: 120秒 → 60秒
+- **信号推送阈值** - 默认 60 → 75（>=75 推送，>=80 模拟交易）
+
+### Fixed
+- 修复数据延迟问题（WebSocket 静默断开后无法及时恢复）
+- 清理 ab-forwarder 容器（已废弃）
+- 清理 31 个冗余的 trade-tracker cron jobs
+
+---
+
 ## [2.3.0] - 2026-02-04
 
 ### Added
