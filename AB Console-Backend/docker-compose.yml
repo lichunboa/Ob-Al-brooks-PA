@@ -216,8 +216,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 自动转发服务 - 发送详版给 Telegram Bot (简化版)
+  # 自动转发服务 - 已废弃，保留配置但不自动启动
+  # 如需启动: docker compose --profile deprecated up forwarder
   forwarder:
+    profiles: ["deprecated"]  # 不自动启动
     image: python:3.11-slim
     container_name: ab-forwarder
     restart: unless-stopped
