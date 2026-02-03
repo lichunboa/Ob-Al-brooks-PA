@@ -324,9 +324,26 @@ check_service 3000 "Web Dashboard    "
 echo ""
 echo "【外部服务】"
 if lsof -i :18789 -sTCP:LISTEN > /dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC} Clawdbot (端口 18789)"
+    echo -e "${GREEN}✓${NC} OpenClaw Gateway (端口 18789)"
 else
-    echo -e "${YELLOW}○${NC} Clawdbot (未运行 - 信号分析不可用)"
+    # 尝试启动 OpenClaw Gateway
+    log_info "启动 OpenClaw Gateway..."
+    if launchctl list 2>/dev/null | grep -q "ai.openclaw.gateway"; then
+        # LaunchAgent 已加载但服务未运行，尝试 kickstart
+        launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway 2>/dev/null
+        sleep 3
+    elif [ -f "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" ]; then
+        # LaunchAgent 未加载，先加载再启动
+        launchctl load "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" 2>/dev/null
+        sleep 3
+    fi
+
+    if lsof -i :18789 -sTCP:LISTEN > /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} OpenClaw Gateway (端口 18789) - 已启动"
+    else
+        echo -e "${YELLOW}○${NC} OpenClaw Gateway (未运行 - 信号分析不可用)"
+        log_warn "可手动启动: launchctl kickstart gui/$(id -u)/ai.openclaw.gateway"
+    fi
 fi
 
 echo ""
