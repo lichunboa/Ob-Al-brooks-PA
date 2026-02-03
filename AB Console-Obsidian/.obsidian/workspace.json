@@ -42,7 +42,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -96,7 +96,7 @@
             }
           },
           {
-            "id": "48a2d28b2eaa2655",
+            "id": "15546d3c19e14b8f",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -232,7 +232,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 656.5
+    "width": 653.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -264,42 +264,42 @@
   },
   "active": "5030a8e2de1d7ca7",
   "lastOpenFiles": [
-    "Daily/Trades/2026-02-04/260204_0223_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0223_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0503_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0458_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0458_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-03/260203_2053_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-03/260203_2053_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0448_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0443_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0443_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0438_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0428_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0428_模拟_BTCUSDT.md",
+    "Daily/Trades/active_trades.json",
+    "Daily/Trades/2026-02-04/260204_0423_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0423_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0410_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0407_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0402_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0402_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0357_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0352_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-03/260203_1947_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-03/260203_1947_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0342_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-03/260203_1939_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0323_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-04/260204_0323_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-03/260203_1913_模拟_BTCUSDT.md",
     "Daily/交易日记.base",
-    "Daily/Trades/2026-02-03/260203_1822_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0140_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0140_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1737_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0135_模拟_BTCUSDT.md",
-    "Daily/Trades/260203_2241_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1722_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0117_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1717_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1714_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0112_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0101_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0101_模拟_ETHUSDT.md",
     "Daily/Trades/assets/260203_2241_模拟_ETHUSDT",
     "Daily/Trades/assets",
-    "Daily/Trades/2026-02-04/260204_0038_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0038_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0013_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0013_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0006_模拟_ETHUSDT.md",
     "Daily/Trades/2026-02-04",
-    "Daily/Trades/2026-02-03/260203_2352_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2345_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2345_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2339_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2339_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2329_模拟_ETHUSDT.md",
     "Daily/Trades/2026-02-03",
     "statuses",
     "sessions",
     "copilot",
     "tools/generate-snapshot-from-legacy.js",
-    "tools",
     "statuses/icons/todo.svg",
     "statuses/icons/needs-review.svg",
     "statuses/icons/in-progress.svg",
