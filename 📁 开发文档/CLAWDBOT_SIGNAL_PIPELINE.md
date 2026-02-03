@@ -448,7 +448,116 @@ tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log | grep -i hook
 docker logs ab-telegram-service 2>&1 | grep clawdbot-report
 ```
 
-### 7.3 策略卡片未匹配
+### 7.3 OpenClaw 配置错误导致启动失败
+
+**常见错误**：
+
+1. **`hooks.mappings.0.action: Invalid input`**
+   - 原因：`action` 值无效（如 `"broadcast"`）
+   - 解决：改为 `"wake"` 或 `"agent"`
+
+2. **`channels.discord: Unrecognized keys`**
+   - 原因：Discord 配置格式错误
+   - 解决：使用正确的嵌套格式
+   ```json
+   "discord": {
+     "enabled": true,
+     "token": "YOUR_TOKEN",
+     "dm": {
+       "enabled": true,
+       "policy": "allowlist",
+       "allowFrom": ["USER_ID"]
+     },
+     "groupPolicy": "disabled"
+   }
+   ```
+
+3. **`transformsDir` 路径错误**
+   - 原因：相对路径在 Docker/LaunchAgent 环境下解析错误
+   - 解决：使用绝对路径
+   ```json
+   "transformsDir": "/Users/mitchellcb/.openclaw/workspace/transforms"
+   ```
+
+**诊断命令**：
+```bash
+# 检查配置是否有效
+cat ~/.openclaw/openclaw.json | python3 -c "import sys,json; json.load(sys.stdin); print('JSON 格式正确')"
+
+# 查看错误日志
+tail -20 ~/.openclaw/logs/gateway.err.log
+
+# 重启 Gateway
+launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway
+```
+
+### 7.4 Claude API 代理配置
+
+**错误**：`HTTP 404: invalid_request_error: Invalid URL (POST /v1/v1/messages)`
+
+**原因**：baseUrl 包含 `/v1`，OpenClaw 又自动添加 `/v1/messages`，导致路径重复。
+
+**解决**：
+```json
+"claude-proxy": {
+  "baseUrl": "https://www.zhongzhuan.win",  // 不要加 /v1
+  "apiKey": "YOUR_KEY",
+  "api": "anthropic-messages",
+  "models": [...]
+}
+```
+
+### 7.5 Kimi API "Input is too long" 错误
+
+**错误**：`HTTP 502: CONTENT_LENGTH_EXCEEDS_THRESHOLD`
+
+**原因**：Kimi K2.5 的上下文窗口限制（256K tokens），长对话会超限。
+
+**解决方案**：
+1. 在 OpenClaw 中配置 `compaction` 策略
+2. 切换到 Claude（200K tokens，更稳定）
+3. 手动清理对话历史：`/clear` 或 `/new`
+
+### 7.6 signal-service SQLite 路径错误
+
+**错误**：`unable to open database file`
+
+**原因**：Docker 容器中 `REPO_ROOT` 计算错误（`/` 而不是 `/app`）。
+
+**解决**：修改 `services/signal-service/src/config.py`：
+```python
+# Docker 容器中 PROJECT_ROOT 就是 /app，本地开发时需要向上两级
+if (PROJECT_ROOT / "libs").exists():
+    REPO_ROOT = PROJECT_ROOT
+else:
+    REPO_ROOT = PROJECT_ROOT.parent.parent
+```
+
+### 7.7 data-service 数据停止更新
+
+**症状**：K 线数据停在某个时间点，不再更新。
+
+**原因**：WebSocket 连接断开或进程卡死。
+
+**解决**：
+```bash
+# 重启 data-service
+docker compose restart data-service
+
+# 触发数据回填
+docker exec ab-data-service python -c "
+from collectors.backfill import GapScanner, RestBackfiller
+from db import get_engine
+engine = get_engine()
+scanner = GapScanner(engine)
+gaps = scanner.scan_gaps(lookback_days=1)
+if gaps:
+    filler = RestBackfiller(engine)
+    filler.fill_gaps(gaps)
+"
+```
+
+### 7.8 策略卡片未匹配
 
 **检查步骤**：
 1. 确认信号 `signal_type` 与策略卡片 `策略名称` 匹配
@@ -457,10 +566,12 @@ docker logs ab-telegram-service 2>&1 | grep clawdbot-report
 
 ---
 
-## 8. 配置变更历史
+## 9. 配置变更历史
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-02-03 | v2.3 | 添加 Claude API 代理配置、修复 OpenClaw 配置错误、添加数据回填功能 |
+| 2026-02-03 | v2.3 | 修复 signal-service SQLite 路径、data-service 数据停更问题 |
 | 2026-02-03 | v2.2 | 完善策略匹配机制文档、添加属性枚举值、更新架构图 |
 | 2026-02-03 | v2.1 | 修复 webhook 401 认证、Transform 函数签名修复 |
 | 2026-02-02 | v2.0 | 双机器人架构、Transform 模块、后端 API 回调 |
@@ -468,7 +579,7 @@ docker logs ab-telegram-service 2>&1 | grep clawdbot-report
 
 ---
 
-## 9. 关键文件路径
+## 10. 关键文件路径
 
 | 用途 | 路径 |
 |------|------|
