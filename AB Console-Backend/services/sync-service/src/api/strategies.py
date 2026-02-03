@@ -79,16 +79,21 @@ async def get_strategy_performance(
             
         win_count = trades_query.filter(TradeModel.result == "win").count()
         loss_count = trades_query.filter(TradeModel.result == "loss").count()
-        
+        breakeven_count = trades_query.filter(TradeModel.result == "breakeven").count()
+
+        # 已完成交易数（与插件 stats.ts 保持一致）
+        completed = win_count + loss_count + breakeven_count
+
         total_pnl_r = trades_query.with_entities(
             func.coalesce(func.sum(TradeModel.pnl_r), 0)
         ).scalar()
-        
+
         total_pnl_money = trades_query.with_entities(
             func.coalesce(func.sum(TradeModel.pnl_money), 0)
         ).scalar()
-        
-        win_rate = (win_count / trade_count * 100) if trade_count > 0 else 0
+
+        # 胜率基于已完成交易计算（与插件保持一致）
+        win_rate = (win_count / completed * 100) if completed > 0 else 0
         avg_pnl_r = (total_pnl_r / trade_count) if trade_count > 0 else 0
         
         results.append(StrategyPerformance(

@@ -82,21 +82,25 @@ async def get_trade_stats(
     win_count = query.filter(TradeModel.result == "win").count()
     loss_count = query.filter(TradeModel.result == "loss").count()
     breakeven_count = query.filter(TradeModel.result == "breakeven").count()
-    
+
+    # 已完成交易数 = win + loss + breakeven（与插件 stats.ts 保持一致）
+    completed = win_count + loss_count + breakeven_count
+
     # PnL 统计
     total_pnl_r = query.filter(TradeModel.pnl_r != None).with_entities(
         func.coalesce(func.sum(TradeModel.pnl_r), Decimal(0))
     ).scalar()
-    
+
     total_pnl_money = query.filter(TradeModel.pnl_money != None).with_entities(
         func.coalesce(func.sum(TradeModel.pnl_money), Decimal(0))
     ).scalar()
-    
+
     avg_pnl_r = query.filter(TradeModel.pnl_r != None).with_entities(
         func.coalesce(func.avg(TradeModel.pnl_r), Decimal(0))
     ).scalar()
-    
-    win_rate = Decimal(win_count) / Decimal(total) * 100 if total > 0 else Decimal(0)
+
+    # 胜率基于已完成交易计算（与插件 stats.ts 保持一致）
+    win_rate = Decimal(win_count) / Decimal(completed) * 100 if completed > 0 else Decimal(0)
     
     return TradeStats(
         total_trades=total,
@@ -118,39 +122,48 @@ async def get_trade_stats_by_account(
 ):
     """按账户类型统计交易数据（实盘/模拟/回测）"""
     from decimal import Decimal
-    
-    def get_stats_for_account(account_type: str):
-        query = db.query(TradeModel).filter(TradeModel.account_type == account_type)
-        
+
+    def get_stats_for_account(account_type: Optional[str] = None):
+        """获取指定账户类型的统计，account_type=None 表示所有账户"""
+        query = db.query(TradeModel)
+
+        if account_type:
+            query = query.filter(TradeModel.account_type == account_type)
+
         if start_date:
             query = query.filter(TradeModel.trade_date >= start_date)
         if end_date:
             query = query.filter(TradeModel.trade_date <= end_date)
-        
+
         total = query.count()
         win_count = query.filter(TradeModel.result == "win").count()
         loss_count = query.filter(TradeModel.result == "loss").count()
-        
+        breakeven_count = query.filter(TradeModel.result == "breakeven").count()
+
+        # 已完成交易数 = win + loss + breakeven（与插件保持一致）
+        completed = win_count + loss_count + breakeven_count
+
         total_pnl_money = query.filter(TradeModel.pnl_money != None).with_entities(
             func.coalesce(func.sum(TradeModel.pnl_money), Decimal(0))
         ).scalar()
-        
-        win_rate = Decimal(win_count) / Decimal(total) * 100 if total > 0 else Decimal(0)
-        
+
+        # 胜率基于已完成交易计算（与插件 stats.ts 保持一致）
+        win_rate = Decimal(win_count) / Decimal(completed) * 100 if completed > 0 else Decimal(0)
+
         return {
-            "account_type": account_type,
+            "account_type": account_type or "All",
             "total_trades": total,
             "win_count": win_count,
             "loss_count": loss_count,
             "win_rate": float(win_rate),
             "total_pnl_money": float(total_pnl_money or 0),
         }
-    
+
     return {
         "Live": get_stats_for_account("Live"),
         "Demo": get_stats_for_account("Demo"),
         "Backtest": get_stats_for_account("Backtest"),
-        "All": get_stats_for_account("Live")  # 临时返回Live作为All
+        "All": get_stats_for_account(None)  # 所有账户类型汇总
     }
 
 

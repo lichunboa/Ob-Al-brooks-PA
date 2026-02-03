@@ -127,10 +127,10 @@ class SyncApiClient {
 
   // Account stats (by Live/Demo/Backtest)
   async getAccountStats(): Promise<{ Live: AccountStats; Demo: AccountStats; Backtest: AccountStats; All: AccountStats }> {
-    const defaultStats = (type: string): AccountStats => ({
-      account_type: type, total_trades: 0, win_count: 0, loss_count: 0, win_rate: 0, total_pnl_money: 0
+    const defaultStats = (type: string): AccountStats & { breakeven_count: number } => ({
+      account_type: type, total_trades: 0, win_count: 0, loss_count: 0, breakeven_count: 0, win_rate: 0, total_pnl_money: 0
     });
-    
+
     try {
       return await this.fetch('/api/v1/trades/stats/by-account');
     } catch {
@@ -142,33 +142,38 @@ class SyncApiClient {
         Backtest: defaultStats('Backtest'),
         All: defaultStats('All')
       };
-      
+
       trades.forEach(t => {
         const type = t.account_type || 'Live';
         if (type in result) {
           result[type as keyof typeof result].total_trades++;
         }
         result.All.total_trades++;
-        
+
         if (t.result === 'win') {
           if (type in result) result[type as keyof typeof result].win_count++;
           result.All.win_count++;
         } else if (t.result === 'loss') {
           if (type in result) result[type as keyof typeof result].loss_count++;
           result.All.loss_count++;
+        } else if (t.result === 'breakeven') {
+          if (type in result) result[type as keyof typeof result].breakeven_count++;
+          result.All.breakeven_count++;
         }
-        
+
         const pnl = t.pnl_money || 0;
         if (type in result) result[type as keyof typeof result].total_pnl_money += pnl;
         result.All.total_pnl_money += pnl;
       });
-      
-      // Calculate win rates
+
+      // Calculate win rates based on completed trades (win + loss + breakeven)
+      // This matches the plugin's stats.ts logic
       (Object.keys(result) as Array<keyof typeof result>).forEach(key => {
         const s = result[key];
-        s.win_rate = s.total_trades > 0 ? Math.round((s.win_count / s.total_trades) * 100) : 0;
+        const completed = s.win_count + s.loss_count + s.breakeven_count;
+        s.win_rate = completed > 0 ? Math.round((s.win_count / completed) * 100) : 0;
       });
-      
+
       return result;
     }
   }
