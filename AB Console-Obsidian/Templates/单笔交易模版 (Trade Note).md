@@ -16,15 +16,21 @@ date:
 观察到的形态/patterns_observed:
 信号K/signal_bar_quality:
 策略名称/strategy_name:
+概率/probability:
 管理计划/management_plan:
 订单类型/order_type:
 入场/entry_price:
 止损/stop_loss:
 目标位/take_profit:
 初始风险/initial_risk:
+盈亏比/risk_reward:
 净利润/net_profit:
 执行评价/execution_quality:
 结果/outcome:
+出场原因/exit_reason:
+信号序列号/signal_id:
+信号评分/signal_score:
+追踪状态/tracking_status:
 ---
 
 ---
