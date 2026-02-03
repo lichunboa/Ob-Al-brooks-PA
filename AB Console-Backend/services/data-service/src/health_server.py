@@ -99,6 +99,10 @@ class HealthHandler(BaseHTTPRequestHandler):
         sched_status = self._check_scheduler()
         checks.append(sched_status)
         
+        # 检查 WebSocket 数据新鲜度（关键检查！）
+        ws_status = self._check_websocket_data_freshness()
+        checks.append(ws_status)
+        
         # 检查数据库连接
         db_status = self._check_database()
         checks.append(db_status)
@@ -119,7 +123,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         
         return {
             "service": "data-service",
-            "version": "2.0.0",
+            "version": "2.1.0",  # 版本升级：添加 WebSocket 自动重连
             "status": status,
             "uptime_seconds": round(uptime, 2),
             "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -162,6 +166,91 @@ class HealthHandler(BaseHTTPRequestHandler):
                 "name": "scheduler",
                 "status": "unhealthy",
                 "message": str(e)
+            }
+    
+    def _check_websocket_data_freshness(self) -> Dict[str, Any]:
+        """检查 WebSocket 数据新鲜度
+        
+        读取 WebSocketManager 写入的状态文件，检查：
+        1. 连接状态是否正常
+        2. 最后一条数据是否在合理时间内
+        """
+        try:
+            # 导入 WebSocketManager 读取状态文件
+            from pathlib import Path
+            import sys
+            SRC_DIR = Path(__file__).parent
+            if str(SRC_DIR) not in sys.path:
+                sys.path.insert(0, str(SRC_DIR))
+            
+            try:
+                from adapters.ws_manager import WebSocketManager
+                state = WebSocketManager.read_state_file()
+            except ImportError:
+                # 尝试直接读取状态文件
+                state_file = "/tmp/data-service-ws-state.json"
+                if os.path.exists(state_file):
+                    with open(state_file, "r") as f:
+                        state = json.load(f)
+                else:
+                    state = None
+            
+            if not state:
+                return {
+                    "name": "websocket_data",
+                    "status": "unknown",
+                    "message": "无法读取 WebSocket 状态（可能未启动）"
+                }
+            
+            # 检查连接状态
+            ws_state = state.get("state", "unknown")
+            last_msg_ago = state.get("last_message_ago_seconds")
+            reconnect_attempts = state.get("reconnect_attempts", 0)
+            total_reconnects = state.get("total_reconnects", 0)
+            messages_received = state.get("messages_received", 0)
+            
+            # 判断健康状态
+            # - 连接正常且最近有数据：healthy
+            # - 连接正常但数据有点旧（2-5分钟）：degraded
+            # - 连接断开或数据太旧（>5分钟）：unhealthy
+            
+            if ws_state in ("disconnected", "stale"):
+                status = "unhealthy"
+                message = f"WebSocket {ws_state}，重连尝试 #{reconnect_attempts}"
+            elif ws_state == "reconnecting":
+                status = "degraded"
+                message = f"WebSocket 正在重连 (尝试 #{reconnect_attempts})"
+            elif last_msg_ago is not None:
+                if last_msg_ago > 300:  # 5分钟
+                    status = "unhealthy"
+                    message = f"数据停滞 {last_msg_ago:.0f} 秒"
+                elif last_msg_ago > 120:  # 2分钟
+                    status = "degraded"
+                    message = f"数据延迟 {last_msg_ago:.0f} 秒"
+                else:
+                    status = "healthy"
+                    message = f"数据正常，{last_msg_ago:.0f} 秒前更新"
+            else:
+                status = "degraded"
+                message = "等待首条数据..."
+            
+            return {
+                "name": "websocket_data",
+                "status": status,
+                "message": message,
+                "details": {
+                    "state": ws_state,
+                    "last_message_ago_seconds": last_msg_ago,
+                    "messages_received": messages_received,
+                    "total_reconnects": total_reconnects,
+                    "reconnect_attempts": reconnect_attempts,
+                }
+            }
+        except Exception as e:
+            return {
+                "name": "websocket_data",
+                "status": "unknown",
+                "message": f"检查失败: {str(e)}"
             }
     
     def _check_database(self) -> Dict[str, Any]:

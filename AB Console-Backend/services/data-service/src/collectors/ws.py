@@ -4,6 +4,12 @@
 - cryptofeed 每分钟闭合时，~300 个币种在 1-2 秒内推送
 - 使用时间窗口批量写入：收集 3 秒内的数据后一次性写入
 - 避免 300 次单独 DB 操作 → 1 次批量操作
+
+v2.1 新增：
+- WebSocket 心跳检测：定期检查连接是否存活
+- 自动重连：连接断开或数据停滞时自动重连，带指数退避
+- 超时告警：长时间无数据时记录警告日志
+- 健康检查改进：暴露数据新鲜度供 Docker 健康检查使用
 """
 from __future__ import annotations
 
@@ -22,6 +28,7 @@ from adapters.ccxt import load_symbols, normalize_symbol
 from adapters.cryptofeed import BinanceWSAdapter, CandleEvent, preload_symbols
 from adapters.metrics import metrics
 from adapters.timescale import TimescaleAdapter
+from adapters.ws_manager import WebSocketManager
 from config import settings
 
 logger = logging.getLogger("ws.collector")
@@ -42,6 +49,7 @@ class WSCollector:
         self._symbols = self._load_symbols()
         self._gap_stop = threading.Event()
         self._gap_thread: Optional[threading.Thread] = None
+        self._ws_manager: Optional[WebSocketManager] = None
 
         # 批量写入缓冲
         self._buffer: List[dict] = []
@@ -114,7 +122,7 @@ class WSCollector:
             logger.error("批量写入失败: %s", e)
 
     def run(self) -> None:
-        """运行采集器"""
+        """运行采集器（使用 WebSocketManager 自动重连）"""
         # 启动时补齐 - 后台线程，不阻塞 WebSocket
         if self._symbols:
             threading.Thread(target=self._run_backfill, args=(1,), daemon=True).start()
@@ -125,12 +133,22 @@ class WSCollector:
             self._gap_thread = threading.Thread(target=self._gap_loop, daemon=True)
             self._gap_thread.start()
 
-        # 启动 WebSocket
-        ws = BinanceWSAdapter(http_proxy=settings.http_proxy)
-        ws.subscribe(list(self._symbols.keys()), self._on_candle_sync)
+        # 使用 WebSocketManager 管理连接（带心跳检测和自动重连）
+        def adapter_factory():
+            return BinanceWSAdapter(http_proxy=settings.http_proxy)
+        
+        self._ws_manager = WebSocketManager(
+            adapter_factory=adapter_factory,
+            symbols=list(self._symbols.keys()),
+            callback=self._on_candle_sync,
+            heartbeat_interval=30,  # 30秒检查一次
+            stale_threshold=120,    # 2分钟无数据视为停滞
+        )
+        
+        logger.info("启动 WebSocket 管理器（带自动重连）...")
 
         try:
-            ws.run()
+            self._ws_manager.run()  # 阻塞运行，内部处理重连
         finally:
             # 退出前刷新
             asyncio.run(self._final_flush())

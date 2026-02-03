@@ -273,8 +273,15 @@ class PGSignalRules:
             logger.warning(f"check_taker_sell_dominance error: {e}")
         return None
 
-    def check_oi_surge(self, curr: dict, prev: dict, threshold_pct: float = 3.0) -> PGSignal | None:
-        """持仓量急增信号"""
+    def check_oi_surge(self, curr: dict, prev: dict, threshold_pct: float = 3.0, candle: dict = None) -> PGSignal | None:
+        """持仓量急增信号
+        
+        Args:
+            curr: 当前期货指标数据
+            prev: 上一期期货指标数据
+            threshold_pct: 变化阈值百分比
+            candle: 当前K线数据（用于获取价格）
+        """
         if not prev or not curr:
             return None
         try:
@@ -284,6 +291,8 @@ class PGSignalRules:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
             if change_pct >= threshold_pct:
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_surge",
@@ -291,15 +300,22 @@ class PGSignalRules:
                     strength=min(80, int(50 + change_pct * 10)),
                     message_key="signal.pg.msg.oi_surge",
                     message_params={"pct": f"{change_pct:.2f}"},
-                    price=0.0,
+                    price=price,
                     extra={"oi_change_pct": change_pct},
                 )
         except Exception as e:
             logger.warning(f"check_oi_surge error: {e}")
         return None
 
-    def check_oi_dump(self, curr: dict, prev: dict, threshold_pct: float = 3.0) -> PGSignal | None:
-        """持仓量急降信号"""
+    def check_oi_dump(self, curr: dict, prev: dict, threshold_pct: float = 3.0, candle: dict = None) -> PGSignal | None:
+        """持仓量急降信号
+        
+        Args:
+            curr: 当前期货指标数据
+            prev: 上一期期货指标数据
+            threshold_pct: 变化阈值百分比
+            candle: 当前K线数据（用于获取价格）
+        """
         if not prev or not curr:
             return None
         try:
@@ -309,6 +325,8 @@ class PGSignalRules:
                 return None
             change_pct = (curr_oi - prev_oi) / prev_oi * 100
             if change_pct <= -threshold_pct:
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="oi_dump",
@@ -316,7 +334,7 @@ class PGSignalRules:
                     strength=min(80, int(50 + abs(change_pct) * 10)),
                     message_key="signal.pg.msg.oi_dump",
                     message_params={"pct": f"{abs(change_pct):.2f}"},
-                    price=0.0,
+                    price=price,
                     extra={"oi_change_pct": change_pct},
                 )
         except Exception as e:
@@ -662,8 +680,8 @@ class PGSignalEngine(BaseEngine):
                 if curr_metric:
                     checkers.extend(
                         [
-                            (self.rules.check_oi_surge, [curr_metric, prev_metric, 3.0]),
-                            (self.rules.check_oi_dump, [curr_metric, prev_metric, 3.0]),
+                            (self.rules.check_oi_surge, [curr_metric, prev_metric, 3.0, curr_candle]),
+                            (self.rules.check_oi_dump, [curr_metric, prev_metric, 3.0, curr_candle]),
                             (self.rules.check_top_trader_extreme_long, [curr_metric, 3.0]),
                             (self.rules.check_top_trader_extreme_short, [curr_metric, 0.5]),
                             (self.rules.check_taker_ratio_flip_long, [curr_metric, prev_metric]),
