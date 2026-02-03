@@ -198,6 +198,57 @@ _SIGNAL_FILE_MAX_BYTES = 5 * 1024 * 1024  # 5MB
 # 复用 aiohttp session（模块级，进程生命周期内复用）
 _http_session: Optional[aiohttp.ClientSession] = None
 
+# ========== Webhook 队列（避免并发锁竞争） ==========
+_webhook_queue: Optional[asyncio.Queue] = None
+_webhook_worker_task: Optional[asyncio.Task] = None
+
+
+async def _webhook_worker():
+    """后台 worker：串行消费队列，逐个发送 webhook"""
+    global _webhook_queue
+    logger.info("Webhook worker 已启动")
+    while True:
+        try:
+            signal_data, payload, headers = await _webhook_queue.get()
+            try:
+                session = await _get_http_session()
+                http_ok, status = await _post_with_retry(
+                    session, _CLAWDBOT_WEBHOOK_URL, payload, headers, max_retries=2
+                )
+                if http_ok:
+                    logger.info(
+                        f"Clawdbot webhook 成功: {signal_data.get('symbol')} {signal_data.get('direction')} "
+                        f"strength={signal_data.get('strength')} (HTTP {status})"
+                    )
+                    _push_stats["webhook_ok"] += 1
+                else:
+                    logger.warning(f"Clawdbot webhook 失败: {signal_data.get('symbol')}")
+                    _push_stats["webhook_fail"] += 1
+                    # 文件通道已写入，这里只记录 webhook 失败
+            except Exception as e:
+                logger.warning(f"Clawdbot webhook 未知错误: {e}")
+                _push_stats["webhook_fail"] += 1
+            finally:
+                _webhook_queue.task_done()
+                # 请求间隔 1 秒，避免 Gateway 锁竞争
+                await asyncio.sleep(1.0)
+        except asyncio.CancelledError:
+            logger.info("Webhook worker 已停止")
+            break
+        except Exception as e:
+            logger.error(f"Webhook worker 异常: {e}")
+            await asyncio.sleep(1.0)
+
+
+def _ensure_webhook_worker(loop: asyncio.AbstractEventLoop):
+    """确保 webhook worker 已启动"""
+    global _webhook_queue, _webhook_worker_task
+    if _webhook_queue is None:
+        _webhook_queue = asyncio.Queue()
+    if _webhook_worker_task is None or _webhook_worker_task.done():
+        _webhook_worker_task = loop.create_task(_webhook_worker())
+        logger.info("Webhook worker task 已创建")
+
 
 async def _get_http_session() -> aiohttp.ClientSession:
     """获取或创建复用的 HTTP session"""
@@ -293,7 +344,7 @@ def _enqueue_failed_signal(signal_data: dict, reason: str):
 
 
 async def _notify_clawdbot(event: SignalEvent):
-    """通知 Clawdbot 进行 Al Brooks 深度分析"""
+    """通知 Clawdbot 进行 Al Brooks 深度分析（队列化发送，避免并发锁竞争）"""
     if event.strength < _CLAWDBOT_THRESHOLD:
         return
 
@@ -308,14 +359,14 @@ async def _notify_clawdbot(event: SignalEvent):
         "received_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # 通道1: 写入信号文件（带文件锁）
+    # 通道1: 写入信号文件（带文件锁）— 立即执行
     file_ok = _write_signal_to_file(signal_data)
     _push_stats["file_ok" if file_ok else "file_fail"] += 1
+    if file_ok:
+        logger.info(f"信号已写入文件: {event.symbol} {event.direction} strength={event.strength}")
 
-    # 通道2: HTTP webhook (推送给Clawdbot，带重试)
-    http_ok = False
+    # 通道2: HTTP webhook — 放入队列串行发送，避免 Gateway 锁竞争
     try:
-        session = await _get_http_session()
         # 获取第一个订阅者作为目标用户
         from .ui import _get_subscribers
         subscribers = _get_subscribers()
@@ -333,24 +384,18 @@ async def _notify_clawdbot(event: SignalEvent):
         }
         headers = {"Authorization": f"Bearer {_CLAWDBOT_WEBHOOK_TOKEN}"}
 
-        http_ok, status = await _post_with_retry(
-            session, _CLAWDBOT_WEBHOOK_URL, payload, headers, max_retries=2
-        )
-        if http_ok:
-            logger.info(
-                f"Clawdbot webhook 成功: {event.symbol} {event.direction} "
-                f"strength={event.strength} (HTTP {status})"
-            )
+        # 确保 worker 已启动，然后将请求放入队列
+        loop = asyncio.get_running_loop()
+        _ensure_webhook_worker(loop)
+        await _webhook_queue.put((signal_data, payload, headers))
+        logger.debug(f"信号已入队: {event.symbol} {event.direction} (队列长度: {_webhook_queue.qsize()})")
+
     except Exception as e:
-        logger.warning(f"Clawdbot webhook 未知错误: {e}")
-
-    _push_stats["webhook_ok" if http_ok else "webhook_fail"] += 1
-
-    # 双通道都失败时，写入失败队列
-    if not file_ok and not http_ok:
-        _enqueue_failed_signal(signal_data, "both channels failed")
-    elif file_ok:
-        logger.info(f"信号已写入文件: {event.symbol} {event.direction} strength={event.strength}")
+        logger.warning(f"信号入队失败: {e}")
+        _push_stats["webhook_fail"] += 1
+        # 文件通道已成功，不需要写入失败队列
+        if not file_ok:
+            _enqueue_failed_signal(signal_data, f"enqueue failed: {e}")
 
 
 # ========== Clawdbot 分析转发接口 ==========
