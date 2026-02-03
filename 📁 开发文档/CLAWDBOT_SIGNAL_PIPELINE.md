@@ -283,9 +283,56 @@ POST /api/create-trade-note
 
 ---
 
-## 6. Docker Compose 部署
+## 6. 服务启动方式
 
-### 6.1 启动所有服务
+### 6.1 启动方式汇总
+
+| 服务 | 启动方式 | 重启后自动启动 | 说明 |
+|------|----------|----------------|------|
+| Docker Desktop | 一键启动脚本 | ❌ | 脚本会自动启动 |
+| 后端微服务 | Docker Compose | ❌ | 随 Docker 启动 |
+| OpenClaw Gateway | macOS LaunchAgent | ✅ | `RunAtLoad=true` |
+| 信号处理脚本 | OpenClaw HEARTBEAT | ✅ | 随 Gateway 心跳触发 |
+
+### 6.2 OpenClaw LaunchAgent 配置
+
+```
+~/Library/LaunchAgents/ai.openclaw.gateway.plist
+```
+
+- **RunAtLoad**: true（登录自动启动）
+- **KeepAlive**: true（崩溃自动重启）
+- **端口**: 18789
+
+手动管理命令：
+```bash
+# 查看状态
+launchctl list | grep openclaw
+
+# 重启
+launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway
+
+# 停止
+launchctl stop gui/$(id -u)/ai.openclaw.gateway
+
+# 查看日志
+tail -f ~/.openclaw/logs/gateway.log
+```
+
+### 6.3 信号处理触发机制
+
+`al_brooks_processor.py` 由 OpenClaw HEARTBEAT 机制触发：
+- OpenClaw 每次心跳时检查 `~/.clawdbot/signals/signals.jsonl`
+- 如果文件修改时间 > 上次处理时间，执行信号处理
+- 处理完成后更新 `~/.clawdbot/signals/.processed`
+
+**无需配置 cron 或额外 LaunchAgent**。
+
+---
+
+## 7. Docker Compose 部署
+
+### 7.1 启动所有服务
 
 ```bash
 cd "AB Console-Backend"
@@ -293,13 +340,13 @@ export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 docker compose up -d
 ```
 
-### 6.2 查看服务状态
+### 7.2 查看服务状态
 
 ```bash
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep ab-
 ```
 
-### 6.3 查看日志
+### 7.3 查看日志
 
 ```bash
 docker logs -f ab-telegram-service --tail 50
@@ -307,9 +354,9 @@ docker logs -f ab-telegram-service --tail 50
 
 ---
 
-## 7. 故障排查
+## 8. 故障排查
 
-### 7.1 Clawdbot 无法从容器访问
+### 8.1 Clawdbot 无法从容器访问
 
 ```bash
 # 检查 host.docker.internal 是否可达
@@ -323,7 +370,7 @@ except Exception as e:
 "
 ```
 
-### 7.2 详版报告未发送到后端 Bot
+### 8.2 详版报告未发送到后端 Bot
 
 1. 检查 transform 模块是否正确加载
 2. 检查 AI Agent 是否执行了 HTTP POST
@@ -333,7 +380,7 @@ except Exception as e:
 docker logs ab-telegram-service 2>&1 | grep clawdbot-report
 ```
 
-### 7.3 交易笔记未创建
+### 8.3 交易笔记未创建
 
 1. 检查评分是否 >= 70（笔记创建阈值）
 2. 检查 Obsidian vault 路径配置
@@ -347,7 +394,7 @@ curl -X POST http://localhost:8090/api/create-trade-note \
 
 ---
 
-## 8. 配置变更历史
+## 9. 配置变更历史
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
@@ -362,7 +409,7 @@ curl -X POST http://localhost:8090/api/create-trade-note \
 
 ---
 
-## 9. 关键文件路径
+## 10. 关键文件路径
 
 | 用途 | 路径 |
 |------|------|
