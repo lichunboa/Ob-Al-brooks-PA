@@ -1,7 +1,7 @@
 # AB Console - AI Agent 操作手册
 
 > 本文档面向 AI 编码 Agent，以可执行指令的视角编写，约束与指导 Agent 行为。
-> 更新于 2026-01-31。
+> 更新于 2026-02-04 (V2.3)。
 
 ---
 
@@ -67,10 +67,16 @@ Al-brooks-PA/                          项目根目录
 ### 2.1 最短可复现场景
 
 ```bash
-# 一键启动全部后端服务 + Web Dashboard
+# 方式一：Docker Compose（推荐，V2.3+）
+cd "AB Console-Backend"
+docker compose up -d                  # 启动所有服务
+docker compose ps                     # 查看状态
+docker compose logs -f                # 查看日志
+
+# 方式二：一键启动脚本
 bash "📁 启动工具/🚀 一键启动.command"
 
-# 或者手动启动
+# 方式三：手动启动（开发调试）
 cd "AB Console-Backend"
 ./scripts/init.sh                     # 初始化 .venv
 ./scripts/start.sh start             # 启动核心服务
@@ -158,7 +164,18 @@ cd /path/to/tradecat
 | `make clean` | 清理缓存 |
 | `make export-db` | 导出 TimescaleDB 数据 |
 
-### 3.3 服务级 Makefile（统一接口）
+### 3.3 Docker 命令（V2.3+）
+
+| 命令 | 说明 |
+|:---|:---|
+| `docker compose up -d` | 启动所有容器化服务 |
+| `docker compose down` | 停止并移除容器 |
+| `docker compose ps` | 查看容器状态 |
+| `docker compose logs -f [service]` | 查看服务日志 |
+| `docker compose restart [service]` | 重启指定服务 |
+| `docker compose build [service]` | 重新构建镜像 |
+
+### 3.4 服务级 Makefile（统一接口）
 
 每个服务都有标准化的 Makefile，支持以下 targets：
 

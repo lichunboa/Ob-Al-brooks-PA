@@ -12,7 +12,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Backtest engine (planned)
 - Strategy DSL (planned)
-- Web Dashboard (planned)
+
+---
+
+## [2.3.0] - 2026-02-04
+
+### Added
+- **Docker 全面容器化** - 所有 6 个核心微服务完成 Docker 化
+  - 添加 docker-compose.yml 和 docker-compose.override.yml
+  - 每个服务添加独立 Dockerfile 和 .dockerignore
+  - Web Dashboard 集成到 Docker Compose
+- **健康检查系统** - 为所有核心服务添加健康检查端点
+  - 新增 `libs/common/health.py` 统一健康检查模块
+  - data-service, signal-service, trading-service, telegram-service 全部支持
+- **WebSocket 实时数据** - 添加实时数据推送支持
+  - api-service 新增 WebSocket 端点 (`/ws`)
+  - 前端 hooks: `useRealtimeData.ts`, `useChartData.ts`
+- **OpenClaw 集成** - Clawdbot 重命名为 OpenClaw
+  - 完善信号管道配置 (`CLAWDBOT_SIGNAL_PIPELINE.md`)
+  - Webhook 队列化解决并发锁竞争
+- **配置同步 API** - 添加配置同步和信号规则管理
+  - sync-service 新增 `/api/config` 端点
+  - Obsidian 插件添加 ConfigEditorModal 和 SignalRulesModal
+- **公共库模块** - 新增 `libs/common/` 共享模块
+  - `config_client.py` - 配置客户端
+  - `database.py` - 数据库工具
+  - `resilience.py` - 弹性/重试机制
+  - `validation.py` - 数据验证
+  - `service_discovery.py` - 服务发现
+  - `logging_config.py` - 日志配置
+- **启动工具优化** - 一键启动/停止脚本大幅改进
+  - 添加数据回填功能
+  - 添加 OpenClaw Gateway 自动启动
+  - Docker socket 检测和服务管理修复
+- **模拟交易追踪系统** - 信号推送模版优化 + 交易追踪
+
+### Changed
+- **Web Dashboard 优化**
+  - 图表页面重构，支持 K 线数量限制
+  - 信号页面增强，实时更新
+  - 设置页面精简
+  - 状态栏价格使用 K 线数据，与图表保持一致
+  - 图表时间显示改为本地时间（北京时间）
+- **后端监控面板简化** - BackendTab 改用 docker compose 命令
+- **Al Brooks Skill 文档精简** - 移除冗余内容
+
+### Fixed
+- **Docker 配置修复** (多轮迭代)
+  - 修复 api-service, data-service, signal-service Docker 配置
+  - 添加 BOT_TOKEN, DOCKER_HOST 环境变量
+  - 修复健康检查服务器重复启动问题
+- **信号服务修复**
+  - 修复 Docker 容器中 SQLite 路径计算错误
+  - Webhook 使用正确的 OpenClaw hooks token
+- **数据服务修复**
+  - metrics 采集器添加循环，每 5 分钟采集一次
+  - 添加 common 库依赖修复 ModuleNotFoundError
+- **Pydantic v2 兼容性修复**
+- **浏览器端使用相对路径代理，支持局域网手机访问**
+
+### Documentation
+- 添加 V2.2 迁移指南 (`V2.2-MIGRATION-GUIDE.md`)
+- 添加 V2.2 快速参考 (`V2.2-QUICK-REFERENCE.md`)
+- 添加入场价格修复和 WebSocket 重连方案 (v2.5)
+- 添加并发锁竞争和追踪系统解决方案 (v2.4)
+- 添加故障排查章节
+- 更新 webhook token 配置说明
+
+### Statistics
+- **276 files changed**, +31,616 insertions, -3,813 deletions
+- **60 commits** since main branch
 
 ---
 
