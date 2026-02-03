@@ -22,7 +22,7 @@ from src.routers.obsidian import router as obsidian_router
 from src.utils.errors import ErrorCode
 
 # Sync Service 代理配置
-SYNC_SERVICE_URL = "http://localhost:8089"
+SYNC_SERVICE_URL = "http://sync-service:8089"
 
 app = FastAPI(
     title="AB Console API",

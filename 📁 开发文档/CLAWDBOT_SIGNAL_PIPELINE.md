@@ -1,6 +1,6 @@
 # OpenClaw 交易信号管道配置手册
 
-**版本**: v2.1
+**版本**: v2.2
 **更新**: 2026-02-03
 **适用**: AB Console Backend + OpenClaw 双机器人信号集成
 
@@ -8,91 +8,222 @@
 
 ## 1. 架构总览
 
-### 1.1 双机器人架构
+### 1.1 完整信号流程
 
 ```
-                              ┌─────────────────────────────────────┐
-                              │         signal-service              │
-                              │         (129条规则)                  │
-                              └──────────────┬──────────────────────┘
-                                             │
-                                   SignalPublisher.publish()
-                                             │
-                              ┌──────────────┴──────────────────────┐
-                              │      telegram-service/adapter.py     │
-                              │         (strength >= 60)             │
-                              └──────────────┬──────────────────────┘
-                                             │
-                    ┌────────────────────────┼────────────────────────┐
-                    │                        │                        │
-            通道1: 文件              通道2: HTTP Webhook        失败队列
-    ~/.clawdbot/signals/       POST /hooks/al-brooks-signal    failed_queue.jsonl
-        signals.jsonl                        │
-                    │                        │
-                    └────────────────────────┼────────────────────────┘
-                                             │
-                              ┌──────────────┴──────────────────────┐
-                              │         OpenClaw AI Agent             │
-                              │         @chunboClawd_bot             │
-                              │                                      │
-                              │  1. Al Brooks 七步分析法              │
-                              │  2. 匹配11大策略卡片                   │
-                              │  3. 条件累积评分 (0-100)              │
-                              │  4. 生成交易计划                      │
-                              └──────────────┬──────────────────────┘
-                                             │
-                    ┌────────────────────────┼────────────────────────┐
-                    │                        │                        │
-            用户 Telegram              后端 API 回调            Obsidian 笔记
-         (简版报告 + 互动)        POST /api/clawdbot-report    POST /api/create-trade-note
-                                         │                        │
-                              ┌──────────┴──────────┐    ┌────────┴────────┐
-                              │ @abconsole_backend_bot│    │ Daily/Trades/   │
-                              │   (详版分析报告)       │    │ 自动创建交易笔记  │
-                              └─────────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           信号检测层 (Signal Detection)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  signal-service (129条规则)                                                  │
+│  ├── core/        核心规则 (价格突破、均线交叉等)                              │
+│  ├── momentum/    动量规则 (RSI、MACD、KDJ等)                                 │
+│  ├── trend/       趋势规则 (趋势强度、方向等)                                  │
+│  ├── volatility/  波动率规则 (ATR、布林带等)                                  │
+│  ├── volume/      成交量规则 (放量、缩量等)                                   │
+│  ├── futures/     合约规则 (持仓量、资金费率等)                               │
+│  ├── pattern/     形态规则 (双顶双底、楔形等)                                 │
+│  └── misc/        其他规则                                                   │
+│                                                                              │
+│  检测周期: 60秒                                                              │
+│  评分阈值: strength >= 60 才推送给 Clawdbot                                  │
+│                                                                              │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+                         SignalPublisher.publish()
+                                   │
+┌──────────────────────────────────┴──────────────────────────────────────────┐
+│                           信号分发层 (Signal Distribution)                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  telegram-service/adapter.py                                                │
+│                                                                              │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │ 通道1: 文件写入  │  │ 通道2: Webhook  │  │ 通道3: 用户推送  │             │
+│  │                 │  │                 │  │                 │             │
+│  │ ~/.clawdbot/    │  │ POST /hooks/    │  │ @catbo26bot     │             │
+│  │ signals/        │  │ al-brooks-signal│  │ (简版信号)      │             │
+│  │ signals.jsonl   │  │                 │  │                 │             │
+│  └────────┬────────┘  └────────┬────────┘  └─────────────────┘             │
+│           │                    │                                            │
+│           │    双通道冗余设计   │                                            │
+│           └────────────────────┘                                            │
+│                    │                                                        │
+│                    ▼                                                        │
+│           失败队列 (failed_queue.jsonl)                                     │
+│           - 双通道都失败时写入                                               │
+│           - 支持后续重试                                                    │
+│                                                                              │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┴──────────────────────────────────────────┐
+│                           AI 分析层 (AI Analysis)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  OpenClaw Gateway (端口 18789)                                              │
+│       │                                                                      │
+│       ▼                                                                      │
+│  Hook 处理 (/hooks/al-brooks-signal)                                        │
+│       │                                                                      │
+│       ▼                                                                      │
+│  Transform 模块 (al-brooks-dual-send.js)                                    │
+│  - 解析信号 payload                                                         │
+│  - 提取后端 API 回调地址                                                    │
+│  - 构造 Agent Action                                                        │
+│       │                                                                      │
+│       ▼                                                                      │
+│  AI Agent 执行分析                                                          │
+│  - 加载 al-brooks-trader skill                                              │
+│  - 七步分析法                                                               │
+│  - 匹配策略卡片 (Obsidian 策略仓库)                                         │
+│  - 条件累积评分 (0-100)                                                     │
+│       │                                                                      │
+│       ├─────────────────────────────────────────────────────────────────┐   │
+│       │                                                                 │   │
+│       ▼                                                                 ▼   │
+│  简要报告 (2-5行)                                          详细报告 (JSON)  │
+│  → 直接发送给用户 Telegram                                 → POST 后端 API  │
+│                                                                              │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┴──────────────────────────────────────────┐
+│                           输出层 (Output)                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐ │
+│  │ 用户 Telegram       │  │ 后端 Bot            │  │ Obsidian 笔记       │ │
+│  │ @chunboClawd_bot    │  │ @abconsole_backend  │  │ Daily/Trades/       │ │
+│  │                     │  │ _bot                │  │                     │ │
+│  │ 简版报告:           │  │ 详版报告:           │  │ 交易笔记:           │ │
+│  │ - Always In 方向    │  │ - 完整七步分析      │  │ - 自动创建          │ │
+│  │ - 策略匹配          │  │ - 策略匹配详情      │  │ - 评分 >= 70 时     │ │
+│  │ - 入场/止损/目标    │  │ - 评分明细          │  │ - 标准属性格式      │ │
+│  │ - Al Brooks 金句    │  │ - 风险警告          │  │                     │ │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘ │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 双机器人职责
 
 | 机器人 | Token | 职责 |
 |--------|-------|------|
-| `@chunboClawd_bot` | OpenClaw 配置 | 用户交互、简版报告、AI 分析 |
+| `@chunboClawd_bot` | OpenClaw 配置 | 用户交互、简版报告、AI 分析、互动问答 |
 | `@abconsole_backend_bot` | `8507333164:AAG_...` | 详版报告存档、原有 39 卡片/快照功能 |
 
 ---
 
-## 2. OpenClaw 配置
+## 2. 策略匹配机制
 
-### 2.1 配置文件位置
+### 2.1 策略卡片属性
+
+策略卡片位于 Obsidian 笔记库：
+```
+AB Console-Obsidian/策略仓库 (Strategy Repository)/Al Brooks 策略/
+├── 策略卡片_20均线缺口.md
+├── 策略卡片_区间突破回调.md
+├── 策略卡片_双重顶底.md
+├── 策略卡片_失败突破.md
+├── 策略卡片_市价追进.md
+├── 策略卡片_末端旗形.md
+├── 策略卡片_极速与通道.md
+├── 策略卡片_楔形顶底.md
+├── 策略卡片_磁铁吸引.md
+├── 策略卡片_首次均线缺口.md
+└── 高1低1 (High 1Low 1).md
+```
+
+### 2.2 策略卡片 Frontmatter 属性
+
+每张策略卡片包含标准化的 frontmatter 属性，用于信号匹配：
+
+```yaml
+---
+策略名称/strategy_name: 20均线缺口 (20 EMA Gap)
+策略状态/strategy_status: 学习中 (Learning)
+方向/direction:
+  - 做多 (Long)
+  - 做空 (Short)
+市场周期/market_cycle:
+  - 强趋势 (Strong Trend)
+  - 突破模式 (Breakout Mode)
+设置类别/setup_category: 趋势回调 (Trend Pullback)
+时间周期/timeframe:
+  - 5m
+  - 15m
+  - 1H
+风险等级/risk_level: 中 (Medium)
+观察到的形态/patterns_observed:
+  - 20均线缺口 (20 EMA Gap)
+  - 过度延伸 (Overextended)
+信号K/signal_bar_quality:
+  - 强阳收盘 (Strong Bull Close)
+  - 强阴收盘 (Strong Bear Close)
+入场条件/entry_criteria:
+  - K线连续20-30根未触及EMA
+  - 首次回调触及EMA
+风险提示/risk_alerts:
+  - 如果超过40根K线未触及，可能已演变为宽通道
+止损建议/stop_loss_recommendation:
+  - 保守 - 前一波段极值外2ticks
+目标建议/take_profit_recommendation:
+  - 首选 - 测试前极值 (Old High/Low)
+盈亏比/risk_reward: 2:1 - 3:1
+---
+```
+
+### 2.3 信号与策略匹配逻辑
+
+AI Agent 在分析信号时，应该：
+
+1. **读取信号属性**：
+   - `signal_type`: 信号类型（如 "20均线缺口"、"双顶形态"）
+   - `direction`: 方向（BUY/SELL）
+   - `timeframe`: 时间周期
+   - `patterns_observed`: 观察到的形态
+
+2. **匹配策略卡片**：
+   - 根据 `signal_type` 匹配 `策略名称/strategy_name`
+   - 根据 `direction` 匹配 `方向/direction`
+   - 根据 `timeframe` 匹配 `时间周期/timeframe`
+   - 根据 `patterns_observed` 匹配 `观察到的形态/patterns_observed`
+
+3. **引用策略卡片内容**：
+   - 入场条件检查清单
+   - 止损/目标建议
+   - 风险提示
+   - 盈亏比要求
+
+### 2.4 属性标准枚举值
+
+交易笔记和策略卡片使用以下标准枚举值：
+
+| 属性 | 枚举值 |
+|------|--------|
+| 账户类型 | 实盘/模拟/回测 |
+| 品种 | NQ/ES/BTC/ETH/SOL/BNB/GC/CL 等 |
+| 市场周期 | 强趋势/弱趋势/交易区间/突破模式 |
+| 方向 | 做多/做空 |
+| 设置类别 | 趋势突破/趋势回调/趋势反转/区间逆势 |
+
+---
+
+## 3. OpenClaw 配置
+
+### 3.1 配置文件位置
 
 ```
-~/.clawdbot/openclaw.json
+~/.openclaw/openclaw.json
 ```
 
-### 2.2 信号处理脚本（当前方案）
-
-OpenClaw 使用文件轮询方式处理信号：
-
-```
-脚本位置: ~/.openclaw/workspace/al_brooks_processor.py
-信号文件: ~/.clawdbot/signals/signals.jsonl
-状态文件: ~/.clawdbot/signals/.processed
-```
-
-处理流程：
-1. 定时检查信号文件修改时间
-2. 读取新信号（JSON Lines 格式）
-3. 调用 `al-brooks-trader` skill 进行七步分析
-4. POST 详细报告到后端 API
-5. 发送简要报告给用户
-
-### 2.3 Hooks 配置（备用方案 - webhook 接收）
+### 3.2 Hooks 配置
 
 ```json
 {
   "hooks": {
     "enabled": true,
-    "token": "<GATEWAY_TOKEN>",
+    "token": "<HOOKS_TOKEN>",
+    "transformsDir": "/Users/mitchellcb/.openclaw/workspace/transforms",
     "mappings": [
       {
         "id": "al-brooks-signal",
@@ -104,62 +235,56 @@ OpenClaw 使用文件轮询方式处理信号：
         "name": "Al Brooks Signal",
         "deliver": true,
         "channel": "telegram",
-        "transform": "al-brooks-dual-send",
-        "messageTemplate": "..."
+        "transform": {
+          "module": "al-brooks-dual-send.js"
+        }
       }
     ]
   }
 }
 ```
 
-### 2.4 Transform 模块
+### 3.3 Transform 模块
 
-Transform 模块位于 `~/.clawdbot/transforms/al-brooks-dual-send.js`，负责：
+Transform 模块位于 `~/.openclaw/workspace/transforms/al-brooks-dual-send.js`
 
+**职责**：
 1. 接收原始信号 payload
-2. 提取后端 API 回调地址
-3. 构造指令消息，指导 AI Agent 执行双输出
+2. 验证必要字段
+3. 构造 Agent Action（包含分析指令）
+4. 返回 `{ kind: "agent", message: "...", deliver: true, channel: "telegram" }`
 
-```javascript
-// al-brooks-dual-send.js 核心逻辑
-export default async function transform(ctx) {
-    const payload = ctx.payload;
-    const reportUrl = payload.backend_api?.report_url || 'http://127.0.0.1:8090/api/clawdbot-report';
-    const noteUrl = payload.backend_api?.note_url || 'http://127.0.0.1:8090/api/create-trade-note';
+**关键点**：
+- Transform 只负责解析和转发，不做分析
+- 分析逻辑由 AI Agent 根据 `al-brooks-trader` skill 执行
+- 双输出要求在 skill 中定义，Agent 负责执行
 
-    // 返回指令消息，AI Agent 将：
-    // 1. 发送简版报告给用户
-    // 2. POST 详版报告到 reportUrl
-    // 3. (可选) POST 交易笔记到 noteUrl
-    return { message: [...].join('\n') };
-}
-```
-
-### 2.5 Skill 文档
+### 3.4 Skill 配置
 
 AI Agent 的分析能力由 Skill 文档定义：
 
 ```
-docs/clawdbot-integration/al-brooks-skill/SKILL.md
+~/.openclaw/skills/al-brooks-skill/SKILL.md
 ```
 
 Skill 文档包含：
 - 11 大策略卡片速查表
+- 七步分析流程
 - 双输出格式要求
 - 知识库引用指南
-- 演进机制说明
+- 策略匹配逻辑
 
 ---
 
-## 3. 后端适配器配置
+## 4. 后端适配器配置
 
-### 3.1 文件位置
+### 4.1 文件位置
 
 ```
 AB Console-Backend/services/telegram-service/src/signals/adapter.py
 ```
 
-### 3.2 环境变量
+### 4.2 环境变量
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
@@ -169,107 +294,115 @@ AB Console-Backend/services/telegram-service/src/signals/adapter.py
 | `BACKEND_REPORT_URL` | `http://127.0.0.1:8090/api/clawdbot-report` | 详版报告回调 |
 | `BACKEND_NOTE_URL` | `http://127.0.0.1:8090/api/create-trade-note` | 交易笔记回调 |
 
-> **重要**: OpenClaw 有两个 token：
-> - `gateway.auth.token` — Gateway API 认证
-> - `hooks.token` — Webhook 端点认证（后端使用这个）
->
-> 查看命令：`cat ~/.openclaw/openclaw.json | jq '.hooks.token'`
+### 4.3 信号 Payload 格式
 
-### 3.3 Docker 网络注意事项
+后端发送给 OpenClaw 的信号 payload：
 
-在 Docker 容器中运行时：
-- OpenClaw 运行在宿主机，容器内需使用 `host.docker.internal` 访问
-- docker-compose.yml 已配置 `extra_hosts: host.docker.internal:host-gateway`
-- 后端 API 回调地址使用容器内地址 `127.0.0.1:8090`
-
-### 3.4 推送重试机制
-
-adapter.py 实现了指数退避重试：
-
-```python
-async def _post_with_retry(url, json_data, headers, max_retries=2):
-    for attempt in range(max_retries + 1):
-        try:
-            async with _http_session.post(url, json=json_data, headers=headers, timeout=10) as resp:
-                if resp.status in (200, 202):
-                    return True
-        except Exception as e:
-            if attempt < max_retries:
-                await asyncio.sleep(2 ** attempt)  # 1s, 2s
-    return False
-```
-
-### 3.5 推送统计
-
-```python
-from signals.adapter import get_push_stats
-
-stats = get_push_stats()
-# {'webhook_ok': 42, 'webhook_fail': 3, 'file_ok': 45, 'file_fail': 0}
-```
-
----
-
-## 4. 后端 API 端点
-
-### 4.1 详版报告接收
-
-```
-POST /api/clawdbot-report
-```
-
-请求体：
 ```json
 {
   "symbol": "BTCUSDT",
   "direction": "BUY",
-  "strength": 82,
+  "strength": 85,
   "timeframe": "5m",
   "price": 97500.5,
   "signal_type": "20均线缺口",
-  "analysis": "详细的 Al Brooks 分析内容...",
-  "strategy_match": "策略卡片名称",
-  "entry_price": 97500,
-  "stop_loss": 97000,
-  "take_profit": 98500,
-  "position_size": "2%",
-  "score": 82,
-  "timestamp": "2026-02-02T08:30:00Z"
-}
-```
-
-### 4.2 交易笔记创建
-
-```
-POST /api/create-trade-note
-```
-
-请求体：
-```json
-{
-  "symbol": "BTCUSDT",
-  "direction": "BUY",
-  "timeframe": "5m",
-  "entry_price": 97500,
-  "stop_loss": 97000,
-  "take_profit": 98500,
-  "strategy": "20均线缺口",
-  "score": 82,
-  "analysis": "分析摘要..."
-}
-```
-
-响应：
-```json
-{
-  "success": true,
-  "file_path": "Daily/Trades/260202_0830_模拟_BTCUSDT.md"
+  "patterns_observed": ["20均线缺口", "H2"],
+  "timestamp": "2026-02-03T08:30:00Z",
+  "user_id": "756069822",
+  "backend_api": {
+    "report_url": "http://127.0.0.1:8090/api/clawdbot-report",
+    "note_url": "http://127.0.0.1:8090/api/create-trade-note"
+  }
 }
 ```
 
 ---
 
-## 5. 服务端口汇总
+## 5. 双输出要求
+
+### 5.1 简要报告（发给用户 Telegram）
+
+用自然的对话语气，2-5 行：
+
+```
+示例1（有机会）:
+🦁 BTCUSDT 5m — Always In Long，紧通道中
+20均线缺口回调入场机会，H2 形成中
+建议关注 97,500 附近的回调买点，止损 97,200
+准备好了吗？可以聊聊细节
+
+示例2（观望）:
+🦁 ETHUSDT 1h — 区间震荡，不确定方向
+这不是一个好的入场点。等两边之一被突破再说
+耐心等待是最重要的技能
+```
+
+### 5.2 详细报告（POST 给后端 Bot API）
+
+```json
+{
+  "user_id": "756069822",
+  "report": {
+    "symbol": "BTCUSDT",
+    "direction": "BUY",
+    "strength": 82,
+    "timeframe": "5m",
+    "analysis": {
+      "always_in": "Long — HH+HL 结构完整",
+      "cycle": "紧通道，回调小于 2 倍 bar size",
+      "leg": "H2 — 第二腿回调底部",
+      "signal_bar": "强阳收盘，下影线长，实体大",
+      "context": "连续 25 根未触及 EMA，首次回调"
+    },
+    "strategy": "20均线缺口",
+    "strategy_card_match": {
+      "matched_attributes": ["方向", "市场周期", "时间周期", "形态"],
+      "match_score": 85,
+      "entry_criteria_met": ["K线连续20-30根未触及EMA", "首次回调触及EMA"],
+      "risk_alerts": ["如果超过40根K线未触及，可能已演变为宽通道"]
+    },
+    "trade_plan": {
+      "direction": "做多",
+      "entry": 97500,
+      "stop_loss": 97200,
+      "target": 98400,
+      "risk_reward": "3:1"
+    },
+    "score": 78,
+    "quote": "H1不交易，H2是最佳入场点。",
+    "risk_warnings": ["回调可能加深", "关注 97,100 支撑"]
+  },
+  "source": "clawdbot",
+  "timestamp": "2026-02-03T08:30:00Z"
+}
+```
+
+### 5.3 交易笔记创建（评分 >= 70 时）
+
+POST 到 `backend_api.note_url`：
+
+```json
+{
+  "symbol": "BTCUSDT",
+  "direction": "做多",
+  "timeframe": "5m",
+  "entry_price": 97500,
+  "stop_loss": 97200,
+  "take_profit": 98400,
+  "strategy_name": "20均线缺口",
+  "market_cycle": "强趋势",
+  "always_in": "总是多头",
+  "setup_category": "趋势回调",
+  "patterns_observed": ["20均线缺口", "H2"],
+  "signal_bar_quality": ["强阳收盘", "下影线长"],
+  "analysis_summary": "紧通道中25根K线首次回调至EMA，H2形成，强阳确认",
+  "score": 78
+}
+```
+
+---
+
+## 6. 服务端口汇总
 
 | 服务 | 端口 | 协议 | 说明 |
 |------|------|------|------|
@@ -283,144 +416,66 @@ POST /api/create-trade-note
 
 ---
 
-## 6. 服务启动方式
+## 7. 故障排查
 
-### 6.1 启动方式汇总
+### 7.1 Hook 返回 "hook mapping failed"
 
-| 服务 | 启动方式 | 重启后自动启动 | 说明 |
-|------|----------|----------------|------|
-| Docker Desktop | 一键启动脚本 | ❌ | 脚本会自动启动 |
-| 后端微服务 | Docker Compose | ❌ | 随 Docker 启动 |
-| OpenClaw Gateway | macOS LaunchAgent | ✅ | `RunAtLoad=true` |
-| 信号处理脚本 | OpenClaw HEARTBEAT | ✅ | 随 Gateway 心跳触发 |
+**可能原因**：
+1. Transform 文件语法错误
+2. Transform 函数签名不正确
+3. Gateway 缓存了旧版本
 
-### 6.2 OpenClaw LaunchAgent 配置
-
-```
-~/Library/LaunchAgents/ai.openclaw.gateway.plist
-```
-
-- **RunAtLoad**: true（登录自动启动）
-- **KeepAlive**: true（崩溃自动重启）
-- **端口**: 18789
-
-手动管理命令：
+**解决方案**：
 ```bash
-# 查看状态
-launchctl list | grep openclaw
+# 检查 transform 文件
+cat ~/.openclaw/workspace/transforms/al-brooks-dual-send.js
 
-# 重启
-launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway
-
-# 停止
-launchctl stop gui/$(id -u)/ai.openclaw.gateway
+# 重启 Gateway 清除缓存
+openclaw gateway restart
 
 # 查看日志
-tail -f ~/.openclaw/logs/gateway.log
+tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log | grep -i hook
 ```
 
-### 6.3 信号处理触发机制
+### 7.2 详版报告未发送到后端 Bot
 
-`al_brooks_processor.py` 由 OpenClaw HEARTBEAT 机制触发：
-- OpenClaw 每次心跳时检查 `~/.clawdbot/signals/signals.jsonl`
-- 如果文件修改时间 > 上次处理时间，执行信号处理
-- 处理完成后更新 `~/.clawdbot/signals/.processed`
-
-**无需配置 cron 或额外 LaunchAgent**。
-
----
-
-## 7. Docker Compose 部署
-
-### 7.1 启动所有服务
-
-```bash
-cd "AB Console-Backend"
-export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
-docker compose up -d
-```
-
-### 7.2 查看服务状态
-
-```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep ab-
-```
-
-### 7.3 查看日志
-
-```bash
-docker logs -f ab-telegram-service --tail 50
-```
-
----
-
-## 8. 故障排查
-
-### 8.1 OpenClaw 无法从容器访问
-
-```bash
-# 检查 host.docker.internal 是否可达
-docker exec ab-telegram-service python -c "
-import urllib.request
-try:
-    r = urllib.request.urlopen('http://host.docker.internal:18789/', timeout=3)
-    print(f'OpenClaw reachable: HTTP {r.status}')
-except Exception as e:
-    print(f'OpenClaw unreachable: {e}')
-"
-```
-
-### 8.2 详版报告未发送到后端 Bot
-
-1. 检查 transform 模块是否正确加载
-2. 检查 AI Agent 是否执行了 HTTP POST
-3. 查看 telegram-service 日志中的 `/api/clawdbot-report` 请求
+**检查步骤**：
+1. 确认 AI Agent 执行了 curl 命令
+2. 检查后端 API 是否可达
+3. 查看 telegram-service 日志
 
 ```bash
 docker logs ab-telegram-service 2>&1 | grep clawdbot-report
 ```
 
-### 8.3 交易笔记未创建
+### 7.3 策略卡片未匹配
 
-1. 检查评分是否 >= 70（笔记创建阈值）
-2. 检查 Obsidian vault 路径配置
-3. 查看 API 响应
-
-```bash
-curl -X POST http://localhost:8090/api/create-trade-note \
-  -H "Content-Type: application/json" \
-  -d '{"symbol":"BTCUSDT","direction":"BUY","timeframe":"5m","entry_price":97500,"stop_loss":97000,"take_profit":98500,"strategy":"测试","score":85}'
-```
+**检查步骤**：
+1. 确认信号 `signal_type` 与策略卡片 `策略名称` 匹配
+2. 检查 Obsidian 笔记库路径配置
+3. 确认 AI Agent 有权限读取策略卡片
 
 ---
 
-## 9. 配置变更历史
+## 8. 配置变更历史
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-02-03 | v2.1 | 修复 webhook 401 认证（使用 hooks.token 而非 gateway.auth.token） |
-| 2026-02-03 | v2.1 | 修复 data-service common 模块缺失、信号文件 volume 映射 |
-| 2026-02-03 | v2.1 | OpenClaw 文件轮询方案确认、信号处理脚本配置、API 端点验证通过 |
-| 2026-02-02 | v2.0 | 双机器人架构、Transform 模块、后端 API 回调、交易笔记自动创建 |
-| 2026-02-02 | v2.0 | 推送阈值 50 -> 60、重试机制、推送统计 |
-| 2026-02-02 | v2.0 | Docker 网络修复 (host.docker.internal) |
-| 2026-02-02 | v2.0 | Skill 文档重写（灵活分析 vs 模板化） |
+| 2026-02-03 | v2.2 | 完善策略匹配机制文档、添加属性枚举值、更新架构图 |
+| 2026-02-03 | v2.1 | 修复 webhook 401 认证、Transform 函数签名修复 |
+| 2026-02-02 | v2.0 | 双机器人架构、Transform 模块、后端 API 回调 |
 | 2026-02-01 | v1.1 | 初始 OpenClaw 集成 |
 
 ---
 
-## 10. 关键文件路径
+## 9. 关键文件路径
 
 | 用途 | 路径 |
 |------|------|
-| OpenClaw 配置 | `~/.clawdbot/openclaw.json` |
-| 信号处理脚本 | `~/.openclaw/workspace/al_brooks_processor.py` |
+| OpenClaw 配置 | `~/.openclaw/openclaw.json` |
+| Transform 模块 | `~/.openclaw/workspace/transforms/al-brooks-dual-send.js` |
+| Skill 文档 | `~/.openclaw/skills/al-brooks-skill/SKILL.md` |
 | 信号文件 | `~/.clawdbot/signals/signals.jsonl` |
-| 处理状态文件 | `~/.clawdbot/signals/.processed` |
-| Transform 模块 | `~/.clawdbot/transforms/al-brooks-dual-send.js` |
-| Skill 文档 | `docs/clawdbot-integration/al-brooks-skill/SKILL.md` |
 | 后端适配器 | `services/telegram-service/src/signals/adapter.py` |
-| Bot 主程序 | `services/telegram-service/src/bot/app.py` |
-| Docker Compose | `docker-compose.yml` + `docker-compose.override.yml` |
-| 启动工具 | `📁 启动工具/🚀 一键启动.command` |
-| 状态检查 | `📁 启动工具/📊 状态检查.command` |
+| 策略卡片 | `AB Console-Obsidian/策略仓库 (Strategy Repository)/Al Brooks 策略/` |
+| 开发文档 | `📁 开发文档/CLAWDBOT_SIGNAL_PIPELINE.md` |

@@ -116,7 +116,7 @@ async def get_candles_v1(
             return False
     
     # 如果数据库可用，优先从数据库查询
-    if check_port("localhost", 5434):
+    if check_port("timescaledb", 5432):
         table = TABLE_BY_INTERVAL.get(interval)
         if table:
             def _fetch_from_db():
@@ -160,10 +160,17 @@ async def get_candles_v1(
     # 数据库不可用或查询失败，直接从交易所获取
     
     # 判断品种类型 (使用原始 symbol)
+    # 常见美股代码（需要排除在加密货币之外）
+    US_STOCKS = ["AAPL", "NVDA", "MSFT", "AMZN", "GOOGL", "META", "TSLA", "AMD", "INTC", "NFLX", "BABA", "TCEHY"]
+    # 期货/指数代码
+    FUTURES = ["ES", "NQ", "YM", "CL", "GC", "XAU", "XAG", "SI", "HG", "ZB", "ZN", "ZF"]
+    
     is_crypto = original_symbol.endswith("USDT") or (
-        original_symbol.isalpha() and len(original_symbol) <= 5 and original_symbol not in ["ES", "NQ", "YM", "CL", "GC", "XAU", "XAG"]
+        original_symbol.isalpha() and len(original_symbol) <= 5 
+        and original_symbol not in US_STOCKS 
+        and original_symbol not in FUTURES
     )
-    is_future = "=" in original_symbol or original_symbol in ["ES", "NQ", "YM", "CL", "GC", "XAU", "XAG"]
+    is_future = "=" in original_symbol or original_symbol in FUTURES
     is_stock = not is_crypto and not is_future and original_symbol.isalpha() and len(original_symbol) <= 5
     
     # 加密货币 - 从 Binance 获取
@@ -224,73 +231,73 @@ async def get_candles_v1(
 
 
 async def _fetch_from_yahoo(symbol: str, interval: str, limit: int) -> list:
-    """从 Yahoo Finance 获取 K 线数据"""
-    import aiohttp
-    import time
+    """从 Yahoo Finance 获取 K 线数据 - 使用 yfinance 库"""
+    import yfinance as yf
+    import asyncio
     
     # 转换 interval 格式
     yf_interval = {
         "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-        "1h": "1h", "2h": "1h", "4h": "1h", "1d": "1d"
+        "1h": "1h", "2h": "1h", "4h": "1h", "1d": "1d", "1w": "1wk", "1M": "1mo"
     }.get(interval, "5m")
     
-    # 计算时间范围
-    range_map = {
-        "1m": "1d", "5m": "5d", "15m": "5d", "30m": "1mo",
-        "1h": "1mo", "2h": "3mo", "4h": "3mo", "1d": "1y"
-    }
-    yf_range = range_map.get(interval, "5d")
+    # 计算时间范围 (天数)
+    range_days = {
+        "1m": 7, "5m": 30, "15m": 30, "30m": 60,
+        "1h": 90, "2h": 120, "4h": 180, "1d": 365, "1w": 730, "1M": 1825
+    }.get(interval, 30)
     
-    # Yahoo Finance API URL
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-    params = {
-        "interval": yf_interval,
-        "range": yf_range,
-        "includeAdjustedClose": "true"
+    try:
+        ticker = yf.Ticker(symbol)
+        
+        # 使用 asyncio.to_thread 在线程中运行同步的 yfinance
+        df = await asyncio.to_thread(
+            ticker.history,
+            period=f"{range_days}d",
+            interval=yf_interval
+        )
+        
+        if df is None or df.empty:
+            return []
+        
+        # 转换为列表格式
+        candles = []
+        for index, row in df.iterrows():
+            ts = index
+            if hasattr(ts, 'timestamp'):
+                ts_ms = int(ts.timestamp() * 1000)
+            else:
+                ts_ms = int(ts.value / 1_000_000)  # pandas Timestamp
+            
+            candles.append({
+                "open_time": ts_ms,
+                "open": float(row.get("Open", 0)),
+                "high": float(row.get("High", 0)),
+                "low": float(row.get("Low", 0)),
+                "close": float(row.get("Close", 0)),
+                "volume": float(row.get("Volume", 0)),
+                "close_time": ts_ms + _interval_to_ms(interval)
+            })
+        
+        # 限制返回数量
+        if len(candles) > limit:
+            candles = candles[-limit:]
+        
+        return candles
+        
+    except Exception as e:
+        print(f"[ohlc] yfinance 获取失败: {e}")
+        return []
+
+
+def _interval_to_ms(interval: str) -> int:
+    """将 interval 转换为毫秒"""
+    mapping = {
+        "1m": 60000, "5m": 300000, "15m": 900000, "30m": 1800000,
+        "1h": 3600000, "2h": 7200000, "4h": 14400000, "1d": 86400000,
+        "1w": 604800000, "1M": 2592000000
     }
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    }
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-            if resp.status != 200:
-                return []
-            
-            data = await resp.json()
-            result = data.get("chart", {}).get("result", [])
-            
-            if not result:
-                return []
-            
-            chart_data = result[0]
-            timestamps = chart_data.get("timestamp", [])
-            quote = chart_data.get("indicators", {}).get("quote", [{}])[0]
-            
-            opens = quote.get("open", [])
-            highs = quote.get("high", [])
-            lows = quote.get("low", [])
-            closes = quote.get("close", [])
-            volumes = quote.get("volume", [])
-            
-            candles = []
-            for i, ts in enumerate(timestamps):
-                if i < len(opens) and opens[i] is not None:
-                    candles.append({
-                        "open_time": int(ts) * 1000,
-                        "open": float(opens[i]),
-                        "high": float(highs[i]) if i < len(highs) and highs[i] is not None else float(opens[i]),
-                        "low": float(lows[i]) if i < len(lows) and lows[i] is not None else float(opens[i]),
-                        "close": float(closes[i]) if i < len(closes) and closes[i] is not None else float(opens[i]),
-                        "volume": float(volumes[i]) if i < len(volumes) and volumes[i] is not None else 0,
-                        "close_time": (int(ts) + 300) * 1000,  # Yahoo 数据是交易时间戳
-                    })
-            
-            # 限制返回数量
-            if len(candles) > limit:
-                candles = candles[-limit:]
-            
-            return candles
+    return mapping.get(interval, 300000)
 
 
 @router.get("/ohlc/history")

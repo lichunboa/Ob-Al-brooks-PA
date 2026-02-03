@@ -18,7 +18,7 @@
             }
           },
           {
-            "id": "e87ad2db500ccdbe",
+            "id": "3053c331bb7f8e62",
             "type": "leaf",
             "state": {
               "type": "market-scanner-view",
@@ -27,7 +27,8 @@
               "title": "Market Scanner"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -81,7 +82,7 @@
             }
           },
           {
-            "id": "62851f82c7077d3e",
+            "id": "61dccb65198f57aa",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -203,7 +204,7 @@
             }
           },
           {
-            "id": "cc5aea4d0a88b40c",
+            "id": "5030a8e2de1d7ca7",
             "type": "leaf",
             "state": {
               "type": "al-brooks-console-view",
@@ -213,11 +214,11 @@
             }
           }
         ],
-        "currentTab": 7
+        "currentTab": 6
       }
     ],
     "direction": "horizontal",
-    "width": 598.5
+    "width": 313.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -247,7 +248,7 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "45c382f8bb49793c",
+  "active": "3053c331bb7f8e62",
   "lastOpenFiles": [
     "Daily/SPX/SPX 09.02 周二.md",
     "Daily/SPX/SPX 09.03 周三.md",

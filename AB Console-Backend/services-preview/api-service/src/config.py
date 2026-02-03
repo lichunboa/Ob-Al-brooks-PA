@@ -8,7 +8,7 @@ from threading import Lock
 from dotenv import load_dotenv
 from psycopg_pool import ConnectionPool
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent  # /app/src -> /app
 ENV_FILE = PROJECT_ROOT / "config" / ".env"
 
 load_dotenv(ENV_FILE)

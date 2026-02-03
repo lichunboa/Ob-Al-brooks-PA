@@ -18,15 +18,32 @@ from typing import List, Optional
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-# 添加 ai-service 到 path
-AI_SERVICE_PATH = Path(__file__).resolve().parents[3] / "ai-service"
-if str(AI_SERVICE_PATH) not in sys.path:
-    sys.path.insert(0, str(AI_SERVICE_PATH))
+# 添加 ai-service 到 path（兼容 Docker 和本地）
+# 关键：必须确保 ai-service 在 sys.path 的第一位，避免与 telegram-service 的 src 冲突
+# Python 解释器会把空字符串（当前目录）放在 sys.path[0]，而 WORKDIR=/app/src 时
+# 空字符串就代表 telegram-service 的 src 目录
+AI_SERVICE_PATH = Path(os.environ.get('AI_SERVICE_PATH', '/app/ai-service'))
+AI_SERVICE_STR = str(AI_SERVICE_PATH)
 
-# 添加项目根目录
+# 关键修复：移除空字符串（当前目录），避免它干扰 ai-service 的导入
+# 空字符串 '' 在 sys.path 中代表当前工作目录，Python 会自动把它放第一位
+if '' in sys.path:
+    sys.path.remove('')
+
+# 如果 ai-service 已在 path 中，先移除它（避免重复且确保顺序）
+if AI_SERVICE_STR in sys.path:
+    sys.path.remove(AI_SERVICE_STR)
+
+# 关键：ai-service 必须在第一位，确保导入 src.pipeline 时找到的是 ai-service 的 src
+# 而不是 /app/src（telegram-service 的代码目录）
+sys.path.insert(0, AI_SERVICE_STR)
+
+# 添加项目根目录（在 ai-service 之后）
 PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', '/app'))
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT_STR = str(PROJECT_ROOT)
+if PROJECT_ROOT_STR in sys.path:
+    sys.path.remove(PROJECT_ROOT_STR)
+sys.path.insert(1, PROJECT_ROOT_STR)  # 插入到位置 1，确保 ai-service 仍在第一位
 
 logger = logging.getLogger(__name__)
 

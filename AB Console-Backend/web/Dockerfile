@@ -11,12 +11,20 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# 接收构建参数
+ARG NEXT_PUBLIC_API_URL=http://localhost:8088
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:8088
+ARG NEXT_PUBLIC_SYNC_API_URL=http://localhost:8089
 
 # 设置环境变量
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+ENV NEXT_PUBLIC_SYNC_API_URL=${NEXT_PUBLIC_SYNC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
 RUN npm run build
 

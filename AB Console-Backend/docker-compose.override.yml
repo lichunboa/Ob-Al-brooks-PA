@@ -19,25 +19,47 @@ services:
       - ./libs:/app/libs
     environment:
       - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
   trading-service:
     volumes:
       - ./services/trading-service/src:/app/src
     environment:
       - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
   signal-service:
     environment:
       - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
   telegram-service:
     environment:
       - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
   sync-service:
     environment:
       - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
-  forwarder:
+  api-service:
     volumes:
-      - ./forwarder:/app
+      - ./services-preview/api-service/src:/app/src
+      - ./services/data-service/src:/app/data_service_src
+      - ./libs:/app/libs
+    environment:
+      - LOG_LEVEL=DEBUG
+      - SYMBOLS_GROUPS=main4
+      - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
+      - PYTHONPATH=/app/src:/app/libs:/app/data_service_src
+
+  web-dashboard:
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api-service:8088
+      - NEXT_PUBLIC_WS_URL=ws://api-service:8088
