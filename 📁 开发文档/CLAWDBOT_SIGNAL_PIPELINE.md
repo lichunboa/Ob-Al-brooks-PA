@@ -564,12 +564,123 @@ if gaps:
 2. 检查 Obsidian 笔记库路径配置
 3. 确认 AI Agent 有权限读取策略卡片
 
+### 7.9 Webhook 并发锁竞争 (Session Store Lock Timeout)
+
+**错误**：`Error: timeout acquiring session store lock: /Users/mitchellcb/.openclaw/agents/main/sessions/sessions.json.lock`
+
+**症状**：多个信号同时到达时，部分信号处理失败，日志显示大量 lock timeout 错误。
+
+**原因**：OpenClaw Gateway 使用文件锁管理 session 状态，当多个 webhook 并发到达时，它们竞争同一个锁，导致超时。
+
+**解决方案**：在后端 `adapter.py` 中实现 webhook 队列化：
+
+```python
+# services/telegram-service/src/signals/adapter.py
+
+import asyncio
+
+_webhook_queue: asyncio.Queue | None = None
+_webhook_worker_task: asyncio.Task | None = None
+
+async def _webhook_worker():
+    """后台 worker，串行消费队列，每个请求间隔 1 秒"""
+    while True:
+        payload = await _webhook_queue.get()
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(WEBHOOK_URL, json=payload, headers=headers)
+        except Exception as e:
+            logger.error(f"Webhook 发送失败: {e}")
+        finally:
+            _webhook_queue.task_done()
+            await asyncio.sleep(1)  # 间隔 1 秒，避免锁竞争
+
+async def _notify_clawdbot(signal_data: dict):
+    # 通道1: 文件写入（立即执行）
+    _write_to_file(signal_data)
+    
+    # 通道2: Webhook（放入队列串行发送）
+    await _webhook_queue.put(signal_data)
+```
+
+**优点**：
+- 信号按顺序发送，避免并发锁竞争
+- 1 秒间隔给 Gateway 足够时间释放锁
+- 文件通道不受影响，保持双通道冗余
+
+### 7.10 模拟交易追踪未自动更新
+
+**症状**：模拟交易创建后，状态一直是 `active`，即使已超过 `expires_at` 时间。
+
+**原因**：追踪逻辑依赖 heartbeat 执行，但 heartbeat 间隔不固定，且没有实时价格数据。
+
+**解决方案**：使用 cron job 定时追踪每笔交易：
+
+1. **创建交易时**：为每笔模拟交易创建独立的 cron job
+2. **定时检查**：每 5 分钟检查一次价格
+3. **判定结果**：检查是否触及止盈/止损/超时
+4. **完成后取消**：交易结束后自动删除 cron job
+
+```json
+// Cron Job 配置示例
+{
+  "name": "track-trade-0053",
+  "schedule": { "kind": "every", "everyMs": 300000 },
+  "sessionTarget": "isolated",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "检查交易 #0053 SOLUSDT 的状态：入场 203.5，止损 200.5，止盈 209.5，到期 20:19"
+  }
+}
+```
+
+**追踪逻辑**：
+```
+if current_time > expires_at:
+    status = "timeout", outcome = "保本/平手"
+elif (做多 && price <= stop_loss) || (做空 && price >= stop_loss):
+    status = "loss", outcome = "止损"
+elif (做多 && price >= take_profit) || (做空 && price <= take_profit):
+    status = "win", outcome = "止盈"
+```
+
+---
+
+## 8. 模拟交易追踪系统
+
+### 8.1 追踪文件
+
+| 文件 | 路径 | 用途 |
+|------|------|------|
+| 活跃交易 | `~/.openclaw/workspace/active_trades.json` | 存储所有模拟交易状态 |
+| 交易笔记 | `AB Console-Obsidian/Daily/Trades/` | Obsidian 交易记录 |
+| 追踪 Cron | OpenClaw cron 系统 | 定时检查价格 |
+
+### 8.2 交易状态流转
+
+```
+创建 (score >= 75)
+    ↓
+active (追踪中)
+    ↓
+    ├── win (触及止盈)
+    ├── loss (触及止损)
+    └── timeout (超时未触发)
+```
+
+### 8.3 笔记命名规范
+
+格式：`YYMMDD_HHmm_模拟_品种.md`
+
+示例：`260203_1601_模拟_SOLUSDT.md`
+
 ---
 
 ## 9. 配置变更历史
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-02-03 | v2.4 | Webhook 队列化解决并发锁竞争、Cron 追踪系统设计 |
 | 2026-02-03 | v2.3 | 添加 Claude API 代理配置、修复 OpenClaw 配置错误、添加数据回填功能 |
 | 2026-02-03 | v2.3 | 修复 signal-service SQLite 路径、data-service 数据停更问题 |
 | 2026-02-03 | v2.2 | 完善策略匹配机制文档、添加属性枚举值、更新架构图 |
