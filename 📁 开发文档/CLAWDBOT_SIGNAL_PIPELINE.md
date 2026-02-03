@@ -644,6 +644,67 @@ elif (做多 && price >= take_profit) || (做空 && price <= take_profit):
     status = "win", outcome = "止盈"
 ```
 
+### 7.11 模拟交易入场价格为 0
+
+**症状**：模拟交易的 `entry_price` 字段为 0，导致无法正确计算盈亏。
+
+**原因**：后端 `pg_engine.py` 中的 `check_oi_surge` 和 `check_oi_dump` 函数将 `price` 硬编码为 `0.0`。
+
+**解决方案**：修改 `services/signal-service/src/engines/pg_engine.py`：
+
+```python
+# 修改前
+def check_oi_surge(self, symbol: str, ...):
+    return Signal(price=0.0, ...)  # 硬编码为 0
+
+# 修改后
+def check_oi_surge(self, symbol: str, candle: dict, ...):
+    price = candle.get("close", 0.0)  # 从 candle 数据获取价格
+    return Signal(price=price, ...)
+```
+
+同时在 SKILL.md 中添加价格合理性检查：
+- 永远不要使用 `price=0` 创建交易
+- 检查价格是否在合理范围内（BTC: 50k-150k, ETH: 1k-10k, SOL: 50-500）
+- 如果价格无效，从 Binance API 获取实时价格
+
+### 7.12 data-service WebSocket 静默断开
+
+**症状**：K线数据停滞，但 Docker 容器状态显示 healthy。日志显示 `跳过陈旧K线数据`。
+
+**原因**：WebSocket 连接静默断开后没有自动重连或错误处理。
+
+**解决方案**：添加心跳检测和自动重连机制：
+
+```python
+# services/data-service/src/collectors/websocket_manager.py
+
+class WebSocketManager:
+    def __init__(self):
+        self.last_message_time = datetime.now()
+        self.heartbeat_interval = 30  # 秒
+        self.reconnect_attempts = 0
+        
+    async def heartbeat_loop(self):
+        """心跳检测，5分钟无数据则重连"""
+        while True:
+            await asyncio.sleep(self.heartbeat_interval)
+            if datetime.now() - self.last_message_time > timedelta(minutes=5):
+                logger.warning("WebSocket 5分钟未收到数据，尝试重连...")
+                await self.reconnect()
+                
+    async def reconnect(self):
+        """指数退避重连"""
+        delay = min(2 ** self.reconnect_attempts, 300)  # 最大 5 分钟
+        await asyncio.sleep(delay)
+        try:
+            await self.connect()
+            self.reconnect_attempts = 0
+        except Exception as e:
+            self.reconnect_attempts += 1
+            logger.error(f"重连失败: {e}")
+```
+
 ---
 
 ## 8. 模拟交易追踪系统
@@ -680,6 +741,7 @@ active (追踪中)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-02-03 | v2.5 | 修复入场价格为0问题、data-service WebSocket 自动重连 |
 | 2026-02-03 | v2.4 | Webhook 队列化解决并发锁竞争、Cron 追踪系统设计 |
 | 2026-02-03 | v2.3 | 添加 Claude API 代理配置、修复 OpenClaw 配置错误、添加数据回填功能 |
 | 2026-02-03 | v2.3 | 修复 signal-service SQLite 路径、data-service 数据停更问题 |
