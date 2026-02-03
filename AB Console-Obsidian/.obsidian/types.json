@@ -31,6 +31,7 @@
     "概率/probability": "multitext",
     "studied": "checkbox",
     "止损建议/stop_loss_recommendation": "multitext",
-    "目标建议/take_profit_recommendation": "multitext"
+    "目标建议/take_profit_recommendation": "multitext",
+    "追踪状态/tracking_status": "multitext"
   }
 }
