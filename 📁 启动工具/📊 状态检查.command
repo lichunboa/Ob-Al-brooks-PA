@@ -73,7 +73,7 @@ check_port 8090 "Telegram Service"
 check_port 8083 "Signal Service"
 check_port 5434 "TimescaleDB"
 check_port 3000 "Web Dashboard"
-check_port 18789 "Clawdbot"
+check_port 18789 "OpenClaw Gateway"
 
 # Docker 容器检查
 echo ""
@@ -155,17 +155,17 @@ else
     echo -e "${YELLOW}○${NC} 信号库未创建"
 fi
 
-# Clawdbot 检查
+# OpenClaw 检查
 echo ""
-echo "【Clawdbot】"
+echo "【OpenClaw Gateway】"
 if lsof -i :18789 -sTCP:LISTEN > /dev/null 2>&1; then
-    echo -e "${GREEN}●${NC} Clawdbot 运行中 (端口 18789)"
+    echo -e "${GREEN}●${NC} OpenClaw Gateway 运行中 (端口 18789)"
     # 测试 webhook
     if curl -s -o /dev/null -w "%{http_code}" "http://localhost:18789/health" 2>/dev/null | grep -q "200"; then
         echo -e "  ${CYAN}└─${NC} Webhook 可用"
     fi
 else
-    echo -e "${YELLOW}○${NC} Clawdbot 未运行 - 信号转发不可用"
+    echo -e "${YELLOW}○${NC} OpenClaw Gateway 未运行 - 信号分析不可用"
 fi
 
 echo ""
