@@ -8,7 +8,12 @@ from pathlib import Path
 # 路径
 SRC_DIR = Path(__file__).parent
 PROJECT_ROOT = SRC_DIR.parent
-REPO_ROOT = PROJECT_ROOT.parent.parent
+
+# Docker 容器中 PROJECT_ROOT 就是 /app，本地开发时需要向上两级
+if (PROJECT_ROOT / "libs").exists():
+    REPO_ROOT = PROJECT_ROOT
+else:
+    REPO_ROOT = PROJECT_ROOT.parent.parent
 
 
 # 数据库配置
