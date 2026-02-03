@@ -29,6 +29,7 @@ from adapters.cryptofeed import BinanceWSAdapter, CandleEvent, preload_symbols
 from adapters.metrics import metrics
 from adapters.timescale import TimescaleAdapter
 from adapters.ws_manager import WebSocketManager
+from collectors.auto_align import init_aligner, start_aligner, stop_aligner
 from config import settings
 
 logger = logging.getLogger("ws.collector")
@@ -133,24 +134,36 @@ class WSCollector:
             self._gap_thread = threading.Thread(target=self._gap_loop, daemon=True)
             self._gap_thread.start()
 
+        # 启动自动数据对齐器（独立于 WebSocket，主动补齐缺口）
+        aligner = init_aligner(
+            self._ts,
+            list(self._symbols.values())[:20],  # 主要币种
+            check_interval=60,      # 60秒检查一次
+            align_threshold=120,    # 2分钟延迟触发补齐
+            alert_threshold=600,    # 10分钟延迟触发告警
+        )
+        start_aligner()
+        logger.info("启动数据自动对齐器...")
+
         # 使用 WebSocketManager 管理连接（带心跳检测和自动重连）
         def adapter_factory():
             return BinanceWSAdapter(http_proxy=settings.http_proxy)
-        
+
         self._ws_manager = WebSocketManager(
             adapter_factory=adapter_factory,
             symbols=list(self._symbols.keys()),
             callback=self._on_candle_sync,
-            heartbeat_interval=30,  # 30秒检查一次
-            stale_threshold=120,    # 2分钟无数据视为停滞
+            heartbeat_interval=15,  # 15秒检查一次（缩短）
+            stale_threshold=60,     # 1分钟无数据视为停滞（缩短）
         )
-        
+
         logger.info("启动 WebSocket 管理器（带自动重连）...")
 
         try:
             self._ws_manager.run()  # 阻塞运行，内部处理重连
         finally:
             # 退出前刷新
+            stop_aligner()
             asyncio.run(self._final_flush())
             self._gap_stop.set()
             self._ts.close()
