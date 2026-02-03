@@ -1,8 +1,8 @@
-# Clawdbot 交易信号管道配置手册
+# OpenClaw 交易信号管道配置手册
 
 **版本**: v2.1
 **更新**: 2026-02-03
-**适用**: AB Console Backend + OpenClaw (Clawdbot) 双机器人信号集成
+**适用**: AB Console Backend + OpenClaw 双机器人信号集成
 
 ---
 
@@ -32,7 +32,7 @@
                     └────────────────────────┼────────────────────────┘
                                              │
                               ┌──────────────┴──────────────────────┐
-                              │     OpenClaw (Clawdbot) AI Agent     │
+                              │         OpenClaw AI Agent             │
                               │         @chunboClawd_bot             │
                               │                                      │
                               │  1. Al Brooks 七步分析法              │
@@ -178,7 +178,7 @@ AB Console-Backend/services/telegram-service/src/signals/adapter.py
 ### 3.3 Docker 网络注意事项
 
 在 Docker 容器中运行时：
-- Clawdbot 运行在宿主机，容器内需使用 `host.docker.internal` 访问
+- OpenClaw 运行在宿主机，容器内需使用 `host.docker.internal` 访问
 - docker-compose.yml 已配置 `extra_hosts: host.docker.internal:host-gateway`
 - 后端 API 回调地址使用容器内地址 `127.0.0.1:8090`
 
@@ -273,7 +273,7 @@ POST /api/create-trade-note
 
 | 服务 | 端口 | 协议 | 说明 |
 |------|------|------|------|
-| Clawdbot Gateway | 18789 | WebSocket + HTTP | OpenClaw AI Agent |
+| OpenClaw Gateway | 18789 | WebSocket + HTTP | OpenClaw AI Agent |
 | API Service | 8088 | HTTP | 主 API 服务 |
 | Sync Service | 8089 | HTTP | Obsidian 同步 |
 | Telegram Service | 8090 | HTTP | Bot + 回调 API |
@@ -356,7 +356,7 @@ docker logs -f ab-telegram-service --tail 50
 
 ## 8. 故障排查
 
-### 8.1 Clawdbot 无法从容器访问
+### 8.1 OpenClaw 无法从容器访问
 
 ```bash
 # 检查 host.docker.internal 是否可达
@@ -364,9 +364,9 @@ docker exec ab-telegram-service python -c "
 import urllib.request
 try:
     r = urllib.request.urlopen('http://host.docker.internal:18789/', timeout=3)
-    print(f'Clawdbot reachable: HTTP {r.status}')
+    print(f'OpenClaw reachable: HTTP {r.status}')
 except Exception as e:
-    print(f'Clawdbot unreachable: {e}')
+    print(f'OpenClaw unreachable: {e}')
 "
 ```
 
@@ -405,7 +405,7 @@ curl -X POST http://localhost:8090/api/create-trade-note \
 | 2026-02-02 | v2.0 | 推送阈值 50 -> 60、重试机制、推送统计 |
 | 2026-02-02 | v2.0 | Docker 网络修复 (host.docker.internal) |
 | 2026-02-02 | v2.0 | Skill 文档重写（灵活分析 vs 模板化） |
-| 2026-02-01 | v1.1 | 初始 Clawdbot 集成 |
+| 2026-02-01 | v1.1 | 初始 OpenClaw 集成 |
 
 ---
 
