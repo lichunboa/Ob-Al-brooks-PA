@@ -16,13 +16,14 @@ CHECK_INTERVAL="${CHECK_INTERVAL:-30}"
 STOP_TIMEOUT=10
 
 # 安全加载 .env（只读键值解析，拒绝危险行）
+# 兼容 bash 3.2+ (macOS) 和 bash 4+ (Linux)
 safe_load_env() {
     local file="$1"
     [ -f "$file" ] || return 0
-    
+
     # 检查权限（生产环境强制 600）
     if [[ "$file" == *"config/.env" ]] && [[ ! "$file" == *".example" ]]; then
-        local perm=$(stat -c %a "$file" 2>/dev/null)
+        local perm=$(stat -f %Lp "$file" 2>/dev/null || stat -c %a "$file" 2>/dev/null)
         if [[ "$perm" != "600" && "$perm" != "400" ]]; then
             if [[ "${CODESPACES:-}" == "true" ]]; then
                 echo "⚠️  Codespace 环境，跳过权限检查 ($file: $perm)"
@@ -33,19 +34,28 @@ safe_load_env() {
             fi
         fi
     fi
-    
+
     while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        [[ "$line" =~ ^[[:space:]]*export ]] && continue
-        [[ "$line" =~ \$\( ]] && continue
-        [[ "$line" =~ \` ]] && continue
-        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-            local key="${BASH_REMATCH[1]}"
-            local val="${BASH_REMATCH[2]}"
-            val="${val#\"}" && val="${val%\"}"
-            val="${val#\'}" && val="${val%\'}"
-            export "$key=$val"
-        fi
+        # 跳过空行和注释
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        [[ "$line" == *export* ]] && continue
+        # 跳过包含命令替换的行
+        case "$line" in
+            *'$('*|*'`'*) continue ;;
+        esac
+        # 解析 KEY=VALUE
+        local key=$(echo "$line" | cut -d= -f1)
+        local val=$(echo "$line" | cut -d= -f2-)
+        # 验证 key 格式
+        case "$key" in
+            [A-Za-z_]*) ;;
+            *) continue ;;
+        esac
+        # 去除引号
+        val="${val#\"}" && val="${val%\"}"
+        val="${val#\'}" && val="${val%\'}"
+        export "$key=$val"
     done < "$file"
 }
 
@@ -60,7 +70,7 @@ validate_symbols() {
         local val="${!var}"
         [ -z "$val" ] && continue
         for sym in ${val//,/ }; do
-            sym="${sym^^}"
+            sym=$(echo "$sym" | tr '[:lower:]' '[:upper:]')
             if [[ ! "$sym" =~ ^[A-Z0-9]+USDT$ ]]; then
                 echo "❌ 无效币种 $var: $sym"
                 errors=1
@@ -100,55 +110,64 @@ check_proxy() {
 # 组件定义
 COMPONENTS=(backfill metrics ws)
 
-# 启动命令
-declare -A START_CMDS=(
-[backfill]="python3 -c \"
+# 获取组件启动命令（替代 bash 4+ 的关联数组）
+get_start_cmd() {
+    local name=$1
+    case "$name" in
+        backfill)
+            echo 'python3 -c "
 import time, logging, sys
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
-logger = logging.getLogger('backfill.patrol')
+logging.basicConfig(level=logging.INFO, format=\"%(asctime)s - %(levelname)s - %(name)s - %(message)s\")
+logger = logging.getLogger(\"backfill.patrol\")
 from collectors.backfill import DataBackfiller, get_backfill_config, compute_lookback
 
 mode, env_days, on_start, start_date = get_backfill_config()
 lookback = compute_lookback(mode, env_days, start_date)
 
 if lookback <= 0:
-    logger.info('BACKFILL_MODE=none，跳过巡检')
+    logger.info(\"BACKFILL_MODE=none，跳过巡检\")
     sys.exit(0)
 
-logger.info('补齐巡检启动: mode=%s lookback=%d days', mode, lookback)
+logger.info(\"补齐巡检启动: mode=%s lookback=%d days\", mode, lookback)
 bf = DataBackfiller(lookback_days=lookback)
 
 if on_start:
     try:
-        logger.info('启动时执行一次全量补齐...')
+        logger.info(\"启动时执行一次全量补齐...\")
         result = bf.run_all()
-        logger.info('启动补齐完成: %s', result)
+        logger.info(\"启动补齐完成: %s\", result)
     except Exception as e:
-        logger.error('启动补齐异常: %s', e, exc_info=True)
+        logger.error(\"启动补齐异常: %s\", e, exc_info=True)
 
 while True:
     try:
-        logger.info('开始缺口巡检...')
+        logger.info(\"开始缺口巡检...\")
         result = bf.run_all()
-        klines = result.get('klines', {})
-        metrics = result.get('metrics', {})
-        logger.info('巡检完成: K线填充 %d 条, Metrics填充 %d 条, 5分钟后再次检查',
-                    klines.get('filled', 0), metrics.get('filled', 0))
+        klines = result.get(\"klines\", {})
+        metrics = result.get(\"metrics\", {})
+        logger.info(\"巡检完成: K线填充 %d 条, Metrics填充 %d 条, 5分钟后再次检查\",
+                    klines.get(\"filled\", 0), metrics.get(\"filled\", 0))
     except Exception as e:
-        logger.error('巡检异常: %s', e, exc_info=True)
+        logger.error(\"巡检异常: %s\", e, exc_info=True)
     time.sleep(300)
-\""
-    [metrics]="python3 -c \"
+"'
+            ;;
+        metrics)
+            echo 'python3 -c "
 import time, logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format=\"%(asctime)s - %(levelname)s - %(message)s\")
 from collectors.metrics import MetricsCollector
 c = MetricsCollector()
 while True:
     c.run_once()
     time.sleep(300)
-\""
-    [ws]="python3 -m collectors.ws"
-)
+"'
+            ;;
+        ws)
+            echo "python3 -m collectors.ws"
+            ;;
+    esac
+}
 
 # ==================== 工具函数 ====================
 log() {
@@ -185,7 +204,8 @@ start_component() {
     cd "$SERVICE_DIR"
     source .venv/bin/activate
     export PYTHONPATH=src
-    nohup bash -c "${START_CMDS[$name]}" >> "$log_file" 2>&1 &
+    local cmd=$(get_start_cmd "$name")
+    nohup bash -c "$cmd" >> "$log_file" 2>&1 &
     local new_pid=$!
     echo "$new_pid" > "$pid_file"
     
