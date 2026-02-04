@@ -135,12 +135,10 @@ class TimescaleAdapter:
                         "count": len(rows),
                         "ts": datetime.now().isoformat()
                     })
-                    cur.execute(
-                        sql.SQL("NOTIFY {channel}, %s").format(
-                            channel=sql.Identifier(CANDLE_NOTIFY_CHANNEL)
-                        ),
-                        (notify_payload,)
-                    )
+                    cur.execute(sql.SQL("NOTIFY {channel}, {payload}").format(
+                        channel=sql.Identifier(CANDLE_NOTIFY_CHANNEL),
+                        payload=sql.Literal(notify_payload)
+                    ))
 
             conn.commit()
 
@@ -210,12 +208,10 @@ class TimescaleAdapter:
                         "count": len(rows),
                         "ts": datetime.now().isoformat()
                     })
-                    cur.execute(
-                        sql.SQL("NOTIFY {channel}, %s").format(
-                            channel=sql.Identifier(METRICS_NOTIFY_CHANNEL)
-                        ),
-                        (notify_payload,)
-                    )
+                    cur.execute(sql.SQL("NOTIFY {channel}, {payload}").format(
+                        channel=sql.Identifier(METRICS_NOTIFY_CHANNEL),
+                        payload=sql.Literal(notify_payload)
+                    ))
 
             conn.commit()
 

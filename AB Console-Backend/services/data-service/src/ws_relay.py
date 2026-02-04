@@ -7,7 +7,8 @@
 2. 通过 WebSocket 推送给订阅的客户端
 3. 支持多客户端、多品种订阅
 
-端口：8082（与健康检查 8081 分开）
+端口：8085
+协议：真正的 WebSocket (使用 aiohttp)
 """
 from __future__ import annotations
 
@@ -16,9 +17,12 @@ import json
 import logging
 import threading
 import time
+import weakref
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, Optional, Set
+
+from aiohttp import web, WSMsgType
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +34,7 @@ _relay_lock = threading.Lock()
 @dataclass
 class ClientConnection:
     """客户端连接"""
-    writer: asyncio.StreamWriter
+    ws: web.WebSocketResponse
     subscriptions: Set[str] = field(default_factory=set)
     connected_at: float = field(default_factory=time.time)
     messages_sent: int = 0
@@ -39,8 +43,7 @@ class ClientConnection:
 class WebSocketRelay:
     """WebSocket 中继服务器
 
-    简化实现：使用原生 asyncio 而不是 websockets 库，减少依赖。
-    协议：简单的 JSON 行协议（每行一个 JSON 消息）
+    使用 aiohttp 实现真正的 WebSocket 协议，支持浏览器原生 WebSocket API。
     """
 
     def __init__(self, host: str = "0.0.0.0", port: int = 8085):
@@ -48,7 +51,9 @@ class WebSocketRelay:
         self.port = port
         self._clients: Dict[str, ClientConnection] = {}
         self._clients_lock = asyncio.Lock()
-        self._server: Optional[asyncio.Server] = None
+        self._app: Optional[web.Application] = None
+        self._runner: Optional[web.AppRunner] = None
+        self._site: Optional[web.TCPSite] = None
         self._running = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._thread: Optional[threading.Thread] = None
@@ -58,17 +63,19 @@ class WebSocketRelay:
             "active_clients": 0,
         }
 
-    async def _handle_client(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
-        """处理客户端连接"""
-        addr = writer.get_extra_info("peername")
-        client_id = f"{addr[0]}:{addr[1]}" if addr else f"unknown_{time.time()}"
+    async def _websocket_handler(self, request: web.Request) -> web.WebSocketResponse:
+        """处理 WebSocket 连接"""
+        ws = web.WebSocketResponse(heartbeat=30.0)
+        await ws.prepare(request)
 
-        logger.info("客户端连接: %s", client_id)
+        # 生成客户端 ID
+        peername = request.transport.get_extra_info("peername") if request.transport else None
+        client_id = f"{peername[0]}:{peername[1]}" if peername else f"unknown_{time.time()}"
+
+        logger.info("WebSocket 客户端连接: %s", client_id)
         self.stats["total_connections"] += 1
 
-        client = ClientConnection(writer=writer)
+        client = ClientConnection(ws=ws)
 
         async with self._clients_lock:
             self._clients[client_id] = client
@@ -76,28 +83,18 @@ class WebSocketRelay:
 
         try:
             # 发送欢迎消息
-            await self._send_json(writer, {
+            await ws.send_json({
                 "type": "connected",
                 "client_id": client_id,
                 "ts": datetime.now(timezone.utc).isoformat(),
             })
 
             # 读取客户端消息
-            while self._running:
-                try:
-                    line = await asyncio.wait_for(
-                        reader.readline(), timeout=60.0
-                    )
-                    if not line:
-                        break
-
-                    await self._handle_message(client_id, client, line.decode().strip())
-
-                except asyncio.TimeoutError:
-                    # 发送心跳
-                    await self._send_json(writer, {"type": "ping"})
-                except Exception as e:
-                    logger.warning("读取消息错误 %s: %s", client_id, e)
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    await self._handle_message(client_id, client, ws, msg.data)
+                elif msg.type == WSMsgType.ERROR:
+                    logger.warning("WebSocket 错误 %s: %s", client_id, ws.exception())
                     break
 
         except Exception as e:
@@ -107,16 +104,12 @@ class WebSocketRelay:
                 self._clients.pop(client_id, None)
                 self.stats["active_clients"] = len(self._clients)
 
-            try:
-                writer.close()
-                await writer.wait_closed()
-            except Exception:
-                pass
+            logger.info("WebSocket 客户端断开: %s", client_id)
 
-            logger.info("客户端断开: %s", client_id)
+        return ws
 
     async def _handle_message(
-        self, client_id: str, client: ClientConnection, message: str
+        self, client_id: str, client: ClientConnection, ws: web.WebSocketResponse, message: str
     ) -> None:
         """处理客户端消息"""
         if not message:
@@ -130,7 +123,7 @@ class WebSocketRelay:
                 symbol = data.get("symbol", "").upper()
                 if symbol:
                     client.subscriptions.add(symbol)
-                    await self._send_json(client.writer, {
+                    await ws.send_json({
                         "type": "subscribed",
                         "symbol": symbol,
                     })
@@ -139,7 +132,7 @@ class WebSocketRelay:
             elif msg_type == "unsubscribe":
                 symbol = data.get("symbol", "").upper()
                 client.subscriptions.discard(symbol)
-                await self._send_json(client.writer, {
+                await ws.send_json({
                     "type": "unsubscribed",
                     "symbol": symbol,
                 })
@@ -149,19 +142,6 @@ class WebSocketRelay:
 
         except json.JSONDecodeError:
             logger.warning("无效 JSON: %s", message[:100])
-
-    async def _send_json(
-        self, writer: asyncio.StreamWriter, data: dict
-    ) -> bool:
-        """发送 JSON 消息"""
-        try:
-            line = json.dumps(data) + "\n"
-            writer.write(line.encode())
-            await writer.drain()
-            return True
-        except Exception as e:
-            logger.debug("发送失败: %s", e)
-            return False
 
     async def broadcast_candle(
         self,
@@ -189,13 +169,26 @@ class WebSocketRelay:
         }
 
         sent_count = 0
+        dead_clients = []
+
         async with self._clients_lock:
             for client_id, client in list(self._clients.items()):
                 # 检查是否订阅了该品种
                 if symbol in client.subscriptions or "*" in client.subscriptions:
-                    if await self._send_json(client.writer, message):
-                        client.messages_sent += 1
-                        sent_count += 1
+                    try:
+                        if not client.ws.closed:
+                            await client.ws.send_json(message)
+                            client.messages_sent += 1
+                            sent_count += 1
+                        else:
+                            dead_clients.append(client_id)
+                    except Exception as e:
+                        logger.debug("发送失败 %s: %s", client_id, e)
+                        dead_clients.append(client_id)
+
+            # 清理死连接
+            for client_id in dead_clients:
+                self._clients.pop(client_id, None)
 
         if sent_count > 0:
             self.stats["total_messages"] += sent_count
@@ -223,8 +216,12 @@ class WebSocketRelay:
         async with self._clients_lock:
             for client in self._clients.values():
                 if symbol in client.subscriptions or "*" in client.subscriptions:
-                    if await self._send_json(client.writer, message):
-                        sent_count += 1
+                    try:
+                        if not client.ws.closed:
+                            await client.ws.send_json(message)
+                            sent_count += 1
+                    except Exception:
+                        pass
 
         return sent_count
 
@@ -254,17 +251,28 @@ class WebSocketRelay:
 
     async def _run_server(self) -> None:
         """运行服务器"""
-        self._server = await asyncio.start_server(
-            self._handle_client,
-            self.host,
-            self.port,
-        )
+        self._app = web.Application()
+        self._app.router.add_get("/", self._websocket_handler)
+        self._app.router.add_get("/ws", self._websocket_handler)
 
-        addr = self._server.sockets[0].getsockname()
-        logger.info("WebSocket 中继服务器启动: %s:%s", addr[0], addr[1])
+        self._runner = web.AppRunner(self._app)
+        await self._runner.setup()
 
-        async with self._server:
-            await self._server.serve_forever()
+        self._site = web.TCPSite(self._runner, self.host, self.port)
+        await self._site.start()
+
+        logger.info("WebSocket 中继服务器启动: ws://%s:%s", self.host, self.port)
+
+        # 保持运行
+        while self._running:
+            await asyncio.sleep(1)
+
+    async def _cleanup(self) -> None:
+        """清理资源"""
+        if self._site:
+            await self._site.stop()
+        if self._runner:
+            await self._runner.cleanup()
 
     def start(self) -> None:
         """启动服务器（非阻塞）"""
@@ -281,6 +289,10 @@ class WebSocketRelay:
             except Exception as e:
                 logger.error("中继服务器错误: %s", e)
             finally:
+                try:
+                    self._loop.run_until_complete(self._cleanup())
+                except Exception:
+                    pass
                 self._loop.close()
 
         self._thread = threading.Thread(target=run_loop, daemon=True)
@@ -289,8 +301,6 @@ class WebSocketRelay:
     def stop(self) -> None:
         """停止服务器"""
         self._running = False
-        if self._server:
-            self._server.close()
         if self._loop:
             self._loop.call_soon_threadsafe(self._loop.stop)
 
@@ -316,7 +326,7 @@ def get_relay() -> WebSocketRelay:
     return _relay
 
 
-def start_relay(port: int = 8082) -> WebSocketRelay:
+def start_relay(port: int = 8085) -> WebSocketRelay:
     """启动中继服务器"""
     relay = get_relay()
     relay.port = port
