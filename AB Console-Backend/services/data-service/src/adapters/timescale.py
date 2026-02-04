@@ -135,10 +135,9 @@ class TimescaleAdapter:
                         "count": len(rows),
                         "ts": datetime.now().isoformat()
                     })
-                    cur.execute(sql.SQL("NOTIFY {channel}, {payload}").format(
-                        channel=sql.Identifier(CANDLE_NOTIFY_CHANNEL),
-                        payload=sql.Literal(notify_payload)
-                    ))
+                    # NOTIFY 不支持参数化查询，必须用字符串拼接（转义单引号）
+                    escaped_payload = notify_payload.replace("'", "''")
+                    cur.execute(f"NOTIFY {CANDLE_NOTIFY_CHANNEL}, '{escaped_payload}'")
 
             conn.commit()
 
@@ -208,10 +207,9 @@ class TimescaleAdapter:
                         "count": len(rows),
                         "ts": datetime.now().isoformat()
                     })
-                    cur.execute(sql.SQL("NOTIFY {channel}, {payload}").format(
-                        channel=sql.Identifier(METRICS_NOTIFY_CHANNEL),
-                        payload=sql.Literal(notify_payload)
-                    ))
+                    # NOTIFY 不支持参数化查询，必须用字符串拼接（转义单引号）
+                    escaped_payload = notify_payload.replace("'", "''")
+                    cur.execute(f"NOTIFY {METRICS_NOTIFY_CHANNEL}, '{escaped_payload}'")
 
             conn.commit()
 

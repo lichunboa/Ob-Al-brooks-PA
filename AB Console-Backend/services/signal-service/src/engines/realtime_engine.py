@@ -21,6 +21,8 @@ import time
 from datetime import datetime
 from typing import Callable, Optional
 
+from config import get_database_url
+
 logger = logging.getLogger(__name__)
 
 # NOTIFY 通道名称（与 data-service 保持一致）
@@ -218,7 +220,6 @@ def create_realtime_signal_checker(pg_engine):
     Returns:
         RealtimeSignalEngine 实例
     """
-    from ..config import get_database_url
 
     def on_candle_update(payload: dict):
         """K线更新时检测信号"""
