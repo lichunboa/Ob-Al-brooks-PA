@@ -122,9 +122,13 @@ export const LightweightChart: React.FC<LightweightChartProps> = ({
     if (!seriesRef.current || !marketData?.candles?.length) return;
 
     const candles = marketData.candles;
-    const dataHash = `${candles.length}-${candles[0]?.openTime}-${candles[candles.length-1]?.close}`;
-    
+    const lastCandle = candles[candles.length - 1];
+    // 使用 lastUpdate 时间戳确保每次数据更新都能触发图表刷新
+    const dataHash = `${candles.length}-${marketData.lastUpdate}-${lastCandle?.openTime}-${lastCandle?.close}`;
+
     if (dataHash === lastDataHashRef.current) return;
+
+    const isFirstLoad = !lastDataHashRef.current;
     lastDataHashRef.current = dataHash;
 
     const chartData: CandlestickData<Time>[] = candles.map(c => ({
@@ -137,7 +141,10 @@ export const LightweightChart: React.FC<LightweightChartProps> = ({
 
     try {
       seriesRef.current.setData(chartData);
-      chartRef.current?.timeScale().fitContent();
+      // 只在首次加载时 fitContent，避免用户滚动后被重置
+      if (isFirstLoad) {
+        chartRef.current?.timeScale().fitContent();
+      }
     } catch {
       // 静默处理
     }
