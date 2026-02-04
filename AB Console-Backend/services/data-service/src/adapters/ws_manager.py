@@ -63,7 +63,7 @@ class ConnectionStats:
 
 class WebSocketManager:
     """WebSocket 连接管理器
-    
+
     使用方法：
         manager = WebSocketManager(
             adapter_factory=lambda: BinanceWSAdapter(proxy),
@@ -71,14 +71,20 @@ class WebSocketManager:
             callback=on_candle,
         )
         manager.run()  # 阻塞运行，内部处理重连
+
+    自愈机制：
+        - Watchdog 线程监控连接健康状态
+        - 达到最大重连次数后自动重置计数器，而不是退出进程
+        - 进程内自愈，无需 Docker 重启
     """
-    
+
     # 配置常量
     HEARTBEAT_INTERVAL = 30  # 心跳检查间隔（秒）
     STALE_THRESHOLD = 120  # 数据停滞阈值（秒）- 2分钟无数据视为停滞
     WARNING_THRESHOLD = 300  # 警告阈值（秒）- 5分钟无数据记录警告
-    MAX_RECONNECT_ATTEMPTS = 20  # 最大重连次数
-    MAX_RECONNECT_DELAY = 300  # 最大重连延迟（秒）
+    MAX_RECONNECT_ATTEMPTS = 20  # 最大重连次数（单轮）
+    MAX_RECONNECT_DELAY = 60  # 最大重连延迟（秒）- 从 300 降到 60，加快恢复
+    WATCHDOG_RESET_INTERVAL = 600  # Watchdog 重置间隔（秒）- 10分钟无恢复则强制重置
     STATE_FILE_PATH = "/tmp/data-service-ws-state.json"  # 状态文件路径
     
     def __init__(
@@ -103,8 +109,11 @@ class WebSocketManager:
         self._running = False
         self._stop_event = threading.Event()
         self._heartbeat_thread: Optional[threading.Thread] = None
+        self._watchdog_thread: Optional[threading.Thread] = None
         self._ws_thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
+        self._last_healthy_time: float = 0  # 上次健康时间（用于 Watchdog）
+        self._total_resets: int = 0  # 总重置次数（统计用）
         
     @property
     def stats(self) -> ConnectionStats:
@@ -166,12 +175,15 @@ class WebSocketManager:
                     self._trigger_reconnect()
     
     def _trigger_reconnect(self) -> None:
-        """触发重连"""
+        """触发重连（自愈模式：不退出进程）"""
         if self._stats.reconnect_attempts >= self.MAX_RECONNECT_ATTEMPTS:
-            logger.error(
-                "已达到最大重连次数 %d，停止重连。需要人工干预！",
-                self.MAX_RECONNECT_ATTEMPTS
+            # 自愈：重置计数器，而不是退出进程
+            logger.warning(
+                "已达到最大重连次数 %d，执行自愈重置（第 %d 次重置）...",
+                self.MAX_RECONNECT_ATTEMPTS,
+                self._total_resets + 1
             )
+            self._perform_self_healing()
             return
         
         # 停止当前连接
@@ -201,6 +213,70 @@ class WebSocketManager:
             self._start_ws_thread()
         
         threading.Thread(target=delayed_reconnect, daemon=True).start()
+
+    def _perform_self_healing(self) -> None:
+        """执行自愈：重置连接状态，准备重新开始"""
+        with self._lock:
+            self._total_resets += 1
+            old_attempts = self._stats.reconnect_attempts
+
+            # 重置重连计数器
+            self._stats.reconnect_attempts = 0
+            self._stats.state = ConnectionState.DISCONNECTED
+
+            logger.info(
+                "自愈完成：重连计数 %d → 0，总重置次数: %d",
+                old_attempts, self._total_resets
+            )
+
+        # 停止当前适配器
+        if self._adapter:
+            try:
+                self._adapter.stop()
+            except Exception as e:
+                logger.warning("自愈时停止适配器出错: %s", e)
+            self._adapter = None
+
+        # 短暂等待后重新开始
+        logger.info("自愈后等待 5 秒再重连...")
+        if not self._stop_event.wait(5):
+            self._start_ws_thread()
+
+    def _watchdog_loop(self) -> None:
+        """Watchdog 线程：监控长时间无恢复的情况"""
+        logger.info(
+            "Watchdog 启动，重置间隔: %d 秒",
+            self.WATCHDOG_RESET_INTERVAL
+        )
+
+        while not self._stop_event.wait(60):  # 每分钟检查一次
+            with self._lock:
+                now = time.time()
+
+                # 如果连接健康，更新健康时间
+                if self._stats.state == ConnectionState.CONNECTED:
+                    self._last_healthy_time = now
+                    continue
+
+                # 如果从未健康过，跳过（可能还在初始化）
+                if self._last_healthy_time == 0:
+                    continue
+
+                # 检查是否长时间未恢复
+                unhealthy_duration = now - self._last_healthy_time
+                if unhealthy_duration > self.WATCHDOG_RESET_INTERVAL:
+                    logger.warning(
+                        "Watchdog 检测到连接已 %.1f 分钟未恢复，触发强制自愈...",
+                        unhealthy_duration / 60
+                    )
+                    # 释放锁后执行自愈
+                    self._stats.reconnect_attempts = self.MAX_RECONNECT_ATTEMPTS
+
+            # 如果需要自愈，在锁外执行
+            if self._stats.reconnect_attempts >= self.MAX_RECONNECT_ATTEMPTS:
+                self._perform_self_healing()
+
+        logger.info("Watchdog 循环退出")
     
     def _start_ws_thread(self) -> None:
         """启动 WebSocket 线程"""
@@ -231,17 +307,27 @@ class WebSocketManager:
             if self._running and not self._stop_event.is_set():
                 with self._lock:
                     self._stats.state = ConnectionState.DISCONNECTED
-                
+
+                # 检查是否达到最大重连次数
+                if self._stats.reconnect_attempts >= self.MAX_RECONNECT_ATTEMPTS:
+                    # 自愈：重置计数器，而不是退出进程
+                    logger.warning(
+                        "WebSocket 循环中达到最大重连次数 %d，执行自愈重置...",
+                        self.MAX_RECONNECT_ATTEMPTS
+                    )
+                    self._perform_self_healing()
+                    continue  # 继续循环，不退出
+
                 # 计算退避延迟
                 delay = min(2 ** self._stats.reconnect_attempts, self.MAX_RECONNECT_DELAY)
                 self._stats.reconnect_attempts += 1
                 self._stats.total_reconnects += 1
-                
+
                 logger.warning(
                     "WebSocket 断开，%d 秒后重连 (尝试 #%d)...",
                     delay, self._stats.reconnect_attempts
                 )
-                
+
                 if self._stop_event.wait(delay):
                     break  # 被停止了
         
@@ -253,7 +339,12 @@ class WebSocketManager:
             state = self._stats.to_dict()
             state["pid"] = os.getpid()
             state["updated_at"] = datetime.now(timezone.utc).isoformat()
-            
+            state["total_resets"] = self._total_resets  # 自愈统计
+            state["last_healthy_time"] = (
+                datetime.fromtimestamp(self._last_healthy_time, tz=timezone.utc).isoformat()
+                if self._last_healthy_time > 0 else None
+            )
+
             # 原子写入
             tmp_path = self.STATE_FILE_PATH + ".tmp"
             with open(tmp_path, "w") as f:
@@ -279,22 +370,27 @@ class WebSocketManager:
         self._running = True
         self._stop_event.clear()
         self._stats = ConnectionStats()
-        
+        self._last_healthy_time = time.time()  # 初始化健康时间
+
         # 设置信号处理
         def signal_handler(signum, frame):
             logger.info("收到信号 %d，停止...", signum)
             self.stop()
-        
+
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
-        
+
         # 启动心跳检测线程
         self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
         self._heartbeat_thread.start()
-        
+
+        # 启动 Watchdog 线程
+        self._watchdog_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self._watchdog_thread.start()
+
         # 启动 WebSocket（在当前线程阻塞）
         self._ws_loop()
-        
+
         # 清理
         self._cleanup()
     
@@ -303,11 +399,16 @@ class WebSocketManager:
         self._running = True
         self._stop_event.clear()
         self._stats = ConnectionStats()
-        
+        self._last_healthy_time = time.time()  # 初始化健康时间
+
         # 启动心跳检测线程
         self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
         self._heartbeat_thread.start()
-        
+
+        # 启动 Watchdog 线程
+        self._watchdog_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self._watchdog_thread.start()
+
         # 启动 WebSocket 线程
         self._start_ws_thread()
     

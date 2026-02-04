@@ -1,6 +1,7 @@
 """TimescaleDB 适配器"""
 from __future__ import annotations
 
+import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime
@@ -13,6 +14,10 @@ from psycopg_pool import ConnectionPool
 from config import normalize_interval, settings
 
 logger = logging.getLogger(__name__)
+
+# NOTIFY 通道名称
+CANDLE_NOTIFY_CHANNEL = "candle_updates"
+METRICS_NOTIFY_CHANNEL = "metrics_updates"
 
 
 class TimescaleAdapter:
@@ -120,6 +125,23 @@ class TimescaleAdapter:
                 cur.execute(sql_upsert_from_temp)
                 total_inserted = cur.rowcount if cur.rowcount > 0 else len(rows)
 
+                # 发送 NOTIFY 通知 signal-service（毫秒级实时）
+                symbols_updated = list(set(row.get("symbol") for row in rows if row.get("symbol")))
+                if symbols_updated:
+                    notify_payload = json.dumps({
+                        "type": "candle",
+                        "interval": interval,
+                        "symbols": symbols_updated[:20],  # 限制 payload 大小（8000 字节限制）
+                        "count": len(rows),
+                        "ts": datetime.now().isoformat()
+                    })
+                    cur.execute(
+                        sql.SQL("NOTIFY {channel}, %s").format(
+                            channel=sql.Identifier(CANDLE_NOTIFY_CHANNEL)
+                        ),
+                        (notify_payload,)
+                    )
+
             conn.commit()
 
         return total_inserted
@@ -178,6 +200,22 @@ class TimescaleAdapter:
 
                 cur.execute(sql_upsert_from_temp)
                 total_inserted = cur.rowcount if cur.rowcount > 0 else len(rows)
+
+                # 发送 NOTIFY 通知 signal-service（毫秒级实时）
+                symbols_updated = list(set(row.get("symbol") for row in rows if row.get("symbol")))
+                if symbols_updated:
+                    notify_payload = json.dumps({
+                        "type": "metrics",
+                        "symbols": symbols_updated[:20],
+                        "count": len(rows),
+                        "ts": datetime.now().isoformat()
+                    })
+                    cur.execute(
+                        sql.SQL("NOTIFY {channel}, %s").format(
+                            channel=sql.Identifier(METRICS_NOTIFY_CHANNEL)
+                        ),
+                        (notify_payload,)
+                    )
 
             conn.commit()
 

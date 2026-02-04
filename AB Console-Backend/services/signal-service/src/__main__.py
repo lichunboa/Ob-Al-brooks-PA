@@ -3,7 +3,8 @@ Signal Service 入口
 
 用法:
     python -m src --sqlite          # 启动 SQLite 引擎
-    python -m src --pg              # 启动 PG 引擎
+    python -m src --pg              # 启动 PG 引擎（60秒轮询）
+    python -m src --realtime        # 启动实时引擎（毫秒级，推荐）
     python -m src --all             # 启动所有引擎
     python -m src --once            # 单次检查
     python -m src --stats           # 显示统计
@@ -34,7 +35,8 @@ _running = True
 def main():
     parser = argparse.ArgumentParser(description="Signal Service - 独立信号检测服务")
     parser.add_argument("--sqlite", action="store_true", help="启动 SQLite 引擎")
-    parser.add_argument("--pg", action="store_true", help="启动 PG 引擎")
+    parser.add_argument("--pg", action="store_true", help="启动 PG 引擎（60秒轮询）")
+    parser.add_argument("--realtime", action="store_true", help="启动实时引擎（毫秒级）")
     parser.add_argument("--all", action="store_true", help="启动所有引擎")
     parser.add_argument("--once", action="store_true", help="单次检查")
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
@@ -168,10 +170,24 @@ def main():
         t = threading.Thread(target=run_pg, daemon=False, name="PGEngine")
         t.start()
         threads.append(t)
-        logger.info("PG 引擎已启动")
+        logger.info("PG 引擎已启动（60秒轮询模式）")
 
-    if not threads:
-        logger.error("请指定要启动的引擎: --sqlite, --pg, 或 --all")
+    # 实时引擎（毫秒级，推荐）
+    realtime_engine = None
+    if args.realtime or args.all:
+        from engines import get_pg_engine
+        from engines.realtime_engine import create_realtime_signal_checker
+
+        pg_engine = get_pg_engine()
+        realtime_engine = create_realtime_signal_checker(pg_engine)
+        realtime_engine.start()
+        engines.append(("Realtime", realtime_engine))
+        logger.info("实时引擎已启动（毫秒级 LISTEN/NOTIFY 模式）")
+
+    if not threads and realtime_engine is None:
+        logger.error(
+            "请指定要启动的引擎: --sqlite, --pg, --realtime, 或 --all"
+        )
         sys.exit(1)
 
     # 启动健康检查服务器
@@ -179,40 +195,46 @@ def main():
     start_health_server(engines, port=args.health_port)
 
     # 主线程保持运行
-    logger.info(f"Signal Service 正在运行，已启动 {len(threads)} 个引擎")
+    engine_count = len(threads) + (1 if realtime_engine else 0)
+    logger.info("Signal Service 正在运行，已启动 %d 个引擎", engine_count)
     logger.info("按 Ctrl+C 停止服务")
 
     try:
         while True:
             # 检查线程是否还在运行
             alive_threads = [t for t in threads if t.is_alive()]
+            realtime_alive = (
+                realtime_engine and realtime_engine.get_stats().get("running")
+            )
+
             if len(alive_threads) != len(threads):
                 dead_count = len(threads) - len(alive_threads)
-                logger.warning(f"有 {dead_count} 个引擎线程已停止")
-                # 等待所有线程结束或重启
-                if len(alive_threads) == 0:
-                    logger.error("所有引擎都已停止，服务退出")
-                    break
+                logger.warning("有 %d 个引擎线程已停止", dead_count)
+
+            # 如果所有引擎都停止了，退出
+            if len(alive_threads) == 0 and not realtime_alive:
+                logger.error("所有引擎都已停止，服务退出")
+                break
+
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("收到中断信号，正在停止服务...")
-        _running = False
         # 给引擎一些时间清理
         for name, engine in engines:
             try:
                 if hasattr(engine, 'stop'):
                     engine.stop()
-                    logger.info(f"{name} 引擎已停止")
+                    logger.info("%s 引擎已停止", name)
             except Exception as e:
-                logger.warning(f"停止 {name} 引擎时出错: {e}")
+                logger.warning("停止 %s 引擎时出错: %s", name, e)
 
         # 等待线程结束
         for t in threads:
             t.join(timeout=5)
-        
+
         # 停止健康检查服务器
         stop_health_server()
-        
+
         logger.info("服务已退出")
 
 
