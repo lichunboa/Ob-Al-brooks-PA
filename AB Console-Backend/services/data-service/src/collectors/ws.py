@@ -1,4 +1,4 @@
-"""WebSocket K线采集器 - 自动重连 + 缺口巡检 + 批量写入
+"""WebSocket K线采集器 - 自动重连 + 缺口巡检 + 批量写入 + 实时中继
 
 优化策略：
 - cryptofeed 每分钟闭合时，~300 个币种在 1-2 秒内推送
@@ -10,6 +10,9 @@ v2.1 新增：
 - 自动重连：连接断开或数据停滞时自动重连，带指数退避
 - 超时告警：长时间无数据时记录警告日志
 - 健康检查改进：暴露数据新鲜度供 Docker 健康检查使用
+
+v2.2 新增：
+- WebSocket 中继：实时推送 K 线数据给前端客户端
 """
 from __future__ import annotations
 
@@ -31,6 +34,7 @@ from adapters.timescale import TimescaleAdapter
 from adapters.ws_manager import WebSocketManager
 from collectors.auto_align import init_aligner, start_aligner, stop_aligner
 from config import settings
+from ws_relay import get_relay, start_relay, stop_relay
 
 logger = logging.getLogger("ws.collector")
 
@@ -72,7 +76,7 @@ class WSCollector:
         return mapping
 
     async def _on_candle(self, e: CandleEvent) -> None:
-        """K 线回调 - 缓冲后批量写入"""
+        """K 线回调 - 缓冲后批量写入 + 实时中继"""
         sym = self._symbols.get(e.symbol)
         if not sym:
             return
@@ -86,6 +90,18 @@ class WSCollector:
             "taker_buy_volume": float(e.taker_buy_volume) if e.taker_buy_volume else None,
             "taker_buy_quote_volume": float(e.taker_buy_quote_volume) if e.taker_buy_quote_volume else None,
         }
+
+        # 实时中继给前端客户端（毫秒级）
+        relay = get_relay()
+        relay.broadcast_candle_sync(
+            symbol=sym,
+            timestamp=e.timestamp,
+            open_=e.open,
+            high=e.high,
+            low=e.low,
+            close=e.close,
+            volume=e.volume,
+        )
 
         async with self._buffer_lock:
             self._buffer.append(row)
@@ -124,6 +140,10 @@ class WSCollector:
 
     def run(self) -> None:
         """运行采集器（使用 WebSocketManager 自动重连）"""
+        # 启动 WebSocket 中继服务器（实时推送给前端）
+        start_relay(port=8085)
+        logger.info("启动 WebSocket 中继服务器 (端口 8085)...")
+
         # 启动时补齐 - 后台线程，不阻塞 WebSocket
         if self._symbols:
             threading.Thread(target=self._run_backfill, args=(1,), daemon=True).start()
@@ -163,6 +183,7 @@ class WSCollector:
             self._ws_manager.run()  # 阻塞运行，内部处理重连
         finally:
             # 退出前刷新
+            stop_relay()
             stop_aligner()
             asyncio.run(self._final_flush())
             self._gap_stop.set()
