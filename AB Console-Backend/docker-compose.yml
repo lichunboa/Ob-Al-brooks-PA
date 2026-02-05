@@ -14,7 +14,7 @@ services:
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,13 +50,13 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8081"
-      - "8085:8085"  # WebSocket 中继（实时 K 线）
+      - "8085:8085" # WebSocket 中继（实时 K 线）
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -80,10 +80,10 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
     volumes:
-      - market_data:/app/data            # 写入 market_data.db (共享给其他服务)
-      - ./libs:/app/libs                 # 共享库
+      - market_data:/app/data # 写入 market_data.db (共享给其他服务)
+      - ./libs:/app/libs # 共享库
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/health')" ]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -110,7 +110,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/api/v1/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8089/api/v1/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -141,7 +141,7 @@ services:
       - PYTHONPATH=/app/src:/app/libs
     command: bash -c "pip install psycopg[binary] -q && python -m src --realtime --health-port 8083"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -202,7 +202,7 @@ services:
       - ./services/ai-service:/app/ai-service
       - ./libs:/app/libs
       - ./services/telegram-service/logs:/app/logs
-      - market_data:/app/market-data:ro  # 只读访问 trading-service 的指标数据
+      - market_data:/app/market-data:ro # 只读访问 trading-service 的指标数据
       # 信号文件映射到宿主机，供 OpenClaw 读取
       - ~/.clawdbot/signals:/root/.clawdbot/signals
     working_dir: /app
@@ -220,7 +220,7 @@ services:
   # 自动转发服务 - 已废弃，保留配置但不自动启动
   # 如需启动: docker compose --profile deprecated up forwarder
   forwarder:
-    profiles: ["deprecated"]  # 不自动启动
+    profiles: [ "deprecated" ] # 不自动启动
     image: python:3.11-slim
     container_name: ab-forwarder
     restart: unless-stopped
@@ -236,6 +236,33 @@ services:
       sh -c "pip install --no-cache-dir requests && python -u /app/simple_forwarder.py"
     depends_on:
       - telegram-service
+    networks:
+      - ab-console-network
+
+  # 可视化服务 - 生成交易复盘图、K线图等
+  vis-service:
+    build:
+      context: .
+      dockerfile: services-preview/vis-service/Dockerfile
+    container_name: ab-vis-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
+      - VIS_HOST=0.0.0.0
+      - VIS_PORT=8084
+      - PYTHONPATH=/app/src:/app/libs
+      - MPLBACKEND=Agg
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      timescaledb:
+        condition: service_healthy
     networks:
       - ab-console-network
 
@@ -267,9 +294,9 @@ services:
     container_name: ab-autoheal
     restart: always
     environment:
-      - AUTOHEAL_CONTAINER_LABEL=all  # 监控所有带 healthcheck 的容器
-      - AUTOHEAL_INTERVAL=60          # 每 60 秒检查一次
-      - AUTOHEAL_START_PERIOD=300     # 启动后 5 分钟开始检查
+      - AUTOHEAL_CONTAINER_LABEL=all # 监控所有带 healthcheck 的容器
+      - AUTOHEAL_INTERVAL=60 # 每 60 秒检查一次
+      - AUTOHEAL_START_PERIOD=300 # 启动后 5 分钟开始检查
       - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -279,7 +306,8 @@ services:
 volumes:
   timescaledb_data:
     driver: local
-  market_data:        # trading-service 写入指标, telegram/signal 只读访问
+  market_data:
+    # trading-service 写入指标, telegram/signal 只读访问
     driver: local
   signal_data:
     driver: local
