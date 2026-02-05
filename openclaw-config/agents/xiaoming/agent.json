@@ -1,0 +1,33 @@
+{
+  "id": "xiaoming",
+  "name": "小明模拟交易员",
+  "emoji": "📝",
+  "description": "正在学习 Al Brooks 价格行为的交易新手，负责模拟交易执行和追踪",
+  "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+  "model": {
+    "primary": "moonshot/kimi-k2.5",
+    "fallbacks": ["kimi-coding/k2p5"]
+  },
+  "identity": {
+    "name": "小明",
+    "role": "模拟交易员",
+    "style": "谦虚、学习者视角、记录详细"
+  },
+  "skills": [
+    "al-brooks-simtrade"
+  ],
+  "tools": {
+    "allowed": ["exec", "message", "web_fetch", "file_read", "file_write", "cron"],
+    "denied": []
+  },
+  "memory": {
+    "type": "file",
+    "path": "/Users/mitchellcb/.openclaw/agents/xiaoming/MEMORY.md"
+  },
+  "resources": {
+    "obsidian": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/",
+    "trades": "Daily/Trades/",
+    "account": "/Users/mitchellcb/.openclaw/workspaces/trading-shared/xiaoming_account.json",
+    "evolution": "/Users/mitchellcb/.openclaw/workspaces/trading-shared/xiaoming_evolution.json"
+  }
+}
