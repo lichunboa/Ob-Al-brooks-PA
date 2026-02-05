@@ -56,7 +56,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -110,7 +110,7 @@
             }
           },
           {
-            "id": "18119db1310a11a8",
+            "id": "4ee5c4b5ecda0472",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -246,7 +246,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 365.5
+    "width": 911.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -276,8 +276,22 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "c1e9cf931fdfe875",
+  "active": "a15dcd1d91491cc4",
   "lastOpenFiles": [
+    "Daily/Trades/2026-02-06/260206_0222_模拟_ETHUSDT_352.md",
+    "Daily/Trades/2026-02-06/260206_0218_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0217_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0215_模拟_BNBUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0135_观望_BTCUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0128_观望_ETHUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0049_模拟_BNBUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0047_模拟_SOLUSDT.md",
+    "Daily/Trades/2026-02-06/260206_0032_模拟_BTCUSDT.md",
+    "Notes 笔记/小明笔记/L2_知识参考/策略权重系统.md",
+    "Daily/Trades/2026-02-06/260206_0011_模拟_ETHUSDT.md",
+    "Daily/Trades/2026-02-06",
+    "Notes 笔记/小明笔记/L3_经验积累/信号反馈",
+    "Daily/Trades/2026-02-05/260205_2346_模拟_BTCUSDT.md",
     "Daily/Trades/2026-02-05/260205_1944_模拟_BNBUSDT.md",
     "Daily/Trades/2026-02-05/260205_1901_模拟_ETHUSDT.md",
     "Daily/Trades/2026-02-05/260205_1743_模拟_BTCUSDT.md",
@@ -292,10 +306,6 @@
     "Notes 笔记/小明笔记/L1_决策清单/04_入场条件清单.md",
     "Notes 笔记/小明笔记/L1_决策清单/02_市场周期识别.md",
     "Notes 笔记/小明笔记/L1_决策清单/01_Always_In方向判断.md",
-    "Notes 笔记/小明笔记/L1_决策清单/06_风控红线.md",
-    "Notes 笔记/小明笔记/L1_决策清单/03_策略选择矩阵.md",
-    "Notes 笔记/小明笔记/L1_决策清单/00_交易决策检查清单.md",
-    "Daily/Trades/2026-02-05/260205_1401_模拟_BTCUSDT.md",
     "Notes 笔记/小明笔记/L3_经验积累/每周复盘",
     "Notes 笔记/小明笔记/L3_经验积累/每日日记",
     "Notes 笔记/小明笔记/L3_经验积累/升级日志",
@@ -304,16 +314,6 @@
     "Notes 笔记/小明笔记/L2_知识参考/案例分析/成功案例库",
     "Notes 笔记/小明笔记/L2_知识参考/案例分析/失败案例库",
     "Notes 笔记/小明笔记/L2_知识参考/策略详解",
-    "Notes 笔记/小明笔记/L2_知识参考/概念解释",
-    "Notes 笔记/小明笔记/L2_知识参考/案例分析",
-    "Notes 笔记/小明笔记/文件层级设计与知识转化方案.md",
-    "Notes 笔记/小明笔记/决策知识树.md",
-    "Notes 笔记/小明笔记/2026-02-05_Opus深度分析报告.md",
-    "Notes 笔记/小明笔记/学习阶段_快速交学费策略.md",
-    "Notes 笔记/小明笔记/生存宣言_KPI与红线.md",
-    "Notes 笔记/小明笔记/权限与自治宣言.md",
-    "Notes 笔记/小明笔记/进化计划_透气时间表.md",
-    "Daily/Trades/2026-02-05/260205_1326_模拟_BTCUSDT.md",
     "Daily/Trades/assets/251225_2111_实盘_ES/251225_2111_实盘_ES-20251225224827261.png",
     "Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png",
     "statuses/icons/todo.svg",
