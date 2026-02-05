@@ -15,8 +15,23 @@ from pydantic_settings import BaseSettings
 from psycopg_pool import ConnectionPool
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_SQLITE = PROJECT_ROOT / "libs" / "database" / "services" / "telegram-service" / "market_data.db"
+# Docker 环境下为 /app，本地开发为项目根目录
+def _get_project_root() -> Path:
+    """获取项目根目录，兼容 Docker 和本地环境。"""
+    # Docker 环境：/app/src/core/settings.py -> /app
+    # 本地环境：.../AB Console-Backend/services-preview/vis-service/src/core/settings.py -> .../AB Console-Backend
+    current = Path(__file__).resolve()
+    # 查找包含 'src' 的父目录，然后取其父目录
+    for parent in current.parents:
+        if parent.name == "app":
+            return parent  # Docker: /app
+        if parent.name == "vis-service":
+            return parent.parent.parent.parent  # 本地: AB Console-Backend
+    # 默认回退
+    return current.parents[2] if len(current.parents) > 2 else current.parent
+
+PROJECT_ROOT = _get_project_root()
+DEFAULT_SQLITE = str(PROJECT_ROOT / "libs" / "database" / "services" / "telegram-service" / "market_data.db")
 
 
 class Settings(BaseSettings):

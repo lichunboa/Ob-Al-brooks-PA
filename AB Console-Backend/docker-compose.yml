@@ -250,8 +250,8 @@ services:
       - "8084:8084"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/market_data
-      - VIS_HOST=0.0.0.0
-      - VIS_PORT=8084
+      - VIS_SERVICE_HOST=0.0.0.0
+      - VIS_SERVICE_PORT=8084
       - PYTHONPATH=/app/src:/app/libs
       - MPLBACKEND=Agg
     healthcheck:

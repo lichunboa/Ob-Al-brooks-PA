@@ -17,13 +17,10 @@ from pydantic import BaseModel, Field
 from core.settings import Settings, get_settings
 from templates.registry import TemplateMeta, register_defaults, render_kline_envelope
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
+# Docker 环境已通过 PYTHONPATH 配置 libs 路径，本地开发时可能需要手动配置
 try:
     from libs.common.symbols import get_configured_symbols
-except Exception:  # noqa: BLE001
+except ImportError:
     get_configured_symbols = None
 
 router = APIRouter()
