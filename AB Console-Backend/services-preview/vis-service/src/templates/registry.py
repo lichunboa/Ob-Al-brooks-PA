@@ -205,6 +205,234 @@ def render_kline_basic(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
+def render_kline_trade(params: Dict, output: str) -> Tuple[object, str]:
+    """
+    交易标注 K 线图 - 用于订单完成后的可视化复盘。
+
+    必填：
+    - symbol: 交易对 (如 BTCUSDT)
+    - interval: K 线周期 (如 5m, 15m, 1h)
+    - entry_time: 入场时间戳 (毫秒或 ISO 格式)
+    - entry_price: 入场价格
+    - exit_time: 出场时间戳
+    - exit_price: 出场价格
+
+    可选：
+    - direction: BUY/SELL (默认 BUY)
+    - signal_type: 信号类型 (如 "H2 突破")
+    - signal_strength: 信号强度 (0-100)
+    - patterns: 形态列表 (如 ["H2", "Wedge"])
+    - lookback: 显示的 K 线根数 (默认 50)
+    - title: 图表标题
+    """
+    from core.settings import get_pg_pool, get_settings
+
+    # 参数提取
+    symbol = params.get("symbol")
+    interval = params.get("interval", "15m")
+    entry_time = params.get("entry_time")
+    entry_price = float(params.get("entry_price", 0))
+    exit_time = params.get("exit_time")
+    exit_price = float(params.get("exit_price", 0))
+    direction = params.get("direction", "BUY")
+    signal_type = params.get("signal_type", "")
+    signal_strength = params.get("signal_strength")
+    patterns = params.get("patterns", [])
+    lookback = int(params.get("lookback", 50))
+    title = params.get("title")
+
+    if not symbol:
+        raise ValueError("缺少参数 symbol")
+    if not entry_time or not exit_time:
+        raise ValueError("缺少参数 entry_time 或 exit_time")
+
+    # 时间戳转换
+    def parse_timestamp(ts):
+        if isinstance(ts, (int, float)):
+            return datetime.fromtimestamp(ts / 1000 if ts > 1e10 else ts, tz=timezone.utc)
+        return pd.to_datetime(ts).tz_localize(timezone.utc) if pd.to_datetime(ts).tzinfo is None else pd.to_datetime(ts)
+
+    entry_dt = parse_timestamp(entry_time)
+    exit_dt = parse_timestamp(exit_time)
+
+    # 从数据库获取 K 线数据
+    interval_norm = _normalize_interval(interval)
+    table = _interval_table(interval_norm)
+    exchange = params.get("exchange", "binance_futures_um")
+
+    # 计算时间窗口：入场前 lookback/2 根到出场后 lookback/4 根
+    interval_seconds = _interval_seconds(interval_norm)
+    start_time = entry_dt - pd.Timedelta(seconds=interval_seconds * (lookback // 2))
+    end_time = exit_dt + pd.Timedelta(seconds=interval_seconds * (lookback // 4))
+
+    settings = get_settings()
+    if not settings.database_url:
+        raise ValueError("未配置 DATABASE_URL")
+
+    with get_pg_pool().connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT bucket_ts, open, high, low, close, volume
+                FROM market_data.{table}
+                WHERE symbol = %s
+                  AND exchange = %s
+                  AND bucket_ts >= %s
+                  AND bucket_ts <= %s
+                ORDER BY bucket_ts ASC
+                """,
+                (symbol.upper(), exchange, start_time, end_time),
+            )
+            rows = cur.fetchall()
+
+    if not rows:
+        raise ValueError(f"无可用数据: {symbol} {interval_norm}")
+
+    # 构建 DataFrame
+    df = pd.DataFrame(rows, columns=["bucket_ts", "Open", "High", "Low", "Close", "Volume"])
+    df.set_index("bucket_ts", inplace=True)
+    df.index = pd.DatetimeIndex(df.index)
+
+    # 找到入场和出场的 K 线索引
+    entry_idx = df.index.get_indexer([entry_dt], method="nearest")[0]
+    exit_idx = df.index.get_indexer([exit_dt], method="nearest")[0]
+
+    # 默认标题
+    if not title:
+        pnl = ((exit_price - entry_price) / entry_price * 100) if direction == "BUY" else ((entry_price - exit_price) / entry_price * 100)
+        pnl_str = f"+{pnl:.2f}%" if pnl >= 0 else f"{pnl:.2f}%"
+        title = f"{symbol} {interval} | {direction} {pnl_str}"
+        if signal_type:
+            title += f" | {signal_type}"
+
+    # 构建标注点
+    # 入场点：绿色向上箭头(BUY) 或 红色向下箭头(SELL)
+    entry_markers = [np.nan] * len(df)
+    exit_markers = [np.nan] * len(df)
+
+    if 0 <= entry_idx < len(df):
+        entry_markers[entry_idx] = df["Low"].iloc[entry_idx] * 0.998 if direction == "BUY" else df["High"].iloc[entry_idx] * 1.002
+    if 0 <= exit_idx < len(df):
+        exit_markers[exit_idx] = df["High"].iloc[exit_idx] * 1.002 if direction == "BUY" else df["Low"].iloc[exit_idx] * 0.998
+
+    # 添加信号标注
+    signal_markers = [np.nan] * len(df)
+    if signal_strength and signal_strength >= 70 and 0 <= entry_idx < len(df):
+        # 信号标注在入场点上方
+        signal_markers[entry_idx] = df["High"].iloc[entry_idx] * 1.005
+
+    # mplfinance 附加绘图
+    addplots = []
+
+    # 入场标注
+    entry_color = "#22c55e" if direction == "BUY" else "#ef4444"
+    addplots.append(mpf.make_addplot(
+        entry_markers, type="scatter", markersize=150,
+        marker="^" if direction == "BUY" else "v",
+        color=entry_color, panel=0
+    ))
+
+    # 出场标注
+    exit_color = "#ef4444" if direction == "BUY" else "#22c55e"
+    addplots.append(mpf.make_addplot(
+        exit_markers, type="scatter", markersize=150,
+        marker="v" if direction == "BUY" else "^",
+        color=exit_color, panel=0
+    ))
+
+    # 信号强度标注（黄色星号）
+    if any(not np.isnan(x) for x in signal_markers):
+        addplots.append(mpf.make_addplot(
+            signal_markers, type="scatter", markersize=200,
+            marker="*", color="#fbbf24", panel=0
+        ))
+
+    # 自定义样式
+    mc = mpf.make_marketcolors(
+        up="#22c55e", down="#ef4444",
+        edge="inherit", wick="inherit",
+        volume={"up": "#22c55e", "down": "#ef4444"}
+    )
+    style = mpf.make_mpf_style(
+        marketcolors=mc,
+        gridstyle=":",
+        gridcolor="#e5e7eb",
+        facecolor="#ffffff",
+    )
+
+    # 绘制图表
+    fig, axes = mpf.plot(
+        df,
+        type="candle",
+        style=style,
+        volume=True,
+        title=title,
+        addplot=addplots if addplots else None,
+        returnfig=True,
+        figratio=(16, 9),
+        figscale=1.2,
+        tight_layout=True,
+    )
+
+    # 添加文字标注
+    ax = axes[0]
+
+    # 入场价格标注
+    if 0 <= entry_idx < len(df):
+        ax.annotate(
+            f"入场 {entry_price:.2f}",
+            xy=(entry_idx, entry_price),
+            xytext=(entry_idx + 2, entry_price),
+            fontsize=9,
+            color=entry_color,
+            fontweight="bold",
+            ha="left",
+            va="center",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor=entry_color, alpha=0.8),
+        )
+
+    # 出场价格标注
+    if 0 <= exit_idx < len(df):
+        ax.annotate(
+            f"出场 {exit_price:.2f}",
+            xy=(exit_idx, exit_price),
+            xytext=(exit_idx + 2, exit_price),
+            fontsize=9,
+            color=exit_color,
+            fontweight="bold",
+            ha="left",
+            va="center",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor=exit_color, alpha=0.8),
+        )
+
+    # 形态标注
+    if patterns and 0 <= entry_idx < len(df):
+        pattern_text = " ".join(patterns[:3])  # 最多显示 3 个形态
+        ax.annotate(
+            f"📐 {pattern_text}",
+            xy=(entry_idx, df["High"].iloc[entry_idx]),
+            xytext=(entry_idx, df["High"].iloc[entry_idx] * 1.01),
+            fontsize=8,
+            color="#6366f1",
+            ha="center",
+            va="bottom",
+        )
+
+    # 信号强度标注
+    if signal_strength and 0 <= entry_idx < len(df):
+        ax.annotate(
+            f"⚡{signal_strength}",
+            xy=(entry_idx, df["High"].iloc[entry_idx] * 1.008),
+            fontsize=8,
+            color="#f59e0b",
+            fontweight="bold",
+            ha="center",
+            va="bottom",
+        )
+
+    return _fig_to_png(fig), "image/png"
+
+
 # ==================== 多周期K线包络（复用外部模板） ====================
 _INTERVAL_PATTERN = re.compile(r"^(\d+)([smhdwM])$")
 _INTERVAL_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800, "M": 2592000}
@@ -2027,5 +2255,39 @@ def register_defaults() -> TemplateRegistry:
                     "params": {"symbol": "BTCUSDT", "data": [{"time": "2024-01-01 00:00", "oi": 50000, "price": 42000}]}},
         ),
         render_oi_change,
+    )
+    # 交易标注 K 线图 - 用于订单完成后的可视化复盘
+    registry.register(
+        TemplateMeta(
+            template_id="kline-trade",
+            name="交易复盘图",
+            description="带入场/出场/信号/形态标注的 K 线图，用于可视化交易复盘",
+            outputs=["png"],
+            params=[
+                "symbol(str)", "interval(str)", 
+                "entry_time(timestamp)", "entry_price(float)", 
+                "exit_time(timestamp)", "exit_price(float)",
+                "direction?(BUY|SELL)", "signal_type?(str)", 
+                "signal_strength?(int)", "patterns?(list[str])",
+                "lookback?(int, default 50)", "title?(str)"
+            ],
+            sample={
+                "template_id": "kline-trade", 
+                "output": "png",
+                "params": {
+                    "symbol": "BTCUSDT",
+                    "interval": "15m",
+                    "entry_time": 1706745600000,
+                    "entry_price": 43250.5,
+                    "exit_time": 1706752800000,
+                    "exit_price": 43580.0,
+                    "direction": "BUY",
+                    "signal_type": "H2 突破",
+                    "signal_strength": 85,
+                    "patterns": ["H2", "Bull Flag"],
+                }
+            },
+        ),
+        render_kline_trade,
     )
     return registry
