@@ -136,6 +136,62 @@ def main():
     except Exception as e:
         logger.warning(f"OpenClaw 信号文件回调注册失败: {e}")
 
+    # 注册 OpenClaw HTTP Webhook 回调
+    try:
+        import json
+        import os
+        import urllib.request
+        from datetime import datetime, timezone
+        from events import SignalPublisher
+
+        # 从 Docker 容器访问主机，使用 host.docker.internal
+        OPENCLAW_WEBHOOK_URL = os.environ.get(
+            "OPENCLAW_WEBHOOK_URL",
+            "http://host.docker.internal:18789/hooks/al-brooks-signal"
+        )
+        OPENCLAW_WEBHOOK_TOKEN = os.environ.get(
+            "OPENCLAW_WEBHOOK_TOKEN",
+            "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
+        )
+
+        def send_openclaw_webhook(ev):
+            """发送信号到 OpenClaw HTTP Webhook"""
+            if ev.strength < 70:
+                # 低强度信号不推送
+                logger.debug(f"[OpenClaw Webhook] 跳过低强度信号: {ev.symbol} {ev.strength}")
+                return
+
+            signal_data = {
+                "symbol": ev.symbol,
+                "direction": ev.direction,
+                "strength": ev.strength,
+                "timeframe": ev.timeframe,
+                "price": ev.price,
+                "signal_type": ev.signal_type,
+                "timestamp": int(datetime.now(timezone.utc).timestamp()),
+            }
+            try:
+                data = json.dumps(signal_data).encode("utf-8")
+                req = urllib.request.Request(
+                    OPENCLAW_WEBHOOK_URL,
+                    data=data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {OPENCLAW_WEBHOOK_TOKEN}",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                    logger.info(f"[OpenClaw Webhook] 信号已推送: {ev.symbol} {ev.direction} -> {result}")
+            except Exception as e:
+                logger.error(f"[OpenClaw Webhook] 推送失败: {ev.symbol} - {e}")
+
+        SignalPublisher.subscribe(send_openclaw_webhook)
+        logger.info(f"已注册 OpenClaw HTTP Webhook 回调: {OPENCLAW_WEBHOOK_URL}")
+    except Exception as e:
+        logger.warning(f"OpenClaw HTTP Webhook 回调注册失败: {e}")
+
     if args.sqlite or args.all:
         from engines import get_sqlite_engine
 

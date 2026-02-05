@@ -18,27 +18,13 @@
             }
           },
           {
-            "id": "3053c331bb7f8e62",
+            "id": "a15dcd1d91491cc4",
             "type": "leaf",
             "state": {
               "type": "market-scanner-view",
               "state": {},
               "icon": "layout-grid",
               "title": "Market Scanner"
-            }
-          },
-          {
-            "id": "73c931425062da68",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Daily/Trades/2026-02-04/260204_0006_模拟_ETHUSDT.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "260204_0006_模拟_ETHUSDT"
             }
           }
         ],
@@ -96,7 +82,7 @@
             }
           },
           {
-            "id": "15546d3c19e14b8f",
+            "id": "c07658bfacd8978f",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -110,7 +96,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 364.5
+    "width": 212.5
   },
   "right": {
     "id": "035bced972071944",
@@ -218,7 +204,7 @@
             }
           },
           {
-            "id": "5030a8e2de1d7ca7",
+            "id": "fbaa48506aec49ad",
             "type": "leaf",
             "state": {
               "type": "al-brooks-console-view",
@@ -232,7 +218,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 653.5
+    "width": 655.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -262,44 +248,46 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "5030a8e2de1d7ca7",
+  "active": "a15dcd1d91491cc4",
   "lastOpenFiles": [
-    "Daily/Trades/2026-02-04/260204_0503_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0458_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0458_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2053_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_2053_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0448_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0443_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0443_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0438_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0428_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0428_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-05/260205_0908_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0902_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-05/260205_0902_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0857_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0857_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0852_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-05/260205_0852_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0852_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0847_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0847_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0842_模拟_BTCUSDT.md",
+    "Daily/Trades/2026-02-05/260205_0837_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0837_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0837_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0832_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0832_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0832_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0827_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0827_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0827_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0822_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0817_分析_BTCUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0817_分析_SOLUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0817_分析_BNBUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0817_分析_ETHUSDT_观望.md",
+    "Daily/Trades/2026-02-05/260205_0812_分析_BTCUSDT_观望.md",
+    "Notes 笔记/小明笔记",
+    "小明笔记",
+    "Daily/Trades/2026-02-05",
     "Daily/Trades/active_trades.json",
-    "Daily/Trades/2026-02-04/260204_0423_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0423_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0410_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0407_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0402_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0402_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0357_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0352_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1947_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1947_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0342_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1939_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0323_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-04/260204_0323_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-03/260203_1913_模拟_BTCUSDT.md",
-    "Daily/交易日记.base",
-    "Daily/Trades/assets/260203_2241_模拟_ETHUSDT",
-    "Daily/Trades/assets",
-    "Daily/Trades/2026-02-04",
     "Daily/Trades/2026-02-03",
-    "statuses",
-    "sessions",
-    "copilot",
-    "tools/generate-snapshot-from-legacy.js",
+    "Daily/Trades/2026-02-04/assets/260204_0006_模拟_ETHUSDT",
+    "Daily/Trades/2026-02-04/assets",
+    "Daily/Trades/2026-02-04",
+    "🦁 交易员控制台 (Trader Command)/📋 任务与规划",
+    "🦁 交易员控制台 (Trader Command)/存档",
+    "Daily/Trades/assets/251225_2111_实盘_ES/251225_2111_实盘_ES-20251225224827261.png",
+    "Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png",
     "statuses/icons/todo.svg",
     "statuses/icons/needs-review.svg",
     "statuses/icons/in-progress.svg",
@@ -308,8 +296,6 @@
     "statuses/icons/backlog.svg",
     "assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png",
     "Notes 笔记/assets/单笔交易模版 (Trade Note)/单笔交易模版 (Trade Note)-20251225224556657.png",
-    "Notes 笔记/assets/测量移动/测量移动-20251215232541562.png",
-    "Notes 笔记/assets/测量移动/测量移动-20251215232540256.png",
     "Categories 分类/太妃价格行为/太妃课程列表.canvas",
     "Categories 分类/总揽.canvas",
     "价格行为实盘-复盘步骤.canvas",

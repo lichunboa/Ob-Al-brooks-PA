@@ -170,7 +170,8 @@ _CLAWDBOT_WEBHOOK_TOKEN = os.environ.get(
     "CLAWDBOT_WEBHOOK_TOKEN", "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
 )
 # strength 是 int(0-100)，阈值也用同一刻度
-_CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "60"))
+# >= 75 推送到 Discord #al-brooks-信号，>= 80 创建模拟交易
+_CLAWDBOT_THRESHOLD = int(os.environ.get("CLAWDBOT_THRESHOLD", "75"))
 
 # 后端 API 回调地址（Clawdbot 分析完后将详细报告发回这里）
 _BACKEND_REPORT_URL = os.environ.get(
