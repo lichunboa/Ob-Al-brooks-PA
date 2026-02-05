@@ -1387,7 +1387,7 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 周期配置
+        # 周期配置（信号阈值: 1m最严85, 5m常用80, 15m保守75, 1h波段70）
         self.timeframe_config = {
             "1m": {
                 "signal_threshold": 85,
@@ -1395,17 +1395,17 @@ class PASignalEngine(BaseEngine):
                 "cooldown_multiplier": 0.5,  # 更短冷却
             },
             "5m": {
-                "signal_threshold": 70,
+                "signal_threshold": 80,
                 "allowed_strategies": "all",
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "signal_threshold": 65,
+                "signal_threshold": 75,
                 "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形"],
                 "cooldown_multiplier": 2.0,  # 更长冷却
             },
             "1h": {
-                "signal_threshold": 60,
+                "signal_threshold": 70,
                 "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体"],
                 "cooldown_multiplier": 4.0,
             },
