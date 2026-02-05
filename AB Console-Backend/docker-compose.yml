@@ -259,6 +259,23 @@ services:
     networks:
       - ab-console-network
 
+  # ========================================
+  # Autoheal - 自动重启 unhealthy 的容器
+  # ========================================
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: ab-autoheal
+    restart: always
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all  # 监控所有带 healthcheck 的容器
+      - AUTOHEAL_INTERVAL=60          # 每 60 秒检查一次
+      - AUTOHEAL_START_PERIOD=300     # 启动后 5 分钟开始检查
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ab-console-network
+
 volumes:
   timescaledb_data:
     driver: local
