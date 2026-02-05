@@ -1373,19 +1373,44 @@ class RiskManager:
 
 class PASignalEngine(BaseEngine):
     """纯价格行为信号引擎"""
-    
+
     def __init__(self, symbols: list[str] = None, timeframes: list[str] = None):
         super().__init__()
         self.symbols = symbols or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
-        self.timeframes = timeframes or ["5m"]  # 主要检测周期
+        # 多周期支持：1m激进、5m常用、15m保守、1h波段
+        self.timeframes = timeframes or ["1m", "5m", "15m"]
         self.db_url = get_database_url()
-        
+
         self.detector = StrategyDetector()
         self.risk_manager = RiskManager()  # 风控管理器
         self.cooldowns: dict[str, float] = {}
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
-        
+
+        # 周期配置
+        self.timeframe_config = {
+            "1m": {
+                "signal_threshold": 85,
+                "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
+                "cooldown_multiplier": 0.5,  # 更短冷却
+            },
+            "5m": {
+                "signal_threshold": 70,
+                "allowed_strategies": "all",
+                "cooldown_multiplier": 1.0,
+            },
+            "15m": {
+                "signal_threshold": 65,
+                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形"],
+                "cooldown_multiplier": 2.0,  # 更长冷却
+            },
+            "1h": {
+                "signal_threshold": 60,
+                "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体"],
+                "cooldown_multiplier": 4.0,
+            },
+        }
+
         self._conn = None
         self._running = False
         
@@ -1408,48 +1433,77 @@ class PASignalEngine(BaseEngine):
         return self._conn
     
     def _fetch_candles(self, symbol: str, timeframe: str = "5m", limit: int = 50) -> list[Candle]:
-        """从数据库获取 K 线数据"""
+        """从数据库获取 K 线数据，支持多周期聚合"""
         conn = self._get_conn()
         if not conn:
             return []
-        
+
         try:
-            # 根据 timeframe 选择表
-            if timeframe == "1m":
-                table = "market_data.candles_1m"
-            else:
-                # 5m/15m/1h 需要从 1m 聚合或使用其他表
-                table = "market_data.candles_1m"
-            
-            query = f"""
+            # 根据 timeframe 计算需要的 1m K 线数量
+            tf_minutes = {"1m": 1, "5m": 5, "15m": 15, "1h": 60}
+            minutes = tf_minutes.get(timeframe, 5)
+            raw_limit = limit * minutes + minutes  # 多取一些用于聚合
+
+            query = """
                 SELECT bucket_ts, open, high, low, close, volume
-                FROM {table}
+                FROM market_data.candles_1m
                 WHERE symbol = %s
                 ORDER BY bucket_ts DESC
                 LIMIT %s
             """
-            
+
             with conn.cursor() as cur:
-                cur.execute(query, (symbol, limit))
+                cur.execute(query, (symbol, raw_limit))
                 rows = cur.fetchall()
-            
+
+            if not rows:
+                return []
+
+            # 1m 直接返回
+            if timeframe == "1m":
+                candles = []
+                for row in reversed(rows[:limit]):
+                    candles.append(Candle(
+                        symbol=symbol,
+                        timestamp=row[0],
+                        open=float(row[1]),
+                        high=float(row[2]),
+                        low=float(row[3]),
+                        close=float(row[4]),
+                        volume=float(row[5]) if row[5] else 0,
+                        timeframe=timeframe,
+                    ))
+                return candles
+
+            # 其他周期需要聚合
+            raw_candles = list(reversed(rows))  # 按时间正序
+
+            # 聚合成目标周期
             candles = []
-            for row in reversed(rows):  # 按时间正序
-                candles.append(Candle(
+            for i in range(0, len(raw_candles) - minutes + 1, minutes):
+                chunk = raw_candles[i:i + minutes]
+                if len(chunk) < minutes:
+                    break
+
+                agg = Candle(
                     symbol=symbol,
-                    timestamp=row[0],
-                    open=float(row[1]),
-                    high=float(row[2]),
-                    low=float(row[3]),
-                    close=float(row[4]),
-                    volume=float(row[5]) if row[5] else 0,
+                    timestamp=chunk[0][0],  # 使用第一根的时间
+                    open=float(chunk[0][1]),
+                    high=max(float(c[2]) for c in chunk),
+                    low=min(float(c[3]) for c in chunk),
+                    close=float(chunk[-1][4]),
+                    volume=sum(float(c[5]) if c[5] else 0 for c in chunk),
                     timeframe=timeframe,
-                ))
-            
+                )
+                candles.append(agg)
+
+                if len(candles) >= limit:
+                    break
+
             return candles
-        
+
         except Exception as e:
-            logger.error(f"Fetch candles error for {symbol}: {e}")
+            logger.error(f"Fetch candles error for {symbol} {timeframe}: {e}")
             self.stats["errors"] += 1
             return []
     
@@ -1470,95 +1524,135 @@ class PASignalEngine(BaseEngine):
         return all_signals
     
     def _check_symbol(self, symbol: str, timeframe: str) -> list[PASignal]:
-        """检查单个币种"""
+        """检查单个币种，根据周期过滤策略"""
         candles = self._fetch_candles(symbol, timeframe, limit=50)
         if len(candles) < 20:
             return []
-        
+
+        # 获取周期配置
+        tf_config = self.timeframe_config.get(timeframe, self.timeframe_config["5m"])
+        allowed_strategies = tf_config.get("allowed_strategies", "all")
+        signal_threshold = tf_config.get("signal_threshold", 70)
+
         # 计算 EMA20
         closes = [c.close for c in candles]
         ema20 = calculate_ema(closes, 20)
         if len(ema20) < 10:
             return []
-        
+
         # 识别市场周期
         cycle = CycleIdentifier.identify(candles, ema20)
-        
+
         signals = []
-        
+
+        def is_allowed(strategy_name: str) -> bool:
+            """检查策略是否在当前周期允许"""
+            if allowed_strategies == "all":
+                return True
+            return strategy_name in allowed_strategies
+
         # 根据周期运行对应策略
         if cycle.startswith("急速"):
             # 收线追进
-            sig = self.detector.detect_buy_now(candles, ema20)
-            if sig:
-                signals.append(sig)
-            sig = self.detector.detect_sell_now(candles, ema20)
-            if sig:
-                signals.append(sig)
-        
+            if is_allowed("市价追进"):
+                sig = self.detector.detect_buy_now(candles, ema20)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+                sig = self.detector.detect_sell_now(candles, ema20)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+
         elif cycle.startswith("趋势"):
             # 高1/低1
-            sig = self.detector.detect_high1_low1(candles, ema20, cycle)
-            if sig:
-                signals.append(sig)
+            if is_allowed("高1低1"):
+                sig = self.detector.detect_high1_low1(candles, ema20, cycle)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
             # 均线缺口
-            sig = self.detector.detect_ema_gap(candles, ema20, cycle)
-            if sig:
-                signals.append(sig)
-        
+            if is_allowed("20均线缺口"):
+                sig = self.detector.detect_ema_gap(candles, ema20, cycle)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+
         elif cycle == "区间":
             # 看衰突破
-            sig = self.detector.detect_fade_breakout(candles, ema20, cycle)
+            if is_allowed("失败突破"):
+                sig = self.detector.detect_fade_breakout(candles, ema20, cycle)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+
+        # === 反转策略（根据周期过滤） ===
+
+        # 双重顶底
+        if is_allowed("双重顶底"):
+            sig = self.detector.detect_double_top_bottom(candles, ema20)
             if sig:
+                sig.timeframe = timeframe
                 signals.append(sig)
-        
-        # === 反转策略（所有周期通用） ===
-        
-        # 双重顶底（适用于所有周期）
-        sig = self.detector.detect_double_top_bottom(candles, ema20)
-        if sig:
-            signals.append(sig)
-        
-        # 楔形顶底（适用于所有周期）
-        sig = self.detector.detect_wedge(candles, ema20)
-        if sig:
-            signals.append(sig)
-        
-        # 急速通道（需要足够数据）
-        sig = self.detector.detect_spike_channel(candles, ema20)
-        if sig:
-            signals.append(sig)
-        
+
+        # 楔形顶底
+        if is_allowed("楔形顶底"):
+            sig = self.detector.detect_wedge(candles, ema20)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
+        # 急速通道
+        if is_allowed("急速通道"):
+            sig = self.detector.detect_spike_channel(candles, ema20)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
         # 末端旗形（仅趋势周期）
-        if cycle.startswith("趋势"):
+        if cycle.startswith("趋势") and is_allowed("末端旗形"):
             sig = self.detector.detect_final_flag(candles, ema20, cycle)
             if sig:
+                sig.timeframe = timeframe
                 signals.append(sig)
-            
+
             # 第一均线缺口（仅趋势周期）
-            sig = self.detector.detect_first_ema_gap(candles, ema20, cycle)
-            if sig:
-                signals.append(sig)
-        
+            if is_allowed("首次均线缺口"):
+                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle)
+                if sig:
+                    sig.timeframe = timeframe
+                    signals.append(sig)
+
         # 突破回调（趋势或观望周期）
-        sig = self.detector.detect_breakout_pullback(candles, ema20, cycle)
-        if sig:
-            signals.append(sig)
-        
+        if is_allowed("突破回调"):
+            sig = self.detector.detect_breakout_pullback(candles, ema20, cycle)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
         # 急赴磁体（接近区间边界时）
-        sig = self.detector.detect_rush_to_magnet(candles, ema20)
-        if sig:
-            signals.append(sig)
-        
+        if is_allowed("急赴磁体"):
+            sig = self.detector.detect_rush_to_magnet(candles, ema20)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
         # 过滤冷却中的信号 + 风控检查 + 多周期验证
         filtered = []
+        cooldown_multiplier = tf_config.get("cooldown_multiplier", 1.0)
+
         for sig in signals:
+            # 周期信号阈值检查
+            if sig.strength < signal_threshold:
+                logger.debug(f"PA Signal 低于周期阈值: {sig.symbol} {timeframe} {sig.strength} < {signal_threshold}")
+                continue
+
             # 风控检查
             can_send, reject_reason = self.risk_manager.can_send_signal(sig)
             if not can_send:
                 logger.debug(f"PA Signal 被风控拒绝: {sig.symbol} {sig.signal_type} - {reject_reason}")
                 continue
-            
+
             # 多周期趋势验证（可选，增加信号可靠性）
             trend_valid, trend_msg = TrendValidator.validate_trend(candles, sig.direction)
             if not trend_valid:
@@ -1566,12 +1660,13 @@ class PASignalEngine(BaseEngine):
                 # 不完全拒绝，但降低强度
                 sig.strength = max(50, sig.strength - 15)
                 sig.message = f"{sig.message} (警告: {trend_msg})"
-            
+
             # 日内时段调整
             session, session_factor = TradingSession.get_session()
             sig.strength = TradingSession.adjust_signal_strength(sig.strength, session)
             sig.extra["session"] = session
-            
+            sig.extra["timeframe_style"] = tf_config.get("style", "normal")
+
             # 计算等距测量目标（增强止盈目标）
             leg1_start, leg1_end = MeasuredMoveCalculator.find_leg1(candles, sig.direction)
             if leg1_start > 0 and leg1_end > 0:
@@ -1586,9 +1681,10 @@ class PASignalEngine(BaseEngine):
                 sig.extra["reversal_from"] = old_direction
                 sig.message = f"{sig.message} [反向信号: 建议平{old_direction}仓]"
             
-            # 冷却检查
-            signal_key = f"pa:{sig.symbol}_{sig.signal_type}_{sig.direction}"
-            if self._is_cooled_down(signal_key):
+            # 冷却检查（根据周期调整冷却时间）
+            signal_key = f"pa:{sig.symbol}_{sig.signal_type}_{sig.direction}_{timeframe}"
+            effective_cooldown = self.cooldown_seconds * cooldown_multiplier
+            if self._is_cooled_down(signal_key, effective_cooldown):
                 if self._set_cooldown(signal_key):
                     # 记录到风控系统
                     self.risk_manager.record_signal(sig)
@@ -1599,9 +1695,11 @@ class PASignalEngine(BaseEngine):
         
         return filtered
     
-    def _is_cooled_down(self, signal_key: str) -> bool:
+    def _is_cooled_down(self, signal_key: str, cooldown_seconds: float = None) -> bool:
+        """检查信号是否已冷却，支持自定义冷却时间"""
         last = self.cooldowns.get(signal_key, 0)
-        return time.time() - last > self.cooldown_seconds
+        effective_cooldown = cooldown_seconds if cooldown_seconds is not None else self.cooldown_seconds
+        return time.time() - last > effective_cooldown
     
     def _set_cooldown(self, signal_key: str) -> bool:
         ts = time.time()

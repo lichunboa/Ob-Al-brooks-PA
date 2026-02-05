@@ -1,0 +1,289 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-02-06",
+  "last_updated": "2026-02-06",
+
+  "strategy_weights": {
+    "市价追进": {
+      "weight": 0.5,
+      "english": "Buy/Sell NOW",
+      "category": "急速",
+      "timeframes": ["1m", "5m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "高1低1": {
+      "weight": 0.5,
+      "english": "High1/Low1",
+      "category": "急速",
+      "timeframes": ["1m", "5m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "20均线缺口": {
+      "weight": 0.5,
+      "english": "20 EMA Gap",
+      "category": "回调",
+      "timeframes": ["5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "突破回调": {
+      "weight": 0.5,
+      "english": "Breakout Pullback",
+      "category": "回调",
+      "timeframes": ["5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "首次均线缺口": {
+      "weight": 0.5,
+      "english": "First EMA Gap",
+      "category": "回调",
+      "timeframes": ["5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "双重顶底": {
+      "weight": 0.5,
+      "english": "Double Top/Bottom",
+      "category": "区间",
+      "timeframes": ["5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "失败突破": {
+      "weight": 0.5,
+      "english": "Fade Breakout",
+      "category": "区间",
+      "timeframes": ["5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "急赴磁体": {
+      "weight": 0.5,
+      "english": "Rush to Magnet",
+      "category": "区间",
+      "timeframes": ["5m", "15m", "1h"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "楔形顶底": {
+      "weight": 0.5,
+      "english": "Wedge Top/Bottom",
+      "category": "反转",
+      "timeframes": ["15m", "1h"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "急速通道": {
+      "weight": 0.5,
+      "english": "Spike & Channel",
+      "category": "反转",
+      "timeframes": ["1m", "5m", "15m"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    },
+    "末端旗形": {
+      "weight": 0.5,
+      "english": "Final Flag",
+      "category": "反转",
+      "timeframes": ["15m", "1h"],
+      "trades": 0,
+      "wins": 0,
+      "total_pnl": 0,
+      "last_trade": null,
+      "status": "normal"
+    }
+  },
+
+  "auxiliary_signals": {
+    "al_brooks_core": {
+      "EMA20位置": {
+        "enabled": true,
+        "source": "pa_engine",
+        "weight_range": [-15, 15],
+        "description": "价格与EMA20的关系，核心趋势判断"
+      },
+      "支撑阻力": {
+        "enabled": true,
+        "source": "支撑阻力排行卡片.py",
+        "weight_range": [-10, 10],
+        "description": "关键价位，目标位和止损位参考"
+      },
+      "成交量确认": {
+        "enabled": true,
+        "source": "成交量排行卡片.py",
+        "weight_range": [-8, 8],
+        "description": "突破有效性确认"
+      }
+    },
+    "momentum": {
+      "RSI背离": {
+        "enabled": true,
+        "source": "智能RSI扫描器.py",
+        "weight_range": [-10, 10],
+        "description": "顶背离/底背离，反转确认"
+      },
+      "RSI超买超卖": {
+        "enabled": true,
+        "source": "智能RSI扫描器.py",
+        "weight_range": [-5, 5],
+        "description": "极端位置警告"
+      },
+      "MACD背离": {
+        "enabled": false,
+        "source": "MACD柱状排行卡片.py",
+        "weight_range": [-8, 8],
+        "description": "趋势衰竭信号"
+      },
+      "KDJ金叉死叉": {
+        "enabled": false,
+        "source": "KDJ排行卡片.py",
+        "weight_range": [-5, 5],
+        "description": "短期动量变化"
+      }
+    },
+    "futures_sentiment": {
+      "大户多空比": {
+        "enabled": true,
+        "source": "期货情绪聚合表.py",
+        "weight_range": [-8, 8],
+        "description": "大户情绪，逆向指标"
+      },
+      "情绪翻转": {
+        "enabled": true,
+        "source": "期货情绪聚合表.py",
+        "weight_range": [-15, 15],
+        "description": "重要反转信号"
+      },
+      "OI连续": {
+        "enabled": true,
+        "source": "期货情绪聚合表.py",
+        "weight_range": [-5, 5],
+        "description": "持仓变化趋势"
+      },
+      "资金费率": {
+        "enabled": true,
+        "source": "资金费率卡片.py",
+        "weight_range": [-3, 3],
+        "description": "极端情绪指标"
+      },
+      "风险分": {
+        "enabled": false,
+        "source": "期货情绪聚合表.py",
+        "weight_range": [-5, 5],
+        "description": "综合风险评估"
+      }
+    },
+    "volatility": {
+      "布林带位置": {
+        "enabled": false,
+        "source": "布林带排行卡片.py",
+        "weight_range": [-5, 5],
+        "description": "波动率参考"
+      },
+      "ATR异常": {
+        "enabled": false,
+        "source": "ATR排行卡片.py",
+        "weight_range": [-5, 5],
+        "description": "波动率异常"
+      }
+    }
+  },
+
+  "timeframe_config": {
+    "1m": {
+      "style": "aggressive",
+      "max_position_pct": 0.5,
+      "signal_threshold": 85,
+      "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
+      "max_trades_per_hour": 5,
+      "stop_loss_atr_multiplier": 1.0,
+      "take_profit_atr_multiplier": 1.5
+    },
+    "5m": {
+      "style": "normal",
+      "max_position_pct": 1.0,
+      "signal_threshold": 70,
+      "allowed_strategies": "all",
+      "max_trades_per_hour": 3,
+      "stop_loss_atr_multiplier": 1.5,
+      "take_profit_atr_multiplier": 2.0
+    },
+    "15m": {
+      "style": "conservative",
+      "max_position_pct": 2.0,
+      "signal_threshold": 65,
+      "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形"],
+      "max_trades_per_hour": 2,
+      "stop_loss_atr_multiplier": 2.0,
+      "take_profit_atr_multiplier": 3.0
+    },
+    "1h": {
+      "style": "swing",
+      "max_position_pct": 3.0,
+      "signal_threshold": 60,
+      "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体"],
+      "max_trades_per_hour": 1,
+      "stop_loss_atr_multiplier": 2.5,
+      "take_profit_atr_multiplier": 4.0
+    }
+  },
+
+  "weight_recovery": {
+    "enabled": true,
+    "daily_recovery_rate": 0.1,
+    "min_weight": 0.0,
+    "default_weight": 0.5,
+    "max_weight": 1.5,
+    "severe_threshold": 0.1,
+    "severe_recovery_days": 7,
+    "moderate_threshold": 0.3,
+    "moderate_recovery_hours": 72,
+    "light_threshold": 0.5,
+    "light_recovery_hours": 24
+  },
+
+  "learning_config": {
+    "learning_rate": 0.1,
+    "min_trades_for_adjustment": 3,
+    "win_rate_baseline": 0.5,
+    "risk_reward_baseline": 2.0,
+    "experiment_position_pct": 0.1,
+    "experiment_graduation_trades": 5,
+    "experiment_graduation_win_rate": 0.5
+  },
+
+  "custom_strategies": []
+}
