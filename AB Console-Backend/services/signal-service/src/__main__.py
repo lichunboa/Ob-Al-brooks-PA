@@ -37,6 +37,7 @@ def main():
     parser.add_argument("--sqlite", action="store_true", help="启动 SQLite 引擎")
     parser.add_argument("--pg", action="store_true", help="启动 PG 引擎（60秒轮询）")
     parser.add_argument("--realtime", action="store_true", help="启动实时引擎（毫秒级）")
+    parser.add_argument("--pa", action="store_true", help="启动纯价格行为引擎（Al Brooks 方法）")
     parser.add_argument("--all", action="store_true", help="启动所有引擎")
     parser.add_argument("--once", action="store_true", help="单次检查")
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
@@ -161,6 +162,7 @@ def main():
                 logger.debug(f"[OpenClaw Webhook] 跳过低强度信号: {ev.symbol} {ev.strength}")
                 return
 
+            # 基础字段
             signal_data = {
                 "symbol": ev.symbol,
                 "direction": ev.direction,
@@ -170,6 +172,28 @@ def main():
                 "signal_type": ev.signal_type,
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
             }
+            
+            # PA 信号增强字段（如果存在）
+            if hasattr(ev, 'stop_loss') and ev.stop_loss:
+                signal_data["stop_loss"] = ev.stop_loss
+            if hasattr(ev, 'take_profit') and ev.take_profit:
+                signal_data["take_profit"] = ev.take_profit
+            if hasattr(ev, 'entry_trigger') and ev.entry_trigger:
+                signal_data["entry_trigger"] = ev.entry_trigger
+            if hasattr(ev, 'entry_type') and ev.entry_type:
+                signal_data["entry_type"] = ev.entry_type
+            if hasattr(ev, 'signal_bar_high') and ev.signal_bar_high:
+                signal_data["signal_bar_high"] = ev.signal_bar_high
+                signal_data["signal_bar_low"] = ev.signal_bar_low
+            if hasattr(ev, 'probability') and ev.probability:
+                signal_data["probability"] = ev.probability
+            if hasattr(ev, 'cycle') and ev.cycle:
+                signal_data["cycle"] = ev.cycle
+            if hasattr(ev, 'confirmation_needed'):
+                signal_data["confirmation_needed"] = ev.confirmation_needed
+            if hasattr(ev, 'extra') and ev.extra:
+                # 包含等距测量目标等
+                signal_data["extra"] = ev.extra
             try:
                 data = json.dumps(signal_data).encode("utf-8")
                 req = urllib.request.Request(
@@ -239,6 +263,30 @@ def main():
         realtime_engine.start()
         engines.append(("Realtime", realtime_engine))
         logger.info("实时引擎已启动（毫秒级 LISTEN/NOTIFY 模式）")
+
+    # 纯价格行为引擎（Al Brooks 方法）
+    pa_engine = None
+    if args.pa or args.all:
+        from engines.pa_engine import get_pa_engine
+
+        def run_pa():
+            pa = get_pa_engine()
+            engines.append(("PA", pa))
+            logger.info("纯价格行为引擎已启动（Al Brooks 方法）")
+            while _running:
+                try:
+                    signals = pa.check_signals()
+                    if signals:
+                        logger.info(f"PA 引擎检测到 {len(signals)} 个信号")
+                    time.sleep(5)  # 每 5 秒检测一次
+                except Exception as e:
+                    logger.error(f"PA engine error: {e}")
+                    time.sleep(5)
+
+        t = threading.Thread(target=run_pa, daemon=False, name="PAEngine")
+        t.start()
+        threads.append(t)
+        pa_engine = True
 
     if not threads and realtime_engine is None:
         logger.error(

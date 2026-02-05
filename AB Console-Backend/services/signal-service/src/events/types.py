@@ -33,6 +33,17 @@ class SignalEvent:
     subcategory: str = ""
     table: str = ""
 
+    # PA 信号入场字段
+    stop_loss: float = 0.0
+    take_profit: float = 0.0
+    entry_trigger: float = 0.0
+    entry_type: str = ""  # STOP/LIMIT/MARKET
+    signal_bar_high: float = 0.0
+    signal_bar_low: float = 0.0
+    probability: float = 0.0
+    cycle: str = ""
+    confirmation_needed: bool = False
+
     # 扩展数据
     extra: dict[str, Any] = field(default_factory=dict)
 

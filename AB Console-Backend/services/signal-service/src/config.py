@@ -55,10 +55,10 @@ def get_subscription_db_path() -> Path:
 
 
 # 信号检测配置
-DEFAULT_TIMEFRAMES = ["1h", "4h", "1d"]
+DEFAULT_TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"]  # 添加 1m/5m/15m 周期
 DEFAULT_MIN_VOLUME = 100000
-DEFAULT_CHECK_INTERVAL = 60  # 秒
-COOLDOWN_SECONDS = 300  # 同一信号冷却时间
+DEFAULT_CHECK_INTERVAL = 5  # 秒 - 从 60s 改为 5s，加大压力
+COOLDOWN_SECONDS = 60  # 同一信号冷却时间 - 从 300s 改为 60s
 # 数据新鲜度阈值（秒），超过则视为陈旧数据不参与信号计算
 DATA_MAX_AGE_SECONDS = int(os.environ.get("SIGNAL_DATA_MAX_AGE", "600"))
 
