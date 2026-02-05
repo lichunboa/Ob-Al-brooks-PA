@@ -31,6 +31,8 @@ services:
       - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
 
   signal-service:
+    volumes:
+      - ./services/signal-service/src:/app/src
     environment:
       - LOG_LEVEL=DEBUG
       - SYMBOLS_GROUPS=main4
