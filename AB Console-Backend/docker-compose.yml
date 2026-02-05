@@ -139,7 +139,7 @@ services:
       - COOLDOWN_DB_PATH=/app/data/cooldown.db
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/src:/app/libs
-    command: bash -c "pip install psycopg[binary] -q && python -m src --realtime --health-port 8083"
+    command: bash -c "pip install psycopg[binary] -q && python -m src --realtime --pa --health-port 8083"
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health')" ]
       interval: 30s
