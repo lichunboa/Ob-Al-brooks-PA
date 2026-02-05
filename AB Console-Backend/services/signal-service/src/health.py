@@ -97,7 +97,7 @@ class HealthHandler(BaseHTTPRequestHandler):
         
         return {
             "service": "signal-service",
-            "version": "2.0.0",
+            "version": "2.4.0",
             "status": status,
             "uptime_seconds": round(uptime, 2),
             "timestamp": datetime.utcnow().isoformat() + "Z",

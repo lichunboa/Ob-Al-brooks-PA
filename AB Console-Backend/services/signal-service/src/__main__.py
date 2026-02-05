@@ -271,6 +271,7 @@ def main():
 
         def run_pa():
             pa = get_pa_engine()
+            pa._running = True  # 设置运行状态，用于健康检查
             engines.append(("PA", pa))
             logger.info("纯价格行为引擎已启动（Al Brooks 方法）")
             while _running:
@@ -282,6 +283,7 @@ def main():
                 except Exception as e:
                     logger.error(f"PA engine error: {e}")
                     time.sleep(5)
+            pa._running = False  # 退出时重置状态
 
         t = threading.Thread(target=run_pa, daemon=False, name="PAEngine")
         t.start()

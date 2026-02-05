@@ -15,6 +15,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-02-06
+
+### Added
+- **PA Engine (Al Brooks 方法)** - 纯价格行为信号引擎
+  - 多周期策略系统 (1h/15m/5m/1m)
+  - 策略权重机制，动态调整信号强度
+  - 阈值配置：1h=70, 15m=75, 5m=80, 1m=85
+- **小明技能树深度集成** - PA 信号与小明模拟交易系统对接
+  - 策略权重配置 (`xiaoming_evolution.json`)
+  - 账户数据单一来源 (`xiaoming_account.json`)
+- **OpenClaw 健康检查系统**
+  - 自动清理超过 1 小时的 session 文件
+  - sessions.json 超过 20MB 自动重建
+  - launchd 服务每 5 分钟执行健康检查
+
+### Changed
+- **Transform 层信号过滤** - strength < 75 直接丢弃
+- **信号时间戳处理** - 后端 UTC 秒转换为本地毫秒时间戳
+- **PA Engine 健康状态** - 修复 `running: false` 误报问题
+
+### Fixed
+- **信号时间戳延迟问题** - 后端发送 UTC Unix 秒，JavaScript 期望毫秒
+  - 在 transform 层直接覆盖 `timestamp` 为 `Date.now()`
+- **Session 文件积累** - 导致锁竞争和性能问题
+  - 清理策略从 24 小时改为 1 小时
+- **小明数据同步** - `xiaoming_account.json` 和 `xiaoming_evolution.json` 余额不一致
+  - 确定 `xiaoming_account.json` 为唯一账户真实来源
+  - 从 `xiaoming_evolution.json` 移除 `survival.current_balance` 字段
+
+### Documentation
+- 更新项目记忆文件 (MEMORY.md)
+- 添加数据同步规范到小明 agent 配置
+
+---
+
 ## [2.3.1] - 2026-02-04
 
 ### Added
