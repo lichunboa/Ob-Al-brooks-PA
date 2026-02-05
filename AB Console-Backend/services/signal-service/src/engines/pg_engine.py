@@ -341,13 +341,21 @@ class PGSignalRules:
             logger.warning(f"check_oi_dump error: {e}")
         return None
 
-    def check_top_trader_extreme_long(self, curr: dict, threshold: float = 3.0) -> PGSignal | None:
-        """大户极端做多"""
+    def check_top_trader_extreme_long(self, curr: dict, threshold: float = 3.0, candle: dict = None) -> PGSignal | None:
+        """大户极端做多
+
+        Args:
+            curr: 当前期货指标数据
+            threshold: 多空比阈值
+            candle: 当前K线数据（用于获取价格）
+        """
         if not curr:
             return None
         try:
             long_ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 0))
             if long_ratio >= threshold:
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_long",
@@ -355,21 +363,29 @@ class PGSignalRules:
                     strength=min(85, int(50 + long_ratio * 10)),
                     message_key="signal.pg.msg.top_long",
                     message_params={"ratio": f"{long_ratio:.2f}", "threshold": f"{threshold:.0f}"},
-                    price=_safe_float(curr.get("close", 0)),
+                    price=price,
                     extra={"long_ratio": long_ratio},
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_long error: {e}")
         return None
 
-    def check_top_trader_extreme_short(self, curr: dict, threshold: float = 0.5) -> PGSignal | None:
-        """大户极端做空"""
+    def check_top_trader_extreme_short(self, curr: dict, threshold: float = 0.5, candle: dict = None) -> PGSignal | None:
+        """大户极端做空
+
+        Args:
+            curr: 当前期货指标数据
+            threshold: 多空比阈值（低于此值表示极端做空）
+            candle: 当前K线数据（用于获取价格）
+        """
         if not curr:
             return None
         try:
             long_ratio = _safe_float(curr.get("count_toptrader_long_short_ratio", 0))
             if long_ratio > 0 and long_ratio <= threshold:
                 short_ratio = 1 / long_ratio
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="top_trader_extreme_short",
@@ -377,15 +393,21 @@ class PGSignalRules:
                     strength=min(85, int(50 + short_ratio * 10)),
                     message_key="signal.pg.msg.top_short",
                     message_params={"ratio": f"{short_ratio:.2f}", "threshold": f"{threshold:.2f}"},
-                    price=_safe_float(curr.get("close", 0)),
+                    price=price,
                     extra={"long_ratio": long_ratio, "short_ratio": short_ratio},
                 )
         except Exception as e:
             logger.warning(f"check_top_trader_extreme_short error: {e}")
         return None
 
-    def check_taker_ratio_flip_long(self, curr: dict, prev: dict) -> PGSignal | None:
-        """吃单比率翻多"""
+    def check_taker_ratio_flip_long(self, curr: dict, prev: dict, candle: dict = None) -> PGSignal | None:
+        """吃单比率翻多
+
+        Args:
+            curr: 当前期货指标数据
+            prev: 上一期期货指标数据
+            candle: 当前K线数据（用于获取价格）
+        """
         if not prev or not curr:
             return None
         try:
@@ -393,6 +415,8 @@ class PGSignalRules:
             prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 0))
             # 从 <1 变为 >1，表示从空头主导变为多头主导
             if prev_ratio < 1 and curr_ratio > 1:
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_long",
@@ -400,15 +424,21 @@ class PGSignalRules:
                     strength=min(75, int(50 + curr_ratio * 20)),
                     message_key="signal.pg.msg.flip_long",
                     message_params={"ratio": f"{curr_ratio:.2f}"},
-                    price=_safe_float(curr.get("close", 0)),
+                    price=price,
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio},
                 )
         except Exception as e:
             logger.warning(f"check_taker_ratio_flip_long error: {e}")
         return None
 
-    def check_taker_ratio_flip_short(self, curr: dict, prev: dict) -> PGSignal | None:
-        """吃单比率翻空"""
+    def check_taker_ratio_flip_short(self, curr: dict, prev: dict, candle: dict = None) -> PGSignal | None:
+        """吃单比率翻空
+
+        Args:
+            curr: 当前期货指标数据
+            prev: 上一期期货指标数据
+            candle: 当前K线数据（用于获取价格）
+        """
         if not prev or not curr:
             return None
         try:
@@ -416,6 +446,8 @@ class PGSignalRules:
             prev_ratio = _safe_float(prev.get("sum_taker_long_short_vol_ratio", 0))
             # 从 >1 变为 <1，表示从多头主导变为空头主导
             if prev_ratio > 1 and curr_ratio < 1:
+                # 从 candle 数据获取当前价格，如果没有则为 0
+                price = _safe_float(candle.get("close", 0)) if candle else 0.0
                 return PGSignal(
                     symbol=curr.get("symbol", ""),
                     signal_type="taker_ratio_flip_short",
@@ -423,7 +455,7 @@ class PGSignalRules:
                     strength=min(75, int(50 + (1 / curr_ratio if curr_ratio > 0 else 1) * 20)),
                     message_key="signal.pg.msg.flip_short",
                     message_params={"ratio": f"{curr_ratio:.2f}"},
-                    price=_safe_float(curr.get("close", 0)),
+                    price=price,
                     extra={"prev_ratio": prev_ratio, "curr_ratio": curr_ratio},
                 )
         except Exception as e:
@@ -682,10 +714,10 @@ class PGSignalEngine(BaseEngine):
                         [
                             (self.rules.check_oi_surge, [curr_metric, prev_metric, 3.0, curr_candle]),
                             (self.rules.check_oi_dump, [curr_metric, prev_metric, 3.0, curr_candle]),
-                            (self.rules.check_top_trader_extreme_long, [curr_metric, 3.0]),
-                            (self.rules.check_top_trader_extreme_short, [curr_metric, 0.5]),
-                            (self.rules.check_taker_ratio_flip_long, [curr_metric, prev_metric]),
-                            (self.rules.check_taker_ratio_flip_short, [curr_metric, prev_metric]),
+                            (self.rules.check_top_trader_extreme_long, [curr_metric, 3.0, curr_candle]),
+                            (self.rules.check_top_trader_extreme_short, [curr_metric, 0.5, curr_candle]),
+                            (self.rules.check_taker_ratio_flip_long, [curr_metric, prev_metric, curr_candle]),
+                            (self.rules.check_taker_ratio_flip_short, [curr_metric, prev_metric, curr_candle]),
                         ]
                     )
 

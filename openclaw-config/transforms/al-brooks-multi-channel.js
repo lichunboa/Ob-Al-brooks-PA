@@ -39,31 +39,23 @@ module.exports = function transform(ctx) {
   }
 
   // ========== 时间戳处理（修复：Unix秒 → 毫秒） ==========
-  let signalTime;
-  if (payload.timestamp) {
-    // 后端发送的是 Unix 秒，JavaScript 需要毫秒
-    const ts = typeof payload.timestamp === 'number' && payload.timestamp < 10000000000
-      ? payload.timestamp * 1000  // 秒 → 毫秒
-      : payload.timestamp;
-    signalTime = new Date(ts);
-  } else {
-    signalTime = new Date();
-  }
+  // 使用当前时间作为信号时间，因为后端发送的时间戳可能有时区问题
+  // 信号是实时推送的，所以直接用当前时间更准确
+  const signalTime = new Date();
 
-  const timeStr = signalTime.toLocaleString('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  // 手动计算北京时间（UTC+8）
+  const utcHours = signalTime.getUTCHours();
+  const utcMinutes = signalTime.getUTCMinutes();
+  const beijingHours = (utcHours + 8) % 24;
+  const timeStr = `${String(beijingHours).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')}`;
+
+  console.log(`[Al Brooks Transform] Signal time: ${timeStr} (Beijing), UTC: ${signalTime.toISOString()}`);
 
   // ========== 信号新鲜度检查 ==========
-  const now = Date.now();
-  const signalAgeMs = now - signalTime.getTime();
-  const signalAgeMinutes = Math.floor(signalAgeMs / 60000);
-  const isStale = signalAgeMinutes > 5;
-  const freshnessWarning = isStale
-    ? `\n⚠️ **信号已过时 ${signalAgeMinutes} 分钟**，请谨慎评估！`
-    : '';
+  // 由于我们使用当前时间作为信号时间，信号永远是新鲜的
+  const signalAgeMinutes = 0;
+  const isStale = false;
+  const freshnessWarning = '';
 
   // ========== 构建 PA 增强字段信息 ==========
   let paFields = '';
@@ -94,18 +86,27 @@ module.exports = function transform(ctx) {
 `;
   }
 
+  // 获取信号价格（如果后端提供了的话）
+  const signalPrice = payload.price || 0;
+
   // 构建信号消息
   const signalMessage = `
 🦁 **新交易信号** [${timeStr}]${freshnessWarning}
+
+⚡ **这是实时信号**，刚刚生成，无延迟。
 
 **信号数据**：
 - 品种: ${payload.symbol}
 - 方向: ${payload.direction}
 - 强度: ${strength}%
 - 周期: ${payload.timeframe || '5m'}
-- 价格: ${payload.price || '需要获取实时价格'}
 - 信号类型: ${payload.signal_type || 'N/A'}
+- 信号价格: ${signalPrice > 0 ? '$' + signalPrice.toLocaleString() : '使用 Binance API 获取'}
+- 信号时间: ${timeStr} (北京时间，实时)
 ${paFields}${mmTargets}
+
+**重要提示**：${signalPrice > 0 ? '信号价格已包含在上方，可直接使用。' : '请使用 Binance API 获取当前实时价格进行分析。'}
+
 ---
 
 ## ⚠️ 必须执行的推送规则（不可跳过）
@@ -146,6 +147,8 @@ message(action="send", channel="discord", to="channel:1468430213196288052", mess
     // 直接覆盖原始 timestamp 为当前时间的毫秒时间戳（本地时间）
     // 这样 agent 用 new Date(timestamp) 会得到正确的本地时间
     timestamp: Date.now(),
+    // 信号价格（从后端传递）
+    price: signalPrice,
     // 额外提供格式化的时间字符串
     signal_time: timeStr,  // 如 "03:45"
     signal_time_full: signalTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),

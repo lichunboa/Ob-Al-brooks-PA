@@ -39,11 +39,27 @@ fi
 
 # ========== 2. Session 清理（每次运行都检查） ==========
 if [ -d "$SESSIONS_DIR" ]; then
-    # 清理超过 1 小时的 .jsonl 文件（trader agent 信号频繁，不需要保留太久）
-    OLD_COUNT=$(find "$SESSIONS_DIR" -name "*.jsonl" -mmin +60 2>/dev/null | wc -l | tr -d ' ')
+    # 清理超过 30 分钟的 .jsonl 文件（trader agent 信号频繁，不需要保留太久）
+    OLD_COUNT=$(find "$SESSIONS_DIR" -name "*.jsonl" -mmin +30 2>/dev/null | wc -l | tr -d ' ')
     if [ "$OLD_COUNT" -gt 0 ]; then
-        find "$SESSIONS_DIR" -name "*.jsonl" -mmin +60 -delete 2>/dev/null
-        log "已清理 $OLD_COUNT 个超过1小时的 session 文件"
+        find "$SESSIONS_DIR" -name "*.jsonl" -mmin +30 -delete 2>/dev/null
+        log "已清理 $OLD_COUNT 个超过30分钟的 session 文件"
+    fi
+
+    # 如果文件数量超过 50 个，只保留最新的 30 个
+    FILE_COUNT=$(find "$SESSIONS_DIR" -name "*.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$FILE_COUNT" -gt 50 ]; then
+        # 按修改时间排序，删除最旧的文件，只保留 30 个
+        find "$SESSIONS_DIR" -name "*.jsonl" -print0 2>/dev/null | xargs -0 ls -t | tail -n +31 | xargs rm -f 2>/dev/null
+        DELETED=$((FILE_COUNT - 30))
+        log "文件数量超过50，已清理 $DELETED 个最旧的 session 文件"
+    fi
+
+    # 清理过期锁文件（超过 10 分钟）
+    LOCK_COUNT=$(find "$SESSIONS_DIR" -name "*.lock" -mmin +10 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$LOCK_COUNT" -gt 0 ]; then
+        find "$SESSIONS_DIR" -name "*.lock" -mmin +10 -delete 2>/dev/null
+        log "已清理 $LOCK_COUNT 个过期锁文件"
     fi
 
     # 清理 .tmp 文件（超过 10 分钟）
@@ -68,11 +84,11 @@ if [ -d "$SESSIONS_DIR" ]; then
         log "已清理 $BAK_COUNT 个备份文件"
     fi
 
-    # 检查 sessions.json 大小，超过 20MB 则重建（空索引）
+    # 检查 sessions.json 大小，超过 10MB 则重建（空索引）
     if [ -f "$SESSIONS_DIR/sessions.json" ]; then
         SIZE=$(stat -f %z "$SESSIONS_DIR/sessions.json" 2>/dev/null || echo 0)
         SIZE_MB=$((SIZE / 1024 / 1024))
-        if [ $SIZE_MB -gt 20 ]; then
+        if [ $SIZE_MB -gt 10 ]; then
             log "sessions.json 已达 ${SIZE_MB}MB，重建索引..."
             echo '{"sessions":{}}' > "$SESSIONS_DIR/sessions.json"
             log "sessions.json 已重建"
