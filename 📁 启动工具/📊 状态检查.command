@@ -71,6 +71,7 @@ check_port 8088 "API Service"
 check_port 8089 "Sync Service"
 check_port 8090 "Telegram Service"
 check_port 8083 "Signal Service"
+check_port 8091 "Tracker Service"
 check_port 5434 "TimescaleDB"
 check_port 3000 "Web Dashboard"
 check_port 18789 "OpenClaw Gateway"
@@ -86,7 +87,9 @@ if docker info > /dev/null 2>&1; then
     check_container "ab-signal-service" "Signal Service"
     check_container "ab-telegram-service" "Telegram Service"
     check_container "ab-trading-service" "Trading Service"
-    check_container "ab-forwarder" "Forwarder"
+    check_container "ab-tracker-service" "Tracker Service"
+    check_container "ab-vis-service" "Vis Service"
+    check_container "ab-web-dashboard" "Web Dashboard"
 else
     echo -e "  ${RED}○${NC} Docker 未连接"
 fi
@@ -192,15 +195,17 @@ if [ -t 0 ]; then
             echo "  3) sync-service"
             echo "  4) api-service"
             echo "  5) data-service"
-            echo "  6) Web Dashboard"
-            read -p "选择 [1-6]: " log_choice
+            echo "  6) tracker-service"
+            echo "  7) Web Dashboard"
+            read -p "选择 [1-7]: " log_choice
             case $log_choice in
                 1) docker logs -f ab-telegram-service --tail 50 ;;
                 2) docker logs -f ab-signal-service --tail 50 ;;
                 3) docker logs -f ab-sync-service --tail 50 ;;
                 4) docker logs -f ab-api-service --tail 50 ;;
                 5) docker logs -f ab-data-service --tail 50 ;;
-                6) tail -f /tmp/ab-web-dashboard.log ;;
+                6) docker logs -f ab-tracker-service --tail 50 ;;
+                7) tail -f /tmp/ab-web-dashboard.log ;;
             esac
             ;;
     esac
