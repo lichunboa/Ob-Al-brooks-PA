@@ -18,16 +18,6 @@
             }
           },
           {
-            "id": "a15dcd1d91491cc4",
-            "type": "leaf",
-            "state": {
-              "type": "market-scanner-view",
-              "state": {},
-              "icon": "layout-grid",
-              "title": "Market Scanner"
-            }
-          },
-          {
             "id": "c1e9cf931fdfe875",
             "type": "leaf",
             "state": {
@@ -54,9 +44,74 @@
               "icon": "lucide-file",
               "title": "单笔交易模版 (Trade Note)"
             }
+          },
+          {
+            "id": "ecce8784b2cdafa8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Daily/Trades/2026-02-06/260206_0619_模拟_SOLUSDT_0464.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "260206_0619_模拟_SOLUSDT_0464"
+            }
+          },
+          {
+            "id": "af417666cc365a71",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.11.7"
+              },
+              "icon": "lucide-book-up",
+              "title": "版本说明 1.11.7"
+            }
+          },
+          {
+            "id": "2a1628999ef912e2",
+            "type": "leaf",
+            "state": {
+              "type": "mk-space",
+              "state": {
+                "path": "Daily/Trades/2026-02-05/Rejected"
+              },
+              "icon": "lucide-file",
+              "title": "Rejected"
+            }
+          },
+          {
+            "id": "ead288699dc5e1ec",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Daily/Trades/2026-02-06/Watch/260206_0749_观望_BTCUSDT_0505.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "260206_0749_观望_BTCUSDT_0505"
+            }
+          },
+          {
+            "id": "668a50fefa0e0edf",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Daily/Trades/2026-02-06/Watch/260206_0341_分析_BTCUSDT.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "260206_0341_分析_BTCUSDT"
+            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -110,7 +165,7 @@
             }
           },
           {
-            "id": "4ee5c4b5ecda0472",
+            "id": "039f4f140cfc475f",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
@@ -124,7 +179,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 367.5
+    "width": 457.50312423706055
   },
   "right": {
     "id": "035bced972071944",
@@ -232,7 +287,7 @@
             }
           },
           {
-            "id": "fbaa48506aec49ad",
+            "id": "4d4274760dcc0cee",
             "type": "leaf",
             "state": {
               "type": "al-brooks-console-view",
@@ -246,7 +301,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 911.5
+    "width": 783.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -276,44 +331,44 @@
       "journalit:打开 Journalit": false
     }
   },
-  "active": "a15dcd1d91491cc4",
+  "active": "4d4274760dcc0cee",
   "lastOpenFiles": [
-    "Daily/Trades/2026-02-06/260206_0247_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0222_模拟_ETHUSDT_352.md",
-    "Daily/Trades/2026-02-06/260206_0218_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0217_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0215_模拟_BNBUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0135_观望_BTCUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0128_观望_ETHUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0049_模拟_BNBUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0047_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-06/260206_0032_模拟_BTCUSDT.md",
-    "Notes 笔记/小明笔记/L2_知识参考/策略权重系统.md",
-    "Daily/Trades/2026-02-06/260206_0011_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-06",
-    "Notes 笔记/小明笔记/L3_经验积累/信号反馈",
-    "Daily/Trades/2026-02-05/260205_2346_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1944_模拟_BNBUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1901_模拟_ETHUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1743_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1736_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1731_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1726_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1721_模拟_SOLUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1721_模拟_BTCUSDT.md",
-    "Daily/Trades/2026-02-05/260205_1636_模拟_ETHUSDT.md",
-    "Notes 笔记/小明笔记/2026-02-05_超短线全面规划_Op分析报告.md",
-    "Notes 笔记/小明笔记/L1_决策清单/05_止损止盈规则.md",
-    "Notes 笔记/小明笔记/L1_决策清单/04_入场条件清单.md",
-    "Notes 笔记/小明笔记/L1_决策清单/02_市场周期识别.md",
-    "Notes 笔记/小明笔记/L3_经验积累/每周复盘",
-    "Notes 笔记/小明笔记/L3_经验积累/每日日记",
-    "Notes 笔记/小明笔记/L3_经验积累/升级日志",
-    "Notes 笔记/小明笔记/L3_经验积累/个人感悟",
-    "Notes 笔记/小明笔记/L3_经验积累",
-    "Notes 笔记/小明笔记/L2_知识参考/案例分析/成功案例库",
-    "Notes 笔记/小明笔记/L2_知识参考/案例分析/失败案例库",
-    "Notes 笔记/小明笔记/L2_知识参考/策略详解",
+    "Daily/Trades/2026-02-06/Watch/260206_0820_观望_BTCUSDT_0521.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0820_观望_ETHUSDT_0537.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0820_观望_BTCUSDT_0536.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0820_观望_SOLUSDT_0535.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0819_观望_ETHUSDT_0520.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0819_观望_BTCUSDT_0518.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0819_观望_SOLUSDT_0534.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0819_观望_ETHUSDT_0537.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0819_观望_BTCUSDT_0536.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0818_观望_ETHUSDT_0535.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0818_观望_BTCUSDT_0534.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0818_观望_SOLUSDT_0518.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0818_观望_SOLUSDT_0535.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0817_观望_SOLUSDT_0534.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0817_观望_ETHUSDT_0533.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0817_观望_BTCUSDT_0517.md",
+    "Daily/Trades/2026-02-06/260206_0817_模拟_BTCUSDT_0516.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0817_观望_SOLUSDT_0532.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0816_观望_ETHUSDT_0516.md",
+    "Tags/#0527",
+    "Daily/Trades/2026-02-06/Watch/260206_0816_观望_BTCUSDT_0532.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0816_观望_SOLUSDT.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0815_观望_ETHUSDT_0530.md",
+    "Daily/Trades/2026-02-06/Watch/260206_0815_观望_SOLUSDT_0515.md",
+    "Daily/Trades/2026-02-06/260206_0814_模拟_ETHUSDT_0528.md",
+    "Daily/Trades/2026-02-06/260206_0814_模拟_BTCUSDT_0527.md",
+    "Daily/Trades/2026-02-06/260206_0813_模拟_BTCUSDT_0524.md",
+    "Daily/Trades/2026-02-06/Closed",
+    "Daily/Trades/2026-02-06/Archive",
+    "Daily/Trades/2026-02-05/Archive",
+    "Daily/Trades/2026-02-06/Watch",
+    "Daily/Trades/2026-02-06/Rejected",
+    "Daily/Trades/2026-02-05/Watch",
+    "Daily/Trades/2026-02-05/Rejected",
+    "Daily/Signals/Watch",
+    "Daily/Signals/Rejected",
     "Daily/Trades/assets/251225_2111_实盘_ES/251225_2111_实盘_ES-20251225224827261.png",
     "Daily/SPX/assets/SPX 2025.9/SPX 2025.9-20251216114216242.png",
     "statuses/icons/todo.svg",
