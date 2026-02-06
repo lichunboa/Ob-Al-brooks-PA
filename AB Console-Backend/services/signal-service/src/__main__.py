@@ -155,11 +155,58 @@ def main():
             "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
         )
 
+        def determine_route_targets(ev):
+            """根据信号特征决定路由目标"""
+            targets = []
+            source = getattr(ev, 'source', 'unknown')
+            signal_type = getattr(ev, 'signal_type', '')
+
+            # PA Engine 信号 → 小明（交易执行）
+            if source == 'pa_engine' or hasattr(ev, 'entry_trigger'):
+                targets.append('xiaoming')
+
+            # 高强度信号 → 量化分析师（多周期验证）
+            if ev.strength >= 75:
+                targets.append('trader')
+
+            # 成交量异常或趋势转折 → 威科夫（结构分析）
+            if signal_type in ['volume_spike', 'trend_reversal', 'breakout']:
+                targets.append('wyckoff')
+
+            # 默认至少发给小明
+            if not targets:
+                targets.append('xiaoming')
+
+            return list(set(targets))  # 去重
+
+        def send_to_target(signal_data, target):
+            """发送信号到指定目标"""
+            signal_data_copy = signal_data.copy()
+            signal_data_copy["route_to"] = target
+
+            try:
+                data = json.dumps(signal_data_copy).encode("utf-8")
+                req = urllib.request.Request(
+                    OPENCLAW_WEBHOOK_URL,
+                    data=data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {OPENCLAW_WEBHOOK_TOKEN}",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                    logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: {result.get('status', 'ok')}")
+                    return True
+            except Exception as e:
+                logger.error(f"[OpenClaw] {signal_data['symbol']} → {target} 失败: {e}")
+                return False
+
         def send_openclaw_webhook(ev):
-            """发送信号到 OpenClaw HTTP Webhook"""
+            """发送信号到 OpenClaw HTTP Webhook（多机器人路由）"""
             if ev.strength < 70:
-                # 低强度信号不推送
-                logger.debug(f"[OpenClaw Webhook] 跳过低强度信号: {ev.symbol} {ev.strength}")
+                logger.debug(f"[OpenClaw] 跳过低强度信号: {ev.symbol} {ev.strength}")
                 return
 
             # 基础字段
@@ -171,8 +218,9 @@ def main():
                 "price": ev.price,
                 "signal_type": ev.signal_type,
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
+                "source": getattr(ev, 'source', 'unknown'),
             }
-            
+
             # PA 信号增强字段（如果存在）
             if hasattr(ev, 'stop_loss') and ev.stop_loss:
                 signal_data["stop_loss"] = ev.stop_loss
@@ -192,24 +240,14 @@ def main():
             if hasattr(ev, 'confirmation_needed'):
                 signal_data["confirmation_needed"] = ev.confirmation_needed
             if hasattr(ev, 'extra') and ev.extra:
-                # 包含等距测量目标等
                 signal_data["extra"] = ev.extra
-            try:
-                data = json.dumps(signal_data).encode("utf-8")
-                req = urllib.request.Request(
-                    OPENCLAW_WEBHOOK_URL,
-                    data=data,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {OPENCLAW_WEBHOOK_TOKEN}",
-                    },
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    result = json.loads(resp.read().decode("utf-8"))
-                    logger.info(f"[OpenClaw Webhook] 信号已推送: {ev.symbol} {ev.direction} -> {result}")
-            except Exception as e:
-                logger.error(f"[OpenClaw Webhook] 推送失败: {ev.symbol} - {e}")
+
+            # 决定路由目标并发送
+            targets = determine_route_targets(ev)
+            logger.info(f"[OpenClaw] {ev.symbol} {ev.direction} 强度={ev.strength} → {targets}")
+
+            for target in targets:
+                send_to_target(signal_data, target)
 
         SignalPublisher.subscribe(send_openclaw_webhook)
         logger.info(f"已注册 OpenClaw HTTP Webhook 回调: {OPENCLAW_WEBHOOK_URL}")
