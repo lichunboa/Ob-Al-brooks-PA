@@ -225,6 +225,12 @@ export const AnalyticsTab: React.FC = () => {
     [tradesForAnalysis]
   );
 
+  // 用于账户概览的统计 - 始终基于 filteredTrades，与日历保持一致
+  const filteredSummary = React.useMemo(
+    () => computeTradeStatsByAccountType(filteredTrades),
+    [filteredTrades]
+  );
+
   const strategyLab = React.useMemo(
     () =>
       computeStrategyLab(tradesForAnalysis, (t) => ({
@@ -588,7 +594,7 @@ export const AnalyticsTab: React.FC = () => {
                 💼 账户资金概览 <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Account)</span>
               </div>
               <AccountSummaryCards
-                summary={summary}
+                summary={filteredSummary}
                 SPACE={SPACE}
                 currencyMode={currencyMode}
                 displayUnit={displayUnit}

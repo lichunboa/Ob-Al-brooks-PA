@@ -5,7 +5,14 @@
       "title": "单笔交易模版 (Trade Note)",
       "path": "Templates/单笔交易模版 (Trade Note).md",
       "icon": "file-text",
-      "openedAt": "2026-02-05T15:37:35.268Z"
+      "openedAt": "2026-02-06T03:04:46.996Z"
+    },
+    {
+      "type": "file",
+      "title": "260206_0341_分析_BTCUSDT",
+      "path": "Daily/Trades/2026-02-06/Watch/260206_0341_分析_BTCUSDT.md",
+      "icon": "file-text",
+      "openedAt": "2026-02-06T03:04:44.048Z"
     }
   ]
 }

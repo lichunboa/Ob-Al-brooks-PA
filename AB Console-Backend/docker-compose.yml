@@ -287,6 +287,37 @@ services:
       - ab-console-network
 
   # ========================================
+  # Tracker Service - 交易追踪和账户同步
+  # ========================================
+  tracker-service:
+    build:
+      context: ./services/tracker-service
+      dockerfile: Dockerfile
+    container_name: ab-tracker-service
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      - WORKSPACE_DIR=/app/workspace
+      - OBSIDIAN_DIR=/app/obsidian
+      - POSITION_SIZE=1000
+      - CHECK_INTERVAL=60
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 挂载工作目录（读写 JSON 文件）
+      - ~/.openclaw/workspace:/app/workspace
+      # 挂载 Obsidian Trades 目录（更新笔记）
+      - ../AB Console-Obsidian/Daily/Trades:/app/obsidian/Daily/Trades
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - ab-console-network
+
+  # ========================================
   # Autoheal - 自动重启 unhealthy 的容器
   # ========================================
   autoheal:

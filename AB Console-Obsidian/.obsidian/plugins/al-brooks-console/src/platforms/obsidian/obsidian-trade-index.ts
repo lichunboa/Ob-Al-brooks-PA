@@ -64,7 +64,8 @@ export class ObsidianTradeIndex implements TradeIndex {
       .filter(Boolean)
       .map((p) => (p.endsWith("/") ? p : `${p}/`));
     // Default denylist to prevent templates/exports/plugin internals from polluting indices.
-    this.folderDenylistNormalized = ["Templates/", "Exports/", ".obsidian/"]
+    // 排除拒绝(Rejected)、观望(Watch)和归档(Archive)信号，这些不应计入交易统计
+    this.folderDenylistNormalized = ["Templates/", "Exports/", ".obsidian/", "Rejected/", "Watch/", "Archive/"]
       .map((p) => p.replace(/^\/+/, "").trim())
       .filter(Boolean)
       .map((p) => (p.endsWith("/") ? p : `${p}/`));
@@ -76,6 +77,8 @@ export class ObsidianTradeIndex implements TradeIndex {
   private shouldIndexFile(path: string): boolean {
     const normalized = String(path ?? "").replace(/^\/+/, "");
     if (!normalized) return false;
+    // 排除复盘笔记（文件名包含"复盘"）
+    if (normalized.includes("复盘")) return false;
     for (const p of this.folderDenylistNormalized) {
       if (normalized.startsWith(p)) return false;
     }
