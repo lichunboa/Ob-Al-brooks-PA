@@ -161,21 +161,26 @@ def main():
             source = getattr(ev, 'source', 'unknown')
             signal_type = getattr(ev, 'signal_type', '')
 
-            # PA Engine 信号 → 小明（交易执行）
+            # PA Engine 信号 → PA交易 Al Brooks（交易执行）
             if source == 'pa_engine' or hasattr(ev, 'entry_trigger'):
-                targets.append('xiaoming')
+                targets.append('al-brooks')
 
             # 高强度信号 → 量化分析师（多周期验证）
             if ev.strength >= 75:
                 targets.append('trader')
 
-            # 成交量异常或趋势转折 → 威科夫（结构分析）
-            if signal_type in ['volume_spike', 'trend_reversal', 'breakout']:
+            # 威科夫分析触发条件（扩展）
+            # - 成交量异常、趋势转折、突破
+            # - 高强度信号 (>=75) 也触发威科夫做结构验证
+            # - extreme 类型信号（可能是吸筹/派发信号）
+            wyckoff_triggers = ['volume_spike', 'trend_reversal', 'breakout']
+            is_extreme_signal = 'extreme' in signal_type.lower() if signal_type else False
+            if signal_type in wyckoff_triggers or ev.strength >= 75 or is_extreme_signal:
                 targets.append('wyckoff')
 
-            # 默认至少发给小明
+            # 默认至少发给 PA交易 Al Brooks
             if not targets:
-                targets.append('xiaoming')
+                targets.append('al-brooks')
 
             return list(set(targets))  # 去重
 
@@ -184,10 +189,19 @@ def main():
             signal_data_copy = signal_data.copy()
             signal_data_copy["route_to"] = target
 
+            # 根据 target 选择不同的 webhook endpoint
+            webhook_paths = {
+                'al-brooks': 'al-brooks-signal',
+                'trader': 'trader-signal',
+                'wyckoff': 'wyckoff-signal',
+            }
+            webhook_path = webhook_paths.get(target, 'al-brooks-signal')
+            webhook_url = OPENCLAW_WEBHOOK_URL.replace('al-brooks-signal', webhook_path)
+
             try:
                 data = json.dumps(signal_data_copy).encode("utf-8")
                 req = urllib.request.Request(
-                    OPENCLAW_WEBHOOK_URL,
+                    webhook_url,
                     data=data,
                     headers={
                         "Content-Type": "application/json",
@@ -203,10 +217,65 @@ def main():
                 logger.error(f"[OpenClaw] {signal_data['symbol']} → {target} 失败: {e}")
                 return False
 
+        # AI 进化反馈配置路径
+        EVOLUTION_FEEDBACK_FILE = "/Users/mitchellcb/.openclaw/workspace/stats/evolution_feedback.json"
+
+        def load_evolution_feedback():
+            """加载 AI 进化反馈配置"""
+            try:
+                if os.path.exists(EVOLUTION_FEEDBACK_FILE):
+                    with open(EVOLUTION_FEEDBACK_FILE, 'r') as f:
+                        return json.load(f)
+            except Exception as e:
+                logger.warning(f"[Evolution] 加载反馈配置失败: {e}")
+            return None
+
+        def should_filter_signal(ev, feedback):
+            """根据 AI 进化反馈决定是否过滤信号"""
+            if not feedback:
+                # 无反馈配置，使用默认规则
+                return ev.strength < 70, "默认强度过滤"
+
+            # 1. 全局强度过滤
+            global_min = feedback.get("global_filters", {}).get("min_strength", 70)
+
+            # 2. 周期特定强度
+            timeframe = getattr(ev, 'timeframe', '5m')
+            if timeframe == '1m':
+                global_min = feedback.get("global_filters", {}).get("min_strength_1m", 85)
+            elif timeframe == '5m':
+                global_min = feedback.get("global_filters", {}).get("min_strength_5m", 75)
+            elif timeframe == '15m':
+                global_min = feedback.get("global_filters", {}).get("min_strength_15m", 70)
+
+            if ev.strength < global_min:
+                return True, f"强度 {ev.strength} < {global_min} ({timeframe})"
+
+            # 3. 品种特定过滤
+            symbol_config = feedback.get("symbol_filters", {}).get(ev.symbol, {})
+            if symbol_config:
+                if not symbol_config.get("enabled", True):
+                    return True, f"品种 {ev.symbol} 已禁用"
+                symbol_min = symbol_config.get("min_strength", global_min)
+                if ev.strength < symbol_min:
+                    return True, f"品种 {ev.symbol} 强度 {ev.strength} < {symbol_min}"
+
+            # 4. 冷却规则检查
+            cooldown = feedback.get("cooldown_rules", {})
+            if ev.symbol in cooldown.get("cooldown_symbols", []):
+                return True, f"品种 {ev.symbol} 在冷却中"
+
+            return False, None
+
         def send_openclaw_webhook(ev):
             """发送信号到 OpenClaw HTTP Webhook（多机器人路由）"""
-            if ev.strength < 70:
-                logger.debug(f"[OpenClaw] 跳过低强度信号: {ev.symbol} {ev.strength}")
+            # 加载 AI 进化反馈配置
+            feedback = load_evolution_feedback()
+
+            # 智能过滤（基于 AI 进化反馈）
+            should_filter, reason = should_filter_signal(ev, feedback)
+            if should_filter:
+                logger.debug(f"[OpenClaw] 过滤信号: {ev.symbol} - {reason}")
                 return
 
             # 基础字段
