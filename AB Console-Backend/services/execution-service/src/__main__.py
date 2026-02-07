@@ -11,6 +11,7 @@ Execution Service - FastAPI 入口 V2.6.0
     - 币安数据同步
 """
 import argparse
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -45,12 +46,41 @@ trading_state: Optional[TradingStateManager] = None
 reconciliation: Optional[TradeReconciliation] = None
 order_tracker: Optional[OrderTracker] = None
 note_sync: Optional[NoteSync] = None
+_periodic_task: Optional[asyncio.Task] = None
+
+# 定时任务间隔（秒）
+NOTE_SYNC_INTERVAL = 300  # 5 分钟
+ORDER_TRACK_INTERVAL = 300  # 5 分钟
+
+
+async def _periodic_sync():
+    """定时任务：笔记同步 + 订单追踪"""
+    await asyncio.sleep(60)  # 启动后 1 分钟再开始
+    while True:
+        try:
+            # 笔记反向同步
+            if note_sync:
+                result = await note_sync.sync_all()
+                synced = result.get("synced", 0)
+                if synced > 0:
+                    logger.info(f"[定时] 笔记同步: {synced} 笔更新")
+
+            # 订单状态追踪
+            if order_tracker:
+                changes = await order_tracker.check_all_orders()
+                if changes:
+                    logger.info(f"[定时] 订单追踪: {len(changes)} 笔状态变更")
+
+        except Exception as e:
+            logger.error(f"[定时] 同步任务异常: {e}")
+
+        await asyncio.sleep(NOTE_SYNC_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync
+    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, _periodic_task
 
     logger.info("Execution Service V2.6.0 启动中...")
     risk_manager = RiskManager()
@@ -82,10 +112,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"启动对账失败: {e}")
 
+    # 启动定时任务（笔记同步 + 订单追踪，每 5 分钟）
+    _periodic_task = asyncio.create_task(_periodic_sync())
+    logger.info("定时任务已启动: 笔记同步 + 订单追踪 (每 5 分钟)")
+
     logger.info(f"Execution Service 已启动 (mode={BINANCE_MODE}, trading={'ON' if trading_state.is_trading_enabled() else 'OFF'})")
 
     yield
 
+    # 关闭定时任务
+    if _periodic_task:
+        _periodic_task.cancel()
+        try:
+            await _periodic_task
+        except asyncio.CancelledError:
+            pass
     logger.info("Execution Service 关闭")
 
 
