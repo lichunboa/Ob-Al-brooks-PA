@@ -79,6 +79,40 @@ export interface HealthStatus {
   status: string;
   mode: string;
   service: string;
+  version?: string;
+  trading_enabled?: boolean;
+}
+
+// ========== V2.6.0 新增类型 ==========
+
+export interface BotAllocation {
+  bot_id: string;
+  name: string;
+  allocated_usdt: number;
+  max_leverage: number;
+  max_positions: number;
+  enabled: boolean;
+  current_positions?: number;
+  used_margin?: number;
+}
+
+export interface TradingStatus {
+  trading_enabled: boolean;
+  last_sync: string | null;
+  binance_balance: number;
+  binance_available: number;
+  total_unrealized_pnl: number;
+  total_allocated: number;
+  total_used: number;
+  total_positions: number;
+  allocations: Record<string, BotAllocation>;
+}
+
+export interface AllocationUpdate {
+  allocated_usdt?: number;
+  max_leverage?: number;
+  max_positions?: number;
+  enabled?: boolean;
 }
 
 // ========== API 函数 ==========
@@ -162,5 +196,87 @@ export async function cancelAllOrders(symbol?: string): Promise<{ success: boole
     : `${getBaseUrl()}/orders`;
   const res = await fetch(url, { method: 'DELETE' });
   if (!res.ok) throw new Error('取消订单失败');
+  return res.json();
+}
+
+// ========== V2.6.0 交易状态管理 API ==========
+
+export async function getTradingStatus(): Promise<TradingStatus | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/trading/status`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function toggleTrading(enabled: boolean): Promise<{ success: boolean; trading_enabled: boolean; message: string }> {
+  const res = await fetch(`${getBaseUrl()}/trading/toggle?enabled=${enabled}`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('切换交易状态失败');
+  return res.json();
+}
+
+export async function syncFromBinance(): Promise<{
+  success: boolean;
+  balance: number;
+  available: number;
+  unrealized_pnl: number;
+  positions_count: number;
+  last_sync: string;
+}> {
+  const res = await fetch(`${getBaseUrl()}/trading/sync`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('同步失败');
+  return res.json();
+}
+
+export async function updateAllocation(
+  botId: string,
+  data: AllocationUpdate
+): Promise<{ success: boolean; bot_id: string; allocation: BotAllocation }> {
+  const res = await fetch(`${getBaseUrl()}/trading/allocate/${botId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('更新分配失败');
+  return res.json();
+}
+
+export async function canBotTrade(botId: string): Promise<{
+  can_trade: boolean;
+  reason: string;
+  bot_id: string;
+  allocation: BotAllocation | null;
+}> {
+  const res = await fetch(`${getBaseUrl()}/trading/can-trade/${botId}`);
+  if (!res.ok) throw new Error('检查交易状态失败');
+  return res.json();
+}
+
+export async function calculatePositionSize(
+  botId: string,
+  entryPrice: number,
+  stopLoss: number,
+  riskPercent: number = 1.0
+): Promise<{
+  bot_id: string;
+  quantity: number;
+  explanation: string;
+  entry_price: number;
+  stop_loss: number;
+  risk_percent: number;
+}> {
+  const params = new URLSearchParams({
+    entry_price: entryPrice.toString(),
+    stop_loss: stopLoss.toString(),
+    risk_percent: riskPercent.toString(),
+  });
+  const res = await fetch(`${getBaseUrl()}/trading/calculate-size/${botId}?${params}`);
+  if (!res.ok) throw new Error('计算仓位失败');
   return res.json();
 }

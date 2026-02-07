@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useExecutionData } from '@/hooks/useExecutionData';
+import { TradingControl, BotAllocations } from '@/components/execution';
+import type { BotAllocation } from '@/components/execution';
 import {
   Wallet,
   TrendingUp,
@@ -10,7 +12,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Settings,
-  Power,
   Eye,
   EyeOff,
   Save,
@@ -29,12 +30,16 @@ export default function ExecutionPage() {
     positions,
     riskStatus,
     config,
+    tradingStatus,
     refresh,
+    toggleTrading,
+    syncFromBinance,
+    updateAllocation,
   } = useExecutionData();
 
   const [showConfigForm, setShowConfigForm] = useState(false);
   const [configForm, setConfigForm] = useState({
-    mode: 'testnet',
+    mode: 'demo',
     api_key: '',
     api_secret: '',
     max_daily_loss: 100,
@@ -69,6 +74,18 @@ export default function ExecutionPage() {
     }
   };
 
+  const handleToggleTrading = async (enabled: boolean) => {
+    await toggleTrading(enabled);
+  };
+
+  const handleSync = async () => {
+    await syncFromBinance();
+  };
+
+  const handleUpdateAllocation = async (botId: string, data: Partial<BotAllocation>) => {
+    await updateAllocation(botId, data);
+  };
+
   const usdt = balance.find((b) => b.asset === 'USDT');
 
   return (
@@ -80,7 +97,9 @@ export default function ExecutionPage() {
             <Wallet className="w-8 h-8" />
             交易执行
           </h1>
-          <p className="text-slate-400 mt-1">币安合约交易执行与风控管理</p>
+          <p className="text-slate-400 mt-1">
+            币安 Demo Trading · V2.6.0
+          </p>
         </div>
         <button
           onClick={refresh}
@@ -109,9 +128,12 @@ export default function ExecutionPage() {
             />
             <span className={isConnected ? 'text-green-300' : 'text-red-300'}>
               {isConnected
-                ? `已连接 - ${health?.mode === 'testnet' ? '测试网' : '主网'}`
+                ? `已连接 - ${health?.mode === 'demo' ? 'Demo Trading' : health?.mode === 'testnet' ? '测试网' : '主网'}`
                 : '未连接'}
             </span>
+            {health?.version && (
+              <span className="text-slate-500 text-sm">v{health.version}</span>
+            )}
           </div>
           {error && <span className="text-red-400 text-sm">{error}</span>}
         </div>
@@ -121,6 +143,28 @@ export default function ExecutionPage() {
       {saveMessage && (
         <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4">
           <p className="text-blue-300">{saveMessage}</p>
+        </div>
+      )}
+
+      {/* Trading Control & Bot Allocations */}
+      {isConnected && tradingStatus && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TradingControl
+            tradingEnabled={tradingStatus.trading_enabled}
+            lastSync={tradingStatus.last_sync}
+            binanceBalance={tradingStatus.binance_balance}
+            binanceAvailable={tradingStatus.binance_available}
+            unrealizedPnl={tradingStatus.total_unrealized_pnl}
+            onToggle={handleToggleTrading}
+            onSync={handleSync}
+            isLoading={isLoading}
+          />
+          <BotAllocations
+            allocations={tradingStatus.allocations}
+            totalBalance={tradingStatus.binance_balance}
+            onUpdate={handleUpdateAllocation}
+            isLoading={isLoading}
+          />
         </div>
       )}
 
@@ -265,10 +309,14 @@ export default function ExecutionPage() {
                   <p className="text-slate-400 text-xs">模式</p>
                   <p
                     className={`text-lg font-semibold ${
-                      config.mode === 'testnet' ? 'text-yellow-400' : 'text-green-400'
+                      config.mode === 'demo'
+                        ? 'text-blue-400'
+                        : config.mode === 'testnet'
+                        ? 'text-yellow-400'
+                        : 'text-green-400'
                     }`}
                   >
-                    {config.mode === 'testnet' ? '测试网' : '主网'}
+                    {config.mode === 'demo' ? 'Demo' : config.mode === 'testnet' ? '测试网' : '主网'}
                   </p>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-3">
@@ -335,6 +383,7 @@ export default function ExecutionPage() {
                 }
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
               >
+                <option value="demo">Demo Trading</option>
                 <option value="testnet">测试网 (Testnet)</option>
                 <option value="mainnet">主网 (Mainnet)</option>
               </select>
@@ -519,19 +568,10 @@ export default function ExecutionPage() {
       </div>
 
       {/* Info */}
-      <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-xl p-4">
-        <p className="text-yellow-300 text-sm">
-          <span className="font-semibold">⚠️ 提示:</span> 请先启动 Execution
-          Service (端口 8091)，然后在此页面配置 API Key。测试网 API Key 可从{' '}
-          <a
-            href="https://testnet.binancefuture.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-yellow-200"
-          >
-            testnet.binancefuture.com
-          </a>{' '}
-          获取（用 GitHub 登录）。
+      <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4">
+        <p className="text-blue-300 text-sm">
+          <span className="font-semibold">💡 V2.6.0 新功能:</span> 交易开关控制、机器人资金分配、自动同步币安数据。
+          开启交易开关后，机器人才会执行真实交易。
         </p>
       </div>
     </div>

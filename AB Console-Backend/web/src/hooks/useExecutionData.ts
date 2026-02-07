@@ -8,6 +8,9 @@ import type {
   RiskStatus,
   ConfigStatus,
   HealthStatus,
+  TradingStatus,
+  BotAllocation,
+  AllocationUpdate,
 } from '@/lib/executionApi';
 
 export function useExecutionData() {
@@ -20,6 +23,7 @@ export function useExecutionData() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [riskStatus, setRiskStatus] = useState<RiskStatus | null>(null);
   const [config, setConfig] = useState<ConfigStatus | null>(null);
+  const [tradingStatus, setTradingStatus] = useState<TradingStatus | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -30,7 +34,7 @@ export function useExecutionData() {
       const healthData = await api.checkHealth();
       if (!healthData) {
         setIsConnected(false);
-        setError('无法连接到 Execution Service (端口 8091)');
+        setError('无法连接到 Execution Service (端口 8092)');
         setIsLoading(false);
         return;
       }
@@ -39,17 +43,19 @@ export function useExecutionData() {
       setIsConnected(true);
 
       // 并行获取其他数据
-      const [balanceData, positionsData, riskData, configData] = await Promise.all([
+      const [balanceData, positionsData, riskData, configData, tradingData] = await Promise.all([
         api.getBalance().catch(() => []),
         api.getPositions().catch(() => []),
         api.getRiskStatus().catch(() => null),
         api.getConfig().catch(() => null),
+        api.getTradingStatus().catch(() => null),
       ]);
 
       setBalance(balanceData);
       setPositions(positionsData);
       setRiskStatus(riskData);
       setConfig(configData);
+      setTradingStatus(tradingData);
     } catch (err) {
       setError(err instanceof Error ? err.message : '未知错误');
       setIsConnected(false);
@@ -57,6 +63,34 @@ export function useExecutionData() {
       setIsLoading(false);
     }
   }, []);
+
+  // 切换交易状态
+  const toggleTrading = useCallback(async (enabled: boolean) => {
+    const result = await api.toggleTrading(enabled);
+    if (result.success) {
+      // 刷新数据
+      await refresh();
+    }
+    return result;
+  }, [refresh]);
+
+  // 同步币安数据
+  const syncFromBinance = useCallback(async () => {
+    const result = await api.syncFromBinance();
+    if (result.success) {
+      await refresh();
+    }
+    return result;
+  }, [refresh]);
+
+  // 更新机器人分配
+  const updateAllocation = useCallback(async (botId: string, data: AllocationUpdate) => {
+    const result = await api.updateAllocation(botId, data);
+    if (result.success) {
+      await refresh();
+    }
+    return result;
+  }, [refresh]);
 
   // 初始加载
   useEffect(() => {
@@ -80,6 +114,10 @@ export function useExecutionData() {
     positions,
     riskStatus,
     config,
+    tradingStatus,
     refresh,
+    toggleTrading,
+    syncFromBinance,
+    updateAllocation,
   };
 }
