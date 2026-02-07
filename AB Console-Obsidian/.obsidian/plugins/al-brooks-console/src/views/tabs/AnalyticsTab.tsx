@@ -97,6 +97,10 @@ export const AnalyticsTab: React.FC = () => {
   type AccountType = 'Live' | 'Demo' | 'Backtest';
   const [selectedAccounts, setSelectedAccounts] = React.useState<AccountType[]>([]);
 
+  // 机器人筛选（支持多选）
+  type BotType = 'PA交易' | '量化分析师' | '威科夫大师';
+  const [selectedBots, setSelectedBots] = React.useState<BotType[]>([]);
+
   // 策略筛选（支持多选）
   const [selectedStrategies, setSelectedStrategies] = React.useState<string[]>([]);
 
@@ -112,6 +116,15 @@ export const AnalyticsTab: React.FC = () => {
       prev.includes(acct)
         ? prev.filter(a => a !== acct)
         : [...prev, acct]
+    );
+  };
+
+  // 机器人切换
+  const toggleBot = (bot: BotType) => {
+    setSelectedBots(prev =>
+      prev.includes(bot)
+        ? prev.filter(b => b !== bot)
+        : [...prev, bot]
     );
   };
 
@@ -148,6 +161,20 @@ export const AnalyticsTab: React.FC = () => {
       result = result.filter(t => selectedStrategies.includes(t.strategyName || 'Unknown'));
     }
 
+    // 机器人筛选（支持多选）
+    if (selectedBots.length > 0) {
+      result = result.filter(t => {
+        const bot = t.bot ?? "PA交易"; // 默认为PA交易（兼容旧笔记）
+        return selectedBots.some(selected =>
+          bot === selected ||
+          bot.includes(selected) ||
+          (selected === "PA交易" && (bot.includes("PA") || bot.includes("小明") || bot.includes("xiaoming"))) ||
+          (selected === "量化分析师" && (bot.includes("量化") || bot.includes("trader"))) ||
+          (selected === "威科夫大师" && (bot.includes("威科夫") || bot.includes("wyckoff")))
+        );
+      });
+    }
+
     // 日期范围过滤
     if (dateRange === 'all') return result;
 
@@ -176,7 +203,7 @@ export const AnalyticsTab: React.FC = () => {
 
     const cutoffIso = cutoff.toISOString().split('T')[0];
     return result.filter(t => t.dateIso && t.dateIso >= cutoffIso);
-  }, [trades, dateRange, selectedAccounts, selectedStrategies]);
+  }, [trades, dateRange, selectedAccounts, selectedStrategies, selectedBots]);
 
   // 计算所有策略名称（用于全局分析，即未选策略时视为全选所有策略）
   const allStrategyNames = React.useMemo(() => {
@@ -476,6 +503,73 @@ export const AnalyticsTab: React.FC = () => {
                       {isSelected && '✓'}
                     </span>
                     {accountTypeLabels[acct]}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 机器人筛选（多选） */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontSize: "0.8em", color: "var(--text-muted)" }}>🤖</span>
+            <div style={{ display: "flex", gap: "4px", background: "var(--background-primary)", padding: "2px", borderRadius: "6px", border: "1px solid var(--background-modifier-border)" }}>
+              {/* 全部按钮 */}
+              <div
+                onClick={() => setSelectedBots([])}
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  background: selectedBots.length === 0 ? "#60A5FA" : "transparent",
+                  color: selectedBots.length === 0 ? "white" : "var(--text-muted)",
+                  fontSize: "0.75em",
+                  fontWeight: 600,
+                  transition: "all 0.15s"
+                }}
+              >
+                全部
+              </div>
+              {/* 各机器人复选框 */}
+              {(['PA交易', '量化分析师', '威科夫大师'] as BotType[]).map(bot => {
+                const isSelected = selectedBots.includes(bot);
+                const botLabels: Record<BotType, string> = {
+                  'PA交易': 'PA',
+                  '量化分析师': '量化',
+                  '威科夫大师': '威科夫'
+                };
+                return (
+                  <div
+                    key={bot}
+                    onClick={() => toggleBot(bot)}
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      background: isSelected ? "#60A5FA" : "transparent",
+                      color: isSelected ? "white" : "var(--text-muted)",
+                      fontSize: "0.75em",
+                      fontWeight: 600,
+                      transition: "all 0.15s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px"
+                    }}
+                  >
+                    <span style={{
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "2px",
+                      border: `1px solid ${isSelected ? "white" : "var(--text-muted)"}`,
+                      background: isSelected ? "white" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "7px",
+                      color: "#60A5FA"
+                    }}>
+                      {isSelected && '✓'}
+                    </span>
+                    {botLabels[bot]}
                   </div>
                 );
               })}

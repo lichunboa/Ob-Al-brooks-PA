@@ -41,6 +41,10 @@ export interface TradeRecord {
   initialRisk?: number;
   netProfit?: number;
 
+  // 多机器人支持
+  bot?: string;
+  analysisType?: string;
+
   mtime?: number;
   tags?: NormalizedTag[];
   // 原始 frontmatter 仅用于回退/调试；业务口径不应依赖其结构。

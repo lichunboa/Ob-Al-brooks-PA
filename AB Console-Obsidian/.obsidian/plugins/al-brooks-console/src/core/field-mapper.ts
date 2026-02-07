@@ -101,6 +101,8 @@ export const FIELD_ALIASES = {
   netProfit: ["net_profit", "netProfit", "净利润/net_profit", "净利润", "盈亏"],
   tags: ["tags"],
   fileClass: ["fileClass", "FileClass"],
+  bot: ["bot", "机器人/bot", "机器人", "robot"],
+  analysisType: ["analysis_type", "analysisType", "分析类型/analysis_type", "分析类型"],
 } as const;
 
 export const TRADE_TAG = "PA/Trade" as const;
