@@ -370,7 +370,8 @@ export class PropertyManagerService {
         groups: PropertyGroup[],
         term: string
     ): PropertyGroup[] {
-        if (!term.trim()) return groups;
+        // 空搜索词直接返回原数据
+        if (!term || !term.trim()) return groups;
 
         const lowerTerm = term.toLowerCase();
 
@@ -378,7 +379,7 @@ export class PropertyManagerService {
             ...group,
             properties: group.properties.filter(prop =>
                 prop.key.toLowerCase().includes(lowerTerm) ||
-                prop.values.some(v => v.value.toLowerCase().includes(lowerTerm))
+                prop.values.some(v => v.value && v.value.toLowerCase().includes(lowerTerm))
             )
         })).filter(group => group.properties.length > 0);
     }

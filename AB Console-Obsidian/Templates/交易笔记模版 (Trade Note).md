@@ -19,6 +19,10 @@ date: {{date}}
 出场原因/exit_reason:
 信号评分/signal_score: {{score}}
 追踪状态/tracking_status: 活跃
+订单ID/order_id: {{order_id}}
+止损订单ID/sl_order_id: {{sl_order_id}}
+止盈订单ID/tp_order_id: {{tp_order_id}}
+执行模式/execution_mode: {{execution_mode}}
 ---
 
 # {{emoji}} {{bot}} 交易笔记
@@ -35,6 +39,15 @@ date: {{date}}
 | 止损 | {{stop}} |
 | 目标 | {{target}} |
 | 盈亏比 | {{rr}} |
+
+## 执行状态
+
+| 项目 | 值 |
+|------|------|
+| 执行模式 | {{execution_mode}} |
+| 订单ID | {{order_id}} |
+| 止损订单 | {{sl_order_id}} |
+| 止盈订单 | {{tp_order_id}} |
 
 ## 分析理由
 
