@@ -28,16 +28,47 @@ class NoteSync:
         # 1. 获取币安交易历史
         trades = await self.executor.get_trade_history(limit=500)
         if not trades:
-            return {"success": False, "message": "无法获取币安交易历史", "synced": 0}
+            return {
+                "success": False,
+                "message": "无法获取币安交易历史",
+                "synced": 0,
+            }
 
-        # 按 order_id 聚合 realized_pnl
-        order_pnl = {}
+        # 获取当前持仓（用于杠杆信息）
+        positions = await self.executor.get_positions()
+        pos_leverage = {}
+        for p in positions:
+            sym = p.symbol.replace("/", "").replace(":USDT", "")
+            pos_leverage[sym] = p.leverage
+
+        # 按 order_id 聚合：价格、时间、PnL、手续费
+        order_data = {}
         for t in trades:
             oid = t.order_id
-            if oid not in order_pnl:
-                order_pnl[oid] = {"pnl": 0, "commission": 0, "symbol": t.symbol, "side": t.side}
-            order_pnl[oid]["pnl"] += t.realized_pnl
-            order_pnl[oid]["commission"] += t.commission
+            if oid not in order_data:
+                order_data[oid] = {
+                    "pnl": 0, "commission": 0,
+                    "symbol": t.symbol, "side": t.side,
+                    "total_qty": 0, "total_value": 0,
+                    "first_time": t.timestamp,
+                    "last_time": t.timestamp,
+                }
+            d = order_data[oid]
+            d["pnl"] += t.realized_pnl
+            d["commission"] += t.commission
+            d["total_qty"] += t.quantity
+            d["total_value"] += t.quantity * t.price
+            if t.timestamp < d["first_time"]:
+                d["first_time"] = t.timestamp
+            if t.timestamp > d["last_time"]:
+                d["last_time"] = t.timestamp
+
+        # 计算加权均价
+        for d in order_data.values():
+            if d["total_qty"] > 0:
+                d["avg_price"] = d["total_value"] / d["total_qty"]
+            else:
+                d["avg_price"] = 0
 
         # 2. 扫描笔记
         notes = self._scan_notes()
@@ -51,7 +82,9 @@ class NoteSync:
 
         for note in notes:
             try:
-                result = self._sync_note(note, order_pnl)
+                result = self._sync_note(
+                    note, order_data, pos_leverage
+                )
                 if result == "synced":
                     synced += 1
                     details.append({"file": note["file"].name, "status": "synced"})
@@ -133,63 +166,123 @@ class NoteSync:
         except Exception:
             return None
 
-    def _sync_note(self, note: dict, order_pnl: dict) -> str:
+    def _sync_note(
+        self, note: dict, order_data: dict, pos_leverage: dict
+    ) -> str:
         """同步单个笔记，返回状态"""
         fm = note["frontmatter"]
         order_id = note["order_id"]
         sl_id = note["sl_order_id"]
         tp_id = note["tp_order_id"]
 
-        # 已有净利润的跳过
+        # 已有完整数据的跳过（PnL + 手续费都有）
         existing_pnl = fm.get("净利润/net_profit", "")
-        if existing_pnl and existing_pnl not in ("", "null", "None"):
+        existing_comm = fm.get("手续费/commission", "")
+        if (existing_pnl and existing_pnl not in ("", "null", "None")
+                and existing_comm and existing_comm not in ("", "null", "None")):
             return "skipped"
 
         # 查找平仓盈亏：优先 SL/TP 订单
-        pnl = 0.0
+        close_data = None
         outcome = ""
-        commission = 0.0
 
-        if sl_id.isdigit() and sl_id in order_pnl:
-            info = order_pnl[sl_id]
+        if sl_id.isdigit() and sl_id in order_data:
+            info = order_data[sl_id]
             if info["pnl"] != 0:
-                pnl = info["pnl"]
-                commission = info["commission"]
+                close_data = info
                 outcome = "止损 (Stop Loss)"
 
-        if tp_id.isdigit() and tp_id in order_pnl:
-            info = order_pnl[tp_id]
+        if tp_id.isdigit() and tp_id in order_data:
+            info = order_data[tp_id]
             if info["pnl"] != 0:
-                pnl = info["pnl"]
-                commission = info["commission"]
+                close_data = info
                 outcome = "止盈 (Take Profit)"
 
         # 也检查主订单（手动平仓场景）
-        if not outcome and order_id in order_pnl:
-            info = order_pnl[order_id]
+        if not outcome and order_id in order_data:
+            info = order_data[order_id]
             if info["pnl"] != 0:
-                pnl = info["pnl"]
-                commission = info["commission"]
-                if pnl > 0:
-                    outcome = "盈利 (Win)"
-                else:
-                    outcome = "亏损 (Loss)"
+                close_data = info
+                outcome = (
+                    "盈利 (Win)" if info["pnl"] > 0
+                    else "亏损 (Loss)"
+                )
 
-        if not outcome:
+        if not close_data:
             return "no_close_data"
+
+        pnl = close_data["pnl"]
+        commission = close_data["commission"]
+        exit_price = close_data["avg_price"]
+        close_time = close_data["last_time"]
+
+        # 获取开仓数据
+        open_data = order_data.get(order_id, {})
+        actual_entry = open_data.get("avg_price", 0)
+        open_time = open_data.get("first_time")
+        open_commission = open_data.get("commission", 0)
+        total_commission = commission + open_commission
+
+        # 持仓时长
+        duration_str = ""
+        if open_time and close_time:
+            delta = close_time - open_time
+            total_sec = int(delta.total_seconds())
+            if total_sec < 60:
+                duration_str = f"{total_sec}秒"
+            elif total_sec < 3600:
+                duration_str = f"{total_sec // 60}分{total_sec % 60}秒"
+            else:
+                h = total_sec // 3600
+                m = (total_sec % 3600) // 60
+                duration_str = f"{h}时{m}分"
+
+        # 滑点计算
+        planned_entry = fm.get("入场/entry_price", "")
+        slippage_str = ""
+        if planned_entry and actual_entry:
+            try:
+                planned = float(planned_entry)
+                if planned > 0:
+                    slip = abs(actual_entry - planned)
+                    slip_pct = (slip / planned) * 100
+                    slippage_str = f"{slip_pct:.3f}%"
+            except (ValueError, TypeError):
+                pass
+
+        # 杠杆
+        sym_clean = close_data["symbol"]
+        sym_clean = sym_clean.replace(":USDT", "")
+        sym_clean = sym_clean.replace("/", "")
+        leverage = pos_leverage.get(sym_clean, "")
 
         # 写回 frontmatter
         updates = {
             "净利润/net_profit": f"{pnl:.2f}",
             "结果/outcome": outcome,
             "追踪状态/tracking_status": "已平仓",
+            "手续费/commission": f"{total_commission:.4f}",
         }
+        if actual_entry:
+            updates["实际入场价/actual_entry"] = (
+                f"{actual_entry:.2f}"
+            )
+        if exit_price:
+            updates["出场价格/exit_price"] = (
+                f"{exit_price:.2f}"
+            )
+        if duration_str:
+            updates["持仓时长/duration"] = duration_str
+        if slippage_str:
+            updates["滑点/slippage"] = slippage_str
+        if leverage:
+            updates["杠杆/leverage"] = f"{leverage}x"
 
         self._update_frontmatter(note["file"], updates)
         fname = note["file"].name
         logger.info(
-            f"同步笔记 {fname}: "
-            f"PnL={pnl:.2f}, outcome={outcome}"
+            f"同步笔记 {fname}: PnL={pnl:.2f}, "
+            f"outcome={outcome}, duration={duration_str}"
         )
         return "synced"
 
@@ -209,8 +302,6 @@ class NoteSync:
         body = content[end:]
 
         for key, value in updates.items():
-            # 匹配 "key:" 或 "key: old_value"
-            pattern = f"{key}:.*"
             replacement = f"{key}: {value}"
             if key + ":" in fm_text:
                 import re

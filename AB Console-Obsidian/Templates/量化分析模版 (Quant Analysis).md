@@ -26,6 +26,12 @@ date: {{date}}
 订单ID/order_id: {{order_id}}
 止损订单ID/sl_order_id: {{sl_order_id}}
 止盈订单ID/tp_order_id: {{tp_order_id}}
+实际入场价/actual_entry:
+出场价格/exit_price:
+手续费/commission:
+持仓时长/duration:
+杠杆/leverage:
+滑点/slippage:
 综合评估/overall: {{overall}}
 置信度/confidence: {{confidence}}
 多周期共振/confluence: {{confluence}}
