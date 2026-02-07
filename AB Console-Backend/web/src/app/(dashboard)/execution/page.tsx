@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useExecutionData } from '@/hooks/useExecutionData';
-import { TradingControl, BotAllocations, ThresholdConfig } from '@/components/execution';
+import { TradingControl, BotAllocations, ThresholdConfig, ReconciliationPanel } from '@/components/execution';
 import type { BotAllocation } from '@/components/execution';
 import {
   Wallet,
@@ -98,7 +98,7 @@ export default function ExecutionPage() {
             交易执行
           </h1>
           <p className="text-slate-400 mt-1">
-            币安 Demo Trading · V2.6.0
+            币安 Demo Trading · V2.7.0
           </p>
         </div>
         <button
@@ -570,12 +570,14 @@ export default function ExecutionPage() {
       {/* Info */}
       <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4">
         <p className="text-blue-300 text-sm">
-          <span className="font-semibold">💡 V2.6.0 新功能:</span> 交易开关控制、机器人资金分配、自动同步币安数据。
+          <span className="font-semibold">💡 V2.7.0 新功能:</span> 多目标路由、数据对账面板、系统清理优化。
           开启交易开关后，机器人才会执行真实交易。
         </p>
       </div>
 
       {/* Threshold Config */}
+      {isConnected && <ReconciliationPanel isLoading={isLoading} />}
+
       {isConnected && <ThresholdConfig isLoading={isLoading} />}
     </div>
   );

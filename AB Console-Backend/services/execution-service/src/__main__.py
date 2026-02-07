@@ -1,11 +1,11 @@
 """
-Execution Service - FastAPI 入口 V2.6.0
+Execution Service - FastAPI 入口 V2.7.0
 
 用法:
     python -m src                    # 启动服务
     python -m src --port 8092        # 指定端口
 
-新增功能 (V2.6.0):
+新增功能 (V2.7.0):
     - 交易开关控制
     - 机器人资金分配
     - 币安数据同步
@@ -82,7 +82,7 @@ async def lifespan(app: FastAPI):
     """应用生命周期"""
     global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, _periodic_task
 
-    logger.info("Execution Service V2.6.0 启动中...")
+    logger.info("Execution Service V2.7.0 启动中...")
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
@@ -132,8 +132,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Execution Service",
-    description="币安合约交易执行服务 V2.6.0",
-    version="0.2.0",
+    description="币安合约交易执行服务 V2.7.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -314,7 +314,7 @@ async def update_config(request: ConfigUpdate):
     }
 
 
-# ========== 交易状态管理 (V2.6.0 新增) ==========
+# ========== 交易状态管理 (V2.7.0 新增) ==========
 
 class AllocationUpdate(BaseModel):
     """资金分配更新请求"""

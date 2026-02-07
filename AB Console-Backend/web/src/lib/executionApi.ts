@@ -358,3 +358,64 @@ export async function getAccountSummary(): Promise<AccountSummary | null> {
     return null;
   }
 }
+
+// ========== V2.7.0 对账 API ==========
+
+export interface ReconciliationReport {
+  status: string;
+  local_trades: number;
+  binance_positions: number;
+  mismatches: Array<{
+    type: string;
+    symbol: string;
+    detail: string;
+  }>;
+  orphaned: Array<{
+    symbol: string;
+    side: string;
+    quantity: number;
+  }>;
+  last_reconciled: string;
+}
+
+export async function reconcileTrades(): Promise<ReconciliationReport> {
+  const res = await fetch(`${getBaseUrl()}/trading/reconcile`, { method: 'POST' });
+  if (!res.ok) throw new Error('对账失败');
+  return res.json();
+}
+
+export async function getReconciliationReport(): Promise<ReconciliationReport | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/trading/reconcile/report`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getOrphanedPositions(): Promise<Array<{
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  unrealized_pnl: number;
+}>> {
+  const res = await fetch(`${getBaseUrl()}/trading/orphaned-positions`);
+  if (!res.ok) throw new Error('获取孤儿持仓失败');
+  return res.json();
+}
+
+export async function trackAllOrders(): Promise<{
+  tracked: number;
+  updated: number;
+  details: Array<{
+    trade_id: string;
+    status: string;
+    exit_reason?: string;
+  }>;
+}> {
+  const res = await fetch(`${getBaseUrl()}/trading/track-orders`, { method: 'POST' });
+  if (!res.ok) throw new Error('追踪订单失败');
+  return res.json();
+}

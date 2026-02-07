@@ -21,7 +21,7 @@ export default function RootPage() {
           </a>
         </div>
         <p className="text-xs text-gray-600 mt-8">
-          v2.0 | 实时监控 12 个加密货币 | 11 大策略匹配
+          v2.7.0 | 三机器人交易系统 | 币安 Demo Trading
         </p>
       </div>
     </div>

@@ -9,7 +9,6 @@ import {
   Scan,
   Bell,
   BookOpen,
-  FlaskConical,
   Settings,
   Menu,
   X,
@@ -34,7 +33,6 @@ const navItems = [
   { href: '/signals', label: '信号监控', icon: Bell },
   { href: '/strategies', label: '策略管理', icon: BookOpen },
   { href: '/trades', label: '交易记录', icon: Receipt },
-  { href: '/backtest', label: '策略回测', icon: FlaskConical },
   { href: '/settings', label: '设置', icon: Settings },
 ];
 
@@ -107,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             系统正常
           </div>
           <p className="mt-1 text-xs text-slate-600">
-            v2.0.0-beta
+            v2.7.0
           </p>
         </div>
       </aside>
