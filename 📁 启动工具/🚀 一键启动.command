@@ -310,13 +310,11 @@ else
     EXEC_PID_FILE="$EXEC_SVC_DIR/logs/execution.pid"
     if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
         log_success "Execution Service 已在运行 (端口 8092)"
-    elif [ -d "$EXEC_SVC_DIR/.venv" ]; then
+    elif [ -d "$EXEC_SVC_DIR/src" ]; then
         cd "$EXEC_SVC_DIR"
         mkdir -p logs
-        source .venv/bin/activate 2>/dev/null
-        nohup python -m src --port 8092 > logs/execution.log 2>&1 &
+        nohup python3 -m src --port 8092 > logs/execution.log 2>&1 &
         echo $! > "$EXEC_PID_FILE"
-        deactivate 2>/dev/null
         sleep 3
         if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
             log_success "Execution Service 启动成功 (端口 8092)"
@@ -324,7 +322,7 @@ else
             log_warn "Execution Service 启动失败"
         fi
     else
-        log_warn "Execution Service 虚拟环境不存在，跳过"
+        log_warn "Execution Service src 目录不存在，跳过"
     fi
 
     # 9. 启动 Web Dashboard
