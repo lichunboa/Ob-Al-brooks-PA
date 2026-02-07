@@ -72,6 +72,7 @@ check_port 8089 "Sync Service"
 check_port 8090 "Telegram Service"
 check_port 8083 "Signal Service"
 check_port 8091 "Tracker Service"
+check_port 8092 "Execution Service"
 check_port 5434 "TimescaleDB"
 check_port 3000 "Web Dashboard"
 check_port 18789 "OpenClaw Gateway"
@@ -156,6 +157,29 @@ if [ -f "$SIGNAL_DB" ]; then
     fi
 else
     echo -e "${YELLOW}○${NC} 信号库未创建"
+fi
+
+# Execution Service 检查 (V2.6.0 新增)
+echo ""
+echo "【交易执行服务】"
+EXEC_HEALTH=$(curl -s http://localhost:8092/health 2>/dev/null)
+if [ -n "$EXEC_HEALTH" ]; then
+    EXEC_MODE=$(echo "$EXEC_HEALTH" | grep -o '"mode":"[^"]*"' | cut -d'"' -f4)
+    TRADING_ON=$(echo "$EXEC_HEALTH" | grep -o '"trading_enabled":[^,}]*' | cut -d':' -f2)
+    echo -e "${GREEN}●${NC} Execution Service 运行中 (模式: $EXEC_MODE)"
+    if [ "$TRADING_ON" = "true" ]; then
+        echo -e "  ${CYAN}└─${NC} 交易开关: ${GREEN}开启${NC}"
+    else
+        echo -e "  ${CYAN}└─${NC} 交易开关: ${YELLOW}关闭${NC}"
+    fi
+    # 获取余额
+    TRADING_STATUS=$(curl -s http://localhost:8092/trading/status 2>/dev/null)
+    if [ -n "$TRADING_STATUS" ]; then
+        BALANCE=$(echo "$TRADING_STATUS" | grep -o '"binance_balance":[0-9.]*' | cut -d':' -f2)
+        echo -e "  ${CYAN}└─${NC} 币安余额: \$${BALANCE:-0}"
+    fi
+else
+    echo -e "${RED}○${NC} Execution Service 未运行"
 fi
 
 # OpenClaw 检查
