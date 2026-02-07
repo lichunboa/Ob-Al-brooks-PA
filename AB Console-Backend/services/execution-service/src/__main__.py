@@ -21,7 +21,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .config import SERVICE_PORT, BINANCE_MODE, get_current_config, save_env_config
-from .models import OrderRequest, OrderResponse, Position, Balance, RiskStatus, ConfigStatus, ConfigUpdate
+from .models import (
+    OrderRequest, OrderResponse, Position, Balance, RiskStatus,
+    ConfigStatus, ConfigUpdate, OpenOrder, TradeHistory, AccountSummary
+)
 from .risk_manager import RiskManager
 from .executor import BinanceExecutor
 from .trading_state import get_trading_state_manager, TradingStateManager
@@ -112,6 +115,36 @@ async def get_positions():
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
     return await executor.get_positions()
+
+
+@app.get("/orders/open")
+async def get_open_orders(symbol: Optional[str] = None):
+    """获取挂单"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    return await executor.get_open_orders(symbol)
+
+
+@app.get("/trades/history")
+async def get_trade_history(
+    symbol: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=500)
+):
+    """获取交易历史"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    return await executor.get_trade_history(symbol, limit)
+
+
+@app.get("/account/summary")
+async def get_account_summary():
+    """获取账户汇总信息"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    summary = await executor.get_account_summary()
+    if not summary:
+        raise HTTPException(status_code=500, detail="获取账户汇总失败")
+    return summary
 
 
 # ========== 交易操作 ==========
@@ -352,6 +385,82 @@ async def calculate_position_size(
         "stop_loss": stop_loss,
         "risk_percent": risk_percent
     }
+
+
+# ========== 阈值管理 (V2.6.1 新增) ==========
+
+import json
+import os
+from pathlib import Path
+
+THRESHOLDS_FILE = Path.home() / ".openclaw" / "workspace" / "stats" / "thresholds.json"
+
+DEFAULT_THRESHOLDS = {
+    "min_strength": 60,
+    "bot_thresholds": {
+        "al-brooks": {"min_score": 75, "trade_score": 80},
+        "trader": {"min_score": 70, "trade_score": 75},
+        "wyckoff": {"min_score": 70, "trade_score": 75}
+    }
+}
+
+
+def load_thresholds() -> dict:
+    """加载阈值配置"""
+    try:
+        if THRESHOLDS_FILE.exists():
+            with open(THRESHOLDS_FILE, 'r') as f:
+                return {**DEFAULT_THRESHOLDS, **json.load(f)}
+    except Exception as e:
+        logger.error(f"加载阈值配置失败: {e}")
+    return DEFAULT_THRESHOLDS
+
+
+def save_thresholds(thresholds: dict) -> bool:
+    """保存阈值配置"""
+    try:
+        THRESHOLDS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        thresholds["updated_at"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
+        with open(THRESHOLDS_FILE, 'w') as f:
+            json.dump(thresholds, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"保存阈值配置失败: {e}")
+        return False
+
+
+class ThresholdUpdate(BaseModel):
+    """阈值更新请求"""
+    min_strength: Optional[int] = None
+    bot_id: Optional[str] = None
+    min_score: Optional[int] = None
+    trade_score: Optional[int] = None
+
+
+@app.get("/thresholds")
+async def get_thresholds():
+    """获取阈值配置"""
+    return load_thresholds()
+
+
+@app.post("/thresholds")
+async def update_thresholds(request: ThresholdUpdate):
+    """更新阈值配置"""
+    thresholds = load_thresholds()
+
+    if request.min_strength is not None:
+        thresholds["min_strength"] = request.min_strength
+
+    if request.bot_id and request.bot_id in thresholds["bot_thresholds"]:
+        if request.min_score is not None:
+            thresholds["bot_thresholds"][request.bot_id]["min_score"] = request.min_score
+        if request.trade_score is not None:
+            thresholds["bot_thresholds"][request.bot_id]["trade_score"] = request.trade_score
+
+    if save_thresholds(thresholds):
+        return {"success": True, "thresholds": thresholds}
+    else:
+        raise HTTPException(status_code=500, detail="保存阈值配置失败")
 
 
 def main():

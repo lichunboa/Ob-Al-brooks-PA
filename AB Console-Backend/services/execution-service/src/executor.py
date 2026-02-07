@@ -6,7 +6,7 @@ from typing import Optional
 import ccxt
 
 from .config import BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE, BINANCE_BASE_URL
-from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position, Balance, PositionSide
+from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position, Balance, PositionSide, OpenOrder, TradeHistory, AccountSummary
 from .risk_manager import RiskManager
 
 logger = logging.getLogger(__name__)
@@ -23,11 +23,19 @@ class BinanceExecutor:
         self.exchange = ccxt.binanceusdm({
             'apiKey': BINANCE_API_KEY,
             'secret': BINANCE_SECRET,
-            'sandbox': False,  # Demo Trading 使用主网 API 端点
+            'enableRateLimit': True,
             'options': {
                 'defaultType': 'future',
+                'adjustForTimeDifference': True,
+                'warnOnFetchOpenOrdersWithoutSymbol': False,
             },
         })
+
+        # Demo Trading: 使用 enable_demo_trading() 方法
+        # 端点: https://demo-fapi.binance.com
+        if BINANCE_MODE == "demo":
+            self.exchange.enable_demo_trading(True)
+            logger.info("使用 Binance Demo Trading 端点: demo-fapi.binance.com")
 
         logger.info(f"BinanceExecutor 初始化完成 (mode={self.mode})")
 
@@ -44,28 +52,22 @@ class BinanceExecutor:
         """获取账户余额"""
         try:
             balance = self.exchange.fetch_balance()
-            result = []
-
-            for asset, info in balance.get('info', {}).get('assets', []):
-                if isinstance(info, dict):
-                    result.append(Balance(
-                        asset=info.get('asset', asset),
-                        balance=float(info.get('walletBalance', 0)),
-                        available=float(info.get('availableBalance', 0)),
-                        unrealized_pnl=float(info.get('unrealizedProfit', 0)),
-                    ))
 
             # 简化版：只返回 USDT
             usdt = balance.get('USDT', {})
             if usdt:
-                result = [Balance(
+                # 从 info 获取未实现盈亏
+                info = balance.get('info', {})
+                unrealized_pnl = float(info.get('totalUnrealizedProfit', 0))
+
+                return [Balance(
                     asset='USDT',
                     balance=float(usdt.get('total', 0)),
                     available=float(usdt.get('free', 0)),
-                    unrealized_pnl=0,
+                    unrealized_pnl=unrealized_pnl,
                 )]
 
-            return result
+            return []
         except Exception as e:
             logger.error(f"获取余额失败: {e}")
             return []
@@ -77,18 +79,43 @@ class BinanceExecutor:
             result = []
 
             for pos in positions:
-                if float(pos.get('contracts', 0)) != 0:
+                contracts = pos.get('contracts')
+                # 安全转换 contracts
+                try:
+                    contracts_float = float(contracts) if contracts is not None else 0
+                except (ValueError, TypeError):
+                    contracts_float = 0
+
+                if contracts_float != 0:
                     side = PositionSide.LONG if pos.get('side') == 'long' else PositionSide.SHORT
+
+                    # 安全转换各字段，防止 None 导致的错误
+                    def safe_float(val, default=0):
+                        if val is None:
+                            return default
+                        try:
+                            return float(val)
+                        except (ValueError, TypeError):
+                            return default
+
+                    def safe_int(val, default=1):
+                        if val is None:
+                            return default
+                        try:
+                            return int(val)
+                        except (ValueError, TypeError):
+                            return default
+
                     result.append(Position(
                         symbol=pos.get('symbol', '').replace('/', ''),
                         side=side,
-                        quantity=abs(float(pos.get('contracts', 0))),
-                        entry_price=float(pos.get('entryPrice', 0)),
-                        mark_price=float(pos.get('markPrice', 0)),
-                        unrealized_pnl=float(pos.get('unrealizedPnl', 0)),
-                        leverage=int(pos.get('leverage', 1)),
+                        quantity=abs(contracts_float),
+                        entry_price=safe_float(pos.get('entryPrice')),
+                        mark_price=safe_float(pos.get('markPrice')),
+                        unrealized_pnl=safe_float(pos.get('unrealizedPnl')),
+                        leverage=safe_int(pos.get('leverage'), 1),
                         margin_type=pos.get('marginType', 'cross'),
-                        liquidation_price=float(pos.get('liquidationPrice', 0)) if pos.get('liquidationPrice') else None,
+                        liquidation_price=safe_float(pos.get('liquidationPrice')) if pos.get('liquidationPrice') else None,
                     ))
 
             return result
@@ -277,3 +304,165 @@ class BinanceExecutor:
         except Exception as e:
             logger.error(f"取消订单失败: {e}")
             return False
+
+    async def get_open_orders(self, symbol: Optional[str] = None) -> list[OpenOrder]:
+        """获取挂单"""
+        try:
+            orders = []
+            if symbol:
+                orders = self.exchange.fetch_open_orders(symbol)
+            else:
+                # 获取有持仓的交易对的挂单
+                positions = await self.get_positions()
+                symbols_to_check = set()
+                for pos in positions:
+                    symbols_to_check.add(pos.symbol)
+                # 添加常见交易对
+                symbols_to_check.update([
+                    'SOL/USDT:USDT', 'BTC/USDT:USDT',
+                    'ETH/USDT:USDT', 'BNB/USDT:USDT'
+                ])
+                for sym in symbols_to_check:
+                    try:
+                        sym_orders = self.exchange.fetch_open_orders(sym)
+                        orders.extend(sym_orders)
+                    except Exception:
+                        pass
+
+            result = []
+            for order in orders:
+                # 从 clientOrderId 解析机器人 ID
+                client_id = order.get('clientOrderId', '')
+                bot_id = None
+                if client_id.startswith('AB_'):
+                    parts = client_id.split('_')
+                    if len(parts) >= 2:
+                        bot_id = parts[1]
+
+                result.append(OpenOrder(
+                    order_id=str(order.get('id', '')),
+                    symbol=order.get('symbol', '').replace('/', ''),
+                    side=order.get('side', '').upper(),
+                    order_type=order.get('type', '').upper(),
+                    quantity=float(order.get('amount', 0)),
+                    price=float(order.get('price')) if order.get('price') else None,
+                    stop_price=float(order.get('stopPrice')) if order.get('stopPrice') else None,
+                    status=order.get('status', ''),
+                    reduce_only=order.get('reduceOnly', False),
+                    created_at=order.get('datetime'),
+                    bot_id=bot_id,
+                    client_order_id=client_id,
+                ))
+
+            return result
+        except Exception as e:
+            logger.error(f"获取挂单失败: {e}")
+            return []
+
+    async def get_trade_history(
+        self,
+        symbol: Optional[str] = None,
+        limit: int = 50
+    ) -> list[TradeHistory]:
+        """获取交易历史"""
+        try:
+            if symbol:
+                trades = self.exchange.fetch_my_trades(symbol, limit=limit)
+            else:
+                # 获取有持仓的交易对的历史
+                positions = await self.get_positions()
+                trades = []
+                for pos in positions:
+                    try:
+                        pos_trades = self.exchange.fetch_my_trades(
+                            pos.symbol, limit=limit
+                        )
+                        trades.extend(pos_trades)
+                    except Exception:
+                        pass
+                # 如果没有持仓，尝试获取常见交易对
+                if not trades:
+                    for sym in ['BTC/USDT:USDT', 'ETH/USDT:USDT', 'SOL/USDT:USDT']:
+                        try:
+                            sym_trades = self.exchange.fetch_my_trades(
+                                sym, limit=limit
+                            )
+                            trades.extend(sym_trades)
+                        except Exception:
+                            pass
+
+            result = []
+            for trade in trades:
+                # 从 info 获取更多信息
+                info = trade.get('info', {})
+                fee = trade.get('fee') or {}
+
+                result.append(TradeHistory(
+                    trade_id=str(trade.get('id', '')),
+                    order_id=str(trade.get('order', '')),
+                    symbol=trade.get('symbol', '').replace('/', ''),
+                    side=trade.get('side', '').upper(),
+                    quantity=float(trade.get('amount', 0)),
+                    price=float(trade.get('price', 0)),
+                    realized_pnl=float(info.get('realizedPnl', 0)),
+                    commission=float(fee.get('cost', 0)),
+                    commission_asset=fee.get('currency', 'USDT'),
+                    timestamp=trade.get('datetime'),
+                    bot_id=None,
+                ))
+
+            return result
+        except Exception as e:
+            logger.error(f"获取交易历史失败: {e}")
+            return []
+
+    async def get_account_summary(self) -> Optional[AccountSummary]:
+        """获取账户汇总信息"""
+        try:
+            # 获取余额
+            balance = self.exchange.fetch_balance()
+            info = balance.get('info', {})
+
+            usdt = balance.get('USDT', {})
+            total_balance = float(usdt.get('total', 0))
+            available = float(usdt.get('free', 0))
+            unrealized_pnl = float(info.get('totalUnrealizedProfit', 0))
+            margin_balance = float(info.get('totalMarginBalance', total_balance))
+
+            # 获取持仓
+            positions = await self.get_positions()
+            position_value = sum(
+                p.quantity * p.mark_price for p in positions
+            )
+
+            # 获取挂单
+            open_orders = await self.get_open_orders()
+
+            # 获取今日交易
+            trades = await self.get_trade_history(limit=100)
+            from datetime import datetime, timezone
+            today = datetime.now(timezone.utc).date()
+            today_trades = [
+                t for t in trades
+                if t.timestamp and t.timestamp.date() == today
+            ]
+            today_pnl = sum(t.realized_pnl for t in today_trades)
+            today_commission = sum(t.commission for t in today_trades)
+
+            return AccountSummary(
+                total_balance=total_balance,
+                available_balance=available,
+                total_unrealized_pnl=unrealized_pnl,
+                total_margin_balance=margin_balance,
+                position_count=len(positions),
+                total_position_value=position_value,
+                open_order_count=len(open_orders),
+                today_realized_pnl=today_pnl,
+                today_trade_count=len(today_trades),
+                today_commission=today_commission,
+                margin_ratio=float(info.get('marginRatio')) if info.get('marginRatio') else None,
+                can_trade=bool(info.get('canTrade', True)),
+            )
+        except Exception as e:
+            logger.error(f"获取账户汇总失败: {e}")
+            return None

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useExecutionData } from '@/hooks/useExecutionData';
-import { TradingControl, BotAllocations } from '@/components/execution';
+import { TradingControl, BotAllocations, ThresholdConfig } from '@/components/execution';
 import type { BotAllocation } from '@/components/execution';
 import {
   Wallet,
@@ -574,6 +574,9 @@ export default function ExecutionPage() {
           开启交易开关后，机器人才会执行真实交易。
         </p>
       </div>
+
+      {/* Threshold Config */}
+      {isConnected && <ThresholdConfig isLoading={isLoading} />}
     </div>
   );
 }

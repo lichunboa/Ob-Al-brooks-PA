@@ -110,3 +110,61 @@ class ConfigUpdate(BaseModel):
     max_daily_loss: Optional[float] = Field(None, description="每日最大亏损")
     max_position_size: Optional[float] = Field(None, description="单笔最大仓位")
     max_leverage: Optional[int] = Field(None, description="最大杠杆")
+
+
+class OpenOrder(BaseModel):
+    """挂单信息"""
+    order_id: str
+    symbol: str
+    side: str
+    order_type: str
+    quantity: float
+    price: Optional[float] = None
+    stop_price: Optional[float] = None
+    status: str
+    reduce_only: bool = False
+    created_at: Optional[datetime] = None
+    # 机器人追踪
+    bot_id: Optional[str] = None
+    client_order_id: Optional[str] = None
+
+
+class TradeHistory(BaseModel):
+    """交易历史"""
+    trade_id: str
+    order_id: str
+    symbol: str
+    side: str
+    quantity: float
+    price: float
+    realized_pnl: float
+    commission: float
+    commission_asset: str
+    timestamp: datetime
+    # 机器人追踪
+    bot_id: Optional[str] = None
+
+
+class AccountSummary(BaseModel):
+    """账户汇总信息"""
+    # 余额
+    total_balance: float
+    available_balance: float
+    total_unrealized_pnl: float
+    total_margin_balance: float
+
+    # 持仓统计
+    position_count: int
+    total_position_value: float
+
+    # 挂单统计
+    open_order_count: int
+
+    # 今日统计
+    today_realized_pnl: float
+    today_trade_count: int
+    today_commission: float
+
+    # 风控
+    margin_ratio: Optional[float] = None
+    can_trade: bool = True
