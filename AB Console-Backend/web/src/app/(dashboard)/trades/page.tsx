@@ -105,13 +105,16 @@ export default function TradesPage() {
     const data = filteredOrders;
     const totalPnl = data.reduce((s, o) => s + o.realized_pnl, 0);
     const totalCommission = data.reduce((s, o) => s + o.commission, 0);
-    const wins = data.filter((o) => o.realized_pnl > 0).length;
-    const losses = data.filter((o) => o.realized_pnl < 0).length;
+    const netPnl = totalPnl - totalCommission;
     const closes = data.filter((o) => o.realized_pnl !== 0);
+    const wins = closes.filter((o) => o.realized_pnl > 0).length;
+    const losses = closes.filter((o) => o.realized_pnl < 0).length;
     return {
       totalOrders: data.length,
+      closeOrders: closes.length,
       totalPnl,
       totalCommission,
+      netPnl,
       wins,
       losses,
       winRate: closes.length > 0 ? (wins / closes.length) * 100 : 0,
@@ -164,10 +167,12 @@ export default function TradesPage() {
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-6 gap-3 mb-4">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <div className="text-xs text-slate-500">总订单</div>
-          <div className="text-2xl font-bold text-white">{stats.totalOrders}</div>
+          <div className="text-xs text-slate-500">总订单 / 平仓</div>
+          <div className="text-2xl font-bold text-white">
+            {stats.totalOrders} <span className="text-sm text-slate-500">/ {stats.closeOrders}</span>
+          </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
           <div className="text-xs text-slate-500">已实现盈亏</div>
@@ -179,6 +184,12 @@ export default function TradesPage() {
           <div className="text-xs text-slate-500">手续费</div>
           <div className="text-2xl font-bold text-orange-400">
             ${stats.totalCommission.toFixed(2)}
+          </div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
+          <div className="text-xs text-slate-500">净盈亏</div>
+          <div className={`text-2xl font-bold ${stats.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {stats.netPnl >= 0 ? '+' : ''}${stats.netPnl.toFixed(2)}
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
@@ -288,7 +299,7 @@ export default function TradesPage() {
                         {order.realized_pnl > 0 ? '+' : ''}${order.realized_pnl.toFixed(2)}
                       </span>
                     ) : (
-                      <span className="text-sm text-slate-500">-</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">开仓</span>
                     )}
                   </div>
                   <div className="col-span-1 text-right text-xs text-slate-500">

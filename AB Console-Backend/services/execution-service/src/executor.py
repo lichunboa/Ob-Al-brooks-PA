@@ -426,27 +426,24 @@ class BinanceExecutor:
             if symbol:
                 trades = self.exchange.fetch_my_trades(symbol, limit=limit)
             else:
-                # 获取有持仓的交易对的历史
+                # 始终查询所有常见品种 + 有持仓的品种
+                symbols_to_check = {
+                    'BTC/USDT:USDT', 'ETH/USDT:USDT',
+                    'SOL/USDT:USDT', 'BNB/USDT:USDT'
+                }
                 positions = await self.get_positions()
-                trades = []
                 for pos in positions:
+                    symbols_to_check.add(pos.symbol)
+
+                trades = []
+                for sym in symbols_to_check:
                     try:
-                        pos_trades = self.exchange.fetch_my_trades(
-                            pos.symbol, limit=limit
+                        sym_trades = self.exchange.fetch_my_trades(
+                            sym, limit=limit
                         )
-                        trades.extend(pos_trades)
+                        trades.extend(sym_trades)
                     except Exception:
                         pass
-                # 如果没有持仓，尝试获取常见交易对
-                if not trades:
-                    for sym in ['BTC/USDT:USDT', 'ETH/USDT:USDT', 'SOL/USDT:USDT']:
-                        try:
-                            sym_trades = self.exchange.fetch_my_trades(
-                                sym, limit=limit
-                            )
-                            trades.extend(sym_trades)
-                        except Exception:
-                            pass
 
             result = []
             for trade in trades:
