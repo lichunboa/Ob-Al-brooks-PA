@@ -32,7 +32,7 @@ MAX_LEVERAGE = int(os.getenv("MAX_LEVERAGE", "5"))
 EMERGENCY_STOP = os.getenv("EMERGENCY_STOP", "false").lower() == "true"
 
 # 服务配置
-SERVICE_PORT = int(os.getenv("SERVICE_PORT", "8091"))
+SERVICE_PORT = int(os.getenv("SERVICE_PORT", "8092"))
 
 
 def save_env_config(config: dict) -> bool:

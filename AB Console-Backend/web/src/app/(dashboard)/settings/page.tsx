@@ -244,7 +244,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="text-sm text-slate-500 space-y-1">
-            <p>版本: v2.0.0-beta</p>
+            <p>版本: v2.7.0</p>
             <p>技术栈: Next.js + Tailwind CSS + Lightweight Charts</p>
           </div>
         </section>

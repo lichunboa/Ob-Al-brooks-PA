@@ -94,6 +94,16 @@ export interface BotAllocation {
   enabled: boolean;
   current_positions?: number;
   used_margin?: number;
+  risk_percent: number;
+  fee_rate_maker: number;
+  fee_rate_taker: number;
+  allowed_symbols: string[];
+  min_risk_reward: number;
+  daily_loss_limit: number;
+  trailing_stop_enabled: boolean;
+  trailing_stop_trigger: number;
+  max_hold_hours: number;
+  cooldown_minutes: number;
 }
 
 export interface TradingStatus {
@@ -113,6 +123,16 @@ export interface AllocationUpdate {
   max_leverage?: number;
   max_positions?: number;
   enabled?: boolean;
+  risk_percent?: number;
+  fee_rate_maker?: number;
+  fee_rate_taker?: number;
+  allowed_symbols?: string[];
+  min_risk_reward?: number;
+  daily_loss_limit?: number;
+  trailing_stop_enabled?: boolean;
+  trailing_stop_trigger?: number;
+  max_hold_hours?: number;
+  cooldown_minutes?: number;
 }
 
 // ========== V2.6.3 交易历史类型 ==========
@@ -352,6 +372,151 @@ export async function getOpenOrders(symbol?: string): Promise<OpenOrder[]> {
 export async function getAccountSummary(): Promise<AccountSummary | null> {
   try {
     const res = await fetch(`${getBaseUrl()}/account/summary`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ========== V2.7.0 对账 API ==========
+
+export interface ReconciliationReport {
+  status: string;
+  local_trades: number;
+  binance_positions: number;
+  mismatches: Array<{
+    type: string;
+    symbol: string;
+    detail: string;
+  }>;
+  orphaned: Array<{
+    symbol: string;
+    side: string;
+    quantity: number;
+  }>;
+  last_reconciled: string;
+}
+
+export async function reconcileTrades(): Promise<ReconciliationReport> {
+  const res = await fetch(`${getBaseUrl()}/trading/reconcile`, { method: 'POST' });
+  if (!res.ok) throw new Error('对账失败');
+  return res.json();
+}
+
+export async function getReconciliationReport(): Promise<ReconciliationReport | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/trading/reconcile/report`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getOrphanedPositions(): Promise<Array<{
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  unrealized_pnl: number;
+}>> {
+  const res = await fetch(`${getBaseUrl()}/trading/orphaned-positions`);
+  if (!res.ok) throw new Error('获取孤儿持仓失败');
+  return res.json();
+}
+
+export async function trackAllOrders(): Promise<{
+  tracked: number;
+  updated: number;
+  details: Array<{
+    trade_id: string;
+    status: string;
+    exit_reason?: string;
+  }>;
+}> {
+  const res = await fetch(`${getBaseUrl()}/trading/track-orders`, { method: 'POST' });
+  if (!res.ok) throw new Error('追踪订单失败');
+  return res.json();
+}
+
+// ========== V2.8.0 Bot Summary + Evolution API ==========
+
+export interface BotRiskStatus {
+  daily_limit_ok: boolean;
+  daily_pnl: number;
+  daily_limit: number;
+  cooldowns: Array<{
+    symbol: string;
+    remaining_minutes: number;
+  }>;
+}
+
+export interface BotSummary {
+  bot_id: string;
+  config: BotAllocation;
+  positions: Position[];
+  daily_pnl: number;
+  available_margin: number;
+  remaining_positions: number;
+  can_trade: boolean;
+  risk_status: BotRiskStatus;
+}
+
+export interface EvolutionStrategy {
+  name: string;
+  weight: number;
+  trades: number;
+  wins: number;
+  trend: string;
+}
+
+export interface EvolutionSummary {
+  growth_stage: string;
+  total_trades: number;
+  top_strategies: EvolutionStrategy[];
+  cooldown_strategies: Array<{
+    name: string;
+    weight: number;
+    remaining: number;
+  }>;
+  symbol_stats: Record<string, {
+    trades: number;
+    net_profit: number;
+    weight: number;
+  }>;
+}
+
+export async function getBotSummary(botId: string): Promise<BotSummary | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/trading/bot-summary/${botId}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getBotPositions(botId: string): Promise<Position[]> {
+  const res = await fetch(`${getBaseUrl()}/trading/bot-positions/${botId}`);
+  if (!res.ok) throw new Error('获取 bot 持仓失败');
+  return res.json();
+}
+
+export async function getBotPnl(botId: string): Promise<{
+  bot_id: string;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_pnl: number;
+}> {
+  const res = await fetch(`${getBaseUrl()}/trading/bot-pnl/${botId}`);
+  if (!res.ok) throw new Error('获取 bot 盈亏失败');
+  return res.json();
+}
+
+export async function getEvolutionSummary(botId: string): Promise<EvolutionSummary | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/trading/evolution/${botId}`);
     if (!res.ok) return null;
     return res.json();
   } catch {

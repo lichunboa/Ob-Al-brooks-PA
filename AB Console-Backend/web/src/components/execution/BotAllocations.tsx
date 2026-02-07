@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bot, Edit2, Save, X, Check, Ban } from 'lucide-react';
+import { Bot, Edit2, Save, X, Check, Ban, ChevronDown, ChevronUp } from 'lucide-react';
 
 export interface BotAllocation {
   bot_id: string;
@@ -12,6 +12,16 @@ export interface BotAllocation {
   enabled: boolean;
   current_positions?: number;
   used_margin?: number;
+  risk_percent: number;
+  fee_rate_maker: number;
+  fee_rate_taker: number;
+  allowed_symbols: string[];
+  min_risk_reward: number;
+  daily_loss_limit: number;
+  trailing_stop_enabled: boolean;
+  trailing_stop_trigger: number;
+  max_hold_hours: number;
+  cooldown_minutes: number;
 }
 
 interface BotAllocationsProps {
@@ -42,6 +52,7 @@ export function BotAllocations({
   const [editing, setEditing] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<BotAllocation>>({});
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const totalAllocated = Object.values(allocations).reduce(
     (sum, a) => sum + a.allocated_usdt,
@@ -111,7 +122,7 @@ export function BotAllocations({
             }`}
           >
             {editing === alloc.bot_id ? (
-              /* 编辑模式 */
+              /* 编辑模式 - 分组布局 */
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-white font-medium flex items-center gap-2">
@@ -127,64 +138,73 @@ export function BotAllocations({
                       <Save className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        setEditing(null);
-                        setEditData({});
-                      }}
+                      onClick={() => { setEditing(null); setEditData({}); }}
                       className="p-1.5 text-slate-400 hover:bg-slate-700 rounded transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">
-                      资金 (USDT)
-                    </label>
-                    <input
-                      type="number"
-                      value={editData.allocated_usdt ?? alloc.allocated_usdt}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          allocated_usdt: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
-                    />
+                {/* 基础配置 */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">基础配置</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <EditField label="资金 (USDT)" value={editData.allocated_usdt ?? alloc.allocated_usdt} onChange={(v) => setEditData({ ...editData, allocated_usdt: v })} />
+                    <EditField label="最大杠杆" value={editData.max_leverage ?? alloc.max_leverage} onChange={(v) => setEditData({ ...editData, max_leverage: v })} isInt />
+                    <EditField label="最大持仓" value={editData.max_positions ?? alloc.max_positions} onChange={(v) => setEditData({ ...editData, max_positions: v })} isInt />
                   </div>
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">
-                      最大杠杆
-                    </label>
-                    <input
-                      type="number"
-                      value={editData.max_leverage ?? alloc.max_leverage}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          max_leverage: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
-                    />
+                </div>
+                {/* 风控配置 */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">风控配置</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <EditField label="单笔风险%" value={editData.risk_percent ?? alloc.risk_percent} onChange={(v) => setEditData({ ...editData, risk_percent: v })} step={0.5} />
+                    <EditField label="最小盈亏比" value={editData.min_risk_reward ?? alloc.min_risk_reward} onChange={(v) => setEditData({ ...editData, min_risk_reward: v })} step={0.5} />
+                    <EditField label="日亏损限额" value={editData.daily_loss_limit ?? alloc.daily_loss_limit} onChange={(v) => setEditData({ ...editData, daily_loss_limit: v })} />
                   </div>
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1">
-                      最大持仓
-                    </label>
-                    <input
-                      type="number"
-                      value={editData.max_positions ?? alloc.max_positions}
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          max_positions: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
-                    />
+                </div>
+                {/* 交易控制 */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">交易控制</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <EditField label="冷却期(分)" value={editData.cooldown_minutes ?? alloc.cooldown_minutes} onChange={(v) => setEditData({ ...editData, cooldown_minutes: v })} isInt />
+                    <EditField label="最大持仓(时)" value={editData.max_hold_hours ?? alloc.max_hold_hours} onChange={(v) => setEditData({ ...editData, max_hold_hours: v })} isInt />
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">允许品种</label>
+                      <input
+                        type="text"
+                        value={(editData.allowed_symbols ?? alloc.allowed_symbols ?? []).join(',')}
+                        onChange={(e) => setEditData({ ...editData, allowed_symbols: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                        className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                        placeholder="BTC,ETH,SOL"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* 高级 */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">高级</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <EditField label="Maker费率" value={editData.fee_rate_maker ?? alloc.fee_rate_maker} onChange={(v) => setEditData({ ...editData, fee_rate_maker: v })} step={0.0001} />
+                    <EditField label="Taker费率" value={editData.fee_rate_taker ?? alloc.fee_rate_taker} onChange={(v) => setEditData({ ...editData, fee_rate_taker: v })} step={0.0001} />
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-400 block mb-1">移动止损</label>
+                        <button
+                          onClick={() => setEditData({ ...editData, trailing_stop_enabled: !(editData.trailing_stop_enabled ?? alloc.trailing_stop_enabled) })}
+                          className={`w-full px-2 py-1.5 rounded text-sm border ${
+                            (editData.trailing_stop_enabled ?? alloc.trailing_stop_enabled)
+                              ? 'bg-green-900/30 border-green-700 text-green-400'
+                              : 'bg-slate-700 border-slate-600 text-slate-400'
+                          }`}
+                        >
+                          {(editData.trailing_stop_enabled ?? alloc.trailing_stop_enabled) ? '开启' : '关闭'}
+                        </button>
+                      </div>
+                      {(editData.trailing_stop_enabled ?? alloc.trailing_stop_enabled) && (
+                        <EditField label="触发%" value={editData.trailing_stop_trigger ?? alloc.trailing_stop_trigger} onChange={(v) => setEditData({ ...editData, trailing_stop_trigger: v })} step={0.5} />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -197,7 +217,7 @@ export function BotAllocations({
                     <p className="text-white font-medium">{alloc.name}</p>
                     <p className="text-slate-400 text-sm">
                       ${alloc.allocated_usdt.toLocaleString()} · {alloc.max_leverage}x ·{' '}
-                      {alloc.current_positions || 0}/{alloc.max_positions} 仓
+                      {alloc.current_positions || 0}/{alloc.max_positions} 仓 · 风险{alloc.risk_percent}%
                     </p>
                   </div>
                 </div>
@@ -242,6 +262,36 @@ export function BotAllocations({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* 编辑字段辅助组件 */
+function EditField({
+  label,
+  value,
+  onChange,
+  isInt = false,
+  step,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  isInt?: boolean;
+  step?: number;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-slate-400 block mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        step={step}
+        onChange={(e) =>
+          onChange(isInt ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)
+        }
+        className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+      />
     </div>
   );
 }
