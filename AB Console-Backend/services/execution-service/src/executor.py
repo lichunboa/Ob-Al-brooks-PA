@@ -1,7 +1,10 @@
 """
 交易执行器 - 使用 ccxt 连接币安
 """
+import json
 import logging
+import time
+from pathlib import Path
 from typing import Optional
 import ccxt
 
@@ -10,6 +13,9 @@ from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position,
 from .risk_manager import RiskManager
 
 logger = logging.getLogger(__name__)
+
+# order_id → bot_id 映射文件
+ORDER_BOT_MAP_FILE = Path.home() / ".openclaw" / "workspace" / "order_bot_map.json"
 
 
 class BinanceExecutor:
@@ -38,6 +44,38 @@ class BinanceExecutor:
             logger.info("使用 Binance Demo Trading 端点: demo-fapi.binance.com")
 
         logger.info(f"BinanceExecutor 初始化完成 (mode={self.mode})")
+
+        # 加载 order_id → bot_id 映射
+        self._order_bot_map = self._load_order_bot_map()
+
+    def _load_order_bot_map(self) -> dict:
+        """加载 order_id → bot_id 映射"""
+        try:
+            if ORDER_BOT_MAP_FILE.exists():
+                with open(ORDER_BOT_MAP_FILE, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.warning(f"加载 order_bot_map 失败: {e}")
+        return {}
+
+    def _save_order_bot_map(self):
+        """保存 order_id → bot_id 映射"""
+        try:
+            ORDER_BOT_MAP_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(ORDER_BOT_MAP_FILE, 'w') as f:
+                json.dump(self._order_bot_map, f, indent=2)
+        except Exception as e:
+            logger.warning(f"保存 order_bot_map 失败: {e}")
+
+    def _register_order(self, order_id: str, bot_id: str):
+        """注册订单与机器人的映射"""
+        if bot_id:
+            self._order_bot_map[str(order_id)] = bot_id
+            self._save_order_bot_map()
+
+    def _lookup_bot_id(self, order_id: str) -> Optional[str]:
+        """通过 order_id 查找 bot_id"""
+        return self._order_bot_map.get(str(order_id))
 
     def _check_connection(self) -> bool:
         """检查连接"""
@@ -177,19 +215,31 @@ class BinanceExecutor:
             if request.reduce_only:
                 order_params['reduceOnly'] = True
 
+            # 使用 clientOrderId 标记机器人
+            if request.bot_id:
+                client_id = f"AB_{request.bot_id}_{int(time.time())}"
+                order_params['params'] = {'newClientOrderId': client_id}
+
             order = self.exchange.create_order(**order_params)
+
+            order_id = str(order.get('id'))
+
+            # 注册 order_id → bot_id 映射
+            if request.bot_id:
+                self._register_order(order_id, request.bot_id)
 
             response = OrderResponse(
                 success=True,
-                order_id=str(order.get('id')),
+                order_id=order_id,
                 symbol=symbol,
                 side=request.side.value,
                 quantity=request.quantity,
                 price=float(order.get('price', 0)) if order.get('price') else None,
                 status=order.get('status', 'NEW'),
+                bot_id=request.bot_id,
             )
 
-            logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {order.get('price', 'MARKET')}")
+            logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {order.get('price', 'MARKET')} [bot={request.bot_id or 'unknown'}]")
 
             # 下止损单
             if request.stop_loss:
@@ -205,7 +255,10 @@ class BinanceExecutor:
                             'reduceOnly': True,
                         }
                     )
-                    response.stop_loss_order_id = str(sl_order.get('id'))
+                    sl_id = str(sl_order.get('id'))
+                    response.stop_loss_order_id = sl_id
+                    if request.bot_id:
+                        self._register_order(sl_id, request.bot_id)
                     logger.info(f"止损单已设置: {request.stop_loss}")
                 except Exception as e:
                     logger.warning(f"止损单设置失败: {e}")
@@ -224,7 +277,10 @@ class BinanceExecutor:
                             'reduceOnly': True,
                         }
                     )
-                    response.take_profit_order_id = str(tp_order.get('id'))
+                    tp_id = str(tp_order.get('id'))
+                    response.take_profit_order_id = tp_id
+                    if request.bot_id:
+                        self._register_order(tp_id, request.bot_id)
                     logger.info(f"止盈单已设置: {request.take_profit}")
                 except Exception as e:
                     logger.warning(f"止盈单设置失败: {e}")
@@ -331,10 +387,11 @@ class BinanceExecutor:
 
             result = []
             for order in orders:
-                # 从 clientOrderId 解析机器人 ID
+                order_id = str(order.get('id', ''))
+                # 查找 bot_id: 先从映射文件，再从 clientOrderId
+                bot_id = self._lookup_bot_id(order_id)
                 client_id = order.get('clientOrderId', '')
-                bot_id = None
-                if client_id.startswith('AB_'):
+                if not bot_id and client_id and client_id.startswith('AB_'):
                     parts = client_id.split('_')
                     if len(parts) >= 2:
                         bot_id = parts[1]
@@ -397,9 +454,20 @@ class BinanceExecutor:
                 info = trade.get('info', {})
                 fee = trade.get('fee') or {}
 
+                order_id = str(trade.get('order', ''))
+
+                # 查找 bot_id: 先从映射文件，再从 clientOrderId
+                bot_id = self._lookup_bot_id(order_id)
+                if not bot_id:
+                    client_id = info.get('clientOrderId', '')
+                    if client_id and client_id.startswith('AB_'):
+                        parts = client_id.split('_')
+                        if len(parts) >= 2:
+                            bot_id = parts[1]
+
                 result.append(TradeHistory(
                     trade_id=str(trade.get('id', '')),
-                    order_id=str(trade.get('order', '')),
+                    order_id=order_id,
                     symbol=trade.get('symbol', '').replace('/', ''),
                     side=trade.get('side', '').upper(),
                     quantity=float(trade.get('amount', 0)),
@@ -408,7 +476,7 @@ class BinanceExecutor:
                     commission=float(fee.get('cost', 0)),
                     commission_asset=fee.get('currency', 'USDT'),
                     timestamp=trade.get('datetime'),
-                    bot_id=None,
+                    bot_id=bot_id,
                 ))
 
             return result

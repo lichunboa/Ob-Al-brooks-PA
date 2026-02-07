@@ -28,6 +28,8 @@ from .models import (
 from .risk_manager import RiskManager
 from .executor import BinanceExecutor
 from .trading_state import get_trading_state_manager, TradingStateManager
+from .reconciliation import TradeReconciliation
+from .order_tracker import OrderTracker
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,17 +41,21 @@ logger = logging.getLogger(__name__)
 risk_manager: Optional[RiskManager] = None
 executor: Optional[BinanceExecutor] = None
 trading_state: Optional[TradingStateManager] = None
+reconciliation: Optional[TradeReconciliation] = None
+order_tracker: Optional[OrderTracker] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    global risk_manager, executor, trading_state
+    global risk_manager, executor, trading_state, reconciliation, order_tracker
 
     logger.info("Execution Service V2.6.0 启动中...")
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
+    reconciliation = TradeReconciliation(executor)
+    order_tracker = OrderTracker(executor)
 
     # 启动时同步币安数据
     try:
@@ -60,6 +66,18 @@ async def lifespan(app: FastAPI):
             logger.info(f"启动同步完成: 余额 ${usdt.balance:.2f}")
     except Exception as e:
         logger.warning(f"启动同步失败: {e}")
+
+    # 启动时自动对账
+    try:
+        report = await reconciliation.get_reconciliation_report()
+        issues = report["summary"]["issues_found"]
+        fixed = report["summary"]["auto_fixed"]
+        if issues > 0:
+            logger.warning(f"启动对账: 发现 {issues} 处不一致，自动修复 {fixed} 笔")
+        else:
+            logger.info("启动对账: 数据一致")
+    except Exception as e:
+        logger.warning(f"启动对账失败: {e}")
 
     logger.info(f"Execution Service 已启动 (mode={BINANCE_MODE}, trading={'ON' if trading_state.is_trading_enabled() else 'OFF'})")
 
@@ -398,9 +416,9 @@ THRESHOLDS_FILE = Path.home() / ".openclaw" / "workspace" / "stats" / "threshold
 DEFAULT_THRESHOLDS = {
     "min_strength": 60,
     "bot_thresholds": {
-        "al-brooks": {"min_score": 75, "trade_score": 80},
-        "trader": {"min_score": 70, "trade_score": 75},
-        "wyckoff": {"min_score": 70, "trade_score": 75}
+        "al-brooks": {"min_score": 70, "trade_score": 70},
+        "trader": {"min_score": 70, "trade_score": 70},
+        "wyckoff": {"min_score": 50, "trade_score": 50}
     }
 }
 
@@ -461,6 +479,157 @@ async def update_thresholds(request: ThresholdUpdate):
         return {"success": True, "thresholds": thresholds}
     else:
         raise HTTPException(status_code=500, detail="保存阈值配置失败")
+
+
+# ========== 数据对账 (V2.6.1 新增) ==========
+
+@app.post("/trading/reconcile")
+async def reconcile_trades():
+    """
+    数据对账 - 对比本地记录和币安实际持仓
+
+    Returns:
+        {
+            "total_checked": 总检查数,
+            "discrepancies": 不一致列表,
+            "fixed_count": 自动修复数,
+            "errors": 错误列表
+        }
+    """
+    if not reconciliation:
+        raise HTTPException(status_code=503, detail="对账服务未就绪")
+
+    try:
+        result = await reconciliation.reconcile_all()
+        return result
+    except Exception as e:
+        logger.error(f"对账失败: {e}")
+        raise HTTPException(status_code=500, detail=f"对账失败: {str(e)}")
+
+
+@app.get("/trading/reconcile/report")
+async def get_reconciliation_report():
+    """
+    获取完整对账报告
+
+    Returns:
+        {
+            "timestamp": 对账时间,
+            "binance_positions": 币安持仓数,
+            "local_active_trades": 本地活跃交易数,
+            "discrepancies": 不一致列表,
+            "orphaned_positions": 孤儿持仓列表,
+            "summary": 摘要
+        }
+    """
+    if not reconciliation:
+        raise HTTPException(status_code=503, detail="对账服务未就绪")
+
+    try:
+        report = await reconciliation.get_reconciliation_report()
+        return report
+    except Exception as e:
+        logger.error(f"获取对账报告失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取对账报告失败: {str(e)}")
+
+
+@app.get("/trading/orphaned-positions")
+async def get_orphaned_positions():
+    """
+    获取孤儿持仓（币安有持仓但本地无记录）
+
+    Returns:
+        孤儿持仓列表
+    """
+    if not reconciliation:
+        raise HTTPException(status_code=503, detail="对账服务未就绪")
+
+    try:
+        orphans = await reconciliation.check_orphaned_positions()
+        return {
+            "count": len(orphans),
+            "positions": orphans
+        }
+    except Exception as e:
+        logger.error(f"检查孤儿持仓失败: {e}")
+        raise HTTPException(status_code=500, detail=f"检查孤儿持仓失败: {str(e)}")
+
+
+# ========== 订单追踪 (V2.6.1 新增) ==========
+
+@app.post("/trading/track-orders")
+async def track_all_orders():
+    """
+    追踪所有活跃订单状态
+
+    Returns:
+        {
+            "checked_at": 检查时间,
+            "status_changes": 状态变更列表,
+            "notifications": 通知消息列表
+        }
+    """
+    if not order_tracker:
+        raise HTTPException(status_code=503, detail="订单追踪服务未就绪")
+
+    try:
+        changes = await order_tracker.check_all_orders()
+
+        # 生成通知消息
+        notifications = [
+            order_tracker.generate_notification(change)
+            for change in changes
+        ]
+
+        return {
+            "checked_at": __import__('datetime').datetime.now(
+                __import__('datetime').timezone.utc
+            ).isoformat(),
+            "status_changes": [
+                {
+                    "trade_id": c.trade_id,
+                    "symbol": c.symbol,
+                    "bot_id": c.bot_id,
+                    "trigger_reason": c.trigger_reason,
+                    "exit_price": c.exit_price,
+                    "pnl": c.pnl,
+                }
+                for c in changes
+            ],
+            "notifications": notifications,
+        }
+    except Exception as e:
+        logger.error(f"追踪订单失败: {e}")
+        raise HTTPException(status_code=500, detail=f"追踪订单失败: {str(e)}")
+
+
+@app.get("/trading/track/{trade_id}")
+async def track_single_order(
+    trade_id: str,
+    bot_id: str = Query(..., description="机器人ID"),
+    symbol: str = Query(..., description="交易对"),
+):
+    """
+    追踪单个订单状态
+
+    Returns:
+        {
+            "trade_id": 交易ID,
+            "status": 当前状态,
+            "position_exists": 是否有持仓,
+            "current_price": 当前价格,
+            "pnl": 浮动盈亏
+        }
+    """
+    if not order_tracker:
+        raise HTTPException(status_code=503, detail="订单追踪服务未就绪")
+
+    try:
+        result = await order_tracker.track_order(trade_id, bot_id, symbol)
+        return result
+    except Exception as e:
+        logger.error(f"追踪订单失败: {e}")
+        raise HTTPException(status_code=500, detail=f"追踪订单失败: {str(e)}")
 
 
 def main():

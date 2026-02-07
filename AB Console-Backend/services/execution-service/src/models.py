@@ -40,6 +40,7 @@ class OrderRequest(BaseModel):
     # 关联信息（用于追踪）
     trade_id: Optional[str] = Field(None, description="关联的交易 ID")
     signal_source: Optional[str] = Field(None, description="信号来源")
+    bot_id: Optional[str] = Field(None, description="机器人 ID (al-brooks/trader/wyckoff)")
 
 
 class OrderResponse(BaseModel):
@@ -57,6 +58,8 @@ class OrderResponse(BaseModel):
     # 关联的止损止盈订单
     stop_loss_order_id: Optional[str] = None
     take_profit_order_id: Optional[str] = None
+    # 机器人追踪
+    bot_id: Optional[str] = None
 
 
 class Position(BaseModel):
