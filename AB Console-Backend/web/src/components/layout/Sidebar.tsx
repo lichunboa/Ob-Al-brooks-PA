@@ -3,18 +3,19 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  CandlestickChart, 
-  Scan, 
-  Bell, 
-  BookOpen, 
-  FlaskConical, 
+import {
+  LayoutDashboard,
+  CandlestickChart,
+  Scan,
+  Bell,
+  BookOpen,
+  FlaskConical,
   Settings,
   Menu,
   X,
   Receipt,
-  Database
+  Database,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackendControl } from './BackendControl';
@@ -27,6 +28,7 @@ interface SidebarProps {
 const navItems = [
   { href: '/', label: '仪表板', icon: LayoutDashboard },
   { href: '/data-overview', label: '数据总览', icon: Database },
+  { href: '/execution', label: '交易执行', icon: Wallet },
   { href: '/chart', label: 'K线图表', icon: CandlestickChart },
   { href: '/scanner', label: '市场扫描', icon: Scan },
   { href: '/signals', label: '信号监控', icon: Bell },

@@ -5,6 +5,7 @@ categories:
 tags:
   - PA/Trade
 date:
+机器人/bot:
 账户类型/account_type:
 品种/ticker:
 时间周期/timeframe: 5m
