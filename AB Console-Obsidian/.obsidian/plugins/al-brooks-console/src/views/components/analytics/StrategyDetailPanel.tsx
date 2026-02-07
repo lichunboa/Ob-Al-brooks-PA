@@ -25,10 +25,7 @@ export const StrategyDetailPanel: React.FC<StrategyDetailPanelProps> = ({
     displayUnit,
     SPACE,
 }) => {
-    // 如果没有选中策略或没有交易数据，不显示
-    if (selectedStrategies.length === 0 || trades.length === 0) return null;
-
-    // 计算汇总指标
+    // 计算汇总指标 - hooks 必须在条件判断之前
     const summary = React.useMemo(() => {
         let totalPnl = 0, totalR = 0, wins = 0, maxDrawdown = 0;
         let cumPnl = 0;
@@ -96,6 +93,9 @@ export const StrategyDetailPanel: React.FC<StrategyDetailPanelProps> = ({
     const title = selectedStrategies.length === 1
         ? `📊 ${selectedStrategies[0]} 深度分析`
         : `📊 ${selectedStrategies.length} 个策略深度分析`;
+
+    // 如果没有选中策略或没有交易数据，不显示（放在所有 hooks 之后）
+    if (selectedStrategies.length === 0 || trades.length === 0) return null;
 
     return (
         <Card variant="tight">
