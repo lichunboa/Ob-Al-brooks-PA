@@ -1,24 +1,27 @@
 /**
- * Al Brooks Signal Transform - 多频道推送
+ * Al Brooks Signal Transform - PA交易专用
  *
- * 版本: V5.0
- * 更新: 2026-02-06
+ * 版本: V6.0
+ * 更新: 2026-02-07
  *
- * 修复:
- * - 时间戳解析（Unix秒 → 毫秒）
- * - 传递完整 PA 信号字段给 agent
- * - 添加信号新鲜度检查（超过 5 分钟的信号标记为过时）
+ * 重大变更 V6.0:
+ * - 频道隔离：PA交易只推送到 #pa交易，不再推送到其他频道
+ * - Token 优化：移除拒绝/观望文件创建，只发 Discord 消息
+ * - 进化系统：基于已完成交易统计，不依赖拒绝/观望文件
  *
  * 前置过滤（在 transform 层直接丢弃）：
- * - 评分 < 75: 直接丢弃，不触发 agent
+ * - 评分 < 70: 直接丢弃，不触发 agent
  *
  * 推送规则（agent 执行）：
- * - 评分 >= 75: 推送到 Discord #al-brooks-信号
- * - 评分 >= 80: 推送到 Discord #小明交易 + 创建模拟交易
+ * - 评分 >= 80: 推送到 Discord #pa交易 + 创建模拟交易笔记
+ * - 评分 70-79: 仅推送 Discord 简报（不创建任何文件）
+ * - 评分 < 70: 不推送，不创建文件
  *
- * Discord 频道 ID：
- * - #al-brooks-信号: 1468430143302406379
- * - #小明交易: 1468430213196288052
+ * Discord 频道配置（严格隔离）：
+ * - #pa交易: 1468430213196288052 (PA交易专用)
+ * - #量化交易: 1468430143302406379 (量化分析师专用，PA交易禁止使用)
+ * - #威科夫: 1469202819461681306 (威科夫专用，PA交易禁止使用)
+ * - #al-brooks: 1468430254560510043 (学习问答专用，不接收交易信号)
  */
 
 module.exports = function transform(ctx) {
@@ -33,8 +36,8 @@ module.exports = function transform(ctx) {
   const strength = payload.strength || 0;
 
   // ========== 前置过滤：低分信号直接丢弃 ==========
-  if (strength < 75) {
-    console.log(`[Al Brooks Transform] Signal dropped: ${payload.symbol} ${payload.direction} strength=${strength} < 75`);
+  if (strength < 70) {
+    console.log(`[Al Brooks Transform] Signal dropped: ${payload.symbol} ${payload.direction} strength=${strength} < 70`);
     return null;  // 返回 null 表示不触发 agent
   }
 
@@ -89,55 +92,13 @@ module.exports = function transform(ctx) {
   // 获取信号价格（如果后端提供了的话）
   const signalPrice = payload.price || 0;
 
-  // 构建信号消息
+  // 构建精简信号消息（规则已在 SKILL.md 中定义）
   const signalMessage = `
-🦁 **新交易信号** [${timeStr}]${freshnessWarning}
+🦁 **PA信号** [${timeStr}] ${payload.symbol} ${payload.direction} ${strength}%
+周期: ${payload.timeframe || '5m'} | 价格: ${signalPrice > 0 ? '$' + signalPrice.toLocaleString() : 'API获取'}
+${paFields ? paFields.trim() : ''}${mmTargets ? mmTargets.trim() : ''}
 
-⚡ **这是实时信号**，刚刚生成，无延迟。
-
-**信号数据**：
-- 品种: ${payload.symbol}
-- 方向: ${payload.direction}
-- 强度: ${strength}%
-- 周期: ${payload.timeframe || '5m'}
-- 信号类型: ${payload.signal_type || 'N/A'}
-- 信号价格: ${signalPrice > 0 ? '$' + signalPrice.toLocaleString() : '使用 Binance API 获取'}
-- 信号时间: ${timeStr} (北京时间，实时)
-${paFields}${mmTargets}
-
-**重要提示**：${signalPrice > 0 ? '信号价格已包含在上方，可直接使用。' : '请使用 Binance API 获取当前实时价格进行分析。'}
-
----
-
-## ⚠️ 必须执行的推送规则（不可跳过）
-
-使用 **al-brooks-simtrade** skill 完成分析后，**必须**按以下规则推送：
-
-### 规则 1：评分 >= 75 → 推送到 #al-brooks-信号
-**频道 ID**: \`1468430143302406379\`
-**内容**: AL Brooks 简报 + 详细分析
-**格式**: 参考 SKILL.md 5.1 节的结构化卡片格式
-
-### 规则 2：评分 >= 80 → 推送到 #小明交易 + 创建模拟交易
-**频道 ID**: \`1468430213196288052\`
-**内容**: 小明开仓消息
-**动作**: 创建 Obsidian 模拟交易笔记，更新 active_trades.json
-
-### 规则 3：评分 < 75 → 不推送
-仅在本地记录分析结果，不发送到任何 Discord 频道。
-
----
-
-## 推送命令格式
-
-\`\`\`
-message(action="send", channel="discord", to="channel:1468430143302406379", message="内容")
-message(action="send", channel="discord", to="channel:1468430213196288052", message="内容")
-\`\`\`
-
----
-
-**开始分析！完成后严格按照上述规则推送。**
+按 SKILL.md 规则分析并推送到 #pa交易 (1468430213196288052)
 `;
 
   // 返回 transform 结果
