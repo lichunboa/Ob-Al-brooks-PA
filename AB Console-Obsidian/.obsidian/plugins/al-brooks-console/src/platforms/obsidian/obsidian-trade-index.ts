@@ -518,6 +518,10 @@ export class ObsidianTradeIndex implements TradeIndex {
     const initialRiskRaw = getFirstFieldValue(fm, FIELD_ALIASES.initialRisk);
     const netProfitRaw = getFirstFieldValue(fm, FIELD_ALIASES.netProfit);
 
+    // 多机器人支持
+    const botRaw = getFirstFieldValue(fm, FIELD_ALIASES.bot);
+    const analysisTypeRaw = getFirstFieldValue(fm, FIELD_ALIASES.analysisType);
+
     // v5 对齐：严格区分金额(pnl)与比率(r)
     // 1. 优先读取显式的金额字段 (net_profit / pnl)
     let pnl = parseNumber(pnlRaw);
@@ -562,6 +566,10 @@ export class ObsidianTradeIndex implements TradeIndex {
     const takeProfit = parseNumber(takeProfitRaw);
     const netProfit = parseNumber(netProfitRaw);
 
+    // 多机器人支持
+    const bot = normalizeString(botRaw);
+    const analysisType = normalizeString(analysisTypeRaw);
+
     const trade: TradeRecord = {
       path: file.path,
       name: file.name,
@@ -589,6 +597,8 @@ export class ObsidianTradeIndex implements TradeIndex {
 
       initialRisk,
       netProfit,
+      bot,
+      analysisType,
       mtime: file.stat?.mtime,
       tags: normalizedTags,
       rawFrontmatter: fm,

@@ -156,33 +156,37 @@ def main():
         )
 
         def determine_route_targets(ev):
-            """根据信号特征决定路由目标"""
+            """根据信号特征决定路由目标 - V2.2 简化版
+
+            路由规则（按优先级）：
+            1. PA Engine 信号（source=pa 或 entry_trigger>0）→ al-brooks
+            2. 威科夫专属信号（volume_spike/trend_reversal/breakout）→ wyckoff
+            3. 其他量化信号（强度>=75）→ trader
+            4. 低强度信号 → 不发送
+            """
             targets = []
             source = getattr(ev, 'source', 'unknown')
             signal_type = getattr(ev, 'signal_type', '')
+            entry_trigger = getattr(ev, 'entry_trigger', 0.0) or 0.0
 
-            # PA Engine 信号 → PA交易 Al Brooks（交易执行）
-            if source == 'pa_engine' or hasattr(ev, 'entry_trigger'):
+            # 1. PA Engine 信号 → al-brooks
+            if source == 'pa_engine' or source == 'pa' or entry_trigger > 0:
                 targets.append('al-brooks')
+                return targets
 
-            # 高强度信号 → 量化分析师（多周期验证）
+            # 2. 威科夫专属信号（仅限特定类型，不包括 extreme）
+            wyckoff_only_triggers = ['volume_spike', 'trend_reversal', 'breakout']
+            if signal_type in wyckoff_only_triggers:
+                targets.append('wyckoff')
+                return targets
+
+            # 3. 量化信号（包括 extreme 类型）→ trader
             if ev.strength >= 75:
                 targets.append('trader')
+                return targets
 
-            # 威科夫分析触发条件（扩展）
-            # - 成交量异常、趋势转折、突破
-            # - 高强度信号 (>=75) 也触发威科夫做结构验证
-            # - extreme 类型信号（可能是吸筹/派发信号）
-            wyckoff_triggers = ['volume_spike', 'trend_reversal', 'breakout']
-            is_extreme_signal = 'extreme' in signal_type.lower() if signal_type else False
-            if signal_type in wyckoff_triggers or ev.strength >= 75 or is_extreme_signal:
-                targets.append('wyckoff')
-
-            # 默认至少发给 PA交易 Al Brooks
-            if not targets:
-                targets.append('al-brooks')
-
-            return list(set(targets))  # 去重
+            # 4. 低强度信号 → 不发送
+            return targets
 
         def send_to_target(signal_data, target):
             """发送信号到指定目标"""
@@ -386,10 +390,10 @@ def main():
                     signals = pa.check_signals()
                     if signals:
                         logger.info(f"PA 引擎检测到 {len(signals)} 个信号")
-                    time.sleep(5)  # 每 5 秒检测一次
+                    time.sleep(60)  # 每 60 秒检测一次（从 5 秒改为 60 秒，减少 token 消耗）
                 except Exception as e:
                     logger.error(f"PA engine error: {e}")
-                    time.sleep(5)
+                    time.sleep(60)
             pa._running = False  # 退出时重置状态
 
         t = threading.Thread(target=run_pa, daemon=False, name="PAEngine")
