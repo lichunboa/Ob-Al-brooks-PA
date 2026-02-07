@@ -31,13 +31,13 @@ export const TradeHistoryList: React.FC<TradeHistoryListProps> = ({
 }) => {
     const [expandedIndex, setExpandedIndex] = React.useState<number | null>(null);
 
-    // 如果没有交易数据，不显示
-    if (trades.length === 0) return null;
-
-    // 按日期排序（最新在前）
+    // 按日期排序（最新在前）- hooks 必须在条件判断之前
     const sortedTrades = React.useMemo(() =>
         [...trades].sort((a, b) => (b.dateIso ?? '').localeCompare(a.dateIso ?? '')),
         [trades]);
+
+    // 如果没有交易数据，不显示（放在所有 hooks 之后）
+    if (trades.length === 0) return null;
 
     return (
         <Card variant="tight">

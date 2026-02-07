@@ -24,29 +24,13 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
     displayUnit = 'money',
     visibleAccounts = ['Live', 'Demo', 'Backtest'], // 默认显示全部
 }) => {
-    // 调试和空值保护
-    console.log('[CapitalGrowthChart] strategyLab:', strategyLab ? 'exists' : 'NULL/undefined');
-
-    // 如果数据未准备好，显示加载状态
-    if (!strategyLab || !strategyLab.curves) {
-        console.warn('[CapitalGrowthChart] strategyLab or curves is missing!', strategyLab);
-        return (
-            <Card>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "12px" }}>
-                    <div>
-                        <span style={{ fontWeight: 700, fontSize: "1.05em" }}>🧬 资金增长曲线</span>{" "}
-                        <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Cumulative Money)</span>
-                    </div>
-                </div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.85em", padding: "40px 16px", textAlign: "center" }}>
-                    数据加载中...
-                </div>
-            </Card>
-        );
-    }
-
-    // Transform data for Recharts
+    // Transform data for Recharts - hooks 必须在条件判断之前
     const data = React.useMemo(() => {
+        // 如果数据未准备好，返回空数组
+        if (!strategyLab || !strategyLab.curves) {
+            return [];
+        }
+
         const isR = displayUnit === 'r';
         const sourceCurves = isR && strategyLab.curvesR ? strategyLab.curvesR : strategyLab.curves;
 
@@ -74,6 +58,27 @@ export const CapitalGrowthChart: React.FC<CapitalGrowthChartProps> = ({
         }
         return chartData;
     }, [strategyLab, currencyMode, displayUnit]);
+
+    // 调试和空值保护
+    console.log('[CapitalGrowthChart] strategyLab:', strategyLab ? 'exists' : 'NULL/undefined');
+
+    // 如果数据未准备好，显示加载状态（放在所有 hooks 之后）
+    if (!strategyLab || !strategyLab.curves) {
+        console.warn('[CapitalGrowthChart] strategyLab or curves is missing!', strategyLab);
+        return (
+            <Card>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "12px" }}>
+                    <div>
+                        <span style={{ fontWeight: 700, fontSize: "1.05em" }}>🧬 资金增长曲线</span>{" "}
+                        <span style={{ fontWeight: 600, opacity: 0.6, fontSize: "0.85em" }}>(Cumulative Money)</span>
+                    </div>
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: "0.85em", padding: "40px 16px", textAlign: "center" }}>
+                    数据加载中...
+                </div>
+            </Card>
+        );
+    }
 
     const isR = displayUnit === 'r';
     const liveTotal = isR ? (strategyLab.cumR?.Live ?? 0) : (strategyLab.cumMoney?.Live ?? 0);
