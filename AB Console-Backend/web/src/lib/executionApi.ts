@@ -115,6 +115,52 @@ export interface AllocationUpdate {
   enabled?: boolean;
 }
 
+// ========== V2.6.3 交易历史类型 ==========
+
+export interface TradeHistory {
+  trade_id: string;
+  order_id: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  price: number;
+  realized_pnl: number;
+  commission: number;
+  commission_asset: string;
+  timestamp: string;
+  bot_id: string | null;
+}
+
+export interface OpenOrder {
+  order_id: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  price: number | null;
+  stop_price: number | null;
+  status: string;
+  reduce_only: boolean;
+  created_at: string | null;
+  bot_id: string | null;
+  client_order_id: string | null;
+}
+
+export interface AccountSummary {
+  total_balance: number;
+  available_balance: number;
+  total_unrealized_pnl: number;
+  total_margin_balance: number;
+  position_count: number;
+  total_position_value: number;
+  open_order_count: number;
+  today_realized_pnl: number;
+  today_trade_count: number;
+  today_commission: number;
+  margin_ratio: number | null;
+  can_trade: boolean;
+}
+
 // ========== API 函数 ==========
 
 const getBaseUrl = () => config.executionApiUrl;
@@ -279,4 +325,36 @@ export async function calculatePositionSize(
   const res = await fetch(`${getBaseUrl()}/trading/calculate-size/${botId}?${params}`);
   if (!res.ok) throw new Error('计算仓位失败');
   return res.json();
+}
+
+// ========== V2.6.3 交易历史 API ==========
+
+export async function getTradeHistory(
+  symbol?: string,
+  limit: number = 200
+): Promise<TradeHistory[]> {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (symbol) params.set('symbol', symbol);
+  const res = await fetch(`${getBaseUrl()}/trades/history?${params}`);
+  if (!res.ok) throw new Error('获取交易历史失败');
+  return res.json();
+}
+
+export async function getOpenOrders(symbol?: string): Promise<OpenOrder[]> {
+  const url = symbol
+    ? `${getBaseUrl()}/orders/open?symbol=${symbol}`
+    : `${getBaseUrl()}/orders/open`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('获取挂单失败');
+  return res.json();
+}
+
+export async function getAccountSummary(): Promise<AccountSummary | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/account/summary`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
