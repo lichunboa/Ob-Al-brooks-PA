@@ -1,14 +1,14 @@
 """
-交易状态管理器 V2.6.0
+交易状态管理器 V2.8.0
 
 功能:
 - 交易开关控制
-- 机器人资金分配
+- 机器人资金分配（含风控配置）
 - 状态持久化
 - 币安数据同步
 
 作者: AL Brooks Trading Console
-版本: 2.6.0
+版本: 2.8.0
 """
 import json
 import logging
@@ -34,6 +34,17 @@ class BotAllocation:
     enabled: bool = True
     current_positions: int = 0
     used_margin: float = 0.0
+    # V2.8.0 新增风控配置
+    risk_percent: float = 2.0              # 单笔风险%
+    fee_rate_maker: float = 0.0002         # maker 费率
+    fee_rate_taker: float = 0.0004         # taker 费率
+    allowed_symbols: list = field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+    min_risk_reward: float = 1.5           # 最小盈亏比
+    daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT
+    trailing_stop_enabled: bool = False    # 移动止损开关
+    trailing_stop_trigger: float = 1.0     # 移动止损触发%
+    max_hold_hours: int = 48               # 最大持仓时间
+    cooldown_minutes: int = 30             # 同品种冷却期(分钟)
 
 
 @dataclass
@@ -49,6 +60,18 @@ class TradingState:
     def __post_init__(self):
         if not self.allocations:
             # 默认分配
+            defaults_new = {
+                "risk_percent": 2.0,
+                "fee_rate_maker": 0.0002,
+                "fee_rate_taker": 0.0004,
+                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
+                "min_risk_reward": 1.5,
+                "daily_loss_limit": 50.0,
+                "trailing_stop_enabled": False,
+                "trailing_stop_trigger": 1.0,
+                "max_hold_hours": 48,
+                "cooldown_minutes": 30,
+            }
             self.allocations = {
                 "al-brooks": {
                     "bot_id": "al-brooks",
@@ -59,6 +82,7 @@ class TradingState:
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
+                    **defaults_new,
                 },
                 "trader": {
                     "bot_id": "trader",
@@ -69,6 +93,7 @@ class TradingState:
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
+                    **defaults_new,
                 },
                 "wyckoff": {
                     "bot_id": "wyckoff",
@@ -79,8 +104,28 @@ class TradingState:
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
+                    **defaults_new,
+                    "daily_loss_limit": 30.0,  # 威科夫资金少，限额低
                 },
             }
+        else:
+            # 迁移旧数据：为缺少新字段的 allocation 补充默认值
+            new_field_defaults = {
+                "risk_percent": 2.0,
+                "fee_rate_maker": 0.0002,
+                "fee_rate_taker": 0.0004,
+                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
+                "min_risk_reward": 1.5,
+                "daily_loss_limit": 50.0,
+                "trailing_stop_enabled": False,
+                "trailing_stop_trigger": 1.0,
+                "max_hold_hours": 48,
+                "cooldown_minutes": 30,
+            }
+            for bot_id, alloc in self.allocations.items():
+                for key, default_val in new_field_defaults.items():
+                    if key not in alloc:
+                        alloc[key] = default_val
 
 
 class TradingStateManager:
@@ -145,26 +190,28 @@ class TradingStateManager:
     def update_allocation(
         self,
         bot_id: str,
-        allocated_usdt: Optional[float] = None,
-        max_leverage: Optional[int] = None,
-        max_positions: Optional[int] = None,
-        enabled: Optional[bool] = None,
+        **kwargs,
     ) -> bool:
-        """更新机器人分配"""
+        """更新机器人分配（支持所有字段）"""
         if bot_id not in self.state.allocations:
             logger.warning(f"未知机器人: {bot_id}")
             return False
 
         alloc = self.state.allocations[bot_id]
 
-        if allocated_usdt is not None:
-            alloc["allocated_usdt"] = allocated_usdt
-        if max_leverage is not None:
-            alloc["max_leverage"] = max_leverage
-        if max_positions is not None:
-            alloc["max_positions"] = max_positions
-        if enabled is not None:
-            alloc["enabled"] = enabled
+        # 允许更新的字段白名单
+        updatable = {
+            "allocated_usdt", "max_leverage", "max_positions",
+            "enabled", "risk_percent", "fee_rate_maker",
+            "fee_rate_taker", "allowed_symbols",
+            "min_risk_reward", "daily_loss_limit",
+            "trailing_stop_enabled", "trailing_stop_trigger",
+            "max_hold_hours", "cooldown_minutes",
+        }
+
+        for key, val in kwargs.items():
+            if key in updatable and val is not None:
+                alloc[key] = val
 
         self._save_state()
         logger.info(f"已更新 {bot_id} 分配: {alloc}")
@@ -217,7 +264,7 @@ class TradingStateManager:
         bot_id: str,
         entry_price: float,
         stop_loss: float,
-        risk_percent: float = 1.0,
+        risk_percent: Optional[float] = None,
     ) -> tuple[float, str]:
         """
         计算仓位大小
@@ -226,7 +273,7 @@ class TradingStateManager:
             bot_id: 机器人 ID
             entry_price: 入场价格
             stop_loss: 止损价格
-            risk_percent: 风险百分比 (默认 1%)
+            risk_percent: 风险百分比 (None 则用 bot 配置)
 
         Returns:
             (仓位大小, 说明)
@@ -246,8 +293,13 @@ class TradingStateManager:
 
         stop_percent = stop_distance / entry_price
 
+        # 使用 bot 配置的 risk_percent，或传入值
+        actual_risk = risk_percent or alloc.get(
+            "risk_percent", 2.0
+        )
+
         # 风险金额 = 可用资金 * 风险百分比
-        risk_amount = available * (risk_percent / 100)
+        risk_amount = available * (actual_risk / 100)
 
         # 仓位价值 = 风险金额 / 止损百分比
         position_value = risk_amount / stop_percent

@@ -1,0 +1,200 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Activity, TrendingUp, TrendingDown, Clock, Shield } from 'lucide-react';
+import type { BotSummary, EvolutionSummary } from '@/lib/executionApi';
+import { getBotSummary, getEvolutionSummary } from '@/lib/executionApi';
+
+interface BotDetailPanelProps {
+  botId: string;
+  onClose: () => void;
+}
+
+const BOT_EMOJIS: Record<string, string> = {
+  'al-brooks': '🦁',
+  trader: '📊',
+  wyckoff: '🔮',
+};
+
+export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
+  const [summary, setSummary] = useState<BotSummary | null>(null);
+  const [evolution, setEvolution] = useState<EvolutionSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const [s, e] = await Promise.all([
+        getBotSummary(botId),
+        getEvolutionSummary(botId),
+      ]);
+      setSummary(s);
+      setEvolution(e);
+      setLoading(false);
+    }
+    load();
+  }, [botId]);
+
+  if (loading) {
+    return (
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 animate-pulse">
+        <div className="h-4 bg-slate-700 rounded w-1/3 mb-3" />
+        <div className="h-20 bg-slate-700 rounded" />
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
+        <p className="text-slate-400 text-sm">无法加载 {botId} 状态</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{BOT_EMOJIS[botId]}</span>
+          <h4 className="text-white font-medium">{summary.config.name} 详情</h4>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            summary.can_trade
+              ? 'bg-green-900/30 text-green-400'
+              : 'bg-red-900/30 text-red-400'
+          }`}>
+            {summary.can_trade ? '可交易' : '已停止'}
+          </span>
+        </div>
+        <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">
+          收起
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 gap-3">
+        <StatCard
+          icon={<Activity className="w-4 h-4" />}
+          label="可用保证金"
+          value={`$${summary.available_margin.toFixed(2)}`}
+          color="text-blue-400"
+        />
+        <StatCard
+          icon={<TrendingUp className="w-4 h-4" />}
+          label="今日盈亏"
+          value={`${summary.daily_pnl >= 0 ? '+' : ''}$${summary.daily_pnl.toFixed(2)}`}
+          color={summary.daily_pnl >= 0 ? 'text-green-400' : 'text-red-400'}
+        />
+        <StatCard
+          icon={<Shield className="w-4 h-4" />}
+          label="剩余仓位"
+          value={`${summary.remaining_positions}/${summary.config.max_positions}`}
+          color="text-slate-300"
+        />
+        <StatCard
+          icon={<Clock className="w-4 h-4" />}
+          label="日亏损限额"
+          value={`$${summary.risk_status.daily_limit}`}
+          color={summary.risk_status.daily_limit_ok ? 'text-slate-300' : 'text-red-400'}
+        />
+      </div>
+
+      {/* Positions */}
+      {summary.positions.length > 0 && (
+        <div>
+          <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">当前持仓</p>
+          <div className="space-y-1">
+            {summary.positions.map((pos) => (
+              <div key={pos.symbol} className="flex items-center justify-between text-sm bg-slate-900/50 rounded px-3 py-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={pos.side === 'LONG' ? 'text-green-400' : 'text-red-400'}>
+                    {pos.side === 'LONG' ? '▲' : '▼'}
+                  </span>
+                  <span className="text-white">{pos.symbol}</span>
+                  <span className="text-slate-500">{pos.leverage}x</span>
+                </div>
+                <span className={pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {pos.unrealized_pnl >= 0 ? '+' : ''}${pos.unrealized_pnl.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cooldowns */}
+      {summary.risk_status.cooldowns.length > 0 && (
+        <div>
+          <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">冷却中品种</p>
+          <div className="flex gap-2 flex-wrap">
+            {summary.risk_status.cooldowns.map((cd) => (
+              <span key={cd.symbol} className="text-xs bg-yellow-900/20 text-yellow-400 px-2 py-1 rounded">
+                {cd.symbol} ({cd.remaining_minutes}分)
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Evolution Summary */}
+      {evolution && (
+        <div>
+          <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">进化摘要</p>
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className="bg-slate-900/50 rounded px-3 py-2">
+              <p className="text-slate-400 text-xs">成长阶段</p>
+              <p className="text-white">{evolution.growth_stage}</p>
+            </div>
+            <div className="bg-slate-900/50 rounded px-3 py-2">
+              <p className="text-slate-400 text-xs">总交易数</p>
+              <p className="text-white">{evolution.total_trades}</p>
+            </div>
+            <div className="bg-slate-900/50 rounded px-3 py-2">
+              <p className="text-slate-400 text-xs">冷却策略</p>
+              <p className="text-white">{evolution.cooldown_strategies.length}</p>
+            </div>
+          </div>
+          {evolution.top_strategies.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {evolution.top_strategies.slice(0, 3).map((s) => (
+                <div key={s.name} className="flex items-center justify-between text-xs bg-slate-900/50 rounded px-3 py-1.5">
+                  <span className="text-slate-300">{s.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-500">{s.trades}笔 {s.wins}胜</span>
+                    <span className={`font-medium ${
+                      s.trend === 'up' ? 'text-green-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-400'
+                    }`}>
+                      W:{s.weight}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-slate-900/50 rounded px-3 py-2">
+      <div className={`flex items-center gap-1 text-xs text-slate-400 mb-1`}>
+        {icon}
+        {label}
+      </div>
+      <p className={`text-sm font-medium ${color}`}>{value}</p>
+    </div>
+  );
+}
