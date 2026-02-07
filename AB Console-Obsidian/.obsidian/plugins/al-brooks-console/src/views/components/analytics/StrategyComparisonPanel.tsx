@@ -38,13 +38,10 @@ export const StrategyComparisonPanel: React.FC<StrategyComparisonPanelProps> = (
     displayUnit,
     SPACE,
 }) => {
-    // 只有选择2+策略时才显示
-    if (selectedStrategies.length < 2) return null;
-
     const [compareMetric, setCompareMetric] = React.useState<CompareMetric>('pnl');
     const [compareDimension, setCompareDimension] = React.useState<CompareDimension | null>(null);
 
-    // 计算各策略统计
+    // 计算各策略统计 - hooks 必须在条件判断之前
     const strategyStats = React.useMemo<StrategyStats[]>(() => {
         const statsMap = new Map<string, { pnl: number; r: number; count: number; wins: number }>();
         for (const name of selectedStrategies) {
@@ -121,6 +118,9 @@ export const StrategyComparisonPanel: React.FC<StrategyComparisonPanelProps> = (
         { key: 'marketCycle' as CompareDimension, label: '🌐 环境' },
         { key: 'executionQuality' as CompareDimension, label: '📋 执行' },
     ];
+
+    // 只有选择2+策略时才显示（放在所有 hooks 之后）
+    if (selectedStrategies.length < 2) return null;
 
     return (
         <Card variant="tight">
