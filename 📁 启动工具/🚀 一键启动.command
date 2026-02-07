@@ -303,9 +303,31 @@ else
         log_info "跳过 data-service (TimescaleDB 未就绪)"
     fi
 
-    # 8. 启动 Web Dashboard
+    # 8. 启动 Execution Service (V2.6.0 新增)
     echo ""
-    log_info "[8/8] 启动 Web Dashboard..."
+    log_info "[8/9] 启动 Execution Service..."
+    EXEC_SVC_DIR="$BACKEND_DIR/services/execution-service"
+    EXEC_PID_FILE="$EXEC_SVC_DIR/logs/execution.pid"
+    if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Execution Service 已在运行 (端口 8092)"
+    elif [ -d "$EXEC_SVC_DIR/src" ]; then
+        cd "$EXEC_SVC_DIR"
+        mkdir -p logs
+        nohup python3 -m src --port 8092 > logs/execution.log 2>&1 &
+        echo $! > "$EXEC_PID_FILE"
+        sleep 3
+        if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Execution Service 启动成功 (端口 8092)"
+        else
+            log_warn "Execution Service 启动失败"
+        fi
+    else
+        log_warn "Execution Service src 目录不存在，跳过"
+    fi
+
+    # 9. 启动 Web Dashboard
+    echo ""
+    log_info "[9/9] 启动 Web Dashboard..."
     if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
         log_success "Web Dashboard 已在运行 (端口 3000)"
     else
@@ -344,6 +366,7 @@ check_service 8089 "Sync Service     "
 check_service 8084 "Vis Service      "
 check_service 8090 "Telegram Service "
 check_service 8083 "Signal Service   "
+check_service 8092 "Execution Service"
 check_service 3000 "Web Dashboard    "
 
 echo ""
@@ -401,6 +424,8 @@ echo "  API 文档:       http://localhost:8088/docs"
 echo "  API 健康:       http://localhost:8088/health"
 echo "  Vis 模板:       http://localhost:8084/templates"
 echo "  Sync 健康:      http://localhost:8089/api/v1/health"
+echo "  Execution:      http://localhost:8092/health"
+echo "  交易状态:       http://localhost:8092/trading/status"
 echo "  Obsidian 同步:  http://localhost:8088/api/v1/obsidian/sync/status"
 echo ""
 echo "【Telegram Bot 命令】"
