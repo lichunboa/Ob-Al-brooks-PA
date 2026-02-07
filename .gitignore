@@ -147,3 +147,12 @@ services-preview/nofx-dev
 # ====================
 AB Console-Obsidian/.obsidian/plugins/*/main.js
 AB Console-Obsidian/.obsidian/plugins/*/.hotreload
+
+# ====================
+# V2.7.0 防护（防止根目录再乱）
+# ====================
+/AB/
+/al_brooks_active_trades.json
+/openclaw-config/
+/scripts/
+AB Console-Backend/services/execution-service/test_*.py
