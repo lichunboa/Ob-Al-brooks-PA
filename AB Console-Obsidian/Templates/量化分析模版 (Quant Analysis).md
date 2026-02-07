@@ -11,6 +11,7 @@ date: {{date}}
 品种/ticker: {{ticker}}
 时间周期/timeframe: {{timeframe}}
 分析类型/analysis_type: 多周期量化分析
+策略名称/strategy_name: {{strategy}}
 方向/direction: {{direction}}
 入场/entry_price: {{entry_price}}
 止损/stop_loss: {{stop_loss}}
@@ -22,6 +23,9 @@ date: {{date}}
 出场原因/exit_reason:
 信号评分/signal_score: {{score}}
 追踪状态/tracking_status: 活跃
+订单ID/order_id: {{order_id}}
+止损订单ID/sl_order_id: {{sl_order_id}}
+止盈订单ID/tp_order_id: {{tp_order_id}}
 综合评估/overall: {{overall}}
 置信度/confidence: {{confidence}}
 多周期共振/confluence: {{confluence}}

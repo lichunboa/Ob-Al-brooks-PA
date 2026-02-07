@@ -30,6 +30,7 @@ from .executor import BinanceExecutor
 from .trading_state import get_trading_state_manager, TradingStateManager
 from .reconciliation import TradeReconciliation
 from .order_tracker import OrderTracker
+from .note_sync import NoteSync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,12 +44,13 @@ executor: Optional[BinanceExecutor] = None
 trading_state: Optional[TradingStateManager] = None
 reconciliation: Optional[TradeReconciliation] = None
 order_tracker: Optional[OrderTracker] = None
+note_sync: Optional[NoteSync] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    global risk_manager, executor, trading_state, reconciliation, order_tracker
+    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync
 
     logger.info("Execution Service V2.6.0 启动中...")
     risk_manager = RiskManager()
@@ -56,6 +58,7 @@ async def lifespan(app: FastAPI):
     trading_state = get_trading_state_manager()
     reconciliation = TradeReconciliation(executor)
     order_tracker = OrderTracker(executor)
+    note_sync = NoteSync(executor)
 
     # 启动时同步币安数据
     try:
@@ -630,6 +633,31 @@ async def track_single_order(
     except Exception as e:
         logger.error(f"追踪订单失败: {e}")
         raise HTTPException(status_code=500, detail=f"追踪订单失败: {str(e)}")
+
+
+# ========== 笔记反向同步 (V2.6.4 新增) ==========
+
+@app.post("/trades/sync-notes")
+async def sync_notes_from_binance():
+    """
+    反向同步 - 从币安交易数据回填 Obsidian 笔记
+
+    扫描笔记中的 order_id，匹配币安已实现盈亏，
+    写回 净利润/net_profit、结果/outcome、追踪状态
+    """
+    if not note_sync:
+        raise HTTPException(
+            status_code=503, detail="笔记同步服务未就绪"
+        )
+
+    try:
+        result = await note_sync.sync_all()
+        return result
+    except Exception as e:
+        logger.error(f"笔记同步失败: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"笔记同步失败: {str(e)}"
+        )
 
 
 def main():
