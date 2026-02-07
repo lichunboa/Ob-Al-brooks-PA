@@ -35,6 +35,13 @@ const getRuntimeSyncUrl = () => {
   return process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089';
 };
 
+const getRuntimeExecutionUrl = () => {
+  if (typeof window !== 'undefined') {
+    return '/api/execution';
+  }
+  return process.env.NEXT_PUBLIC_EXECUTION_API_URL || 'http://localhost:8092';
+};
+
 export const config = {
   /** 后端 HTTP API 地址（浏览器走代理，SSR 直连） */
   apiUrl: getRuntimeApiUrl(),
@@ -44,6 +51,9 @@ export const config = {
 
   /** Sync Service 地址（浏览器走代理） */
   syncApiUrl: getRuntimeSyncUrl(),
+
+  /** Execution Service 地址（浏览器走代理） */
+  executionApiUrl: getRuntimeExecutionUrl(),
 
   /** 默认交易对列表 */
   defaultSymbols: [

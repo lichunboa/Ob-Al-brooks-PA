@@ -41,6 +41,10 @@ const nextConfig = {
         source: '/api/sync/:path*',
         destination: `${process.env.NEXT_PUBLIC_SYNC_API_URL || 'http://localhost:8089'}/api/v1/:path*`,
       },
+      {
+        source: '/api/execution/:path*',
+        destination: `${process.env.NEXT_PUBLIC_EXECUTION_API_URL || 'http://localhost:8092'}/:path*`,
+      },
     ];
   },
   
