@@ -92,6 +92,18 @@ fi
 pkill -f "src --once" 2>/dev/null
 log_success "trading-service 已停止"
 
+# 停止 execution-service (V2.6.0 新增)
+echo ""
+log_info "停止 Execution Service..."
+EXEC_PID_FILE="$BACKEND_DIR/services/execution-service/logs/execution.pid"
+if [ -f "$EXEC_PID_FILE" ]; then
+    kill "$(cat "$EXEC_PID_FILE")" 2>/dev/null
+    rm -f "$EXEC_PID_FILE"
+fi
+pkill -f "execution-service" 2>/dev/null
+pkill -f "src --port 8092" 2>/dev/null
+log_success "Execution Service 已停止"
+
 # 停止 Web Dashboard
 echo ""
 log_info "停止 Web Dashboard..."
@@ -107,12 +119,12 @@ echo ""
 
 # 残留进程检查
 echo "【残留进程检查】"
-REMAINING=$(pgrep -f "(api-service|data-service|signal-service|trading-service|sync-service|telegram.*bot)" 2>/dev/null | wc -l)
+REMAINING=$(pgrep -f "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|telegram.*bot)" 2>/dev/null | wc -l)
 if [ "$REMAINING" -eq 0 ]; then
     log_success "无残留进程"
 else
     echo -e "${YELLOW}[WARN]${NC} 发现 $REMAINING 个残留进程"
-    pgrep -af "(api-service|data-service|signal-service|trading-service|sync-service|telegram.*bot)" | head -5
+    pgrep -af "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|telegram.*bot)" | head -5
 fi
 
 # Docker 容器状态
