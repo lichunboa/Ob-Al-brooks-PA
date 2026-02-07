@@ -10,8 +10,6 @@
 # 开发环境使用（默认）:
 #   docker-compose up -d
 #
-version: '3.8'
-
 services:
   data-service:
     volumes:
@@ -60,8 +58,3 @@ services:
       - SYMBOLS_GROUPS=main4
       - SYMBOLS_GROUP_main4=BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT
       - PYTHONPATH=/app/src:/app/libs:/app/data_service_src
-
-  web-dashboard:
-    environment:
-      - NEXT_PUBLIC_API_URL=http://api-service:8088
-      - NEXT_PUBLIC_WS_URL=ws://api-service:8088
