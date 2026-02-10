@@ -34,6 +34,7 @@ from .reconciliation import TradeReconciliation
 from .order_tracker import OrderTracker
 from .note_sync import NoteSync
 from .evolution_manager import get_evolution_manager, EvolutionManager
+from .position_patrol import PositionPatrol
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +50,7 @@ reconciliation: Optional[TradeReconciliation] = None
 order_tracker: Optional[OrderTracker] = None
 note_sync: Optional[NoteSync] = None
 evolution_mgr: Optional[EvolutionManager] = None
+position_patrol: Optional[PositionPatrol] = None
 _periodic_task: Optional[asyncio.Task] = None
 
 # 定时任务间隔（秒）
@@ -57,7 +59,7 @@ NOTE_SYNC_INTERVAL = 300  # 5 分钟同步笔记+订单
 
 
 async def _periodic_sync():
-    """定时任务：余额同步(1分钟) + 笔记同步+订单追踪(5分钟)"""
+    """定时任务：余额同步(1分钟) + 持仓巡检(1分钟) + 笔记同步+订单追踪(5分钟)"""
     await asyncio.sleep(30)  # 启动后 30 秒再开始
     tick = 0
     while True:
@@ -68,6 +70,10 @@ async def _periodic_sync():
                 usdt = next((b for b in balances if b.asset == "USDT"), None)
                 if usdt:
                     trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+
+            # 每次循环都做持仓巡检（60 秒）
+            if position_patrol:
+                await position_patrol.patrol()
 
             # 每 5 次循环（5 分钟）做笔记同步 + 订单追踪
             if tick % 5 == 0:
@@ -92,9 +98,9 @@ async def _periodic_sync():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, evolution_mgr, _periodic_task
+    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, evolution_mgr, position_patrol, _periodic_task
 
-    logger.info("Execution Service V2.8.0 启动中...")
+    logger.info("Execution Service V3.0 启动中...")
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
@@ -102,6 +108,7 @@ async def lifespan(app: FastAPI):
     order_tracker = OrderTracker(executor)
     note_sync = NoteSync(executor)
     evolution_mgr = get_evolution_manager()
+    position_patrol = PositionPatrol(executor, trading_state)
 
     # 启动时同步币安数据
     try:
@@ -152,9 +159,22 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"启动同步币安费率失败: {e}")
 
+    # 启动时自动为所有品种设置杠杆（V3.0）
+    try:
+        allocs = trading_state.state.allocations
+        for bot_id, alloc in allocs.items():
+            lev = alloc.get("max_leverage", 5)
+            symbols = alloc.get("allowed_symbols", [])
+            for sym in symbols:
+                ccxt_sym = f"{sym}:USDT" if ':' not in sym else sym
+                await executor.set_leverage(ccxt_sym, lev)
+            logger.info(f"启动杠杆: {alloc['name']} {lev}x ({len(symbols)} 品种)")
+    except Exception as e:
+        logger.warning(f"启动设置杠杆失败: {e}")
+
     # 启动定时任务（笔记同步 + 订单追踪，每 5 分钟）
     _periodic_task = asyncio.create_task(_periodic_sync())
-    logger.info("定时任务已启动: 余额同步(60s) + 笔记同步+订单追踪(5分钟)")
+    logger.info("定时任务已启动: 余额同步(60s) + 持仓巡检(60s) + 笔记同步+订单追踪(5分钟)")
 
     logger.info(f"Execution Service 已启动 (mode={BINANCE_MODE}, trading={'ON' if trading_state.is_trading_enabled() else 'OFF'})")
 
@@ -211,12 +231,18 @@ async def get_balance():
     return await executor.get_balance()
 
 
-@app.get("/positions", response_model=list[Position])
+@app.get("/positions")
 async def get_positions():
-    """获取持仓"""
+    """获取持仓（V3.0: 附带 bot_id 归属）"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.get_positions()
+    positions = await executor.get_positions()
+    result = []
+    for p in positions:
+        d = p.model_dump()
+        d["bot_id"] = executor.get_position_bot_id(p.symbol)
+        result.append(d)
+    return result
 
 
 @app.get("/orders/open")
@@ -322,6 +348,16 @@ async def close_all_positions():
     return results
 
 
+# ========== 持仓巡检 V3.0 ==========
+
+@app.get("/patrol/status")
+async def get_patrol_status():
+    """获取持仓巡检状态"""
+    if not position_patrol:
+        raise HTTPException(status_code=503, detail="巡检服务未就绪")
+    return position_patrol.get_status()
+
+
 # ========== 风控管理 ==========
 
 @app.get("/risk/status", response_model=RiskStatus)
@@ -421,6 +457,8 @@ class AllocationUpdate(BaseModel):
     max_hold_hours: Optional[int] = None
     cooldown_minutes: Optional[int] = None
     allocation_pct: Optional[float] = None
+    # V3.0 新增 — 名义价值控制
+    max_notional_per_position: Optional[float] = None
 
 
 @app.get("/trading/status")
@@ -829,6 +867,13 @@ async def get_bot_summary(bot_id: str):
         bot_id, daily_limit
     )
 
+    # 名义价值控制（V3.0）
+    max_notional = alloc.get("max_notional_per_position", 0)
+    leverage = alloc.get("max_leverage", 5)
+    max_positions = alloc.get("max_positions", 3)
+    if max_notional <= 0:
+        max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
+
     return {
         "config": alloc,
         "positions": [
@@ -855,6 +900,11 @@ async def get_bot_summary(bot_id: str):
             "daily_loss_ok": limit_ok,
             "cooldowns": cooldowns,
             "emergency_stop": risk_manager.emergency_stop,
+        },
+        "notional": {
+            "max_per_position": max_notional,
+            "total_capacity": max_notional * max_positions,
+            "leverage": leverage,
         },
     }
 

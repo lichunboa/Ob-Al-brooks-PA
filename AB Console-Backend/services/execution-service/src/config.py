@@ -28,7 +28,7 @@ else:
 # 风控配置
 MAX_DAILY_LOSS_USDT = float(os.getenv("MAX_DAILY_LOSS_USDT", "100"))
 MAX_POSITION_SIZE_USDT = float(os.getenv("MAX_POSITION_SIZE_USDT", "50"))
-MAX_LEVERAGE = int(os.getenv("MAX_LEVERAGE", "5"))
+MAX_LEVERAGE = int(os.getenv("MAX_LEVERAGE", "20"))  # V3.0: 全局上限提升，各 bot 独立控制
 EMERGENCY_STOP = os.getenv("EMERGENCY_STOP", "false").lower() == "true"
 
 # 服务配置

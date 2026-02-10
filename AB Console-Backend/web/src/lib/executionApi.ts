@@ -22,6 +22,8 @@ export interface Position {
   leverage: number;
   margin_type: string;
   liquidation_price?: number;
+  // V3.0
+  bot_id?: string | null;
 }
 
 export interface RiskStatus {
@@ -105,6 +107,8 @@ export interface BotAllocation {
   trailing_stop_trigger: number;
   max_hold_hours: number;
   cooldown_minutes: number;
+  // V3.0
+  max_notional_per_position?: number;
 }
 
 export interface TradingStatus {
@@ -135,6 +139,8 @@ export interface AllocationUpdate {
   trailing_stop_trigger?: number;
   max_hold_hours?: number;
   cooldown_minutes?: number;
+  // V3.0
+  max_notional_per_position?: number;
 }
 
 // ========== V2.6.3 交易历史类型 ==========
@@ -461,6 +467,12 @@ export interface BotSummary {
   can_trade: boolean;
   can_trade_reason: string;
   risk_status: BotRiskStatus;
+  // V3.0
+  notional?: {
+    max_per_position: number;
+    total_capacity: number;
+    leverage: number;
+  };
 }
 
 export interface EvolutionStrategy {
@@ -522,4 +534,71 @@ export async function getEvolutionSummary(botId: string): Promise<EvolutionSumma
   } catch {
     return null;
   }
+}
+
+// ========== V3.0 持仓巡检 + 操作 API ==========
+
+export interface PatrolStatus {
+  patrol_count: number;
+  totals: {
+    naked_fixed: number;
+    expired_closed: number;
+    trailing_moved: number;
+  };
+  tracked_positions: number;
+  trailing_active: number;
+  recent_history: Array<{
+    time: string;
+    naked_fixed: number;
+    expired_closed: number;
+    trailing_moved: number;
+    errors: string[];
+  }>;
+}
+
+export async function getPatrolStatus(): Promise<PatrolStatus | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/patrol/status`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function modifyStopLoss(
+  symbol: string,
+  newStopPrice: number
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${getBaseUrl()}/order/${symbol}/modify-sl`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ new_stop_price: newStopPrice }),
+  });
+  if (!res.ok) throw new Error('修改止损失败');
+  return res.json();
+}
+
+export async function closeAllPositions(): Promise<{
+  total_closed: number;
+  total_failed: number;
+  closed: Array<{ symbol: string }>;
+  failed: Array<{ symbol: string; error: string }>;
+  orders_cancelled: boolean;
+}> {
+  const res = await fetch(`${getBaseUrl()}/order/close-all`, { method: 'POST' });
+  if (!res.ok) throw new Error('一键平仓失败');
+  return res.json();
+}
+
+export async function resetDailyStats(): Promise<{ success: boolean }> {
+  const res = await fetch(`${getBaseUrl()}/risk/reset-daily`, { method: 'POST' });
+  if (!res.ok) throw new Error('重置每日统计失败');
+  return res.json();
+}
+
+export async function syncNotes(): Promise<{ success: boolean; synced: number }> {
+  const res = await fetch(`${getBaseUrl()}/trades/sync-notes`, { method: 'POST' });
+  if (!res.ok) throw new Error('同步笔记失败');
+  return res.json();
 }

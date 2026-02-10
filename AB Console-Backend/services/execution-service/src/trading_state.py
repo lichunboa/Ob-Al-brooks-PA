@@ -75,13 +75,14 @@ class TradingState:
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
                 "allocation_pct": 0.0,
+                "max_notional_per_position": 0,
             }
             self.allocations = {
                 "al-brooks": {
                     "bot_id": "al-brooks",
                     "name": "PA交易",
                     "allocated_usdt": 2000.0,
-                    "max_leverage": 5,
+                    "max_leverage": 10,
                     "max_positions": 6,
                     "enabled": True,
                     "current_positions": 0,
@@ -92,7 +93,7 @@ class TradingState:
                     "bot_id": "trader",
                     "name": "量化分析师",
                     "allocated_usdt": 2000.0,
-                    "max_leverage": 5,
+                    "max_leverage": 10,
                     "max_positions": 4,
                     "enabled": True,
                     "current_positions": 0,
@@ -127,6 +128,7 @@ class TradingState:
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
                 "allocation_pct": 0.0,
+                "max_notional_per_position": 0,
             }
             for bot_id, alloc in self.allocations.items():
                 for key, default_val in new_field_defaults.items():
@@ -231,6 +233,7 @@ class TradingStateManager:
             "min_risk_reward", "daily_loss_limit", "daily_loss_pct",
             "trailing_stop_enabled", "trailing_stop_trigger",
             "max_hold_hours", "cooldown_minutes", "allocation_pct",
+            "max_notional_per_position",
         }
 
         for key, val in kwargs.items():
@@ -332,13 +335,20 @@ class TradingStateManager:
         leverage = alloc.get("max_leverage", 5)
         max_position = available * leverage
 
-        # 取较小值
-        final_value = min(position_value, max_position)
+        # 名义价值上限（为外汇 100x 做准备）
+        max_notional = alloc.get("max_notional_per_position", 0)
+        if max_notional <= 0:
+            # 向后兼容：自动从分配资金计算
+            max_positions = alloc.get("max_positions", 3)
+            max_notional = (available / max_positions) * leverage
+
+        # 取三者最小值
+        final_value = min(position_value, max_position, max_notional)
 
         # 转换为数量
         quantity = final_value / entry_price
 
-        return quantity, f"风险 ${risk_amount:.2f}, 仓位 ${final_value:.2f}, 数量 {quantity:.6f}"
+        return quantity, f"风险 ${risk_amount:.2f}, 仓位 ${final_value:.2f} (名义上限 ${max_notional:.0f}), 数量 {quantity:.6f}"
 
     def get_status_summary(self) -> dict:
         """获取状态摘要"""

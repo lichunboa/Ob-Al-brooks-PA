@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, TrendingUp, TrendingDown, Clock, Shield, RefreshCw } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Clock, Shield, RefreshCw, DollarSign } from 'lucide-react';
 import type { BotSummary, EvolutionSummary } from '@/lib/executionApi';
 import { getBotSummary, getEvolutionSummary } from '@/lib/executionApi';
 
@@ -101,6 +101,27 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
           color={summary.risk_status.daily_loss_ok ? 'text-slate-300' : 'text-red-400'}
         />
       </div>
+
+      {/* 名义价值 (V3.0) */}
+      {summary.notional && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
+              <DollarSign className="w-3 h-3" />
+              单仓名义
+            </div>
+            <p className="text-sm font-medium text-slate-200">${summary.notional.max_per_position.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">总名义容量</p>
+            <p className="text-sm font-medium text-slate-200">${summary.notional.total_capacity.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">杠杆</p>
+            <p className="text-sm font-medium text-slate-200">{summary.notional.leverage}x</p>
+          </div>
+        </div>
+      )}
 
       {/* Positions */}
       {summary.positions.length > 0 && (
