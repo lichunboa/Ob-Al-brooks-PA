@@ -368,6 +368,15 @@ class BinanceExecutor:
             logger.warning(f"杠杆设置被拒绝: {msg}")
             return False
 
+        # 标准化 symbol 为 ccxt 格式: BTCUSDT → BTC/USDT:USDT, BTCUSDT:USDT → BTC/USDT:USDT
+        if '/' not in symbol:
+            raw = symbol.split(':')[0] if ':' in symbol else symbol
+            settle = symbol.split(':')[1] if ':' in symbol else 'USDT'
+            for quote in ['USDT', 'BUSD', 'USDC']:
+                if raw.endswith(quote):
+                    symbol = f"{raw[:-len(quote)]}/{quote}:{settle}"
+                    break
+
         try:
             self.exchange.set_leverage(leverage, symbol)
             logger.info(f"设置 {symbol} 杠杆为 {leverage}x")

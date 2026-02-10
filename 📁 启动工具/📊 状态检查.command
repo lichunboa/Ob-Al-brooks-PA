@@ -73,7 +73,7 @@ check_port 8090 "Telegram Service"
 check_port 8083 "Signal Service"
 check_port 8092 "Execution Service"
 check_port 5434 "TimescaleDB"
-check_port 3000 "Web Dashboard"
+check_port 3001 "Web Dashboard"
 check_port 18789 "OpenClaw Gateway"
 
 # Docker 容器检查

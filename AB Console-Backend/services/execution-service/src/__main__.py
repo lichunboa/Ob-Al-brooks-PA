@@ -193,7 +193,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Execution Service",
     description="币安合约交易执行服务 V2.8.0",
-    version="0.4.0",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -216,7 +216,7 @@ async def health():
         "status": "healthy",
         "mode": BINANCE_MODE,
         "service": "execution-service",
-        "version": "0.4.0",
+        "version": "3.0.0",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
     }
 

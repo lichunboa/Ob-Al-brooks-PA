@@ -31,6 +31,8 @@ class PositionPatrol:
         self._total_naked_fixed: int = 0
         self._total_expired_closed: int = 0
         self._total_trailing_moved: int = 0
+        # 已补过止损的持仓（避免 Demo 模式下重复下单）
+        self._sl_placed: dict[str, float] = {}  # {norm_symbol: sl_price}
 
     def get_status(self) -> dict:
         """返回巡检状态摘要"""
@@ -66,8 +68,8 @@ class PositionPatrol:
                 bot_id = self.executor.get_position_bot_id(norm_sym)
                 alloc = (self.trading_state.get_allocation(bot_id)
                          if bot_id else None)
-                # 1. 裸仓检测
-                if norm_sym not in stop_map:
+                # 1. 裸仓检测（跳过已补过止损的）
+                if norm_sym not in stop_map and norm_sym not in self._sl_placed:
                     fixed = await self._fix_naked_position(pos, alloc)
                     if fixed:
                         report["naked_fixed"] += 1
@@ -157,14 +159,18 @@ class PositionPatrol:
                         base = base_quote[:-len(quote)]
                         ccxt_sym = f"{base}/{quote}:{settle}"
                         break
-            self.executor.exchange.create_order(
+            result = self.executor.exchange.create_order(
                 symbol=ccxt_sym, type='stop_market',
                 side=sl_side, amount=pos.quantity,
                 params={'stopPrice': sl_price, 'reduceOnly': True}
             )
+            order_id = result.get('id', 'unknown') if result else 'no-result'
+            # 记录已补止损（避免 Demo 模式下重复下单）
+            self._sl_placed[pos.symbol] = sl_price
             logger.warning(
                 f"[巡检] 裸仓修复: {pos.symbol} 补设止损 {sl_price}"
-                f" (入场={entry}, risk={risk_pct*100:.1f}%)")
+                f" (入场={entry}, risk={risk_pct*100:.1f}%,"
+                f" order_id={order_id})")
             return True
         except Exception as e:
             logger.error(f"[巡检] 裸仓修复失败 {pos.symbol}: {e}")
@@ -315,3 +321,6 @@ class PositionPatrol:
         for sym in list(self._trailing_state.keys()):
             if sym not in active_symbols:
                 del self._trailing_state[sym]
+        for sym in list(self._sl_placed.keys()):
+            if sym not in active_symbols:
+                del self._sl_placed[sym]
