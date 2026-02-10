@@ -331,6 +331,18 @@ class BinanceExecutor:
                         except (ValueError, TypeError):
                             return default
 
+                    # 杠杆：ccxt 可能返回 None，从 notional/initialMargin 推算
+                    raw_leverage = pos.get('leverage')
+                    if raw_leverage is not None:
+                        calc_leverage = safe_int(raw_leverage, 1)
+                    else:
+                        notional = safe_float(pos.get('notional'))
+                        init_margin = safe_float(pos.get('initialMargin'))
+                        if init_margin > 0 and notional > 0:
+                            calc_leverage = max(1, round(notional / init_margin))
+                        else:
+                            calc_leverage = 1
+
                     result.append(Position(
                         symbol=pos.get('symbol', '').replace('/', ''),
                         side=side,
@@ -338,7 +350,7 @@ class BinanceExecutor:
                         entry_price=safe_float(pos.get('entryPrice')),
                         mark_price=safe_float(pos.get('markPrice')),
                         unrealized_pnl=safe_float(pos.get('unrealizedPnl')),
-                        leverage=safe_int(pos.get('leverage'), 1),
+                        leverage=calc_leverage,
                         margin_type=pos.get('marginType', 'cross'),
                         liquidation_price=safe_float(pos.get('liquidationPrice')) if pos.get('liquidationPrice') else None,
                     ))

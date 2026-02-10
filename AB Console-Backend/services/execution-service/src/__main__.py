@@ -267,6 +267,9 @@ async def place_order(request: OrderRequest):
         fixed_limit = alloc.get("daily_loss_limit", 100)
         pct_limit = alloc.get("allocated_usdt", 0) * alloc.get("daily_loss_pct", 5) / 100
         daily_loss = max(fixed_limit, pct_limit)
+        # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
+        if not request.leverage:
+            request.leverage = alloc.get("max_leverage", 1)
     return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
 
