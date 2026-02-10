@@ -110,7 +110,10 @@ class OrderTracker:
 
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
-            trades = data.get("trades", data.get("active_trades", []))
+            if isinstance(data, list):
+                trades = data
+            else:
+                trades = data.get("trades", data.get("active_trades", []))
 
             for trade in trades:
                 if trade.get("status") != "active":
@@ -220,7 +223,10 @@ class OrderTracker:
             data = json.loads(file_path.read_text(encoding="utf-8"))
 
             # 查找交易
-            trades = data.get("trades", data.get("active_trades", []))
+            if isinstance(data, list):
+                trades = data
+            else:
+                trades = data.get("trades", data.get("active_trades", []))
             for trade in trades:
                 if trade.get("trade_id") == trade_id:
                     # 更新状态
@@ -236,7 +242,7 @@ class OrderTracker:
                     break
 
             # 重新组织数据
-            if "active_trades" in data:
+            if isinstance(data, dict) and "active_trades" in data:
                 active = [
                     t for t in trades if t.get("status") == "active"
                 ]

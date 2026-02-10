@@ -104,7 +104,7 @@ export default function ExecutionPage() {
           </p>
         </div>
         <button
-          onClick={refresh}
+          onClick={() => refresh()}
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors disabled:opacity-50"
         >
@@ -510,7 +510,7 @@ export default function ExecutionPage() {
         positions={positions}
         isConnected={isConnected}
         isLoading={isLoading}
-        onRefresh={refresh}
+        onRefresh={() => refresh()}
       />
 
       {/* Patrol Panel */}

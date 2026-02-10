@@ -25,8 +25,8 @@ export function useExecutionData() {
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [tradingStatus, setTradingStatus] = useState<TradingStatus | null>(null);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
+  const refresh = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
@@ -101,7 +101,7 @@ export function useExecutionData() {
   useEffect(() => {
     if (!isConnected) return;
 
-    const interval = setInterval(refresh, 10000);
+    const interval = setInterval(() => refresh(true), 10000);
     return () => clearInterval(interval);
   }, [isConnected, refresh]);
 

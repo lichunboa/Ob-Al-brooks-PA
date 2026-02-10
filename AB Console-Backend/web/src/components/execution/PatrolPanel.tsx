@@ -9,8 +9,8 @@ export function PatrolPanel() {
   const [status, setStatus] = useState<PatrolStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const data = await getPatrolStatus();
     setStatus(data);
     setLoading(false);
@@ -18,8 +18,8 @@ export function PatrolPanel() {
 
   useEffect(() => {
     load();
-    // 每 30 秒自动刷新
-    const timer = setInterval(load, 30000);
+    // 每 30 秒静默刷新
+    const timer = setInterval(() => load(true), 30000);
     return () => clearInterval(timer);
   }, [load]);
 
@@ -36,7 +36,7 @@ export function PatrolPanel() {
           )}
         </div>
         <button
-          onClick={load}
+          onClick={() => load()}
           disabled={loading}
           className="text-slate-400 hover:text-white text-sm flex items-center gap-1"
         >
