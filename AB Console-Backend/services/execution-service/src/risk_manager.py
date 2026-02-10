@@ -93,17 +93,34 @@ class RiskManager:
         self,
         position_size_usdt: float,
         current_positions: int = 0,
+        max_positions: int = 10,
+        daily_loss_limit: float = 0,
+        bot_id: str = "",
     ) -> tuple[bool, str]:
-        """检查是否可以开仓"""
+        """检查是否可以开仓
+
+        Args:
+            daily_loss_limit: per-bot 动态日亏限（已由调用方计算好）
+        """
         if self.emergency_stop:
             return False, "紧急停止已启用，禁止开仓"
 
+        # 全局日亏损检查
         remaining = self.max_daily_loss + self.daily_pnl
         if remaining <= 0:
             return (
                 False,
-                f"已达每日亏损限制 ${self.max_daily_loss}",
+                f"已达全局每日亏损限制 ${self.max_daily_loss}",
             )
+
+        # per-bot 日亏损检查
+        if daily_loss_limit > 0 and bot_id:
+            bot_pnl = self.bot_daily_pnl.get(bot_id, 0.0)
+            if bot_pnl <= -daily_loss_limit:
+                return (
+                    False,
+                    f"Bot {bot_id} 已达日亏限 ${daily_loss_limit:.0f} (当前 ${bot_pnl:.2f})",
+                )
 
         if position_size_usdt > self.max_position_size:
             return (
@@ -112,7 +129,6 @@ class RiskManager:
                 f"超过限制 ${self.max_position_size}",
             )
 
-        max_positions = 5
         if current_positions >= max_positions:
             return (
                 False,

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useExecutionData } from '@/hooks/useExecutionData';
-import { TradingControl, BotAllocations, ThresholdConfig, ReconciliationPanel } from '@/components/execution';
+import { TradingControl, BotAllocations, ThresholdConfig, ReconciliationPanel, BotDetailPanel } from '@/components/execution';
 import type { BotAllocation } from '@/components/execution';
 import {
   Wallet,
@@ -98,7 +98,7 @@ export default function ExecutionPage() {
             交易执行
           </h1>
           <p className="text-slate-400 mt-1">
-            币安 Demo Trading · V2.7.0
+            币安 Demo Trading · V2.8.0
           </p>
         </div>
         <button
@@ -148,23 +148,32 @@ export default function ExecutionPage() {
 
       {/* Trading Control & Bot Allocations */}
       {isConnected && tradingStatus && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TradingControl
-            tradingEnabled={tradingStatus.trading_enabled}
-            lastSync={tradingStatus.last_sync}
-            binanceBalance={tradingStatus.binance_balance}
-            binanceAvailable={tradingStatus.binance_available}
-            unrealizedPnl={tradingStatus.total_unrealized_pnl}
-            onToggle={handleToggleTrading}
-            onSync={handleSync}
-            isLoading={isLoading}
-          />
-          <BotAllocations
-            allocations={tradingStatus.allocations}
-            totalBalance={tradingStatus.binance_balance}
-            onUpdate={handleUpdateAllocation}
-            isLoading={isLoading}
-          />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TradingControl
+              tradingEnabled={tradingStatus.trading_enabled}
+              lastSync={tradingStatus.last_sync}
+              binanceBalance={tradingStatus.binance_balance}
+              binanceAvailable={tradingStatus.binance_available}
+              unrealizedPnl={tradingStatus.total_unrealized_pnl}
+              onToggle={handleToggleTrading}
+              onSync={handleSync}
+              isLoading={isLoading}
+            />
+            <BotAllocations
+              allocations={tradingStatus.allocations}
+              totalBalance={tradingStatus.binance_balance}
+              onUpdate={handleUpdateAllocation}
+              isLoading={isLoading}
+            />
+          </div>
+
+          {/* Bot Detail Panels - 默认全部展开 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {Object.keys(tradingStatus.allocations).map((botId) => (
+              <BotDetailPanel key={botId} botId={botId} onClose={() => {}} />
+            ))}
+          </div>
         </div>
       )}
 
@@ -570,7 +579,7 @@ export default function ExecutionPage() {
       {/* Info */}
       <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-4">
         <p className="text-blue-300 text-sm">
-          <span className="font-semibold">💡 V2.7.0 新功能:</span> 多目标路由、数据对账面板、系统清理优化。
+          <span className="font-semibold">💡 V2.8.0 新功能:</span> Bot 详情面板、进化系统摘要、per-bot 风控配置、数据对账。
           开启交易开关后，机器人才会执行真实交易。
         </p>
       </div>

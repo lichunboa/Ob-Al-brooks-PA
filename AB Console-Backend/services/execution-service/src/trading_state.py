@@ -40,11 +40,13 @@ class BotAllocation:
     fee_rate_taker: float = 0.0004         # taker 费率
     allowed_symbols: list = field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
     min_risk_reward: float = 1.5           # 最小盈亏比
-    daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT
+    daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT（兜底值）
+    daily_loss_pct: float = 5.0             # 日亏损限制 = 分配资金的 %（动态）
     trailing_stop_enabled: bool = False    # 移动止损开关
     trailing_stop_trigger: float = 1.0     # 移动止损触发%
     max_hold_hours: int = 48               # 最大持仓时间
     cooldown_minutes: int = 30             # 同品种冷却期(分钟)
+    allocation_pct: float = 0.0            # 占总余额的百分比（>0 时启用动态分配）
 
 
 @dataclass
@@ -67,10 +69,12 @@ class TradingState:
                 "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
                 "min_risk_reward": 1.5,
                 "daily_loss_limit": 50.0,
+                "daily_loss_pct": 5.0,
                 "trailing_stop_enabled": False,
                 "trailing_stop_trigger": 1.0,
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
+                "allocation_pct": 0.0,
             }
             self.allocations = {
                 "al-brooks": {
@@ -117,10 +121,12 @@ class TradingState:
                 "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
                 "min_risk_reward": 1.5,
                 "daily_loss_limit": 50.0,
+                "daily_loss_pct": 5.0,
                 "trailing_stop_enabled": False,
                 "trailing_stop_trigger": 1.0,
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
+                "allocation_pct": 0.0,
             }
             for bot_id, alloc in self.allocations.items():
                 for key, default_val in new_field_defaults.items():
@@ -171,11 +177,29 @@ class TradingStateManager:
         return self.state.trading_enabled
 
     def sync_balance(self, balance: float, available: float = 0.0, unrealized_pnl: float = 0.0):
-        """同步币安余额"""
+        """同步币安余额，并按百分比动态调整分配资金"""
         self.state.binance_balance = balance
         self.state.binance_available = available or balance
         self.state.total_unrealized_pnl = unrealized_pnl
         self.state.last_sync = datetime.now().isoformat()
+
+        # 动态分配：allocation_pct > 0 的 bot 按余额百分比重算 allocated_usdt
+        if balance > 0:
+            for bot_id, alloc in self.state.allocations.items():
+                pct = alloc.get("allocation_pct", 0.0)
+                if pct > 0:
+                    new_alloc = round(balance * pct / 100, 2)
+                    old_alloc = alloc.get("allocated_usdt", 0)
+                    if abs(new_alloc - old_alloc) > 1.0:  # 变化超过 $1 才更新
+                        alloc["allocated_usdt"] = new_alloc
+                        # 同步更新日亏限（按 daily_loss_pct 重算）
+                        dlp = alloc.get("daily_loss_pct", 3.0)
+                        alloc["daily_loss_limit"] = round(new_alloc * dlp / 100, 2)
+                        logger.info(
+                            f"动态分配 {bot_id}: ${old_alloc:.0f} → ${new_alloc:.0f} "
+                            f"({pct}% of ${balance:.0f})"
+                        )
+
         self._save_state()
         logger.info(f"余额已同步: ${balance:.2f} (可用: ${available:.2f})")
 
@@ -204,9 +228,9 @@ class TradingStateManager:
             "allocated_usdt", "max_leverage", "max_positions",
             "enabled", "risk_percent", "fee_rate_maker",
             "fee_rate_taker", "allowed_symbols",
-            "min_risk_reward", "daily_loss_limit",
+            "min_risk_reward", "daily_loss_limit", "daily_loss_pct",
             "trailing_stop_enabled", "trailing_stop_trigger",
-            "max_hold_hours", "cooldown_minutes",
+            "max_hold_hours", "cooldown_minutes", "allocation_pct",
         }
 
         for key, val in kwargs.items():

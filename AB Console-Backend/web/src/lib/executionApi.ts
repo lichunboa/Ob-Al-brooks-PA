@@ -100,6 +100,7 @@ export interface BotAllocation {
   allowed_symbols: string[];
   min_risk_reward: number;
   daily_loss_limit: number;
+  daily_loss_pct: number;
   trailing_stop_enabled: boolean;
   trailing_stop_trigger: number;
   max_hold_hours: number;
@@ -129,6 +130,7 @@ export interface AllocationUpdate {
   allowed_symbols?: string[];
   min_risk_reward?: number;
   daily_loss_limit?: number;
+  daily_loss_pct?: number;
   trailing_stop_enabled?: boolean;
   trailing_stop_trigger?: number;
   max_hold_hours?: number;
@@ -443,23 +445,21 @@ export async function trackAllOrders(): Promise<{
 // ========== V2.8.0 Bot Summary + Evolution API ==========
 
 export interface BotRiskStatus {
-  daily_limit_ok: boolean;
-  daily_pnl: number;
-  daily_limit: number;
-  cooldowns: Array<{
-    symbol: string;
-    remaining_minutes: number;
-  }>;
+  daily_loss_ok: boolean;
+  daily_loss_remaining: number;
+  cooldowns: Record<string, number>;
+  emergency_stop: boolean;
 }
 
 export interface BotSummary {
   bot_id: string;
   config: BotAllocation;
   positions: Position[];
-  daily_pnl: number;
+  daily_pnl: { realized: number; unrealized: number };
   available_margin: number;
   remaining_positions: number;
   can_trade: boolean;
+  can_trade_reason: string;
   risk_status: BotRiskStatus;
 }
 

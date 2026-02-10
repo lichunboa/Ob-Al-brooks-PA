@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 # order_id → bot_id 映射文件
 ORDER_BOT_MAP_FILE = Path.home() / ".openclaw" / "workspace" / "order_bot_map.json"
+# symbol → bot_id 持仓映射文件（冗余备份，直接记录哪个 bot 持有哪个品种）
+POSITION_BOT_MAP_FILE = Path.home() / ".openclaw" / "workspace" / "position_bot_map.json"
 
 
 class BinanceExecutor:
@@ -48,12 +50,50 @@ class BinanceExecutor:
         # 加载 order_id → bot_id 映射
         self._order_bot_map = self._load_order_bot_map()
 
+        # 加载 symbol → bot_id 持仓映射（冗余备份）
+        self._position_bot_map = self._load_position_bot_map()
+
+        # 缓存的交易费率
+        self._cached_fees = {}
+
+    def fetch_trading_fees(self) -> dict:
+        """从币安获取实际交易费率（启动时调用一次）"""
+        try:
+            markets = self.exchange.load_markets()
+            for symbol in ['BTC/USDT:USDT', 'ETH/USDT:USDT',
+                           'SOL/USDT:USDT', 'BNB/USDT:USDT']:
+                if symbol in markets:
+                    m = markets[symbol]
+                    self._cached_fees[m['id']] = {
+                        'maker': m.get('maker', 0.0002),
+                        'taker': m.get('taker', 0.0004),
+                    }
+            logger.info(
+                f"获取币安费率成功: "
+                f"{len(self._cached_fees)} 个品种"
+            )
+            return self._cached_fees
+        except Exception as e:
+            logger.warning(f"获取币安费率失败: {e}")
+            return {}
+
     def _load_order_bot_map(self) -> dict:
-        """加载 order_id → bot_id 映射"""
+        """加载 order_id → {bot_id, symbol} 映射，兼容旧格式"""
         try:
             if ORDER_BOT_MAP_FILE.exists():
                 with open(ORDER_BOT_MAP_FILE, 'r') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                # 迁移旧格式: {oid: "bot_id"} → {oid: {bot_id, symbol}}
+                migrated = False
+                for oid, val in list(data.items()):
+                    if isinstance(val, str):
+                        data[oid] = {"bot_id": val, "symbol": ""}
+                        migrated = True
+                if migrated:
+                    with open(ORDER_BOT_MAP_FILE, 'w') as f:
+                        json.dump(data, f, indent=2)
+                    logger.info(f"order_bot_map 已迁移到新格式")
+                return data
         except Exception as e:
             logger.warning(f"加载 order_bot_map 失败: {e}")
         return {}
@@ -67,15 +107,162 @@ class BinanceExecutor:
         except Exception as e:
             logger.warning(f"保存 order_bot_map 失败: {e}")
 
-    def _register_order(self, order_id: str, bot_id: str):
-        """注册订单与机器人的映射"""
+    def _load_position_bot_map(self) -> dict:
+        """加载 symbol → bot_id 持仓映射"""
+        try:
+            if POSITION_BOT_MAP_FILE.exists():
+                with open(POSITION_BOT_MAP_FILE, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.warning(f"加载 position_bot_map 失败: {e}")
+        return {}
+
+    def _save_position_bot_map(self):
+        """保存 symbol → bot_id 持仓映射"""
+        try:
+            POSITION_BOT_MAP_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(POSITION_BOT_MAP_FILE, 'w') as f:
+                json.dump(self._position_bot_map, f, indent=2)
+        except Exception as e:
+            logger.warning(f"保存 position_bot_map 失败: {e}")
+
+    def register_position(self, symbol: str, bot_id: str):
+        """注册持仓归属（开仓时调用）"""
+        if bot_id and symbol:
+            norm_sym = symbol.replace('/', '')
+            self._position_bot_map[norm_sym] = bot_id
+            self._save_position_bot_map()
+
+    def unregister_position(self, symbol: str):
+        """注销持仓归属（平仓时调用）"""
+        norm_sym = symbol.replace('/', '')
+        if norm_sym in self._position_bot_map:
+            del self._position_bot_map[norm_sym]
+            self._save_position_bot_map()
+
+    def get_position_bot_id(self, symbol: str) -> Optional[str]:
+        """通过 symbol 查找持仓归属的 bot_id"""
+        norm_sym = symbol.replace('/', '')
+        return self._position_bot_map.get(norm_sym)
+
+    def _register_order(self, order_id: str, bot_id: str, symbol: str = ""):
+        """注册订单与机器人的映射（含 symbol）"""
         if bot_id:
-            self._order_bot_map[str(order_id)] = bot_id
+            # 标准化 symbol: SOL/USDT:USDT → SOLUSDT:USDT
+            norm_sym = symbol.replace('/', '') if symbol else ""
+            self._order_bot_map[str(order_id)] = {
+                "bot_id": bot_id,
+                "symbol": norm_sym,
+            }
             self._save_order_bot_map()
 
     def _lookup_bot_id(self, order_id: str) -> Optional[str]:
         """通过 order_id 查找 bot_id"""
-        return self._order_bot_map.get(str(order_id))
+        val = self._order_bot_map.get(str(order_id))
+        if isinstance(val, dict):
+            return val.get("bot_id")
+        # 兼容旧格式 {order_id: "bot_id"}
+        return val if isinstance(val, str) else None
+
+    def get_bot_symbols(self, bot_id: str) -> set:
+        """获取某 bot 关联的所有 symbol（从 order_bot_map）"""
+        symbols = set()
+        for oid, val in self._order_bot_map.items():
+            if isinstance(val, dict):
+                if val.get("bot_id") == bot_id and val.get("symbol"):
+                    symbols.add(val["symbol"])
+            elif val == bot_id:
+                # 旧格式无 symbol，跳过
+                pass
+        return symbols
+
+    def _parse_bot_id_from_client_order_id(self, cid: str) -> Optional[str]:
+        """从 clientOrderId 解析 bot_id。格式: AB_{bot_id}_{timestamp}"""
+        if not cid or not cid.startswith('AB_'):
+            return None
+        parts = cid.split('_')
+        if len(parts) < 3:
+            return None
+        bot_id = parts[1]
+        # 处理 al-brooks 这种带连字符的 bot_id（AB_al_brooks_xxx）
+        if parts[1] == 'al' and len(parts) >= 4:
+            bot_id = f"{parts[1]}-{parts[2]}"
+        return bot_id
+
+    async def recover_bot_map_from_binance(self) -> dict:
+        """从币安 open orders + trades history 恢复 order_bot_map 和 position_bot_map
+
+        clientOrderId 格式: AB_{bot_id}_{timestamp}
+        返回: {"recovered_orders": int, "recovered_positions": int}
+        """
+        recovered_orders = 0
+        recovered_positions = 0
+        try:
+            # 1. 从 open orders 恢复
+            open_orders = self.exchange.fetch_open_orders()
+            for order in open_orders:
+                oid = str(order.get('id', ''))
+                cid = order.get('clientOrderId', '')
+                if oid in self._order_bot_map:
+                    continue
+                bot_id = self._parse_bot_id_from_client_order_id(cid)
+                if bot_id:
+                    raw_sym = order.get('symbol', '').replace('/', '')
+                    self._order_bot_map[oid] = {"bot_id": bot_id, "symbol": raw_sym}
+                    recovered_orders += 1
+
+            # 2. 从当前持仓 + 订单历史恢复 position_bot_map
+            positions = await self.get_positions()
+            for pos in positions:
+                norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
+                if norm_sym in self._position_bot_map:
+                    continue  # 已有映射，跳过
+                # 先尝试从 order_bot_map 中通过 symbol 匹配
+                for oid, val in self._order_bot_map.items():
+                    if isinstance(val, dict) and val.get("symbol") == norm_sym:
+                        self._position_bot_map[norm_sym] = val["bot_id"]
+                        recovered_positions += 1
+                        logger.info(f"从 order_bot_map 恢复持仓归属: {norm_sym} → {val['bot_id']}")
+                        break
+                if norm_sym in self._position_bot_map:
+                    continue
+                # 兜底：查该品种最近的订单（fetch_orders 包含 clientOrderId）
+                try:
+                    ccxt_sym = norm_sym
+                    if ':' in norm_sym and '/' not in norm_sym:
+                        base_quote = norm_sym.split(':')[0]
+                        settle = norm_sym.split(':')[1]
+                        for quote in ['USDT', 'BUSD', 'USDC']:
+                            if base_quote.endswith(quote):
+                                base = base_quote[:-len(quote)]
+                                ccxt_sym = f"{base}/{quote}:{settle}"
+                                break
+                    orders = self.exchange.fetch_orders(ccxt_sym, limit=10)
+                    for o in reversed(orders):  # 从最近的开始
+                        cid = o.get('clientOrderId', '') or o.get('info', {}).get('clientOrderId', '')
+                        bot_id = self._parse_bot_id_from_client_order_id(cid)
+                        if bot_id:
+                            self._position_bot_map[norm_sym] = bot_id
+                            recovered_positions += 1
+                            logger.info(f"从订单历史恢复持仓归属: {norm_sym} → {bot_id}")
+                            break
+                except Exception as e:
+                    logger.warning(f"查询 {norm_sym} 订单历史失败: {e}")
+
+            if recovered_orders > 0:
+                self._save_order_bot_map()
+                logger.info(f"从币安恢复 {recovered_orders} 条 order→bot 映射")
+            if recovered_positions > 0:
+                self._save_position_bot_map()
+
+            return {
+                "recovered_orders": recovered_orders,
+                "recovered_positions": recovered_positions,
+                "total_open": len(open_orders),
+            }
+        except Exception as e:
+            logger.warning(f"恢复 bot 映射失败: {e}")
+            return {"recovered_orders": 0, "recovered_positions": 0, "error": str(e)}
 
     def _check_connection(self) -> bool:
         """检查连接"""
@@ -177,15 +364,28 @@ class BinanceExecutor:
             logger.error(f"设置杠杆失败: {e}")
             return False
 
-    async def place_order(self, request: OrderRequest) -> OrderResponse:
+    async def place_order(self, request: OrderRequest, max_positions: int = 10, daily_loss_limit: float = 0, bot_id: str = "") -> OrderResponse:
         """下单"""
         symbol = request.symbol
+        # 标准化 symbol 为 ccxt 格式: SOLUSDT:USDT → SOL/USDT:USDT
+        if ':' in symbol and '/' not in symbol:
+            base_quote = symbol.split(':')[0]  # SOLUSDT
+            settle = symbol.split(':')[1]      # USDT
+            # 从末尾分离 quote（USDT/BUSD）
+            for quote in ['USDT', 'BUSD', 'USDC']:
+                if base_quote.endswith(quote):
+                    base = base_quote[:-len(quote)]
+                    symbol = f"{base}/{quote}:{settle}"
+                    break
 
         # 风控检查
         positions = await self.get_positions()
         position_size = request.quantity * (request.price or 0)  # 估算仓位大小
 
-        ok, msg = self.risk_manager.check_can_open(position_size, len(positions))
+        ok, msg = self.risk_manager.check_can_open(
+            position_size, len(positions), max_positions=max_positions,
+            daily_loss_limit=daily_loss_limit, bot_id=bot_id or request.bot_id or "",
+        )
         if not ok and not request.reduce_only:
             return OrderResponse(
                 success=False,
@@ -213,12 +413,12 @@ class BinanceExecutor:
                 order_params['price'] = request.price
 
             if request.reduce_only:
-                order_params['reduceOnly'] = True
+                order_params.setdefault('params', {})['reduceOnly'] = True
 
             # 使用 clientOrderId 标记机器人
             if request.bot_id:
                 client_id = f"AB_{request.bot_id}_{int(time.time())}"
-                order_params['params'] = {'newClientOrderId': client_id}
+                order_params.setdefault('params', {})['newClientOrderId'] = client_id
 
             order = self.exchange.create_order(**order_params)
 
@@ -226,7 +426,10 @@ class BinanceExecutor:
 
             # 注册 order_id → bot_id 映射
             if request.bot_id:
-                self._register_order(order_id, request.bot_id)
+                self._register_order(order_id, request.bot_id, symbol)
+                # 注册 symbol → bot_id 持仓映射（非 reduce_only 才是开仓）
+                if not request.reduce_only:
+                    self.register_position(symbol, request.bot_id)
 
             response = OrderResponse(
                 success=True,
@@ -241,7 +444,18 @@ class BinanceExecutor:
 
             logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {order.get('price', 'MARKET')} [bot={request.bot_id or 'unknown'}]")
 
-            # 下止损单
+            # 强制保护性止损：agent 未传 stop_loss 时后端兜底
+            if not request.stop_loss and not request.reduce_only:
+                risk_pct = 0.02  # 默认 2%，与 bot allocation risk_percent 一致
+                entry_price = float(order.get('average') or order.get('price') or 0)
+                if entry_price > 0:
+                    if request.side == OrderSide.BUY:
+                        request.stop_loss = round(entry_price * (1 - risk_pct), 2)
+                    else:
+                        request.stop_loss = round(entry_price * (1 + risk_pct), 2)
+                    logger.info(f"自动保护性止损: {request.stop_loss} (入场={entry_price}, risk={risk_pct*100}%)")
+
+            # 下止损单（失败则回滚主订单）
             if request.stop_loss:
                 try:
                     sl_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
@@ -261,7 +475,25 @@ class BinanceExecutor:
                         self._register_order(sl_id, request.bot_id)
                     logger.info(f"止损单已设置: {request.stop_loss}")
                 except Exception as e:
-                    logger.warning(f"止损单设置失败: {e}")
+                    logger.error(f"止损单设置失败，回滚主订单: {e}")
+                    try:
+                        self.exchange.cancel_order(order_id, symbol)
+                        logger.info(f"主订单已取消: {order_id}")
+                    except Exception:
+                        try:
+                            close_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
+                            self.exchange.create_order(
+                                symbol=symbol, type='market',
+                                side=close_side.value.lower(),
+                                amount=request.quantity,
+                                params={'reduceOnly': True}
+                            )
+                            logger.info("主订单已成交，已市价平仓回滚")
+                        except Exception as e2:
+                            logger.critical(f"回滚失败！裸仓风险: {symbol} {request.quantity} - {e2}")
+                    response.success = False
+                    response.message = f"止损单设置失败，已回滚: {e}"
+                    return response
 
             # 下止盈单
             if request.take_profit:
@@ -331,6 +563,9 @@ class BinanceExecutor:
             # 记录盈亏
             if response.success:
                 self.risk_manager.record_pnl(pos.unrealized_pnl)
+                # 注销持仓归属（全部平仓时）
+                if not quantity or quantity >= pos.quantity:
+                    self.unregister_position(symbol)
 
             return response
 

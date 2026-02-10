@@ -156,13 +156,14 @@ def main():
         )
 
         def determine_route_targets(ev):
-            """根据信号特征决定路由目标 - V2.2 简化版
+            """根据信号特征决定路由目标 - V2.9 多路由版
 
             路由规则（按优先级）：
             1. PA Engine 信号（source=pa 或 entry_trigger>0）→ al-brooks
-            2. 威科夫专属信号（volume_spike/trend_reversal/breakout）→ wyckoff
-            3. 其他量化信号（强度>=75）→ trader
-            4. 低强度信号 → 不发送
+            2. 威科夫专属信号 → wyckoff
+            3. 威科夫+量化 双路由信号 → [wyckoff, trader]
+            4. 其他量化信号（强度>=70）→ trader
+            5. 低强度信号 → 不发送
             """
             targets = []
             source = getattr(ev, 'source', 'unknown')
@@ -174,18 +175,30 @@ def main():
                 targets.append('al-brooks')
                 return targets
 
-            # 2. 威科夫专属信号（仅限特定类型，不包括 extreme）
-            wyckoff_only_triggers = ['volume_spike', 'trend_reversal', 'breakout']
-            if signal_type in wyckoff_only_triggers:
+            # 2. 威科夫专属信号（供求/成交量类）
+            wyckoff_only = [
+                'volume_spike', 'trend_reversal', 'breakout',
+            ]
+            if signal_type in wyckoff_only:
                 targets.append('wyckoff')
                 return targets
 
-            # 3. 量化信号（包括 extreme 类型）→ trader
-            if ev.strength >= 75:
+            # 3. 双路由：威科夫 + 量化（大户持仓/OI 变化）
+            wyckoff_and_trader = [
+                'oi_surge', 'oi_dump',
+                'top_trader_extreme_long', 'top_trader_extreme_short',
+            ]
+            if signal_type in wyckoff_and_trader:
+                targets.append('wyckoff')
                 targets.append('trader')
                 return targets
 
-            # 4. 低强度信号 → 不发送
+            # 4. 量化信号（强度>=70）→ trader
+            if ev.strength >= 70:
+                targets.append('trader')
+                return targets
+
+            # 5. 低强度信号 → 不发送
             return targets
 
         def send_to_target(signal_data, target):

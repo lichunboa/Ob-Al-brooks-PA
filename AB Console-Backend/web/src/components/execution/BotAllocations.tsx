@@ -18,6 +18,7 @@ export interface BotAllocation {
   allowed_symbols: string[];
   min_risk_reward: number;
   daily_loss_limit: number;
+  daily_loss_pct: number;
   trailing_stop_enabled: boolean;
   trailing_stop_trigger: number;
   max_hold_hours: number;
@@ -157,10 +158,11 @@ export function BotAllocations({
                 {/* 风控配置 */}
                 <div>
                   <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">风控配置</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <EditField label="单笔风险%" value={editData.risk_percent ?? alloc.risk_percent} onChange={(v) => setEditData({ ...editData, risk_percent: v })} step={0.5} />
                     <EditField label="最小盈亏比" value={editData.min_risk_reward ?? alloc.min_risk_reward} onChange={(v) => setEditData({ ...editData, min_risk_reward: v })} step={0.5} />
-                    <EditField label="日亏损限额" value={editData.daily_loss_limit ?? alloc.daily_loss_limit} onChange={(v) => setEditData({ ...editData, daily_loss_limit: v })} />
+                    <EditField label="日亏限(固定$)" value={editData.daily_loss_limit ?? alloc.daily_loss_limit} onChange={(v) => setEditData({ ...editData, daily_loss_limit: v })} />
+                    <EditField label="日亏限(%资金)" value={editData.daily_loss_pct ?? alloc.daily_loss_pct} onChange={(v) => setEditData({ ...editData, daily_loss_pct: v })} step={0.5} />
                   </div>
                 </div>
                 {/* 交易控制 */}
@@ -217,7 +219,8 @@ export function BotAllocations({
                     <p className="text-white font-medium">{alloc.name}</p>
                     <p className="text-slate-400 text-sm">
                       ${alloc.allocated_usdt.toLocaleString()} · {alloc.max_leverage}x ·{' '}
-                      {alloc.current_positions || 0}/{alloc.max_positions} 仓 · 风险{alloc.risk_percent}%
+                      {alloc.current_positions || 0}/{alloc.max_positions} 仓 · 风险{alloc.risk_percent}% · 日亏限{alloc.daily_loss_pct}%($
+                      {Math.max(alloc.daily_loss_limit, alloc.allocated_usdt * alloc.daily_loss_pct / 100).toFixed(0)})
                     </p>
                   </div>
                 </div>
