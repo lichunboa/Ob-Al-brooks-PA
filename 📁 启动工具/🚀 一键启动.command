@@ -180,14 +180,14 @@ if [ "$USE_COMPOSE" = true ] && [ "$DB_READY" = true ]; then
     # 启动 Web Dashboard（本地 Next.js，不在 Docker 中）
     echo ""
     log_info "[9/10] 启动 Web Dashboard (本地)..."
-    if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-        log_success "Web Dashboard 已在运行 (端口 3000)"
+    if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Web Dashboard 已在运行 (端口 3001)"
     else
         cd "$BACKEND_DIR/web"
         nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
         sleep 8
-        if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-            log_success "Web Dashboard 启动成功 (端口 3000)"
+        if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Web Dashboard 启动成功 (端口 3001)"
         else
             log_warn "Web Dashboard 启动中，请稍等..."
             log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
@@ -367,14 +367,14 @@ else
     # 9. 启动 Web Dashboard
     echo ""
     log_info "[9/9] 启动 Web Dashboard..."
-    if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-        log_success "Web Dashboard 已在运行 (端口 3000)"
+    if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Web Dashboard 已在运行 (端口 3001)"
     else
         cd "$BACKEND_DIR/web"
         nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
         sleep 8
-        if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-            log_success "Web Dashboard 启动成功 (端口 3000)"
+        if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Web Dashboard 启动成功 (端口 3001)"
         else
             log_warn "Web Dashboard 启动中，请稍等..."
             log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
@@ -406,7 +406,7 @@ check_service 8084 "Vis Service      "
 check_service 8090 "Telegram Service "
 check_service 8083 "Signal Service   "
 check_service 8092 "Execution Service"
-check_service 3000 "Web Dashboard    "
+check_service 3001 "Web Dashboard    "
 
 echo ""
 echo "【外部服务】"
@@ -458,7 +458,7 @@ echo "╔═══════════════════════�
 echo "║                     访问地址                                ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo "  Web Dashboard:  http://localhost:3000/chart"
+echo "  Web Dashboard:  http://localhost:3001/chart"
 echo "  API 文档:       http://localhost:8088/docs"
 echo "  API 健康:       http://localhost:8088/health"
 echo "  Vis 模板:       http://localhost:8084/templates"
