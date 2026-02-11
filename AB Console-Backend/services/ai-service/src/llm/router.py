@@ -71,19 +71,7 @@ class LLMRouter:
 
     def _load_models(self):
         """从环境变量加载模型配置"""
-        # Kimi 2.5 - 主力模型
-        kimi_key = os.getenv("KIMI_API_KEY") or os.getenv("EXTERNAL_API_KEY")
-        if kimi_key:
-            self.models["kimi"] = ModelConfig(
-                name="Kimi 2.5",
-                base_url=os.getenv("KIMI_API_BASE_URL", "https://api.moonshot.cn/v1"),
-                api_key=kimi_key,
-                model_id=os.getenv("KIMI_MODEL", "moonshot-v1-8k"),
-                max_tokens=int(os.getenv("KIMI_MAX_TOKENS", "32000")),
-                priority=0,  # 最高优先级
-            )
-
-        # Gemini 反代 - 备用模型
+        # 1. Gemini 反代 - 主力模型 (Priority 0)
         gemini_key = os.getenv("GEMINI_API_KEY")
         gemini_url = os.getenv("GEMINI_API_BASE_URL")
         if gemini_key and gemini_url:
@@ -92,19 +80,33 @@ class LLMRouter:
                 base_url=gemini_url,
                 api_key=gemini_key,
                 model_id=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
-                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "128000")),
+                max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "1000000")), # Gemini 2.0 Flash 支持 1M
+                priority=0,  # 最高优先级
+            )
+
+        # 2. Kimi 2.5 - 备用模型 (Priority 1)
+        kimi_key = os.getenv("KIMI_API_KEY") or os.getenv("EXTERNAL_API_KEY")
+        if kimi_key:
+            self.models["kimi"] = ModelConfig(
+                name="Kimi 2.5",
+                base_url=os.getenv("KIMI_API_BASE_URL", "https://api.moonshot.cn/v1"),
+                api_key=kimi_key,
+                model_id=os.getenv("KIMI_MODEL", "moonshot-v1-8k"),
+                max_tokens=int(os.getenv("KIMI_MAX_TOKENS", "32000")),
                 priority=1,
             )
 
-        # DeepSeek - 大 context 备用
-        deepseek_key = os.getenv("DEEPSEEK_API_KEY")
-        if deepseek_key:
-            self.models["deepseek"] = ModelConfig(
-                name="DeepSeek",
-                base_url=os.getenv("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com/v1"),
-                api_key=deepseek_key,
-                model_id=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-                max_tokens=int(os.getenv("DEEPSEEK_MAX_TOKENS", "64000")),
+        # 3. Claude Opus 4.6 - 保底模型 (Priority 2)
+        claude_key = os.getenv("CLAUDE_API_KEY")
+        # 如果没有专门的 CLAUDE_KEY，尝试复用 EXTERNAL_API_KEY (如果它是 Claude key 的话)
+        # 但为了安全，最好还是要有 CLAUDE_API_KEY。这里假设用户会在 .env 里配
+        if claude_key:
+            self.models["claude"] = ModelConfig(
+                name="Claude Opus 4.6",
+                base_url=os.getenv("CLAUDE_API_BASE_URL", "https://api.anthropic.com/v1"),
+                api_key=claude_key,
+                model_id=os.getenv("CLAUDE_MODEL", "claude-3-opus-20240229"),
+                max_tokens=int(os.getenv("CLAUDE_MAX_TOKENS", "200000")),
                 priority=2,
             )
 
@@ -129,9 +131,9 @@ class LLMRouter:
         选择模型
 
         策略：
-        1. 优先使用主力模型（priority 最小）
-        2. 如果主力模型连续失败 3 次，切换到备用
-        3. 大 payload (>30KB) 优先使用大 context 模型
+        1. 优先使用高优先级模型 (Priority 0 -> 1 -> 2)
+        2. 如果模型连续失败 3 次，降级到下一个优先级的模型
+        3. 确保所选模型的 max_tokens 足够处理 payload
         """
         if not self.models:
             return None
@@ -145,21 +147,30 @@ class LLMRouter:
         if not sorted_models:
             return None
 
-        # 大 payload 优先使用大 context 模型
-        if payload_size > 30000:
-            for name, config in sorted_models:
-                if config.max_tokens >= 64000:
-                    return name
+        # 遍历模型找到第一个可用的
+        for name, config in sorted_models:
+            # 检查是否连续失败过多
+            if config.fail_count >= 3:
+                logger.warning(f"[LLMRouter] 模型 {name} 连续失败 {config.fail_count} 次，跳过")
+                continue
 
-        # 检查主力模型健康状态
-        primary_name, primary_config = sorted_models[0]
-        if primary_config.fail_count >= 3:
-            # 主力模型连续失败，检查是否有备用
-            if len(sorted_models) > 1:
-                logger.warning(f"[LLMRouter] 主力模型 {primary_name} 连续失败 {primary_config.fail_count} 次，切换到备用")
-                return sorted_models[1][0]
+            # 检查 Context 窗口
+            # Gemini (1M) 和 Claude (200k) 肯定够，Kimi (32k) 可能会不够
+            # 如果 payload 很大(>30k chars) 且模型 token 上限小(<32k)，则跳过该模型
+            if payload_size > 80000 and config.max_tokens < 32000:
+                 logger.info(f"[LLMRouter] Payload ({payload_size}) 过大，跳过小上下文模型 {name}")
+                 continue
 
-        return primary_name
+            return name
+
+        # 如果所有模型都因故障被跳过，强制重试主力模型
+        if sorted_models:
+            primary_name, primary_config = sorted_models[0]
+            logger.warning(f"[LLMRouter] 所有模型均不可用，强制重试主力模型 {primary_name}")
+            primary_config.fail_count = 0
+            return primary_name
+
+        return None
 
     async def call(
         self,

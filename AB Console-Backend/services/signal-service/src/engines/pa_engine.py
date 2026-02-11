@@ -386,6 +386,29 @@ def ema_slope(ema_values: list[float], lookback: int = 5) -> float:
     return (recent[-1] - recent[0]) / recent[0] * 100  # 百分比
 
 
+def calculate_atr(candles: list[Candle], period: int = 14) -> float:
+    """计算 ATR (Average True Range)"""
+    if len(candles) < period + 1:
+        return 0.0
+
+    tr_list = []
+    for i in range(1, len(candles)):
+        c = candles[i]
+        prev = candles[i-1]
+        hl = c.high - c.low
+        hc = abs(c.high - prev.close)
+        lc = abs(c.low - prev.close)
+        tr = max(hl, hc, lc)
+        tr_list.append(tr)
+
+    if not tr_list:
+        return 0.0
+
+    # 简单移动平均计算 ATR
+    recent_tr = tr_list[-period:]
+    return sum(recent_tr) / len(recent_tr)
+
+
 # ============ 市场周期识别 ============
 
 class CycleIdentifier:
@@ -451,28 +474,32 @@ class StrategyDetector:
     
     # === 急速方案 ===
     
-    def detect_buy_now(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+    def detect_buy_now(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
         收线追进（做多）
         条件：2+ 根强势阳线收在高点，动能持续
         """
         if len(candles) < 3:
             return None
-        
+
         recent = candles[-3:]
         strong_count = sum(1 for c in recent if CandlePatterns.is_strong_bull(c))
-        
+
         if strong_count >= 2:
             curr = candles[-1]
-            # 止损：最近低点
-            stop = min(c.low for c in recent)
+            # 止损：最近低点 或 ATR 动态止损
+            low_stop = min(c.low for c in recent)
+            atr_stop = curr.close - 2.0 * atr if atr > 0 else curr.close * 0.995
+            stop = max(low_stop, atr_stop) # 取较近的，还是较远的？通常取结构低点，ATR作为辅助
+            # Al Brooks: 止损在信号棒下方1 tick. 如果太远，用ATR保护
+
             target = curr.close + (curr.close - stop) * 2  # 2:1 盈亏比
-            
+
             return PASignal(
                 symbol=curr.symbol,
                 signal_type="收线追进",
                 direction="BUY",
-                strength=min(90, 70 + strong_count * 10),
+                strength=min(95, 75 + strong_count * 10), # 顺势信号给高分
                 message=f"连续{strong_count}根强势阳线，动能强劲",
                 price=curr.close,
                 stop_loss=stop,
@@ -481,27 +508,30 @@ class StrategyDetector:
                 cycle="急速多",
                 timeframe=curr.timeframe,
             )
-        
+
         return None
-    
-    def detect_sell_now(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+
+    def detect_sell_now(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """收线追进（做空）"""
         if len(candles) < 3:
             return None
-        
+
         recent = candles[-3:]
         strong_count = sum(1 for c in recent if CandlePatterns.is_strong_bear(c))
-        
+
         if strong_count >= 2:
             curr = candles[-1]
-            stop = max(c.high for c in recent)
+            high_stop = max(c.high for c in recent)
+            atr_stop = curr.close + 2.0 * atr if atr > 0 else curr.close * 1.005
+            stop = min(high_stop, atr_stop)
+
             target = curr.close - (stop - curr.close) * 2
-            
+
             return PASignal(
                 symbol=curr.symbol,
                 signal_type="收线追进",
                 direction="SELL",
-                strength=min(90, 70 + strong_count * 10),
+                strength=min(95, 75 + strong_count * 10),
                 message=f"连续{strong_count}根强势阴线，动能强劲",
                 price=curr.close,
                 stop_loss=stop,
@@ -510,31 +540,37 @@ class StrategyDetector:
                 cycle="急速空",
                 timeframe=curr.timeframe,
             )
-        
+
         return None
-    
-    def detect_high1_low1(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+
+    def detect_high1_low1(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         高1/低1 (High 1/Low 1)
         条件：趋势中第一次回调到 EMA20
         """
         if len(candles) < 10 or len(ema20) < 10:
             return None
-        
+
         curr = candles[-1]
         prev = candles[-2]
-        
+
         if cycle == "趋势多":
             # 检测回调到 EMA20
             if prev.low <= ema20[-2] * 1.003 and curr.close > prev.high:
-                stop = min(candles[-3].low, prev.low)
+                struct_stop = min(candles[-3].low, prev.low)
+                atr_stop = curr.close - 2.0 * atr if atr > 0 else curr.close * 0.995
+                stop = max(struct_stop, atr_stop) # 结构止损和ATR止损取较高者（更紧）? 不，通常取较远者避免被扫，或者较近者控制风险？
+                # Al Brooks: Always swing stop (previous major low) for trend trading.
+                # Use structure stop if reasonable.
+                stop = struct_stop
+
                 target = curr.close + (curr.close - stop) * 2
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="高1",
                     direction="BUY",
-                    strength=80,
+                    strength=85, # 顺势高分
                     message="趋势中首次回调到 EMA20 后反弹",
                     price=curr.close,
                     stop_loss=stop,
@@ -543,17 +579,18 @@ class StrategyDetector:
                     cycle=cycle,
                     timeframe=curr.timeframe,
                 )
-        
+
         elif cycle == "趋势空":
             if prev.high >= ema20[-2] * 0.997 and curr.close < prev.low:
-                stop = max(candles[-3].high, prev.high)
+                struct_stop = max(candles[-3].high, prev.high)
+                stop = struct_stop
                 target = curr.close - (stop - curr.close) * 2
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="低1",
                     direction="SELL",
-                    strength=80,
+                    strength=85, # 顺势高分
                     message="趋势中首次反弹到 EMA20 后回落",
                     price=curr.close,
                     stop_loss=stop,
@@ -562,37 +599,38 @@ class StrategyDetector:
                     cycle=cycle,
                     timeframe=curr.timeframe,
                 )
-        
+
         return None
-    
+
     # === 区间方案 ===
-    
-    def detect_fade_breakout(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+
+    def detect_fade_breakout(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         看衰突破 (Fade Breakout)
         条件：区间中突破后立即失败（80/20 规则）
         """
         if cycle != "区间" or len(candles) < 20:
             return None
-        
+
         # 找到区间高低点
         lookback = candles[-20:]
         range_high = max(c.high for c in lookback[:-2])
         range_low = min(c.low for c in lookback[:-2])
-        
+
         curr = candles[-1]
         prev = candles[-2]
-        
+
         # 上方突破失败
         if prev.close > range_high and curr.close < range_high:
-            stop = prev.high * 1.002
+            # 止损：前高 + 1 ATR
+            stop = prev.high + (atr if atr > 0 else prev.high * 0.002)
             target = (range_high + range_low) / 2  # 目标区间中点
-            
+
             return PASignal(
                 symbol=curr.symbol,
                 signal_type="看衰突破",
                 direction="SELL",
-                strength=75,
+                strength=75, # 反转策略 75 分
                 message="区间上方突破失败，看衰做空（80/20规则）",
                 price=curr.close,
                 stop_loss=stop,
@@ -601,17 +639,17 @@ class StrategyDetector:
                 cycle=cycle,
                 timeframe=curr.timeframe,
             )
-        
+
         # 下方突破失败
         if prev.close < range_low and curr.close > range_low:
-            stop = prev.low * 0.998
+            stop = prev.low - (atr if atr > 0 else prev.low * 0.002)
             target = (range_high + range_low) / 2
-            
+
             return PASignal(
                 symbol=curr.symbol,
                 signal_type="看衰突破",
                 direction="BUY",
-                strength=75,
+                strength=75, # 反转策略 75 分
                 message="区间下方突破失败，看衰做多（80/20规则）",
                 price=curr.close,
                 stop_loss=stop,
@@ -620,10 +658,10 @@ class StrategyDetector:
                 cycle=cycle,
                 timeframe=curr.timeframe,
             )
-        
+
         return None
-    
-    def detect_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+
+    def detect_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         20均线缺口 (20 EMA Gap)
         条件：趋势中价格首次触及 EMA20
@@ -931,7 +969,7 @@ class StrategyDetector:
         
         return None
     
-    def detect_final_flag(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+    def detect_final_flag(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         末端旗形 (Final Flag)
         条件：
@@ -941,33 +979,34 @@ class StrategyDetector:
         """
         if not cycle.startswith("趋势") or len(candles) < 25:
             return None
-        
+
         curr = candles[-1]
         prev = candles[-2]
-        
+
         # 检测旗形：5-10 根小范围震荡
         flag_candles = candles[-10:-1]
         flag_range = max(c.high for c in flag_candles) - min(c.low for c in flag_candles)
         trend_range = max(c.high for c in candles[-25:-10]) - min(c.low for c in candles[-25:-10])
-        
+
         # 旗形范围应该明显小于趋势范围
         if flag_range > trend_range * 0.4:
             return None
-        
+
         # 检测旗形内 K 线是否较小
         avg_body = sum(CandlePatterns.body_size(c) for c in flag_candles) / len(flag_candles)
         trend_avg_body = sum(CandlePatterns.body_size(c) for c in candles[-25:-10]) / 15
-        
+
         if avg_body > trend_avg_body * 0.5:  # 旗形 K 线应该明显较小
             return None
-        
+
         if cycle == "趋势多":
             # 上升趋势末端旗形：突破失败 = 做空
             flag_high = max(c.high for c in flag_candles)
             if prev.high > flag_high and curr.close < prev.low:
-                stop = prev.high * 1.002
+                # 止损：前高 + 1 ATR
+                stop = prev.high + (atr if atr > 0 else prev.high * 0.002)
                 target = min(c.low for c in flag_candles)
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="末端旗形",
@@ -981,13 +1020,13 @@ class StrategyDetector:
                     cycle="反转空",
                     timeframe=curr.timeframe,
                 )
-        
+
         elif cycle == "趋势空":
             flag_low = min(c.low for c in flag_candles)
             if prev.low < flag_low and curr.close > prev.high:
-                stop = prev.low * 0.998
+                stop = prev.low - (atr if atr > 0 else prev.low * 0.002)
                 target = max(c.high for c in flag_candles)
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="末端旗形",
@@ -1005,8 +1044,8 @@ class StrategyDetector:
                     entry_trigger=prev.high,
                     entry_type="STOP",
                 )
-    
-    def detect_breakout_pullback(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+
+    def detect_breakout_pullback(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         突破回调 (Breakout Pullback)
         条件：
@@ -1017,17 +1056,17 @@ class StrategyDetector:
         """
         if len(candles) < 25:
             return None
-        
+
         curr = candles[-1]
         prev = candles[-2]
-        
+
         # 寻找近期突破点（20根K线内的高/低点）
         lookback = candles[-25:-5]
         recent = candles[-5:]
-        
+
         range_high = max(c.high for c in lookback)
         range_low = min(c.low for c in lookback)
-        
+
         # 检测向上突破后的回调
         broke_up = any(c.close > range_high for c in recent[:-2])
         if broke_up and cycle in ("趋势多", "观望"):
@@ -1037,16 +1076,16 @@ class StrategyDetector:
                 highest_after_breakout = max(c.high for c in recent)
                 pullback_depth = highest_after_breakout - curr.low
                 breakout_height = highest_after_breakout - range_high
-                
+
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = range_high * 0.998
+                    stop = range_high - (atr if atr > 0 else range_high * 0.002)
                     target = curr.close + (curr.close - stop) * 2
-                    
+
                     return PASignal(
                         symbol=curr.symbol,
                         signal_type="突破回调",
                         direction="BUY",
-                        strength=77,
+                        strength=85, # 顺势高分
                         message="突破区间后回调至突破点，继续做多",
                         price=curr.close,
                         stop_loss=stop,
@@ -1060,7 +1099,7 @@ class StrategyDetector:
                         entry_type="STOP",
                         confirmation_needed=True,
                     )
-        
+
         # 检测向下突破后的回调
         broke_down = any(c.close < range_low for c in recent[:-2])
         if broke_down and cycle in ("趋势空", "观望"):
@@ -1068,16 +1107,16 @@ class StrategyDetector:
                 lowest_after_breakout = min(c.low for c in recent)
                 pullback_depth = curr.high - lowest_after_breakout
                 breakout_height = range_low - lowest_after_breakout
-                
+
                 if breakout_height > 0 and pullback_depth < breakout_height * 0.5:
-                    stop = range_low * 1.002
+                    stop = range_low + (atr if atr > 0 else range_low * 0.002)
                     target = curr.close - (stop - curr.close) * 2
-                    
+
                     return PASignal(
                         symbol=curr.symbol,
                         signal_type="突破回调",
                         direction="SELL",
-                        strength=77,
+                        strength=85, # 顺势高分
                         message="突破区间后回调至突破点，继续做空",
                         price=curr.close,
                         stop_loss=stop,
@@ -1091,10 +1130,10 @@ class StrategyDetector:
                         entry_type="STOP",
                         confirmation_needed=True,
                     )
-        
+
         return None
     
-    def detect_rush_to_magnet(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+    def detect_rush_to_magnet(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
         急赴磁体 (Rush to Magnet)
         条件：
@@ -1105,30 +1144,31 @@ class StrategyDetector:
         """
         if len(candles) < 30:
             return None
-        
+
         curr = candles[-1]
         prev = candles[-2]
-        
+
         # 寻找潜在磁铁位
         lookback = candles[-30:-5]
         range_high = max(c.high for c in lookback)
         range_low = min(c.low for c in lookback)
         range_size = range_high - range_low
-        
+
         if range_size == 0:
             return None
-        
+
         # 检测接近上方磁铁
         dist_to_high = range_high - curr.close
         if 0 < dist_to_high < range_size * 0.25:
             # 检测减速信号
             body_shrinking = CandlePatterns.body_size(curr) < CandlePatterns.body_size(prev) * 0.5
             reversal = CandlePatterns.is_reversal_bar(curr, prev)
-            
+
             if body_shrinking or reversal == "空头反转":
-                stop = range_high * 1.002
+                # 止损：磁铁位上方 1 ATR
+                stop = range_high + (atr if atr > 0 else range_high * 0.002)
                 target = range_low + range_size * 0.5  # 目标区间中点
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="急赴磁体",
@@ -1147,17 +1187,17 @@ class StrategyDetector:
                     entry_type="STOP",
                     extra={"magnet": range_high, "distance": dist_to_high},
                 )
-        
+
         # 检测接近下方磁铁
         dist_to_low = curr.close - range_low
         if 0 < dist_to_low < range_size * 0.25:
             body_shrinking = CandlePatterns.body_size(curr) < CandlePatterns.body_size(prev) * 0.5
             reversal = CandlePatterns.is_reversal_bar(curr, prev)
-            
+
             if body_shrinking or reversal == "多头反转":
-                stop = range_low * 0.998
+                stop = range_low - (atr if atr > 0 else range_low * 0.002)
                 target = range_high - range_size * 0.5
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="急赴磁体",
@@ -1176,10 +1216,10 @@ class StrategyDetector:
                     entry_type="STOP",
                     extra={"magnet": range_low, "distance": dist_to_low},
                 )
-        
+
         return None
-    
-    def detect_first_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str) -> Optional[PASignal]:
+
+    def detect_first_ema_gap(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
         """
         第一均线缺口 (First EMA Gap)
         条件：
@@ -1189,18 +1229,18 @@ class StrategyDetector:
         """
         if not cycle.startswith("趋势") or len(candles) < 20 or len(ema20) < 20:
             return None
-        
+
         curr = candles[-1]
-        
+
         # 检查是否形成首次缺口
         gap_bars = 0
         for i in range(-2, -15, -1):
             if abs(i) > len(candles) or abs(i) > len(ema20):
                 break
-            
+
             c = candles[i]
             ema = ema20[i]
-            
+
             if cycle == "趋势多":
                 # 多头趋势：K线最低点高于 EMA（形成向上缺口）
                 if c.low > ema * 1.005:
@@ -1213,21 +1253,22 @@ class StrategyDetector:
                     gap_bars += 1
                 else:
                     break
-        
+
         if gap_bars < 5:
             return None
-        
+
         # 首次触及 EMA 时入场
         if cycle == "趋势多":
             if curr.low <= ema20[-1] * 1.003 and curr.close > ema20[-1]:
-                stop = curr.low * 0.998
+                # 止损：前低 - 1 ATR
+                stop = curr.low - (atr if atr > 0 else curr.low * 0.002)
                 target = curr.close + (curr.close - stop) * 2.5
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="第一均线缺口",
                     direction="BUY",
-                    strength=83,
+                    strength=83, # 顺势高分
                     message=f"首次{gap_bars}根缺口后触及EMA20，高概率反弹",
                     price=curr.close,
                     stop_loss=stop,
@@ -1241,12 +1282,12 @@ class StrategyDetector:
                     entry_type="STOP",
                     extra={"gap_bars": gap_bars},
                 )
-        
+
         elif cycle == "趋势空":
             if curr.high >= ema20[-1] * 0.997 and curr.close < ema20[-1]:
-                stop = curr.high * 1.002
+                stop = curr.high + (atr if atr > 0 else curr.high * 0.002)
                 target = curr.close - (stop - curr.close) * 2.5
-                
+
                 return PASignal(
                     symbol=curr.symbol,
                     signal_type="第一均线缺口",
@@ -1265,7 +1306,7 @@ class StrategyDetector:
                     entry_type="STOP",
                     extra={"gap_bars": gap_bars},
                 )
-        
+
         return None
 
 
@@ -1387,25 +1428,26 @@ class PASignalEngine(BaseEngine):
         self.cooldown_seconds = COOLDOWN_SECONDS
         self._cooldown_storage = get_cooldown_storage()
 
-        # 周期配置（信号阈值: 1m最严85, 5m常用80, 15m保守75, 1h波段70）
+        # 周期配置（信号阈值: 1m最严70, 5m常用70, 15m保守65, 1h波段65）
+        # V3.3: 降低引擎层过滤阈值，让反转信号(65-70分)能通过，由Router层做最终筛选
         self.timeframe_config = {
             "1m": {
-                "signal_threshold": 85,
+                "signal_threshold": 70,
                 "allowed_strategies": ["市价追进", "高1低1", "急速通道"],
                 "cooldown_multiplier": 0.5,  # 更短冷却
             },
             "5m": {
-                "signal_threshold": 85,
+                "signal_threshold": 70,
                 "allowed_strategies": "all",
                 "cooldown_multiplier": 1.0,
             },
             "15m": {
-                "signal_threshold": 75,
+                "signal_threshold": 65,
                 "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形"],
                 "cooldown_multiplier": 2.0,  # 更长冷却
             },
             "1h": {
-                "signal_threshold": 70,
+                "signal_threshold": 65,
                 "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体"],
                 "cooldown_multiplier": 4.0,
             },
@@ -1540,6 +1582,9 @@ class PASignalEngine(BaseEngine):
         if len(ema20) < 10:
             return []
 
+        # V3.3: 计算 ATR (14) 用于动态止损
+        atr = calculate_atr(candles, 14)
+
         # 识别市场周期
         cycle = CycleIdentifier.identify(candles, ema20)
 
@@ -1551,15 +1596,15 @@ class PASignalEngine(BaseEngine):
                 return True
             return strategy_name in allowed_strategies
 
-        # 根据周期运行对应策略
+        # 根据周期运行对应策略 (传入 atr 参数)
         if cycle.startswith("急速"):
             # 收线追进
             if is_allowed("市价追进"):
-                sig = self.detector.detect_buy_now(candles, ema20)
+                sig = self.detector.detect_buy_now(candles, ema20, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
-                sig = self.detector.detect_sell_now(candles, ema20)
+                sig = self.detector.detect_sell_now(candles, ema20, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -1567,13 +1612,13 @@ class PASignalEngine(BaseEngine):
         elif cycle.startswith("趋势"):
             # 高1/低1
             if is_allowed("高1低1"):
-                sig = self.detector.detect_high1_low1(candles, ema20, cycle)
+                sig = self.detector.detect_high1_low1(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
             # 均线缺口
             if is_allowed("20均线缺口"):
-                sig = self.detector.detect_ema_gap(candles, ema20, cycle)
+                sig = self.detector.detect_ema_gap(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -1581,7 +1626,7 @@ class PASignalEngine(BaseEngine):
         elif cycle == "区间":
             # 看衰突破
             if is_allowed("失败突破"):
-                sig = self.detector.detect_fade_breakout(candles, ema20, cycle)
+                sig = self.detector.detect_fade_breakout(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
@@ -1590,49 +1635,49 @@ class PASignalEngine(BaseEngine):
 
         # 双重顶底
         if is_allowed("双重顶底"):
-            sig = self.detector.detect_double_top_bottom(candles, ema20)
+            sig = self.detector.detect_double_top_bottom(candles, ema20, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
         # 楔形顶底
         if is_allowed("楔形顶底"):
-            sig = self.detector.detect_wedge(candles, ema20)
+            sig = self.detector.detect_wedge(candles, ema20, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
         # 急速通道
         if is_allowed("急速通道"):
-            sig = self.detector.detect_spike_channel(candles, ema20)
+            sig = self.detector.detect_spike_channel(candles, ema20, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
         # 末端旗形（仅趋势周期）
         if cycle.startswith("趋势") and is_allowed("末端旗形"):
-            sig = self.detector.detect_final_flag(candles, ema20, cycle)
+            sig = self.detector.detect_final_flag(candles, ema20, cycle, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
             # 第一均线缺口（仅趋势周期）
             if is_allowed("首次均线缺口"):
-                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle)
+                sig = self.detector.detect_first_ema_gap(candles, ema20, cycle, atr)
                 if sig:
                     sig.timeframe = timeframe
                     signals.append(sig)
 
         # 突破回调（趋势或观望周期）
         if is_allowed("突破回调"):
-            sig = self.detector.detect_breakout_pullback(candles, ema20, cycle)
+            sig = self.detector.detect_breakout_pullback(candles, ema20, cycle, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)
 
         # 急赴磁体（接近区间边界时）
         if is_allowed("急赴磁体"):
-            sig = self.detector.detect_rush_to_magnet(candles, ema20)
+            sig = self.detector.detect_rush_to_magnet(candles, ema20, atr)
             if sig:
                 sig.timeframe = timeframe
                 signals.append(sig)

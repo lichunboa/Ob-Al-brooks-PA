@@ -275,22 +275,22 @@ class PositionPatrol:
     async def _check_hold_timeout(
         self, pos, alloc, bot_id: Optional[str]
     ) -> bool:
-        """检查持仓是否超时"""
+        """检查持仓是否超时 (含僵尸单检测)"""
         max_hours = 48
         if alloc:
             max_hours = alloc.get("max_hold_hours", 48)
-        if max_hours <= 0:
-            return False
 
         first_seen = self._position_first_seen.get(pos.symbol)
         if not first_seen:
             return False
 
-        held_hours = (
+        duration_secs = (
             datetime.now(timezone.utc) - first_seen
-        ).total_seconds() / 3600
+        ).total_seconds()
+        held_hours = duration_secs / 3600
 
-        if held_hours >= max_hours:
+        # 1. 硬性最大持仓时间检查
+        if max_hours > 0 and held_hours >= max_hours:
             logger.warning(
                 f"[巡检] 超时平仓: {pos.symbol} "
                 f"持仓 {held_hours:.1f}h > 限制 {max_hours}h")
@@ -300,6 +300,28 @@ class PositionPatrol:
             except Exception as e:
                 logger.error(
                     f"[巡检] 超时平仓失败 {pos.symbol}: {e}")
+            return False  # Failed to close
+
+        # 2. V3.3: 僵尸单时间止损 (Time-Based Stop)
+        # 针对 Al Brooks 剥头皮策略 (al-brooks):
+        # 1m/5m 周期如果 8 分钟 (480s) 仍未脱离成本区 (浮盈 < 0.1%)，说明动能衰竭，应"早退"
+        if bot_id == "al-brooks" and duration_secs > 480:
+            notional = pos.quantity * pos.mark_price
+            if notional > 0:
+                pnl_pct = pos.unrealized_pnl / notional
+                # 浮盈微薄 (<0.1%) 且未触发硬止损 (>-0.5%)，属于"磨叽"行情
+                if -0.005 < pnl_pct < 0.001:
+                    logger.info(
+                        f"[巡检] 时间止损(僵尸单): {pos.symbol} "
+                        f"持仓 {int(duration_secs/60)}分钟 "
+                        f"浮盈 {pnl_pct*100:.2f}% < 0.1% - 动能衰竭离场"
+                    )
+                    try:
+                        await self.executor.close_position(pos.symbol)
+                        return True
+                    except Exception as e:
+                        logger.error(f"[巡检] 时间止损失败 {pos.symbol}: {e}")
+
         return False
 
     async def _check_trailing_stop(

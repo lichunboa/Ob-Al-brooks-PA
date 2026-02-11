@@ -40,7 +40,9 @@ check_database() {
     
     # 解析连接信息
     local db_host=$(echo "$db_url" | sed -n 's|.*@\([^:/]*\).*|\1|p')
-    local db_port=$(echo "$db_url" | grep -oP ':\K\d+(?=/)' || echo "5432")
+    # macOS 兼容修复: 使用 sed 替代 grep -P
+    local db_port=$(echo "$db_url" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+    [ -z "$db_port" ] && db_port="5432"
     [ -z "$db_host" ] && db_host="localhost"
     
     if command -v pg_isready &>/dev/null; then
