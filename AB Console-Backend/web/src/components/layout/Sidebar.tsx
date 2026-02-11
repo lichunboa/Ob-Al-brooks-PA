@@ -14,7 +14,8 @@ import {
   X,
   Receipt,
   Database,
-  Wallet
+  Wallet,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackendControl } from './BackendControl';
@@ -33,6 +34,7 @@ const navItems = [
   { href: '/signals', label: '信号监控', icon: Bell },
   { href: '/strategies', label: '策略管理', icon: BookOpen },
   { href: '/trades', label: '交易记录', icon: Receipt },
+  { href: '/vpvr', label: 'VPVR 分析', icon: BarChart3 },
   { href: '/settings', label: '设置', icon: Settings },
 ];
 

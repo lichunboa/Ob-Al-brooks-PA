@@ -525,11 +525,14 @@ async def allocate_funds(bot_id: str, request: AllocationUpdate):
 
 @app.get("/trading/can-trade/{bot_id}")
 async def can_bot_trade(bot_id: str):
-    """检查机器人是否可以交易"""
-    if not trading_state:
+    """检查机器人是否可以交易（使用实时持仓数）"""
+    if not trading_state or not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
-    can_trade, reason = trading_state.can_bot_trade(bot_id)
+    # 获取实时持仓数
+    all_positions = await executor.get_positions()
+    bot_positions = _filter_bot_positions(bot_id, all_positions)
+    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
     allocation = trading_state.get_allocation(bot_id)
 
     return {
@@ -742,6 +745,31 @@ async def get_orphaned_positions():
         raise HTTPException(status_code=500, detail=f"检查孤儿持仓失败: {str(e)}")
 
 
+# ========== Bot 映射恢复 (V3.1 新增) ==========
+
+
+@app.post("/trading/recover-bot-map")
+async def recover_bot_map():
+    """触发从文件+币安恢复 order/position bot 映射（解决孤儿持仓）"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    try:
+        # 1. 从文件重新加载（支持外部修改后热更新）
+        executor._position_bot_map = executor._load_position_bot_map()
+        from_file = len(executor._position_bot_map)
+        # 2. 从币安 clientOrderId 补充恢复
+        result = await executor.recover_bot_map_from_binance()
+        return {
+            "success": True,
+            "from_file": from_file,
+            "position_bot_map": executor._position_bot_map,
+            **result,
+        }
+    except Exception as e:
+        logger.error(f"恢复 bot 映射失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ========== 订单追踪 (V2.6.1 新增) ==========
 
 @app.post("/trading/track-orders")
@@ -846,8 +874,8 @@ async def get_bot_summary(bot_id: str):
     available = trading_state.get_available_margin(bot_id)
     remaining_pos = alloc.get("max_positions", 3) - len(bot_positions)
 
-    # 交易检查
-    can_trade, reason = trading_state.can_bot_trade(bot_id)
+    # 交易检查（传入实时持仓数，不依赖 current_positions 缓存）
+    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
 
     # 冷却期
     cooldowns = {}

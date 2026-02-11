@@ -704,7 +704,7 @@ class PGSignalEngine(BaseEngine):
                 checkers = [
                     (self.rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
                     (self.rules.check_price_dump, [curr_candle, prev_candle, 2.0]),
-                    (self.rules.check_volume_spike, [curr_candle, prev_candle, 5.0]),
+                    (self.rules.check_volume_spike, [curr_candle, prev_candle, 2.5]),
                     (self.rules.check_taker_buy_dominance, [curr_candle, 0.7]),
                     (self.rules.check_taker_sell_dominance, [curr_candle, 0.7]),
                 ]

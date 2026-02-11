@@ -155,50 +155,58 @@ def main():
             "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
         )
 
+        # ── 威科夫信号分类映射（V3.1 category-based routing） ──
+        # PG 引擎：按 signal_type 匹配
+        WYCKOFF_PG_TYPES = {
+            'volume_spike', 'price_surge', 'price_dump',
+            'oi_surge', 'oi_dump',
+            'top_trader_extreme_long', 'top_trader_extreme_short',
+            'taker_buy_dominance', 'taker_sell_dominance',
+            'taker_ratio_flip_long', 'taker_ratio_flip_short',
+        }
+        # SQLite 引擎：按 category 匹配（新增规则自动归类，无需改路由代码）
+        # volume: OBV/CVD/量比/主动买卖 | futures: OI/大户/情绪/持仓Z分数
+        # pattern: 头肩/双顶底/三角/SMC | core: 多指标共振/期货极端/量价异常/SMC/支撑阻力
+        WYCKOFF_SQLITE_CATEGORIES = {'volume', 'futures', 'pattern', 'core'}
+
         def determine_route_targets(ev):
-            """根据信号特征决定路由目标 - V2.9 多路由版
+            """根据信号特征决定路由目标 - V3.1 category-based routing
 
             路由规则（按优先级）：
             1. PA Engine 信号（source=pa 或 entry_trigger>0）→ al-brooks
-            2. 威科夫专属信号 → wyckoff
-            3. 威科夫+量化 双路由信号 → [wyckoff, trader]
-            4. 其他量化信号（强度>=70）→ trader
-            5. 低强度信号 → 不发送
+            2. 威科夫相关信号（PG signal_type 或 SQLite category）→ wyckoff（高强度双路由 trader）
+            3. 其他量化信号（强度>=70）→ trader
+            4. 低强度信号 → 不发送
             """
             targets = []
             source = getattr(ev, 'source', 'unknown')
             signal_type = getattr(ev, 'signal_type', '')
             entry_trigger = getattr(ev, 'entry_trigger', 0.0) or 0.0
+            category = getattr(ev, 'category', '')
 
-            # 1. PA Engine 信号 → al-brooks
+            # 1. PA Engine 信号 → al-brooks（不变）
             if source == 'pa_engine' or source == 'pa' or entry_trigger > 0:
                 targets.append('al-brooks')
                 return targets
 
-            # 2. 威科夫专属信号（供求/成交量类）
-            wyckoff_only = [
-                'volume_spike', 'trend_reversal', 'breakout',
-            ]
-            if signal_type in wyckoff_only:
+            # 2. 威科夫相关信号（供求/成交量/结构/情绪）
+            is_wyckoff = signal_type in WYCKOFF_PG_TYPES
+            if not is_wyckoff and source == 'sqlite' and category in WYCKOFF_SQLITE_CATEGORIES:
+                is_wyckoff = True
+
+            if is_wyckoff:
                 targets.append('wyckoff')
+                # 高强度信号双路由给量化（不减少 trader 信号量）
+                if ev.strength >= 70:
+                    targets.append('trader')
                 return targets
 
-            # 3. 双路由：威科夫 + 量化（大户持仓/OI 变化）
-            wyckoff_and_trader = [
-                'oi_surge', 'oi_dump',
-                'top_trader_extreme_long', 'top_trader_extreme_short',
-            ]
-            if signal_type in wyckoff_and_trader:
-                targets.append('wyckoff')
-                targets.append('trader')
-                return targets
-
-            # 4. 量化信号（强度>=70）→ trader
+            # 3. 其他量化信号（强度>=70）→ trader（不变）
             if ev.strength >= 70:
                 targets.append('trader')
                 return targets
 
-            # 5. 低强度信号 → 不发送
+            # 4. 低强度信号 → 不发送
             return targets
 
         def send_to_target(signal_data, target):

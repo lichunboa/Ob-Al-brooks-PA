@@ -1395,7 +1395,7 @@ class PASignalEngine(BaseEngine):
                 "cooldown_multiplier": 0.5,  # 更短冷却
             },
             "5m": {
-                "signal_threshold": 80,
+                "signal_threshold": 85,
                 "allowed_strategies": "all",
                 "cooldown_multiplier": 1.0,
             },

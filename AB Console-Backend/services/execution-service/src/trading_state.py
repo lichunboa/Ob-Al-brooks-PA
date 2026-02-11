@@ -251,8 +251,14 @@ class TradingStateManager:
             self.state.allocations[bot_id]["used_margin"] = margin
             self._save_state()
 
-    def can_bot_trade(self, bot_id: str) -> tuple[bool, str]:
-        """检查机器人是否可以交易"""
+    def can_bot_trade(self, bot_id: str, live_position_count: int = -1) -> tuple[bool, str]:
+        """检查机器人是否可以交易
+
+        Args:
+            bot_id: 机器人 ID
+            live_position_count: 实时持仓数量（从币安查询）。
+                如果传入 >=0 的值，使用实时数据；否则回退到本地缓存。
+        """
         # 检查全局开关
         if not self.state.trading_enabled:
             return False, "交易开关未开启"
@@ -265,8 +271,8 @@ class TradingStateManager:
         if not alloc.get("enabled", True):
             return False, f"{alloc['name']} 已禁用"
 
-        # 检查持仓限制
-        current = alloc.get("current_positions", 0)
+        # 检查持仓限制 — 优先使用实时数据
+        current = live_position_count if live_position_count >= 0 else alloc.get("current_positions", 0)
         max_pos = alloc.get("max_positions", 3)
         if current >= max_pos:
             return False, f"{alloc['name']} 已达最大持仓数 ({current}/{max_pos})"

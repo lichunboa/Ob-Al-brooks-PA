@@ -156,6 +156,16 @@ class BinanceExecutor:
             }
             self._save_order_bot_map()
 
+    def _verify_stop_order(self, order_id: str, symbol: str) -> bool:
+        """验证止损单是否真的存在于交易所（Demo 模式兜底检查）"""
+        try:
+            order = self.exchange.fetch_order(order_id, symbol)
+            status = str(order.get('status', '')).lower()
+            return status in ('open', 'new')
+        except Exception as e:
+            logger.warning(f"止损单验证失败 (order_id={order_id}): {e}")
+            return False
+
     def _lookup_bot_id(self, order_id: str) -> Optional[str]:
         """通过 order_id 查找 bot_id"""
         val = self._order_bot_map.get(str(order_id))
@@ -469,6 +479,14 @@ class BinanceExecutor:
             if not request.stop_loss and not request.reduce_only:
                 risk_pct = 0.02  # 默认 2%，与 bot allocation risk_percent 一致
                 entry_price = float(order.get('average') or order.get('price') or 0)
+                # 兜底：市价单 ccxt 可能返回 average=None，用 ticker.last
+                if entry_price <= 0:
+                    try:
+                        ticker = self.exchange.fetch_ticker(symbol)
+                        entry_price = float(ticker.get('last', 0))
+                        logger.warning(f"entry_price 兜底: 使用 ticker.last={entry_price} (ccxt 返回 avg={order.get('average')}, price={order.get('price')})")
+                    except Exception as te:
+                        logger.error(f"fetch_ticker 兜底失败: {te}")
                 if entry_price > 0:
                     if request.side == OrderSide.BUY:
                         request.stop_loss = round(entry_price * (1 - risk_pct), 2)
@@ -494,7 +512,9 @@ class BinanceExecutor:
                     response.stop_loss_order_id = sl_id
                     if request.bot_id:
                         self._register_order(sl_id, request.bot_id)
-                    logger.info(f"止损单已设置: {request.stop_loss}")
+                    # 验证止损单是否真的存在于交易所
+                    sl_verified = self._verify_stop_order(sl_id, symbol)
+                    logger.info(f"止损单已设置: {request.stop_loss} (order_id={sl_id}, verified={sl_verified})")
                 except Exception as e:
                     logger.error(f"止损单设置失败，回滚主订单: {e}")
                     try:
@@ -581,9 +601,26 @@ class BinanceExecutor:
 
             response = await self.place_order(request)
 
-            # 记录盈亏
+            # 记录盈亏 + 进化系统
             if response.success:
                 self.risk_manager.record_pnl(pos.unrealized_pnl)
+                # 进化系统记录交易结果
+                bot_id = self.get_position_bot_id(symbol)
+                if bot_id:
+                    try:
+                        from .evolution_manager import get_evolution_manager
+                        evo = get_evolution_manager()
+                        raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
+                        evo.record_trade_result(
+                            bot_id=bot_id,
+                            strategy="auto",
+                            symbol=raw_sym,
+                            pnl=pos.unrealized_pnl,
+                            is_win=pos.unrealized_pnl > 0,
+                        )
+                        logger.info(f"进化系统已记录: {bot_id} {raw_sym} pnl={pos.unrealized_pnl:.2f}")
+                    except Exception as e:
+                        logger.warning(f"进化系统记录失败: {e}")
                 # 注销持仓归属（全部平仓时）
                 if not quantity or quantity >= pos.quantity:
                     self.unregister_position(symbol)

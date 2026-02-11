@@ -6,11 +6,15 @@
 3. 移动止损（trailing stop）
 """
 
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+SL_PLACED_FILE = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
 
 # 默认保护性止损百分比
 DEFAULT_STOP_PCT = 0.02
@@ -31,8 +35,24 @@ class PositionPatrol:
         self._total_naked_fixed: int = 0
         self._total_expired_closed: int = 0
         self._total_trailing_moved: int = 0
-        # 已补过止损的持仓（避免 Demo 模式下重复下单）
-        self._sl_placed: dict[str, float] = {}  # {norm_symbol: sl_price}
+        # 已补过止损的持仓（避免 Demo 模式下重复下单）— 持久化到文件
+        self._sl_placed: dict[str, float] = self._load_sl_placed()
+
+    @staticmethod
+    def _load_sl_placed() -> dict[str, float]:
+        try:
+            if SL_PLACED_FILE.exists():
+                return json.loads(SL_PLACED_FILE.read_text())
+        except Exception as e:
+            logger.warning(f"加载 sl_placed 失败: {e}")
+        return {}
+
+    def _save_sl_placed(self):
+        try:
+            SL_PLACED_FILE.parent.mkdir(parents=True, exist_ok=True)
+            SL_PLACED_FILE.write_text(json.dumps(self._sl_placed, indent=2))
+        except Exception as e:
+            logger.warning(f"保存 sl_placed 失败: {e}")
 
     def get_status(self) -> dict:
         """返回巡检状态摘要"""
@@ -55,11 +75,21 @@ class PositionPatrol:
         try:
             positions = await self.executor.get_positions()
             if not positions:
-                self._cleanup_stale_state(set())
+                # 不清理 position_bot_map（可能只是 API 超时）
+                # 仅清理巡检内部状态
+                for sym in list(self._position_first_seen.keys()):
+                    del self._position_first_seen[sym]
+                self._trailing_state.clear()
                 return report
 
             open_orders = await self.executor.get_open_orders()
             stop_map = self._build_stop_order_map(open_orders)
+
+            # Demo 模式兜底：fetch_open_orders 可能不返回 STOP_MARKET
+            # 用 fetch_orders 查最近订单补充 stop_map
+            if not stop_map and positions:
+                stop_map = self._supplement_stop_map_via_fetch_orders(positions)
+
             active_symbols = set()
 
             for pos in positions:
@@ -130,6 +160,38 @@ class PositionPatrol:
                 stop_map.setdefault(sym, []).append(order)
         return stop_map
 
+    def _supplement_stop_map_via_fetch_orders(self, positions) -> dict[str, list]:
+        """Demo 模式兜底：通过 fetch_orders 查最近订单中的 STOP_MARKET"""
+        stop_map: dict[str, list] = {}
+        seen_symbols = set()
+        for pos in positions:
+            norm_sym = pos.symbol
+            if norm_sym in seen_symbols:
+                continue
+            seen_symbols.add(norm_sym)
+            ccxt_sym = self._to_ccxt_symbol(norm_sym)
+            try:
+                recent = self.executor.exchange.fetch_orders(ccxt_sym, limit=20)
+                for o in recent:
+                    otype = str(o.get('type', '')).lower()
+                    ostatus = str(o.get('status', '')).lower()
+                    if otype in ('stop_market', 'stop') and ostatus in ('open', 'new'):
+                        # 构造简易对象供后续使用
+                        class _StopStub:
+                            def __init__(self, oid, sym, sp):
+                                self.order_id = oid
+                                self.symbol = sym
+                                self.stop_price = sp
+                                self.order_type = otype.upper()
+                        sp = float(o.get('stopPrice') or o.get('info', {}).get('stopPrice') or 0)
+                        stop_map.setdefault(norm_sym, []).append(
+                            _StopStub(str(o.get('id')), norm_sym, sp))
+            except Exception as e:
+                logger.debug(f"[巡检] fetch_orders 补充查询失败 {norm_sym}: {e}")
+        if stop_map:
+            logger.info(f"[巡检] Demo 模式 fetch_orders 补充发现止损单: {list(stop_map.keys())}")
+        return stop_map
+
     async def _fix_naked_position(self, pos, alloc) -> bool:
         """为裸仓补设保护性止损"""
         try:
@@ -165,8 +227,9 @@ class PositionPatrol:
                 params={'stopPrice': sl_price, 'reduceOnly': True}
             )
             order_id = result.get('id', 'unknown') if result else 'no-result'
-            # 记录已补止损（避免 Demo 模式下重复下单）
+            # 记录已补止损（避免 Demo 模式下重复下单）— 持久化
             self._sl_placed[pos.symbol] = sl_price
+            self._save_sl_placed()
             logger.warning(
                 f"[巡检] 裸仓修复: {pos.symbol} 补设止损 {sl_price}"
                 f" (入场={entry}, risk={risk_pct*100:.1f}%,"
@@ -255,6 +318,9 @@ class PositionPatrol:
         current_sl = None
         if stop_orders:
             current_sl = stop_orders[0].stop_price
+        elif sym in self._sl_placed:
+            # Demo 模式兜底：用 _sl_placed 记录的止损价
+            current_sl = self._sl_placed[sym]
 
         need_move = False
         if current_sl is None:
@@ -281,6 +347,14 @@ class PositionPatrol:
                             so.order_id, ccxt_sym)
                     except Exception:
                         pass
+            else:
+                # Demo 模式兜底：无法查询条件单，用 allOpenOrders 全量取消
+                try:
+                    raw_sym = ccxt_sym.split(':')[0].replace('/', '') if ':' in ccxt_sym else ccxt_sym.replace('/', '')
+                    self.executor.exchange.fapiprivate_delete_allopenorders(
+                        {'symbol': raw_sym})
+                except Exception:
+                    pass
 
             # 下新止损单
             self.executor.exchange.create_order(
@@ -288,6 +362,9 @@ class PositionPatrol:
                 side=sl_side, amount=pos.quantity,
                 params={'stopPrice': new_sl, 'reduceOnly': True}
             )
+            # 更新 _sl_placed 记录（防止 Demo 模式下重复下单）
+            self._sl_placed[sym] = new_sl
+            self._save_sl_placed()
             logger.info(
                 f"[巡检] 移动止损: {sym} SL {current_sl} → {new_sl}"
                 f" (最高={state.get('highest_price', '?')},"
@@ -314,13 +391,27 @@ class PositionPatrol:
         return norm_sym
 
     def _cleanup_stale_state(self, active_symbols: set):
-        """清理已平仓的状态"""
+        """清理已平仓的状态（含 position_bot_map 同步）"""
         for sym in list(self._position_first_seen.keys()):
             if sym not in active_symbols:
                 del self._position_first_seen[sym]
         for sym in list(self._trailing_state.keys()):
             if sym not in active_symbols:
                 del self._trailing_state[sym]
+        sl_changed = False
         for sym in list(self._sl_placed.keys()):
             if sym not in active_symbols:
                 del self._sl_placed[sym]
+                sl_changed = True
+        if sl_changed:
+            self._save_sl_placed()
+        # 同步清理 position_bot_map：仅当 active_symbols 非空时才清理
+        # 防止 API 超时导致误删所有映射
+        if active_symbols and hasattr(self.executor, '_position_bot_map'):
+            stale = [sym for sym in self.executor._position_bot_map
+                     if sym not in active_symbols]
+            if stale:
+                for sym in stale:
+                    del self.executor._position_bot_map[sym]
+                self.executor._save_position_bot_map()
+                logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
