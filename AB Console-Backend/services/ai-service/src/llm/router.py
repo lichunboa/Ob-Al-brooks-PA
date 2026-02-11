@@ -3,14 +3,15 @@
 多模型路由器 - AB Console 专用
 
 功能：
-1. 多模型支持（Kimi/Gemini/DeepSeek）
+1. 多模型支持（Gemini/Kimi/Claude）
 2. 自动故障转移
 3. 根据 payload 大小选择模型
 4. 健康检查和统计
 
 配置优先级：
-1. 环境变量 LLM_PRIMARY_MODEL
-2. 默认 kimi-2.5
+1. Gemini 反代 (主力)
+2. Kimi 2.5 (备用)
+3. Claude (保底)
 """
 from __future__ import annotations
 
@@ -96,16 +97,14 @@ class LLMRouter:
                 priority=1,
             )
 
-        # 3. Claude Opus 4.6 - 保底模型 (Priority 2)
+        # 3. Claude - 保底模型 (Priority 2)
         claude_key = os.getenv("CLAUDE_API_KEY")
-        # 如果没有专门的 CLAUDE_KEY，尝试复用 EXTERNAL_API_KEY (如果它是 Claude key 的话)
-        # 但为了安全，最好还是要有 CLAUDE_API_KEY。这里假设用户会在 .env 里配
         if claude_key:
             self.models["claude"] = ModelConfig(
-                name="Claude Opus 4.6",
+                name="Claude",
                 base_url=os.getenv("CLAUDE_API_BASE_URL", "https://api.anthropic.com/v1"),
                 api_key=claude_key,
-                model_id=os.getenv("CLAUDE_MODEL", "claude-3-opus-20240229"),
+                model_id=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
                 max_tokens=int(os.getenv("CLAUDE_MAX_TOKENS", "200000")),
                 priority=2,
             )

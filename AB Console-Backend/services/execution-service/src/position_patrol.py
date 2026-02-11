@@ -37,6 +37,10 @@ class PositionPatrol:
         self._total_trailing_moved: int = 0
         # 已补过止损的持仓（避免 Demo 模式下重复下单）— 持久化到文件
         self._sl_placed: dict[str, float] = self._load_sl_placed()
+        # V3.4: 补单冷却时间戳（同一品种 5 分钟内不重复补单）
+        self._sl_fix_timestamps: dict[str, datetime] = {}
+        # V3.4: _sl_placed 连续缺席计数（连续 3 次确认才删除，防 API 偶发超时误删）
+        self._sl_absent_count: dict[str, int] = {}
 
     @staticmethod
     def _load_sl_placed() -> dict[str, float]:
@@ -228,6 +232,12 @@ class PositionPatrol:
     async def _fix_naked_position(self, pos, alloc) -> bool:
         """为裸仓补设保护性止损"""
         try:
+            # V3.4: 冷却期检查 — 同一品种 5 分钟内不重复补单
+            now = datetime.now(timezone.utc)
+            last_fix = self._sl_fix_timestamps.get(pos.symbol)
+            if last_fix and (now - last_fix).total_seconds() < 300:
+                return False
+
             risk_pct = DEFAULT_STOP_PCT
             if alloc:
                 risk_pct = alloc.get("risk_percent", 2.0) / 100
@@ -245,23 +255,26 @@ class PositionPatrol:
                 sl_side = 'buy'
 
             # 转换 symbol 格式: SOLUSDT:USDT → SOL/USDT:USDT
-            ccxt_sym = pos.symbol
-            if ':' in ccxt_sym and '/' not in ccxt_sym:
-                base_quote = ccxt_sym.split(':')[0]
-                settle = ccxt_sym.split(':')[1]
-                for quote in ['USDT', 'BUSD', 'USDC']:
-                    if base_quote.endswith(quote):
-                        base = base_quote[:-len(quote)]
-                        ccxt_sym = f"{base}/{quote}:{settle}"
-                        break
+            ccxt_sym = self._to_ccxt_symbol(pos.symbol)
+
+            # V3.4: 用 cancel_all_orders 替代 fetch+cancel
+            # Demo 模式下 fetch_open_orders 对 STOP_MARKET 不可见，
+            # 但 cancel_all_orders 可以清理
+            try:
+                self.executor.exchange.cancel_all_orders(ccxt_sym)
+                logger.info(f"[巡检] 补单前 cancel_all: {ccxt_sym}")
+            except Exception as e_clean:
+                logger.warning(f"[巡检] 补单前清理失败: {e_clean}")
+
             result = self.executor.exchange.create_order(
                 symbol=ccxt_sym, type='stop_market',
                 side=sl_side, amount=pos.quantity,
                 params={'stopPrice': sl_price, 'reduceOnly': True}
             )
             order_id = result.get('id', 'unknown') if result else 'no-result'
-            # 记录已补止损（避免 Demo 模式下重复下单）— 持久化
+            # 记录已补止损 + 冷却时间戳
             self._sl_placed[pos.symbol] = sl_price
+            self._sl_fix_timestamps[pos.symbol] = now
             self._save_sl_placed()
             logger.warning(
                 f"[巡检] 裸仓修复: {pos.symbol} 补设止损 {sl_price}"
@@ -453,45 +466,31 @@ class PositionPatrol:
         for sym in list(self._trailing_state.keys()):
             if sym not in active_symbols:
                 del self._trailing_state[sym]
+        # V3.4: _sl_placed 连续 3 次确认才删除，防止 API 偶发超时误删
         sl_changed = False
         for sym in list(self._sl_placed.keys()):
             if sym not in active_symbols:
-                del self._sl_placed[sym]
-                sl_changed = True
+                count = self._sl_absent_count.get(sym, 0) + 1
+                self._sl_absent_count[sym] = count
+                if count >= 3:
+                    del self._sl_placed[sym]
+                    del self._sl_absent_count[sym]
+                    sl_changed = True
+            else:
+                self._sl_absent_count.pop(sym, None)
         if sl_changed:
             self._save_sl_placed()
+        # 清理冷却时间戳（已平仓的品种）
+        for sym in list(self._sl_fix_timestamps.keys()):
+            if sym not in active_symbols:
+                del self._sl_fix_timestamps[sym]
         # 同步清理 position_bot_map：仅当 active_symbols 非空时才清理
         # 防止 API 超时导致误删所有映射
         if active_symbols and hasattr(self.executor, '_position_bot_map'):
             stale = [sym for sym in self.executor._position_bot_map
                      if sym not in active_symbols]
             if stale:
-                # V3.2: 尝试记录被动平仓（止损/止盈）的进化数据
-                try:
-                    from .evolution_manager import get_evolution_manager
-                    evo = get_evolution_manager()
-
-                    for sym in stale:
-                        # 获取 bot info
-                        bot_id = self.executor.get_position_bot_id(sym)
-                        if not bot_id: continue
-                        strategy = self.executor.get_position_strategy(sym)
-
-                        # 尝试查询最近成交以获取 PnL
-                        # 注意：Demo Mode 可能无法获取历史，这就尽力而为
-                        try:
-                            # 简化的 PnL 估算或查询逻辑
-                            # 这里暂不阻塞主线程去查 trade history (太慢)
-                            # 仅记录一个 "Close Event"
-                            # TODO: 异步任务去查准确 PnL
-                            pass
-                        except:
-                            pass
-
-                        # 清理映射
-                        del self.executor._position_bot_map[sym]
-
-                    self.executor._save_position_bot_map()
-                    logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
-                except Exception as e:
-                    logger.error(f"[巡检] 清理映射失败: {e}")
+                for sym in stale:
+                    del self.executor._position_bot_map[sym]
+                self.executor._save_position_bot_map()
+                logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")

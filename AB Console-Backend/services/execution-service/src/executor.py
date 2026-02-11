@@ -571,6 +571,20 @@ class BinanceExecutor:
 
             # 下止损单（失败则回滚主订单）
             if request.stop_loss:
+                # [V3.3.1 Hotfix] 强制清理旧止损单 (幂等性保障)
+                # 防止 "Reach max stop order limit" 错误
+                try:
+                    existing_orders = self.exchange.fetch_open_orders(symbol)
+                    for o in existing_orders:
+                        if str(o.get('type')).upper() in ['STOP', 'STOP_MARKET']:
+                            try:
+                                self.exchange.cancel_order(o['id'], symbol)
+                                logger.info(f"自动清理旧止损单: {o['id']} {symbol}")
+                            except Exception:
+                                pass
+                except Exception as e_pre:
+                    logger.warning(f"止损前置清理失败: {e_pre}")
+
                 try:
                     sl_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
                     sl_order = self.exchange.create_order(
@@ -703,6 +717,12 @@ class BinanceExecutor:
                 # 注销持仓归属（全部平仓时）
                 if not quantity or quantity >= pos.quantity:
                     self.unregister_position(symbol)
+                    # [V3.3.1 Hotfix] 平仓后强制撤销该品种所有挂单
+                    try:
+                        self.exchange.cancel_all_orders(symbol)
+                        logger.info(f"平仓后清理所有挂单: {symbol}")
+                    except Exception as e_clean:
+                        logger.warning(f"平仓后清理挂单失败: {e_clean}")
 
             return response
 
