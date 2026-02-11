@@ -165,6 +165,13 @@ class PositionPatrol:
                     if fixed:
                         report["naked_fixed"] += 1
 
+                # 1.5 软件止损检查（Demo 模式替代条件委托）
+                if norm_sym in self._sl_placed:
+                    stopped = await self._check_software_stop(pos)
+                    if stopped:
+                        report["expired_closed"] += 1
+                        continue  # 已平仓
+
                 # 2. 持仓超时检测
                 if norm_sym not in self._position_first_seen:
                     self._position_first_seen[norm_sym] = datetime.now(
@@ -254,9 +261,9 @@ class PositionPatrol:
         return stop_map
 
     async def _fix_naked_position(self, pos, alloc) -> bool:
-        """为裸仓补设保护性止损"""
+        """为裸仓设置软件止损（记录止损价，由巡检轮询执行）"""
         try:
-            # V3.4: 冷却期检查 — 同一品种 5 分钟内不重复补单
+            # V3.4: 冷却期检查 — 同一品种 5 分钟内不重复
             now = datetime.now(timezone.utc)
             last_fix = self._sl_fix_timestamps.get(pos.symbol)
             if last_fix and (now - last_fix).total_seconds() < 300:
@@ -273,40 +280,65 @@ class PositionPatrol:
             from .models import PositionSide
             if pos.side == PositionSide.LONG:
                 sl_price = round(entry * (1 - risk_pct), 2)
-                sl_side = 'sell'
             else:
                 sl_price = round(entry * (1 + risk_pct), 2)
-                sl_side = 'buy'
 
-            # 转换 symbol 格式: SOLUSDT:USDT → SOL/USDT:USDT
-            ccxt_sym = self._to_ccxt_symbol(pos.symbol)
-
-            # V3.4: 用 cancel_all_orders 替代 fetch+cancel
-            # Demo 模式下 fetch_open_orders 对 STOP_MARKET 不可见，
-            # 但 cancel_all_orders 可以清理
-            try:
-                self.executor.exchange.cancel_all_orders(ccxt_sym)
-                logger.info(f"[巡检] 补单前 cancel_all: {ccxt_sym}")
-            except Exception as e_clean:
-                logger.warning(f"[巡检] 补单前清理失败: {e_clean}")
-
-            result = self.executor.exchange.create_order(
-                symbol=ccxt_sym, type='stop_market',
-                side=sl_side, amount=pos.quantity,
-                params={'stopPrice': sl_price, 'reduceOnly': True}
-            )
-            order_id = result.get('id', 'unknown') if result else 'no-result'
-            # 记录已补止损 + 冷却时间戳
+            # V3.5: Demo 模式下不下条件委托，只记录止损价
+            # 由巡检主循环 _check_software_stop 轮询执行
             self._sl_placed[pos.symbol] = sl_price
             self._sl_fix_timestamps[pos.symbol] = now
             self._save_sl_placed()
             logger.warning(
-                f"[巡检] 裸仓修复: {pos.symbol} 补设止损 {sl_price}"
-                f" (入场={entry}, risk={risk_pct*100:.1f}%,"
-                f" order_id={order_id})")
+                f"[巡检] 软件止损已设: {pos.symbol} "
+                f"止损={sl_price} (入场={entry},"
+                f" risk={risk_pct*100:.1f}%)")
             return True
         except Exception as e:
-            logger.error(f"[巡检] 裸仓修复失败 {pos.symbol}: {e}")
+            logger.error(
+                f"[巡检] 止损设置失败 {pos.symbol}: {e}")
+            return False
+
+    async def _check_software_stop(self, pos) -> bool:
+        """检查软件止损是否触发，触发则市价平仓"""
+        sl_price = self._sl_placed.get(pos.symbol)
+        if not sl_price:
+            return False
+
+        from .models import PositionSide
+        triggered = False
+        if pos.side == PositionSide.LONG:
+            triggered = pos.mark_price <= sl_price
+        else:
+            triggered = pos.mark_price >= sl_price
+
+        if not triggered:
+            return False
+
+        ccxt_sym = self._to_ccxt_symbol(pos.symbol)
+        sl_side = 'sell' if pos.side == PositionSide.LONG else 'buy'
+        try:
+            result = self.executor.exchange.create_order(
+                symbol=ccxt_sym, type='market',
+                side=sl_side, amount=pos.quantity,
+                params={'reduceOnly': True}
+            )
+            logger.warning(
+                f"[巡检] 软件止损触发: {pos.symbol} "
+                f"mark={pos.mark_price:.2f} <= "
+                f"sl={sl_price:.2f}, 已市价平仓"
+                f" qty={pos.quantity}")
+            # 清理记录
+            del self._sl_placed[pos.symbol]
+            self._save_sl_placed()
+            # 通知进化系统
+            bot_id = self.executor.get_position_bot_id(
+                pos.symbol)
+            if bot_id:
+                self.executor.unregister_position(pos.symbol)
+            return True
+        except Exception as e:
+            logger.error(
+                f"[巡检] 软件止损平仓失败 {pos.symbol}: {e}")
             return False
 
     async def _check_hold_timeout(

@@ -569,62 +569,25 @@ class BinanceExecutor:
                         request.stop_loss = round(entry_price * (1 + risk_pct), 2)
                     logger.info(f"自动保护性止损: {request.stop_loss} (入场={entry_price}, risk={risk_pct*100}%)")
 
-            # 下止损单（失败则回滚主订单）
+            # V3.5: 软件止损 — 不下条件委托，记录到 sl_placed.json
+            # Demo 模式下 STOP_MARKET 不可查询/不可取消，改由巡检轮询
             if request.stop_loss:
-                # [V3.3.1 Hotfix] 强制清理旧止损单 (幂等性保障)
-                # 防止 "Reach max stop order limit" 错误
+                from pathlib import Path
+                import json as _json
+                sl_file = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
                 try:
-                    existing_orders = self.exchange.fetch_open_orders(symbol)
-                    for o in existing_orders:
-                        if str(o.get('type')).upper() in ['STOP', 'STOP_MARKET']:
-                            try:
-                                self.exchange.cancel_order(o['id'], symbol)
-                                logger.info(f"自动清理旧止损单: {o['id']} {symbol}")
-                            except Exception:
-                                pass
-                except Exception as e_pre:
-                    logger.warning(f"止损前置清理失败: {e_pre}")
-
-                try:
-                    sl_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
-                    sl_order = self.exchange.create_order(
-                        symbol=symbol,
-                        type='stop_market',
-                        side=sl_side.value.lower(),
-                        amount=request.quantity,
-                        params={
-                            'stopPrice': request.stop_loss,
-                            'reduceOnly': True,
-                        }
-                    )
-                    sl_id = str(sl_order.get('id'))
-                    response.stop_loss_order_id = sl_id
-                    if request.bot_id:
-                        # V3.2: 传递 strategy
-                        self._register_order(sl_id, request.bot_id, symbol, strategy=strat)
-                    # 验证止损单是否真的存在于交易所
-                    sl_verified = self._verify_stop_order(sl_id, symbol)
-                    logger.info(f"止损单已设置: {request.stop_loss} (order_id={sl_id}, verified={sl_verified})")
-                except Exception as e:
-                    logger.error(f"止损单设置失败，回滚主订单: {e}")
-                    try:
-                        self.exchange.cancel_order(order_id, symbol)
-                        logger.info(f"主订单已取消: {order_id}")
-                    except Exception:
-                        try:
-                            close_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
-                            self.exchange.create_order(
-                                symbol=symbol, type='market',
-                                side=close_side.value.lower(),
-                                amount=request.quantity,
-                                params={'reduceOnly': True}
-                            )
-                            logger.info("主订单已成交，已市价平仓回滚")
-                        except Exception as e2:
-                            logger.critical(f"回滚失败！裸仓风险: {symbol} {request.quantity} - {e2}")
-                    response.success = False
-                    response.message = f"止损单设置失败，已回滚: {e}"
-                    return response
+                    sl_data = _json.loads(sl_file.read_text()) if sl_file.exists() else {}
+                except Exception:
+                    sl_data = {}
+                norm_sym = symbol.replace('/', '').replace(':USDT', ':USDT')
+                # ccxt symbol "ETH/USDT:USDT" → norm "ETHUSDT:USDT"
+                norm_sym = symbol.replace('/', '')
+                sl_data[norm_sym] = request.stop_loss
+                sl_file.write_text(_json.dumps(sl_data, indent=2))
+                response.stop_loss_order_id = "software_sl"
+                logger.info(
+                    f"软件止损已记录: {norm_sym} sl={request.stop_loss}"
+                    f" (巡检轮询执行)")
 
             # 下止盈单
             if request.take_profit:
@@ -717,12 +680,25 @@ class BinanceExecutor:
                 # 注销持仓归属（全部平仓时）
                 if not quantity or quantity >= pos.quantity:
                     self.unregister_position(symbol)
-                    # [V3.3.1 Hotfix] 平仓后强制撤销该品种所有挂单
+                    # V3.5: 平仓后清理软件止损记录
+                    try:
+                        from pathlib import Path
+                        import json as _json
+                        sl_file = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
+                        if sl_file.exists():
+                            sl_data = _json.loads(sl_file.read_text())
+                            norm_sym = symbol.replace('/', '')
+                            if norm_sym in sl_data:
+                                del sl_data[norm_sym]
+                                sl_file.write_text(_json.dumps(sl_data, indent=2))
+                                logger.info(f"平仓后清理软件止损: {norm_sym}")
+                    except Exception as e_clean:
+                        logger.warning(f"平仓后清理止损记录失败: {e_clean}")
+                    # 同时尝试清理交易所挂单（止盈单等）
                     try:
                         self.exchange.cancel_all_orders(symbol)
-                        logger.info(f"平仓后清理所有挂单: {symbol}")
-                    except Exception as e_clean:
-                        logger.warning(f"平仓后清理挂单失败: {e_clean}")
+                    except Exception:
+                        pass
 
             return response
 

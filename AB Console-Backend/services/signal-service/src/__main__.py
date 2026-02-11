@@ -145,10 +145,13 @@ def main():
         from datetime import datetime, timezone
         from events import SignalPublisher
 
-        # 从 Docker 容器访问主机，使用 host.docker.internal
+        # 本地运行用 localhost，Docker 内用 host.docker.internal
+        _default_host = "localhost"
+        if os.path.exists("/.dockerenv"):
+            _default_host = "host.docker.internal"
         OPENCLAW_WEBHOOK_URL = os.environ.get(
             "OPENCLAW_WEBHOOK_URL",
-            "http://host.docker.internal:18789/hooks/al-brooks-signal"
+            f"http://{_default_host}:18789/hooks/al-brooks-signal"
         )
         OPENCLAW_WEBHOOK_TOKEN = os.environ.get(
             "OPENCLAW_WEBHOOK_TOKEN",
@@ -239,8 +242,12 @@ def main():
                     method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=10) as resp:
-                    result = json.loads(resp.read().decode("utf-8"))
-                    logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: {result.get('status', 'ok')}")
+                    body = resp.read().decode("utf-8")
+                    if body.strip():
+                        result = json.loads(body)
+                        logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: {result.get('status', 'ok')}")
+                    else:
+                        logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: 已发送 (HTTP {resp.status})")
                     return True
             except Exception as e:
                 logger.error(f"[OpenClaw] {signal_data['symbol']} → {target} 失败: {e}")

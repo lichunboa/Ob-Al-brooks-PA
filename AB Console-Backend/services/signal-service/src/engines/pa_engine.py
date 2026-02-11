@@ -729,7 +729,7 @@ class StrategyDetector:
     
     # === 反转方案 ===
     
-    def detect_double_top_bottom(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+    def detect_double_top_bottom(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
         双重顶底 (Double Top/Bottom)
         条件：
@@ -888,7 +888,7 @@ class StrategyDetector:
         
         return None
     
-    def detect_spike_channel(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+    def detect_spike_channel(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
         急速通道 (Spike and Channel)
         条件：
