@@ -135,7 +135,31 @@ class PositionPatrol:
                 bot_id = self.executor.get_position_bot_id(norm_sym)
                 alloc = (self.trading_state.get_allocation(bot_id)
                          if bot_id else None)
-                # 1. 裸仓检测（跳过已补过止损的）
+                # 1. 裸仓检测
+                # V3.5: _sl_placed 交叉验证
+                # Demo 模式下 stop_market 不可查询，用入场价变化检测：
+                # 如果记录的止损价与当前应设止损价偏差 > 1%，
+                # 说明持仓已变化（加仓/部分平仓），需重新补挂
+                if norm_sym in self._sl_placed:
+                    recorded_sl = self._sl_placed[norm_sym]
+                    risk_pct = DEFAULT_STOP_PCT
+                    if alloc:
+                        risk_pct = alloc.get(
+                            "risk_percent", 2.0) / 100
+                    from .models import PositionSide
+                    if pos.side == PositionSide.LONG:
+                        expected_sl = pos.entry_price * (1 - risk_pct)
+                    else:
+                        expected_sl = pos.entry_price * (1 + risk_pct)
+                    drift = (abs(recorded_sl - expected_sl)
+                             / max(expected_sl, 1))
+                    if drift > 0.01:
+                        logger.info(
+                            f"[巡检] {norm_sym} 入场价变化，"
+                            f"止损需更新: 记录={recorded_sl:.2f}"
+                            f" 应设={expected_sl:.2f}")
+                        del self._sl_placed[norm_sym]
+                        self._save_sl_placed()
                 if norm_sym not in stop_map and norm_sym not in self._sl_placed:
                     fixed = await self._fix_naked_position(pos, alloc)
                     if fixed:
