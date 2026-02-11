@@ -296,6 +296,27 @@ async def place_order(request: OrderRequest):
         # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
         if not request.leverage:
             request.leverage = alloc.get("max_leverage", 1)
+
+        # V3.5: 开仓前 can_bot_trade 门禁（含累积名义检查）
+        if not request.reduce_only:
+            all_positions = await executor.get_positions()
+            bot_positions = _filter_bot_positions(bot_id, all_positions)
+            can_trade, reason = trading_state.can_bot_trade(
+                bot_id,
+                live_position_count=len(bot_positions),
+                symbol=request.symbol,
+                bot_positions=bot_positions,
+            )
+            if not can_trade:
+                return OrderResponse(
+                    success=False,
+                    symbol=request.symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    status="REJECTED",
+                    message=f"Bot风控拒绝: {reason}",
+                )
+
     return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
 

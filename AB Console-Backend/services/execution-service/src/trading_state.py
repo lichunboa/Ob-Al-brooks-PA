@@ -251,13 +251,21 @@ class TradingStateManager:
             self.state.allocations[bot_id]["used_margin"] = margin
             self._save_state()
 
-    def can_bot_trade(self, bot_id: str, live_position_count: int = -1) -> tuple[bool, str]:
+    def can_bot_trade(
+        self,
+        bot_id: str,
+        live_position_count: int = -1,
+        symbol: str = "",
+        bot_positions: list = None,
+    ) -> tuple[bool, str]:
         """检查机器人是否可以交易
 
         Args:
             bot_id: 机器人 ID
             live_position_count: 实时持仓数量（从币安查询）。
                 如果传入 >=0 的值，使用实时数据；否则回退到本地缓存。
+            symbol: 要开仓的品种（用于累积名义检查）
+            bot_positions: 该 bot 的实时持仓列表（用于累积名义检查）
         """
         # 检查全局开关
         if not self.state.trading_enabled:
@@ -282,6 +290,24 @@ class TradingStateManager:
         allocated = alloc.get("allocated_usdt", 0)
         if used >= allocated:
             return False, f"{alloc['name']} 已用完分配资金 (${used:.0f}/${allocated:.0f})"
+
+        # V3.5: 同品种累积名义价值检查
+        if symbol and bot_positions:
+            max_notional = alloc.get("max_notional_per_position", 0)
+            leverage = alloc.get("max_leverage", 5)
+            if max_notional <= 0:
+                max_notional = (allocated / max(max_pos, 1)) * leverage
+            # 累积名义上限 = 单仓上限 × 2（允许一次加仓）
+            max_cumulative = max_notional * 2
+            # 标准化 symbol 用于匹配
+            norm = symbol.replace("/", "").split(":")[0].upper()
+            existing_notional = 0.0
+            for p in bot_positions:
+                p_norm = p.symbol.replace("/", "").split(":")[0].upper()
+                if p_norm == norm:
+                    existing_notional += abs(p.quantity * p.mark_price)
+            if existing_notional >= max_cumulative:
+                return False, f"{alloc['name']} {symbol} 累积名义 ${existing_notional:.0f} 已达上限 ${max_cumulative:.0f}"
 
         return True, "OK"
 
