@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Optional
 import ccxt
 
-from .config import BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE, BINANCE_BASE_URL
+from .config import BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE
 from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position, Balance, PositionSide, OpenOrder, TradeHistory, AccountSummary
 from .risk_manager import RiskManager
+from .trading_state import get_trading_state_manager
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +127,15 @@ class BinanceExecutor:
         except Exception as e:
             logger.warning(f"保存 position_bot_map 失败: {e}")
 
-    def register_position(self, symbol: str, bot_id: str):
+    def register_position(self, symbol: str, bot_id: str, strategy: str = "auto"):
         """注册持仓归属（开仓时调用）"""
         if bot_id and symbol:
             norm_sym = symbol.replace('/', '')
-            self._position_bot_map[norm_sym] = bot_id
+            # V3.2: 升级存储结构，兼容旧的字符串格式
+            self._position_bot_map[norm_sym] = {
+                "bot_id": bot_id,
+                "strategy": strategy
+            }
             self._save_position_bot_map()
 
     def unregister_position(self, symbol: str):
@@ -143,16 +148,35 @@ class BinanceExecutor:
     def get_position_bot_id(self, symbol: str) -> Optional[str]:
         """通过 symbol 查找持仓归属的 bot_id"""
         norm_sym = symbol.replace('/', '')
-        return self._position_bot_map.get(norm_sym)
+        val = self._position_bot_map.get(norm_sym)
+        if isinstance(val, dict):
+            return val.get("bot_id")
+        return val  # 兼容旧格式（字符串）
 
-    def _register_order(self, order_id: str, bot_id: str, symbol: str = ""):
-        """注册订单与机器人的映射（含 symbol）"""
+    def get_position_strategy(self, symbol: str) -> str:
+        """获取持仓对应的策略名"""
+        norm_sym = symbol.replace('/', '')
+        val = self._position_bot_map.get(norm_sym)
+        if isinstance(val, dict):
+            return val.get("strategy", "auto")
+        return "auto"
+
+    def get_order_strategy(self, order_id: str) -> str:
+        """通过 order_id 获取策略名"""
+        val = self._order_bot_map.get(str(order_id))
+        if isinstance(val, dict):
+            return val.get("strategy", "auto")
+        return "auto"
+
+    def _register_order(self, order_id: str, bot_id: str, symbol: str = "", strategy: str = "auto"):
+        """注册订单与机器人的映射（含 symbol 和 strategy）"""
         if bot_id:
             # 标准化 symbol: SOL/USDT:USDT → SOLUSDT:USDT
             norm_sym = symbol.replace('/', '') if symbol else ""
             self._order_bot_map[str(order_id)] = {
                 "bot_id": bot_id,
                 "symbol": norm_sym,
+                "strategy": strategy,
             }
             self._save_order_bot_map()
 
@@ -413,6 +437,33 @@ class BinanceExecutor:
         positions = await self.get_positions()
         position_size = request.quantity * (request.price or 0)  # 估算仓位大小
 
+        # V3.2: 跨品种相关性检查 (BTC/ETH/SOL/BNB 同向暴露限制)
+        if not request.reduce_only:
+            bal_res = await self.get_balance()
+            total_bal = bal_res[0].balance if bal_res else 0
+
+            # 获取当前价格
+            current_price = request.price
+            if not current_price:
+                try:
+                    ticker = self.exchange.fetch_ticker(symbol)
+                    current_price = float(ticker['last'])
+                except:
+                    current_price = 0.0
+
+            ok_exp, msg_exp = self.risk_manager.check_correlation(
+                symbol, request.side.value, request.quantity, current_price, positions, total_bal
+            )
+            if not ok_exp:
+                return OrderResponse(
+                    success=False,
+                    symbol=symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    status="REJECTED",
+                    message=f"相关性风控拒绝: {msg_exp}",
+                )
+
         ok, msg = self.risk_manager.check_can_open(
             position_size, len(positions), max_positions=max_positions,
             daily_loss_limit=daily_loss_limit, bot_id=bot_id or request.bot_id or "",
@@ -457,10 +508,34 @@ class BinanceExecutor:
 
             # 注册 order_id → bot_id 映射
             if request.bot_id:
-                self._register_order(order_id, request.bot_id, symbol)
+                # V3.2: 尝试从 signal_source 获取策略名
+                strat = request.signal_source or "auto"
+                self._register_order(order_id, request.bot_id, symbol, strategy=strat)
+
                 # 注册 symbol → bot_id 持仓映射（非 reduce_only 才是开仓）
                 if not request.reduce_only:
-                    self.register_position(symbol, request.bot_id)
+                    self.register_position(symbol, request.bot_id, strategy=strat)
+
+                    # V3.2: P1 修复 - 实时更新 Bot 持仓资金占用
+                    try:
+                        # 重新获取持仓以确保数据最新
+                        curr_pos = await self.get_positions()
+                        bot_pos = [p for p in curr_pos if self.get_position_bot_id(p.symbol) == request.bot_id]
+
+                        used = 0.0
+                        for p in bot_pos:
+                            # 估算占用保证金 = 名义价值 / 杠杆
+                            val = p.quantity * p.mark_price
+                            if p.leverage > 0:
+                                used += val / p.leverage
+                            else:
+                                used += val  # fallback
+
+                        mgr = get_trading_state_manager()
+                        mgr.update_bot_positions(request.bot_id, len(bot_pos), used)
+                        logger.info(f"Bot {request.bot_id} 资金占用已更新: 持仓{len(bot_pos)}笔, 占用${used:.1f}")
+                    except Exception as e:
+                        logger.warning(f"更新 Bot 资金占用失败: {e}")
 
             response = OrderResponse(
                 success=True,
@@ -511,7 +586,8 @@ class BinanceExecutor:
                     sl_id = str(sl_order.get('id'))
                     response.stop_loss_order_id = sl_id
                     if request.bot_id:
-                        self._register_order(sl_id, request.bot_id)
+                        # V3.2: 传递 strategy
+                        self._register_order(sl_id, request.bot_id, symbol, strategy=strat)
                     # 验证止损单是否真的存在于交易所
                     sl_verified = self._verify_stop_order(sl_id, symbol)
                     logger.info(f"止损单已设置: {request.stop_loss} (order_id={sl_id}, verified={sl_verified})")
@@ -553,7 +629,8 @@ class BinanceExecutor:
                     tp_id = str(tp_order.get('id'))
                     response.take_profit_order_id = tp_id
                     if request.bot_id:
-                        self._register_order(tp_id, request.bot_id)
+                        # V3.2: 传递 strategy
+                        self._register_order(tp_id, request.bot_id, symbol, strategy=strat)
                     logger.info(f"止盈单已设置: {request.take_profit}")
                 except Exception as e:
                     logger.warning(f"止盈单设置失败: {e}")
@@ -611,14 +688,16 @@ class BinanceExecutor:
                         from .evolution_manager import get_evolution_manager
                         evo = get_evolution_manager()
                         raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
+                        # V3.2: 获取真实策略名
+                        strategy = self.get_position_strategy(symbol)
                         evo.record_trade_result(
                             bot_id=bot_id,
-                            strategy="auto",
+                            strategy=strategy,
                             symbol=raw_sym,
                             pnl=pos.unrealized_pnl,
                             is_win=pos.unrealized_pnl > 0,
                         )
-                        logger.info(f"进化系统已记录: {bot_id} {raw_sym} pnl={pos.unrealized_pnl:.2f}")
+                        logger.info(f"进化系统已记录: {bot_id} [{strategy}] {raw_sym} pnl={pos.unrealized_pnl:.2f}")
                     except Exception as e:
                         logger.warning(f"进化系统记录失败: {e}")
                 # 注销持仓归属（全部平仓时）

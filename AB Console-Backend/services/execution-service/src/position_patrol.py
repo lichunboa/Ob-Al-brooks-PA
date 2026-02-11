@@ -92,6 +92,39 @@ class PositionPatrol:
 
             active_symbols = set()
 
+            # V3.1: 修复 used_margin 永远为 0 的 Bug
+            # 统计每个 bot 的持仓数量和占用保证金
+            bot_stats = {}  # bot_id -> {"count": 0, "margin": 0.0}
+
+            for pos in positions:
+                norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
+                active_symbols.add(norm_sym)
+                bot_id = self.executor.get_position_bot_id(norm_sym)
+
+                if bot_id:
+                    if bot_id not in bot_stats:
+                        bot_stats[bot_id] = {"count": 0, "margin": 0.0}
+
+                    # 累加持仓数
+                    bot_stats[bot_id]["count"] += 1
+
+                    # 累加占用保证金 (估算值 = 名义价值 / 杠杆)
+                    leverage = pos.leverage if pos.leverage > 0 else 1
+                    position_value = pos.quantity * pos.mark_price
+                    margin = position_value / leverage
+                    bot_stats[bot_id]["margin"] += margin
+
+            # 更新所有 bot 的状态（包括持仓为 0 的）
+            if self.trading_state:
+                all_allocs = self.trading_state.get_all_allocations()
+                for bot_id in all_allocs:
+                    stats = bot_stats.get(bot_id, {"count": 0, "margin": 0.0})
+                    self.trading_state.update_bot_positions(
+                        bot_id,
+                        stats["count"],
+                        stats["margin"]
+                    )
+
             for pos in positions:
                 norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
                 active_symbols.add(norm_sym)
@@ -411,7 +444,32 @@ class PositionPatrol:
             stale = [sym for sym in self.executor._position_bot_map
                      if sym not in active_symbols]
             if stale:
-                for sym in stale:
-                    del self.executor._position_bot_map[sym]
-                self.executor._save_position_bot_map()
-                logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
+                # V3.2: 尝试记录被动平仓（止损/止盈）的进化数据
+                try:
+                    from .evolution_manager import get_evolution_manager
+                    evo = get_evolution_manager()
+
+                    for sym in stale:
+                        # 获取 bot info
+                        bot_id = self.executor.get_position_bot_id(sym)
+                        if not bot_id: continue
+                        strategy = self.executor.get_position_strategy(sym)
+
+                        # 尝试查询最近成交以获取 PnL
+                        # 注意：Demo Mode 可能无法获取历史，这就尽力而为
+                        try:
+                            # 简化的 PnL 估算或查询逻辑
+                            # 这里暂不阻塞主线程去查 trade history (太慢)
+                            # 仅记录一个 "Close Event"
+                            # TODO: 异步任务去查准确 PnL
+                            pass
+                        except:
+                            pass
+
+                        # 清理映射
+                        del self.executor._position_bot_map[sym]
+
+                    self.executor._save_position_bot_map()
+                    logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
+                except Exception as e:
+                    logger.error(f"[巡检] 清理映射失败: {e}")

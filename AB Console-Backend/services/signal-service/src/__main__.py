@@ -184,9 +184,13 @@ def main():
             entry_trigger = getattr(ev, 'entry_trigger', 0.0) or 0.0
             category = getattr(ev, 'category', '')
 
-            # 1. PA Engine 信号 → al-brooks（不变）
+            # 1. PA Engine 信号 → al-brooks (优先)
+            # V3.1: PA 信号溢出机制 - 如果是高分信号(>=80)且 al-brooks 满仓(逻辑在 execution-service 但此处无法感知，故采用双路由策略)
+            # 策略调整: PA 信号始终给 al-brooks。如果强度 >= 80，同时也给 trader (量化分析师)
             if source == 'pa_engine' or source == 'pa' or entry_trigger > 0:
                 targets.append('al-brooks')
+                if ev.strength >= 80:
+                    targets.append('trader')
                 return targets
 
             # 2. 威科夫相关信号（供求/成交量/结构/情绪）

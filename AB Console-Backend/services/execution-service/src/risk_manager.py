@@ -255,3 +255,63 @@ class RiskManager:
             self.last_reset_date = date.today()
             self._save_state()
             logger.info("每日风控统计已重置")
+
+    def check_correlation(
+        self,
+        symbol: str,
+        side: str,
+        quantity: float,
+        price: float,
+        existing_positions: list,
+        total_balance: float,
+    ) -> tuple[bool, str]:
+        """检查跨品种相关性暴露 (BTC/ETH/SOL/BNB)"""
+        # 相关资产定义
+        CORRELATED_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
+
+        # 提取基础资产名 (SOL/USDT:USDT -> SOL)
+        base_asset = symbol.split('/')[0] if '/' in symbol else symbol.replace('USDT', '')
+        if ':' in base_asset:
+            base_asset = base_asset.split(':')[0]
+
+        if base_asset not in CORRELATED_ASSETS:
+            return True, "Not correlated asset"
+
+        # 计算拟开仓位价值和方向
+        new_value = quantity * price
+        # Normalize side to 1 (Long) or -1 (Short)
+        # OrderSide / PositionSide could be Enum or str
+        side_str = str(side).upper()
+        if hasattr(side, 'value'):
+            side_str = side.value.upper()
+
+        new_dir = 1 if side_str in ['BUY', 'LONG'] else -1
+
+        # 累加现有相关持仓的带方向价值
+        total_exposure_value = new_value * new_dir
+
+        for pos in existing_positions:
+            p_raw = pos.symbol
+            p_base = p_raw.split('/')[0] if '/' in p_raw else p_raw.replace('USDT', '')
+            if ':' in p_base:
+                p_base = p_base.split(':')[0]
+
+            if p_base in CORRELATED_ASSETS:
+                p_val = pos.quantity * pos.mark_price
+                # PositionSide.LONG / SHORT
+                p_side_str = str(pos.side).upper()
+                if hasattr(pos.side, 'value'):
+                    p_side_str = pos.side.value.upper()
+
+                p_dir = 1 if p_side_str in ['LONG', 'BUY'] else -1
+                total_exposure_value += p_val * p_dir
+
+        # 计算净暴露占余额比例
+        net_exposure = abs(total_exposure_value)
+        if total_balance > 0:
+            ratio = net_exposure / total_balance
+            if ratio > 0.40:  # 40% 阈值
+                return False, f"相关性暴露过高: {base_asset}系列净暴露 ${net_exposure:.0f} ({ratio*100:.1f}%) > 40%"
+
+        return True, "OK"
+

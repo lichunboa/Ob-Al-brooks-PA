@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
+from .evolution_manager import get_evolution_manager
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,24 @@ class OrderTracker:
                         self._update_trade_status(
                             file_path, trade_id, change
                         )
+
+                        # V3.2: 进化系统记录 (P4)
+                        try:
+                            evo = get_evolution_manager()
+                            strategy = trade.get("strategy", "auto")
+                            # Normalize symbol
+                            raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
+
+                            evo.record_trade_result(
+                                bot_id=bot_id,
+                                strategy=strategy,
+                                symbol=raw_sym,
+                                pnl=change.pnl if change.pnl is not None else 0.0,
+                                is_win=(change.pnl > 0) if change.pnl is not None else False
+                            )
+                            logger.info(f"[Evolution] 自动记录: {bot_id} {raw_sym} pnl={change.pnl}")
+                        except Exception as e:
+                            logger.warning(f"[Evolution] 记录失败: {e}")
 
         except Exception as e:
             logger.error(f"检查文件订单失败: {e}")
