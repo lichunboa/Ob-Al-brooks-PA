@@ -317,6 +317,22 @@ async def place_order(request: OrderRequest):
                     message=f"Bot风控拒绝: {reason}",
                 )
 
+            # V3.6: 同品种多 bot 冲突检测（币安合约同品种只有一个持仓）
+            if hasattr(executor, '_position_bot_map'):
+                norm_sym = request.symbol.replace('/', '')
+                if ':' not in norm_sym:
+                    norm_sym += ':USDT'
+                existing_bot = executor._position_bot_map.get(norm_sym)
+                if existing_bot and existing_bot != bot_id:
+                    return OrderResponse(
+                        success=False,
+                        symbol=request.symbol,
+                        side=request.side.value,
+                        quantity=request.quantity,
+                        status="REJECTED",
+                        message=f"品种冲突: {norm_sym} 已由 {existing_bot} 持仓",
+                    )
+
     return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
 

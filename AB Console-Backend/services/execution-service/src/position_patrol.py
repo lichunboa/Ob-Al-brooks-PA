@@ -459,37 +459,10 @@ class PositionPatrol:
             self._trailing_state[sym] = state
             return False
 
-        # 执行移动止损
+        # V3.6: 纯软件移动止损（Demo 模式下不下条件委托）
+        # 直接更新 _sl_placed，由 _check_software_stop 轮询执行
+        # TODO(真实账户): 恢复 exchange.create_order(type='stop_market') 原生条件委托
         try:
-            ccxt_sym = self._to_ccxt_symbol(sym)
-            sl_side = 'sell' if is_long else 'buy'
-
-            # 取消旧止损单
-            if stop_orders:
-                for so in stop_orders:
-                    try:
-                        self.executor.exchange.cancel_order(
-                            so.order_id, ccxt_sym)
-                    except Exception:
-                        pass
-            else:
-                # Demo 模式兜底：无法查询条件单，用 allOpenOrders 全量取消
-                try:
-                    raw_sym = ccxt_sym.split(':')[0].replace('/', '') if ':' in ccxt_sym else ccxt_sym.replace('/', '')
-                    self.executor.exchange.fapiprivate_delete_allopenorders(
-                        {'symbol': raw_sym})
-                except Exception:
-                    pass
-
-            # 下新止损单
-            # TODO(真实账户): 此处 create_order stop_market 在真实模式下可正常工作
-            #   Demo 模式下虽然会下单但无法查询/取消，配合 _sl_placed 做兜底
-            self.executor.exchange.create_order(
-                symbol=ccxt_sym, type='stop_market',
-                side=sl_side, amount=pos.quantity,
-                params={'stopPrice': new_sl, 'reduceOnly': True}
-            )
-            # 更新 _sl_placed 记录（防止 Demo 模式下重复下单）
             self._sl_placed[sym] = new_sl
             self._save_sl_placed()
             logger.info(
@@ -552,4 +525,4 @@ class PositionPatrol:
                 for sym in stale:
                     del self.executor._position_bot_map[sym]
                 self.executor._save_position_bot_map()
-                logger.info(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
+                logger.debug(f"[巡检] 清理 position_bot_map 已平仓: {stale}")

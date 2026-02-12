@@ -412,11 +412,12 @@ class BinanceExecutor:
                     break
 
         try:
-            self.exchange.set_leverage(leverage, symbol)
-            logger.info(f"设置 {symbol} 杠杆为 {leverage}x")
+            result = self.exchange.set_leverage(leverage, symbol)
+            actual_lev = result.get('leverage', leverage) if isinstance(result, dict) else leverage
+            logger.info(f"设置 {symbol} 杠杆为 {actual_lev}x (请求={leverage}x)")
             return True
         except Exception as e:
-            logger.error(f"设置杠杆失败: {e}")
+            logger.warning(f"设置杠杆失败 {symbol} {leverage}x: {e} — 继续使用当前杠杆")
             return False
 
     async def place_order(self, request: OrderRequest, max_positions: int = 10, daily_loss_limit: float = 0, bot_id: str = "") -> OrderResponse:
