@@ -25,7 +25,7 @@ msgid "start.greet"
 msgstr "Hello 👋"
 
 msgid "start.fallback"
-msgstr "⚡️ Welcome to TradeCat"
+msgstr "⚡️ Welcome to AB Console"
 
 msgid "start.error"
 msgstr "❌ Failed to start, please retry later.\n\nDetails: {error}"
@@ -75,7 +75,7 @@ msgstr "⚙️ Config"
 
 msgid "menu.main_text"
 msgstr ""
-"⚡️ TradeCat\n"
+"⚡️ AB Console\n"
 "\n"
 "📊 Data panel\n"
 "├─ Basic: MACD/RSI/Bollinger/Support-Resistance/Flow/\n"
@@ -1735,7 +1735,7 @@ msgid "loading.position_market"
 msgstr "📊 Loading position/market cap ratio, please retry later..."
 
 msgid "welcome.title"
-msgstr "⚡️ Welcome to TradeCat"
+msgstr "⚡️ Welcome to AB Console"
 
 msgid "welcome.status"
 msgstr "✅ System running normally"

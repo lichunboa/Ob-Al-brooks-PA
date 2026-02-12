@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
     parser.add_argument("--stats", action="store_true", help="显示统计")
     parser.add_argument("--test", action="store_true", help="测试配置")
-    parser.add_argument("--health-port", type=int, default=8083, help="健康检查端口")
+    parser.add_argument("--health-port", type=int, default=8086, help="健康检查端口(8083/8084被Docker占用)")
     args = parser.parse_args()
 
     if args.test:

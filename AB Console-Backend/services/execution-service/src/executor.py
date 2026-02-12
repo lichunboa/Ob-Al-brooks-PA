@@ -571,6 +571,8 @@ class BinanceExecutor:
 
             # V3.5: 软件止损 — 不下条件委托，记录到 sl_placed.json
             # Demo 模式下 STOP_MARKET 不可查询/不可取消，改由巡检轮询
+            # TODO(真实账户): 切换真实账户后恢复交易所原生 STOP_MARKET 条件委托
+            #   原生止损更可靠（服务器端执行），软件止损依赖本地进程存活
             if request.stop_loss:
                 from pathlib import Path
                 import json as _json

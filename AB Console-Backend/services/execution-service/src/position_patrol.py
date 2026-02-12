@@ -285,6 +285,7 @@ class PositionPatrol:
 
             # V3.5: Demo 模式下不下条件委托，只记录止损价
             # 由巡检主循环 _check_software_stop 轮询执行
+            # TODO(真实账户): 恢复 exchange.create_order(type='stop_market') 原生条件委托
             self._sl_placed[pos.symbol] = sl_price
             self._sl_fix_timestamps[pos.symbol] = now
             self._save_sl_placed()
@@ -481,6 +482,8 @@ class PositionPatrol:
                     pass
 
             # 下新止损单
+            # TODO(真实账户): 此处 create_order stop_market 在真实模式下可正常工作
+            #   Demo 模式下虽然会下单但无法查询/取消，配合 _sl_placed 做兜底
             self.executor.exchange.create_order(
                 symbol=ccxt_sym, type='stop_market',
                 side=sl_side, amount=pos.quantity,

@@ -807,7 +807,7 @@ class StrategyDetector:
         
         return None
     
-    def detect_wedge(self, candles: list[Candle], ema20: list[float]) -> Optional[PASignal]:
+    def detect_wedge(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
         """
         楔形顶底 (Wedge Top/Bottom)
         条件：
