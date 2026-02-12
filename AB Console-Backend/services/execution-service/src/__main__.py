@@ -159,16 +159,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"启动同步币安费率失败: {e}")
 
-    # 启动时自动为所有品种设置杠杆（V3.0）
+    # 启动时自动为所有品种设置杠杆（V3.0, V3.6 修复: 取各品种最大杠杆）
+    # 币安合约每品种只有一个全局杠杆，多 bot 共享时必须取最大值
     try:
         allocs = trading_state.state.allocations
+        symbol_max_lev: dict[str, int] = {}
         for bot_id, alloc in allocs.items():
             lev = alloc.get("max_leverage", 5)
-            symbols = alloc.get("allowed_symbols", [])
-            for sym in symbols:
+            for sym in alloc.get("allowed_symbols", []):
                 ccxt_sym = f"{sym}:USDT" if ':' not in sym else sym
-                await executor.set_leverage(ccxt_sym, lev)
-            logger.info(f"启动杠杆: {alloc['name']} {lev}x ({len(symbols)} 品种)")
+                symbol_max_lev[ccxt_sym] = max(symbol_max_lev.get(ccxt_sym, 0), lev)
+        for ccxt_sym, lev in symbol_max_lev.items():
+            await executor.set_leverage(ccxt_sym, lev)
+        logger.info(f"启动杠杆: {', '.join(f'{s}={l}x' for s,l in symbol_max_lev.items())}")
     except Exception as e:
         logger.warning(f"启动设置杠杆失败: {e}")
 
