@@ -35,6 +35,10 @@ pkill -f "python.*data-service" 2>/dev/null || true
 pkill -f "python.*trading-service" 2>/dev/null || true
 pkill -f "python.*signal-service" 2>/dev/null || true
 pkill -f "python.*telegram-service" 2>/dev/null || true
+# execution-service: 只在需要重启时才杀（避免误杀正在运行的服务）
+# lsof -ti :8092 | xargs kill 2>/dev/null || true
+# web dashboard: 同上
+# lsof -ti :3001 | xargs kill 2>/dev/null || true
 sleep 2
 echo -e "${GREEN}✅ 清理完成${NC}"
 echo ""
@@ -91,11 +95,43 @@ start_service "trading-service"
 echo ""
 
 # 3. signal-service (信号检测)
-start_service "signal-service" "--pg --interval 300"
+start_service "signal-service" "--all"
 echo ""
 
 # 4. telegram-service (Bot 服务)
 start_service "telegram-service"
+echo ""
+
+# 5. execution-service (交易执行 — 系统 Python, 无 venv)
+echo -e "${BLUE}[启动] execution-service...${NC}"
+if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ execution-service 已在运行 (端口 8092)，跳过${NC}"
+else
+    EXEC_DIR="services/execution-service"
+    mkdir -p "$EXEC_DIR/logs" "$EXEC_DIR/run"
+    cd "$EXEC_DIR"
+    nohup python3 -m src --port 8092 > logs/execution-service.log 2>&1 &
+    EXEC_PID=$!
+    echo $EXEC_PID > run/execution-service.pid
+    echo -e "${GREEN}✅ execution-service 已启动 (PID: $EXEC_PID)${NC}"
+    cd ../..
+    sleep 3
+fi
+echo ""
+
+# 6. web dashboard (Next.js, 端口 3001)
+echo -e "${BLUE}[启动] web dashboard...${NC}"
+if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ web dashboard 已在运行 (端口 3001)，跳过${NC}"
+else
+    cd web
+    nohup npm run dev > ../services/execution-service/logs/web-dashboard.log 2>&1 &
+    WEB_PID=$!
+    echo $WEB_PID > ../services/execution-service/run/web-dashboard.pid
+    echo -e "${GREEN}✅ web dashboard 已启动 (PID: $WEB_PID, http://localhost:3001)${NC}"
+    cd ..
+    sleep 3
+fi
 echo ""
 
 # 显示状态
@@ -104,7 +140,7 @@ echo -e "${GREEN}✅ 所有核心服务已启动${NC}"
 echo -e "${BLUE}=============================================================================${NC}"
 echo ""
 echo "服务状态:"
-for service in data-service trading-service signal-service telegram-service; do
+for service in data-service trading-service signal-service telegram-service execution-service; do
     pid_file="services/$service/run/$service.pid"
     if [ -f "$pid_file" ]; then
         pid=$(cat "$pid_file" 2>/dev/null)
@@ -117,12 +153,26 @@ for service in data-service trading-service signal-service telegram-service; do
         echo -e "  ⚪ $service: 未启动"
     fi
 done
+# web dashboard
+web_pid_file="services/execution-service/run/web-dashboard.pid"
+if [ -f "$web_pid_file" ]; then
+    web_pid=$(cat "$web_pid_file" 2>/dev/null)
+    if ps -p "$web_pid" > /dev/null 2>&1; then
+        echo -e "  ✅ web-dashboard: 运行中 (PID: $web_pid, http://localhost:3001)"
+    else
+        echo -e "  ❌ web-dashboard: 已停止"
+    fi
+else
+    echo -e "  ⚪ web-dashboard: 未启动"
+fi
 echo ""
 echo -e "${YELLOW}查看实时日志:${NC}"
 echo "  tail -f services/data-service/logs/data-service.log"
 echo "  tail -f services/trading-service/logs/trading-service.log"
 echo "  tail -f services/signal-service/logs/signal-service.log"
 echo "  tail -f services/telegram-service/logs/telegram-service.log"
+echo "  tail -f services/execution-service/logs/execution-service.log"
+echo "  tail -f services/execution-service/logs/web-dashboard.log"
 echo ""
 echo -e "${YELLOW}停止所有服务:${NC}"
 echo "  pkill -f 'python.*data-service|python.*trading-service|python.*signal-service|python.*telegram-service'"
