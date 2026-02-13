@@ -91,7 +91,7 @@ start_service "trading-service"
 echo ""
 
 # 3. signal-service (信号检测)
-start_service "signal-service" "--pg"
+start_service "signal-service" "--pg --interval 300"
 echo ""
 
 # 4. telegram-service (Bot 服务)

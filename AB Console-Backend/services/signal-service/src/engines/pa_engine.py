@@ -1730,6 +1730,18 @@ class PASignalEngine(BaseEngine):
             effective_cooldown = self.cooldown_seconds * cooldown_multiplier
             if self._is_cooled_down(signal_key, effective_cooldown):
                 if self._set_cooldown(signal_key):
+                    # V3.7: 方向偏差检测 — 连续同方向信号降分
+                    bias_key = f"bias:{sig.symbol}"
+                    bias_state = self.cooldowns.get(bias_key, None)
+                    if isinstance(bias_state, dict) and bias_state.get("dir") == sig.direction:
+                        bias_state["count"] = bias_state.get("count", 0) + 1
+                        if bias_state["count"] >= 5:
+                            sig.strength -= 10
+                            sig.message += f" [方向偏差: 连续{bias_state['count']}次{sig.direction}]"
+                    else:
+                        bias_state = {"dir": sig.direction, "count": 1}
+                    self.cooldowns[bias_key] = bias_state
+
                     # 记录到风控系统
                     self.risk_manager.record_signal(sig)
                     filtered.append(sig)

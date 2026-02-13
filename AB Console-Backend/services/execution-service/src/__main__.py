@@ -336,6 +336,29 @@ async def place_order(request: OrderRequest):
                         message=f"品种冲突: {norm_sym} 已由 {existing_bot} 持仓",
                     )
 
+            # V3.7: 盈亏比门禁
+            if (request.take_profit and request.stop_loss
+                    and request.price):
+                tp = float(request.take_profit)
+                sl = float(request.stop_loss)
+                ep = float(request.price)
+                risk = abs(ep - sl)
+                if risk > 0:
+                    rr = abs(tp - ep) / risk
+                    min_rr = alloc.get("min_risk_reward", 2.0)
+                    if rr < min_rr:
+                        return OrderResponse(
+                            success=False,
+                            symbol=request.symbol,
+                            side=request.side.value,
+                            quantity=request.quantity,
+                            status="REJECTED",
+                            message=(
+                                f"盈亏比 {rr:.1f}:1"
+                                f" < {min_rr}:1"
+                            ),
+                        )
+
     return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
 
@@ -942,6 +965,17 @@ async def get_bot_summary(bot_id: str):
     if max_notional <= 0:
         max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
 
+    # V3.7: 计算当前相关性暴露（供 signal-router 预检）
+    total_balance = trading_state.state.balance or 1
+    corr_exposure = 0.0
+    CORR_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
+    for p in bot_positions:
+        base = p.symbol.split('/')[0].replace('USDT', '').split(':')[0]
+        if base in CORR_ASSETS:
+            val = p.quantity * p.mark_price
+            s = str(getattr(p.side, 'value', p.side)).upper()
+            corr_exposure += val * (1 if s in ('LONG', 'BUY') else -1)
+
     return {
         "config": alloc,
         "positions": [
@@ -968,6 +1002,7 @@ async def get_bot_summary(bot_id: str):
             "daily_loss_ok": limit_ok,
             "cooldowns": cooldowns,
             "emergency_stop": risk_manager.emergency_stop,
+            "correlation_exposure_pct": round(abs(corr_exposure) / total_balance * 100, 1),
         },
         "notional": {
             "max_per_position": max_notional,

@@ -155,6 +155,14 @@ class OrderTracker:
                         except Exception as e:
                             logger.warning(f"[Evolution] 记录失败: {e}")
 
+                        # V3.7: 笔记闭环 — 回填 Obsidian 笔记结果字段
+                        try:
+                            note_path = trade.get("note_path")
+                            if note_path and Path(note_path).exists():
+                                self._backfill_note(note_path, change)
+                        except Exception as e:
+                            logger.warning(f"[NoteBackfill] 回填失败: {e}")
+
         except Exception as e:
             logger.error(f"检查文件订单失败: {e}")
 
@@ -418,3 +426,31 @@ class OrderTracker:
             "level": level,
             "data": asdict(change),
         }
+
+    def _backfill_note(self, note_path: str, change: OrderStatusChange):
+        """V3.7: 回填 Obsidian 笔记的结果字段（frontmatter YAML）"""
+        import re
+        p = Path(note_path)
+        content = p.read_text(encoding="utf-8")
+
+        outcome = "盈利" if change.pnl and change.pnl > 0 else "亏损"
+        backfills = {
+            "净利润/net_profit:": f"净利润/net_profit: {change.pnl:.2f}%" if change.pnl is not None else None,
+            "结果/outcome:": f"结果/outcome: {outcome}",
+            "出场原因/exit_reason:": f"出场原因/exit_reason: {change.trigger_reason}",
+            "出场价格/exit_price:": f"出场价格/exit_price: {change.exit_price}" if change.exit_price else None,
+        }
+
+        updated = False
+        for key, replacement in backfills.items():
+            if replacement is None:
+                continue
+            # 匹配空值的 frontmatter 行: "key:" 或 "key: "
+            pattern = re.compile(rf"^({re.escape(key)})\s*$", re.MULTILINE)
+            if pattern.search(content):
+                content = pattern.sub(replacement, content)
+                updated = True
+
+        if updated:
+            p.write_text(content, encoding="utf-8")
+            logger.info(f"[NoteBackfill] 已回填: {p.name} → {outcome} {change.pnl:.2f}%")

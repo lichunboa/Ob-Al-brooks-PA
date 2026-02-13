@@ -1,12 +1,12 @@
 # ==============================================================================
-# TradeCat Makefile
+# AB Console Makefile
 # ==============================================================================
 
 .PHONY: help init start stop status daemon daemon-stop verify clean export-db
 
 # 默认目标
 help:
-	@echo "TradeCat - 加密货币量化交易数据平台"
+	@echo "AB Console - 加密货币量化交易数据平台"
 	@echo ""
 	@echo "Usage:"
 	@echo "    make init        - 初始化所有服务（虚拟环境 + 依赖）"
