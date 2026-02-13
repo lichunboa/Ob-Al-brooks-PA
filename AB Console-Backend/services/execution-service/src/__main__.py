@@ -325,7 +325,7 @@ async def place_order(request: OrderRequest):
                 norm_sym = request.symbol.replace('/', '')
                 if ':' not in norm_sym:
                     norm_sym += ':USDT'
-                existing_bot = executor._position_bot_map.get(norm_sym)
+                existing_bot = executor.get_position_bot_id(norm_sym)
                 if existing_bot and existing_bot != bot_id:
                     return OrderResponse(
                         success=False,
@@ -966,7 +966,7 @@ async def get_bot_summary(bot_id: str):
         max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
 
     # V3.7: 计算当前相关性暴露（供 signal-router 预检）
-    total_balance = trading_state.state.balance or 1
+    total_balance = trading_state.state.binance_balance or 1
     corr_exposure = 0.0
     CORR_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
     for p in bot_positions:

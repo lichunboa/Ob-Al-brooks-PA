@@ -254,7 +254,7 @@ class BinanceExecutor:
                 # 先尝试从 order_bot_map 中通过 symbol 匹配
                 for oid, val in self._order_bot_map.items():
                     if isinstance(val, dict) and val.get("symbol") == norm_sym:
-                        self._position_bot_map[norm_sym] = val["bot_id"]
+                        self._position_bot_map[norm_sym] = {"bot_id": val["bot_id"], "strategy": val.get("strategy", "auto")}
                         recovered_positions += 1
                         logger.info(f"从 order_bot_map 恢复持仓归属: {norm_sym} → {val['bot_id']}")
                         break
@@ -276,7 +276,7 @@ class BinanceExecutor:
                         cid = o.get('clientOrderId', '') or o.get('info', {}).get('clientOrderId', '')
                         bot_id = self._parse_bot_id_from_client_order_id(cid)
                         if bot_id:
-                            self._position_bot_map[norm_sym] = bot_id
+                            self._position_bot_map[norm_sym] = {"bot_id": bot_id, "strategy": "auto"}
                             recovered_positions += 1
                             logger.info(f"从订单历史恢复持仓归属: {norm_sym} → {bot_id}")
                             break
@@ -660,9 +660,12 @@ class BinanceExecutor:
 
             # 记录盈亏 + 进化系统
             if response.success:
-                self.risk_manager.record_pnl(pos.unrealized_pnl)
-                # 进化系统记录交易结果
                 bot_id = self.get_position_bot_id(symbol)
+                if bot_id:
+                    self.risk_manager.record_bot_pnl(bot_id, pos.unrealized_pnl)
+                else:
+                    self.risk_manager.record_pnl(pos.unrealized_pnl)
+                # 进化系统记录交易结果
                 if bot_id:
                     try:
                         from .evolution_manager import get_evolution_manager

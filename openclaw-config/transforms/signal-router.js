@@ -799,7 +799,7 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 3,
+      max_turns: 6,
       ttl_minutes: 8,
       no_memory: true,
       model_hint: 'sonnet'
@@ -872,7 +872,7 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 3,
+      max_turns: 6,
       ttl_minutes: 8,
       no_memory: true
     }
@@ -947,7 +947,7 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 3,
+      max_turns: 6,
       ttl_minutes: 8,
       no_memory: true
     }
