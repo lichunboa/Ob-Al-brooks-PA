@@ -732,8 +732,6 @@ class PGSignalEngine(BaseEngine):
                                     signals.append(signal)
                                     self.stats["signals"] += 1
                                     logger.info(f"PG Signal: {signal.symbol} - {signal.signal_type}")
-                                    # 发布事件
-                                    self._publish_event(signal)
                                 else:
                                     self.stats["errors"] += 1
                                     logger.error("冷却持久化失败，跳过信号推送: %s", signal_key)
@@ -748,7 +746,22 @@ class PGSignalEngine(BaseEngine):
                 logger.error(f"Error processing symbol {symbol}: {e}")
                 self.stats["errors"] += 1
 
-        return signals
+        # V3.7: 按 {symbol}_{direction} 聚合，每个品种每个方向只发布最强信号
+        aggregated: dict[str, PGSignal] = {}
+        for sig in signals:
+            agg_key = f"{sig.symbol}_{sig.direction}"
+            if agg_key not in aggregated or sig.strength > aggregated[agg_key].strength:
+                aggregated[agg_key] = sig
+
+        published = []
+        for sig in aggregated.values():
+            self._publish_event(sig)
+            published.append(sig)
+
+        if len(signals) != len(published):
+            logger.info(f"V3.7 聚合: {len(signals)} 原始信号 → {len(published)} 发布")
+
+        return published
 
     def _publish_event(self, signal: PGSignal):
         """发布信号事件"""

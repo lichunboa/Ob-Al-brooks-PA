@@ -303,8 +303,40 @@ def main():
 
             return False, None
 
+        # V3.7: 全局速率限制器
+        _rate_state = {
+            "window_start": time.time(),
+            "count": 0,
+            "max": 8,       # 每窗口最多 8 个信号
+            "window": 300,  # 5 分钟窗口
+        }
+
+        # V3.7: 品种级限流（同一品种+方向 5 分钟内最多 1 次 webhook）
+        _symbol_last_sent: dict[str, float] = {}
+        SYMBOL_MIN_INTERVAL = 300  # 5 分钟
+
         def send_openclaw_webhook(ev):
             """发送信号到 OpenClaw HTTP Webhook（多机器人路由）"""
+            # V3.7: 品种+方向级限流
+            sym_key = f"{ev.symbol}_{ev.direction or 'analysis'}"
+            now = time.time()
+            last = _symbol_last_sent.get(sym_key, 0)
+            if now - last < SYMBOL_MIN_INTERVAL:
+                logger.debug(f"[OpenClaw] 品种限流: {sym_key} {int(now - last)}s < {SYMBOL_MIN_INTERVAL}s")
+                return
+
+            # V3.7: 全局速率限制
+            now = time.time()
+            if now - _rate_state["window_start"] > _rate_state["window"]:
+                _rate_state["count"] = 0
+                _rate_state["window_start"] = now
+            if _rate_state["count"] >= _rate_state["max"]:
+                logger.info(
+                    f"[OpenClaw] 速率限制: "
+                    f"{_rate_state['count']}/{_rate_state['max']}"
+                )
+                return
+
             # 加载 AI 进化反馈配置
             feedback = load_evolution_feedback()
 
@@ -322,6 +354,7 @@ def main():
                 "timeframe": ev.timeframe,
                 "price": ev.price,
                 "signal_type": ev.signal_type,
+                "strategy": ev.signal_type,  # V3.7: signal-router 读 strategy 字段
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 "source": getattr(ev, 'source', 'unknown'),
             }
@@ -353,6 +386,10 @@ def main():
 
             for target in targets:
                 send_to_target(signal_data, target)
+                _rate_state["count"] += 1
+
+            # V3.7: 记录品种+方向发送时间
+            _symbol_last_sent[sym_key] = time.time()
 
         SignalPublisher.subscribe(send_openclaw_webhook)
         logger.info(f"已注册 OpenClaw HTTP Webhook 回调: {OPENCLAW_WEBHOOK_URL}")
@@ -422,10 +459,10 @@ def main():
                     signals = pa.check_signals()
                     if signals:
                         logger.info(f"PA 引擎检测到 {len(signals)} 个信号")
-                    time.sleep(60)  # 每 60 秒检测一次（从 5 秒改为 60 秒，减少 token 消耗）
+                    time.sleep(300)  # V3.7: 5分钟检测
                 except Exception as e:
                     logger.error(f"PA engine error: {e}")
-                    time.sleep(60)
+                    time.sleep(300)
             pa._running = False  # 退出时重置状态
 
         t = threading.Thread(target=run_pa, daemon=False, name="PAEngine")
