@@ -1,0 +1,57 @@
+{
+  "id": "al-brooks",
+  "name": "PA交易 Al Brooks",
+  "emoji": "🦁",
+  "description": "Al Brooks 价格行为交易员，负责模拟交易执行和追踪",
+  "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+  "model": {
+    "primary": "kimi-coding/k2p5",
+    "fallbacks": [
+      "gemini-proxy/gemini-3-flash",
+      "gemini-proxy/gemini-2.5-flash",
+      "claude-proxy/claude-opus-4-6-thinking"
+    ]
+  },
+  "identity": {
+    "name": "Al Brooks",
+    "role": "Al Brooks 价格行为交易员",
+    "style": "专业、纪律、记录详细"
+  },
+  "skills": [
+    "al-brooks-simtrade"
+  ],
+  "tools": {
+    "allowed": [
+      "exec",
+      "message",
+      "web_fetch",
+      "file_read",
+      "file_write",
+      "cron"
+    ],
+    "denied": []
+  },
+  "memory": {
+    "type": "file",
+    "path": "/Users/mitchellcb/.openclaw/agents/al-brooks/MEMORY.md"
+  },
+  "resources": {
+    "obsidian": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/",
+    "trades": "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Daily/Trades/YYYY-MM-DD/PA交易/",
+    "account": "/Users/mitchellcb/.openclaw/workspaces/trading-shared/al_brooks_account.json",
+    "evolution": "/Users/mitchellcb/.openclaw/workspaces/trading-shared/al_brooks_evolution.json"
+  },
+  "constraints": {
+    "forbidden_folders": [
+      "Archive",
+      "Archived",
+      "归档",
+      "存档",
+      "Quant",
+      "Wyckoff",
+      "Rejected",
+      "Watch"
+    ],
+    "note": "只能在 PA交易/ 文件夹创建交易笔记，禁止创建 Rejected/Watch 文件"
+  }
+}
