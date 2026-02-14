@@ -127,36 +127,106 @@ class BinanceExecutor:
         except Exception as e:
             logger.warning(f"保存 position_bot_map 失败: {e}")
 
-    def register_position(self, symbol: str, bot_id: str, strategy: str = "auto"):
-        """注册持仓归属（开仓时调用）"""
-        if bot_id and symbol:
-            norm_sym = symbol.replace('/', '')
-            # V3.2: 升级存储结构，兼容旧的字符串格式
-            self._position_bot_map[norm_sym] = {
-                "bot_id": bot_id,
-                "strategy": strategy
-            }
-            self._save_position_bot_map()
+    def _norm_position_key(self, symbol: str) -> str:
+        """标准化 position_bot_map key 为 XXXUSDT:USDT 格式（V3.9.2）"""
+        norm = symbol.replace('/', '')
+        if ':' not in norm:
+            norm += ':USDT'
+        return norm
 
-    def unregister_position(self, symbol: str):
-        """注销持仓归属（平仓时调用）"""
-        norm_sym = symbol.replace('/', '')
-        if norm_sym in self._position_bot_map:
-            del self._position_bot_map[norm_sym]
-            self._save_position_bot_map()
+    def register_position(self, symbol: str, bot_id: str, strategy: str = "auto"):
+        """注册持仓归属（开仓时调用）— V3.9.2 支持多 bot 同品种"""
+        if not (bot_id and symbol):
+            return
+        key = self._norm_position_key(symbol)
+        entry = {"bot_id": bot_id, "strategy": strategy}
+
+        existing = self._position_bot_map.get(key)
+        if isinstance(existing, list):
+            # 更新或追加
+            for i, e in enumerate(existing):
+                if isinstance(e, dict) and e.get("bot_id") == bot_id:
+                    existing[i] = entry
+                    break
+            else:
+                existing.append(entry)
+        elif isinstance(existing, dict):
+            if existing.get("bot_id") == bot_id:
+                self._position_bot_map[key] = [entry]
+            else:
+                self._position_bot_map[key] = [existing, entry]
+        elif isinstance(existing, str):
+            if existing == bot_id:
+                self._position_bot_map[key] = [entry]
+            else:
+                self._position_bot_map[key] = [
+                    {"bot_id": existing, "strategy": "auto"}, entry
+                ]
+        else:
+            self._position_bot_map[key] = [entry]
+        self._save_position_bot_map()
+
+    def unregister_position(self, symbol: str, bot_id: str = None):
+        """注销持仓归属 — V3.9.2 支持按 bot_id 注销"""
+        key = self._norm_position_key(symbol)
+        existing = self._position_bot_map.get(key)
+        if existing is None:
+            return
+
+        if bot_id is None:
+            # 全部清除（向后兼容）
+            del self._position_bot_map[key]
+        elif isinstance(existing, list):
+            self._position_bot_map[key] = [
+                e for e in existing
+                if not (isinstance(e, dict) and e.get("bot_id") == bot_id)
+            ]
+            if not self._position_bot_map[key]:
+                del self._position_bot_map[key]
+        elif isinstance(existing, dict) and existing.get("bot_id") == bot_id:
+            del self._position_bot_map[key]
+        elif existing == bot_id:
+            del self._position_bot_map[key]
+        self._save_position_bot_map()
 
     def get_position_bot_id(self, symbol: str) -> Optional[str]:
-        """通过 symbol 查找持仓归属的 bot_id"""
-        norm_sym = symbol.replace('/', '')
-        val = self._position_bot_map.get(norm_sym)
+        """查找持仓归属的主 bot_id（第一个）"""
+        key = self._norm_position_key(symbol)
+        val = self._position_bot_map.get(key)
+        if isinstance(val, list):
+            if val and isinstance(val[0], dict):
+                return val[0].get("bot_id")
+            return val[0] if val else None
         if isinstance(val, dict):
             return val.get("bot_id")
         return val  # 兼容旧格式（字符串）
 
-    def get_position_strategy(self, symbol: str) -> str:
+    def get_position_bot_ids(self, symbol: str) -> list:
+        """获取某品种所有持仓 bot_id（V3.9.2 多 bot 支持）"""
+        key = self._norm_position_key(symbol)
+        val = self._position_bot_map.get(key)
+        if isinstance(val, list):
+            return [
+                e.get("bot_id") if isinstance(e, dict) else e
+                for e in val if e
+            ]
+        if isinstance(val, dict):
+            bid = val.get("bot_id")
+            return [bid] if bid else []
+        if isinstance(val, str):
+            return [val]
+        return []
+
+    def get_position_strategy(self, symbol: str, bot_id: str = None) -> str:
         """获取持仓对应的策略名"""
-        norm_sym = symbol.replace('/', '')
-        val = self._position_bot_map.get(norm_sym)
+        key = self._norm_position_key(symbol)
+        val = self._position_bot_map.get(key)
+        if isinstance(val, list):
+            for e in val:
+                if isinstance(e, dict):
+                    if bot_id is None or e.get("bot_id") == bot_id:
+                        return e.get("strategy", "auto")
+            return "auto"
         if isinstance(val, dict):
             return val.get("strategy", "auto")
         return "auto"
@@ -664,8 +734,8 @@ class BinanceExecutor:
                 message=str(e),
             )
 
-    async def close_position(self, symbol: str, quantity: Optional[float] = None) -> OrderResponse:
-        """平仓"""
+    async def close_position(self, symbol: str, quantity: Optional[float] = None, bot_id: str = None) -> OrderResponse:
+        """平仓 — V3.9.2: 支持 per-bot 注销"""
         try:
             positions = await self.get_positions()
             pos = next((p for p in positions if p.symbol == symbol), None)
@@ -696,32 +766,35 @@ class BinanceExecutor:
 
             # 记录盈亏 + 进化系统
             if response.success:
-                bot_id = self.get_position_bot_id(symbol)
-                if bot_id:
-                    self.risk_manager.record_bot_pnl(bot_id, pos.unrealized_pnl)
+                effective_bot = bot_id or self.get_position_bot_id(symbol)
+                if effective_bot:
+                    self.risk_manager.record_bot_pnl(effective_bot, pos.unrealized_pnl)
                 else:
                     self.risk_manager.record_pnl(pos.unrealized_pnl)
                 # 进化系统记录交易结果
-                if bot_id:
+                if effective_bot:
                     try:
                         from .evolution_manager import get_evolution_manager
                         evo = get_evolution_manager()
                         raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
-                        # V3.2: 获取真实策略名
-                        strategy = self.get_position_strategy(symbol)
+                        strategy = self.get_position_strategy(symbol, effective_bot)
                         evo.record_trade_result(
-                            bot_id=bot_id,
+                            bot_id=effective_bot,
                             strategy=strategy,
                             symbol=raw_sym,
                             pnl=pos.unrealized_pnl,
                             is_win=pos.unrealized_pnl > 0,
                         )
-                        logger.info(f"进化系统已记录: {bot_id} [{strategy}] {raw_sym} pnl={pos.unrealized_pnl:.2f}")
+                        logger.info(f"进化系统已记录: {effective_bot} [{strategy}] {raw_sym} pnl={pos.unrealized_pnl:.2f}")
                     except Exception as e:
                         logger.warning(f"进化系统记录失败: {e}")
-                # 注销持仓归属（全部平仓时）
+                # V3.9.2: 注销持仓归属（按 bot 或全部）
                 if not quantity or quantity >= pos.quantity:
+                    # 全量平仓 — 注销所有 bot（仓位已不存在）
                     self.unregister_position(symbol)
+                elif effective_bot:
+                    # 部分平仓 — 只注销请求的 bot
+                    self.unregister_position(symbol, effective_bot)
                     # V3.5: 平仓后清理软件止损记录
                     try:
                         from pathlib import Path

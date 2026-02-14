@@ -103,20 +103,19 @@ class PositionPatrol:
             for pos in positions:
                 norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
                 active_symbols.add(norm_sym)
-                bot_id = self.executor.get_position_bot_id(norm_sym)
+                # V3.9.2: 支持多 bot 同品种 — 每个 bot 各计一次持仓
+                bot_ids = self.executor.get_position_bot_ids(norm_sym)
 
-                if bot_id:
-                    if bot_id not in bot_stats:
-                        bot_stats[bot_id] = {"count": 0, "margin": 0.0}
+                leverage = pos.leverage if pos.leverage > 0 else 1
+                position_value = pos.quantity * pos.mark_price
+                # 多 bot 共享时均分保证金
+                margin_per_bot = (position_value / leverage) / max(len(bot_ids), 1)
 
-                    # 累加持仓数
-                    bot_stats[bot_id]["count"] += 1
-
-                    # 累加占用保证金 (估算值 = 名义价值 / 杠杆)
-                    leverage = pos.leverage if pos.leverage > 0 else 1
-                    position_value = pos.quantity * pos.mark_price
-                    margin = position_value / leverage
-                    bot_stats[bot_id]["margin"] += margin
+                for bid in bot_ids:
+                    if bid not in bot_stats:
+                        bot_stats[bid] = {"count": 0, "margin": 0.0}
+                    bot_stats[bid]["count"] += 1
+                    bot_stats[bid]["margin"] += margin_per_bot
 
             # 更新所有 bot 的状态（包括持仓为 0 的）
             if self.trading_state:
@@ -356,7 +355,8 @@ class PositionPatrol:
                     logger.info(f"[巡检] 止损进化记录: {bot_id} {raw_sym} pnl=${pnl_usdt:.2f}")
                 except Exception as e:
                     logger.warning(f"[巡检] 进化记录失败: {e}")
-                self.executor.unregister_position(pos.symbol)
+                self.executor.unregister_position(
+                    pos.symbol, bot_id)
             return True
         except Exception as e:
             logger.error(

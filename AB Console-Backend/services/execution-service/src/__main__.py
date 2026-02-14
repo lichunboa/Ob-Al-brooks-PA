@@ -320,21 +320,8 @@ async def place_order(request: OrderRequest):
                     message=f"Bot风控拒绝: {reason}",
                 )
 
-            # V3.6: 同品种多 bot 冲突检测（币安合约同品种只有一个持仓）
-            if hasattr(executor, '_position_bot_map'):
-                norm_sym = request.symbol.replace('/', '')
-                if ':' not in norm_sym:
-                    norm_sym += ':USDT'
-                existing_bot = executor.get_position_bot_id(norm_sym)
-                if existing_bot and existing_bot != bot_id:
-                    return OrderResponse(
-                        success=False,
-                        symbol=request.symbol,
-                        side=request.side.value,
-                        quantity=request.quantity,
-                        status="REJECTED",
-                        message=f"品种冲突: {norm_sym} 已由 {existing_bot} 持仓",
-                    )
+            # V3.9.2: 跨 bot 冲突检测已移除 — 每个 bot 独立管理同品种持仓
+            # 多 bot 同品种共存于同一币安仓位，position_bot_map 以列表追踪
 
             # V3.7: 盈亏比门禁
             if (request.take_profit and request.stop_loss
@@ -363,11 +350,15 @@ async def place_order(request: OrderRequest):
 
 
 @app.post("/order/{symbol}/close", response_model=OrderResponse)
-async def close_position(symbol: str, quantity: Optional[float] = None):
+async def close_position(
+    symbol: str,
+    quantity: Optional[float] = None,
+    bot_id: Optional[str] = Query(None, description="指定平仓的 bot_id（V3.9.2 多 bot 支持）"),
+):
     """平仓"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.close_position(symbol, quantity)
+    return await executor.close_position(symbol, quantity, bot_id=bot_id)
 
 
 @app.delete("/orders")
@@ -1055,19 +1046,19 @@ async def get_bot_pnl(bot_id: str):
 
 
 def _filter_bot_positions(bot_id: str, positions: list) -> list:
-    """通过 position_bot_map（优先）和 order_bot_map 过滤 bot 持仓"""
+    """通过 position_bot_map 过滤 bot 持仓 — V3.9.2 支持多 bot 同品种"""
     if not executor:
         return []
 
     result = []
     for p in positions:
-        # 优先查 position_bot_map（直接 symbol → bot_id 映射）
-        pos_bot = executor.get_position_bot_id(p.symbol)
-        if pos_bot == bot_id:
+        # V3.9.2: 使用 get_position_bot_ids 检查列表（支持多 bot 同品种）
+        bot_ids = executor.get_position_bot_ids(p.symbol)
+        if bot_id in bot_ids:
             result.append(p)
             continue
-        if pos_bot and pos_bot != bot_id:
-            continue  # 明确属于其他 bot
+        if bot_ids:
+            continue  # 已有明确归属，不属于当前 bot
 
         # 兜底：查 order_bot_map 中该 bot 关联的 symbol（标准化比较）
         bot_symbols = executor.get_bot_symbols(bot_id)
