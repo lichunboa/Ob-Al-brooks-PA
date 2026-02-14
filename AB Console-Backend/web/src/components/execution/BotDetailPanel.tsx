@@ -90,8 +90,8 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
         />
         <StatCard
           icon={<Shield className="w-4 h-4" />}
-          label="剩余仓位"
-          value={`${summary.remaining_positions}/${summary.config.max_positions}`}
+          label="仓位"
+          value={`${summary.config.max_positions - summary.remaining_positions}/${summary.config.max_positions}`}
           color="text-slate-300"
         />
         <StatCard

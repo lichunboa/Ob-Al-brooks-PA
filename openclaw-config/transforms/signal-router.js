@@ -244,23 +244,6 @@ function getStrategyEvolution(botId, strategyName) {
 }
 
 /**
- * V3.5: 获取策略进化数据
- */
-function getStrategyEvolution(botId, strategyName) {
-  try {
-    const filePath = EVOLUTION_FILES[botId];
-    if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      const weights = data.strategy_weights || {};
-      return weights[strategyName];
-    }
-  } catch (e) {
-    console.log(`[Router] Error reading evolution for ${botId}: ${e.message}`);
-  }
-  return null;
-}
-
-/**
  * V3.5: 获取 bot-summary（10s 文件缓存）
  */
 function getBotSummary(botId) {

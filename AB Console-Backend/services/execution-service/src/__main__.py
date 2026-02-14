@@ -1083,50 +1083,51 @@ async def modify_stop_loss(
     new_stop_loss: float = Query(..., description="新止损价"),
     bot_id: Optional[str] = Query(None, description="机器人ID"),
 ):
-    """修改止损价"""
+    """修改止损价 (V3.8 P1: 使用软件止损，巡检执行)"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
+    if not position_patrol:
+        raise HTTPException(status_code=503, detail="巡检未就绪")
 
     try:
-        # 取消旧的止损单
-        open_orders = await executor.get_open_orders(symbol)
-        for order in open_orders:
-            if order.order_type in ('STOP_MARKET', 'STOP'):
-                if order.reduce_only:
-                    executor.exchange.cancel_order(
-                        order.order_id, symbol
-                    )
-                    logger.info(f"已取消旧止损单: {order.order_id}")
-
-        # 获取持仓信息
+        # 验证持仓存在
         positions = await executor.get_positions()
         pos = next((p for p in positions if p.symbol == symbol), None)
         if not pos:
             raise HTTPException(status_code=404, detail=f"未找到 {symbol} 持仓")
 
-        # 下新止损单
-        from .models import OrderSide, PositionSide
-        sl_side = 'sell' if pos.side == PositionSide.LONG else 'buy'
-        sl_order = executor.exchange.create_order(
-            symbol=symbol,
-            type='stop_market',
-            side=sl_side,
-            amount=pos.quantity,
-            params={
-                'stopPrice': new_stop_loss,
-                'reduceOnly': True,
-            }
-        )
+        old_sl = position_patrol._sl_placed.get(symbol)
 
-        sl_id = str(sl_order.get('id'))
-        if bot_id:
-            executor._register_order(sl_id, bot_id)
+        # 尝试取消原生止损单（真实账户可能有，Demo 忽略错误）
+        try:
+            open_orders = await executor.get_open_orders(symbol)
+            for order in open_orders:
+                if order.order_type in ('STOP_MARKET', 'STOP'):
+                    if order.reduce_only:
+                        executor.exchange.cancel_order(order.order_id, symbol)
+                        logger.info(f"已取消原生止损单: {order.order_id}")
+        except Exception as e:
+            logger.debug(f"取消原生止损单跳过: {e}")
+
+        # 更新软件止损 (sl_placed.json)
+        position_patrol._sl_placed[symbol] = new_stop_loss
+        position_patrol._save_sl_placed()
+
+        # 同步移动止损状态
+        if symbol in position_patrol._trailing_state:
+            position_patrol._trailing_state[symbol]["current_sl"] = new_stop_loss
+            logger.info(f"同步移动止损状态: {symbol} → {new_stop_loss}")
+
+        logger.info(
+            f"止损已更新: {symbol} {old_sl} → {new_stop_loss} (软件止损)"
+        )
 
         return {
             "success": True,
             "symbol": symbol,
+            "old_stop_loss": old_sl,
             "new_stop_loss": new_stop_loss,
-            "order_id": sl_id,
+            "mode": "software",
         }
     except HTTPException:
         raise

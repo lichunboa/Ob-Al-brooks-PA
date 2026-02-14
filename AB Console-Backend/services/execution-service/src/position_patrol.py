@@ -331,10 +331,31 @@ class PositionPatrol:
             # 清理记录
             del self._sl_placed[pos.symbol]
             self._save_sl_placed()
-            # 通知进化系统
+            # V3.8 P2: 记录进化 + bot PNL + 清理持仓
             bot_id = self.executor.get_position_bot_id(
                 pos.symbol)
             if bot_id:
+                # 计算 USDT 盈亏
+                if pos.side == PositionSide.LONG:
+                    pnl_usdt = (pos.mark_price - pos.entry_price) * pos.quantity
+                else:
+                    pnl_usdt = (pos.entry_price - pos.mark_price) * pos.quantity
+                # 记录 bot 级日盈亏
+                self.executor.risk_manager.record_bot_pnl(bot_id, pnl_usdt)
+                # 记录进化系统
+                try:
+                    from .evolution_manager import get_evolution_manager
+                    evo = get_evolution_manager()
+                    strategy = self.executor.get_position_strategy(pos.symbol)
+                    raw_sym = pos.symbol.split(':')[0] if ':' in pos.symbol else pos.symbol
+                    evo.record_trade_result(
+                        bot_id=bot_id, strategy=strategy or "auto",
+                        symbol=raw_sym, pnl=pnl_usdt,
+                        is_win=pnl_usdt > 0,
+                    )
+                    logger.info(f"[巡检] 止损进化记录: {bot_id} {raw_sym} pnl=${pnl_usdt:.2f}")
+                except Exception as e:
+                    logger.warning(f"[巡检] 进化记录失败: {e}")
                 self.executor.unregister_position(pos.symbol)
             return True
         except Exception as e:

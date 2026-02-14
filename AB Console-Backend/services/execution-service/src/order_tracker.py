@@ -43,7 +43,8 @@ class OrderStatusChange:
     new_status: str
     trigger_reason: str  # 'stop_loss_hit', 'take_profit_hit', 'manual_close', 'expired'
     exit_price: Optional[float] = None
-    pnl: Optional[float] = None
+    pnl: Optional[float] = None  # USDT 金额 (V3.8 P1: 从百分比改为 USDT)
+    pnl_percent: Optional[float] = None  # 百分比 (V3.8 P1 新增)
     timestamp: str = None
 
     def __post_init__(self):
@@ -212,10 +213,13 @@ class OrderTracker:
                     else:
                         trigger_reason = "manual_close"
 
-                # 计算盈亏
+                # 计算盈亏 (V3.8 P1: 同时计算 USDT 和百分比)
+                quantity = trade.get("quantity", 0)
                 if direction == "long":
+                    pnl_usdt = (exit_price - entry_price) * quantity
                     pnl_pct = ((exit_price - entry_price) / entry_price) * 100
                 else:
+                    pnl_usdt = (entry_price - exit_price) * quantity
                     pnl_pct = ((entry_price - exit_price) / entry_price) * 100
 
                 return OrderStatusChange(
@@ -226,7 +230,8 @@ class OrderTracker:
                     new_status="closed",
                     trigger_reason=trigger_reason,
                     exit_price=exit_price,
-                    pnl=pnl_pct,
+                    pnl=pnl_usdt,
+                    pnl_percent=pnl_pct,
                 )
 
         except Exception as e:
@@ -264,7 +269,9 @@ class OrderTracker:
                     if change.exit_price:
                         trade["exit_price"] = change.exit_price
                     if change.pnl is not None:
-                        trade["pnl_percent"] = change.pnl
+                        trade["pnl_usdt"] = change.pnl
+                    if change.pnl_percent is not None:
+                        trade["pnl_percent"] = change.pnl_percent
 
                     break
 
@@ -399,9 +406,12 @@ class OrderTracker:
         emoji = emoji_map.get(change.trigger_reason, "📊")
         level = level_map.get(change.trigger_reason, "info")
 
-        # 构建消息
+        # 构建消息 (V3.8 P1: 显示 USDT + 百分比)
+        pnl_pct = change.pnl_percent
         pnl_str = (
-            f"{change.pnl:+.2f}%" if change.pnl is not None else "N/A"
+            f"${change.pnl:+.2f} ({pnl_pct:+.2f}%)" if change.pnl is not None and pnl_pct is not None
+            else f"${change.pnl:+.2f}" if change.pnl is not None
+            else "N/A"
         )
         price_str = (
             f"${change.exit_price:,.2f}"
@@ -433,9 +443,14 @@ class OrderTracker:
         p = Path(note_path)
         content = p.read_text(encoding="utf-8")
 
-        outcome = "盈利" if change.pnl and change.pnl > 0 else "亏损"
+        # V3.8 P1+P2: 使用百分比回填笔记 + 空值保护
+        pnl_pct = change.pnl_percent
+        if pnl_pct is not None:
+            outcome = "盈利" if pnl_pct > 0 else ("平局" if pnl_pct == 0 else "亏损")
+        else:
+            outcome = "未知"
         backfills = {
-            "净利润/net_profit:": f"净利润/net_profit: {change.pnl:.2f}%" if change.pnl is not None else None,
+            "净利润/net_profit:": f"净利润/net_profit: {pnl_pct:.2f}%" if pnl_pct is not None else None,
             "结果/outcome:": f"结果/outcome: {outcome}",
             "出场原因/exit_reason:": f"出场原因/exit_reason: {change.trigger_reason}",
             "出场价格/exit_price:": f"出场价格/exit_price: {change.exit_price}" if change.exit_price else None,
@@ -453,4 +468,5 @@ class OrderTracker:
 
         if updated:
             p.write_text(content, encoding="utf-8")
-            logger.info(f"[NoteBackfill] 已回填: {p.name} → {outcome} {change.pnl:.2f}%")
+            pnl_display = f"{pnl_pct:.2f}%" if pnl_pct is not None else "N/A"
+            logger.info(f"[NoteBackfill] 已回填: {p.name} → {outcome} {pnl_display}")
