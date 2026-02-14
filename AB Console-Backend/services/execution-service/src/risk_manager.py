@@ -310,8 +310,8 @@ class RiskManager:
         net_exposure = abs(total_exposure_value)
         if total_balance > 0:
             ratio = net_exposure / total_balance
-            if ratio > 0.55:  # 55% 阈值（V3.9: 与 signal-router 对齐）
-                return False, f"相关性暴露过高: {base_asset}系列净暴露 ${net_exposure:.0f} ({ratio*100:.1f}%) > 55%"
+            if ratio > 0.60:  # 60% 阈值（V3.9.1: per-bot 独立）
+                return False, f"相关性暴露过高: {base_asset}系列净暴露 ${net_exposure:.0f} ({ratio*100:.1f}%) > 60%"
 
         return True, "OK"
 

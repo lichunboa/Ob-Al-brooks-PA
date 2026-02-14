@@ -109,6 +109,8 @@ class OrderTracker:
     ) -> List[OrderStatusChange]:
         """检查单个文件的订单"""
         changes = []
+        # V3.9.1: 同 symbol+bot 只记一次进化（币安合并仓位）
+        evo_recorded: Dict[str, float] = {}  # "symbol:bot_id" → 累计 pnl
 
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
@@ -138,31 +140,43 @@ class OrderTracker:
                             file_path, trade_id, change
                         )
 
-                        # V3.2: 进化系统记录 (P4)
-                        try:
-                            evo = get_evolution_manager()
-                            strategy = trade.get("strategy", "auto")
-                            # Normalize symbol
-                            raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
+                        # V3.9.1: 累计 pnl，只在最后一条时写入进化
+                        evo_key = f"{symbol}:{bot_id}"
+                        pnl_val = change.pnl if change.pnl is not None else 0.0
+                        if evo_key not in evo_recorded:
+                            evo_recorded[evo_key] = {
+                                "pnl": pnl_val,
+                                "strategy": trade.get("strategy", "auto"),
+                            }
+                        else:
+                            evo_recorded[evo_key]["pnl"] += pnl_val
 
-                            evo.record_trade_result(
-                                bot_id=bot_id,
-                                strategy=strategy,
-                                symbol=raw_sym,
-                                pnl=change.pnl if change.pnl is not None else 0.0,
-                                is_win=(change.pnl > 0) if change.pnl is not None else False
-                            )
-                            logger.info(f"[Evolution] 自动记录: {bot_id} {raw_sym} pnl={change.pnl}")
-                        except Exception as e:
-                            logger.warning(f"[Evolution] 记录失败: {e}")
-
-                        # V3.7: 笔记闭环 — 回填 Obsidian 笔记结果字段
+                        # V3.7: 笔记闭环 — 每条笔记都回填（各有各的 entry_price）
                         try:
                             note_path = trade.get("note_path")
                             if note_path and Path(note_path).exists():
                                 self._backfill_note(note_path, change)
                         except Exception as e:
                             logger.warning(f"[NoteBackfill] 回填失败: {e}")
+
+            # V3.9.1: 所有条目处理完后，按 symbol+bot 写一次进化记录
+            for evo_key, evo_data in evo_recorded.items():
+                try:
+                    evo = get_evolution_manager()
+                    sym_part, bot_part = evo_key.split(":", 1)
+                    raw_sym = sym_part.split(':')[0] if ':' in sym_part else sym_part
+                    total_pnl = evo_data["pnl"]
+
+                    evo.record_trade_result(
+                        bot_id=bot_part,
+                        strategy=evo_data["strategy"],
+                        symbol=raw_sym,
+                        pnl=total_pnl,
+                        is_win=total_pnl > 0,
+                    )
+                    logger.info(f"[Evolution] 合并记录: {bot_part} {raw_sym} pnl={total_pnl:.2f}")
+                except Exception as e:
+                    logger.warning(f"[Evolution] 记录失败: {e}")
 
         except Exception as e:
             logger.error(f"检查文件订单失败: {e}")
@@ -185,7 +199,9 @@ class OrderTracker:
         entry_price = trade.get("entry_price", 0)
         stop_loss = trade.get("stop_loss")
         take_profit = trade.get("take_profit")
-        direction = trade.get("direction", "long")
+        direction_raw = trade.get("direction", "long")
+        # V3.9.1: 兼容中英文方向字段（"做多 (Long)" / "long" / "Long"）
+        is_long = "long" in direction_raw.lower() or "做多" in direction_raw
 
         # 尝试从交易历史获取最后成交价
         try:
@@ -198,7 +214,7 @@ class OrderTracker:
                 exit_price = last_trade.price
 
                 # 判断是止盈还是止损
-                if direction == "long":
+                if is_long:
                     if take_profit and exit_price >= take_profit:
                         trigger_reason = "take_profit_hit"
                     elif stop_loss and exit_price <= stop_loss:
@@ -213,14 +229,28 @@ class OrderTracker:
                     else:
                         trigger_reason = "manual_close"
 
-                # 计算盈亏 (V3.8 P1: 同时计算 USDT 和百分比)
+                # 计算盈亏 (V3.9.1: 含手续费 — 往返 taker fee)
                 quantity = trade.get("quantity", 0)
-                if direction == "long":
-                    pnl_usdt = (exit_price - entry_price) * quantity
-                    pnl_pct = ((exit_price - entry_price) / entry_price) * 100
+                # 获取 taker 费率（默认 0.04%）
+                taker_rate = 0.0004
+                try:
+                    fees = self.executor._cached_fees
+                    base_sym = symbol.split(':')[0] if ':' in symbol else symbol
+                    if base_sym in fees:
+                        taker_rate = fees[base_sym].get('taker', 0.0004)
+                except Exception:
+                    pass
+                # 往返手续费 = 开仓费 + 平仓费
+                fee_usdt = (entry_price + exit_price) * quantity * taker_rate
+
+                if is_long:
+                    pnl_usdt = (exit_price - entry_price) * quantity - fee_usdt
+                    pnl_pct = (((exit_price - entry_price) * quantity - fee_usdt)
+                               / (entry_price * quantity)) * 100
                 else:
-                    pnl_usdt = (entry_price - exit_price) * quantity
-                    pnl_pct = ((entry_price - exit_price) / entry_price) * 100
+                    pnl_usdt = (entry_price - exit_price) * quantity - fee_usdt
+                    pnl_pct = (((entry_price - exit_price) * quantity - fee_usdt)
+                               / (entry_price * quantity)) * 100
 
                 return OrderStatusChange(
                     trade_id=trade.get("trade_id"),
