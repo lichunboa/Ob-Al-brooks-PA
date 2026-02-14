@@ -1069,9 +1069,10 @@ def _filter_bot_positions(bot_id: str, positions: list) -> list:
         if pos_bot and pos_bot != bot_id:
             continue  # 明确属于其他 bot
 
-        # 兜底：查 order_bot_map 中该 bot 关联的 symbol
+        # 兜底：查 order_bot_map 中该 bot 关联的 symbol（标准化比较）
         bot_symbols = executor.get_bot_symbols(bot_id)
-        if p.symbol in bot_symbols:
+        p_base = executor._norm_symbol_base(p.symbol)
+        if p_base in bot_symbols:
             result.append(p)
 
     return result

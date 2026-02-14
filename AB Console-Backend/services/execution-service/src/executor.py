@@ -198,13 +198,21 @@ class BinanceExecutor:
         # 兼容旧格式 {order_id: "bot_id"}
         return val if isinstance(val, str) else None
 
+    @staticmethod
+    def _norm_symbol_base(symbol: str) -> str:
+        """统一提取 symbol 基础部分用于比较。
+        SOLUSDT:USDT → SOLUSDT, SOL/USDT:USDT → SOLUSDT, SOLUSDT → SOLUSDT
+        """
+        s = symbol.replace('/', '')
+        return s.split(':')[0] if ':' in s else s
+
     def get_bot_symbols(self, bot_id: str) -> set:
-        """获取某 bot 关联的所有 symbol（从 order_bot_map）"""
+        """获取某 bot 关联的所有 symbol（从 order_bot_map），返回标准化后的 base symbol"""
         symbols = set()
         for oid, val in self._order_bot_map.items():
             if isinstance(val, dict):
                 if val.get("bot_id") == bot_id and val.get("symbol"):
-                    symbols.add(val["symbol"])
+                    symbols.add(self._norm_symbol_base(val["symbol"]))
             elif val == bot_id:
                 # 旧格式无 symbol，跳过
                 pass
@@ -248,16 +256,28 @@ class BinanceExecutor:
             # 2. 从当前持仓 + 订单历史恢复 position_bot_map
             positions = await self.get_positions()
             for pos in positions:
-                norm_sym = pos.symbol  # 已经是 SOLUSDT:USDT 格式
+                norm_sym = pos.symbol.replace('/', '')  # SOLUSDT:USDT 格式
                 if norm_sym in self._position_bot_map:
                     continue  # 已有映射，跳过
-                # 先尝试从 order_bot_map 中通过 symbol 匹配
+                # 从 order_bot_map 中找该品种最近的订单（order_id 最大 = 最近）
+                pos_base = self._norm_symbol_base(norm_sym)
+                best_oid = -1
+                best_val = None
                 for oid, val in self._order_bot_map.items():
-                    if isinstance(val, dict) and val.get("symbol") == norm_sym:
-                        self._position_bot_map[norm_sym] = {"bot_id": val["bot_id"], "strategy": val.get("strategy", "auto")}
-                        recovered_positions += 1
-                        logger.info(f"从 order_bot_map 恢复持仓归属: {norm_sym} → {val['bot_id']}")
-                        break
+                    if isinstance(val, dict) and val.get("symbol"):
+                        order_base = self._norm_symbol_base(val["symbol"])
+                        if order_base == pos_base:
+                            try:
+                                oid_int = int(oid)
+                            except ValueError:
+                                oid_int = 0
+                            if oid_int > best_oid:
+                                best_oid = oid_int
+                                best_val = val
+                if best_val:
+                    self._position_bot_map[norm_sym] = {"bot_id": best_val["bot_id"], "strategy": best_val.get("strategy", "auto")}
+                    recovered_positions += 1
+                    logger.info(f"从 order_bot_map 恢复持仓归属: {norm_sym} → {best_val['bot_id']} (order={best_oid})")
                 if norm_sym in self._position_bot_map:
                     continue
                 # 兜底：查该品种最近的订单（fetch_orders 包含 clientOrderId）
@@ -438,7 +458,7 @@ class BinanceExecutor:
         positions = await self.get_positions()
         position_size = request.quantity * (request.price or 0)  # 估算仓位大小
 
-        # V3.2: 跨品种相关性检查 (BTC/ETH/SOL/BNB 同向暴露限制)
+        # V3.2→V3.9: 跨品种相关性检查 — per-bot 独立（每个 bot 只看自己的持仓）
         if not request.reduce_only:
             bal_res = await self.get_balance()
             total_bal = bal_res[0].balance if bal_res else 0
@@ -452,8 +472,24 @@ class BinanceExecutor:
                 except:
                     current_price = 0.0
 
+            # 过滤出当前 bot 的持仓（不同 bot 的仓位互不干扰）
+            effective_bot = bot_id or request.bot_id or ""
+            if effective_bot:
+                bot_positions = []
+                bot_syms = self.get_bot_symbols(effective_bot)
+                for p in positions:
+                    pos_bot = self.get_position_bot_id(p.symbol)
+                    if pos_bot == effective_bot:
+                        bot_positions.append(p)
+                    elif pos_bot is None:
+                        # position_bot_map 无记录，fallback 查 order_bot_map
+                        if self._norm_symbol_base(p.symbol) in bot_syms:
+                            bot_positions.append(p)
+            else:
+                bot_positions = positions
+
             ok_exp, msg_exp = self.risk_manager.check_correlation(
-                symbol, request.side.value, request.quantity, current_price, positions, total_bal
+                symbol, request.side.value, request.quantity, current_price, bot_positions, total_bal
             )
             if not ok_exp:
                 return OrderResponse(
@@ -509,8 +545,8 @@ class BinanceExecutor:
 
             # 注册 order_id → bot_id 映射
             if request.bot_id:
-                # V3.2: 尝试从 signal_source 获取策略名
-                strat = request.signal_source or "auto"
+                # V3.8: 优先从 strategy 字段获取策略名，兼容旧的 signal_source
+                strat = request.strategy or request.signal_source or "auto"
                 self._register_order(order_id, request.bot_id, symbol, strategy=strat)
 
                 # 注册 symbol → bot_id 持仓映射（非 reduce_only 才是开仓）
