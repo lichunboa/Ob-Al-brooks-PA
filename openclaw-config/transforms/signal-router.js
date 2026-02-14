@@ -1037,9 +1037,9 @@ module.exports = function transform(ctx) {
     return null;
   }
 
-  // V3.7/V3.8.3: 暴露预检 — bot 无法交易或暴露过高时记录拒绝并跳过
+  // V3.7/V3.9: 暴露预检 — bot 无法交易或暴露过高时记录拒绝并跳过
   // 注: correlation_exposure_pct 是 per-bot 值（该 bot 持仓/全局余额），
-  //     risk_manager 的 check_correlation 用 40% 阈值。Router 与之对齐。
+  //     risk_manager 的 check_correlation 用 55% 阈值（V3.9 per-bot 独立）。Router 与之对齐。
   if (payload.direction) {
     const summary = getBotSummary(routeTarget);
     if (summary) {
