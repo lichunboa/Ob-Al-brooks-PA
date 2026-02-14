@@ -381,12 +381,14 @@ def main():
     if args.pg or args.all:
         from engines import get_pg_engine
 
+        pg_interval = 300  # V3.8.2: 60s→300s 减少信号生成频率
+
         def run_pg():
             engine = get_pg_engine()
             engines.append(("PG", engine))
             while True:
                 try:
-                    engine.run_loop(interval=args.interval)
+                    engine.run_loop(interval=pg_interval)
                 except Exception as e:
                     logger.error(f"PG engine crashed: {e}")
                     time.sleep(5)  # 等待后重试
@@ -394,7 +396,7 @@ def main():
         t = threading.Thread(target=run_pg, daemon=False, name="PGEngine")
         t.start()
         threads.append(t)
-        logger.info("PG 引擎已启动（60秒轮询模式）")
+        logger.info("PG 引擎已启动（%d秒轮询模式）", pg_interval)
 
     # 实时引擎（毫秒级，推荐）
     realtime_engine = None

@@ -66,7 +66,9 @@ class CooldownStorage:
 
     @contextmanager
     def _conn(self):
-        conn = sqlite3.connect(self.db_path, timeout=5)
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         try:
             yield conn
             conn.commit()

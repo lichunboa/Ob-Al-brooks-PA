@@ -214,41 +214,57 @@ def create_realtime_signal_checker(pg_engine):
 
     将 RealtimeSignalEngine 与 PGSignalEngine 集成。
 
+    V3.8.2: 添加 300s 限流，防止 LISTEN/NOTIFY 频繁触发信号检查。
+    NOTIFY 每分钟可能触发多次（1m K线 + 5m 指标），但信号检查
+    应与 PG 轮询间隔保持一致，避免绕过限流。
+
     Args:
         pg_engine: PGSignalEngine 实例
 
     Returns:
         RealtimeSignalEngine 实例
     """
+    # V3.8.2: 限流 — 最多每 300s 触发一次信号检查
+    _last_check_time = [0.0]  # mutable container for closure
+    _MIN_CHECK_INTERVAL = 300  # 与 PG 轮询间隔一致
+
+    def _throttled_check(trigger_type, symbols):
+        """限流后的信号检查"""
+        now = time.time()
+        elapsed = now - _last_check_time[0]
+        if elapsed < _MIN_CHECK_INTERVAL:
+            logger.debug(
+                "限流跳过 %s 检测 (%ds < %ds): %s",
+                trigger_type, int(elapsed),
+                _MIN_CHECK_INTERVAL, symbols[:3]
+            )
+            return
+        _last_check_time[0] = now
+        logger.info(
+            "%s触发信号检测: %s", trigger_type, symbols[:5]
+        )
+        try:
+            signals = pg_engine.check_signals()
+            if signals:
+                logger.info(
+                    "%s检测到 %d 个信号", trigger_type, len(signals)
+                )
+        except Exception as e:
+            logger.error("%s信号检测失败: %s", trigger_type, e)
 
     def on_candle_update(payload: dict):
         """K线更新时检测信号"""
         symbols = payload.get("symbols", [])
         if not symbols:
             return
-
-        # 只检测更新的币种
-        logger.info("实时检测信号: %s", symbols[:5])
-        try:
-            signals = pg_engine.check_signals()
-            if signals:
-                logger.info("实时检测到 %d 个信号", len(signals))
-        except Exception as e:
-            logger.error("实时信号检测失败: %s", e)
+        _throttled_check("实时K线", symbols)
 
     def on_metrics_update(payload: dict):
         """指标更新时检测信号"""
         symbols = payload.get("symbols", [])
         if not symbols:
             return
-
-        logger.info("指标更新，触发信号检测: %s", symbols[:5])
-        try:
-            signals = pg_engine.check_signals()
-            if signals:
-                logger.info("指标触发检测到 %d 个信号", len(signals))
-        except Exception as e:
-            logger.error("指标信号检测失败: %s", e)
+        _throttled_check("指标更新", symbols)
 
     engine = RealtimeSignalEngine(
         db_url=get_database_url(),
