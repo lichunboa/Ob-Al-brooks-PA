@@ -94,8 +94,13 @@ const MULTI_ROUTE_RULES = {
 };
 
 // 信号去重缓存（内存 + 文件持久化）
-const DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 分钟去重窗口（同品种同方向同 agent）
-const REJECTION_COOLDOWN_MS = 10 * 60 * 1000; // 被拒信号 10 分钟冷却
+const DEDUP_WINDOW_MS = 30 * 60 * 1000; // V3.8.3: 30 分钟去重窗口（根源已修复，从60min回调）
+const REJECTION_COOLDOWN_MS = 60 * 60 * 1000; // V3.8.3: 被拒信号 1 小时冷却（从2hr回调）
+
+// V3.8: 全局会话预算 — 限制每时段 agent 创建的总 session 数
+const SESSION_BUDGET_WINDOW_MS = 10 * 60 * 1000; // 10 分钟窗口
+const SESSION_BUDGET_MAX = 2; // V3.8.3: 每 10 分钟最多 2 个 session（根源已修复，从1回调）
+const sessionBudgetLog = []; // [timestamp, ...]
 
 // 各机器人账户文件路径
 const ACCOUNT_FILES = {
@@ -623,6 +628,31 @@ function recordRejection(symbol, direction, target) {
 }
 
 /**
+ * V3.8: 全局会话预算检查
+ * 限制每 SESSION_BUDGET_WINDOW_MS 内最多创建 SESSION_BUDGET_MAX 个 agent session
+ * 防止 Kimi API 额度过快消耗
+ * @returns {boolean} true = 超出预算，应跳过
+ */
+function isSessionBudgetExhausted() {
+  const now = Date.now();
+  // 清理过期记录
+  while (sessionBudgetLog.length > 0 && (now - sessionBudgetLog[0]) > SESSION_BUDGET_WINDOW_MS) {
+    sessionBudgetLog.shift();
+  }
+  if (sessionBudgetLog.length >= SESSION_BUDGET_MAX) {
+    const oldestAge = Math.round((now - sessionBudgetLog[0]) / 1000);
+    const nextSlot = Math.round((SESSION_BUDGET_WINDOW_MS - (now - sessionBudgetLog[0])) / 1000);
+    console.log(`[Router] BUDGET: ${sessionBudgetLog.length}/${SESSION_BUDGET_MAX} sessions in ${Math.round(SESSION_BUDGET_WINDOW_MS/60000)}min (oldest ${oldestAge}s ago), 下次空位 ${nextSlot}s 后`);
+    return true;
+  }
+  return false;
+}
+
+function recordSessionCreated() {
+  sessionBudgetLog.push(Date.now());
+}
+
+/**
  * 获取品种的活跃交易数量
  */
 function getActiveTradesForSymbol(symbol) {
@@ -799,8 +829,8 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 6,
-      ttl_minutes: 8,
+      max_turns: 4, // V3.8.3: 2→4 恢复交易能力（分析→计算仓位→下单→写笔记）
+      ttl_minutes: 5, // V3.8.3: 3→5min 给完整流程留足时间
       no_memory: true,
       model_hint: 'sonnet'
     }
@@ -872,8 +902,8 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 6,
-      ttl_minutes: 8,
+      max_turns: 4, // V3.8.3: 2→4 恢复交易能力（分析→计算仓位→下单→写笔记）
+      ttl_minutes: 5, // V3.8.3: 3→5min 给完整流程留足时间
       no_memory: true
     }
   };
@@ -947,8 +977,8 @@ ${tradingStatusLine}${executionInstruction}
     },
     session_config: {
       type: 'ephemeral',
-      max_turns: 6,
-      ttl_minutes: 8,
+      max_turns: 4, // V3.8.3: 2→4 恢复交易能力（分析→计算仓位→下单→写笔记）
+      ttl_minutes: 5, // V3.8.3: 3→5min 给完整流程留足时间
       no_memory: true
     }
   };
@@ -1009,8 +1039,13 @@ module.exports = function transform(ctx) {
     }
   }
 
-  // 信号去重检查（5 分钟内相同信号跳过）
+  // 信号去重检查（15 分钟内相同信号跳过）
   if (isDuplicateSignal(payload, routeTarget)) {
+    return null;
+  }
+
+  // V3.8: 全局会话预算检查（防止 Kimi API 额度过快消耗）
+  if (isSessionBudgetExhausted()) {
     return null;
   }
 
@@ -1019,7 +1054,9 @@ module.exports = function transform(ctx) {
     return null;
   }
 
-  // V3.7: 暴露预检 — bot 无法交易或暴露 > 35% 时记录拒绝并跳过
+  // V3.7/V3.8.3: 暴露预检 — bot 无法交易或暴露过高时记录拒绝并跳过
+  // 注: correlation_exposure_pct 是 per-bot 值（该 bot 持仓/全局余额），
+  //     risk_manager 的 check_correlation 用 40% 阈值。Router 与之对齐。
   if (payload.direction) {
     const summary = getBotSummary(routeTarget);
     if (summary) {
@@ -1029,8 +1066,8 @@ module.exports = function transform(ctx) {
         recordRejection(payload.symbol, payload.direction, routeTarget);
         return null;
       }
-      if (corrPct > 35) {
-        console.log(`[Router] PRE-REJECT: ${routeTarget} 暴露 ${corrPct}% > 35%`);
+      if (corrPct > 55) {
+        console.log(`[Router] PRE-REJECT: ${routeTarget} 暴露 ${corrPct}% > 55%`);
         recordRejection(payload.symbol, payload.direction, routeTarget);
         return null;
       }
@@ -1071,17 +1108,27 @@ module.exports = function transform(ctx) {
       console.log('[Router] Signal filtered out after score adjustment');
       return null;
     }
-    return result;
+    recordSessionCreated();
+    const alSummary = getBotSummary('al-brooks');
+    return applyTurnsOptimization(result, alSummary?.can_trade);
   }
 
   // 威科夫分析请求
   if (routeTarget === 'wyckoff') {
-    return routeToWyckoff(payload, symbolStats);
+    const result = routeToWyckoff(payload, symbolStats);
+    if (!result) return null;
+    recordSessionCreated();
+    const summary = getBotSummary('wyckoff');
+    return applyTurnsOptimization(result, summary?.can_trade);
   }
 
   // 量化分析请求
   if (routeTarget === 'trader') {
-    return routeToTrader(payload, symbolStats);
+    const result = routeToTrader(payload, symbolStats);
+    if (!result) return null;
+    recordSessionCreated();
+    const summary = getBotSummary('trader');
+    return applyTurnsOptimization(result, summary?.can_trade);
   }
 
   // 默认路由到 PA交易 Al Brooks
@@ -1090,5 +1137,27 @@ module.exports = function transform(ctx) {
   if (filterResult.reject) {
     return null;
   }
-  return routeToAlBrooks(payload, symbolStats, filterResult);
+  const result = routeToAlBrooks(payload, symbolStats, filterResult);
+  if (!result) return null;
+  recordSessionCreated();
+  const defaultSummary = getBotSummary('al-brooks');
+  return applyTurnsOptimization(result, defaultSummary?.can_trade);
 };
+
+/**
+ * V3.8.3: 动态 max_turns 优化（修复 V3.8.1 的硬编码问题）
+ * - 可交易信号: 保持 max_turns=4 (分析→计算仓位→下单→写笔记)
+ * - 不可交易信号: max_turns=2 (只需: 分析→一行摘要)
+ * 根源修复后（realtime throttle + edge interval），可安全恢复交易能力
+ */
+function applyTurnsOptimization(routeResult, canTrade) {
+  if (!routeResult || !routeResult.session_config) return routeResult;
+  if (!canTrade) {
+    routeResult.session_config.max_turns = 2;
+    routeResult.session_config.ttl_minutes = 3;
+    console.log(`[Router] TURNS_OPT: ${routeResult.agent} can_trade=false → max_turns=2, ttl=3min`);
+  } else {
+    console.log(`[Router] TURNS_OPT: ${routeResult.agent} can_trade=true → max_turns=4, ttl=5min`);
+  }
+  return routeResult;
+}
