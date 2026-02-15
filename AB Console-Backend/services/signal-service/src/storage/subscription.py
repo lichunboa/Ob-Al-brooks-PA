@@ -28,7 +28,7 @@ class SubscriptionManager:
     def __init__(self, db_path: str = None):
         self.db_path = db_path or str(get_subscription_db_path())
         self._cache: dict[int, dict] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._init_db()
 
     def _init_db(self):
@@ -47,7 +47,9 @@ class SubscriptionManager:
     def _conn(self):
         conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=10)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             yield conn
             conn.commit()
         finally:
@@ -69,14 +71,15 @@ class SubscriptionManager:
 
     def _save(self, user_id: int, sub: dict):
         """保存订阅到数据库"""
-        try:
-            with self._conn() as conn:
-                conn.execute(
-                    "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
-                    (user_id, int(sub["enabled"]), json.dumps(list(sub["tables"]))),
-                )
-        except Exception as e:
-            logger.warning(f"保存订阅失败 uid={user_id}: {e}")
+        with self._lock:
+            try:
+                with self._conn() as conn:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
+                        (user_id, int(sub["enabled"]), json.dumps(list(sub["tables"]))),
+                    )
+            except Exception as e:
+                logger.warning(f"保存订阅失败 uid={user_id}: {e}")
 
     def get(self, user_id: int) -> dict:
         """获取用户订阅配置"""

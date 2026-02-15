@@ -93,17 +93,34 @@ class RiskManager:
         self,
         position_size_usdt: float,
         current_positions: int = 0,
+        max_positions: int = 10,
+        daily_loss_limit: float = 0,
+        bot_id: str = "",
     ) -> tuple[bool, str]:
-        """检查是否可以开仓"""
+        """检查是否可以开仓
+
+        Args:
+            daily_loss_limit: per-bot 动态日亏限（已由调用方计算好）
+        """
         if self.emergency_stop:
             return False, "紧急停止已启用，禁止开仓"
 
+        # 全局日亏损检查
         remaining = self.max_daily_loss + self.daily_pnl
         if remaining <= 0:
             return (
                 False,
-                f"已达每日亏损限制 ${self.max_daily_loss}",
+                f"已达全局每日亏损限制 ${self.max_daily_loss}",
             )
+
+        # per-bot 日亏损检查
+        if daily_loss_limit > 0 and bot_id:
+            bot_pnl = self.bot_daily_pnl.get(bot_id, 0.0)
+            if bot_pnl <= -daily_loss_limit:
+                return (
+                    False,
+                    f"Bot {bot_id} 已达日亏限 ${daily_loss_limit:.0f} (当前 ${bot_pnl:.2f})",
+                )
 
         if position_size_usdt > self.max_position_size:
             return (
@@ -112,7 +129,6 @@ class RiskManager:
                 f"超过限制 ${self.max_position_size}",
             )
 
-        max_positions = 5
         if current_positions >= max_positions:
             return (
                 False,
@@ -239,3 +255,63 @@ class RiskManager:
             self.last_reset_date = date.today()
             self._save_state()
             logger.info("每日风控统计已重置")
+
+    def check_correlation(
+        self,
+        symbol: str,
+        side: str,
+        quantity: float,
+        price: float,
+        existing_positions: list,
+        total_balance: float,
+    ) -> tuple[bool, str]:
+        """检查跨品种相关性暴露 (BTC/ETH/SOL/BNB)"""
+        # 相关资产定义
+        CORRELATED_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
+
+        # 提取基础资产名 (SOL/USDT:USDT -> SOL)
+        base_asset = symbol.split('/')[0] if '/' in symbol else symbol.replace('USDT', '')
+        if ':' in base_asset:
+            base_asset = base_asset.split(':')[0]
+
+        if base_asset not in CORRELATED_ASSETS:
+            return True, "Not correlated asset"
+
+        # 计算拟开仓位价值和方向
+        new_value = quantity * price
+        # Normalize side to 1 (Long) or -1 (Short)
+        # OrderSide / PositionSide could be Enum or str
+        side_str = str(side).upper()
+        if hasattr(side, 'value'):
+            side_str = side.value.upper()
+
+        new_dir = 1 if side_str in ['BUY', 'LONG'] else -1
+
+        # 累加现有相关持仓的带方向价值
+        total_exposure_value = new_value * new_dir
+
+        for pos in existing_positions:
+            p_raw = pos.symbol
+            p_base = p_raw.split('/')[0] if '/' in p_raw else p_raw.replace('USDT', '')
+            if ':' in p_base:
+                p_base = p_base.split(':')[0]
+
+            if p_base in CORRELATED_ASSETS:
+                p_val = pos.quantity * pos.mark_price
+                # PositionSide.LONG / SHORT
+                p_side_str = str(pos.side).upper()
+                if hasattr(pos.side, 'value'):
+                    p_side_str = pos.side.value.upper()
+
+                p_dir = 1 if p_side_str in ['LONG', 'BUY'] else -1
+                total_exposure_value += p_val * p_dir
+
+        # 计算净暴露占余额比例
+        net_exposure = abs(total_exposure_value)
+        if total_balance > 0:
+            ratio = net_exposure / total_balance
+            if ratio > 0.60:  # 60% 阈值（V3.9.1: per-bot 独立）
+                return False, f"相关性暴露过高: {base_asset}系列净暴露 ${net_exposure:.0f} ({ratio*100:.1f}%) > 60%"
+
+        return True, "OK"
+

@@ -8,7 +8,7 @@
  * - Categories 分类 → 概念笔记链接
  * - Daily/Trades → 交易记录
  * - memory (学习卡片) → 薄弱点分析
- * - Backend Signals (TradeCat) → 实时市场信号
+ * - Backend Signals (AB Console) → 实时市场信号
  */
 
 import type { TradeRecord } from "./contracts";
@@ -82,7 +82,7 @@ export interface SmartAlertInput {
     missedReasons?: string[];       // 错过原因枚举
 
     // ============================================
-    // Backend Integration (TradeCat)
+    // Backend Integration (AB Console)
     // ============================================
     /** 后端实时信号 */
     backendSignals?: SignalData[];
@@ -125,7 +125,7 @@ export function buildSmartAlerts(input: SmartAlertInput): SmartAlert[] {
         alerts.push(...analyzeLearningWeakness(input.memory, input.marketState));
     }
 
-    // 6. 后端实时信号 (TradeCat Integration)
+    // 6. 后端实时信号 (AB Console Integration)
     if (input.backendSignals && input.backendSignals.length > 0) {
         alerts.push(...analyzeBackendSignals(input.backendSignals));
     }
@@ -473,7 +473,7 @@ function analyzeLearningWeakness(
 }
 
 // ============================================
-// Backend Integration (TradeCat)
+// Backend Integration (AB Console)
 // ============================================
 
 /**

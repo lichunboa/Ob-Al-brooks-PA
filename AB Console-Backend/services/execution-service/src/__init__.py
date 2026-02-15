@@ -5,4 +5,4 @@ Execution Service - 币安合约交易执行服务
 支持 Testnet 和 Mainnet 两种模式。
 """
 
-__version__ = "0.1.0"
+__version__ = "3.9.4"

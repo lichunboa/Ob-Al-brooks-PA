@@ -18,10 +18,13 @@ export interface BotAllocation {
   allowed_symbols: string[];
   min_risk_reward: number;
   daily_loss_limit: number;
+  daily_loss_pct: number;
   trailing_stop_enabled: boolean;
   trailing_stop_trigger: number;
   max_hold_hours: number;
   cooldown_minutes: number;
+  // V3.0
+  max_notional_per_position?: number;
 }
 
 interface BotAllocationsProps {
@@ -148,19 +151,21 @@ export function BotAllocations({
                 {/* 基础配置 */}
                 <div>
                   <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">基础配置</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <EditField label="资金 (USDT)" value={editData.allocated_usdt ?? alloc.allocated_usdt} onChange={(v) => setEditData({ ...editData, allocated_usdt: v })} />
                     <EditField label="最大杠杆" value={editData.max_leverage ?? alloc.max_leverage} onChange={(v) => setEditData({ ...editData, max_leverage: v })} isInt />
                     <EditField label="最大持仓" value={editData.max_positions ?? alloc.max_positions} onChange={(v) => setEditData({ ...editData, max_positions: v })} isInt />
+                    <EditField label="名义上限$" value={editData.max_notional_per_position ?? alloc.max_notional_per_position ?? 0} onChange={(v) => setEditData({ ...editData, max_notional_per_position: v })} />
                   </div>
                 </div>
                 {/* 风控配置 */}
                 <div>
                   <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">风控配置</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <EditField label="单笔风险%" value={editData.risk_percent ?? alloc.risk_percent} onChange={(v) => setEditData({ ...editData, risk_percent: v })} step={0.5} />
                     <EditField label="最小盈亏比" value={editData.min_risk_reward ?? alloc.min_risk_reward} onChange={(v) => setEditData({ ...editData, min_risk_reward: v })} step={0.5} />
-                    <EditField label="日亏损限额" value={editData.daily_loss_limit ?? alloc.daily_loss_limit} onChange={(v) => setEditData({ ...editData, daily_loss_limit: v })} />
+                    <EditField label="日亏限(固定$)" value={editData.daily_loss_limit ?? alloc.daily_loss_limit} onChange={(v) => setEditData({ ...editData, daily_loss_limit: v })} />
+                    <EditField label="日亏限(%资金)" value={editData.daily_loss_pct ?? alloc.daily_loss_pct} onChange={(v) => setEditData({ ...editData, daily_loss_pct: v })} step={0.5} />
                   </div>
                 </div>
                 {/* 交易控制 */}
@@ -218,6 +223,9 @@ export function BotAllocations({
                     <p className="text-slate-400 text-sm">
                       ${alloc.allocated_usdt.toLocaleString()} · {alloc.max_leverage}x ·{' '}
                       {alloc.current_positions || 0}/{alloc.max_positions} 仓 · 风险{alloc.risk_percent}%
+                      {(alloc.max_notional_per_position ?? 0) > 0 && (
+                        <> · 名义${alloc.max_notional_per_position?.toLocaleString()}/仓</>
+                      )}
                     </p>
                   </div>
                 </div>

@@ -40,11 +40,13 @@ class BotAllocation:
     fee_rate_taker: float = 0.0004         # taker 费率
     allowed_symbols: list = field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
     min_risk_reward: float = 1.5           # 最小盈亏比
-    daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT
+    daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT（兜底值）
+    daily_loss_pct: float = 5.0             # 日亏损限制 = 分配资金的 %（动态）
     trailing_stop_enabled: bool = False    # 移动止损开关
     trailing_stop_trigger: float = 1.0     # 移动止损触发%
     max_hold_hours: int = 48               # 最大持仓时间
     cooldown_minutes: int = 30             # 同品种冷却期(分钟)
+    allocation_pct: float = 0.0            # 占总余额的百分比（>0 时启用动态分配）
 
 
 @dataclass
@@ -67,18 +69,21 @@ class TradingState:
                 "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
                 "min_risk_reward": 1.5,
                 "daily_loss_limit": 50.0,
+                "daily_loss_pct": 5.0,
                 "trailing_stop_enabled": False,
                 "trailing_stop_trigger": 1.0,
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
+                "allocation_pct": 0.0,
+                "max_notional_per_position": 0,
             }
             self.allocations = {
                 "al-brooks": {
                     "bot_id": "al-brooks",
                     "name": "PA交易",
                     "allocated_usdt": 2000.0,
-                    "max_leverage": 5,
-                    "max_positions": 3,
+                    "max_leverage": 10,
+                    "max_positions": 6,
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
@@ -88,8 +93,8 @@ class TradingState:
                     "bot_id": "trader",
                     "name": "量化分析师",
                     "allocated_usdt": 2000.0,
-                    "max_leverage": 5,
-                    "max_positions": 3,
+                    "max_leverage": 10,
+                    "max_positions": 4,
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
@@ -100,7 +105,7 @@ class TradingState:
                     "name": "威科夫大师",
                     "allocated_usdt": 1000.0,
                     "max_leverage": 3,
-                    "max_positions": 2,
+                    "max_positions": 3,
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
@@ -117,10 +122,13 @@ class TradingState:
                 "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
                 "min_risk_reward": 1.5,
                 "daily_loss_limit": 50.0,
+                "daily_loss_pct": 5.0,
                 "trailing_stop_enabled": False,
                 "trailing_stop_trigger": 1.0,
                 "max_hold_hours": 48,
                 "cooldown_minutes": 30,
+                "allocation_pct": 0.0,
+                "max_notional_per_position": 0,
             }
             for bot_id, alloc in self.allocations.items():
                 for key, default_val in new_field_defaults.items():
@@ -171,11 +179,29 @@ class TradingStateManager:
         return self.state.trading_enabled
 
     def sync_balance(self, balance: float, available: float = 0.0, unrealized_pnl: float = 0.0):
-        """同步币安余额"""
+        """同步币安余额，并按百分比动态调整分配资金"""
         self.state.binance_balance = balance
         self.state.binance_available = available or balance
         self.state.total_unrealized_pnl = unrealized_pnl
         self.state.last_sync = datetime.now().isoformat()
+
+        # 动态分配：allocation_pct > 0 的 bot 按余额百分比重算 allocated_usdt
+        if balance > 0:
+            for bot_id, alloc in self.state.allocations.items():
+                pct = alloc.get("allocation_pct", 0.0)
+                if pct > 0:
+                    new_alloc = round(balance * pct / 100, 2)
+                    old_alloc = alloc.get("allocated_usdt", 0)
+                    if abs(new_alloc - old_alloc) > 1.0:  # 变化超过 $1 才更新
+                        alloc["allocated_usdt"] = new_alloc
+                        # 同步更新日亏限（按 daily_loss_pct 重算）
+                        dlp = alloc.get("daily_loss_pct", 3.0)
+                        alloc["daily_loss_limit"] = round(new_alloc * dlp / 100, 2)
+                        logger.info(
+                            f"动态分配 {bot_id}: ${old_alloc:.0f} → ${new_alloc:.0f} "
+                            f"({pct}% of ${balance:.0f})"
+                        )
+
         self._save_state()
         logger.info(f"余额已同步: ${balance:.2f} (可用: ${available:.2f})")
 
@@ -204,9 +230,10 @@ class TradingStateManager:
             "allocated_usdt", "max_leverage", "max_positions",
             "enabled", "risk_percent", "fee_rate_maker",
             "fee_rate_taker", "allowed_symbols",
-            "min_risk_reward", "daily_loss_limit",
+            "min_risk_reward", "daily_loss_limit", "daily_loss_pct",
             "trailing_stop_enabled", "trailing_stop_trigger",
-            "max_hold_hours", "cooldown_minutes",
+            "max_hold_hours", "cooldown_minutes", "allocation_pct",
+            "max_notional_per_position",
         }
 
         for key, val in kwargs.items():
@@ -224,8 +251,22 @@ class TradingStateManager:
             self.state.allocations[bot_id]["used_margin"] = margin
             self._save_state()
 
-    def can_bot_trade(self, bot_id: str) -> tuple[bool, str]:
-        """检查机器人是否可以交易"""
+    def can_bot_trade(
+        self,
+        bot_id: str,
+        live_position_count: int = -1,
+        symbol: str = "",
+        bot_positions: list = None,
+    ) -> tuple[bool, str]:
+        """检查机器人是否可以交易
+
+        Args:
+            bot_id: 机器人 ID
+            live_position_count: 实时持仓数量（从币安查询）。
+                如果传入 >=0 的值，使用实时数据；否则回退到本地缓存。
+            symbol: 要开仓的品种（用于累积名义检查）
+            bot_positions: 该 bot 的实时持仓列表（用于累积名义检查）
+        """
         # 检查全局开关
         if not self.state.trading_enabled:
             return False, "交易开关未开启"
@@ -238,8 +279,8 @@ class TradingStateManager:
         if not alloc.get("enabled", True):
             return False, f"{alloc['name']} 已禁用"
 
-        # 检查持仓限制
-        current = alloc.get("current_positions", 0)
+        # 检查持仓限制 — 优先使用实时数据
+        current = live_position_count if live_position_count >= 0 else alloc.get("current_positions", 0)
         max_pos = alloc.get("max_positions", 3)
         if current >= max_pos:
             return False, f"{alloc['name']} 已达最大持仓数 ({current}/{max_pos})"
@@ -249,6 +290,24 @@ class TradingStateManager:
         allocated = alloc.get("allocated_usdt", 0)
         if used >= allocated:
             return False, f"{alloc['name']} 已用完分配资金 (${used:.0f}/${allocated:.0f})"
+
+        # V3.5: 同品种累积名义价值检查
+        if symbol and bot_positions:
+            max_notional = alloc.get("max_notional_per_position", 0)
+            leverage = alloc.get("max_leverage", 5)
+            if max_notional <= 0:
+                max_notional = (allocated / max(max_pos, 1)) * leverage
+            # 累积名义上限 = 单仓上限 × 2（允许一次加仓）
+            max_cumulative = max_notional * 2
+            # 标准化 symbol 用于匹配
+            norm = symbol.replace("/", "").split(":")[0].upper()
+            existing_notional = 0.0
+            for p in bot_positions:
+                p_norm = p.symbol.replace("/", "").split(":")[0].upper()
+                if p_norm == norm:
+                    existing_notional += abs(p.quantity * p.mark_price)
+            if existing_notional >= max_cumulative:
+                return False, f"{alloc['name']} {symbol} 累积名义 ${existing_notional:.0f} 已达上限 ${max_cumulative:.0f}"
 
         return True, "OK"
 
@@ -308,13 +367,20 @@ class TradingStateManager:
         leverage = alloc.get("max_leverage", 5)
         max_position = available * leverage
 
-        # 取较小值
-        final_value = min(position_value, max_position)
+        # 名义价值上限（为外汇 100x 做准备）
+        max_notional = alloc.get("max_notional_per_position", 0)
+        if max_notional <= 0:
+            # 向后兼容：自动从分配资金计算
+            max_positions = alloc.get("max_positions", 3)
+            max_notional = (available / max_positions) * leverage
+
+        # 取三者最小值
+        final_value = min(position_value, max_position, max_notional)
 
         # 转换为数量
         quantity = final_value / entry_price
 
-        return quantity, f"风险 ${risk_amount:.2f}, 仓位 ${final_value:.2f}, 数量 {quantity:.6f}"
+        return quantity, f"风险 ${risk_amount:.2f}, 仓位 ${final_value:.2f} (名义上限 ${max_notional:.0f}), 数量 {quantity:.6f}"
 
     def get_status_summary(self) -> dict:
         """获取状态摘要"""

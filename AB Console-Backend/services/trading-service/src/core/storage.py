@@ -84,8 +84,10 @@ def update_market_share():
         if not totals:
             return
 
-        # 2. 更新 SQLite 市场占比
+        # 2. 更新 SQLite 市场占比（WAL 防并发损坏）
         sqlite_conn = sqlite3.connect(str(config.sqlite_path))
+        sqlite_conn.execute("PRAGMA journal_mode=WAL")
+        sqlite_conn.execute("PRAGMA busy_timeout=5000")
         for interval, total in totals.items():
             if total > 0:
                 sqlite_conn.execute("""
@@ -107,6 +109,8 @@ def cleanup_futures_1m():
     from ..db.reader import inc_sqlite_commit
     try:
         conn = sqlite3.connect(str(config.sqlite_path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("DELETE FROM '期货情绪聚合表.py' WHERE 周期='1m'")
         conn.execute("DELETE FROM '期货情绪元数据.py' WHERE 周期='1m'")
         conn.commit()

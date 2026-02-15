@@ -272,7 +272,7 @@ async def _post_with_retry(
     for attempt in range(max_retries + 1):
         try:
             async with session.post(url, json=json_data, headers=headers) as resp:
-                if resp.status in (200, 202):
+                if resp.status in (200, 202, 204):
                     return True, resp.status
                 body = await resp.text()
                 logger.warning(

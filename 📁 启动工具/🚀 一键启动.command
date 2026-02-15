@@ -153,11 +153,50 @@ if [ "$USE_COMPOSE" = true ] && [ "$DB_READY" = true ]; then
 
     # 跳到状态总结
     echo ""
-    log_info "[4-8] 所有服务已通过 Docker Compose 管理（包括 Web Dashboard）"
+    log_info "[4-7] Docker 容器服务已全部启动"
+
+    # 启动 Execution Service（本地 Python，不在 Docker 中）
+    echo ""
+    log_info "[8/10] 启动 Execution Service (本地)..."
+    EXEC_SVC_DIR="$BACKEND_DIR/services/execution-service"
+    EXEC_PID_FILE="$EXEC_SVC_DIR/logs/execution.pid"
+    if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Execution Service 已在运行 (端口 8092)"
+    elif [ -d "$EXEC_SVC_DIR/src" ]; then
+        cd "$EXEC_SVC_DIR"
+        mkdir -p logs
+        nohup python3 -m src --port 8092 > logs/execution.log 2>&1 &
+        echo $! > "$EXEC_PID_FILE"
+        sleep 5
+        if lsof -i :8092 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Execution Service 启动成功 (端口 8092)"
+        else
+            log_warn "Execution Service 启动失败，查看日志: $EXEC_SVC_DIR/logs/execution.log"
+        fi
+    else
+        log_warn "Execution Service src 目录不存在，跳过"
+    fi
+
+    # 启动 Web Dashboard（本地 Next.js，不在 Docker 中）
+    echo ""
+    log_info "[9/10] 启动 Web Dashboard (本地)..."
+    if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Web Dashboard 已在运行 (端口 3001)"
+    else
+        cd "$BACKEND_DIR/web"
+        nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
+        sleep 8
+        if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Web Dashboard 启动成功 (端口 3001)"
+        else
+            log_warn "Web Dashboard 启动中，请稍等..."
+            log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
+        fi
+    fi
 
     # 触发数据回填（补齐历史数据缺口）
     echo ""
-    log_info "触发数据回填..."
+    log_info "[10/10] 触发数据回填..."
     if docker exec ab-data-service python -c "
 from collectors.backfill import GapScanner, RestBackfiller
 from db import get_engine
@@ -328,14 +367,14 @@ else
     # 9. 启动 Web Dashboard
     echo ""
     log_info "[9/9] 启动 Web Dashboard..."
-    if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-        log_success "Web Dashboard 已在运行 (端口 3000)"
+    if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Web Dashboard 已在运行 (端口 3001)"
     else
         cd "$BACKEND_DIR/web"
         nohup npm run dev > /tmp/ab-web-dashboard.log 2>&1 &
         sleep 8
-        if lsof -i :3000 -sTCP:LISTEN > /dev/null 2>&1; then
-            log_success "Web Dashboard 启动成功 (端口 3000)"
+        if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Web Dashboard 启动成功 (端口 3001)"
         else
             log_warn "Web Dashboard 启动中，请稍等..."
             log_info "查看日志: tail -f /tmp/ab-web-dashboard.log"
@@ -367,7 +406,7 @@ check_service 8084 "Vis Service      "
 check_service 8090 "Telegram Service "
 check_service 8083 "Signal Service   "
 check_service 8092 "Execution Service"
-check_service 3000 "Web Dashboard    "
+check_service 3001 "Web Dashboard    "
 
 echo ""
 echo "【外部服务】"
@@ -419,7 +458,7 @@ echo "╔═══════════════════════�
 echo "║                     访问地址                                ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo "  Web Dashboard:  http://localhost:3000/chart"
+echo "  Web Dashboard:  http://localhost:3001/chart"
 echo "  API 文档:       http://localhost:8088/docs"
 echo "  API 健康:       http://localhost:8088/health"
 echo "  Vis 模板:       http://localhost:8084/templates"

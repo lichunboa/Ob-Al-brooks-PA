@@ -90,7 +90,72 @@ echo ""
 start_service "signal-service"
 echo ""
 
-# 4. telegram-service (Bot 服务)
+# 3.5. execution-service (交易执行 + 进化系统 + 持仓巡检)
+echo -e "${BLUE}[启动] execution-service...${NC}"
+EXEC_DIR="services/execution-service"
+if [ -d "$EXEC_DIR" ]; then
+    EXEC_PID_FILE="$EXEC_DIR/run/execution-service.pid"
+    mkdir -p "$EXEC_DIR/logs" "$EXEC_DIR/run"
+    if [ -f "$EXEC_PID_FILE" ]; then
+        EXEC_OLD_PID=$(cat "$EXEC_PID_FILE" 2>/dev/null)
+        if ps -p "$EXEC_OLD_PID" > /dev/null 2>&1; then
+            echo -e "${YELLOW}⚠️  execution-service 已在运行 (PID: $EXEC_OLD_PID)${NC}"
+        else
+            cd "$EXEC_DIR"
+            nohup python3 -m src --port 8092 > logs/execution-service.log 2>&1 &
+            EXEC_PID=$!
+            echo $EXEC_PID > run/execution-service.pid
+            echo -e "${GREEN}✅ execution-service 已启动 (PID: $EXEC_PID) 端口 8092${NC}"
+            cd ../..
+        fi
+    else
+        cd "$EXEC_DIR"
+        nohup python3 -m src --port 8092 > logs/execution-service.log 2>&1 &
+        EXEC_PID=$!
+        echo $EXEC_PID > run/execution-service.pid
+        echo -e "${GREEN}✅ execution-service 已启动 (PID: $EXEC_PID) 端口 8092${NC}"
+        cd ../..
+    fi
+else
+    echo -e "${YELLOW}⚠️  execution-service 目录不存在，跳过${NC}"
+fi
+echo ""
+
+# 4. vis-service (可视化服务 - VPVR/K线包络)
+echo -e "${BLUE}[启动] vis-service...${NC}"
+VIS_DIR="services-preview/vis-service"
+if [ -d "$VIS_DIR" ]; then
+    cd "$VIS_DIR"
+    if [ -d ".venv" ]; then
+        source .venv/bin/activate
+    fi
+    mkdir -p logs run
+    VIS_PID_FILE="run/vis-service.pid"
+    if [ -f "$VIS_PID_FILE" ]; then
+        VIS_OLD_PID=$(cat "$VIS_PID_FILE" 2>/dev/null)
+        if ps -p "$VIS_OLD_PID" > /dev/null 2>&1; then
+            echo -e "${YELLOW}⚠️  vis-service 已在运行 (PID: $VIS_OLD_PID)${NC}"
+            cd ../..
+        else
+            nohup python -m src > logs/vis-service.log 2>&1 &
+            VIS_PID=$!
+            echo $VIS_PID > "$VIS_PID_FILE"
+            echo -e "${GREEN}✅ vis-service 已启动 (PID: $VIS_PID) 端口 8087${NC}"
+            cd ../..
+        fi
+    else
+        nohup python -m src > logs/vis-service.log 2>&1 &
+        VIS_PID=$!
+        echo $VIS_PID > "$VIS_PID_FILE"
+        echo -e "${GREEN}✅ vis-service 已启动 (PID: $VIS_PID) 端口 8087${NC}"
+        cd ../..
+    fi
+else
+    echo -e "${YELLOW}⚠️  vis-service 目录不存在，跳过${NC}"
+fi
+echo ""
+
+# 5. telegram-service (Bot 服务)
 echo -e "${BLUE}[启动] telegram-service...${NC}"
 cd services/telegram-service
 source .venv/bin/activate
@@ -112,8 +177,12 @@ echo -e "${GREEN}✅ 所有核心服务已启动${NC}"
 echo -e "${BLUE}=============================================================================${NC}"
 echo ""
 echo "服务状态:"
-for service in data-service trading-service signal-service telegram-service; do
-    pid_file="services/$service/run/$service.pid"
+for service in data-service trading-service signal-service execution-service vis-service telegram-service; do
+    if [ "$service" = "vis-service" ]; then
+        pid_file="services-preview/$service/run/$service.pid"
+    else
+        pid_file="services/$service/run/$service.pid"
+    fi
     if [ -f "$pid_file" ]; then
         pid=$(cat "$pid_file" 2>/dev/null)
         if ps -p "$pid" > /dev/null 2>&1; then

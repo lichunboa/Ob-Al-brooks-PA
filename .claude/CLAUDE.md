@@ -46,7 +46,7 @@
 | API Service | 8088 |
 | Sync Service | 8089 |
 | TimescaleDB | 5434 |
-| Web Dashboard | 3000 |
+| Web Dashboard | 3001 |
 
 ## 插件构建
 

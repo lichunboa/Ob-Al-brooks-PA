@@ -25,8 +25,13 @@ def _get_cooldown_db_path() -> str:
         db_path = Path(os.environ.get('SQLITE_DB_PATH'))
         return str(db_path.parent / 'cooldown.db')
     
-    # 默认路径（Docker 环境）
-    return "/app/data/cooldown.db"
+    # 本地环境：使用 ~/.openclaw/workspace/
+    # Docker 环境：使用 /app/data/
+    local_path = Path.home() / ".openclaw" / "workspace" / "cooldown.db"
+    docker_path = Path("/app/data/cooldown.db")
+    if docker_path.parent.exists() and os.access(str(docker_path.parent), os.W_OK):
+        return str(docker_path)
+    return str(local_path)
 
 
 class CooldownStorage:
@@ -61,7 +66,9 @@ class CooldownStorage:
 
     @contextmanager
     def _conn(self):
-        conn = sqlite3.connect(self.db_path, timeout=5)
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         try:
             yield conn
             conn.commit()

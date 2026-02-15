@@ -489,6 +489,11 @@ class PGSignalEngine(BaseEngine):
         self._running = False
         self._max_reconnect_attempts = 5  # 最大重连次数
         self._reconnect_delay = 5  # 重连延迟（秒）
+        # 状态变化检测：只在条件从 False→True 时触发
+        self._prev_active: set[str] = set()
+        # V3.8.2: 边缘触发时间记录 — 即使状态重置，同一信号 10 分钟内不重复触发
+        self._edge_fire_times: dict[str, float] = {}
+        self._edge_min_interval = 600  # 10 分钟最小间隔
 
     def _get_conn(self):
         """获取数据库连接，带重试机制"""
@@ -556,7 +561,7 @@ class PGSignalEngine(BaseEngine):
 
     def _is_cooled_down(self, signal_key: str, cooldown_seconds: float) -> bool:
         last = self.cooldowns.get(signal_key, 0)
-        return time.time() - last > cooldown_seconds
+        return time.time() - last >= cooldown_seconds
 
     def _fetch_latest_candles(self) -> dict[str, dict]:
         """获取最新K线数据"""
@@ -663,9 +668,10 @@ class PGSignalEngine(BaseEngine):
         return result
 
     def check_signals(self) -> list[PGSignal]:
-        """检查信号"""
+        """检查信号（edge detection: 只在状态变化时触发）"""
         self.stats["checks"] += 1
         signals = []
+        curr_active: set[str] = set()  # 本轮活跃的信号
 
         try:
             candles = self._fetch_latest_candles()
@@ -704,7 +710,7 @@ class PGSignalEngine(BaseEngine):
                 checkers = [
                     (self.rules.check_price_surge, [curr_candle, prev_candle, 2.0]),
                     (self.rules.check_price_dump, [curr_candle, prev_candle, 2.0]),
-                    (self.rules.check_volume_spike, [curr_candle, prev_candle, 5.0]),
+                    (self.rules.check_volume_spike, [curr_candle, prev_candle, 2.5]),
                     (self.rules.check_taker_buy_dominance, [curr_candle, 0.7]),
                     (self.rules.check_taker_sell_dominance, [curr_candle, 0.7]),
                 ]
@@ -726,14 +732,22 @@ class PGSignalEngine(BaseEngine):
                         signal = checker(*args)
                         if signal:
                             signal_key = f"pg:{signal.symbol}_{signal.signal_type}"
+                            curr_active.add(signal_key)
+                            # Edge detection: 只在状态从 inactive→active 时触发
+                            if signal_key in self._prev_active:
+                                continue  # 持续满足条件，不重复触发
+                            # V3.8.2: 即使边缘状态重置，也要遵守最小间隔
+                            now_ts = time.time()
+                            last_fire = self._edge_fire_times.get(signal_key, 0)
+                            if now_ts - last_fire < self._edge_min_interval:
+                                continue  # 10分钟内不重复触发同一信号
                             cooldown_seconds = self.cooldown_seconds
                             if self._is_cooled_down(signal_key, cooldown_seconds):
                                 if self._set_cooldown(signal_key):
                                     signals.append(signal)
                                     self.stats["signals"] += 1
+                                    self._edge_fire_times[signal_key] = time.time()
                                     logger.info(f"PG Signal: {signal.symbol} - {signal.signal_type}")
-                                    # 发布事件
-                                    self._publish_event(signal)
                                 else:
                                     self.stats["errors"] += 1
                                     logger.error("冷却持久化失败，跳过信号推送: %s", signal_key)
@@ -748,7 +762,28 @@ class PGSignalEngine(BaseEngine):
                 logger.error(f"Error processing symbol {symbol}: {e}")
                 self.stats["errors"] += 1
 
-        return signals
+        # 更新 edge detection 状态
+        cleared = self._prev_active - curr_active
+        if cleared:
+            logger.info(f"信号状态清除（可再次触发）: {cleared}")
+        self._prev_active = curr_active
+
+        # V3.7: 按 {symbol}_{direction} 聚合，每个品种每个方向只发布最强信号
+        aggregated: dict[str, PGSignal] = {}
+        for sig in signals:
+            agg_key = f"{sig.symbol}_{sig.direction}"
+            if agg_key not in aggregated or sig.strength > aggregated[agg_key].strength:
+                aggregated[agg_key] = sig
+
+        published = []
+        for sig in aggregated.values():
+            self._publish_event(sig)
+            published.append(sig)
+
+        if len(signals) != len(published):
+            logger.info(f"V3.7 聚合: {len(signals)} 原始信号 → {len(published)} 发布")
+
+        return published
 
     def _publish_event(self, signal: PGSignal):
         """发布信号事件"""

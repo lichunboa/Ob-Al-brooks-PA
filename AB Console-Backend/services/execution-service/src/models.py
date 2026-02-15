@@ -40,6 +40,7 @@ class OrderRequest(BaseModel):
     # 关联信息（用于追踪）
     trade_id: Optional[str] = Field(None, description="关联的交易 ID")
     signal_source: Optional[str] = Field(None, description="信号来源")
+    strategy: Optional[str] = Field(None, description="策略名称 (用于进化系统)")
     bot_id: Optional[str] = Field(None, description="机器人 ID (al-brooks/trader/wyckoff)")
 
 

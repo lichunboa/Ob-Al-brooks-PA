@@ -34,6 +34,7 @@ from .reconciliation import TradeReconciliation
 from .order_tracker import OrderTracker
 from .note_sync import NoteSync
 from .evolution_manager import get_evolution_manager, EvolutionManager
+from .position_patrol import PositionPatrol
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,43 +50,57 @@ reconciliation: Optional[TradeReconciliation] = None
 order_tracker: Optional[OrderTracker] = None
 note_sync: Optional[NoteSync] = None
 evolution_mgr: Optional[EvolutionManager] = None
+position_patrol: Optional[PositionPatrol] = None
 _periodic_task: Optional[asyncio.Task] = None
 
 # 定时任务间隔（秒）
-NOTE_SYNC_INTERVAL = 300  # 5 分钟
-ORDER_TRACK_INTERVAL = 300  # 5 分钟
+BALANCE_SYNC_INTERVAL = 60  # 1 分钟同步余额
+NOTE_SYNC_INTERVAL = 300  # 5 分钟同步笔记+订单
 
 
 async def _periodic_sync():
-    """定时任务：笔记同步 + 订单追踪"""
-    await asyncio.sleep(60)  # 启动后 1 分钟再开始
+    """定时任务：余额同步(1分钟) + 持仓巡检(1分钟) + 笔记同步+订单追踪(5分钟)"""
+    await asyncio.sleep(30)  # 启动后 30 秒再开始
+    tick = 0
     while True:
         try:
-            # 笔记反向同步
-            if note_sync:
-                result = await note_sync.sync_all()
-                synced = result.get("synced", 0)
-                if synced > 0:
-                    logger.info(f"[定时] 笔记同步: {synced} 笔更新")
+            # 每次循环都同步余额（60 秒）
+            if executor and trading_state:
+                balances = await executor.get_balance()
+                usdt = next((b for b in balances if b.asset == "USDT"), None)
+                if usdt:
+                    trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
 
-            # 订单状态追踪
-            if order_tracker:
-                changes = await order_tracker.check_all_orders()
-                if changes:
-                    logger.info(f"[定时] 订单追踪: {len(changes)} 笔状态变更")
+            # 每次循环都做持仓巡检（60 秒）
+            if position_patrol:
+                await position_patrol.patrol()
+
+            # 每 5 次循环（5 分钟）做笔记同步 + 订单追踪
+            if tick % 5 == 0:
+                if note_sync:
+                    result = await note_sync.sync_all()
+                    synced = result.get("synced", 0)
+                    if synced > 0:
+                        logger.info(f"[定时] 笔记同步: {synced} 笔更新")
+
+                if order_tracker:
+                    changes = await order_tracker.check_all_orders()
+                    if changes:
+                        logger.info(f"[定时] 订单追踪: {len(changes)} 笔状态变更")
 
         except Exception as e:
             logger.error(f"[定时] 同步任务异常: {e}")
 
-        await asyncio.sleep(NOTE_SYNC_INTERVAL)
+        tick += 1
+        await asyncio.sleep(BALANCE_SYNC_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期"""
-    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, evolution_mgr, _periodic_task
+    global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, evolution_mgr, position_patrol, _periodic_task
 
-    logger.info("Execution Service V2.8.0 启动中...")
+    logger.info("Execution Service V3.0 启动中...")
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
@@ -93,6 +108,7 @@ async def lifespan(app: FastAPI):
     order_tracker = OrderTracker(executor)
     note_sync = NoteSync(executor)
     evolution_mgr = get_evolution_manager()
+    position_patrol = PositionPatrol(executor, trading_state)
 
     # 启动时同步币安数据
     try:
@@ -116,9 +132,52 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"启动对账失败: {e}")
 
+    # 启动时从币安 open orders + trades history 恢复 bot 映射
+    try:
+        result = await executor.recover_bot_map_from_binance()
+        ro = result.get("recovered_orders", 0)
+        rp = result.get("recovered_positions", 0)
+        if ro > 0 or rp > 0:
+            logger.info(f"启动恢复: 订单映射 +{ro}, 持仓映射 +{rp}")
+        else:
+            logger.info(f"启动恢复: bot 映射已完整 ({result.get('total_open', 0)} 个挂单)")
+    except Exception as e:
+        logger.warning(f"启动恢复 bot 映射失败: {e}")
+
+    # 启动时自动获取币安手续费率并更新到 bot allocation
+    try:
+        fees = executor.fetch_trading_fees()
+        if fees and trading_state:
+            allocs = trading_state.state.allocations
+            btc_fees = fees.get("BTCUSDT", {})
+            if btc_fees and allocs:
+                for bot_id in allocs:
+                    allocs[bot_id]["fee_rate_maker"] = btc_fees["maker"]
+                    allocs[bot_id]["fee_rate_taker"] = btc_fees["taker"]
+                trading_state._save_state()
+                logger.info(f"启动同步: 币安费率已更新 (maker={btc_fees['maker']}, taker={btc_fees['taker']})")
+    except Exception as e:
+        logger.warning(f"启动同步币安费率失败: {e}")
+
+    # 启动时自动为所有品种设置杠杆（V3.0, V3.6 修复: 取各品种最大杠杆）
+    # 币安合约每品种只有一个全局杠杆，多 bot 共享时必须取最大值
+    try:
+        allocs = trading_state.state.allocations
+        symbol_max_lev: dict[str, int] = {}
+        for bot_id, alloc in allocs.items():
+            lev = alloc.get("max_leverage", 5)
+            for sym in alloc.get("allowed_symbols", []):
+                ccxt_sym = f"{sym}:USDT" if ':' not in sym else sym
+                symbol_max_lev[ccxt_sym] = max(symbol_max_lev.get(ccxt_sym, 0), lev)
+        for ccxt_sym, lev in symbol_max_lev.items():
+            await executor.set_leverage(ccxt_sym, lev)
+        logger.info(f"启动杠杆: {', '.join(f'{s}={l}x' for s,l in symbol_max_lev.items())}")
+    except Exception as e:
+        logger.warning(f"启动设置杠杆失败: {e}")
+
     # 启动定时任务（笔记同步 + 订单追踪，每 5 分钟）
     _periodic_task = asyncio.create_task(_periodic_sync())
-    logger.info("定时任务已启动: 笔记同步 + 订单追踪 (每 5 分钟)")
+    logger.info("定时任务已启动: 余额同步(60s) + 持仓巡检(60s) + 笔记同步+订单追踪(5分钟)")
 
     logger.info(f"Execution Service 已启动 (mode={BINANCE_MODE}, trading={'ON' if trading_state.is_trading_enabled() else 'OFF'})")
 
@@ -136,8 +195,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Execution Service",
-    description="币安合约交易执行服务 V2.8.0",
-    version="0.4.0",
+    description="币安合约交易执行服务 V3.9.4",
+    version="3.9.4",
     lifespan=lifespan,
 )
 
@@ -160,7 +219,7 @@ async def health():
         "status": "healthy",
         "mode": BINANCE_MODE,
         "service": "execution-service",
-        "version": "0.4.0",
+        "version": "3.9.4",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
     }
 
@@ -175,12 +234,20 @@ async def get_balance():
     return await executor.get_balance()
 
 
-@app.get("/positions", response_model=list[Position])
+@app.get("/positions")
 async def get_positions():
-    """获取持仓"""
+    """获取持仓（V3.9.3: 附带 bot_ids 多bot归属）"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.get_positions()
+    positions = await executor.get_positions()
+    result = []
+    for p in positions:
+        d = p.model_dump()
+        bot_ids = executor.get_position_bot_ids(p.symbol)
+        d["bot_ids"] = bot_ids
+        d["bot_id"] = bot_ids[0] if bot_ids else None  # 向后兼容
+        result.append(d)
+    return result
 
 
 @app.get("/orders/open")
@@ -220,15 +287,80 @@ async def place_order(request: OrderRequest):
     """下单"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.place_order(request)
+    # 从 bot allocation 获取风控参数
+    max_pos = 10
+    daily_loss = 0.0
+    bot_id = request.bot_id or ""
+    if trading_state and bot_id:
+        alloc = trading_state.state.allocations.get(bot_id, {})
+        max_pos = alloc.get("max_positions", 10)
+        # 动态日亏限 = max(固定值, 分配资金 × 百分比)
+        fixed_limit = alloc.get("daily_loss_limit", 100)
+        pct_limit = alloc.get("allocated_usdt", 0) * alloc.get("daily_loss_pct", 5) / 100
+        daily_loss = max(fixed_limit, pct_limit)
+        # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
+        if not request.leverage:
+            request.leverage = alloc.get("max_leverage", 1)
+
+        # V3.5: 开仓前 can_bot_trade 门禁（含累积名义检查）
+        if not request.reduce_only:
+            all_positions = await executor.get_positions()
+            bot_positions = _filter_bot_positions(bot_id, all_positions)
+            can_trade, reason = trading_state.can_bot_trade(
+                bot_id,
+                live_position_count=len(bot_positions),
+                symbol=request.symbol,
+                bot_positions=bot_positions,
+            )
+            if not can_trade:
+                return OrderResponse(
+                    success=False,
+                    symbol=request.symbol,
+                    side=request.side.value,
+                    quantity=request.quantity,
+                    status="REJECTED",
+                    message=f"Bot风控拒绝: {reason}",
+                )
+
+            # V3.9.2: 跨 bot 冲突检测已移除 — 每个 bot 独立管理同品种持仓
+            # 多 bot 同品种共存于同一币安仓位，position_bot_map 以列表追踪
+
+            # V3.7: 盈亏比门禁
+            if (request.take_profit and request.stop_loss
+                    and request.price):
+                tp = float(request.take_profit)
+                sl = float(request.stop_loss)
+                ep = float(request.price)
+                risk = abs(ep - sl)
+                if risk > 0:
+                    rr = abs(tp - ep) / risk
+                    min_rr = alloc.get("min_risk_reward", 2.0)
+                    if rr < min_rr:
+                        return OrderResponse(
+                            success=False,
+                            symbol=request.symbol,
+                            side=request.side.value,
+                            quantity=request.quantity,
+                            status="REJECTED",
+                            message=(
+                                f"盈亏比 {rr:.1f}:1"
+                                f" < {min_rr}:1"
+                            ),
+                        )
+
+    return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
 
 @app.post("/order/{symbol}/close", response_model=OrderResponse)
-async def close_position(symbol: str, quantity: Optional[float] = None):
+async def close_position(
+    symbol: str,
+    quantity: Optional[float] = None,
+    bot_id: Optional[str] = Query(None, description="指定平仓的 bot_id（V3.9.2 多 bot 支持）"),
+):
     """平仓"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
-    return await executor.close_position(symbol, quantity)
+    return await executor.close_position(symbol, quantity, bot_id=bot_id)
 
 
 @app.delete("/orders")
@@ -238,6 +370,48 @@ async def cancel_all_orders(symbol: Optional[str] = None):
         raise HTTPException(status_code=503, detail="服务未就绪")
     success = await executor.cancel_all_orders(symbol)
     return {"success": success}
+
+
+@app.post("/order/close-all")
+async def close_all_positions():
+    """一键平仓所有持仓 + 取消所有挂单"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+
+    results = {"closed": [], "failed": [], "orders_cancelled": False}
+
+    # 1. 取消所有挂单
+    try:
+        await executor.cancel_all_orders()
+        results["orders_cancelled"] = True
+    except Exception as e:
+        logger.warning(f"取消挂单失败: {e}")
+
+    # 2. 逐个市价平仓
+    positions = await executor.get_positions()
+    for pos in positions:
+        try:
+            resp = await executor.close_position(pos.symbol)
+            if resp.success:
+                results["closed"].append(pos.symbol)
+            else:
+                results["failed"].append({"symbol": pos.symbol, "error": resp.message})
+        except Exception as e:
+            results["failed"].append({"symbol": pos.symbol, "error": str(e)})
+
+    results["total_closed"] = len(results["closed"])
+    results["total_failed"] = len(results["failed"])
+    return results
+
+
+# ========== 持仓巡检 V3.0 ==========
+
+@app.get("/patrol/status")
+async def get_patrol_status():
+    """获取持仓巡检状态"""
+    if not position_patrol:
+        raise HTTPException(status_code=503, detail="巡检服务未就绪")
+    return position_patrol.get_status()
 
 
 # ========== 风控管理 ==========
@@ -333,17 +507,30 @@ class AllocationUpdate(BaseModel):
     allowed_symbols: Optional[list[str]] = None
     min_risk_reward: Optional[float] = None
     daily_loss_limit: Optional[float] = None
+    daily_loss_pct: Optional[float] = None
     trailing_stop_enabled: Optional[bool] = None
     trailing_stop_trigger: Optional[float] = None
     max_hold_hours: Optional[int] = None
     cooldown_minutes: Optional[int] = None
+    allocation_pct: Optional[float] = None
+    # V3.0 新增 — 名义价值控制
+    max_notional_per_position: Optional[float] = None
 
 
 @app.get("/trading/status")
 async def get_trading_status():
-    """获取交易状态"""
+    """获取交易状态（实时同步余额后返回）"""
     if not trading_state:
         raise HTTPException(status_code=503, detail="服务未就绪")
+    # 实时同步余额，确保数据不过时
+    if executor:
+        try:
+            balances = await executor.get_balance()
+            usdt = next((b for b in balances if b.asset == "USDT"), None)
+            if usdt:
+                trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
+        except Exception as e:
+            logger.warning(f"trading/status 实时同步失败: {e}")
     return trading_state.get_status_summary()
 
 
@@ -394,11 +581,14 @@ async def allocate_funds(bot_id: str, request: AllocationUpdate):
 
 @app.get("/trading/can-trade/{bot_id}")
 async def can_bot_trade(bot_id: str):
-    """检查机器人是否可以交易"""
-    if not trading_state:
+    """检查机器人是否可以交易（使用实时持仓数）"""
+    if not trading_state or not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
 
-    can_trade, reason = trading_state.can_bot_trade(bot_id)
+    # 获取实时持仓数
+    all_positions = await executor.get_positions()
+    bot_positions = _filter_bot_positions(bot_id, all_positions)
+    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
     allocation = trading_state.get_allocation(bot_id)
 
     return {
@@ -611,6 +801,31 @@ async def get_orphaned_positions():
         raise HTTPException(status_code=500, detail=f"检查孤儿持仓失败: {str(e)}")
 
 
+# ========== Bot 映射恢复 (V3.1 新增) ==========
+
+
+@app.post("/trading/recover-bot-map")
+async def recover_bot_map():
+    """触发从文件+币安恢复 order/position bot 映射（解决孤儿持仓）"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    try:
+        # 1. 从文件重新加载（支持外部修改后热更新）
+        executor._position_bot_map = executor._load_position_bot_map()
+        from_file = len(executor._position_bot_map)
+        # 2. 从币安 clientOrderId 补充恢复
+        result = await executor.recover_bot_map_from_binance()
+        return {
+            "success": True,
+            "from_file": from_file,
+            "position_bot_map": executor._position_bot_map,
+            **result,
+        }
+    except Exception as e:
+        logger.error(f"恢复 bot 映射失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ========== 订单追踪 (V2.6.1 新增) ==========
 
 @app.post("/trading/track-orders")
@@ -715,8 +930,8 @@ async def get_bot_summary(bot_id: str):
     available = trading_state.get_available_margin(bot_id)
     remaining_pos = alloc.get("max_positions", 3) - len(bot_positions)
 
-    # 交易检查
-    can_trade, reason = trading_state.can_bot_trade(bot_id)
+    # 交易检查（传入实时持仓数，不依赖 current_positions 缓存）
+    can_trade, reason = trading_state.can_bot_trade(bot_id, live_position_count=len(bot_positions))
 
     # 冷却期
     cooldowns = {}
@@ -728,11 +943,31 @@ async def get_bot_summary(bot_id: str):
         if not ok:
             cooldowns[p.symbol] = remaining
 
-    # 日亏损限额
-    daily_limit = alloc.get("daily_loss_limit", 50.0)
+    # 日亏损限额（动态：取固定值和百分比中较大者）
+    fixed_limit = alloc.get("daily_loss_limit", 50.0)
+    pct_limit = alloc.get("allocated_usdt", 0) * alloc.get("daily_loss_pct", 5) / 100
+    daily_limit = max(fixed_limit, pct_limit)
     limit_ok, limit_remaining = risk_manager.check_bot_daily_limit(
         bot_id, daily_limit
     )
+
+    # 名义价值控制（V3.0）
+    max_notional = alloc.get("max_notional_per_position", 0)
+    leverage = alloc.get("max_leverage", 5)
+    max_positions = alloc.get("max_positions", 3)
+    if max_notional <= 0:
+        max_notional = (alloc.get("allocated_usdt", 0) / max_positions) * leverage
+
+    # V3.7: 计算当前相关性暴露（供 signal-router 预检）
+    total_balance = trading_state.state.binance_balance or 1
+    corr_exposure = 0.0
+    CORR_ASSETS = {'BTC', 'ETH', 'SOL', 'BNB'}
+    for p in bot_positions:
+        base = p.symbol.split('/')[0].replace('USDT', '').split(':')[0]
+        if base in CORR_ASSETS:
+            val = p.quantity * p.mark_price
+            s = str(getattr(p.side, 'value', p.side)).upper()
+            corr_exposure += val * (1 if s in ('LONG', 'BUY') else -1)
 
     return {
         "config": alloc,
@@ -760,6 +995,12 @@ async def get_bot_summary(bot_id: str):
             "daily_loss_ok": limit_ok,
             "cooldowns": cooldowns,
             "emergency_stop": risk_manager.emergency_stop,
+            "correlation_exposure_pct": round(abs(corr_exposure) / total_balance * 100, 1),
+        },
+        "notional": {
+            "max_per_position": max_notional,
+            "total_capacity": max_notional * max_positions,
+            "leverage": leverage,
         },
     }
 
@@ -807,44 +1048,25 @@ async def get_bot_pnl(bot_id: str):
 
 
 def _filter_bot_positions(bot_id: str, positions: list) -> list:
-    """通过 order_bot_map 过滤 bot 持仓"""
+    """通过 position_bot_map 过滤 bot 持仓 — V3.9.2 支持多 bot 同品种"""
     if not executor:
         return []
-    # 获取该 bot 的所有 order_id
-    bot_orders = {
-        oid for oid, bid in executor._order_bot_map.items()
-        if bid == bot_id
-    }
-    if not bot_orders:
-        return []
 
-    # 获取该 bot 的挂单，提取 symbol
-    bot_symbols = set()
-    try:
-        open_orders = executor.exchange.fetch_open_orders()
-        for order in open_orders:
-            oid = str(order.get('id', ''))
-            cid = order.get('clientOrderId', '')
-            if oid in bot_orders:
-                bot_symbols.add(order.get('symbol', ''))
-            elif cid and cid.startswith(f'AB_{bot_id}_'):
-                bot_symbols.add(order.get('symbol', ''))
-    except Exception:
-        pass
-
-    # 也通过 clientOrderId 前缀匹配持仓
     result = []
     for p in positions:
-        sym = p.symbol
-        # 检查 symbol 是否在 bot 的已知 symbols 中
-        if sym in bot_symbols:
+        # V3.9.2: 使用 get_position_bot_ids 检查列表（支持多 bot 同品种）
+        bot_ids = executor.get_position_bot_ids(p.symbol)
+        if bot_id in bot_ids:
             result.append(p)
             continue
-        # 检查 order_bot_map 中是否有该 symbol 的订单
-        for oid, bid in executor._order_bot_map.items():
-            if bid == bot_id:
-                result.append(p)
-                break
+        if bot_ids:
+            continue  # 已有明确归属，不属于当前 bot
+
+        # 兜底：查 order_bot_map 中该 bot 关联的 symbol（标准化比较）
+        bot_symbols = executor.get_bot_symbols(bot_id)
+        p_base = executor._norm_symbol_base(p.symbol)
+        if p_base in bot_symbols:
+            result.append(p)
 
     return result
 
@@ -855,50 +1077,51 @@ async def modify_stop_loss(
     new_stop_loss: float = Query(..., description="新止损价"),
     bot_id: Optional[str] = Query(None, description="机器人ID"),
 ):
-    """修改止损价"""
+    """修改止损价 (V3.8 P1: 使用软件止损，巡检执行)"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
+    if not position_patrol:
+        raise HTTPException(status_code=503, detail="巡检未就绪")
 
     try:
-        # 取消旧的止损单
-        open_orders = await executor.get_open_orders(symbol)
-        for order in open_orders:
-            if order.order_type in ('STOP_MARKET', 'STOP'):
-                if order.reduce_only:
-                    executor.exchange.cancel_order(
-                        order.order_id, symbol
-                    )
-                    logger.info(f"已取消旧止损单: {order.order_id}")
-
-        # 获取持仓信息
+        # 验证持仓存在
         positions = await executor.get_positions()
         pos = next((p for p in positions if p.symbol == symbol), None)
         if not pos:
             raise HTTPException(status_code=404, detail=f"未找到 {symbol} 持仓")
 
-        # 下新止损单
-        from .models import OrderSide, PositionSide
-        sl_side = 'sell' if pos.side == PositionSide.LONG else 'buy'
-        sl_order = executor.exchange.create_order(
-            symbol=symbol,
-            type='stop_market',
-            side=sl_side,
-            amount=pos.quantity,
-            params={
-                'stopPrice': new_stop_loss,
-                'reduceOnly': True,
-            }
-        )
+        old_sl = position_patrol._sl_placed.get(symbol)
 
-        sl_id = str(sl_order.get('id'))
-        if bot_id:
-            executor._register_order(sl_id, bot_id)
+        # 尝试取消原生止损单（真实账户可能有，Demo 忽略错误）
+        try:
+            open_orders = await executor.get_open_orders(symbol)
+            for order in open_orders:
+                if order.order_type in ('STOP_MARKET', 'STOP'):
+                    if order.reduce_only:
+                        executor.exchange.cancel_order(order.order_id, symbol)
+                        logger.info(f"已取消原生止损单: {order.order_id}")
+        except Exception as e:
+            logger.debug(f"取消原生止损单跳过: {e}")
+
+        # 更新软件止损 (sl_placed.json)
+        position_patrol._sl_placed[symbol] = new_stop_loss
+        position_patrol._save_sl_placed()
+
+        # 同步移动止损状态
+        if symbol in position_patrol._trailing_state:
+            position_patrol._trailing_state[symbol]["current_sl"] = new_stop_loss
+            logger.info(f"同步移动止损状态: {symbol} → {new_stop_loss}")
+
+        logger.info(
+            f"止损已更新: {symbol} {old_sl} → {new_stop_loss} (软件止损)"
+        )
 
         return {
             "success": True,
             "symbol": symbol,
+            "old_stop_loss": old_sl,
             "new_stop_loss": new_stop_loss,
-            "order_id": sl_id,
+            "mode": "software",
         }
     except HTTPException:
         raise

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Activity, TrendingUp, TrendingDown, Clock, Shield } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, TrendingUp, TrendingDown, Clock, Shield, RefreshCw, DollarSign } from 'lucide-react';
 import type { BotSummary, EvolutionSummary } from '@/lib/executionApi';
 import { getBotSummary, getEvolutionSummary } from '@/lib/executionApi';
 
 interface BotDetailPanelProps {
   botId: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const BOT_EMOJIS: Record<string, string> = {
@@ -21,19 +21,20 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
   const [evolution, setEvolution] = useState<EvolutionSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [s, e] = await Promise.all([
-        getBotSummary(botId),
-        getEvolutionSummary(botId),
-      ]);
-      setSummary(s);
-      setEvolution(e);
-      setLoading(false);
-    }
-    load();
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [s, e] = await Promise.all([
+      getBotSummary(botId),
+      getEvolutionSummary(botId),
+    ]);
+    setSummary(s);
+    setEvolution(e);
+    setLoading(false);
   }, [botId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) {
     return (
@@ -67,8 +68,9 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
             {summary.can_trade ? '可交易' : '已停止'}
           </span>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">
-          收起
+        <button onClick={load} disabled={loading} className="text-slate-400 hover:text-white text-sm flex items-center gap-1">
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+          刷新
         </button>
       </div>
 
@@ -83,22 +85,43 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
         <StatCard
           icon={<TrendingUp className="w-4 h-4" />}
           label="今日盈亏"
-          value={`${summary.daily_pnl >= 0 ? '+' : ''}$${summary.daily_pnl.toFixed(2)}`}
-          color={summary.daily_pnl >= 0 ? 'text-green-400' : 'text-red-400'}
+          value={`${(summary.daily_pnl.realized + summary.daily_pnl.unrealized) >= 0 ? '+' : ''}$${(summary.daily_pnl.realized + summary.daily_pnl.unrealized).toFixed(2)}`}
+          color={(summary.daily_pnl.realized + summary.daily_pnl.unrealized) >= 0 ? 'text-green-400' : 'text-red-400'}
         />
         <StatCard
           icon={<Shield className="w-4 h-4" />}
-          label="剩余仓位"
-          value={`${summary.remaining_positions}/${summary.config.max_positions}`}
+          label="仓位"
+          value={`${summary.config.max_positions - summary.remaining_positions}/${summary.config.max_positions}`}
           color="text-slate-300"
         />
         <StatCard
           icon={<Clock className="w-4 h-4" />}
-          label="日亏损限额"
-          value={`$${summary.risk_status.daily_limit}`}
-          color={summary.risk_status.daily_limit_ok ? 'text-slate-300' : 'text-red-400'}
+          label="日亏损余额"
+          value={`$${summary.risk_status.daily_loss_remaining.toFixed(0)} / $${Math.max(summary.config.daily_loss_limit, summary.config.allocated_usdt * (summary.config.daily_loss_pct || 5) / 100).toFixed(0)}`}
+          color={summary.risk_status.daily_loss_ok ? 'text-slate-300' : 'text-red-400'}
         />
       </div>
+
+      {/* 名义价值 (V3.0) */}
+      {summary.notional && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
+              <DollarSign className="w-3 h-3" />
+              单仓名义
+            </div>
+            <p className="text-sm font-medium text-slate-200">${summary.notional.max_per_position.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">总名义容量</p>
+            <p className="text-sm font-medium text-slate-200">${summary.notional.total_capacity.toFixed(0)}</p>
+          </div>
+          <div className="bg-slate-900/50 rounded px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">杠杆</p>
+            <p className="text-sm font-medium text-slate-200">{summary.notional.leverage}x</p>
+          </div>
+        </div>
+      )}
 
       {/* Positions */}
       {summary.positions.length > 0 && (
@@ -124,13 +147,13 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
       )}
 
       {/* Cooldowns */}
-      {summary.risk_status.cooldowns.length > 0 && (
+      {Object.keys(summary.risk_status.cooldowns).length > 0 && (
         <div>
           <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">冷却中品种</p>
           <div className="flex gap-2 flex-wrap">
-            {summary.risk_status.cooldowns.map((cd) => (
-              <span key={cd.symbol} className="text-xs bg-yellow-900/20 text-yellow-400 px-2 py-1 rounded">
-                {cd.symbol} ({cd.remaining_minutes}分)
+            {Object.entries(summary.risk_status.cooldowns).map(([symbol, minutes]) => (
+              <span key={symbol} className="text-xs bg-yellow-900/20 text-yellow-400 px-2 py-1 rounded">
+                {symbol} ({minutes}分)
               </span>
             ))}
           </div>

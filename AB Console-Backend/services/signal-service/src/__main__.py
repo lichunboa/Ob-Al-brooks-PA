@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
     parser.add_argument("--stats", action="store_true", help="显示统计")
     parser.add_argument("--test", action="store_true", help="测试配置")
-    parser.add_argument("--health-port", type=int, default=8083, help="健康检查端口")
+    parser.add_argument("--health-port", type=int, default=8086, help="健康检查端口(8083/8084被Docker占用)")
     args = parser.parse_args()
 
     if args.test:
@@ -145,43 +145,71 @@ def main():
         from datetime import datetime, timezone
         from events import SignalPublisher
 
-        # 从 Docker 容器访问主机，使用 host.docker.internal
+        # 本地运行用 localhost，Docker 内用 host.docker.internal
+        _default_host = "localhost"
+        if os.path.exists("/.dockerenv"):
+            _default_host = "host.docker.internal"
         OPENCLAW_WEBHOOK_URL = os.environ.get(
             "OPENCLAW_WEBHOOK_URL",
-            "http://host.docker.internal:18789/hooks/al-brooks-signal"
+            f"http://{_default_host}:18789/hooks/al-brooks-signal"
         )
         OPENCLAW_WEBHOOK_TOKEN = os.environ.get(
             "OPENCLAW_WEBHOOK_TOKEN",
             "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
         )
 
+        # ── 威科夫信号分类映射（V3.1 category-based routing） ──
+        # PG 引擎：按 signal_type 匹配
+        WYCKOFF_PG_TYPES = {
+            'volume_spike', 'price_surge', 'price_dump',
+            'oi_surge', 'oi_dump',
+            'top_trader_extreme_long', 'top_trader_extreme_short',
+            'taker_buy_dominance', 'taker_sell_dominance',
+            'taker_ratio_flip_long', 'taker_ratio_flip_short',
+        }
+        # SQLite 引擎：按 category 匹配（新增规则自动归类，无需改路由代码）
+        # volume: OBV/CVD/量比/主动买卖 | futures: OI/大户/情绪/持仓Z分数
+        # pattern: 头肩/双顶底/三角/SMC | core: 多指标共振/期货极端/量价异常/SMC/支撑阻力
+        WYCKOFF_SQLITE_CATEGORIES = {'volume', 'futures', 'pattern', 'core'}
+
         def determine_route_targets(ev):
-            """根据信号特征决定路由目标 - V2.2 简化版
+            """根据信号特征决定路由目标 - V3.1 category-based routing
 
             路由规则（按优先级）：
             1. PA Engine 信号（source=pa 或 entry_trigger>0）→ al-brooks
-            2. 威科夫专属信号（volume_spike/trend_reversal/breakout）→ wyckoff
-            3. 其他量化信号（强度>=75）→ trader
+            2. 威科夫相关信号（PG signal_type 或 SQLite category）→ wyckoff（高强度双路由 trader）
+            3. 其他量化信号（强度>=70）→ trader
             4. 低强度信号 → 不发送
             """
             targets = []
             source = getattr(ev, 'source', 'unknown')
             signal_type = getattr(ev, 'signal_type', '')
             entry_trigger = getattr(ev, 'entry_trigger', 0.0) or 0.0
+            category = getattr(ev, 'category', '')
 
-            # 1. PA Engine 信号 → al-brooks
+            # 1. PA Engine 信号 → al-brooks (优先)
+            # V3.1: PA 信号溢出机制 - 如果是高分信号(>=80)且 al-brooks 满仓(逻辑在 execution-service 但此处无法感知，故采用双路由策略)
+            # 策略调整: PA 信号始终给 al-brooks。如果强度 >= 80，同时也给 trader (量化分析师)
             if source == 'pa_engine' or source == 'pa' or entry_trigger > 0:
                 targets.append('al-brooks')
+                if ev.strength >= 80:
+                    targets.append('trader')
                 return targets
 
-            # 2. 威科夫专属信号（仅限特定类型，不包括 extreme）
-            wyckoff_only_triggers = ['volume_spike', 'trend_reversal', 'breakout']
-            if signal_type in wyckoff_only_triggers:
+            # 2. 威科夫相关信号（供求/成交量/结构/情绪）
+            is_wyckoff = signal_type in WYCKOFF_PG_TYPES
+            if not is_wyckoff and source == 'sqlite' and category in WYCKOFF_SQLITE_CATEGORIES:
+                is_wyckoff = True
+
+            if is_wyckoff:
                 targets.append('wyckoff')
+                # 高强度信号双路由给量化（不减少 trader 信号量）
+                if ev.strength >= 70:
+                    targets.append('trader')
                 return targets
 
-            # 3. 量化信号（包括 extreme 类型）→ trader
-            if ev.strength >= 75:
+            # 3. 其他量化信号（强度>=70）→ trader（不变）
+            if ev.strength >= 70:
                 targets.append('trader')
                 return targets
 
@@ -214,8 +242,12 @@ def main():
                     method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=10) as resp:
-                    result = json.loads(resp.read().decode("utf-8"))
-                    logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: {result.get('status', 'ok')}")
+                    body = resp.read().decode("utf-8")
+                    if body.strip():
+                        result = json.loads(body)
+                        logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: {result.get('status', 'ok')}")
+                    else:
+                        logger.info(f"[OpenClaw] {signal_data['symbol']} → {target}: 已发送 (HTTP {resp.status})")
                     return True
             except Exception as e:
                 logger.error(f"[OpenClaw] {signal_data['symbol']} → {target} 失败: {e}")
@@ -290,6 +322,7 @@ def main():
                 "timeframe": ev.timeframe,
                 "price": ev.price,
                 "signal_type": ev.signal_type,
+                "strategy": ev.signal_type,  # V3.7: signal-router 读 strategy 字段
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 "source": getattr(ev, 'source', 'unknown'),
             }
@@ -348,12 +381,14 @@ def main():
     if args.pg or args.all:
         from engines import get_pg_engine
 
+        pg_interval = 300  # V3.8.2: 60s→300s 减少信号生成频率
+
         def run_pg():
             engine = get_pg_engine()
             engines.append(("PG", engine))
             while True:
                 try:
-                    engine.run_loop(interval=args.interval)
+                    engine.run_loop(interval=pg_interval)
                 except Exception as e:
                     logger.error(f"PG engine crashed: {e}")
                     time.sleep(5)  # 等待后重试
@@ -361,7 +396,7 @@ def main():
         t = threading.Thread(target=run_pg, daemon=False, name="PGEngine")
         t.start()
         threads.append(t)
-        logger.info("PG 引擎已启动（60秒轮询模式）")
+        logger.info("PG 引擎已启动（%d秒轮询模式）", pg_interval)
 
     # 实时引擎（毫秒级，推荐）
     realtime_engine = None
@@ -390,7 +425,7 @@ def main():
                     signals = pa.check_signals()
                     if signals:
                         logger.info(f"PA 引擎检测到 {len(signals)} 个信号")
-                    time.sleep(60)  # 每 60 秒检测一次（从 5 秒改为 60 秒，减少 token 消耗）
+                    time.sleep(60)  # 每 60 秒检测一次
                 except Exception as e:
                     logger.error(f"PA engine error: {e}")
                     time.sleep(60)

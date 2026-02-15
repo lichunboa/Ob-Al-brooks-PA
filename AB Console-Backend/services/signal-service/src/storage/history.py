@@ -33,8 +33,10 @@ def _init_db(db_path: str):
     """初始化历史数据库"""
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-    # 创建数据库文件
+    # 创建数据库文件（WAL 模式防并发写入损坏）
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS signal_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,6 +88,8 @@ class SignalHistory:
         conn = None
         try:
             conn = sqlite3.connect(self.db_path, timeout=10)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             conn.row_factory = sqlite3.Row
             yield conn
         finally:

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
+from .evolution_manager import get_evolution_manager
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ class OrderStatusChange:
     new_status: str
     trigger_reason: str  # 'stop_loss_hit', 'take_profit_hit', 'manual_close', 'expired'
     exit_price: Optional[float] = None
-    pnl: Optional[float] = None
+    pnl: Optional[float] = None  # USDT 金额 (V3.8 P1: 从百分比改为 USDT)
+    pnl_percent: Optional[float] = None  # 百分比 (V3.8 P1 新增)
     timestamp: str = None
 
     def __post_init__(self):
@@ -107,10 +109,15 @@ class OrderTracker:
     ) -> List[OrderStatusChange]:
         """检查单个文件的订单"""
         changes = []
+        # V3.9.1: 同 symbol+bot 只记一次进化（币安合并仓位）
+        evo_recorded: Dict[str, float] = {}  # "symbol:bot_id" → 累计 pnl
 
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
-            trades = data.get("trades", data.get("active_trades", []))
+            if isinstance(data, list):
+                trades = data
+            else:
+                trades = data.get("trades", data.get("active_trades", []))
 
             for trade in trades:
                 if trade.get("status") != "active":
@@ -133,6 +140,44 @@ class OrderTracker:
                             file_path, trade_id, change
                         )
 
+                        # V3.9.1: 累计 pnl，只在最后一条时写入进化
+                        evo_key = f"{symbol}:{bot_id}"
+                        pnl_val = change.pnl if change.pnl is not None else 0.0
+                        if evo_key not in evo_recorded:
+                            evo_recorded[evo_key] = {
+                                "pnl": pnl_val,
+                                "strategy": trade.get("strategy", "auto"),
+                            }
+                        else:
+                            evo_recorded[evo_key]["pnl"] += pnl_val
+
+                        # V3.7: 笔记闭环 — 每条笔记都回填（各有各的 entry_price）
+                        try:
+                            note_path = trade.get("note_path")
+                            if note_path and Path(note_path).exists():
+                                self._backfill_note(note_path, change)
+                        except Exception as e:
+                            logger.warning(f"[NoteBackfill] 回填失败: {e}")
+
+            # V3.9.1: 所有条目处理完后，按 symbol+bot 写一次进化记录
+            for evo_key, evo_data in evo_recorded.items():
+                try:
+                    evo = get_evolution_manager()
+                    sym_part, bot_part = evo_key.split(":", 1)
+                    raw_sym = sym_part.split(':')[0] if ':' in sym_part else sym_part
+                    total_pnl = evo_data["pnl"]
+
+                    evo.record_trade_result(
+                        bot_id=bot_part,
+                        strategy=evo_data["strategy"],
+                        symbol=raw_sym,
+                        pnl=total_pnl,
+                        is_win=total_pnl > 0,
+                    )
+                    logger.info(f"[Evolution] 合并记录: {bot_part} {raw_sym} pnl={total_pnl:.2f}")
+                except Exception as e:
+                    logger.warning(f"[Evolution] 记录失败: {e}")
+
         except Exception as e:
             logger.error(f"检查文件订单失败: {e}")
 
@@ -154,7 +199,9 @@ class OrderTracker:
         entry_price = trade.get("entry_price", 0)
         stop_loss = trade.get("stop_loss")
         take_profit = trade.get("take_profit")
-        direction = trade.get("direction", "long")
+        direction_raw = trade.get("direction", "long")
+        # V3.9.1: 兼容中英文方向字段（"做多 (Long)" / "long" / "Long"）
+        is_long = "long" in direction_raw.lower() or "做多" in direction_raw
 
         # 尝试从交易历史获取最后成交价
         try:
@@ -167,7 +214,7 @@ class OrderTracker:
                 exit_price = last_trade.price
 
                 # 判断是止盈还是止损
-                if direction == "long":
+                if is_long:
                     if take_profit and exit_price >= take_profit:
                         trigger_reason = "take_profit_hit"
                     elif stop_loss and exit_price <= stop_loss:
@@ -182,11 +229,28 @@ class OrderTracker:
                     else:
                         trigger_reason = "manual_close"
 
-                # 计算盈亏
-                if direction == "long":
-                    pnl_pct = ((exit_price - entry_price) / entry_price) * 100
+                # 计算盈亏 (V3.9.1: 含手续费 — 往返 taker fee)
+                quantity = trade.get("quantity", 0)
+                # 获取 taker 费率（默认 0.04%）
+                taker_rate = 0.0004
+                try:
+                    fees = self.executor._cached_fees
+                    base_sym = symbol.split(':')[0] if ':' in symbol else symbol
+                    if base_sym in fees:
+                        taker_rate = fees[base_sym].get('taker', 0.0004)
+                except Exception:
+                    pass
+                # 往返手续费 = 开仓费 + 平仓费
+                fee_usdt = (entry_price + exit_price) * quantity * taker_rate
+
+                if is_long:
+                    pnl_usdt = (exit_price - entry_price) * quantity - fee_usdt
+                    pnl_pct = (((exit_price - entry_price) * quantity - fee_usdt)
+                               / (entry_price * quantity)) * 100
                 else:
-                    pnl_pct = ((entry_price - exit_price) / entry_price) * 100
+                    pnl_usdt = (entry_price - exit_price) * quantity - fee_usdt
+                    pnl_pct = (((entry_price - exit_price) * quantity - fee_usdt)
+                               / (entry_price * quantity)) * 100
 
                 return OrderStatusChange(
                     trade_id=trade.get("trade_id"),
@@ -196,7 +260,8 @@ class OrderTracker:
                     new_status="closed",
                     trigger_reason=trigger_reason,
                     exit_price=exit_price,
-                    pnl=pnl_pct,
+                    pnl=pnl_usdt,
+                    pnl_percent=pnl_pct,
                 )
 
         except Exception as e:
@@ -220,7 +285,10 @@ class OrderTracker:
             data = json.loads(file_path.read_text(encoding="utf-8"))
 
             # 查找交易
-            trades = data.get("trades", data.get("active_trades", []))
+            if isinstance(data, list):
+                trades = data
+            else:
+                trades = data.get("trades", data.get("active_trades", []))
             for trade in trades:
                 if trade.get("trade_id") == trade_id:
                     # 更新状态
@@ -231,12 +299,14 @@ class OrderTracker:
                     if change.exit_price:
                         trade["exit_price"] = change.exit_price
                     if change.pnl is not None:
-                        trade["pnl_percent"] = change.pnl
+                        trade["pnl_usdt"] = change.pnl
+                    if change.pnl_percent is not None:
+                        trade["pnl_percent"] = change.pnl_percent
 
                     break
 
             # 重新组织数据
-            if "active_trades" in data:
+            if isinstance(data, dict) and "active_trades" in data:
                 active = [
                     t for t in trades if t.get("status") == "active"
                 ]
@@ -366,9 +436,12 @@ class OrderTracker:
         emoji = emoji_map.get(change.trigger_reason, "📊")
         level = level_map.get(change.trigger_reason, "info")
 
-        # 构建消息
+        # 构建消息 (V3.8 P1: 显示 USDT + 百分比)
+        pnl_pct = change.pnl_percent
         pnl_str = (
-            f"{change.pnl:+.2f}%" if change.pnl is not None else "N/A"
+            f"${change.pnl:+.2f} ({pnl_pct:+.2f}%)" if change.pnl is not None and pnl_pct is not None
+            else f"${change.pnl:+.2f}" if change.pnl is not None
+            else "N/A"
         )
         price_str = (
             f"${change.exit_price:,.2f}"
@@ -393,3 +466,37 @@ class OrderTracker:
             "level": level,
             "data": asdict(change),
         }
+
+    def _backfill_note(self, note_path: str, change: OrderStatusChange):
+        """V3.7: 回填 Obsidian 笔记的结果字段（frontmatter YAML）"""
+        import re
+        p = Path(note_path)
+        content = p.read_text(encoding="utf-8")
+
+        # V3.8 P1+P2: 使用百分比回填笔记 + 空值保护
+        pnl_pct = change.pnl_percent
+        if pnl_pct is not None:
+            outcome = "盈利" if pnl_pct > 0 else ("平局" if pnl_pct == 0 else "亏损")
+        else:
+            outcome = "未知"
+        backfills = {
+            "净利润/net_profit:": f"净利润/net_profit: {pnl_pct:.2f}%" if pnl_pct is not None else None,
+            "结果/outcome:": f"结果/outcome: {outcome}",
+            "出场原因/exit_reason:": f"出场原因/exit_reason: {change.trigger_reason}",
+            "出场价格/exit_price:": f"出场价格/exit_price: {change.exit_price}" if change.exit_price else None,
+        }
+
+        updated = False
+        for key, replacement in backfills.items():
+            if replacement is None:
+                continue
+            # 匹配空值的 frontmatter 行: "key:" 或 "key: "
+            pattern = re.compile(rf"^({re.escape(key)})\s*$", re.MULTILINE)
+            if pattern.search(content):
+                content = pattern.sub(replacement, content)
+                updated = True
+
+        if updated:
+            p.write_text(content, encoding="utf-8")
+            pnl_display = f"{pnl_pct:.2f}%" if pnl_pct is not None else "N/A"
+            logger.info(f"[NoteBackfill] 已回填: {p.name} → {outcome} {pnl_display}")
