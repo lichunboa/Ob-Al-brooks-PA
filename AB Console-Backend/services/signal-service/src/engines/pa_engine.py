@@ -1804,8 +1804,10 @@ class PASignalEngine(BaseEngine):
             "running": self._running,
         }
     
-    def run_loop(self, interval: int = 5):
-        """运行检测循环（实现 BaseEngine 抽象方法）"""
+    def run_loop(self, interval: int = 30):
+        """运行检测循环（实现 BaseEngine 抽象方法）
+        V3.8: 默认间隔从 5s → 30s，减少信号生成频率，节省 Kimi API 额度
+        """
         self._running = True
         logger.info(f"PA 引擎开始运行，检测间隔: {interval}秒")
         

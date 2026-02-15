@@ -2,7 +2,7 @@
  * Backend API Client
  *
  * Connects to the AL Brooks Trading Console backend services
- * (Based on TradeCat architecture)
+ * (Based on AB Console architecture)
  */
 
 export interface BackendConfig {

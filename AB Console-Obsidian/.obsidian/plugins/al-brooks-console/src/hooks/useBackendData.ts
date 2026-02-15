@@ -1,7 +1,7 @@
 /**
  * useBackendData Hook
  *
- * React hooks for fetching data from the TradeCat backend services.
+ * React hooks for fetching data from the AB Console backend services.
  * Provides real-time market data, indicators, signals, and AI analysis.
  */
 
