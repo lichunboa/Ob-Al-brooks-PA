@@ -85,7 +85,7 @@ export class AlBrooksConsoleSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("启用后端服务")
-      .setDesc("启用与 TradeCat 后端服务的连接，获取实时市场数据和信号。")
+      .setDesc("启用与 AB Console 后端服务的连接，获取实时市场数据和信号。")
       .addToggle((t) => {
         t.setValue(this.plugin.settings.backend.enabled);
         t.onChange((v) => {
