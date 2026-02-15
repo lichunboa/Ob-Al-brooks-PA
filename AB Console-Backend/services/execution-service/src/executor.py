@@ -134,12 +134,13 @@ class BinanceExecutor:
             norm += ':USDT'
         return norm
 
-    def register_position(self, symbol: str, bot_id: str, strategy: str = "auto"):
-        """注册持仓归属（开仓时调用）— V3.9.2 支持多 bot 同品种"""
+    def register_position(self, symbol: str, bot_id: str, strategy: str = "auto",
+                          quantity: float = 0, side: str = ""):
+        """注册持仓归属（开仓时调用）— V3.9.3 增加 quantity/side 追踪"""
         if not (bot_id and symbol):
             return
         key = self._norm_position_key(symbol)
-        entry = {"bot_id": bot_id, "strategy": strategy}
+        entry = {"bot_id": bot_id, "strategy": strategy, "quantity": quantity, "side": side}
 
         existing = self._position_bot_map.get(key)
         if isinstance(existing, list):
@@ -216,6 +217,18 @@ class BinanceExecutor:
         if isinstance(val, str):
             return [val]
         return []
+
+    def _get_bot_registered_quantity(self, symbol: str, bot_id: str) -> float:
+        """获取某 bot 在某品种上注册的数量（V3.9.3）"""
+        key = self._norm_position_key(symbol)
+        val = self._position_bot_map.get(key)
+        if isinstance(val, list):
+            for e in val:
+                if isinstance(e, dict) and e.get("bot_id") == bot_id:
+                    return e.get("quantity", 0)
+        elif isinstance(val, dict) and val.get("bot_id") == bot_id:
+            return val.get("quantity", 0)
+        return 0
 
     def get_position_strategy(self, symbol: str, bot_id: str = None) -> str:
         """获取持仓对应的策略名"""
@@ -621,13 +634,14 @@ class BinanceExecutor:
 
                 # 注册 symbol → bot_id 持仓映射（非 reduce_only 才是开仓）
                 if not request.reduce_only:
-                    self.register_position(symbol, request.bot_id, strategy=strat)
+                    self.register_position(symbol, request.bot_id, strategy=strat,
+                                           quantity=request.quantity, side=request.side.value)
 
                     # V3.2: P1 修复 - 实时更新 Bot 持仓资金占用
                     try:
                         # 重新获取持仓以确保数据最新
                         curr_pos = await self.get_positions()
-                        bot_pos = [p for p in curr_pos if self.get_position_bot_id(p.symbol) == request.bot_id]
+                        bot_pos = [p for p in curr_pos if request.bot_id in self.get_position_bot_ids(p.symbol)]
 
                         used = 0.0
                         for p in bot_pos:
@@ -735,7 +749,7 @@ class BinanceExecutor:
             )
 
     async def close_position(self, symbol: str, quantity: Optional[float] = None, bot_id: str = None) -> OrderResponse:
-        """平仓 — V3.9.2: 支持 per-bot 注销"""
+        """平仓 — V3.9.3: per-bot 数量平仓 + 只注销自己"""
         try:
             positions = await self.get_positions()
             pos = next((p for p in positions if p.symbol == symbol), None)
@@ -752,7 +766,18 @@ class BinanceExecutor:
 
             # 确定平仓方向和数量
             close_side = OrderSide.SELL if pos.side == PositionSide.LONG else OrderSide.BUY
-            close_qty = quantity or pos.quantity
+
+            # V3.9.3: 如果指定 bot_id 且未指定数量，使用该 bot 注册的数量
+            if bot_id and not quantity:
+                bot_qty = self._get_bot_registered_quantity(symbol, bot_id)
+                if bot_qty > 0:
+                    close_qty = min(bot_qty, pos.quantity)
+                    logger.info(f"per-bot 平仓: {bot_id} 注册 {bot_qty}, 物理 {pos.quantity}, 平 {close_qty}")
+                else:
+                    close_qty = pos.quantity  # 兜底：无注册数量则平全部
+                    logger.warning(f"per-bot 平仓: {bot_id} 无注册数量, 平全部 {pos.quantity}")
+            else:
+                close_qty = quantity or pos.quantity
 
             request = OrderRequest(
                 symbol=symbol,
@@ -788,13 +813,14 @@ class BinanceExecutor:
                         logger.info(f"进化系统已记录: {effective_bot} [{strategy}] {raw_sym} pnl={pos.unrealized_pnl:.2f}")
                     except Exception as e:
                         logger.warning(f"进化系统记录失败: {e}")
-                # V3.9.2: 注销持仓归属（按 bot 或全部）
-                if not quantity or quantity >= pos.quantity:
-                    # 全量平仓 — 注销所有 bot（仓位已不存在）
-                    self.unregister_position(symbol)
-                elif effective_bot:
-                    # 部分平仓 — 只注销请求的 bot
+                # V3.9.3: 注销持仓归属 — bot 平仓只注销自己
+                if effective_bot:
+                    # 有明确 bot → 只注销该 bot，其他 bot 不受影响
                     self.unregister_position(symbol, effective_bot)
+                    logger.info(f"注销 {effective_bot} 在 {symbol} 的持仓归属")
+                else:
+                    # 无 bot_id → 全量平仓，注销所有
+                    self.unregister_position(symbol)
                     # V3.5: 平仓后清理软件止损记录
                     try:
                         from pathlib import Path

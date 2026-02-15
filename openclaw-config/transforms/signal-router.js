@@ -1022,6 +1022,19 @@ module.exports = function transform(ctx) {
     }
   }
 
+  // V3.9.3: 强信号(>=80)多路由到所有 agent（补充 MULTI_ROUTE_RULES 之外的目标）
+  if (!payload._secondary && payload.strength >= 80 && payload.direction) {
+    const ALL_BOTS = ['al-brooks', 'trader', 'wyckoff'];
+    const alreadyRouted = new Set(multiTargets || [routeTarget]);
+    alreadyRouted.add(routeTarget); // 确保主目标在集合中
+    for (const bot of ALL_BOTS) {
+      if (!alreadyRouted.has(bot) && !isDuplicateSignal(payload, bot)) {
+        console.log(`[Router] Strong signal (strength=${payload.strength}) → secondary ${bot}`);
+        triggerSecondaryAgent(bot, payload);
+      }
+    }
+  }
+
   // 信号去重检查（15 分钟内相同信号跳过）
   if (isDuplicateSignal(payload, routeTarget)) {
     return null;
