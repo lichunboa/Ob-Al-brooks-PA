@@ -652,12 +652,19 @@ function PositionsTable({
             </thead>
             <tbody>
               {positions.map((pos) => {
-                const bot = pos.bot_id ? BOT_LABELS[pos.bot_id] : null;
+                const botIds = pos.bot_ids || (pos.bot_id ? [pos.bot_id] : []);
                 return (
                   <tr key={`${pos.symbol}-${pos.side}`} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                     <td className="py-3">
-                      {bot ? (
-                        <span className={`text-xs ${bot.color}`}>{bot.emoji} {bot.name}</span>
+                      {botIds.length > 0 ? (
+                        <div className="flex gap-1">
+                          {botIds.map((id) => {
+                            const bot = BOT_LABELS[id];
+                            return bot ? (
+                              <span key={id} className={`text-xs ${bot.color}`} title={bot.name}>{bot.emoji}</span>
+                            ) : null;
+                          })}
+                        </div>
                       ) : (
                         <span className="text-xs text-slate-600">-</span>
                       )}

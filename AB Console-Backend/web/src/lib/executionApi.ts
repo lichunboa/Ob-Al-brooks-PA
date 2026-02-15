@@ -24,6 +24,8 @@ export interface Position {
   liquidation_price?: number;
   // V3.0
   bot_id?: string | null;
+  // V3.9.3: 多bot共享持仓
+  bot_ids?: string[];
 }
 
 export interface RiskStatus {

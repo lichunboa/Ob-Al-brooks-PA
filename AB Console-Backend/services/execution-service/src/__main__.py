@@ -236,14 +236,16 @@ async def get_balance():
 
 @app.get("/positions")
 async def get_positions():
-    """获取持仓（V3.0: 附带 bot_id 归属）"""
+    """获取持仓（V3.9.3: 附带 bot_ids 多bot归属）"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
     positions = await executor.get_positions()
     result = []
     for p in positions:
         d = p.model_dump()
-        d["bot_id"] = executor.get_position_bot_id(p.symbol)
+        bot_ids = executor.get_position_bot_ids(p.symbol)
+        d["bot_ids"] = bot_ids
+        d["bot_id"] = bot_ids[0] if bot_ids else None  # 向后兼容
         result.append(d)
     return result
 
