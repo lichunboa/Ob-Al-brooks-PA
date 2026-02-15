@@ -4,6 +4,7 @@
 import json
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 import ccxt
@@ -990,6 +991,308 @@ class BinanceExecutor:
             logger.error(f"获取交易历史失败: {e}")
             return []
 
+    # ========== K 线数据 (V4.0 阶段 1) ==========
+
+    def _normalize_symbol_for_ccxt(self, symbol: str) -> str:
+        """标准化 symbol 为 ccxt 格式:
+        BTCUSDT → BTC/USDT:USDT
+        BTCUSDT:USDT → BTC/USDT:USDT
+        BTC/USDT:USDT → BTC/USDT:USDT (不变)
+        """
+        if '/' in symbol:
+            return symbol
+        raw = symbol.split(':')[0] if ':' in symbol else symbol
+        settle = symbol.split(':')[1] if ':' in symbol else 'USDT'
+        for quote in ['USDT', 'BUSD', 'USDC']:
+            if raw.endswith(quote):
+                return f"{raw[:-len(quote)]}/{quote}:{settle}"
+        return symbol
+
+    @staticmethod
+    def _calc_ema(values: list, period: int) -> list:
+        """计算 EMA，返回与 values 等长的列表。
+        前 period-1 个值为 None。
+        """
+        n = len(values)
+        if n == 0:
+            return []
+        if n < period:
+            return [None] * n
+
+        result = [None] * (period - 1)
+        # 第一个 EMA = SMA
+        sma = sum(values[:period]) / period
+        result.append(sma)
+        k = 2.0 / (period + 1)
+        for i in range(period, n):
+            ema_val = values[i] * k + result[-1] * (1 - k)
+            result.append(ema_val)
+        return result
+
+    @staticmethod
+    def _calc_atr(ohlcv: list, period: int) -> list:
+        """计算 ATR（Wilder 平滑），返回与 ohlcv 等长的列表。"""
+        n = len(ohlcv)
+        if n == 0:
+            return []
+
+        # 计算 True Range
+        trs = []
+        for i in range(n):
+            h, l, c = ohlcv[i][2], ohlcv[i][3], ohlcv[i][4]
+            if i == 0:
+                trs.append(h - l)
+            else:
+                prev_c = ohlcv[i - 1][4]
+                tr = max(h - l, abs(h - prev_c), abs(l - prev_c))
+                trs.append(tr)
+
+        if n < period:
+            avg = sum(trs) / n if n else 0
+            return [avg] * n
+
+        result = [None] * (period - 1)
+        atr = sum(trs[:period]) / period
+        result.append(atr)
+        for i in range(period, n):
+            atr = (atr * (period - 1) + trs[i]) / period
+            result.append(atr)
+        return result
+
+    @staticmethod
+    def _describe_bar(body: float, upper_wick: float,
+                      lower_wick: float, bar_range: float) -> str:
+        """用中文描述 K 线形态"""
+        if bar_range == 0:
+            return "十字星"
+
+        abs_body = abs(body)
+        body_ratio = abs_body / bar_range
+
+        if body_ratio < 0.1:
+            desc = "十字星"
+        elif body_ratio < 0.3:
+            desc = "小" + ("阳" if body >= 0 else "阴") + "线"
+        elif body_ratio < 0.7:
+            desc = "中" + ("阳" if body >= 0 else "阴") + "线"
+        else:
+            desc = "大" + ("阳" if body >= 0 else "阴") + "线"
+
+        wicks = []
+        if (upper_wick > abs_body * 0.5
+                and upper_wick > bar_range * 0.2):
+            wicks.append("长上影")
+        if (lower_wick > abs_body * 0.5
+                and lower_wick > bar_range * 0.2):
+            wicks.append("长下影")
+
+        if wicks:
+            return desc + "，" + "，".join(wicks)
+        return desc
+
+    @staticmethod
+    def _generate_kline_summary(
+        ohlcv: list, ema20: list, atr14: list
+    ) -> dict:
+        """生成 K 线摘要（Always In 方向、回调、区间、Day Type）"""
+        if not ohlcv:
+            return {}
+
+        # --- Always In 方向 ---
+        above = below = 0
+        check_count = min(8, len(ohlcv))
+        for i in range(-1, -check_count - 1, -1):
+            if ema20[i] is None:
+                continue
+            if ohlcv[i][4] > ema20[i]:
+                above += 1
+            else:
+                below += 1
+
+        if above >= 6:
+            trend = (
+                f"Always In Long — "
+                f"最近 {above} 根 K 线在 EMA 上方"
+            )
+        elif below >= 6:
+            trend = (
+                f"Always In Short — "
+                f"最近 {below} 根 K 线在 EMA 下方"
+            )
+        elif above > below:
+            trend = (
+                f"偏多但不确定 — "
+                f"EMA 上方 {above}, 下方 {below}"
+            )
+        elif below > above:
+            trend = (
+                f"偏空但不确定 — "
+                f"EMA 下方 {below}, 上方 {above}"
+            )
+        else:
+            trend = "方向不明 — 在 EMA 附近震荡"
+
+        # --- 最近回调 ---
+        last_pullback = "无明显回调"
+        scan = min(10, len(ohlcv) - 1)
+        for i in range(-2, -scan - 2, -1):
+            if abs(i) > len(ohlcv) or ema20[i] is None:
+                continue
+            low_i = ohlcv[i][3]
+            high_i = ohlcv[i][2]
+            close_i = ohlcv[i][4]
+            ema_i = ema20[i]
+            bars_ago = abs(i + 1)
+            if low_i <= ema_i and close_i > ema_i:
+                last_pullback = (
+                    f"{bars_ago} 根前回调至 EMA，反弹"
+                )
+                break
+            if high_i >= ema_i and close_i < ema_i:
+                last_pullback = (
+                    f"{bars_ago} 根前反弹至 EMA，回落"
+                )
+                break
+
+        # --- 区间 ---
+        recent = ohlcv[-20:] if len(ohlcv) >= 20 else ohlcv
+        range_high = max(b[2] for b in recent)
+        range_low = min(b[3] for b in recent)
+        range_size = range_high - range_low
+
+        # --- Day Type ---
+        cur_atr = atr14[-1] if atr14[-1] is not None else 1
+        ratio = range_size / cur_atr if cur_atr > 0 else 1
+
+        if ratio < 1.5:
+            day_type = "窄幅区间"
+        elif ratio < 2.5:
+            day_type = (
+                "窄幅趋势" if (above >= 6 or below >= 6)
+                else "正常区间"
+            )
+        elif ratio < 4:
+            day_type = (
+                "趋势日" if (above >= 6 or below >= 6)
+                else "宽幅区间"
+            )
+        else:
+            day_type = "大趋势日"
+
+        return {
+            "trend": trend,
+            "last_pullback": last_pullback,
+            "range": (
+                f"{range_low:.1f}-{range_high:.1f}"
+                f" ({range_size:.1f} 点区间)"
+            ),
+            "day_type": day_type,
+        }
+
+    def fetch_klines(
+        self, symbol: str, interval: str = "1h", limit: int = 50
+    ) -> dict:
+        """获取 K 线 + EMA20 + ATR14，返回 Agent 友好的格式"""
+        ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
+        # 多取 30 根用于指标预热
+        fetch_limit = limit + 30
+        try:
+            ohlcv = self.exchange.fetch_ohlcv(
+                ccxt_sym, interval, limit=fetch_limit
+            )
+        except Exception as e:
+            logger.error(f"fetch_ohlcv 失败: {ccxt_sym} {interval}: {e}")
+            return {"error": str(e), "symbol": symbol}
+
+        if not ohlcv:
+            return {"error": "无数据", "symbol": symbol}
+
+        # 在完整数据上计算指标
+        closes = [bar[4] for bar in ohlcv]
+        ema20_full = self._calc_ema(closes, 20)
+        atr14_full = self._calc_atr(ohlcv, 14)
+
+        # 截取到请求的 limit
+        ohlcv = ohlcv[-limit:]
+        ema20 = ema20_full[-limit:]
+        atr14 = atr14_full[-limit:]
+
+        # 格式化 bars
+        bars = []
+        for i, bar in enumerate(ohlcv):
+            ts, o, h, l, c, v = bar[:6]
+            body = c - o
+            u_wick = h - max(o, c)
+            l_wick = min(o, c) - l
+            bar_range = h - l
+
+            time_str = datetime.fromtimestamp(
+                ts / 1000, tz=timezone.utc
+            ).strftime("%Y-%m-%dT%H:%M")
+
+            entry = {
+                "time": time_str,
+                "O": round(o, 2), "H": round(h, 2),
+                "L": round(l, 2), "C": round(c, 2),
+                "vol": round(v, 2),
+                "body": (
+                    f"{'+' if body >= 0 else ''}"
+                    f"{body:.1f}"
+                    f" ({'bull' if body >= 0 else 'bear'})"
+                ),
+                "upper_wick": round(u_wick, 2),
+                "lower_wick": round(l_wick, 2),
+                "bar_type": self._describe_bar(
+                    body, u_wick, l_wick, bar_range
+                ),
+            }
+
+            if ema20[i] is not None:
+                vs = c - ema20[i]
+                entry["ema20"] = round(ema20[i], 2)
+                entry["vs_ema20"] = (
+                    f"{'+' if vs >= 0 else ''}{vs:.1f}"
+                )
+            if atr14[i] is not None:
+                entry["atr14"] = round(atr14[i], 2)
+
+            bars.append(entry)
+
+        # 当前价格 vs EMA
+        cur_c = ohlcv[-1][4]
+        cur_ema = ema20[-1] if ema20[-1] is not None else cur_c
+        cur_atr = atr14[-1] if atr14[-1] is not None else 0
+        vs_pct = (
+            (cur_c - cur_ema) / cur_ema * 100
+            if cur_ema else 0
+        )
+
+        summary = self._generate_kline_summary(
+            ohlcv, ema20, atr14
+        )
+
+        raw_sym = symbol.replace("/", "").split(":")[0]
+        return {
+            "symbol": raw_sym,
+            "interval": interval,
+            "ema20": round(cur_ema, 2),
+            "atr14": round(cur_atr, 2),
+            "price_vs_ema": (
+                f"{'+' if vs_pct >= 0 else ''}"
+                f"{cur_c - cur_ema:.1f}"
+                f" ({vs_pct:+.2f}%)"
+            ),
+            "bars": bars,
+            "summary": summary,
+        }
+
+    def fetch_multi_tf_klines(self, symbol: str) -> dict:
+        """多周期 K 线快照（5m/15m/1h/4h/1d 各 20 根）"""
+        result = {}
+        for tf in ["5m", "15m", "1h", "4h", "1d"]:
+            result[tf] = self.fetch_klines(symbol, tf, limit=20)
+        return result
+
     async def get_account_summary(self) -> Optional[AccountSummary]:
         """获取账户汇总信息"""
         try:
@@ -1014,7 +1317,6 @@ class BinanceExecutor:
 
             # 获取今日交易
             trades = await self.get_trade_history(limit=100)
-            from datetime import datetime, timezone
             today = datetime.now(timezone.utc).date()
             today_trades = [
                 t for t in trades

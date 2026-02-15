@@ -195,8 +195,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Execution Service",
-    description="币安合约交易执行服务 V3.9.4",
-    version="3.9.4",
+    description="币安合约交易执行服务 V4.0.0",
+    version="4.0.0",
     lifespan=lifespan,
 )
 
@@ -219,9 +219,31 @@ async def health():
         "status": "healthy",
         "mode": BINANCE_MODE,
         "service": "execution-service",
-        "version": "3.9.4",
+        "version": "4.0.0",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
     }
+
+
+# ========== K 线数据 (V4.0 阶段 1) ==========
+
+@app.get("/klines/{symbol}")
+async def get_klines(
+    symbol: str,
+    interval: str = Query("1h", description="K线周期: 1m/5m/15m/30m/1h/4h/1d"),
+    limit: int = Query(50, ge=1, le=200, description="K线数量"),
+):
+    """获取 K 线数据（OHLCV + EMA20 + ATR14）— Agent 主动分析用"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    return executor.fetch_klines(symbol, interval, limit)
+
+
+@app.get("/klines/{symbol}/multi")
+async def get_multi_tf_klines(symbol: str):
+    """多周期 K 线快照（5m/15m/1h/4h/1d 各 20 根）"""
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+    return executor.fetch_multi_tf_klines(symbol)
 
 
 # ========== 账户信息 ==========
