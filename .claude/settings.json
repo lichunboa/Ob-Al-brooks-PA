@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(# Check the changelog between 2.9 and 2.12 npm view openclaw@2026.2.12 --json)"
+    ]
+  }
+}
