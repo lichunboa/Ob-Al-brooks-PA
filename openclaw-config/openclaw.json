@@ -1,0 +1,904 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.2.2-3",
+    "lastTouchedAt": "2026-02-06T21:14:24.648Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-02-06T21:14:24.642Z",
+    "lastRunVersion": "2026.2.2-3",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "diagnostics": {
+    "enabled": true,
+    "otel": {
+      "logs": true
+    }
+  },
+  "update": {
+    "checkOnStart": true
+  },
+  "auth": {
+    "profiles": {
+      "kimi-coding:default": {
+        "provider": "kimi-coding",
+        "mode": "api_key"
+      },
+      "google-antigravity:silviastamburro691@gmail.com": {
+        "provider": "google-antigravity",
+        "mode": "oauth"
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "gemini-proxy": {
+        "baseUrl": "http://127.0.0.1:8045",
+        "apiKey": "sk-302bf77c3...[REDACTED]",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "gemini-3-flash",
+            "name": "Gemini 3 Flash (极速预览)",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "gemini-3-pro-high",
+            "name": "Gemini 3 Pro High (最强推理)",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "gemini-3-pro-low",
+            "name": "Gemini 3 Pro Low (轻量极速)",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash (极速响应)",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "gemini-2.5-flash-thinking",
+            "name": "Gemini 2.5 Flash Thinking (思维链)",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
+          }
+        ]
+      },
+      "claude-proxy": {
+        "baseUrl": "https://www.zhongzhuan.win",
+        "apiKey": "sk-DBLCdwItO...[REDACTED]",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "claude-opus-4-6-thinking",
+            "name": "Claude Opus 4.6 Thinking (深度思考)",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 200000,
+            "maxTokens": 32768
+          }
+        ]
+      },
+      "kimi-coding": {
+        "baseUrl": "https://api.kimi.com/coding",
+        "apiKey": "sk-kimi-SA5T...[REDACTED]",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "k2p5",
+            "name": "Kimi K2.5 For Coding",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 262144,
+            "maxTokens": 32768,
+            "headers": {
+              "User-Agent": "KimiCLI/0.77"
+            },
+            "compat": {
+              "supportsDeveloperRole": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "list": [
+      {
+        "id": "trader",
+        "name": "量化分析师",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "gemini-proxy/gemini-3-flash",
+            "gemini-proxy/gemini-2.5-flash",
+            "claude-proxy/claude-opus-4-6-thinking"
+          ]
+        },
+        "identity": {
+          "name": "量化分析师",
+          "emoji": "📊"
+        },
+        "skills": [
+          "quant-analysis"
+        ]
+      },
+      {
+        "id": "wyckoff",
+        "name": "威科夫大师",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "gemini-proxy/gemini-3-flash",
+            "gemini-proxy/gemini-2.5-flash",
+            "claude-proxy/claude-opus-4-6-thinking"
+          ]
+        },
+        "identity": {
+          "name": "威科夫大师",
+          "emoji": "📈"
+        },
+        "skills": [
+          "wyckoff-analysis"
+        ]
+      },
+      {
+        "id": "al-brooks",
+        "name": "PA交易 Al Brooks",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "gemini-proxy/gemini-3-flash",
+            "gemini-proxy/gemini-2.5-flash",
+            "claude-proxy/claude-opus-4-6-thinking"
+          ]
+        },
+        "identity": {
+          "name": "PA交易 Al Brooks",
+          "emoji": "🦁"
+        },
+        "skills": [
+          "al-brooks-simtrade"
+        ]
+      },
+      {
+        "id": "teacher",
+        "name": "Al Brooks 教学导师",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/trading-shared",
+        "model": {
+          "primary": "gemini-proxy/gemini-3-pro-high",
+          "fallbacks": [
+            "gemini-proxy/gemini-3-flash",
+            "gemini-proxy/gemini-2.5-flash",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "Al Brooks",
+          "emoji": "🎓"
+        },
+        "skills": [
+          "al-brooks-teacher"
+        ]
+      },
+      {
+        "id": "lianyi",
+        "name": "涟漪",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/lianyi",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "涟漪",
+          "emoji": "🌊"
+        }
+      },
+      {
+        "id": "devops",
+        "name": "涟漪运维",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/devops",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "涟漪",
+          "emoji": "🔧"
+        }
+      },
+      {
+        "id": "artist",
+        "name": "AI 画师",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/artist",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "画师",
+          "emoji": "🎨"
+        }
+      },
+      {
+        "id": "video-editor",
+        "name": "视频剪辑师",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/video-editor",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "剪辑师",
+          "emoji": "🎬"
+        }
+      },
+      {
+        "id": "social-media",
+        "name": "自媒体运营专家",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/social-media",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "运营官",
+          "emoji": "📱"
+        }
+      },
+      {
+        "id": "secretary",
+        "name": "私人秘书",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/secretary",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "秘书",
+          "emoji": "📋"
+        }
+      },
+      {
+        "id": "translator",
+        "name": "翻译官",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/translator",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "翻译官",
+          "emoji": "📖"
+        }
+      },
+      {
+        "id": "fitness",
+        "name": "健身教练",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/fitness",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "健身教练",
+          "emoji": "🎯"
+        }
+      },
+      {
+        "id": "music",
+        "name": "音乐助手",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/music",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "音乐助手",
+          "emoji": "🎵"
+        }
+      },
+      {
+        "id": "chef",
+        "name": "美食顾问",
+        "workspace": "/Users/mitchellcb/.openclaw/workspaces/chef",
+        "model": {
+          "primary": "kimi-coding/k2p5",
+          "fallbacks": [
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5",
+            "kimi-coding/k2p5"
+          ]
+        },
+        "identity": {
+          "name": "美食顾问",
+          "emoji": "🍳"
+        }
+      }
+    ],
+    "defaults": {
+      "model": {
+        "primary": "kimi-coding/k2p5",
+        "fallbacks": [
+          "gemini-proxy/gemini-3-flash",
+          "gemini-proxy/gemini-2.5-flash",
+          "claude-proxy/claude-opus-4-6-thinking"
+        ]
+      },
+      "models": {
+        "kimi-coding/k2p5": {
+          "alias": "Kimi K2.5"
+        },
+        "claude-proxy/claude-opus-4-6-thinking": {
+          "alias": "Claude Opus 4.6"
+        },
+        "google-antigravity/gemini-3-flash": {
+          "alias": "Gemini 3 Flash"
+        },
+        "google-antigravity/gemini-3-pro-low": {
+          "alias": "Gemini 3 Pro"
+        },
+        "google-antigravity/gemini-3-pro-high": {
+          "alias": "Gemini 3 Pro High"
+        }
+      },
+      "workspace": "/Users/mitchellcb/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "sandbox": {
+        "browser": {
+          "allowHostControl": true,
+          "autoStart": true
+        }
+      }
+    }
+  },
+  "session": {
+    "reset": {
+      "mode": "daily",
+      "atHour": 4,
+      "idleMinutes": 30
+    },
+    "agentToAgent": {
+      "maxPingPongTurns": 0
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "lianyi",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468430096086860032"
+        }
+      }
+    },
+    {
+      "agentId": "trader",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468430143302406379"
+        }
+      }
+    },
+    {
+      "agentId": "al-brooks",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468430213196288052"
+        }
+      }
+    },
+    {
+      "agentId": "wyckoff",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1469202819461681306"
+        }
+      }
+    },
+    {
+      "agentId": "teacher",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468430254560510043"
+        }
+      }
+    },
+    {
+      "agentId": "devops",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468430298407768239"
+        }
+      }
+    },
+    {
+      "agentId": "artist",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468746142337470494"
+        }
+      }
+    },
+    {
+      "agentId": "video-editor",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468746806136406327"
+        }
+      }
+    },
+    {
+      "agentId": "social-media",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468747038274486303"
+        }
+      }
+    },
+    {
+      "agentId": "secretary",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468799401890680974"
+        }
+      }
+    },
+    {
+      "agentId": "translator",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468416142715654328"
+        }
+      }
+    },
+    {
+      "agentId": "fitness",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468804381251211265"
+        }
+      }
+    },
+    {
+      "agentId": "music",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468804540756398263"
+        }
+      }
+    },
+    {
+      "agentId": "chef",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "channel",
+          "id": "1468416140739870916/1468804625179345081"
+        }
+      }
+    }
+  ],
+  "tools": {
+    "exec": {
+      "ask": "off"
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "hooks": {
+    "enabled": true,
+    "token": "hooks-5fed4a...[REDACTED]",
+    "transformsDir": "transforms",
+    "mappings": [
+      {
+        "id": "al-brooks-signal",
+        "match": {
+          "path": "al-brooks-signal"
+        },
+        "action": "agent",
+        "wakeMode": "now",
+        "name": "PA交易 Al Brooks 信号",
+        "deliver": false,
+        "transform": {
+          "module": "signal-router.js"
+        }
+      },
+      {
+        "id": "trader-signal",
+        "match": {
+          "path": "trader-signal"
+        },
+        "action": "agent",
+        "wakeMode": "now",
+        "name": "量化分析",
+        "deliver": false,
+        "transform": {
+          "module": "signal-router.js"
+        }
+      },
+      {
+        "id": "wyckoff-signal",
+        "match": {
+          "path": "wyckoff-signal"
+        },
+        "action": "agent",
+        "wakeMode": "now",
+        "name": "威科夫分析",
+        "deliver": false,
+        "transform": {
+          "module": "signal-router.js"
+        }
+      }
+    ],
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "name": "OpenClaw Bot",
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "botToken": "8251154620:AAFg...[REDACTED]",
+      "groups": {
+        "-1003512657369": {
+          "requireMention": false,
+          "allowFrom": [
+            "756069822"
+          ],
+          "topics": {
+            "2": {
+              "requireMention": false
+            },
+            "3": {
+              "requireMention": false
+            },
+            "4": {
+              "requireMention": false
+            },
+            "19": {
+              "requireMention": false
+            },
+            "20": {
+              "requireMention": false
+            }
+          }
+        }
+      },
+      "allowFrom": [
+        "756069822"
+      ],
+      "groupPolicy": "allowlist",
+      "streamMode": "block"
+    },
+    "discord": {
+      "name": "OpenClaw Discord",
+      "enabled": true,
+      "token": "MTQ2ODQxMDY1ODc...[REDACTED]",
+      "groupPolicy": "open",
+      "dm": {
+        "enabled": true,
+        "policy": "open",
+        "allowFrom": [
+          "*"
+        ]
+      },
+      "guilds": {
+        "1468416140739870916": {
+          "requireMention": false,
+          "channels": {
+            "1468430096086860032": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是涟漪，一个温柔体贴的AI助手，擅长日常聊天和陪伴。用自然亲切的语气交流。"
+            },
+            "1468430143302406379": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是量化分析师，机构级量化分析AI。专注于多周期技术分析、订单簿深度、资金流向。使用 quant-analysis skill 进行深度分析。"
+            },
+            "1468430213196288052": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是 PA交易，一个基于 Al Brooks 价格行为的模拟交易员。记录和分享模拟交易，用专业的视角分析市场。使用 al-brooks-simtrade skill 管理模拟交易。"
+            },
+            "1469202819461681306": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是威科夫大师 Richard D. Wyckoff，量价分析大师。专注于市场结构分析、吸筹派发识别、五阶段定位。使用 wyckoff-analysis skill 进行深度分析。"
+            },
+            "1468430254560510043": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是 Al Brooks，价格行为交易大师。在这个频道专注于教学，解答价格行为相关的学习问题。引用 Al Brooks 53课的内容进行深度讲解。"
+            },
+            "1468430298407768239": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是涟漪，负责 AB 交易系统的维护和升级讨论。用专业但友好的语气讨论技术问题。"
+            },
+            "1468746142337470494": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是画师，专业的 AI 绘画助手。擅长图像生成提示词优化、风格建议和创意设计指导。"
+            },
+            "1468746806136406327": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是剪辑师，专业的视频后期制作助手。擅长剪辑节奏建议、转场效果推荐和脚本结构优化。"
+            },
+            "1468747038274486303": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是运营官，专业的自媒体运营助手。擅长内容策划、文案撰写、平台运营策略和数据分析。"
+            },
+            "1468799401890680974": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是秘书，专业的私人秘书助手。擅长日程管理、任务提醒、信息整理和事务协调。主动提醒重要事项。"
+            },
+            "1468416142715654328": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是翻译官，专业的多语言翻译助手。擅长中英日韩等语言翻译，注重准确、流畅、地道的表达。"
+            },
+            "1468804381251211265": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是健身教练，专业的运动健康助手。擅长制定运动计划、饮食建议和健康指导。用激励和科学的方式帮助用户。"
+            },
+            "1468804540756398263": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是音乐助手，专业的音乐推荐助手。擅长音乐推荐、歌词查找和音乐知识分享。热情有品味。"
+            },
+            "1468804625179345081": {
+              "allow": true,
+              "requireMention": false,
+              "systemPrompt": "你是美食顾问，专业的烹饪和美食助手。擅长菜谱推荐、食材搭配和营养指导。热情、专业、接地气。"
+            }
+          }
+        }
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "1c542049f686...[REDACTED]"
+    },
+    "trustedProxies": [
+      "127.0.0.1",
+      "::1"
+    ],
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "remote": {
+      "token": "remote-a471a...[REDACTED]"
+    }
+  },
+  "skills": {
+    "load": {
+      "watch": false
+    },
+    "install": {
+      "nodeManager": "npm"
+    },
+    "entries": {
+      "coding-agent": {
+        "enabled": true
+      },
+      "nano-banana-pro": {
+        "apiKey": "sk-302bf77c3e724acfa73d893a2d416c9d"
+      },
+      "sherpa-onnx-tts": {
+        "enabled": true
+      },
+      "tmux": {
+        "enabled": true
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "whatsapp": {
+        "enabled": true
+      },
+      "telegram": {
+        "enabled": true
+      },
+      "discord": {
+        "enabled": true
+      },
+      "slack": {
+        "enabled": true
+      },
+      "googlechat": {
+        "enabled": true
+      },
+      "google-antigravity-auth": {
+        "enabled": true
+      }
+    }
+  }
+}
