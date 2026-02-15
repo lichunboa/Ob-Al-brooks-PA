@@ -17,7 +17,7 @@ if str(SRC_DIR) not in sys.path:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="TradeCat Visualization Service")
+    parser = argparse.ArgumentParser(description="AB Console Visualization Service")
     parser.add_argument("--host", type=str, default=None, help="监听地址")
     parser.add_argument("--port", type=int, default=None, help="监听端口")
     parser.add_argument("--reload", action="store_true", help="开发模式热重载")
