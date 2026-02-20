@@ -1258,9 +1258,17 @@ class ScoringEngine:
 class TradeSimulator:
     """模拟交易执行和结算"""
 
-    def __init__(self, max_holding_bars: int = 48):
-        """max_holding_bars: 最大持仓K线数（5m周期下48根=4小时）"""
+    def __init__(self, max_holding_bars: int = 48,
+                 scalp_min_bars: int = 2,
+                 scalp_max_bars: int = 4,
+                 scalp_min_profit: float = 0.30):
+        """max_holding_bars: 最大持仓K线数（5m周期下48根=4小时）
+        scalp_*: SCALP参数（按周期自动缩放，由BacktestEngine传入）
+        """
         self.max_holding_bars = max_holding_bars
+        self.scalp_min_bars = scalp_min_bars
+        self.scalp_max_bars = scalp_max_bars
+        self.scalp_min_profit = scalp_min_profit
         self.open_trades: list[Trade] = []
         self.closed_trades: list[Trade] = []
         self.daily_losses: dict = {}  # {symbol: loss_count_today}
@@ -1323,9 +1331,9 @@ class TradeSimulator:
         固定阈值0.3%: BTC 51.8% WR | BNB 61.2% WR（经实测优于动态阈值版本）
         Al Brooks: 早期获利了结是高WR交易系统的关键（libs/backtest验证有效）
         """
-        SCALP_MIN_BARS = 2     # 最少持仓2根再检查
-        SCALP_MAX_BARS = 4     # 超过4根不再SCALP，等待完整TP/SL
-        SCALP_MIN_PROFIT = 0.30  # 固定阈值0.3% — 经BTC/BNB回测验证的最优值
+        SCALP_MIN_BARS = self.scalp_min_bars
+        SCALP_MAX_BARS = self.scalp_max_bars
+        SCALP_MIN_PROFIT = self.scalp_min_profit
 
         still_open = []
         for trade in self.open_trades:
@@ -1420,8 +1428,14 @@ class TradeSimulator:
             self.strategy_history[strat]["losses"] += 1
         self.strategy_history[strat]["pnl"] += trade.pnl_pct
 
-    def get_stats(self) -> dict:
-        """返回回测统计"""
+    def get_stats(self, fee_rate: float = 0.0,
+                  initial_capital: float = 500.0,
+                  risk_pct: float = 1.0) -> dict:
+        """返回回测统计
+        fee_rate: 单边手续费(如0.0004=0.04%)，往返=fee_rate*2
+        initial_capital: 初始资金(USD)，用于复利计算
+        risk_pct: 每笔风险占资金比例(如1.0=1%)
+        """
         trades = self.closed_trades
         if not trades:
             return {"total": 0}
@@ -1465,7 +1479,54 @@ class TradeSimulator:
 
         scalp_count = sum(1 for t in wins if t.exit_reason == "SCALP")
         tp_count = sum(1 for t in wins if t.exit_reason == "TP")
-        timeout_wins = sum(1 for t in trades if t.exit_reason == "TIMEOUT" and t.result == "WIN")
+        timeout_wins = sum(1 for t in trades
+                          if t.exit_reason == "TIMEOUT" and t.result == "WIN")
+
+        # ── 复利权益曲线（基于风险百分比仓位 + 手续费）─────────────────
+        fee_rt = fee_rate * 2  # 往返手续费
+        risk_frac = risk_pct / 100.0
+        capital = initial_capital
+        peak_cap = initial_capital
+        max_drawdown_usd = 0.0
+        equity_curve = [initial_capital]
+
+        sorted_trades = sorted(trades, key=lambda t: t.exit_time or t.entry_time)
+        for t in sorted_trades:
+            sl_dist = abs(t.entry_price - t.stop_loss)
+            if sl_dist <= 0 or t.entry_price <= 0:
+                continue
+            sl_pct = sl_dist / t.entry_price  # SL距离(小数)
+            # 仓位占比 = 风险金额 / (SL距离×仓位面值)，上限100%
+            pos_frac = min(risk_frac / sl_pct, 1.0)
+            net_pnl_pct = (t.pnl_pct / 100.0) - fee_rt  # 净收益率
+            dollar_pnl = capital * pos_frac * net_pnl_pct
+            capital = max(capital + dollar_pnl, 0.0)
+            equity_curve.append(round(capital, 2))
+            if capital > peak_cap:
+                peak_cap = capital
+            dd_usd = peak_cap - capital
+            if dd_usd > max_drawdown_usd:
+                max_drawdown_usd = dd_usd
+
+        final_capital = round(capital, 2)
+        compound_return_pct = (
+            (final_capital - initial_capital) / initial_capital * 100
+            if initial_capital > 0 else 0.0
+        )
+        max_dd_pct = (
+            max_drawdown_usd / peak_cap * 100
+            if peak_cap > 0 else 0.0
+        )
+        # 手续费调整后的平均盈亏
+        avg_win_net = (
+            sum(t.pnl_pct for t in wins) / len(wins) - fee_rt * 100
+            if wins else 0.0
+        )
+        avg_loss_net = (
+            sum(t.pnl_pct for t in losses) / len(losses) - fee_rt * 100
+            if losses else 0.0
+        )
+        # ────────────────────────────────────────────────────────────────
 
         return {
             "total": len(trades),
@@ -1483,6 +1544,16 @@ class TradeSimulator:
             "by_strategy": by_strategy,
             "by_background": by_bg,
             "by_direction": by_dir,
+            # 复利 + 手续费字段
+            "fee_rate": fee_rate,
+            "initial_capital": initial_capital,
+            "final_capital": final_capital,
+            "compound_return_pct": round(compound_return_pct, 2),
+            "max_drawdown_usd": round(max_drawdown_usd, 2),
+            "max_drawdown_pct": round(max_dd_pct, 2),
+            "avg_win_net": round(avg_win_net, 3),
+            "avg_loss_net": round(avg_loss_net, 3),
+            "risk_pct": risk_pct,
         }
 
 
@@ -1688,7 +1759,7 @@ class DataLoader:
         从 1m 聚合到更高时间框架
         支持: 5m, 15m, 1h, 4h, 1d
         """
-        tf_map = {"5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h", "1d": "1D"}
+        tf_map = {"5m": "5min", "15m": "15min", "30m": "30min", "1h": "1h", "4h": "4h", "1d": "1D"}
         rule = tf_map.get(timeframe)
         if not rule:
             raise ValueError(f"不支持的时间框架: {timeframe}")
@@ -1712,13 +1783,39 @@ class DataLoader:
 class BacktestEngine:
     """主回测引擎"""
 
-    def __init__(self, score_threshold: int = 80, max_holding_bars: int = 48,
+    # 各周期的默认配置: (max_holding_bars, scalp_min, scalp_max, scalp_profit%)
+    TF_DEFAULTS = {
+        "5m":  (48,  2, 4, 0.30),
+        "15m": (16,  2, 4, 0.35),
+        "30m": (10,  2, 3, 0.40),
+        "1h":  (12,  2, 3, 0.50),
+    }
+
+    def __init__(self, score_threshold: int = 80, max_holding_bars: int = None,
                  verbose: bool = False, trade_start: str = None,
-                 sell_only: bool = False, q3_filter: bool = True):
+                 sell_only: bool = False, q3_filter: bool = True,
+                 timeframe: str = "5m",
+                 fee_rate: float = 0.0,
+                 initial_capital: float = 500.0,
+                 risk_pct: float = 1.0):
         self.score_threshold = score_threshold
+        self.timeframe = timeframe
+        self.fee_rate = fee_rate
+        self.initial_capital = initial_capital
+        self.risk_pct = risk_pct
+
+        # 按周期自动设置 SCALP 和持仓参数
+        tf_cfg = self.TF_DEFAULTS.get(timeframe, self.TF_DEFAULTS["5m"])
+        hold_bars = max_holding_bars if max_holding_bars is not None else tf_cfg[0]
+
         self.detector = StrategyDetector()
         self.scoring = ScoringEngine()
-        self.simulator = TradeSimulator(max_holding_bars=max_holding_bars)
+        self.simulator = TradeSimulator(
+            max_holding_bars=hold_bars,
+            scalp_min_bars=tf_cfg[1],
+            scalp_max_bars=tf_cfg[2],
+            scalp_min_profit=tf_cfg[3],
+        )
         self.verbose = verbose
         self.sell_only = sell_only    # V3 仅做空模式
         self.q3_filter = q3_filter    # V3 三域融合过滤(默认开启)
@@ -1758,22 +1855,24 @@ class BacktestEngine:
         print(f"{'='*60}")
 
         # 聚合多时间框架
-        print("  聚合多时间框架...")
-        df_5m = DataLoader.resample(df_1m, "5m")
-        df_1h = DataLoader.resample(df_1m, "1h")
+        tf = self.timeframe
+        print(f"  聚合多时间框架（基础周期: {tf}）...")
+        df_base = DataLoader.resample(df_1m, tf)
         df_4h = DataLoader.resample(df_1m, "4h")
         df_1d = DataLoader.resample(df_1m, "1d")
 
-        print(f"  5m: {len(df_5m):,} 根 | 1h: {len(df_1h):,} 根 | 4h: {len(df_4h):,} 根 | 1d: {len(df_1d):,} 根")
+        print(f"  {tf}: {len(df_base):,} 根 | "
+              f"4h: {len(df_4h):,} 根 | "
+              f"1d: {len(df_1d):,} 根")
 
         # 转换为 Candle 对象 — 用于高时间框架的背景分析
         daily_candles = self._df_to_candles(df_1d, symbol, "1d")
         h4_candles = self._df_to_candles(df_4h, symbol, "4h")
 
-        # 滚动窗口回测 5m K线
+        # 滚动窗口回测（基础周期K线）
         window_size = 50  # 至少50根K线才能计算所有指标
-        total_bars = len(df_5m)
-        print(f"  开始滚动回测 (总计 {total_bars:,} 根5m K线)...")
+        total_bars = len(df_base)
+        print(f"  开始滚动回测 (总计 {total_bars:,} 根{tf} K线)...")
 
         _prev_date = None  # 每日独立重置追踪器
 
@@ -1784,9 +1883,9 @@ class BacktestEngine:
                       f"信号: {self.signals_generated} | "
                       f"交易: {len(self.simulator.closed_trades)}", end="\r")
 
-            # 当前5m K线窗口
-            window_df = df_5m.iloc[i - window_size:i + 1]
-            candles = self._df_to_candles(window_df, symbol, "5m")
+            # 当前基础周期K线窗口
+            window_df = df_base.iloc[i - window_size:i + 1]
+            candles = self._df_to_candles(window_df, symbol, tf)
             curr_time = candles[-1].timestamp
 
             # Bug修复: 每日亏损计数在主循环独立重置（原逻辑仅在 open_trade 内重置，
@@ -1928,7 +2027,7 @@ class BacktestEngine:
 
         # 强制平仓所有剩余持仓
         if self.open_trades_remaining():
-            last_candle = self._df_to_candles(df_5m.tail(1), symbol, "5m")[0]
+            last_candle = self._df_to_candles(df_base.tail(1), symbol, tf)[0]
             for trade in self.simulator.open_trades:
                 trade.exit_price = last_candle.close
                 if trade.direction == "BUY":
@@ -1943,8 +2042,13 @@ class BacktestEngine:
 
         print(f"\n  回测完成!")
 
-        # 汇总统计
-        stats = self.simulator.get_stats()
+        # 汇总统计（传入手续费和复利参数）
+        stats = self.simulator.get_stats(
+            fee_rate=self.fee_rate,
+            initial_capital=self.initial_capital,
+            risk_pct=self.risk_pct,
+        )
+        stats["timeframe"] = self.timeframe
         stats["signals_generated"] = self.signals_generated
         stats["signals_passed"] = self.signals_passed
         stats["signals_blocked_bg"] = self.signals_blocked_bg
@@ -2017,19 +2121,35 @@ def print_report(stats: dict, symbol: str):
     print(f"  持仓阻断: {stats.get('signals_blocked_position', 0)}")
     print(f"  评分阈值: {stats.get('threshold', 80)}")
 
-    print(f"\n  === 交易统计 ===")
+    tf = stats.get("timeframe", "5m")
+    print(f"\n  === 交易统计 [{tf}周期] ===")
     print(f"  总交易: {stats['total']}")
     print(f"  胜: {stats['wins']} | 负: {stats['losses']}")
     print(f"  胜率: {stats['win_rate']:.1f}%")
-    print(f"  总盈亏: {stats['total_pnl']:.2f}%")
-    print(f"  平均盈利: +{stats['avg_win']:.2f}%")
-    print(f"  平均亏损: {stats['avg_loss']:.2f}%")
+    print(f"  总盈亏(毛): {stats['total_pnl']:.2f}%")
+    print(f"  平均盈利: +{stats['avg_win']:.2f}% | 净: +{stats.get('avg_win_net', 0):.2f}%")
+    print(f"  平均亏损: {stats['avg_loss']:.2f}% | 净: {stats.get('avg_loss_net', 0):.2f}%")
     print(f"  最佳: +{stats['best_trade']:.2f}% | 最差: {stats['worst_trade']:.2f}%")
     scalp = stats.get('scalp_wins', 0)
     tp = stats.get('tp_wins', 0)
     to = stats.get('timeout_wins', 0)
     if scalp or tp:
         print(f"  出场方式: SCALP={scalp} | TP={tp} | TIMEOUT胜={to}")
+
+    # 手续费 + 复利展示
+    fee = stats.get("fee_rate", 0)
+    init_cap = stats.get("initial_capital", 500)
+    final_cap = stats.get("final_capital", init_cap)
+    comp_ret = stats.get("compound_return_pct", 0)
+    max_dd_u = stats.get("max_drawdown_usd", 0)
+    max_dd_p = stats.get("max_drawdown_pct", 0)
+    risk = stats.get("risk_pct", 1.0)
+    if fee > 0 or init_cap != 500:
+        print(f"\n  === 复利模拟 (${init_cap:.0f} 初始, {risk:.1f}%风险/笔) ===")
+        print(f"  手续费: {fee*100:.3f}% 单边 / {fee*200:.3f}% 往返")
+        print(f"  ${init_cap:.0f} → ${final_cap:.2f}"
+              f"  ({comp_ret:+.1f}%)")
+        print(f"  最大回撤: ${max_dd_u:.2f} ({max_dd_p:.1f}%)")
 
     if stats.get("by_direction"):
         print(f"\n  === 按方向 ===")
@@ -2087,6 +2207,17 @@ def main():
                         help="V3: 仅做空，过滤所有BUY信号")
     parser.add_argument("--no-q3", action="store_true",
                         help="V3: 禁用三域融合过滤（默认开启）")
+    parser.add_argument("--timeframe", "-tf", type=str, default="5m",
+                        choices=["5m", "15m", "30m", "1h"],
+                        help="回测基础周期 (默认: 5m)")
+    parser.add_argument("--fee", type=float, default=0.0,
+                        help="单边手续费率，如0.04表示0.04%=0.0004 (默认:0)")
+    parser.add_argument("--capital", type=float, default=500.0,
+                        help="初始资金USD，用于复利计算 (默认: 500)")
+    parser.add_argument("--risk", type=float, default=1.0,
+                        help="每笔风险占资金比例%% (默认: 1.0)")
+    parser.add_argument("--multi-tf", action="store_true",
+                        help="多周期对比: 同时跑 5m/15m/30m/1h")
     args = parser.parse_args()
 
     # 日期处理
@@ -2096,12 +2227,24 @@ def main():
 
     symbols = DataLoader.SYMBOLS if args.all else [args.symbol.upper()]
 
+    # --fee 输入是百分比(0.04)，转换为小数(0.0004)
+    fee_rate = args.fee / 100.0 if args.fee > 0 else 0.0
+
+    # --multi-tf: 决定要跑哪些周期
+    timeframes = (["5m", "15m", "30m", "1h"]
+                  if getattr(args, 'multi_tf', False)
+                  else [args.timeframe])
+
     print("=" * 60)
-    print("  PA交易回测工具 V1.0")
+    print("  PA交易回测工具 V2.0")
     print("=" * 60)
     print(f"  币种: {', '.join(symbols)}")
     print(f"  日期: {args.start or '全部'} ~ {args.end or '全部'}")
     print(f"  阈值: {args.threshold}")
+    print(f"  周期: {', '.join(timeframes)}")
+    if fee_rate > 0:
+        print(f"  手续费: {args.fee:.3f}% 单边 / {args.fee*2:.3f}% 往返")
+    print(f"  复利: ${args.capital:.0f} 初始 | {args.risk:.1f}% 风险/笔")
 
     all_results = {}
 
@@ -2138,11 +2281,15 @@ def main():
             for threshold in [70, 75, 80, 85, 90]:
                 engine = BacktestEngine(
                     score_threshold=threshold,
-                    max_holding_bars=args.max_hold,
+                    max_holding_bars=None,
                     verbose=False,
                     trade_start=args.start,
                     sell_only=getattr(args, 'sell_only', False),
                     q3_filter=not getattr(args, 'no_q3', False),
+                    timeframe=args.timeframe,
+                    fee_rate=fee_rate,
+                    initial_capital=args.capital,
+                    risk_pct=args.risk,
                 )
                 stats = engine.run(symbol, df_1m)
                 key = f"{symbol}_t{threshold}"
@@ -2150,14 +2297,38 @@ def main():
                 print(f"\n  阈值={threshold}: "
                       f"{stats['total']}笔 | 胜率{stats.get('win_rate', 0):.1f}% | "
                       f"PnL {stats.get('total_pnl', 0):.2f}%")
+        elif getattr(args, 'multi_tf', False):
+            # 多周期对比模式
+            for tf in timeframes:
+                engine = BacktestEngine(
+                    score_threshold=args.threshold,
+                    max_holding_bars=None,  # 按周期自动设定
+                    verbose=False,
+                    trade_start=args.start,
+                    sell_only=getattr(args, 'sell_only', False),
+                    q3_filter=not getattr(args, 'no_q3', False),
+                    timeframe=tf,
+                    fee_rate=fee_rate,
+                    initial_capital=args.capital,
+                    risk_pct=args.risk,
+                )
+                stats = engine.run(symbol, df_1m)
+                key = f"{symbol}_{tf}"
+                all_results[key] = stats
+                print_report(stats, f"{symbol} [{tf}]")
         else:
             engine = BacktestEngine(
                 score_threshold=args.threshold,
-                max_holding_bars=args.max_hold,
+                max_holding_bars=(None if args.max_hold == 48
+                                  else args.max_hold),
                 verbose=args.verbose,
                 trade_start=args.start,
                 sell_only=getattr(args, 'sell_only', False),
                 q3_filter=not getattr(args, 'no_q3', False),
+                timeframe=args.timeframe,
+                fee_rate=fee_rate,
+                initial_capital=args.capital,
+                risk_pct=args.risk,
             )
             stats = engine.run(symbol, df_1m)
             all_results[symbol] = stats
