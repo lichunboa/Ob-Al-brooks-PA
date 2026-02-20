@@ -1745,6 +1745,8 @@ class DataLoader:
             df = df[df["symbol"] == symbol]
         if "bucket_ts" in df.columns:
             df = df.rename(columns={"bucket_ts": "timestamp"})
+        if "open_time" in df.columns and "timestamp" not in df.columns:
+            df = df.rename(columns={"open_time": "timestamp"})
         df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
         if start_date:
             df = df[df["timestamp"] >= pd.Timestamp(start_date, tz="UTC")]
@@ -2211,7 +2213,7 @@ def main():
                         choices=["5m", "15m", "30m", "1h"],
                         help="回测基础周期 (默认: 5m)")
     parser.add_argument("--fee", type=float, default=0.0,
-                        help="单边手续费率，如0.04表示0.04%=0.0004 (默认:0)")
+                        help="单边手续费率，如0.04表示0.04%% (默认:0)")
     parser.add_argument("--capital", type=float, default=500.0,
                         help="初始资金USD，用于复利计算 (默认: 500)")
     parser.add_argument("--risk", type=float, default=1.0,

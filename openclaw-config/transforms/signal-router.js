@@ -32,6 +32,12 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
+// ============================================================
+// 全局暂停开关 — 设为 true 时所有信号停止路由到 agent
+// 恢复时改回 false 即可
+// ============================================================
+const SIGNALS_PAUSED = true;
+
 // Execution Service 配置
 const EXECUTION_SERVICE_URL = 'http://localhost:8092';
 
@@ -972,6 +978,12 @@ ${tradingStatusLine}${executionInstruction}
  */
 module.exports = function transform(ctx) {
   const payload = ctx.payload;
+
+  // 全局暂停检查
+  if (SIGNALS_PAUSED) {
+    console.log(`[Router] PAUSED — ${payload.symbol || 'unknown'} 信号已丢弃`);
+    return null;
+  }
 
   // 验证必要字段
   if (!payload.symbol) {
