@@ -1,0 +1,25 @@
+# Al Brooks 知识库 索引 (L0)
+更新时间：2026-02-19
+
+## 包含内容
+
+### 知识库目录
+- `价格行为学-视频字幕版/`: 53讲字幕课精华，按主题分5个子目录，含详细规则与例子 (P0, 静态)
+- `价格行为学/`: 最新版220课，含ROSE/MTR/Context实战/通道演变等进阶内容 (P0, 静态)
+- `AL brooks原课程大纲.md`: 完整课程结构总览 (P0, 静态)
+- `价格行为学总览.md`: 系统性知识地图 (P0, 静态)
+
+## 快速导航
+
+当你需要**实时决策参考** → Skill 文件 (`al-brooks-simtrade`: SKILL.md / pa-analysis.md / kline-patterns.md)
+当你需要**市场状态识别/Always-In判断** → `al-brooks-simtrade/pa-analysis.md`
+当你需要**H1/H2/L1/L2入场形态** → `al-brooks-simtrade/kline-patterns.md`
+当你需要**止损/目标设置** → `al-brooks-simtrade/trade-management.md`
+当你需要**Trader's Equation 入场检验** → `al-brooks-simtrade/scoring-rubric.md`
+当你需要**MTR详细案例** → `价格行为学/22A Major v.s Minor Reversals`
+当你需要**TR交易详细规则** → `价格行为学/47A~47D`
+当你需要**Tight Channel操作** → `价格行为学/17A-B, 43A-D, 44A-D`
+当你需要**ROSE 2+2+2 Setup** → `价格行为学/ROSE 2+2+2 setup`
+当你需要**Context 案例分析** → `价格行为学/context的重要性例子`
+当你需要**通道演变规律** → `价格行为学/12A Four part of market cycle`
+当你需要更多细节 → 查看对应目录的 `.abstract` 文件
