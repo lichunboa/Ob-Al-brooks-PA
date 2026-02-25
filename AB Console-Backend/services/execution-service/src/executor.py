@@ -698,7 +698,7 @@ class BinanceExecutor:
             if request.stop_loss:
                 from pathlib import Path
                 import json as _json
-                sl_file = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
+                sl_file = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
                 try:
                     sl_data = _json.loads(sl_file.read_text()) if sl_file.exists() else {}
                 except Exception:
@@ -826,7 +826,7 @@ class BinanceExecutor:
                     try:
                         from pathlib import Path
                         import json as _json
-                        sl_file = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
+                        sl_file = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
                         if sl_file.exists():
                             sl_data = _json.loads(sl_file.read_text())
                             norm_sym = symbol.replace('/', '')

@@ -5,6 +5,8 @@ Signal Service 入口
     python -m src --sqlite          # 启动 SQLite 引擎
     python -m src --pg              # 启动 PG 引擎（60秒轮询）
     python -m src --realtime        # 启动实时引擎（毫秒级，推荐）
+    python -m src --pa              # 启动 PA 引擎（Al Brooks 方法）
+    python -m src --wyckoff         # 启动威科夫引擎（五阶段检测）
     python -m src --all             # 启动所有引擎
     python -m src --once            # 单次检查
     python -m src --stats           # 显示统计
@@ -38,6 +40,7 @@ def main():
     parser.add_argument("--pg", action="store_true", help="启动 PG 引擎（60秒轮询）")
     parser.add_argument("--realtime", action="store_true", help="启动实时引擎（毫秒级）")
     parser.add_argument("--pa", action="store_true", help="启动纯价格行为引擎（Al Brooks 方法）")
+    parser.add_argument("--wyckoff", action="store_true", help="启动威科夫引擎（五阶段检测）")
     parser.add_argument("--all", action="store_true", help="启动所有引擎")
     parser.add_argument("--once", action="store_true", help="单次检查")
     parser.add_argument("--interval", type=int, default=60, help="检查间隔（秒）")
@@ -91,6 +94,13 @@ def main():
             engine = get_pg_engine()
             signals = engine.check_signals()
             logger.info(f"PG 检测到 {len(signals)} 个信号")
+
+        if args.wyckoff or args.all:
+            from engines.wyckoff_detector import get_wyckoff_engine
+
+            engine = get_wyckoff_engine()
+            signals = engine.check_signals()
+            logger.info(f"Wyckoff 检测到 {len(signals)} 个信号")
         return
 
     # 持续运行模式
@@ -158,8 +168,15 @@ def main():
             "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
         )
 
-        # ── 威科夫信号分类映射（V3.1 category-based routing） ──
-        # PG 引擎：按 signal_type 匹配
+        # ── V5.0 信号路由: PA 聚焦模式 ──
+        # PA_ONLY_MODE: 只有 PA 相关信号到 al-brooks，其他全丢弃
+        # 恢复多 Agent 时改为 False
+        PA_ONLY_MODE = True
+
+        # PA 相关的信号类别（Al Brooks 价格行为哲学）
+        PA_CATEGORIES = {'pattern'}  # K线形态、SMC、斐波那契、支撑阻力
+
+        # 以下保留用于未来恢复多 Agent 路由
         WYCKOFF_PG_TYPES = {
             'volume_spike', 'price_surge', 'price_dump',
             'oi_surge', 'oi_dump',
@@ -167,54 +184,64 @@ def main():
             'taker_buy_dominance', 'taker_sell_dominance',
             'taker_ratio_flip_long', 'taker_ratio_flip_short',
         }
-        # SQLite 引擎：按 category 匹配（新增规则自动归类，无需改路由代码）
-        # volume: OBV/CVD/量比/主动买卖 | futures: OI/大户/情绪/持仓Z分数
-        # pattern: 头肩/双顶底/三角/SMC | core: 多指标共振/期货极端/量价异常/SMC/支撑阻力
-        WYCKOFF_SQLITE_CATEGORIES = {'volume', 'futures', 'pattern', 'core'}
+        QUANT_CATEGORIES = {'momentum', 'trend', 'volatility'}
+        WYCKOFF_CATEGORIES = {'volume', 'futures', 'misc'}
+        PATTERN_CATEGORIES = {'pattern'}
+        SHARED_CATEGORIES = {'core'}
 
         def determine_route_targets(ev):
-            """根据信号特征决定路由目标 - V3.1 category-based routing
+            """V5.0 PA 聚焦路由
 
-            路由规则（按优先级）：
-            1. PA Engine 信号（source=pa 或 entry_trigger>0）→ al-brooks
-            2. 威科夫相关信号（PG signal_type 或 SQLite category）→ wyckoff（高强度双路由 trader）
-            3. 其他量化信号（强度>=70）→ trader
-            4. 低强度信号 → 不发送
+            PA_ONLY_MODE=True 时:
+            - PA Engine 信号 → al-brooks
+            - pattern 类规则 → al-brooks
+            - 其他全部丢弃（不符合 Al Brooks 哲学）
+
+            PA_ONLY_MODE=False 时恢复原始多 Agent 路由。
             """
-            targets = []
             source = getattr(ev, 'source', 'unknown')
-            signal_type = getattr(ev, 'signal_type', '')
             entry_trigger = getattr(ev, 'entry_trigger', 0.0) or 0.0
             category = getattr(ev, 'category', '')
+            signal_type = getattr(ev, 'signal_type', '')
 
-            # 1. PA Engine 信号 → al-brooks (优先)
-            # V3.1: PA 信号溢出机制 - 如果是高分信号(>=80)且 al-brooks 满仓(逻辑在 execution-service 但此处无法感知，故采用双路由策略)
-            # 策略调整: PA 信号始终给 al-brooks。如果强度 >= 80，同时也给 trader (量化分析师)
-            if source == 'pa_engine' or source == 'pa' or entry_trigger > 0:
-                targets.append('al-brooks')
-                if ev.strength >= 80:
-                    targets.append('trader')
+            # 0. route_to 字段优先
+            route_to = getattr(ev, 'route_to', '')
+            if route_to:
+                targets = [route_to] if isinstance(route_to, str) else list(route_to)
+                if PA_ONLY_MODE:
+                    return [t for t in targets if t == 'al-brooks'] or []
                 return targets
 
-            # 2. 威科夫相关信号（供求/成交量/结构/情绪）
-            is_wyckoff = signal_type in WYCKOFF_PG_TYPES
-            if not is_wyckoff and source == 'sqlite' and category in WYCKOFF_SQLITE_CATEGORIES:
-                is_wyckoff = True
+            # ── PA 聚焦模式 ──
+            if PA_ONLY_MODE:
+                # PA Engine → al-brooks
+                if source in ('pa_engine', 'pa') or entry_trigger > 0:
+                    return ['al-brooks']
+                # pattern 类 SQLite 规则 → al-brooks
+                if source == 'sqlite' and category in PA_CATEGORIES:
+                    return ['al-brooks']
+                # 其他全部丢弃
+                return []
 
-            if is_wyckoff:
-                targets.append('wyckoff')
-                # 高强度信号双路由给量化（不减少 trader 信号量）
-                if ev.strength >= 70:
-                    targets.append('trader')
-                return targets
-
-            # 3. 其他量化信号（强度>=70）→ trader（不变）
-            if ev.strength >= 70:
-                targets.append('trader')
-                return targets
-
-            # 4. 低强度信号 → 不发送
-            return targets
+            # ── 多 Agent 路由（PA_ONLY_MODE=False 时启用）──
+            if source in ('pa_engine', 'pa') or entry_trigger > 0:
+                return ['al-brooks']
+            if source == 'wyckoff':
+                return ['wyckoff']
+            if source == 'pg' or signal_type in WYCKOFF_PG_TYPES:
+                return ['wyckoff']
+            if source == 'sqlite':
+                if category in QUANT_CATEGORIES:
+                    return ['trader']
+                elif category in WYCKOFF_CATEGORIES:
+                    return ['wyckoff']
+                elif category in PATTERN_CATEGORIES:
+                    return ['al-brooks']
+                elif category in SHARED_CATEGORIES:
+                    return ['trader', 'wyckoff']
+                else:
+                    return ['trader']
+            return []
 
         def send_to_target(signal_data, target):
             """发送信号到指定目标"""
@@ -254,7 +281,7 @@ def main():
                 return False
 
         # AI 进化反馈配置路径
-        EVOLUTION_FEEDBACK_FILE = "/Users/mitchellcb/.openclaw/workspace/stats/evolution_feedback.json"
+        EVOLUTION_FEEDBACK_FILE = "/Users/mitchellcb/.openclaw/workspaces/trading-shared/stats/evolution_feedback.json"
 
         def load_evolution_feedback():
             """加载 AI 进化反馈配置"""
@@ -325,7 +352,14 @@ def main():
                 "strategy": ev.signal_type,  # V3.7: signal-router 读 strategy 字段
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
                 "source": getattr(ev, 'source', 'unknown'),
+                "category": getattr(ev, 'category', ''),
             }
+
+            # V5.0: 市场状态 + 路由字段
+            if hasattr(ev, 'market_state') and ev.market_state:
+                signal_data["market_state"] = ev.market_state
+            if hasattr(ev, 'strategy_recommendation') and ev.strategy_recommendation:
+                signal_data["strategy_recommendation"] = ev.strategy_recommendation
 
             # PA 信号增强字段（如果存在）
             if hasattr(ev, 'stop_loss') and ev.stop_loss:
@@ -436,9 +470,35 @@ def main():
         threads.append(t)
         pa_engine = True
 
+    # 威科夫引擎（五阶段检测，V5.0）
+    if args.wyckoff or args.all:
+        from engines.wyckoff_detector import get_wyckoff_engine
+
+        wyckoff_interval = 300  # 5 分钟间隔，威科夫分析不需要高频
+
+        def run_wyckoff():
+            wk = get_wyckoff_engine()
+            wk._running = True
+            engines.append(("Wyckoff", wk))
+            logger.info("威科夫引擎已启动（%d秒轮询模式）", wyckoff_interval)
+            while _running:
+                try:
+                    signals = wk.check_signals()
+                    if signals:
+                        logger.info(f"Wyckoff 引擎检测到 {len(signals)} 个信号")
+                    time.sleep(wyckoff_interval)
+                except Exception as e:
+                    logger.error(f"Wyckoff engine error: {e}")
+                    time.sleep(60)
+            wk._running = False
+
+        t = threading.Thread(target=run_wyckoff, daemon=False, name="WyckoffEngine")
+        t.start()
+        threads.append(t)
+
     if not threads and realtime_engine is None:
         logger.error(
-            "请指定要启动的引擎: --sqlite, --pg, --realtime, 或 --all"
+            "请指定要启动的引擎: --sqlite, --pg, --realtime, --pa, --wyckoff, 或 --all"
         )
         sys.exit(1)
 

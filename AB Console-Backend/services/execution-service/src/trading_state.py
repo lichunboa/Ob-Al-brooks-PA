@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 # 状态文件路径
 STATE_FILE = Path.home() / ".openclaw" / "workspace" / "trading_state.json"
 
+# V5.0: PA 聚焦模式 — 只允许 al-brooks 交易，其他 Agent 暂停
+# 恢复多 Agent 时改为 False
+PA_ONLY_MODE = True
+PA_ONLY_BOTS = {"al-brooks"}
+
 
 @dataclass
 class BotAllocation:
@@ -38,7 +43,7 @@ class BotAllocation:
     risk_percent: float = 2.0              # 单笔风险%
     fee_rate_maker: float = 0.0002         # maker 费率
     fee_rate_taker: float = 0.0004         # taker 费率
-    allowed_symbols: list = field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+    allowed_symbols: list = field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "DOGEUSDT", "AAVEUSDT", "ADAUSDT", "AVAXUSDT"])
     min_risk_reward: float = 1.5           # 最小盈亏比
     daily_loss_limit: float = 50.0         # per-bot 日亏损限制 USDT（兜底值）
     daily_loss_pct: float = 5.0             # 日亏损限制 = 分配资金的 %（动态）
@@ -66,10 +71,10 @@ class TradingState:
                 "risk_percent": 2.0,
                 "fee_rate_maker": 0.0002,
                 "fee_rate_taker": 0.0004,
-                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
+                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "DOGEUSDT", "AAVEUSDT", "ADAUSDT", "AVAXUSDT"],
                 "min_risk_reward": 1.5,
-                "daily_loss_limit": 50.0,
-                "daily_loss_pct": 5.0,
+                "daily_loss_limit": 200.0,   # V5.0 模拟阶段放宽
+                "daily_loss_pct": 10.0,      # V5.0 模拟阶段放宽
                 "trailing_stop_enabled": False,
                 "trailing_stop_trigger": 1.0,
                 "max_hold_hours": 48,
@@ -83,7 +88,7 @@ class TradingState:
                     "name": "PA交易",
                     "allocated_usdt": 2000.0,
                     "max_leverage": 10,
-                    "max_positions": 6,
+                    "max_positions": 10,
                     "enabled": True,
                     "current_positions": 0,
                     "used_margin": 0.0,
@@ -91,22 +96,22 @@ class TradingState:
                 },
                 "trader": {
                     "bot_id": "trader",
-                    "name": "量化分析师",
+                    "name": "量化分析师（V5.0暂停）",
                     "allocated_usdt": 2000.0,
                     "max_leverage": 10,
                     "max_positions": 4,
-                    "enabled": True,
+                    "enabled": False,  # V5.0: 暂停，集中PA交易
                     "current_positions": 0,
                     "used_margin": 0.0,
                     **defaults_new,
                 },
                 "wyckoff": {
                     "bot_id": "wyckoff",
-                    "name": "威科夫大师",
+                    "name": "威科夫大师（V5.0暂停）",
                     "allocated_usdt": 1000.0,
                     "max_leverage": 3,
                     "max_positions": 3,
-                    "enabled": True,
+                    "enabled": False,  # V5.0: 暂停，集中PA交易
                     "current_positions": 0,
                     "used_margin": 0.0,
                     **defaults_new,
@@ -119,7 +124,7 @@ class TradingState:
                 "risk_percent": 2.0,
                 "fee_rate_maker": 0.0002,
                 "fee_rate_taker": 0.0004,
-                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"],
+                "allowed_symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "DOGEUSDT", "AAVEUSDT", "ADAUSDT", "AVAXUSDT"],
                 "min_risk_reward": 1.5,
                 "daily_loss_limit": 50.0,
                 "daily_loss_pct": 5.0,
@@ -267,6 +272,10 @@ class TradingStateManager:
             symbol: 要开仓的品种（用于累积名义检查）
             bot_positions: 该 bot 的实时持仓列表（用于累积名义检查）
         """
+        # V5.0: PA 聚焦模式门控
+        if PA_ONLY_MODE and bot_id not in PA_ONLY_BOTS:
+            return False, f"V5.0 PA聚焦模式: {bot_id} 已暂停"
+
         # 检查全局开关
         if not self.state.trading_enabled:
             return False, "交易开关未开启"

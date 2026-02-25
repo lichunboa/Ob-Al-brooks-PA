@@ -141,7 +141,8 @@ async def get_candles_v1(
             
             try:
                 rows = await asyncio.wait_for(run_in_threadpool(_fetch_from_db), timeout=3.0)
-                if rows:
+                # 只在数据充足时使用 DB 结果（避免旧数据阻止 Binance fallback）
+                if rows and len(rows) >= min(3, limit):
                     return [
                         {
                             "open_time": int(row[1].timestamp() * 1000),

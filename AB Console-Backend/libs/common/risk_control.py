@@ -6,7 +6,7 @@
 2. 高水位仓位锁定
 3. 数据新鲜度检查
 
-配置文件：~/.openclaw/workspace/stats/risk_control.json
+配置文件：~/.openclaw/workspaces/trading-shared/stats/risk_control.json
 """
 import json
 import logging
@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 # 配置路径
-WORKSPACE_DIR = Path(os.getenv("WORKSPACE_DIR", "/Users/mitchellcb/.openclaw/workspace"))
+WORKSPACE_DIR = Path(os.getenv("WORKSPACE_DIR", "/Users/mitchellcb/.openclaw/workspaces/trading-shared"))
 SHARED_WORKSPACE = Path(os.getenv("SHARED_WORKSPACE", "/Users/mitchellcb/.openclaw/workspaces/trading-shared"))
 RISK_CONTROL_FILE = WORKSPACE_DIR / "stats" / "risk_control.json"
 

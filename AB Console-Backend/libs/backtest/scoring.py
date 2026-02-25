@@ -1,12 +1,13 @@
 """
-评分系统 — 基于 Al Brooks 价格行为学校正版 (V2)
+评分系统 — 基于 Al Brooks 价格行为学校正版 (V3)
 
-五维打分 (满分 100):
+六维打分 (满分 115, 归一化到 100):
   1. 趋势强度 (0-20)  — 急速18/趋势15/区间-反转12/观望8
   2. 信号质量 (0-20)  — strength≥85:17 / 80-84:15 / 75-79:13 / 65-74:9
   3. 策略匹配 (0-25)  — strength≥85:22 / 80-84:19 / 75-79:16
   4. 盈亏比 (0-20)    — RR≥3:20 / ≥2:16 / ≥1.5:12 / ≥1:10
   5. 风险因素 (0-15)  — 当日亏损次数扣分
+  6. 市场状态匹配 (0-15) — V5.0: 策略在推荐列表+10, 禁止列表-20
 
 强制扣分项:
   A. 大周期背景 — 区分顺势/反转策略
@@ -16,11 +17,15 @@
   B. 盈亏比一票否决（< 0.1:1 → 归零）
   C. 进化记录（今日止损次数、策略历史胜率）
 
+V3修改说明 (2026-02-21):
+  - 新增第六维: 市场状态匹配度 (0-15)，来自 market_state_engine 的策略推荐
+  - 满分 115 归一化到 100（乘以 100/115）
+  - 禁止策略强制 -20（不受归一化影响）
+
 V2修改说明 (2026-02-19):
   - quality score: 80-84档从13→15，填补70-79得分空白
-    理由：H2/L2基础强度82，顺势时应轻易通过（Al Brooks: H2=最高概率入场）
-  - 反转策略逆大周期扣分-10而非-15（Al Brooks M40: MTR/双顶底是趋势末端合法反转）
-  - 逆4h扣分-5而非-10（减少对高质量信号的额外惩罚）
+  - 反转策略逆大周期扣分-10而非-15
+  - 逆4h扣分-5而非-10
 """
 
 from .background import BackgroundContext
@@ -52,8 +57,17 @@ class ScoringEngine:
         match_score = self._score_match(signal)
         rr_score, rr_ratio = self._score_rr(signal)
         risk_score = self._score_risk(signal, daily_losses)
+        market_score, market_penalty = self._score_market_state(signal)
 
-        base_total = trend_score + quality_score + match_score + rr_score + risk_score
+        # V5.0: 六维总分 (满分115) 归一化到 100
+        raw_total = (trend_score + quality_score + match_score
+                     + rr_score + risk_score + market_score)
+        base_total = int(raw_total * 100 / 115)
+
+        # 禁止策略强制扣分（不受归一化影响）
+        if market_penalty:
+            base_total -= 20
+            reasons.append(market_penalty)
 
         # === B. 盈亏比一票否决 ===
         if rr_ratio < 0.1:
@@ -204,3 +218,31 @@ class ScoringEngine:
         elif total_losses >= 2:
             score -= 5
         return max(0, score)
+
+    def _score_market_state(self, signal) -> tuple[int, str]:
+        """V5.0: 市场状态匹配打分 (0-15)
+
+        Returns:
+            (score, penalty_reason) — penalty_reason 非空表示禁止策略
+        """
+        extra = getattr(signal, 'extra', {}) or {}
+        rec = extra.get('strategy_recommendation', {})
+        if not rec:
+            return 5, ""  # 无市场状态信息 → 中性基础分
+
+        recommended = rec.get('recommended', [])
+        prohibited = rec.get('prohibited', [])
+        modifier = rec.get('score_modifier', 0)
+
+        strat = getattr(signal, 'signal_type', '')
+
+        # 禁止策略 → 强制惩罚（不计入正常分数）
+        if strat in prohibited:
+            return 0, f"策略[{strat}]在当前市场状态禁止列表中 -20"
+
+        # 推荐策略 → 高分
+        if strat in recommended:
+            return min(15, 10 + max(0, modifier)), ""
+
+        # 中性 → 基础分 + modifier
+        return max(0, min(15, 5 + modifier)), ""

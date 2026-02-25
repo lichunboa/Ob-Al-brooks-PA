@@ -73,6 +73,7 @@ class PASignal:
     cycle: str = ""
     entry_trigger: float = 0.0
     entry_type: str = "STOP"
+    extra: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -83,6 +84,31 @@ class BackgroundContext:
     background: str       # "🟢 多头背景" / "🔴 空头背景" / "⚡ 震荡背景" / "⚪ 中性"
     daily_slope: float
     h4_slope: float
+
+
+@dataclass
+class MarketState:
+    """
+    Al Brooks 四状态市场模型
+
+    状态流转: Spike → Tight Channel → Broad Channel → Trading Range
+    - Spike: 连续强势棒, 低重叠, 不可交易(追入太晚) 或第一根就追
+    - Tight Channel: 小回调(<0.5×腿), 缺口不回补, H1/H2 有效
+    - Broad Channel: 深回调(>0.5×腿), 缺口回补, 只 H2 有效
+    - Trading Range: 20+ 根 K 线, 高重叠, 只做 fade
+    - TTR (Tight TR): 极窄区间, 不交易
+    """
+    always_in: str          # "long" / "short" / "neutral"
+    cycle: str              # 向后兼容: "急速多/空", "趋势多/空", "区间", "观望"
+    trend_strength: float   # 0-1
+    range_high: float = 0.0
+    range_low: float = 0.0
+    ema_slope: float = 0.0
+    bar_count_from_ema: int = 0
+    channel_type: str = "none"     # "tight" / "broad" / "none"
+    is_ttr: bool = False           # Tight Trading Range → 不交易
+    follow_through: bool = False   # 最近 BO 是否有 Follow Through
+    pullback_ratio: float = 0.0   # 最近回调深度 / 上一段腿的比率
 
 
 @dataclass
@@ -243,47 +269,442 @@ class CandlePatterns:
 # ============================================================
 
 class CycleIdentifier:
+    """
+    Al Brooks 四状态市场周期识别器 (V2 — 从 pa_engine.py 移植)
+
+    识别链:
+    1. Always In 方向: Major Swing HL/LH 结构 + EMA 位置
+    2. 四状态分类: Spike → Tight Channel → Broad Channel → TR
+    3. TTR 检测: 极窄区间 → 不交易
+    4. Follow Through: BO 后连续趋势棒确认
+
+    策略许可矩阵:
+    | 状态            | H1 | H2 | Fade | 动量 | 反转 |
+    |----------------|----|----|------|------|------|
+    | Spike          | ✅ | ✅ |  ❌  |  ✅  |  ❌  |
+    | Tight Channel  | ✅ | ✅ |  ❌  |  ✅  |  ❌  |
+    | Broad Channel  | ❌ | ✅ |  ✅  |  ❌  |  ✅  |
+    | Trading Range  | ❌ | ❌ |  ✅  |  ❌  |  ✅  |
+    | TTR            | ❌ | ❌ |  ❌  |  ❌  |  ❌  |
+    """
+
     @staticmethod
-    def identify(candles: list[Candle], ema20: list[float]) -> str:
+    def identify(candles: list[Candle], ema20: list[float]) -> MarketState:
+        """
+        市场周期识别 — 恢复验证过的旧版逻辑 + MarketState 架构
+
+        回测验证记录:
+        - 四状态版 (swing+channel): BTC 30m 牛市 DD 24-41%, 严重退步
+        - 旧版 (EMA slope): BTC 30m 牛市 DD 10.8%, $500→$1103 (+121%)
+        - 原因: 下游策略为旧版分类校准，改变分类破坏全局平衡
+
+        保留 MarketState 架构: 便于未来增量升级
+        保留辅助方法: _find_swings 等供 H2/L2 使用
+        """
+        default = MarketState("neutral", "观望", 0.0)
         if len(candles) < 5 or len(ema20) < 5:
-            return "观望"
+            return default
+
         slope = ema_slope(ema20, 5)
         recent = candles[-5:]
-        strong_bulls = sum(1 for c in recent if CandlePatterns.is_strong_bull(c))
-        strong_bears = sum(1 for c in recent if CandlePatterns.is_strong_bear(c))
+        strong_bulls = sum(
+            1 for c in recent if CandlePatterns.is_strong_bull(c))
+        strong_bears = sum(
+            1 for c in recent if CandlePatterns.is_strong_bear(c))
 
+        # 20 根区间数据 (用于 MarketState 填充)
+        r20 = candles[-20:] if len(candles) >= 20 else candles
+        rng_high = max(c.high for c in r20)
+        rng_low = min(c.low for c in r20)
+
+        # TTR 检测
+        is_ttr = (CycleIdentifier._detect_ttr(r20)
+                  if len(candles) >= 20 else False)
+
+        # --- 急速 ---
         if strong_bulls >= 3:
-            return "急速多"
+            return MarketState(
+                "long", "急速多", 0.9,
+                rng_high, rng_low, slope,
+                channel_type="none", is_ttr=False)
         if strong_bears >= 3:
-            return "急速空"
+            return MarketState(
+                "short", "急速空", 0.9,
+                rng_high, rng_low, slope,
+                channel_type="none", is_ttr=False)
+
+        # --- 趋势 (EMA slope > 0.1) ---
         if abs(slope) > 0.1:
             price_vs_ema = candles[-1].close - ema20[-1]
             if slope > 0 and price_vs_ema > 0:
-                return "趋势多"
+                return MarketState(
+                    "long", "趋势多", 0.7,
+                    rng_high, rng_low, slope,
+                    channel_type="broad", is_ttr=False)
             elif slope < 0 and price_vs_ema < 0:
-                return "趋势空"
+                return MarketState(
+                    "short", "趋势空", 0.7,
+                    rng_high, rng_low, slope,
+                    channel_type="broad", is_ttr=False)
+
+        # --- 区间 ---
         if abs(slope) < 0.05:
             deviations = []
             for i, c in enumerate(candles[-10:]):
                 ema_idx = len(ema20) - 10 + i
                 if 0 <= ema_idx < len(ema20) and ema20[ema_idx] != 0:
-                    deviations.append(abs(c.close - ema20[ema_idx]) / ema20[ema_idx])
+                    deviations.append(
+                        abs(c.close - ema20[ema_idx])
+                        / ema20[ema_idx])
             if deviations and max(deviations) < 0.02:
-                return "区间"
+                return MarketState(
+                    "neutral", "区间", 0.15,
+                    rng_high, rng_low, slope,
+                    channel_type="none", is_ttr=is_ttr)
+
+        # --- 反转 ---
         if len(candles) >= 2:
-            reversal = CandlePatterns.is_reversal_bar(candles[-1], candles[-2])
+            reversal = CandlePatterns.is_reversal_bar(
+                candles[-1], candles[-2])
             if reversal == "多头反转" and slope < -0.05:
-                return "反转多"
+                return MarketState(
+                    "neutral", "反转多", 0.4,
+                    rng_high, rng_low, slope,
+                    channel_type="none", is_ttr=False)
             elif reversal == "空头反转" and slope > 0.05:
-                return "反转空"
-        # 弱势趋势兜底: 斜率 0.05~0.10 区间原本落入"观望"空洞
-        # Al Brooks: 即使弱趋势也有 H1/L1 机会，不应完全不检测
+                return MarketState(
+                    "neutral", "反转空", 0.4,
+                    rng_high, rng_low, slope,
+                    channel_type="none", is_ttr=False)
+
+        # --- 弱趋势兜底 ---
         price_vs_ema = candles[-1].close - ema20[-1]
         if slope > 0.05 and price_vs_ema > 0:
-            return "趋势多"
+            return MarketState(
+                "long", "趋势多", 0.3,
+                rng_high, rng_low, slope,
+                channel_type="broad", is_ttr=False)
         elif slope < -0.05 and price_vs_ema < 0:
-            return "趋势空"
-        return "观望"
+            return MarketState(
+                "short", "趋势空", 0.3,
+                rng_high, rng_low, slope,
+                channel_type="broad", is_ttr=False)
+
+        return default
+
+    # ---- Al Brooks 辅助方法 ----
+
+    @staticmethod
+    def _determine_always_in(
+        structure: str, slope: float, above_ema: bool,
+        price: float, ema_val: float, recent: list[Candle]
+    ) -> str:
+        """
+        Always In 方向判定
+
+        Al Brooks: 在做任何交易决策前，先确定 Always In 方向。
+        - Always In Long: HH+HL 结构 + 价格在 EMA 上方
+        - Always In Short: LH+LL 结构 + 价格在 EMA 下方
+        """
+        bull_score = 0
+        bear_score = 0
+
+        if structure == "bullish":
+            bull_score += 3
+        elif structure == "bearish":
+            bear_score += 3
+
+        if above_ema:
+            bull_score += 1
+        else:
+            bear_score += 1
+
+        if slope > 0.05:
+            bull_score += 1
+        elif slope < -0.05:
+            bear_score += 1
+
+        if len(recent) >= 3:
+            closes_up = sum(1 for c in recent[-3:] if c.close > c.open)
+            if closes_up >= 2:
+                bull_score += 1
+            elif closes_up <= 1:
+                bear_score += 1
+
+        if bull_score >= 4 and bull_score > bear_score + 1:
+            return "long"
+        if bear_score >= 4 and bear_score > bull_score + 1:
+            return "short"
+        return "neutral"
+
+    @staticmethod
+    def _find_swings(candles: list[Candle]) -> list[dict]:
+        """在 K 线序列中找 Swing High/Low (3-bar pattern)"""
+        swings = []
+        for i in range(1, len(candles) - 1):
+            if (candles[i].high > candles[i - 1].high
+                    and candles[i].high > candles[i + 1].high):
+                swings.append({
+                    "type": "high", "price": candles[i].high, "idx": i})
+            if (candles[i].low < candles[i - 1].low
+                    and candles[i].low < candles[i + 1].low):
+                swings.append({
+                    "type": "low", "price": candles[i].low, "idx": i})
+        return swings
+
+    @staticmethod
+    def _classify_structure(swings: list[dict]) -> str:
+        """
+        从 Swing 序列判断结构:
+        - "bullish": HH + HL
+        - "bearish": LH + LL
+        - "mixed": 无明确方向
+        """
+        highs = [s for s in swings if s["type"] == "high"]
+        lows = [s for s in swings if s["type"] == "low"]
+
+        if len(highs) < 2 or len(lows) < 2:
+            return "mixed"
+
+        rh = highs[-3:] if len(highs) >= 3 else highs[-2:]
+        rl = lows[-3:] if len(lows) >= 3 else lows[-2:]
+
+        hh_count = sum(
+            1 for i in range(1, len(rh))
+            if rh[i]["price"] > rh[i - 1]["price"])
+        hl_count = sum(
+            1 for i in range(1, len(rl))
+            if rl[i]["price"] > rl[i - 1]["price"])
+        lh_count = sum(
+            1 for i in range(1, len(rh))
+            if rh[i]["price"] < rh[i - 1]["price"])
+        ll_count = sum(
+            1 for i in range(1, len(rl))
+            if rl[i]["price"] < rl[i - 1]["price"])
+
+        bull_score = hh_count + hl_count
+        bear_score = lh_count + ll_count
+
+        if bull_score >= 2 and bull_score > bear_score:
+            return "bullish"
+        if bear_score >= 2 and bear_score > bull_score:
+            return "bearish"
+        return "mixed"
+
+    @staticmethod
+    def _overlap_ratio(candles: list[Candle]) -> float:
+        """计算 K 线重叠度 (0-1): 高重叠=区间, 低重叠=急速/强趋势"""
+        if len(candles) < 2:
+            return 0.5
+        overlaps = 0
+        total = 0
+        for i in range(1, len(candles)):
+            prev_range = candles[i - 1].high - candles[i - 1].low
+            curr_range = candles[i].high - candles[i].low
+            if prev_range == 0 and curr_range == 0:
+                continue
+            total += 1
+            overlap_hi = min(candles[i].high, candles[i - 1].high)
+            overlap_lo = max(candles[i].low, candles[i - 1].low)
+            overlap_size = max(0, overlap_hi - overlap_lo)
+            union = max(candles[i].high, candles[i - 1].high) - min(
+                candles[i].low, candles[i - 1].low)
+            if union > 0:
+                overlaps += overlap_size / union
+        return overlaps / total if total > 0 else 0.5
+
+    @staticmethod
+    def _measure_pullback_ratio(candles: list[Candle], swings: list[dict]) -> float:
+        """
+        最近回调深度 / 前一段腿的比率
+        Tight Channel: < 0.5, Broad Channel: >= 0.5
+        """
+        if len(swings) < 3:
+            return 0.3
+
+        last_3 = swings[-3:]
+
+        if (last_3[-3]["type"] == "low" and last_3[-2]["type"] == "high"
+                and last_3[-1]["type"] == "low"):
+            leg = last_3[-2]["price"] - last_3[-3]["price"]
+            pullback = last_3[-2]["price"] - last_3[-1]["price"]
+            if leg > 0:
+                return min(1.0, pullback / leg)
+
+        if (last_3[-3]["type"] == "high" and last_3[-2]["type"] == "low"
+                and last_3[-1]["type"] == "high"):
+            leg = last_3[-3]["price"] - last_3[-2]["price"]
+            pullback = last_3[-1]["price"] - last_3[-2]["price"]
+            if leg > 0:
+                return min(1.0, pullback / leg)
+
+        highs = [s for s in swings if s["type"] == "high"]
+        lows = [s for s in swings if s["type"] == "low"]
+        if len(highs) >= 2 and len(lows) >= 1:
+            leg = abs(highs[-1]["price"] - lows[-1]["price"])
+            current_pullback = abs(candles[-1].close - highs[-1]["price"])
+            if leg > 0:
+                return min(1.0, current_pullback / leg)
+        return 0.3
+
+    @staticmethod
+    def _check_gaps_open(candles: list[Candle], ema_val: float) -> bool:
+        """
+        检查缺口是否仍然打开
+        Al Brooks: Tight Channel 的标志是缺口不回补
+        """
+        if len(candles) < 5:
+            return True
+
+        gap_found = False
+        gap_still_open = False
+
+        for i in range(1, len(candles) - 1):
+            prev = candles[i - 1]
+            curr = candles[i]
+
+            if curr.low > prev.high:
+                gap_found = True
+                gap_low = prev.high
+                filled = False
+                for j in range(i + 1, len(candles)):
+                    if candles[j].low <= gap_low:
+                        filled = True
+                        break
+                if not filled:
+                    gap_still_open = True
+
+            if curr.high < prev.low:
+                gap_found = True
+                gap_high = prev.low
+                filled = False
+                for j in range(i + 1, len(candles)):
+                    if candles[j].high >= gap_high:
+                        filled = True
+                        break
+                if not filled:
+                    gap_still_open = True
+
+        if not gap_found:
+            return False
+        return gap_still_open
+
+    @staticmethod
+    def _detect_ttr(candles: list[Candle]) -> bool:
+        """检测 Tight Trading Range (TTR) — Al Brooks: TTR 是死钱, 不要交易"""
+        if len(candles) < 10:
+            return False
+        rng_high = max(c.high for c in candles)
+        rng_low = min(c.low for c in candles)
+        range_height = rng_high - rng_low
+        avg_bar_range = sum(c.high - c.low for c in candles) / len(candles)
+        if avg_bar_range <= 0:
+            return False
+        return range_height < 2.0 * avg_bar_range
+
+    @staticmethod
+    def _check_follow_through(candles: list[Candle]) -> bool:
+        """检测 Follow Through: BO 需要 2+ 根连续趋势棒确认"""
+        if len(candles) < 3:
+            return False
+        consec_bull = 0
+        max_bull = 0
+        consec_bear = 0
+        max_bear = 0
+        for c in candles:
+            if CandlePatterns.is_strong_bull(c):
+                consec_bull += 1
+                max_bull = max(max_bull, consec_bull)
+                consec_bear = 0
+            elif CandlePatterns.is_strong_bear(c):
+                consec_bear += 1
+                max_bear = max(max_bear, consec_bear)
+                consec_bull = 0
+            else:
+                consec_bull = 0
+                consec_bear = 0
+        return max_bull >= 2 or max_bear >= 2
+
+
+# ============================================================
+# 4B. V5.0 市场状态分类（回测用简化版）
+# ============================================================
+
+def classify_backtest_market_state(market_state: MarketState) -> Optional[str]:
+    """将 MarketState 映射到 V5.0 八状态（含 tight/broad range）
+
+    V2 升级: 利用 channel_type 和 is_ttr 区分区间子类型
+    """
+    cycle = market_state.cycle
+    ch = market_state.channel_type
+
+    if "急速多" in cycle:
+        return "strong_trend_bull"
+    if "急速空" in cycle:
+        return "strong_trend_bear"
+    if "趋势多" in cycle:
+        # Tight Channel → strong_trend (H1/H2 都有效)
+        if ch == "tight":
+            return "strong_trend_bull"
+        return "weak_trend_bull"
+    if "趋势空" in cycle:
+        if ch == "tight":
+            return "strong_trend_bear"
+        return "weak_trend_bear"
+    if "区间" in cycle:
+        if market_state.is_ttr:
+            return "tight_range"  # TTR → 不交易
+        return "broad_range"
+    # 观望/反转: 不干预评分
+    return None
+
+
+# 使用回测信号名称的策略推荐矩阵
+BACKTEST_STRATEGY_MATRIX = {
+    'strong_trend_bull': {
+        'recommended': ['高1', '突破回调', '20均线缺口'],
+        'prohibited': ['双重顶', '楔形顶'],
+        'score_modifier': 10,
+    },
+    'strong_trend_bear': {
+        'recommended': ['低1', '突破回调', '20均线缺口'],
+        'prohibited': ['双重底', '楔形底'],
+        'score_modifier': 10,
+    },
+    'weak_trend_bull': {
+        'recommended': ['楔形底', '突破回调', '20均线缺口'],
+        'prohibited': [],
+        'score_modifier': 0,
+    },
+    'weak_trend_bear': {
+        'recommended': ['楔形顶', '突破回调', '20均线缺口'],
+        'prohibited': [],
+        'score_modifier': 0,
+    },
+    'tight_range': {
+        'recommended': ['看衰突破'],
+        'prohibited': ['高1', '低1', '20均线缺口'],
+        'score_modifier': -5,
+    },
+    'broad_range': {
+        'recommended': [
+            '双重顶', '双重底', '楔形顶', '楔形底',
+            '看衰突破', '末端旗形',
+        ],
+        'prohibited': [],  # 高1/低1 由 detect_high1_range 处理，TR位置过滤已提供边缘保护
+        'score_modifier': 0,   # -5→0: 不惩罚中性策略（高1/低1在区间边缘依然有效）
+    },
+    'breakout_bull': {
+        'recommended': ['突破回调', '高1', '20均线缺口'],
+        'prohibited': [],
+        'score_modifier': 15,
+    },
+    'breakout_bear': {
+        'recommended': ['突破回调', '低1', '20均线缺口'],
+        'prohibited': [],
+        'score_modifier': 15,
+    },
+}
 
 
 # ============================================================
@@ -350,46 +771,92 @@ class BackgroundAnalyzer:
 # ============================================================
 
 class StrategyDetector:
-    """11大策略检测器 — 纯函数版本"""
+    """策略检测器 V2 — 含 H2/L2 + Al Brooks 四状态路由"""
 
     def detect_all(self, candles: list[Candle], ema20: list[float],
-                   atr: float, cycle: str) -> list[PASignal]:
-        """对当前K线窗口运行所有策略"""
+                   atr: float, market_state: MarketState) -> list[PASignal]:
+        """对当前K线窗口运行所有策略
+
+        V2 升级:
+        - 接受 MarketState 对象，利用 channel_type/is_ttr 做精细路由
+        - TTR 直接返回空 (Al Brooks: TTR 是死钱)
+        - Tight Channel: H1 + H2 (最高概率组合)
+        - Broad Channel: H2 优先 (H1 回调太深不可靠)
+        - 新增 H2/L2 二次入场检测器
+        """
         signals = []
+        cycle = market_state.cycle
         if len(candles) < 5 or not ema20:
             return signals
 
-        # 根据周期运行对应策略
-        # Al Brooks: H1/L1 在每种市场状态下都是核心入场策略
-        detectors = {
-            "急速多": [# 收线追进已禁用: 0% WR BTC/BNB均持续亏损
-                       # self.detect_buy_now,
-                       self.detect_high1_spike],
-            "急速空": [# self.detect_sell_now,
-                       self.detect_low1_spike],
-            "趋势多": [self.detect_high1,
-                       # 20均线缺口已禁用: BTC WR=27%, BNB WR=20%, 持续亏钱
-                       # self.detect_ema_gap_long,
-                       self.detect_breakout_pullback_long],
-            "趋势空": [self.detect_low1,
-                       # self.detect_ema_gap_short,
-                       self.detect_breakout_pullback_short],
-            "区间":   [self.detect_high1_range, self.detect_low1_range,
-                       self.detect_fade_breakout, self.detect_double_top,
-                       self.detect_double_bottom],
-            "反转多": [self.detect_double_bottom, self.detect_wedge_bottom,
-                       self.detect_final_flag_long],
-            "反转空": [self.detect_double_top, self.detect_wedge_top,
-                       self.detect_final_flag_short],
-        }
+        # Al Brooks: TTR 不交易
+        if market_state.is_ttr:
+            return signals
 
-        for detector in detectors.get(cycle, []):
+        # 根据周期 + channel_type 运行对应策略
+        if cycle == "急速多":
+            detectors = [self.detect_high1_spike]
+        elif cycle == "急速空":
+            detectors = [self.detect_low1_spike]
+        elif cycle == "趋势多":
+            # V4.2: H2 + 20均线缺口 重新启用
+            # H2 需要两个 swing low + 信号棒质量 >= 0.50，实现已足够严格
+            detectors = [self.detect_high1,
+                         self.detect_h2,
+                         self.detect_ema_gap_long,
+                         self.detect_breakout_pullback_long]
+        elif cycle == "趋势空":
+            # V4.2c: L2 仍禁用 — 牛市中 -33~-36% 巨亏, 实现精度不足
+            # L2 只有熊市微正 (+5%), 无法补偿牛市损失
+            # 20均线缺口(空) 保留 — 全环境正收益 73%+ 胜率
+            detectors = [self.detect_low1,
+                         self.detect_ema_gap_short,
+                         self.detect_breakout_pullback_short]
+        elif cycle == "区间":
+            detectors = [self.detect_high1_range, self.detect_low1_range,
+                         self.detect_fade_breakout, self.detect_double_top,
+                         self.detect_double_bottom]
+        elif cycle == "反转多":
+            detectors = [self.detect_double_bottom, self.detect_wedge_bottom,
+                         self.detect_final_flag_long]
+        elif cycle == "反转空":
+            detectors = [self.detect_double_top, self.detect_wedge_top,
+                         self.detect_final_flag_short]
+        else:
+            detectors = []
+
+        for detector in detectors:
             sig = detector(candles, ema20, atr)
             if sig:
                 sig.cycle = cycle
+                # P1-3: TR 位置过滤 — 只在上下 1/3 交易
+                if cycle == "区间" and self._tr_position_filter(
+                        sig, market_state):
+                    continue
                 signals.append(sig)
 
         return signals
+
+    @staticmethod
+    def _tr_position_filter(
+        signal: PASignal, ms: MarketState
+    ) -> bool:
+        """Al Brooks: 区间中间1/3是死钱，只在边缘交易
+
+        BUY: 只在下1/3 (价格接近 range_low)
+        SELL: 只在上1/3 (价格接近 range_high)
+        返回 True = 应该过滤掉
+        """
+        rng = ms.range_high - ms.range_low
+        if rng <= 0:
+            return False
+        pos = (signal.price - ms.range_low) / rng
+
+        if signal.direction == "BUY" and pos > 0.40:
+            return True   # 价格在中上部，不做多
+        if signal.direction == "SELL" and pos < 0.60:
+            return True   # 价格在中下部，不做空
+        return False
 
     # --- 急速方案 ---
 
@@ -582,6 +1049,194 @@ class StrategyDetector:
             entry_trigger=curr.low,
         )
 
+    # --- H2/L2 二次入场 (Al Brooks 最高概率入场) ---
+
+    def detect_h2(self, candles: list[Candle], ema20: list[float],
+                  atr: float) -> Optional[PASignal]:
+        """
+        H2 (高2): 趋势多中的二次入场 — Al Brooks 最高概率做多入场
+
+        检测逻辑:
+        1. 在最近 25 根中找两个 swing low (双底结构)
+        2. 两个低点价差 < 2×ATR (允许 Higher Low)
+        3. 两个低点之间有恢复尝试 (H1)
+        4. 当前棒阳线突破前棒高点
+        5. 信号棒质量 >= 0.50
+
+        V4.2: 增加 EMA20 斜率确认 — 只在趋势确认时触发
+        """
+        if len(candles) < 25:
+            return None
+
+        # V4.2: EMA20 必须明确向上（斜率 > 0.05%），确认趋势有效
+        if len(ema20) >= 10:
+            ema_slope = (ema20[-1] - ema20[-10]) / ema20[-10] * 100
+            if ema_slope < 0.05:
+                return None
+
+        curr = candles[-1]
+        prev = candles[-2]
+
+        if not CandlePatterns.is_bull(curr):
+            return None
+        if curr.close <= prev.high:
+            return None
+
+        sig_quality = CandlePatterns.signal_bar_quality(
+            curr, candles[-6:-1], "BUY")
+        if sig_quality < 0.50:
+            return None
+
+        lookback = candles[-25:-1]
+        swings = CycleIdentifier._find_swings(lookback)
+        swing_lows = [s for s in swings if s["type"] == "low"]
+
+        if len(swing_lows) < 2:
+            return None
+
+        sl1 = swing_lows[-2]
+        sl2 = swing_lows[-1]
+
+        tolerance = (atr * 2.0 if atr > 0
+                     else abs(sl1["price"]) * 0.01)
+        price_diff = abs(sl2["price"] - sl1["price"])
+        if price_diff > tolerance:
+            return None
+
+        # 两个低点之间必须有恢复尝试 (H1)
+        resume_found = False
+        for i in range(sl1["idx"] + 1, sl2["idx"]):
+            if i > 0 and lookback[i].high > lookback[i - 1].high:
+                resume_found = True
+                break
+        if not resume_found:
+            return None
+
+        bar_gap = sl2["idx"] - sl1["idx"]
+        if bar_gap < 3 or bar_gap > 22:
+            return None
+
+        stop = min(sl1["price"], sl2["price"])
+        if atr > 0:
+            stop = min(stop, stop - atr * 0.3)
+        risk = curr.close - stop
+        if risk <= 0:
+            return None
+        target = curr.close + risk * 3.0
+
+        strength = 82
+        if sig_quality >= 0.65:
+            strength += 5
+        if price_diff < tolerance * 0.3:
+            strength += 3
+        if sl2["price"] > sl1["price"]:
+            strength += 3  # Higher Low 加分
+
+        return PASignal(
+            symbol=curr.symbol, signal_type="高2",
+            direction="BUY",
+            strength=min(95, strength),
+            message=(f"H2双底: 低点"
+                     f"{sl1['price']:.1f}/{sl2['price']:.1f}"),
+            timestamp=curr.timestamp, price=curr.close,
+            stop_loss=stop, take_profit=target,
+            probability=0.65,
+            entry_trigger=curr.high,
+        )
+
+    def detect_l2(self, candles: list[Candle], ema20: list[float],
+                  atr: float) -> Optional[PASignal]:
+        """
+        L2 (低2): 趋势空中的二次入场 — Al Brooks 最高概率做空入场
+
+        检测逻辑 (H2 的镜像):
+        1. 找两个 swing high (双顶结构)
+        2. 两个高点价差 < 2×ATR (允许 Lower High)
+        3. 两个高点之间有回调 (L1)
+        4. 当前棒阴线跌破前棒低点
+
+        V4.2: 增加 EMA20 斜率确认 — 防止在牛市回调中做空
+        """
+        if len(candles) < 25:
+            return None
+
+        # V4.2: EMA20 必须明确向下（斜率 < -0.05%），防止牛市中假空
+        if len(ema20) >= 10:
+            ema_slope = (ema20[-1] - ema20[-10]) / ema20[-10] * 100
+            if ema_slope > -0.05:
+                return None
+
+        curr = candles[-1]
+        prev = candles[-2]
+
+        if not CandlePatterns.is_bear(curr):
+            return None
+        if curr.close >= prev.low:
+            return None
+
+        sig_quality = CandlePatterns.signal_bar_quality(
+            curr, candles[-6:-1], "SELL")
+        if sig_quality < 0.50:
+            return None
+
+        lookback = candles[-25:-1]
+        swings = CycleIdentifier._find_swings(lookback)
+        swing_highs = [s for s in swings if s["type"] == "high"]
+
+        if len(swing_highs) < 2:
+            return None
+
+        sh1 = swing_highs[-2]
+        sh2 = swing_highs[-1]
+
+        tolerance = (atr * 2.0 if atr > 0
+                     else abs(sh1["price"]) * 0.01)
+        price_diff = abs(sh2["price"] - sh1["price"])
+        if price_diff > tolerance:
+            return None
+
+        pullback_found = False
+        for i in range(sh1["idx"] + 1, sh2["idx"]):
+            if i > 0 and lookback[i].low < lookback[i - 1].low:
+                pullback_found = True
+                break
+        if not pullback_found:
+            return None
+
+        bar_gap = sh2["idx"] - sh1["idx"]
+        if bar_gap < 3 or bar_gap > 22:
+            return None
+
+        stop = max(sh1["price"], sh2["price"])
+        if atr > 0:
+            stop = max(stop, stop + atr * 0.3)
+        risk = stop - curr.close
+        if risk <= 0:
+            return None
+        target = curr.close - risk * 3.0
+
+        strength = 82
+        if sig_quality >= 0.65:
+            strength += 5
+        if price_diff < tolerance * 0.3:
+            strength += 3
+        if sh2["price"] < sh1["price"]:
+            strength += 3  # Lower High 加分
+
+        return PASignal(
+            symbol=curr.symbol, signal_type="低2",
+            direction="SELL",
+            strength=min(95, strength),
+            message=(f"L2双顶: 高点"
+                     f"{sh1['price']:.1f}/{sh2['price']:.1f}"),
+            timestamp=curr.timestamp, price=curr.close,
+            stop_loss=stop, take_profit=target,
+            probability=0.65,
+            entry_trigger=curr.low,
+        )
+
+    # --- 区间方案 ---
+
     def detect_high1_range(self, candles: list[Candle], ema20: list[float],
                            atr: float) -> Optional[PASignal]:
         """区间H1: 区间内顺EMA方向的第一次回调买点
@@ -656,58 +1311,104 @@ class StrategyDetector:
 
     def detect_ema_gap_long(self, candles: list[Candle], ema20: list[float],
                             atr: float) -> Optional[PASignal]:
-        """20均线缺口（做多）: 趋势中首次触及EMA20"""
-        if len(candles) < 7 or len(ema20) < 7:
+        """20均线缺口（做多）: 早期趋势中首次触及EMA20
+        V5.1b 修复: Al Brooks MAG = 只有早期趋势的首次缺口回补才是入场
+        晚期缺口回补是 Final Flag 反转预警，不入场
+        """
+        if len(candles) < 10 or len(ema20) < 10:
             return None
         curr = candles[-1]
         ema_val = ema20[-1]
-        # 检查前5根是否完全脱离EMA
+
+        # V5.1b: EMA 斜率检查 — 必须在上升趋势中
+        slope = (ema20[-1] - ema20[-10]) / ema20[-10] * 100
+        if slope < 0.3:  # EMA 不够陡 → 不是新鲜趋势
+            return None
+
+        # 检查前5根是否完全脱离EMA（缺口存在）
         all_above = all(
             candles[-(i + 2)].low > ema20[-(i + 2)] * 1.003
             for i in range(5)
             if -(i + 2) >= -len(ema20)
         )
-        if all_above and curr.low <= ema_val * 1.003 and curr.close > ema_val:
-            sl = curr.close - 2.0 * atr if atr > 0 else curr.low
-            risk = curr.close - sl
-            if risk <= 0:
-                return None
-            tp = curr.close + risk * 2.5
-            return PASignal(
-                symbol=curr.symbol, signal_type="20均线缺口", direction="BUY",
-                strength=85, message="首次触及EMA20缺口",
-                timestamp=curr.timestamp, price=curr.close,
-                stop_loss=sl, take_profit=tp, probability=0.70,
-                entry_trigger=curr.high,
-            )
-        return None
+        if not (all_above and curr.low <= ema_val * 1.003
+                and curr.close > ema_val):
+            return None
+
+        # V5.1b: 真正的 MAG 检查 — 确认这是首次缺口回补
+        # 如果最近 20 根中已有 2+ 次触碰 EMA → 不是 MAG，是震荡
+        recent_touches = 0
+        for i in range(6, min(21, len(candles))):
+            if i >= len(ema20):
+                break
+            c = candles[-i]
+            e = ema20[-i]
+            if abs(c.close - e) / e < 0.004:
+                recent_touches += 1
+        if recent_touches >= 2:
+            return None  # 非首次缺口回补
+
+        sl = curr.close - 2.0 * atr if atr > 0 else curr.low
+        risk = curr.close - sl
+        if risk <= 0:
+            return None
+        tp = curr.close + risk * 2.5
+        return PASignal(
+            symbol=curr.symbol, signal_type="20均线缺口", direction="BUY",
+            strength=85, message="早期趋势首次触及EMA20缺口",
+            timestamp=curr.timestamp, price=curr.close,
+            stop_loss=sl, take_profit=tp, probability=0.70,
+            entry_trigger=curr.high,
+        )
 
     def detect_ema_gap_short(self, candles: list[Candle], ema20: list[float],
                              atr: float) -> Optional[PASignal]:
-        """20均线缺口（做空）"""
-        if len(candles) < 7 or len(ema20) < 7:
+        """20均线缺口（做空）: 早期下跌趋势中首次触及EMA20
+        V5.1b 修复: 同做多逻辑，区分早期/晚期趋势
+        """
+        if len(candles) < 10 or len(ema20) < 10:
             return None
         curr = candles[-1]
         ema_val = ema20[-1]
+
+        # V5.1b: EMA 斜率检查 — 必须在下降趋势中
+        slope = (ema20[-1] - ema20[-10]) / ema20[-10] * 100
+        if slope > -0.3:  # EMA 不够陡 → 不是新鲜趋势
+            return None
+
         all_below = all(
             candles[-(i + 2)].high < ema20[-(i + 2)] * 0.997
             for i in range(5)
             if -(i + 2) >= -len(ema20)
         )
-        if all_below and curr.high >= ema_val * 0.997 and curr.close < ema_val:
-            sl = curr.close + 2.0 * atr if atr > 0 else curr.high
-            risk = sl - curr.close
-            if risk <= 0:
-                return None
-            tp = curr.close - risk * 2.5
-            return PASignal(
-                symbol=curr.symbol, signal_type="20均线缺口", direction="SELL",
-                strength=85, message="首次触及EMA20缺口(空)",
-                timestamp=curr.timestamp, price=curr.close,
-                stop_loss=sl, take_profit=tp, probability=0.70,
-                entry_trigger=curr.low,
-            )
-        return None
+        if not (all_below and curr.high >= ema_val * 0.997
+                and curr.close < ema_val):
+            return None
+
+        # V5.1b: 真正的 MAG 检查
+        recent_touches = 0
+        for i in range(6, min(21, len(candles))):
+            if i >= len(ema20):
+                break
+            c = candles[-i]
+            e = ema20[-i]
+            if abs(c.close - e) / e < 0.004:
+                recent_touches += 1
+        if recent_touches >= 2:
+            return None
+
+        sl = curr.close + 2.0 * atr if atr > 0 else curr.high
+        risk = sl - curr.close
+        if risk <= 0:
+            return None
+        tp = curr.close - risk * 2.5
+        return PASignal(
+            symbol=curr.symbol, signal_type="20均线缺口", direction="SELL",
+            strength=85, message="早期趋势首次触及EMA20缺口(空)",
+            timestamp=curr.timestamp, price=curr.close,
+            stop_loss=sl, take_profit=tp, probability=0.70,
+            entry_trigger=curr.low,
+        )
 
     # --- 区间方案 ---
 
@@ -775,15 +1476,18 @@ class StrategyDetector:
             return None
         if not CandlePatterns.is_bear(curr):
             return None
+        # V2: 信号棒质量 — 反转需要更好的信号棒
+        sig_q = CandlePatterns.signal_bar_quality(
+            curr, candles[-6:-1], "SELL")
+        if sig_q < 0.40:
+            return None
         # 两顶之间必须有足够间隔（h1不能是最近1-2根）
         if h1_idx >= 12:
             return None
-        # 两顶之间的谷底 —— 只看h1之后、当前K之前的K线
         bars_between = window[h1_idx + 1:]
         if not bars_between:
             return None
         trough = min(c.low for c in bars_between)
-        # 真实回撤深度: 谷底比h1至少低0.3%（确认是真实回撤，不是横盘）
         retreat_pct = (h1 - trough) / h1
         if retreat_pct < 0.003:
             return None
@@ -792,9 +1496,14 @@ class StrategyDetector:
         if risk <= 0:
             return None
         tp = curr.close - risk * 3.0
+        strength = 80
+        if sig_q >= 0.65:
+            strength = 87
+        elif sig_q >= 0.50:
+            strength = 83
         return PASignal(
             symbol=curr.symbol, signal_type="双重顶", direction="SELL",
-            strength=82, message="双重顶反转",
+            strength=strength, message="双重顶反转",
             timestamp=curr.timestamp, price=curr.close,
             stop_loss=sl, take_profit=tp, probability=0.60,
             entry_trigger=curr.low,
@@ -822,15 +1531,17 @@ class StrategyDetector:
             return None
         if not CandlePatterns.is_bull(curr):
             return None
-        # 两底之间必须有足够间隔（l1不能是最近1-2根）
+        # V2→V4.1: 信号棒质量过滤（0.40→0.50, 双重底3/7亏损需更严格门控）
+        sig_q = CandlePatterns.signal_bar_quality(
+            curr, candles[-6:-1], "BUY")
+        if sig_q < 0.50:
+            return None
         if l1_idx >= 12:
             return None
-        # 两底之间的反弹高点 —— 只看l1之后、当前K之前的K线
         bars_between = window[l1_idx + 1:]
         if not bars_between:
             return None
         peak = max(c.high for c in bars_between)
-        # 真实反弹: 高点比l1至少高0.3%（确认有意义的中间反弹）
         bounce_pct = (peak - l1) / l1
         if bounce_pct < 0.003:
             return None
@@ -839,9 +1550,14 @@ class StrategyDetector:
         if risk <= 0:
             return None
         tp = curr.close + risk * 3.0
+        strength = 80
+        if sig_q >= 0.65:
+            strength = 87
+        elif sig_q >= 0.50:
+            strength = 83
         return PASignal(
             symbol=curr.symbol, signal_type="双重底", direction="BUY",
-            strength=82, message="双重底反转",
+            strength=strength, message="双重底反转",
             timestamp=curr.timestamp, price=curr.close,
             stop_loss=sl, take_profit=tp, probability=0.60,
             entry_trigger=curr.high,
@@ -869,16 +1585,28 @@ class StrategyDetector:
         if push1 > 0 and push2 > 0 and push2 < push1 * 0.7:
             curr = candles[-1]
             if CandlePatterns.is_bear(curr):
+                # V2: 信号棒质量
+                sig_q = CandlePatterns.signal_bar_quality(
+                    curr, candles[-6:-1], "SELL")
+                if sig_q < 0.40:
+                    return None
                 sl = h3[1] * 1.001
                 risk = sl - curr.close
                 if risk <= 0:
                     return None
-                tp = curr.close - risk * 3.0  # 3:1 → 楔形三推幅度大
+                tp = curr.close - risk * 3.0
+                strength = 80
+                if sig_q >= 0.65:
+                    strength = 87
+                elif sig_q >= 0.50:
+                    strength = 83
                 return PASignal(
-                    symbol=curr.symbol, signal_type="楔形顶", direction="SELL",
-                    strength=82, message="三推递减楔形顶",
+                    symbol=curr.symbol, signal_type="楔形顶",
+                    direction="SELL",
+                    strength=strength, message="三推递减楔形顶",
                     timestamp=curr.timestamp, price=curr.close,
-                    stop_loss=sl, take_profit=tp, probability=0.65,
+                    stop_loss=sl, take_profit=tp,
+                    probability=0.65,
                     entry_trigger=curr.low,
                 )
         return None
@@ -902,16 +1630,27 @@ class StrategyDetector:
         if push1 > 0 and push2 > 0 and push2 < push1 * 0.7:
             curr = candles[-1]
             if CandlePatterns.is_bull(curr):
+                sig_q = CandlePatterns.signal_bar_quality(
+                    curr, candles[-6:-1], "BUY")
+                if sig_q < 0.40:
+                    return None
                 sl = l3[1] * 0.999
                 risk = curr.close - sl
                 if risk <= 0:
                     return None
-                tp = curr.close + risk * 3.0  # 3:1 → 楔形三推幅度大
+                tp = curr.close + risk * 3.0
+                strength = 80
+                if sig_q >= 0.65:
+                    strength = 87
+                elif sig_q >= 0.50:
+                    strength = 83
                 return PASignal(
-                    symbol=curr.symbol, signal_type="楔形底", direction="BUY",
-                    strength=82, message="三推递减楔形底",
+                    symbol=curr.symbol, signal_type="楔形底",
+                    direction="BUY",
+                    strength=strength, message="三推递减楔形底",
                     timestamp=curr.timestamp, price=curr.close,
-                    stop_loss=sl, take_profit=tp, probability=0.65,
+                    stop_loss=sl, take_profit=tp,
+                    probability=0.65,
                     entry_trigger=curr.high,
                 )
         return None
@@ -1086,15 +1825,20 @@ class StrategyDetector:
 class ScoringEngine:
     """
     评分系统 — 复现 scoring-rubric.md 的逻辑
-    包含五维打分 + 强制扣分项(A/B/C/D)
+    V5.0: 可选六维打分（+市场状态匹配度）
     """
+
+    def __init__(self, market_state_enabled: bool = False):
+        self.market_state_enabled = market_state_enabled
 
     def score_signal(self, signal: PASignal, background: BackgroundContext,
                      daily_losses: dict, strategy_history: dict,
-                     daily_losses_by_dir: dict = None) -> tuple[int, list[str]]:
+                     daily_losses_by_dir: dict = None,
+                     atr: float = 0.0) -> tuple[int, list[str]]:
         """
         对信号打分，返回 (总分, 扣分原因列表)
         daily_losses_by_dir: 可选，方向感知亏损计数 {sym: {"BUY": n, "SELL": n}}
+        atr: ATR14 值，用于检测 Climax 环境（止损距离过宽）
         """
         reasons = []
 
@@ -1110,7 +1854,44 @@ class ScoringEngine:
         # 5. 风险因素 (0-15)
         risk_score = self._score_risk(signal, daily_losses)
 
-        base_total = trend_score + quality_score + match_score + rr_score + risk_score
+        # 五维基础分（始终不变）
+        base_total = (trend_score + quality_score + match_score
+                      + rr_score + risk_score)
+
+        if self.market_state_enabled:
+            # V5.0: 市场状态作为加法修正（不归一化）
+            # ⚠️ 暂时禁用: BTC 30m 回测发现 broad_range 推荐列表
+            # 给双重顶 +5 加分, 导致134个边缘信号通过,
+            # DD 从10.5%→12.4%, 复利收益损失11.5%.
+            # 总PnL几乎无变化 (213% vs 213%) 但DD伤害复利.
+            # 需要重新校准 STRATEGY_MATRIX 后再启用.
+            # market_score, market_penalty = (
+            #     self._score_market_state(signal))
+            # base_total += (market_score - 5)
+            # base_total = max(0, min(100, base_total))
+            # if market_penalty:
+            #     base_total -= 20
+            #     reasons.append(market_penalty)
+            pass
+
+        # === 止损距离/ATR 惩罚 (Climax 环境检测) ===
+        # Al Brooks: Climax bar 有巨大实体，止损必须放在其极值之外
+        # 导致 SL 距离远超正常 ATR → 即使高评分也是高风险交易
+        # 课程: "Bull/Bear Climax 后至少等 10 根 K 线 (TBTL)"
+        # 回测诊断: score>=85 的 Top10 亏损中，SL距离平均 4.2×ATR
+        sl_atr_deduction = 0
+        if atr > 0:
+            sl_dist = abs(signal.price - signal.stop_loss)
+            sl_atr_ratio = sl_dist / atr
+            if sl_atr_ratio > 5.0:
+                sl_atr_deduction = 12
+                reasons.append(f"SL距离{sl_atr_ratio:.1f}×ATR > 5.0 (Climax环境) -12")
+            elif sl_atr_ratio > 4.0:
+                sl_atr_deduction = 8
+                reasons.append(f"SL距离{sl_atr_ratio:.1f}×ATR > 4.0 (宽止损) -8")
+            elif sl_atr_ratio > 3.0:
+                sl_atr_deduction = 5
+                reasons.append(f"SL距离{sl_atr_ratio:.1f}×ATR > 3.0 -5")
 
         # === 盈亏比一票否决 ===
         if rr_ratio < 1.5:
@@ -1138,10 +1919,18 @@ class ScoringEngine:
             reasons.append(f"逆4h方向做空 -5")
 
         # 震荡背景用趋势策略
-        trend_strategies = {"收线追进", "高1", "低1", "20均线缺口", "突破回调"}
+        # V5.1: 加入 高2 — 回测验证震荡环境 H2 亏损 -4.8%, WR 33%
+        # Al Brooks: H2 是趋势延续策略，震荡中趋势延续 80% 失败
+        trend_strategies = {"收线追进", "高1", "低1", "高2", "20均线缺口", "突破回调"}
         if "震荡" in background.background and signal.signal_type in trend_strategies:
             bg_deduction += 10
             reasons.append(f"震荡背景使用趋势策略({signal.signal_type}) -10")
+
+        # V5.1: 震荡背景中的双重顶也扣分 — 回测证明震荡中 DT WR 33%
+        # Al Brooks: "TR 中间的双重顶/底 75% 只是旗形，不是反转"
+        if "震荡" in background.background and signal.signal_type in {"双重顶", "双重底"}:
+            bg_deduction += 8
+            reasons.append(f"震荡背景使用{signal.signal_type}(TR中75%为旗形) -8")
 
         # === C. 进化记录扣分（V2: 方向感知——BUY亏不惩罚SELL信号）===
         evo_deduction = 0
@@ -1173,7 +1962,7 @@ class ScoringEngine:
                 evo_deduction += 10
                 reasons.append(f"策略{strat_key}近{strat_trades}笔胜率{win_rate:.0f}% -10")
 
-        final_score = max(0, base_total - bg_deduction - evo_deduction)
+        final_score = max(0, base_total - bg_deduction - evo_deduction - sl_atr_deduction)
         return final_score, reasons
 
     def _score_trend(self, signal: PASignal) -> int:
@@ -1226,7 +2015,11 @@ class ScoringEngine:
         return 12
 
     def _score_rr(self, signal: PASignal) -> tuple[int, float]:
-        """盈亏比打分"""
+        """盈亏比打分 — 保持 R:S >= 2.0 硬门槛
+
+        回测验证: 动态门槛(1.5x/2.0x)导致DD从10%飙到25-41%
+        R:S >= 2.0 硬门槛是经过验证的最优保护
+        """
         risk = abs(signal.price - signal.stop_loss)
         reward = abs(signal.take_profit - signal.price)
         if risk == 0:
@@ -1249,6 +2042,42 @@ class ScoringEngine:
         elif total_losses >= 2:
             score -= 5
         return max(0, score)
+
+    def _score_market_state(self, signal: PASignal) -> tuple[int, str]:
+        """V5.0: 市场状态匹配打分 (0-15)
+        方向感知: bull 状态的 modifier 不奖励 SELL，反之亦然
+        """
+        extra = getattr(signal, 'extra', {}) or {}
+        rec = extra.get('strategy_recommendation', {})
+        if not rec:
+            return 5, ""  # 无市场状态信息 → 中性基础分
+
+        recommended = rec.get('recommended', [])
+        prohibited = rec.get('prohibited', [])
+        modifier = rec.get('score_modifier', 0)
+        strat = signal.signal_type
+        state = extra.get('market_state', '')
+
+        # 禁止策略 → 强制惩罚
+        if strat in prohibited:
+            return 0, f"策略[{strat}]在当前市场状态禁止列表中 -20"
+
+        # 方向感知: 逆势信号不享受状态加成
+        _BULL = {'strong_trend_bull', 'weak_trend_bull',
+                 'breakout_bull'}
+        _BEAR = {'strong_trend_bear', 'weak_trend_bear',
+                 'breakout_bear'}
+        if state in _BULL and signal.direction == 'SELL':
+            modifier = min(0, modifier)
+        elif state in _BEAR and signal.direction == 'BUY':
+            modifier = min(0, modifier)
+
+        # 推荐策略 → 高分
+        if strat in recommended:
+            return min(15, 10 + max(0, modifier)), ""
+
+        # 中性 → 基础分 + modifier
+        return max(0, min(15, 5 + modifier)), ""
 
 
 # ============================================================
@@ -1326,14 +2155,23 @@ class TradeSimulator:
         self.open_trades = still_open
 
     def timeout_old_trades(self, candle: Candle):
-        """超时平仓 + SCALP早期获利了结
+        """超时平仓 + SCALP早期获利了结 + PA停滞检测
         SCALP逻辑: 持仓2-4根K线后若浮盈>=0.3%，提前平仓锁定利润（v12g最优版本）
         固定阈值0.3%: BTC 51.8% WR | BNB 61.2% WR（经实测优于动态阈值版本）
         Al Brooks: 早期获利了结是高WR交易系统的关键（libs/backtest验证有效）
+
+        V5.1 停滞检测:
+        Al Brooks: "Scalp 2-3根K线没动就走" / "Premise 变了立刻走"
+        回测诊断: 575/2775=20% 交易 TIMEOUT 出场，其中很多早已停滞
         """
         SCALP_MIN_BARS = self.scalp_min_bars
         SCALP_MAX_BARS = self.scalp_max_bars
         SCALP_MIN_PROFIT = self.scalp_min_profit
+        # 停滞检测参数: SCALP 窗口后连续 N 根 K 线浮盈不变化 → 出场
+        # V5.1b: 从 3 bars/0.10% 放宽到 5 bars/0.15%（ETH 诊断发现过激进）
+        STALL_CHECK_AFTER = SCALP_MAX_BARS + 2  # SCALP 窗口之后开始检测
+        STALL_BARS = 5                           # 连续 5 根无进展
+        STALL_THRESHOLD = 0.15                   # 浮盈变化 < 0.15% 算停滞
 
         still_open = []
         for trade in self.open_trades:
@@ -1342,14 +2180,20 @@ class TradeSimulator:
             else:
                 trade._bars_held = 1
 
+            # 记录浮盈历史（用于停滞检测）
+            if trade.direction == "BUY":
+                float_pnl = (candle.close - trade.entry_price) / trade.entry_price * 100
+            else:
+                float_pnl = (trade.entry_price - candle.close) / trade.entry_price * 100
+
+            if not hasattr(trade, '_pnl_history'):
+                trade._pnl_history = []
+            trade._pnl_history.append(float_pnl)
+
             closed = False
 
             # SCALP早期出场检查（优先于超时）
             if SCALP_MIN_BARS <= trade._bars_held <= SCALP_MAX_BARS:
-                if trade.direction == "BUY":
-                    float_pnl = (candle.close - trade.entry_price) / trade.entry_price * 100
-                else:
-                    float_pnl = (trade.entry_price - candle.close) / trade.entry_price * 100
                 if float_pnl >= SCALP_MIN_PROFIT:
                     trade.exit_price = candle.close
                     trade.pnl_pct = float_pnl
@@ -1360,13 +2204,26 @@ class TradeSimulator:
                     self.closed_trades.append(trade)
                     closed = True
 
-            # 超时平仓
+            # V5.1: PA 停滞检测 — SCALP 窗口后连续无进展则早退
+            # Al Brooks: 交易应该很快证明你是对的，不动就是错的
+            if (not closed and trade._bars_held >= STALL_CHECK_AFTER
+                    and len(trade._pnl_history) >= STALL_BARS):
+                recent = trade._pnl_history[-STALL_BARS:]
+                pnl_range = max(recent) - min(recent)
+                if pnl_range < STALL_THRESHOLD:
+                    trade.exit_price = candle.close
+                    trade.pnl_pct = float_pnl
+                    trade.result = "WIN" if float_pnl > 0 else "LOSS" if float_pnl < -0.1 else "SCRATCH"
+                    trade.exit_time = candle.timestamp
+                    trade.exit_reason = "STALL"
+                    self._record_close(trade)
+                    self.closed_trades.append(trade)
+                    closed = True
+
+            # 超时平仓（兜底，停滞检测应已覆盖大部分）
             if not closed and trade._bars_held >= self.max_holding_bars:
                 trade.exit_price = candle.close
-                if trade.direction == "BUY":
-                    trade.pnl_pct = (trade.exit_price - trade.entry_price) / trade.entry_price * 100
-                else:
-                    trade.pnl_pct = (trade.entry_price - trade.exit_price) / trade.entry_price * 100
+                trade.pnl_pct = float_pnl
                 trade.result = "WIN" if trade.pnl_pct > 0 else "LOSS" if trade.pnl_pct < -0.1 else "SCRATCH"
                 trade.exit_time = candle.timestamp
                 trade.exit_reason = "TIMEOUT"
@@ -1481,6 +2338,7 @@ class TradeSimulator:
         tp_count = sum(1 for t in wins if t.exit_reason == "TP")
         timeout_wins = sum(1 for t in trades
                           if t.exit_reason == "TIMEOUT" and t.result == "WIN")
+        stall_count = sum(1 for t in trades if t.exit_reason == "STALL")
 
         # ── 复利权益曲线（基于风险百分比仓位 + 手续费）─────────────────
         fee_rt = fee_rate * 2  # 往返手续费
@@ -1541,6 +2399,7 @@ class TradeSimulator:
             "scalp_wins": scalp_count,
             "tp_wins": tp_count,
             "timeout_wins": timeout_wins,
+            "stall_exits": stall_count,
             "by_strategy": by_strategy,
             "by_background": by_bg,
             "by_direction": by_dir,
@@ -1624,6 +2483,9 @@ class DataLoader:
             return df
         except ImportError:
             pass
+        except Exception as e:
+            print(f"  CSV.gz 下载失败: {e}")
+            print(f"  回退到 streaming 模式...")
 
         # 方式3: 使用 datasets 库 streaming 模式（最慢但最可靠）
         return DataLoader._load_streaming(symbol, start_date, end_date, cache_path)
@@ -1656,7 +2518,7 @@ class DataLoader:
             chunk = chunk[chunk["symbol"] == symbol]
             if chunk.empty:
                 continue
-            chunk["timestamp"] = pd.to_datetime(chunk["bucket_ts"])
+            chunk["timestamp"] = pd.to_datetime(chunk["bucket_ts"], utc=True).dt.tz_localize(None)
             if start_ts:
                 chunk = chunk[chunk["timestamp"] >= start_ts]
             if end_ts:
@@ -1703,9 +2565,11 @@ class DataLoader:
             elif isinstance(ts, (int, float)):
                 ts = pd.Timestamp(ts, unit="ms")
 
-            if start_date and ts < pd.Timestamp(start_date):
+            # V4.2: 统一时区比较 — 确保两边都是 tz-aware 或 tz-naive
+            ts_naive = ts.tz_localize(None) if hasattr(ts, 'tz') and ts.tz else ts
+            if start_date and ts_naive < pd.Timestamp(start_date):
                 continue
-            if end_date and ts > pd.Timestamp(end_date):
+            if end_date and ts_naive > pd.Timestamp(end_date):
                 # 数据是时间排序的，超过结束日期可以提前退出
                 if count > 0:
                     break
@@ -1786,11 +2650,12 @@ class BacktestEngine:
     """主回测引擎"""
 
     # 各周期的默认配置: (max_holding_bars, scalp_min, scalp_max, scalp_profit%)
+    # V4.1: 1h scalp 0.50→0.65% — 回测显示72-77% SCALP占比过高，让更多趋势跑起来
     TF_DEFAULTS = {
         "5m":  (48,  2, 4, 0.30),
         "15m": (16,  2, 4, 0.35),
         "30m": (10,  2, 3, 0.40),
-        "1h":  (12,  2, 3, 0.50),
+        "1h":  (12,  2, 3, 0.65),
     }
 
     def __init__(self, score_threshold: int = 80, max_holding_bars: int = None,
@@ -1799,19 +2664,22 @@ class BacktestEngine:
                  timeframe: str = "5m",
                  fee_rate: float = 0.0,
                  initial_capital: float = 500.0,
-                 risk_pct: float = 1.0):
+                 risk_pct: float = 1.0,
+                 market_state: bool = False):
         self.score_threshold = score_threshold
         self.timeframe = timeframe
         self.fee_rate = fee_rate
         self.initial_capital = initial_capital
         self.risk_pct = risk_pct
+        self.market_state = market_state  # V5.0 市场状态匹配
 
         # 按周期自动设置 SCALP 和持仓参数
         tf_cfg = self.TF_DEFAULTS.get(timeframe, self.TF_DEFAULTS["5m"])
         hold_bars = max_holding_bars if max_holding_bars is not None else tf_cfg[0]
 
         self.detector = StrategyDetector()
-        self.scoring = ScoringEngine()
+        self.scoring = ScoringEngine(
+            market_state_enabled=market_state)
         self.simulator = TradeSimulator(
             max_holding_bars=hold_bars,
             scalp_min_bars=tf_cfg[1],
@@ -1838,6 +2706,7 @@ class BacktestEngine:
         self.signals_blocked_counter_trend = 0  # Option B
         self.signals_blocked_position = 0       # 持仓阻断
         self.signals_blocked_q3 = 0             # V3 三域融合阻断
+        self.signals_blocked_market = 0         # V5.0 市场状态禁止
 
     def run(self, symbol: str, df_1m: pd.DataFrame) -> dict:
         """
@@ -1911,13 +2780,23 @@ class BacktestEngine:
                 continue
             atr = calculate_atr(candles, 14)
 
-            # 识别周期
+            # 识别周期 (V2: 返回 MarketState 对象)
             # ema20 对齐: ema20[0] 对应 candles[19]
             aligned_candles = candles[19:]  # 与EMA对齐
-            cycle = CycleIdentifier.identify(aligned_candles, ema20)
+            market_state = CycleIdentifier.identify(
+                aligned_candles, ema20)
 
-            # 运行策略检测
-            signals = self.detector.detect_all(aligned_candles, ema20, atr, cycle)
+            # V5.0: 计算市场状态（利用 channel_type）
+            ms = None
+            ms_rec = None
+            if self.market_state:
+                ms = classify_backtest_market_state(market_state)
+                if ms:
+                    ms_rec = BACKTEST_STRATEGY_MATRIX.get(ms, {})
+
+            # 运行策略检测 (V2: 传入 MarketState)
+            signals = self.detector.detect_all(
+                aligned_candles, ema20, atr, market_state)
             if not signals:
                 continue
 
@@ -1927,17 +2806,29 @@ class BacktestEngine:
             for signal in signals:
                 self.signals_generated += 1
 
+                # V5.0: 注入市场状态到信号
+                if ms_rec is not None:
+                    signal.extra = {
+                        'market_state': ms,
+                        'strategy_recommendation': ms_rec,
+                    }
+
                 # 评分（传入方向感知亏损，使BUY/SELL惩罚相互独立）
+                # V5.1: 传入 ATR 用于 Climax 环境检测
                 score, reasons = self.scoring.score_signal(
                     signal, bg,
                     self.simulator.daily_losses,
                     self.simulator.strategy_history,
                     daily_losses_by_dir=self.simulator.daily_losses_by_dir,
+                    atr=atr,
                 )
 
                 if score == 0:
                     self.signals_blocked_rr += 1
                     continue
+                # V5.0: 市场状态禁止计数
+                if any("禁止列表" in r for r in reasons):
+                    self.signals_blocked_market += 1
                 if score < self.score_threshold:
                     self.signals_blocked_score += 1
                     if any("逆" in r or "背景" in r for r in reasons):
@@ -1947,8 +2838,9 @@ class BacktestEngine:
                 self.signals_passed += 1
 
                 # 预热期内不入场（只建立背景数据）
+                # 统一时区: curr_time 可能 naive, trade_start_dt 是 aware
                 if (self.trade_start_dt and
-                        curr_time < self.trade_start_dt):
+                        curr_time.replace(tzinfo=None) < self.trade_start_dt.replace(tzinfo=None)):
                     continue
 
                 # V3 SELL-only: 仅做空模式，过滤所有BUY信号
@@ -2059,9 +2951,11 @@ class BacktestEngine:
         stats["signals_blocked_counter_trend"] = self.signals_blocked_counter_trend
         stats["signals_blocked_position"] = self.signals_blocked_position
         stats["signals_blocked_q3"] = self.signals_blocked_q3
+        stats["signals_blocked_market"] = self.signals_blocked_market
         stats["threshold"] = self.score_threshold
         stats["sell_only"] = self.sell_only
         stats["q3_filter"] = self.q3_filter
+        stats["market_state"] = self.market_state
 
         return stats
 
@@ -2121,7 +3015,12 @@ def print_report(stats: dict, symbol: str):
     print(f"  评分拦截: {stats.get('signals_blocked_score', 0)}")
     print(f"  盈亏比拦截: {stats.get('signals_blocked_rr', 0)}")
     print(f"  持仓阻断: {stats.get('signals_blocked_position', 0)}")
+    if stats.get('market_state'):
+        blocked_ms = stats.get('signals_blocked_market', 0)
+        print(f"  市场状态禁止: {blocked_ms}")
     print(f"  评分阈值: {stats.get('threshold', 80)}")
+    if stats.get('market_state'):
+        print(f"  V5.0 市场状态匹配: 已启用")
 
     tf = stats.get("timeframe", "5m")
     print(f"\n  === 交易统计 [{tf}周期] ===")
@@ -2178,6 +3077,30 @@ def print_report(stats: dict, symbol: str):
 # 12. 主入口
 # ============================================================
 
+def _serialize_trades(trades: list) -> list[dict]:
+    """将 Trade 对象列表序列化为 dict 列表（按时间排序）"""
+    sorted_trades = sorted(trades, key=lambda t: t.exit_time or t.entry_time)
+    result = []
+    for t in sorted_trades:
+        result.append({
+            "entry_time": str(t.entry_time),
+            "exit_time": str(t.exit_time),
+            "direction": t.direction,
+            "strategy": t.strategy,
+            "entry_price": round(t.entry_price, 2),
+            "exit_price": round(t.exit_price, 2),
+            "stop_loss": round(t.stop_loss, 2),
+            "take_profit": round(t.take_profit, 2),
+            "pnl_pct": round(t.pnl_pct, 4),
+            "result": t.result,
+            "exit_reason": t.exit_reason,
+            "score": t.score,
+            "background": t.background,
+            "cycle": t.cycle,
+        })
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description="PA交易回测工具")
     parser.add_argument("--symbol", type=str, default="BTCUSDT",
@@ -2220,6 +3143,10 @@ def main():
                         help="每笔风险占资金比例%% (默认: 1.0)")
     parser.add_argument("--multi-tf", action="store_true",
                         help="多周期对比: 同时跑 5m/15m/30m/1h")
+    parser.add_argument("--market-state", action="store_true",
+                        help="V5.0: 启用市场状态匹配评分(六维)")
+    parser.add_argument("--detailed", action="store_true",
+                        help="输出每笔交易明细到 JSON (需配合 --output)")
     args = parser.parse_args()
 
     # 日期处理
@@ -2247,6 +3174,9 @@ def main():
     if fee_rate > 0:
         print(f"  手续费: {args.fee:.3f}% 单边 / {args.fee*2:.3f}% 往返")
     print(f"  复利: ${args.capital:.0f} 初始 | {args.risk:.1f}% 风险/笔")
+    ms_flag = getattr(args, 'market_state', False)
+    if ms_flag:
+        print(f"  V5.0: 市场状态匹配评分已启用(六维)")
 
     all_results = {}
 
@@ -2292,8 +3222,11 @@ def main():
                     fee_rate=fee_rate,
                     initial_capital=args.capital,
                     risk_pct=args.risk,
+                    market_state=ms_flag,
                 )
                 stats = engine.run(symbol, df_1m)
+                if getattr(args, 'detailed', False):
+                    stats["trades_detail"] = _serialize_trades(engine.simulator.closed_trades)
                 key = f"{symbol}_t{threshold}"
                 all_results[key] = stats
                 print(f"\n  阈值={threshold}: "
@@ -2313,8 +3246,11 @@ def main():
                     fee_rate=fee_rate,
                     initial_capital=args.capital,
                     risk_pct=args.risk,
+                    market_state=ms_flag,
                 )
                 stats = engine.run(symbol, df_1m)
+                if getattr(args, 'detailed', False):
+                    stats["trades_detail"] = _serialize_trades(engine.simulator.closed_trades)
                 key = f"{symbol}_{tf}"
                 all_results[key] = stats
                 print_report(stats, f"{symbol} [{tf}]")
@@ -2331,15 +3267,18 @@ def main():
                 fee_rate=fee_rate,
                 initial_capital=args.capital,
                 risk_pct=args.risk,
+                market_state=ms_flag,
             )
             stats = engine.run(symbol, df_1m)
+            if getattr(args, 'detailed', False):
+                stats["trades_detail"] = _serialize_trades(engine.simulator.closed_trades)
             all_results[symbol] = stats
             print_report(stats, symbol)
 
     # 输出 JSON
     if args.output:
         with open(args.output, "w") as f:
-            json.dump(all_results, f, indent=2, default=str)
+            json.dump(all_results, f, indent=2, default=str, ensure_ascii=False)
         print(f"\n  结果已保存到: {args.output}")
 
     # 多币种汇总

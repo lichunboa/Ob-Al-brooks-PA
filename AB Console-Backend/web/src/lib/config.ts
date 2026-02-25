@@ -42,6 +42,13 @@ const getRuntimeExecutionUrl = () => {
   return process.env.NEXT_PUBLIC_EXECUTION_API_URL || 'http://localhost:8092';
 };
 
+const getRuntimeBacktestUrl = () => {
+  if (typeof window !== 'undefined') {
+    return '/api/backtest';
+  }
+  return process.env.NEXT_PUBLIC_BACKTEST_API_URL || 'http://localhost:8093';
+};
+
 export const config = {
   /** 后端 HTTP API 地址（浏览器走代理，SSR 直连） */
   apiUrl: getRuntimeApiUrl(),
@@ -54,6 +61,9 @@ export const config = {
 
   /** Execution Service 地址（浏览器走代理） */
   executionApiUrl: getRuntimeExecutionUrl(),
+
+  /** Backtest Service 地址（浏览器走代理） */
+  backtestApiUrl: getRuntimeBacktestUrl(),
 
   /** 默认交易对列表 */
   defaultSymbols: [

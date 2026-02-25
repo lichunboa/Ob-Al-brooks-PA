@@ -2458,6 +2458,342 @@ class StrategyDetector:
 
         return None
 
+    # === ii/ioi 压缩突破 (08C) ===
+
+    def detect_ii_breakout(self, candles: list[Candle], ema20: list[float], cycle: str, atr: float = 0.0) -> Optional[PASignal]:
+        """
+        ii/ioi 压缩突破检测 (Al Brooks 08C)
+        - ii = 连续2根内包线（小周期三角形收敛）
+        - ioi = 内包→外包→内包（压缩→试探→再压缩）
+        条件：
+        - 需要好的 Context（Bull BO后 = Flag, Trend末期 = Final Flag）
+        - 最后一根 bar 的收盘方向暗示突破方向
+        - 最佳环境: TTR / Bull-Bear Flag 中
+        """
+        if len(candles) < 6 or len(ema20) < 6:
+            return None
+
+        # 检查最近5根K线的 ii/ioi 模式
+        bars = candles[-5:]
+
+        def is_inside(child: Candle, parent: Candle) -> bool:
+            return child.high <= parent.high and child.low >= parent.low
+
+        def is_outside(child: Candle, parent: Candle) -> bool:
+            return child.high > parent.high and child.low < parent.low
+
+        pattern = None
+        pattern_bars = []
+
+        # 检测 ii (双内包): bars[-3]为母线, bars[-2]和bars[-1]连续内包
+        if is_inside(bars[-2], bars[-3]) and is_inside(bars[-1], bars[-2]):
+            pattern = "ii"
+            pattern_bars = bars[-3:]
+        # 检测 ioi (内外内): bars[-4]为起始, bars[-3]内包, bars[-2]外包, bars[-1]内包
+        elif len(bars) >= 4 and is_inside(bars[-3], bars[-4]) and is_outside(bars[-2], bars[-3]) and is_inside(bars[-1], bars[-2]):
+            pattern = "ioi"
+            pattern_bars = bars[-4:]
+        # 检测 iii (三重内包)
+        elif len(bars) >= 4 and is_inside(bars[-3], bars[-4]) and is_inside(bars[-2], bars[-3]) and is_inside(bars[-1], bars[-2]):
+            pattern = "iii"
+            pattern_bars = bars[-4:]
+
+        if not pattern:
+            return None
+
+        curr = candles[-1]
+        # 最后一根bar的收盘方向决定信号方向
+        is_bull_close = curr.close > (curr.open + curr.close) / 2 if curr.open != curr.close else curr.close > candles[-2].close
+
+        # 确定突破范围（整个 pattern 的 high/low）
+        pattern_high = max(b.high for b in pattern_bars)
+        pattern_low = min(b.low for b in pattern_bars)
+        pattern_range = pattern_high - pattern_low
+
+        # 过滤: pattern 范围太大（>3 ATR）= 不是真正的压缩
+        if atr > 0 and pattern_range > 3 * atr:
+            return None
+
+        # Context 检查: 在趋势末期 ii = Final Flag，可能反转
+        is_late_trend = cycle.startswith("趋势") and len(candles) >= 30
+        # EMA 附近增加可靠性
+        near_ema = abs(curr.close - ema20[-1]) / ema20[-1] < 0.005 if ema20[-1] > 0 else False
+
+        if is_bull_close:
+            direction = "BUY"
+            stop = pattern_low - 0.5 * atr if atr > 0 else pattern_low * 0.998
+            risk = curr.close - stop
+            target = curr.close + risk * 2.0
+            entry_trigger = pattern_high  # 突破 pattern 高点入场
+
+            # 趋势末期的 ii 可能是 Final Flag → 降低强度
+            base_strength = 78 if is_late_trend else 82
+            if near_ema:
+                base_strength += 3
+
+            return PASignal(
+                symbol=curr.symbol,
+                signal_type=f"{pattern}突破",
+                direction=direction,
+                strength=base_strength,
+                message=f"{pattern}压缩突破做多，范围{pattern_range:.1f}{'（近EMA）' if near_ema else ''}",
+                price=curr.close,
+                stop_loss=stop,
+                take_profit=target,
+                probability=0.6,
+                cycle=cycle if cycle else "压缩突破",
+                timeframe=curr.timeframe,
+                signal_bar_high=curr.high,
+                signal_bar_low=curr.low,
+                entry_trigger=entry_trigger,
+                entry_type="STOP",
+                extra={"pattern": pattern, "pattern_range": pattern_range, "near_ema": near_ema},
+            )
+        else:
+            direction = "SELL"
+            stop = pattern_high + 0.5 * atr if atr > 0 else pattern_high * 1.002
+            risk = stop - curr.close
+            target = curr.close - risk * 2.0
+            entry_trigger = pattern_low  # 突破 pattern 低点入场
+
+            base_strength = 78 if is_late_trend else 82
+            if near_ema:
+                base_strength += 3
+
+            return PASignal(
+                symbol=curr.symbol,
+                signal_type=f"{pattern}突破",
+                direction=direction,
+                strength=base_strength,
+                message=f"{pattern}压缩突破做空，范围{pattern_range:.1f}{'（近EMA）' if near_ema else ''}",
+                price=curr.close,
+                stop_loss=stop,
+                take_profit=target,
+                probability=0.6,
+                cycle=cycle if cycle else "压缩突破",
+                timeframe=curr.timeframe,
+                signal_bar_high=curr.high,
+                signal_bar_low=curr.low,
+                entry_trigger=entry_trigger,
+                entry_type="STOP",
+                extra={"pattern": pattern, "pattern_range": pattern_range, "near_ema": near_ema},
+            )
+
+    # === 缺口类型检测 (11A-11D) ===
+
+    def detect_gap_type(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[dict]:
+        """
+        缺口类型检测（11A-11D，仅作为上下文信息，不直接生成交易信号）
+        返回 dict 而非 PASignal，用于丰富其他信号的 context
+
+        检测:
+        - Micro Gap: 趋势中前后bar无overlap
+        - Exhaustion Gap: 趋势末期大K线的gap被填补
+        - Stairs Pattern: 趋势后期gap被快速关闭（趋势衰竭）
+        """
+        if len(candles) < 15:
+            return None
+
+        result = {
+            "micro_gaps_open": 0,      # 保持打开的 micro gap 数量
+            "micro_gaps_closed": 0,    # 被关闭的 micro gap 数量
+            "exhaustion_detected": False,
+            "stairs_pattern": False,
+            "gap_direction": "neutral",  # bull/bear/neutral
+        }
+
+        # 1. 检测 Micro Gap
+        for i in range(-10, -2):
+            if abs(i) >= len(candles) - 1:
+                continue
+            prev_bar = candles[i - 1]
+            curr_bar = candles[i]
+            next_bar = candles[i + 1]
+
+            # Bull micro gap: prev.high < next.low (前后bar无overlap，向上)
+            if prev_bar.high < next_bar.low and curr_bar.close > curr_bar.open:
+                # 检查是否被后续关闭
+                closed = any(c.low <= prev_bar.high for c in candles[i + 2:])
+                if closed:
+                    result["micro_gaps_closed"] += 1
+                else:
+                    result["micro_gaps_open"] += 1
+
+            # Bear micro gap: prev.low > next.high
+            elif prev_bar.low > next_bar.high and curr_bar.close < curr_bar.open:
+                closed = any(c.high >= prev_bar.low for c in candles[i + 2:])
+                if closed:
+                    result["micro_gaps_closed"] += 1
+                else:
+                    result["micro_gaps_open"] += 1
+
+        # 2. 判断 gap 方向
+        if result["micro_gaps_open"] > result["micro_gaps_closed"]:
+            # 判断多数 open gap 的方向
+            bull_count = sum(1 for c in candles[-10:] if c.close > c.open)
+            result["gap_direction"] = "bull" if bull_count > 5 else "bear"
+
+        # 3. Exhaustion Gap 检测: 趋势10+bar后出现trend中最大K线
+        bodies = [abs(c.close - c.open) for c in candles[-15:]]
+        if bodies:
+            max_body_idx = bodies.index(max(bodies))
+            # 最大K线在最近3根中 + 趋势持续10+bar
+            if max_body_idx >= 12:
+                max_bar = candles[-15 + max_body_idx]
+                # 检查是否为 climax（最大实体 + 远离EMA）
+                if len(ema20) > 0:
+                    ema_distance = abs(max_bar.close - ema20[-1]) / ema20[-1] if ema20[-1] > 0 else 0
+                    if ema_distance > 0.015 and max(bodies) > sum(bodies) / len(bodies) * 2.0:
+                        result["exhaustion_detected"] = True
+
+        # 4. Stairs Pattern: gap被快速关闭的pattern
+        if result["micro_gaps_closed"] >= 3 and result["micro_gaps_open"] <= 1:
+            result["stairs_pattern"] = True
+
+        return result if (result["micro_gaps_open"] > 0 or result["exhaustion_detected"] or result["stairs_pattern"]) else None
+
+    # === 头肩形态检测 (27A) ===
+
+    def detect_head_and_shoulders(self, candles: list[Candle], ema20: list[float], atr: float = 0.0) -> Optional[PASignal]:
+        """
+        头肩形态检测 (Al Brooks 27A: H&S = MTR 变体)
+        条件：
+        - TBTL: 5根大bar或10根小bar（在2条腿中）
+        - 头部必须超过两肩（更高高/更低低）
+        - 右肩形成时入场（非颈线突破）
+        - 只交易突破 Major Channel Trend Line 的 H&S
+        """
+        if len(candles) < 30 or len(ema20) < 30:
+            return None
+
+        lookback = candles[-30:]
+        highs = [c.high for c in lookback]
+        lows = [c.low for c in lookback]
+        curr = candles[-1]
+        prev = candles[-2]
+
+        # 头肩顶 (HST) 检测
+        # 寻找: 左肩高点 → 头部(更高) → 右肩(较低高点，当前形成)
+        head_idx = highs.index(max(highs))
+
+        # 头部不能在最近3根或最早3根
+        if head_idx < 5 or head_idx > len(lookback) - 5:
+            pass  # 跳过 HST
+        else:
+            # 左肩: 头部之前的最高点
+            left_highs = highs[:head_idx]
+            if left_highs:
+                left_shoulder_idx = left_highs.index(max(left_highs))
+                left_shoulder = left_highs[left_shoulder_idx]
+
+                # 右肩: 头部之后，当前附近的高点
+                right_highs = highs[head_idx + 1:]
+                if right_highs and len(right_highs) >= 3:
+                    right_shoulder = max(right_highs[-5:]) if len(right_highs) >= 5 else max(right_highs)
+
+                    head_high = highs[head_idx]
+
+                    # 验证: 头部 > 两肩，右肩 < 头部
+                    if head_high > left_shoulder and head_high > right_shoulder:
+                        # 右肩不能太低（至少达到头部的50%回撤以上）
+                        head_range = head_high - min(lows[head_idx - 2:head_idx + 3])
+                        if right_shoulder > head_high - head_range * 0.7:
+
+                            # TBTL 检查: 从头部到当前至少5大bar或10小bar
+                            bars_since_head = lookback[head_idx:]
+                            avg_body = sum(abs(c.close - c.open) for c in lookback) / len(lookback)
+                            big_bars = sum(1 for c in bars_since_head if abs(c.close - c.open) > avg_body * 1.5)
+                            small_bars = len(bars_since_head)
+
+                            if big_bars >= 5 or small_bars >= 10:
+                                # 当前出现空头反转bar = 右肩确认
+                                reversal = CandlePatterns.is_reversal_bar(curr, prev)
+                                if reversal == "空头反转":
+                                    stop = max(curr.high, right_shoulder) + 0.5 * atr if atr > 0 else curr.high * 1.003
+                                    risk = stop - curr.close
+                                    target = curr.close - risk * 2.5
+
+                                    return PASignal(
+                                        symbol=curr.symbol,
+                                        signal_type="头肩顶MTR",
+                                        direction="SELL",
+                                        strength=83,
+                                        message=f"头肩顶形态（MTR），右肩确认，TBTL通过（{big_bars}大bar/{small_bars}总bar）",
+                                        price=curr.close,
+                                        stop_loss=stop,
+                                        take_profit=target,
+                                        probability=0.55,
+                                        cycle="反转空",
+                                        timeframe=curr.timeframe,
+                                        signal_bar_high=curr.high,
+                                        signal_bar_low=curr.low,
+                                        entry_trigger=curr.low,
+                                        entry_type="STOP",
+                                        extra={"head": head_high, "left_shoulder": left_shoulder,
+                                               "right_shoulder": right_shoulder, "tbtl_big": big_bars},
+                                    )
+
+        # 头肩底 (HSB) 检测
+        head_low_idx = lows.index(min(lows))
+
+        if head_low_idx < 5 or head_low_idx > len(lookback) - 5:
+            return None
+
+        # 左肩: 头部之前的最低点
+        left_lows = lows[:head_low_idx]
+        if not left_lows:
+            return None
+        left_shoulder_idx = left_lows.index(min(left_lows))
+        left_shoulder_low = left_lows[left_shoulder_idx]
+
+        # 右肩: 头部之后
+        right_lows = lows[head_low_idx + 1:]
+        if not right_lows or len(right_lows) < 3:
+            return None
+        right_shoulder_low = min(right_lows[-5:]) if len(right_lows) >= 5 else min(right_lows)
+
+        head_low = lows[head_low_idx]
+
+        # 验证: 头部 < 两肩
+        if head_low < left_shoulder_low and head_low < right_shoulder_low:
+            head_range = max(highs[head_low_idx - 2:head_low_idx + 3]) - head_low
+            if right_shoulder_low < head_low + head_range * 0.7:
+
+                # TBTL 检查
+                bars_since_head = lookback[head_low_idx:]
+                avg_body = sum(abs(c.close - c.open) for c in lookback) / len(lookback)
+                big_bars = sum(1 for c in bars_since_head if abs(c.close - c.open) > avg_body * 1.5)
+                small_bars = len(bars_since_head)
+
+                if big_bars >= 5 or small_bars >= 10:
+                    reversal = CandlePatterns.is_reversal_bar(curr, prev)
+                    if reversal == "多头反转":
+                        stop = min(curr.low, right_shoulder_low) - 0.5 * atr if atr > 0 else curr.low * 0.997
+                        risk = curr.close - stop
+                        target = curr.close + risk * 2.5
+
+                        return PASignal(
+                            symbol=curr.symbol,
+                            signal_type="头肩底MTR",
+                            direction="BUY",
+                            strength=83,
+                            message=f"头肩底形态（MTR），右肩确认，TBTL通过（{big_bars}大bar/{small_bars}总bar）",
+                            price=curr.close,
+                            stop_loss=stop,
+                            take_profit=target,
+                            probability=0.55,
+                            cycle="反转多",
+                            timeframe=curr.timeframe,
+                            signal_bar_high=curr.high,
+                            signal_bar_low=curr.low,
+                            entry_trigger=curr.high,
+                            entry_type="STOP",
+                            extra={"head": head_low, "left_shoulder": left_shoulder_low,
+                                   "right_shoulder": right_shoulder_low, "tbtl_big": big_bars},
+                        )
+
+        return None
+
 
 # ============ 风控管理器 ============
 
@@ -2591,7 +2927,7 @@ class PASignalEngine(BaseEngine):
             },
             "15m": {
                 "signal_threshold": 75,
-                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形"],
+                "allowed_strategies": ["20均线缺口", "突破回调", "首次均线缺口", "双重顶底", "失败突破", "急赴磁体", "楔形顶底", "急速通道", "末端旗形", "ii突破", "头肩MTR"],
                 "cooldown_multiplier": 2.0,  # 更长冷却
             },
             "30m": {
@@ -2600,12 +2936,13 @@ class PASignalEngine(BaseEngine):
                     "20均线缺口", "突破回调", "首次均线缺口",
                     "双重顶底", "失败突破", "急赴磁体",
                     "楔形顶底", "急速通道", "末端旗形",
+                    "ii突破", "头肩MTR",
                 ],
                 "cooldown_multiplier": 3.0,
             },
             "1h": {
                 "signal_threshold": 70,
-                "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体"],
+                "allowed_strategies": ["楔形顶底", "末端旗形", "急赴磁体", "头肩MTR"],
                 "cooldown_multiplier": 4.0,
             },
         }
@@ -2745,6 +3082,11 @@ class PASignalEngine(BaseEngine):
         # 识别市场周期（返回 MarketState 对象）
         market_state = CycleIdentifier.identify(candles, ema20)
         cycle = market_state.cycle  # 向后兼容的字符串
+
+        # V5.0: 八状态分类 + 策略推荐
+        from engines.market_state_engine import classify_market_state, get_strategy_recommendation
+        v5_market_state = classify_market_state(market_state)
+        v5_recommendation = get_strategy_recommendation(v5_market_state)
 
         signals = []
 
@@ -2922,6 +3264,36 @@ class PASignalEngine(BaseEngine):
                 sig.timeframe = timeframe
                 signals.append(sig)
 
+        # ii/ioi 压缩突破: TTR/Tight Channel/Broad Channel/TR 均可
+        if not cycle.startswith("急速") and is_allowed("ii突破"):
+            sig = self.detector.detect_ii_breakout(candles, ema20, cycle, atr)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
+        # 头肩 MTR: Broad Channel / TR / 趋势末期
+        if (cycle == "区间" or ch_type == "broad" or is_allowed("头肩MTR")) and not cycle.startswith("急速"):
+            sig = self.detector.detect_head_and_shoulders(candles, ema20, atr)
+            if sig:
+                sig.timeframe = timeframe
+                signals.append(sig)
+
+        # Gap 上下文检测（enriches other signals, does not generate its own）
+        gap_ctx = self.detector.detect_gap_type(candles, ema20, atr)
+        if gap_ctx:
+            for sig in signals:
+                sig.extra["gap_context"] = gap_ctx
+                # Exhaustion gap 惩罚顺势信号
+                if gap_ctx.get("exhaustion_detected"):
+                    if (sig.direction == "BUY" and gap_ctx.get("gap_direction") == "bull") or \
+                       (sig.direction == "SELL" and gap_ctx.get("gap_direction") == "bear"):
+                        sig.strength = max(50, sig.strength - 10)
+                        sig.message = f"{sig.message} (⚠️ Exhaustion Gap)"
+                # Stairs pattern 惩罚趋势信号
+                if gap_ctx.get("stairs_pattern"):
+                    sig.strength = max(50, sig.strength - 5)
+                    sig.message = f"{sig.message} (⚠️ Stairs趋势衰竭)"
+
         # 过滤: Always In 方向 + 冷却 + 风控 + 多周期验证
         filtered = []
         cooldown_multiplier = tf_config.get("cooldown_multiplier", 1.0)
@@ -2999,6 +3371,10 @@ class PASignalEngine(BaseEngine):
                         bias_state = {"dir": sig.direction, "count": 1}
                     self.cooldowns[bias_key] = bias_state
 
+                    # V5.0: 注入市场状态到信号
+                    sig.extra['market_state'] = v5_market_state
+                    sig.extra['strategy_recommendation'] = v5_recommendation
+
                     # 记录到风控系统
                     self.risk_manager.record_signal(sig)
                     filtered.append(sig)
@@ -3048,6 +3424,9 @@ class PASignalEngine(BaseEngine):
                 probability=signal.probability,
                 cycle=signal.cycle,
                 confirmation_needed=signal.confirmation_needed,
+                # V5.0: 市场状态 + 策略推荐
+                market_state=signal.extra.get('market_state', ''),
+                strategy_recommendation=signal.extra.get('strategy_recommendation', {}),
             )
             SignalPublisher.publish(event)
         except Exception as e:

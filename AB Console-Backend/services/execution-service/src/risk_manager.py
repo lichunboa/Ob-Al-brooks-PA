@@ -1,7 +1,8 @@
 """
-风控管理器 V2.8.0
+风控管理器 V2.9.0
 
 变更:
+- V2.9.0: 移除 emergency_stop 自动触发（Agent 不需要冷静期）
 - 状态文件迁移到持久化路径
 - 新增 per-bot 日盈亏追踪
 - 新增同品种冷却期检查
@@ -15,7 +16,7 @@ from typing import Optional
 
 from .config import (
     MAX_DAILY_LOSS_USDT, MAX_POSITION_SIZE_USDT,
-    MAX_LEVERAGE, EMERGENCY_STOP,
+    MAX_LEVERAGE,
 )
 from .models import RiskStatus
 
@@ -32,7 +33,7 @@ class RiskManager:
 
     def __init__(self, state_file: Optional[Path] = None):
         self.state_file = state_file or DEFAULT_STATE_FILE
-        self.emergency_stop = EMERGENCY_STOP
+        self.emergency_stop = False  # V2.9.0: 永久禁用，Agent不需要冷静期
         self.max_daily_loss = MAX_DAILY_LOSS_USDT
         self.max_position_size = MAX_POSITION_SIZE_USDT
         self.max_leverage = MAX_LEVERAGE
@@ -62,9 +63,8 @@ class RiskManager:
                         self.bot_daily_pnl = state.get(
                             "bot_daily_pnl", {}
                         )
-                    self.emergency_stop = state.get(
-                        "emergency_stop", EMERGENCY_STOP
-                    )
+                    # V2.9.0: 忽略保存的 emergency_stop，永久禁用
+                    # self.emergency_stop = state.get("emergency_stop", False)
                     self.bot_trade_times = state.get(
                         "bot_trade_times", {}
                     )
@@ -102,8 +102,9 @@ class RiskManager:
         Args:
             daily_loss_limit: per-bot 动态日亏限（已由调用方计算好）
         """
-        if self.emergency_stop:
-            return False, "紧急停止已启用，禁止开仓"
+        # V2.9.0: emergency_stop 已永久禁用，Agent不需要冷静期
+        # if self.emergency_stop:
+        #     return False, "紧急停止已启用，禁止开仓"
 
         # 全局日亏损检查
         remaining = self.max_daily_loss + self.daily_pnl
@@ -155,11 +156,10 @@ class RiskManager:
         self._save_state()
 
         if self.daily_pnl <= -self.max_daily_loss:
-            self.emergency_stop = True
-            self._save_state()
+            # V2.9.0: 不再触发 emergency_stop，只记录警告
             logger.warning(
-                f"触发紧急停止: 每日亏损 "
-                f"${abs(self.daily_pnl)} 达到限制"
+                f"⚠️ 每日亏损 ${abs(self.daily_pnl):.2f} 超过限制 "
+                f"${self.max_daily_loss}（仅警告，不停止交易）"
             )
 
     # ===== V2.8.0 per-bot 盈亏追踪 =====
@@ -219,11 +219,10 @@ class RiskManager:
         return False, int(cooldown_sec - elapsed)
 
     def set_emergency_stop(self, enabled: bool):
-        """设置紧急停止"""
-        self.emergency_stop = enabled
-        self._save_state()
+        """设置紧急停止 — V2.9.0: 永久禁用，此方法为空操作"""
+        # V2.9.0: Agent不需要冷静期，忽略所有 emergency_stop 请求
         logger.info(
-            f"紧急停止已{'启用' if enabled else '禁用'}"
+            "emergency_stop 请求被忽略（V2.9.0 已永久禁用）"
         )
 
     def get_status(
@@ -233,9 +232,7 @@ class RiskManager:
         remaining = max(
             0, self.max_daily_loss + self.daily_pnl
         )
-        can_open = (
-            not self.emergency_stop and remaining > 0
-        )
+        can_open = remaining > 0  # V2.9.0: 不再检查 emergency_stop
 
         return RiskStatus(
             emergency_stop=self.emergency_stop,

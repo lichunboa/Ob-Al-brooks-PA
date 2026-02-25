@@ -17,6 +17,7 @@ from src.routers import (
     indicator_router,
     signal_router,
     ws_router,
+    backtest_router,
 )
 from src.routers.obsidian import router as obsidian_router
 from src.utils.errors import ErrorCode
@@ -99,6 +100,9 @@ app.include_router(futures_metrics_router, prefix="/api/futures")
 app.include_router(indicator_router, prefix="/api")
 app.include_router(signal_router, prefix="/api")
 app.include_router(ws_router)  # WebSocket 路由不需要前缀
+
+# V5.0: 回测 API (Agent 自我进化用)
+app.include_router(backtest_router, prefix="/api")
 
 # 注册 Obsidian 同步路由 (AB Console 专属)
 app.include_router(obsidian_router, prefix="/api/v1")

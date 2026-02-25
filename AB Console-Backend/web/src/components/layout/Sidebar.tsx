@@ -15,7 +15,11 @@ import {
   Receipt,
   Database,
   Wallet,
-  BarChart3
+  BarChart3,
+  FlaskConical,
+  TableProperties,
+  Shield,
+  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackendControl } from './BackendControl';
@@ -25,17 +29,46 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navItems = [
-  { href: '/', label: '仪表板', icon: LayoutDashboard },
-  { href: '/data-overview', label: '数据总览', icon: Database },
-  { href: '/execution', label: '交易执行', icon: Wallet },
-  { href: '/chart', label: 'K线图表', icon: CandlestickChart },
-  { href: '/scanner', label: '市场扫描', icon: Scan },
-  { href: '/signals', label: '信号监控', icon: Bell },
-  { href: '/strategies', label: '策略管理', icon: BookOpen },
-  { href: '/trades', label: '交易记录', icon: Receipt },
-  { href: '/vpvr', label: 'VPVR 分析', icon: BarChart3 },
-  { href: '/settings', label: '设置', icon: Settings },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: 'Obsidian',
+    items: [
+      { href: '/strategies', label: '策略管理', icon: BookOpen },
+    ],
+  },
+  {
+    title: '后端',
+    items: [
+      { href: '/', label: '仪表板', icon: LayoutDashboard },
+      { href: '/data-overview', label: '数据总览', icon: Database },
+      { href: '/chart', label: 'K线图表', icon: CandlestickChart },
+      { href: '/scanner', label: '市场扫描', icon: Scan },
+      { href: '/vpvr', label: 'VPVR 分析', icon: BarChart3 },
+      { href: '/backtest', label: '回测分析', icon: FlaskConical },
+    ],
+  },
+  {
+    title: 'Agent',
+    items: [
+      { href: '/signals', label: '信号监控', icon: Bell },
+      { href: '/execution', label: '交易总览', icon: Wallet },
+      { href: '/execution/positions', label: '持仓管理', icon: TableProperties },
+      { href: '/execution/risk', label: '风控配置', icon: Shield },
+      { href: '/execution/ops', label: '运维工具', icon: Wrench },
+      { href: '/trades', label: '交易记录', icon: Receipt },
+    ],
+  },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
@@ -45,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     <>
       {/* 移动端遮罩 */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onToggle}
         />
@@ -73,28 +106,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </button>
         </div>
 
-        {/* 导航 */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {/* 分组导航 */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.title}>
+              <div className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {group.title}
+              </div>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      )}
+                    >
+                      <Icon className="w-5 h-5" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* 设置 — 底部分隔 */}
+          <div className="border-t border-slate-800 pt-4">
+            <Link
+              href="/settings"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                pathname === '/settings'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              )}
+            >
+              <Settings className="w-5 h-5" />
+              设置
+            </Link>
+          </div>
         </nav>
 
         {/* 后端控制面板 */}
