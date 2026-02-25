@@ -14,13 +14,19 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-SL_PLACED_FILE = Path("~/.openclaw/workspace/sl_placed.json").expanduser()
+SL_PLACED_FILE = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
 
 # 默认保护性止损百分比
 DEFAULT_STOP_PCT = 0.02
 
 
 class PositionPatrol:
+
+    # V5.0: SCALP 早期止盈参数（回测验证 2026-02-21, PF 3.87）
+    # 持仓在 SCALP 时间窗口内且浮盈达标 → 提前平仓锁定利润
+    SCALP_MIN_SECS = 180    # 最少持仓 3 分钟（避免噪音）
+    SCALP_MAX_SECS = 5400   # 最多 90 分钟（覆盖 5m~30m 周期的 2-4 bars）
+    SCALP_MIN_PROFIT = 0.003  # 最低 0.3% 浮盈触发
 
     def __init__(self, executor, trading_state):
         self.executor = executor
@@ -34,6 +40,7 @@ class PositionPatrol:
         self._patrol_count: int = 0
         self._total_naked_fixed: int = 0
         self._total_expired_closed: int = 0
+        self._total_scalp_closed: int = 0
         self._total_trailing_moved: int = 0
         # 已补过止损的持仓（避免 Demo 模式下重复下单）— 持久化到文件
         self._sl_placed: dict[str, float] = self._load_sl_placed()
@@ -65,6 +72,7 @@ class PositionPatrol:
             "totals": {
                 "naked_fixed": self._total_naked_fixed,
                 "expired_closed": self._total_expired_closed,
+                "scalp_closed": self._total_scalp_closed,
                 "trailing_moved": self._total_trailing_moved,
             },
             "tracked_positions": len(self._position_first_seen),
@@ -75,7 +83,7 @@ class PositionPatrol:
     async def patrol(self) -> dict:
         """主巡检入口，返回巡检报告"""
         report = {"naked_fixed": 0, "expired_closed": 0,
-                  "trailing_moved": 0, "errors": []}
+                  "scalp_closed": 0, "trailing_moved": 0, "errors": []}
         try:
             positions = await self.executor.get_positions()
             if not positions:
@@ -176,11 +184,14 @@ class PositionPatrol:
                     self._position_first_seen[norm_sym] = datetime.now(
                         timezone.utc)
                 else:
-                    closed = await self._check_hold_timeout(
+                    exit_type = await self._check_hold_timeout(
                         pos, alloc, bot_id)
-                    if closed:
-                        report["expired_closed"] += 1
-                        continue  # 已平仓，跳过移动止损
+                    if exit_type:
+                        if exit_type == "scalp":
+                            report["scalp_closed"] += 1
+                        else:
+                            report["expired_closed"] += 1
+                        continue
 
                 # 3. 移动止损
                 if alloc and alloc.get("trailing_stop_enabled"):
@@ -199,10 +210,13 @@ class PositionPatrol:
         self._patrol_count += 1
         self._total_naked_fixed += report["naked_fixed"]
         self._total_expired_closed += report["expired_closed"]
+        self._total_scalp_closed += report["scalp_closed"]
         self._total_trailing_moved += report["trailing_moved"]
 
         if (report["naked_fixed"] or report["expired_closed"]
-                or report["trailing_moved"] or report["errors"]):
+                or report["scalp_closed"]
+                or report["trailing_moved"]
+                or report["errors"]):
             entry = {
                 "time": datetime.now(timezone.utc).isoformat(),
                 **report,
@@ -211,9 +225,10 @@ class PositionPatrol:
             if len(self._history) > 20:
                 self._history = self._history[-20:]
             logger.info(
-                f"[巡检] 裸仓修复={report['naked_fixed']} "
-                f"超时平仓={report['expired_closed']} "
-                f"移动止损={report['trailing_moved']}")
+                f"[巡检] 裸仓={report['naked_fixed']} "
+                f"超时={report['expired_closed']} "
+                f"SCALP={report['scalp_closed']} "
+                f"移损={report['trailing_moved']}")
         return report
 
     def _build_stop_order_map(
@@ -365,15 +380,15 @@ class PositionPatrol:
 
     async def _check_hold_timeout(
         self, pos, alloc, bot_id: Optional[str]
-    ) -> bool:
-        """检查持仓是否超时 (含僵尸单检测)"""
+    ) -> str:
+        """检查持仓超时/SCALP/僵尸单, 返回退出类型或空串"""
         max_hours = 48
         if alloc:
             max_hours = alloc.get("max_hold_hours", 48)
 
         first_seen = self._position_first_seen.get(pos.symbol)
         if not first_seen:
-            return False
+            return ""
 
         duration_secs = (
             datetime.now(timezone.utc) - first_seen
@@ -387,33 +402,60 @@ class PositionPatrol:
                 f"持仓 {held_hours:.1f}h > 限制 {max_hours}h")
             try:
                 await self.executor.close_position(pos.symbol)
-                return True
+                return "timeout"
             except Exception as e:
                 logger.error(
                     f"[巡检] 超时平仓失败 {pos.symbol}: {e}")
-            return False  # Failed to close
+            return ""
 
-        # 2. V3.3: 僵尸单时间止损 (Time-Based Stop)
-        # 针对 Al Brooks 剥头皮策略 (al-brooks):
-        # 1m/5m 周期如果 8 分钟 (480s) 仍未脱离成本区 (浮盈 < 0.1%)，说明动能衰竭，应"早退"
+        # 2. V5.0: SCALP 早期获利了结 (回测验证 PF 3.87)
+        # 持仓 3-90 分钟内浮盈 >= 0.3% → 提前平仓锁定利润
+        if (bot_id == "al-brooks"
+                and self.SCALP_MIN_SECS
+                <= duration_secs
+                <= self.SCALP_MAX_SECS):
+            notional = pos.quantity * pos.mark_price
+            if notional > 0:
+                pnl_pct = pos.unrealized_pnl / notional
+                if pnl_pct >= self.SCALP_MIN_PROFIT:
+                    logger.info(
+                        f"[巡检] SCALP止盈: "
+                        f"{pos.symbol} "
+                        f"{int(duration_secs/60)}min "
+                        f"+{pnl_pct*100:.2f}%"
+                    )
+                    try:
+                        await self.executor.close_position(
+                            pos.symbol)
+                        return "scalp"
+                    except Exception as e:
+                        logger.error(
+                            f"[巡检] SCALP失败 "
+                            f"{pos.symbol}: {e}")
+
+        # 3. V3.3: 僵尸单时间止损 (Time-Based Stop)
+        # 8 分钟仍未脱离成本区 → 动能衰竭
         if bot_id == "al-brooks" and duration_secs > 480:
             notional = pos.quantity * pos.mark_price
             if notional > 0:
                 pnl_pct = pos.unrealized_pnl / notional
-                # 浮盈微薄 (<0.1%) 且未触发硬止损 (>-0.5%)，属于"磨叽"行情
                 if -0.005 < pnl_pct < 0.001:
                     logger.info(
-                        f"[巡检] 时间止损(僵尸单): {pos.symbol} "
-                        f"持仓 {int(duration_secs/60)}分钟 "
-                        f"浮盈 {pnl_pct*100:.2f}% < 0.1% - 动能衰竭离场"
+                        f"[巡检] 僵尸单: "
+                        f"{pos.symbol} "
+                        f"{int(duration_secs/60)}min "
+                        f"{pnl_pct*100:.2f}%"
                     )
                     try:
-                        await self.executor.close_position(pos.symbol)
-                        return True
+                        await self.executor.close_position(
+                            pos.symbol)
+                        return "zombie"
                     except Exception as e:
-                        logger.error(f"[巡检] 时间止损失败 {pos.symbol}: {e}")
+                        logger.error(
+                            f"[巡检] 僵尸单失败 "
+                            f"{pos.symbol}: {e}")
 
-        return False
+        return ""
 
     async def _check_trailing_stop(
         self, pos, alloc, stop_orders: Optional[list]

@@ -44,6 +44,11 @@ class SignalEvent:
     cycle: str = ""
     confirmation_needed: bool = False
 
+    # V5.0: 市场状态 + 策略推荐
+    market_state: str = ""  # strong_trend_bull/bear, weak_trend_bull/bear, tight_range, broad_range, breakout_bull/bear
+    strategy_recommendation: dict[str, Any] = field(default_factory=dict)  # {recommended: [], prohibited: [], score_modifier: int}
+    route_to: str = ""  # V5.0: 后端决定路由目标 (al-brooks/trader/wyckoff)
+
     # 扩展数据
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -66,6 +71,13 @@ class SignalEvent:
             "table": self.table,
             "extra": self.extra,
         }
+        # V5.0: 市场状态 + 路由
+        if self.market_state:
+            result["market_state"] = self.market_state
+        if self.strategy_recommendation:
+            result["strategy_recommendation"] = self.strategy_recommendation
+        if self.route_to:
+            result["route_to"] = self.route_to
         # PA 信号入场字段（仅当有值时添加）
         if self.stop_loss:
             result["stop_loss"] = self.stop_loss
@@ -111,6 +123,10 @@ class SignalEvent:
             subcategory=data.get("subcategory", ""),
             table=data.get("table", ""),
             extra=data.get("extra", {}),
+            # V5.0
+            market_state=data.get("market_state", ""),
+            strategy_recommendation=data.get("strategy_recommendation", {}),
+            route_to=data.get("route_to", ""),
             # PA 信号入场字段
             stop_loss=data.get("stop_loss", 0.0),
             take_profit=data.get("take_profit", 0.0),

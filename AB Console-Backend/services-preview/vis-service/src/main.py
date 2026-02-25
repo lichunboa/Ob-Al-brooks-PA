@@ -19,7 +19,7 @@ from core.settings import get_settings
 def create_app() -> FastAPI:
     """构建 FastAPI 实例并注册路由。"""
 
-    app = FastAPI(title="TradeCat Visualization Service", version="0.1.0")
+    app = FastAPI(title="AB Console Visualization Service", version="0.1.0")
     app.include_router(router, prefix="")
 
     @app.middleware("http")

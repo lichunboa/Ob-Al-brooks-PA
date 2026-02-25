@@ -49,6 +49,10 @@ const nextConfig = {
         source: '/api/vis/:path*',
         destination: `${process.env.NEXT_PUBLIC_VIS_API_URL || 'http://localhost:8087'}/:path*`,
       },
+      {
+        source: '/api/backtest/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BACKTEST_API_URL || 'http://localhost:8093'}/:path*`,
+      },
     ];
   },
   
