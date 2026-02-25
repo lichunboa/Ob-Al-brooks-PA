@@ -32,11 +32,14 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-// ============================================================
-// 全局暂停开关 — 设为 true 时所有信号停止路由到 agent
-// 恢复时改回 false 即可
-// ============================================================
-const SIGNALS_PAUSED = true;
+// V5.0: PA 聚焦模式 — 只允许 al-brooks 交易
+// 恢复多 Agent 时改为 false
+const PA_ONLY_MODE = true;
+
+// Phase 9A: 影子模式 — pa_engine 信号只记录不触发 Agent session
+// Agent 改为自主读盘（cron 15min），pa_engine 信号作为对照组
+const SHADOW_MODE = true;
+const SHADOW_LOG_FILE = path.join(STATS_DIR, 'shadow_signals.json');
 
 // Execution Service 配置
 const EXECUTION_SERVICE_URL = 'http://localhost:8092';
@@ -50,9 +53,9 @@ const HOOK_PATHS = {
   'wyckoff': 'wyckoff-signal'
 };
 
-// 文件路径
-const WORKSPACE = '/Users/mitchellcb/.openclaw/workspace';
-const SHARED_WORKSPACE = '/Users/mitchellcb/.openclaw/workspaces/trading-shared';
+// 文件路径 — V5.0: 统一到 SHARED_WORKSPACE（旧 WORKSPACE 已弃用）
+const WORKSPACE = '/Users/mitchellcb/.openclaw/workspaces/trading-shared';
+const SHARED_WORKSPACE = WORKSPACE;
 const STATS_DIR = path.join(WORKSPACE, 'stats');
 const RULES_DIR = path.join(WORKSPACE, 'rules');
 const SYMBOL_STATS_FILE = path.join(STATS_DIR, 'symbol_stats.json');
@@ -344,7 +347,7 @@ function formatBotStatusBlock(summary) {
 - 可用资金: $${(summary.available_margin || 0).toFixed(2)} | 杠杆: ${cfg.max_leverage || 5}x | 风险: ${cfg.risk_percent || 2}%/笔
 - 持仓: ${positions.length}/${cfg.max_positions || 3} (${posStr})
 - 今日盈亏: 已实现 $${(pnl.realized || 0).toFixed(2)} + 浮动 $${(pnl.unrealized || 0).toFixed(2)} | 日亏损限额: $${cfg.daily_loss_limit || 50}
-- 允许品种: ${(cfg.allowed_symbols || ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT']).join(',')}
+- 允许品种: ${(cfg.allowed_symbols || ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','DOGEUSDT','AAVEUSDT','ADAUSDT','AVAXUSDT']).join(',')}
 - 冷却中: ${cooldownStr}`;
 
   // V3.6: 持仓详情注入 — agent 可据此执行 5.5 持仓管理规则
@@ -762,7 +765,7 @@ function routeToAlBrooks(payload, symbolStats, filterResult) {
   }
 
   // V3.1: 品种级阈值（BNBUSDT 等可独立配置更高门槛）
-  const minScoreForSymbol = getBotThresholdForSymbol('al-brooks', symbol, 'min_score', 75);
+  const minScoreForSymbol = getBotThresholdForSymbol('al-brooks', symbol, 'min_score', 55);
   if (adjustedScore < minScoreForSymbol) {
     return null;
   }
@@ -776,14 +779,14 @@ function routeToAlBrooks(payload, symbolStats, filterResult) {
     ? '🟢 交易开关: 已开启'
     : `🔴 交易开关: ${tradingCheck.reason}`;
 
-  const tradeScoreForSymbol = getBotThresholdForSymbol('al-brooks', symbol, 'trade_score', 80);
+  const tradeScoreForSymbol = getBotThresholdForSymbol('al-brooks', symbol, 'trade_score', 70);
   const executionInstruction = canExecuteTrade && adjustedScore >= tradeScoreForSymbol
     ? `\n⚡ **必须执行**: 评分 >= ${tradeScoreForSymbol} 且交易开关已开启，你 **必须** 使用 exec 工具执行 curl 命令向 ${EXECUTION_SERVICE_URL}/order 下单！先调用 /trading/calculate-size/al-brooks 计算仓位，再 POST /order 下单。下单后将 order_id 写入笔记和 active_trades。`
     : '';
 
   const message = `
 🦁 **PA信号** [${timeStr}] ${symbol} ${payload.direction} ${payload.strength}%→${adjustedScore}
-周期: ${payload.timeframe || '5m'} | 价格: ${payload.price > 0 ? '$' + payload.price.toLocaleString() : 'API获取'}
+周期: ${payload.timeframe || '15m'} | 价格: ${payload.price > 0 ? '$' + payload.price.toLocaleString() : 'API获取'}
 统计: 权重${weight} 活跃${filterResult.activeTrades}笔 连败${stats.today?.consecutive_losses || 0}
 ${reasons.length > 0 ? '调整: ' + reasons.join('; ') : ''}
 
@@ -795,7 +798,7 @@ ${tradingStatusLine}${executionInstruction}
 ⚠️ 文件名: ${datePrefix}_${timeStr.replace(':', '')}_模拟_${symbol}.md
 ⚠️ 止损: 如信号无SL/TP，自算（做多SL=入场×0.985, TP=入场+(入场-SL)×2）
 ⚠️ 正文最短，只要 frontmatter + 3行摘要
-⛔ **笔记门禁**: 评分 < 80 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
+⛔ **笔记门禁**: 评分 < 70 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
 `;
 
   return {
@@ -870,7 +873,7 @@ ${tradingStatusLine}${executionInstruction}
 ⚠️ 笔记绝对路径: ${notePath}
 ⚠️ 文件名: ${datePrefix}_${timeStr.replace(':', '')}_威科夫_${symbol}.md
 ⚠️ 正文最短，只要 frontmatter + 3行摘要
-⛔ **笔记门禁**: 评分 < 80 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
+⛔ **笔记门禁**: 评分 < 70 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
 `;
 
   return {
@@ -944,7 +947,7 @@ ${tradingStatusLine}${executionInstruction}
 ⚠️ 文件名: ${datePrefix}_${timeStr.replace(':', '')}_量化_${symbol}.md
 ⚠️ 正文最短，只要 frontmatter + 3行摘要
 ⚠️ active_trades.json: 先读后追加，禁止覆盖
-⛔ **笔记门禁**: 评分 < 80 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
+⛔ **笔记门禁**: 评分 < 70 或 can_trade=false 时，**禁止创建 .md 文件**，仅 Discord 一行摘要
 `;
 
   return {
@@ -979,10 +982,18 @@ ${tradingStatusLine}${executionInstruction}
 module.exports = function transform(ctx) {
   const payload = ctx.payload;
 
-  // 全局暂停检查
-  if (SIGNALS_PAUSED) {
-    console.log(`[Router] PAUSED — ${payload.symbol || 'unknown'} 信号已丢弃`);
-    return null;
+  // V5.0: PA 聚焦模式检查
+  if (PA_ONLY_MODE) {
+    const source = payload.source || '';
+    const category = payload.category || '';
+    const PA_CATEGORIES = ['pattern', 'core'];
+    const isPASignal = ['pa_engine', 'pa'].includes(source) ||
+                       PA_CATEGORIES.includes(category) ||
+                       (payload.entry_trigger && payload.entry_trigger > 0);
+    if (!isPASignal) {
+      console.log(`[Router] PA_ONLY: ${payload.symbol} source=${source} cat=${category} → 非PA信号，丢弃`);
+      return null;
+    }
   }
 
   // 验证必要字段
@@ -1034,18 +1045,10 @@ module.exports = function transform(ctx) {
     }
   }
 
-  // V3.9.3: 强信号(>=80)多路由到所有 agent（补充 MULTI_ROUTE_RULES 之外的目标）
-  if (!payload._secondary && payload.strength >= 80 && payload.direction) {
-    const ALL_BOTS = ['al-brooks', 'trader', 'wyckoff'];
-    const alreadyRouted = new Set(multiTargets || [routeTarget]);
-    alreadyRouted.add(routeTarget); // 确保主目标在集合中
-    for (const bot of ALL_BOTS) {
-      if (!alreadyRouted.has(bot) && !isDuplicateSignal(payload, bot)) {
-        console.log(`[Router] Strong signal (strength=${payload.strength}) → secondary ${bot}`);
-        triggerSecondaryAgent(bot, payload);
-      }
-    }
-  }
+  // V5.0: 移除 V3.9.3 强信号全路由逻辑（这是信号重叠 ~80% 的根因）
+  // 路由由后端 determine_route_targets() 基于 source + category 精确决定
+  // 后端通过 route_to 字段指定目标，signal-router 直接使用
+  // 保留 MULTI_ROUTE_RULES 仅限真正跨域信号（头肩=PA+Wyckoff, CHoCH=PA+Quant）
 
   // 信号去重检查（15 分钟内相同信号跳过）
   if (isDuplicateSignal(payload, routeTarget)) {
@@ -1116,6 +1119,27 @@ module.exports = function transform(ctx) {
       console.log('[Router] Signal filtered out after score adjustment');
       return null;
     }
+
+    // Phase 9A: SHADOW_MODE — 记录信号但不触发 Agent session
+    if (SHADOW_MODE) {
+      const shadowLog = readJsonSafe(SHADOW_LOG_FILE, { signals: [] });
+      shadowLog.signals.push({
+        timestamp: Date.now(),
+        time: getBeijingTimeStr(),
+        symbol: payload.symbol,
+        direction: payload.direction,
+        strategy: payload.strategy || payload.rule_name || 'unknown',
+        score: payload.strength || 0,
+        would_execute: result !== null
+      });
+      if (shadowLog.signals.length > 500) {
+        shadowLog.signals = shadowLog.signals.slice(-500);
+      }
+      writeJsonSafe(SHADOW_LOG_FILE, shadowLog);
+      console.log(`[Router] SHADOW_MODE: ${payload.symbol} ${payload.direction} logged, NOT triggering agent`);
+      return null;
+    }
+
     recordSessionCreated();
     const alSummary = getBotSummary('al-brooks');
     return applyTurnsOptimization(result, alSummary?.can_trade);
@@ -1147,6 +1171,27 @@ module.exports = function transform(ctx) {
   }
   const result = routeToAlBrooks(payload, symbolStats, filterResult);
   if (!result) return null;
+
+  // Phase 9A: SHADOW_MODE — 默认路由也走影子模式
+  if (SHADOW_MODE) {
+    const shadowLog = readJsonSafe(SHADOW_LOG_FILE, { signals: [] });
+    shadowLog.signals.push({
+      timestamp: Date.now(),
+      time: getBeijingTimeStr(),
+      symbol: payload.symbol,
+      direction: payload.direction,
+      strategy: payload.strategy || payload.rule_name || 'unknown',
+      score: payload.strength || 0,
+      would_execute: true
+    });
+    if (shadowLog.signals.length > 500) {
+      shadowLog.signals = shadowLog.signals.slice(-500);
+    }
+    writeJsonSafe(SHADOW_LOG_FILE, shadowLog);
+    console.log(`[Router] SHADOW_MODE (default route): ${payload.symbol} logged, NOT triggering agent`);
+    return null;
+  }
+
   recordSessionCreated();
   const defaultSummary = getBotSummary('al-brooks');
   return applyTurnsOptimization(result, defaultSummary?.can_trade);
