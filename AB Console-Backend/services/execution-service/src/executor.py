@@ -543,7 +543,8 @@ class BinanceExecutor:
         position_size = request.quantity * (request.price or 0)  # 估算仓位大小
 
         # V3.2→V3.9: 跨品种相关性检查 — per-bot 独立（每个 bot 只看自己的持仓）
-        if not request.reduce_only:
+        # Claude PA (独立交易员) 不受相关性风控限制
+        if not request.reduce_only and request.signal_source != "claude-pa":
             bal_res = await self.get_balance()
             total_bal = bal_res[0].balance if bal_res else 0
 
@@ -585,11 +586,12 @@ class BinanceExecutor:
                     message=f"相关性风控拒绝: {msg_exp}",
                 )
 
+        # Claude PA (独立交易员) 跳过所有风控检查
         ok, msg = self.risk_manager.check_can_open(
             position_size, len(positions), max_positions=max_positions,
             daily_loss_limit=daily_loss_limit, bot_id=bot_id or request.bot_id or "",
         )
-        if not ok and not request.reduce_only:
+        if not ok and not request.reduce_only and request.signal_source != "claude-pa":
             return OrderResponse(
                 success=False,
                 symbol=symbol,

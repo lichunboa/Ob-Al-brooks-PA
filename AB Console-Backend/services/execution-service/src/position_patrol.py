@@ -22,11 +22,13 @@ DEFAULT_STOP_PCT = 0.02
 
 class PositionPatrol:
 
-    # V5.0: SCALP 早期止盈参数（回测验证 2026-02-21, PF 3.87）
-    # 持仓在 SCALP 时间窗口内且浮盈达标 → 提前平仓锁定利润
-    SCALP_MIN_SECS = 180    # 最少持仓 3 分钟（避免噪音）
-    SCALP_MAX_SECS = 5400   # 最多 90 分钟（覆盖 5m~30m 周期的 2-4 bars）
-    SCALP_MIN_PROFIT = 0.003  # 最低 0.3% 浮盈触发
+    # V5.7: SCALP 早期止盈参数（2026-02-26 调整）
+    # 实盘发现: 0.3% 太早，SOL +1.04% 在 4 分钟被平，手续费吞 97% 利润
+    # AB 原则 (stops-risk-scaling.md 2.4): 基于 premise 退出，不是基于时间/固定%
+    # 调整: 给交易更多运行空间，至少等 1 根 15m K 线
+    SCALP_MIN_SECS = 600     # 最少 10 分钟（~1 根 15m K 线，原 3 分钟太短）
+    SCALP_MAX_SECS = 5400    # 最多 90 分钟
+    SCALP_MIN_PROFIT = 0.005  # 最低 0.5% 浮盈触发（原 0.3%，覆盖手续费+保留利润）
 
     def __init__(self, executor, trading_state):
         self.executor = executor
@@ -408,52 +410,15 @@ class PositionPatrol:
                     f"[巡检] 超时平仓失败 {pos.symbol}: {e}")
             return ""
 
-        # 2. V5.0: SCALP 早期获利了结 (回测验证 PF 3.87)
-        # 持仓 3-90 分钟内浮盈 >= 0.3% → 提前平仓锁定利润
-        if (bot_id == "al-brooks"
-                and self.SCALP_MIN_SECS
-                <= duration_secs
-                <= self.SCALP_MAX_SECS):
-            notional = pos.quantity * pos.mark_price
-            if notional > 0:
-                pnl_pct = pos.unrealized_pnl / notional
-                if pnl_pct >= self.SCALP_MIN_PROFIT:
-                    logger.info(
-                        f"[巡检] SCALP止盈: "
-                        f"{pos.symbol} "
-                        f"{int(duration_secs/60)}min "
-                        f"+{pnl_pct*100:.2f}%"
-                    )
-                    try:
-                        await self.executor.close_position(
-                            pos.symbol)
-                        return "scalp"
-                    except Exception as e:
-                        logger.error(
-                            f"[巡检] SCALP失败 "
-                            f"{pos.symbol}: {e}")
-
-        # 3. V3.3: 僵尸单时间止损 (Time-Based Stop)
-        # 8 分钟仍未脱离成本区 → 动能衰竭
-        if bot_id == "al-brooks" and duration_secs > 480:
-            notional = pos.quantity * pos.mark_price
-            if notional > 0:
-                pnl_pct = pos.unrealized_pnl / notional
-                if -0.005 < pnl_pct < 0.001:
-                    logger.info(
-                        f"[巡检] 僵尸单: "
-                        f"{pos.symbol} "
-                        f"{int(duration_secs/60)}min "
-                        f"{pnl_pct*100:.2f}%"
-                    )
-                    try:
-                        await self.executor.close_position(
-                            pos.symbol)
-                        return "zombie"
-                    except Exception as e:
-                        logger.error(
-                            f"[巡检] 僵尸单失败 "
-                            f"{pos.symbol}: {e}")
+        # 2. SCALP/ZOMBIE — V5.8 已禁用
+        # 原因: AB 从不用时间判断出场 (stops-risk-scaling.md 2.4)
+        # 出场决策由 Agent 15min PA 巡检执行（基于价格行为结构）
+        # 代码层只保留: 止损保护 + trailing stop + 日亏损限额 + 硬性最大持仓时间
+        #
+        # 旧逻辑（保留参考）:
+        # - SCALP: 10min-90min 内浮盈>=0.5% 自动平仓 → 问题: 切断好交易利润
+        # - ZOMBIE: >20min 且近盈亏平衡 → 问题: 正常回调被误杀
+        # 现在这两种情况由 Agent 巡检 cron (每15min) 用 PA 分析决策
 
         return ""
 

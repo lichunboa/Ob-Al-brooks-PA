@@ -20,6 +20,7 @@ import {
   TableProperties,
   Shield,
   Wrench,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BackendControl } from './BackendControl';
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
       { href: '/execution/positions', label: '持仓管理', icon: TableProperties },
       { href: '/execution/risk', label: '风控配置', icon: Shield },
       { href: '/execution/ops', label: '运维工具', icon: Wrench },
+      { href: '/pa-bot', label: 'PA Bot', icon: Bot },
       { href: '/trades', label: '交易记录', icon: Receipt },
     ],
   },

@@ -44,6 +44,11 @@ class DataLoader:
             if cache_path.exists():
                 print(f"  从缓存加载: {cache_path}")
                 df = pd.read_parquet(cache_path)
+                # 兼容旧缓存列名 (open_time → timestamp)
+                if "open_time" in df.columns and "timestamp" not in df.columns:
+                    df = df.rename(columns={"open_time": "timestamp"})
+                if df["timestamp"].dt.tz is not None:
+                    df["timestamp"] = df["timestamp"].dt.tz_localize(None)
                 print(f"  {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
                 return df
 

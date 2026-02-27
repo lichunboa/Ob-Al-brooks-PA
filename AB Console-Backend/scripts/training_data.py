@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-读盘训练营 — 场景数据生成器
+读盘训练营 — 场景数据生成器 V6（知识驱动）
 
 从历史 Parquet 数据中抽取训练场景，每组包含:
   可见部分: 50×15m + 30×1h + 20×4h（Agent 分析用）
   结果部分: 20×15m（后续走势揭晓）
   自动标注: 市场状态 / 背景 / 实际方向 / 变化%
+  技能标签: tested_skills（基于 knowledge_taxonomy.json 自动映射）
+
+V6 新增:
+  - 概念驱动抽样: 确保每技能 ≥ min_per_skill 场景覆盖
+  - 场景技能标签: 每个场景标记考察的技能
+  - --taxonomy 参数指定技能分类文件
 
 用法:
-    python scripts/training_data.py                        # 默认 50 组
-    python scripts/training_data.py --count 10 --seed 99   # 10 组, 指定 seed
-    python scripts/training_data.py --output /tmp/t.json   # 自定义输出
+    python scripts/training_data.py --count 200 --output data/training/scenes_v6.json
+    python scripts/training_data.py --count 10 --seed 99 --output /tmp/test.json
 """
 
 import argparse
@@ -40,7 +45,8 @@ from backtest_tool import CycleIdentifier, calculate_ema, Candle
 # 配置
 # ============================================================
 
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
+           "DOGEUSDT", "AAVEUSDT", "ADAUSDT", "AVAXUSDT"]
 CACHE_DIR = str(PROJECT_ROOT / "data" / "backtest_cache")
 
 # 每个场景的 K 线数量
@@ -56,19 +62,36 @@ STEP_15M = 16
 DATE_RANGES = {
     "BTCUSDT": [
         ("2020-01-01", "2021-11-10", "牛市"),      # 已缓存
-        ("2022-01-01", "2022-12-31", "熊市"),      # 已缓存
+        ("2022-01-01", "2022-12-31", "熊市"),      # 已缓存 (open_time列, data_loader已兼容)
         ("2025-10-15", "2026-02-15", "近期"),      # 已缓存
     ],
     "ETHUSDT": [
         ("2020-01-01", "2021-11-10", "牛市"),      # 已缓存
-        ("2022-01-01", "2022-07-01", "熊市"),      # 新增: ETH 熊市 (回测已有数据)
+        ("2021-10-03", "2022-07-01", "熊市"),      # 匹配缓存: ETHUSDT_2021-10-03_2022-07-01
     ],
     "SOLUSDT": [
-        ("2025-01-01", "2026-02-15", "全段"),
+        ("2024-10-03", "2026-01-01", "全段"),      # 匹配缓存: SOLUSDT_2024-10-03_2026-01-01
     ],
     "BNBUSDT": [
-        ("2024-10-01", "2025-06-01", "牛市"),      # 新增: BNB 牛市 (回测最强品种)
-        ("2022-01-01", "2022-07-01", "熊市"),      # 新增: BNB 熊市 (15m/30m +79%)
+        ("2024-07-03", "2025-06-01", "牛市"),      # 匹配缓存: BNBUSDT_2024-07-03_2025-06-01
+        ("2021-10-03", "2022-07-01", "熊市"),      # 匹配缓存: BNBUSDT_2021-10-03_2022-07-01
+    ],
+    "DOGEUSDT": [
+        ("2020-12-01", "2021-06-01", "牛市"),      # 匹配缓存
+        ("2021-04-02", "2021-11-01", "回调"),      # 匹配缓存
+        ("2025-08-29", "2026-02-25", "近期"),      # Binance API 下载
+    ],
+    "AAVEUSDT": [
+        ("2020-12-01", "2021-06-01", "牛市"),      # 匹配缓存
+        ("2025-08-29", "2026-02-25", "近期"),      # Binance API 下载
+    ],
+    "ADAUSDT": [
+        ("2020-12-01", "2021-09-01", "牛市"),      # 匹配缓存
+        ("2025-08-29", "2026-02-25", "近期"),      # Binance API 下载
+    ],
+    "AVAXUSDT": [
+        ("2021-04-02", "2021-11-01", "牛市"),      # 匹配缓存
+        ("2025-08-29", "2026-02-25", "近期"),      # Binance API 下载
     ],
 }
 
@@ -238,8 +261,122 @@ def extract_all_windows(symbol: str, date_ranges: list) -> list[dict]:
     return windows
 
 
+def load_taxonomy(taxonomy_path: str) -> dict:
+    """加载知识技能分类文件"""
+    if not os.path.exists(taxonomy_path):
+        print(f"  警告: 技能分类文件不存在 {taxonomy_path}, 使用空映射")
+        return {"skills": [], "state_to_skills": {}}
+    with open(taxonomy_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def tag_skills(window: dict, state_to_skills: dict) -> list[str]:
+    """基于市场状态给场景打技能标签"""
+    state = window["labels"]["market_state"]
+    return state_to_skills.get(state, [])
+
+
+def concept_driven_sample(
+    all_windows: list[dict],
+    count: int,
+    seed: int,
+    taxonomy: dict,
+    min_per_skill: int = 5,
+) -> list[dict]:
+    """概念驱动抽样 — 确保每技能 ≥ min_per_skill 场景覆盖"""
+    rng = random.Random(seed)
+    state_to_skills = taxonomy.get("state_to_skills", {})
+    skill_ids = [s["id"] for s in taxonomy.get("skills", [])]
+
+    # 按市场状态分桶
+    buckets: dict[str, list[dict]] = {}
+    for w in all_windows:
+        key = w["labels"]["market_state"]
+        buckets.setdefault(key, []).append(w)
+
+    print(f"\n  市场状态分布 (窗口池):")
+    for k, v in sorted(buckets.items(), key=lambda x: -len(x[1])):
+        print(f"    {k}: {len(v)} 个窗口")
+
+    # Phase 1: 确保每技能 ≥ min_per_skill 场景覆盖
+    selected = []
+    selected_ids = set()  # 用 cut_time+symbol 去重
+    skill_coverage: dict[str, int] = {sid: 0 for sid in skill_ids}
+
+    # 先找出哪些技能由哪些市场状态提供
+    skill_to_states: dict[str, list[str]] = {}
+    for state, skills in state_to_skills.items():
+        for sid in skills:
+            skill_to_states.setdefault(sid, []).append(state)
+
+    # 优先填充稀缺技能（覆盖状态最少的技能优先）
+    sorted_skills = sorted(skill_ids, key=lambda s: len(skill_to_states.get(s, [])))
+
+    for sid in sorted_skills:
+        states = skill_to_states.get(sid, [])
+        needed = min_per_skill - skill_coverage.get(sid, 0)
+        if needed <= 0:
+            continue
+
+        # 从对应状态的窗口池中抽取
+        candidates = []
+        for state in states:
+            for w in buckets.get(state, []):
+                wid = f"{w['symbol']}_{w['cut_time']}"
+                if wid not in selected_ids:
+                    candidates.append(w)
+
+        rng.shuffle(candidates)
+        for w in candidates[:needed]:
+            wid = f"{w['symbol']}_{w['cut_time']}"
+            selected_ids.add(wid)
+            w_skills = tag_skills(w, state_to_skills)
+            w["tested_skills"] = w_skills
+            selected.append(w)
+            for s in w_skills:
+                skill_coverage[s] = skill_coverage.get(s, 0) + 1
+
+    print(f"\n  Phase 1 (技能覆盖): 选中 {len(selected)} 个场景")
+
+    # Phase 2: 补充到 count，按比例分配
+    remaining = count - len(selected)
+    if remaining > 0:
+        unused = []
+        for w in all_windows:
+            wid = f"{w['symbol']}_{w['cut_time']}"
+            if wid not in selected_ids:
+                unused.append(w)
+        rng.shuffle(unused)
+        for w in unused[:remaining]:
+            w_skills = tag_skills(w, state_to_skills)
+            w["tested_skills"] = w_skills
+            selected.append(w)
+            for s in w_skills:
+                skill_coverage[s] = skill_coverage.get(s, 0) + 1
+
+    # 技能覆盖统计
+    print(f"\n  技能覆盖统计:")
+    uncovered = []
+    for sid in skill_ids:
+        cnt = skill_coverage.get(sid, 0)
+        skill_name = next((s["name"] for s in taxonomy["skills"] if s["id"] == sid), sid)
+        if cnt < min_per_skill:
+            uncovered.append(f"    ⚠️  {skill_name}: {cnt}/{min_per_skill}")
+        else:
+            print(f"    ✅ {skill_name}: {cnt}")
+    for msg in uncovered:
+        print(msg)
+
+    # 按时间排序 + 编号
+    selected.sort(key=lambda w: w["cut_time"])
+    for i, w in enumerate(selected):
+        w["id"] = f"S{i + 1:03d}"
+
+    return selected[:count]
+
+
 def stratified_sample(all_windows: list[dict], count: int, seed: int) -> list[dict]:
-    """分层抽样 — 按市场状态分桶，均匀抽取"""
+    """分层抽样 — 按市场状态分桶，均匀抽取 (V5 兼容)"""
     rng = random.Random(seed)
 
     # 按市场状态分桶
@@ -292,21 +429,34 @@ def stratified_sample(all_windows: list[dict], count: int, seed: int) -> list[di
 # ============================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="读盘训练营 — 场景数据生成")
-    parser.add_argument("--count", type=int, default=50, help="场景数量 (默认 50)")
+    parser = argparse.ArgumentParser(description="读盘训练营 — 场景数据生成 V6")
+    parser.add_argument("--count", type=int, default=200, help="场景数量 (默认 200)")
     parser.add_argument("--seed", type=int, default=42, help="随机种子 (默认 42)")
     parser.add_argument("--output", type=str, default=None, help="输出文件路径")
     parser.add_argument("--symbols", nargs="+", default=SYMBOLS, help="品种列表")
+    parser.add_argument("--taxonomy", type=str,
+                        default=str(PROJECT_ROOT / "data" / "training" / "knowledge_taxonomy.json"),
+                        help="技能分类文件")
+    parser.add_argument("--min-per-skill", type=int, default=5,
+                        help="每技能最少场景数 (默认 5)")
+    parser.add_argument("--legacy", action="store_true",
+                        help="使用 V5 分层抽样 (不使用概念驱动)")
     args = parser.parse_args()
 
-    output_path = args.output or str(PROJECT_ROOT / "data" / "training" / "scenes.json")
+    output_path = args.output or str(PROJECT_ROOT / "data" / "training" / "scenes_v6.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+    taxonomy = load_taxonomy(args.taxonomy) if not args.legacy else {}
+    mode = "V5 分层抽样" if args.legacy else "V6 概念驱动"
+
     print(f"=" * 60)
-    print(f"读盘训练营 — 场景生成")
+    print(f"读盘训练营 — 场景生成 ({mode})")
     print(f"  品种: {args.symbols}")
     print(f"  目标: {args.count} 组场景")
     print(f"  种子: {args.seed}")
+    if not args.legacy:
+        print(f"  技能: {len(taxonomy.get('skills', []))} 个")
+        print(f"  每技能最少: {args.min_per_skill} 场景")
     print(f"  输出: {output_path}")
     print(f"=" * 60)
 
@@ -326,8 +476,13 @@ def main():
         print("  错误: 无可用窗口!")
         sys.exit(1)
 
-    # 分层抽样
-    scenes = stratified_sample(all_windows, args.count, args.seed)
+    # 抽样
+    if args.legacy:
+        scenes = stratified_sample(all_windows, args.count, args.seed)
+    else:
+        scenes = concept_driven_sample(
+            all_windows, args.count, args.seed, taxonomy, args.min_per_skill
+        )
     print(f"\n  抽样完成: {len(scenes)} 组场景")
 
     # 统计摘要

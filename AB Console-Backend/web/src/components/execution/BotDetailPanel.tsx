@@ -1,54 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Activity, TrendingUp, TrendingDown, Clock, Shield, RefreshCw, DollarSign } from 'lucide-react';
+import { Activity, TrendingUp, Clock, Shield, DollarSign } from 'lucide-react';
 import type { BotSummary, EvolutionSummary } from '@/lib/executionApi';
-import { getBotSummary, getEvolutionSummary } from '@/lib/executionApi';
+import { getBotConfig } from '@/lib/botConfig';
 
 interface BotDetailPanelProps {
   botId: string;
-  onClose?: () => void;
+  summary: BotSummary | null;
+  evolution: EvolutionSummary | null;
 }
 
-const BOT_EMOJIS: Record<string, string> = {
-  'al-brooks': '🦁',
-  trader: '📊',
-  wyckoff: '🔮',
-};
-
-export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
-  const [summary, setSummary] = useState<BotSummary | null>(null);
-  const [evolution, setEvolution] = useState<EvolutionSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [s, e] = await Promise.all([
-      getBotSummary(botId),
-      getEvolutionSummary(botId),
-    ]);
-    setSummary(s);
-    setEvolution(e);
-    setLoading(false);
-  }, [botId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (loading) {
-    return (
-      <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 animate-pulse">
-        <div className="h-4 bg-slate-700 rounded w-1/3 mb-3" />
-        <div className="h-20 bg-slate-700 rounded" />
-      </div>
-    );
-  }
+export function BotDetailPanel({ botId, summary, evolution }: BotDetailPanelProps) {
+  const bot = getBotConfig(botId);
 
   if (!summary) {
     return (
       <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4">
-        <p className="text-slate-400 text-sm">无法加载 {botId} 状态</p>
+        <p className="text-slate-400 text-sm">{bot?.emoji} {botId} 加载中...</p>
       </div>
     );
   }
@@ -56,22 +24,16 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
   return (
     <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{BOT_EMOJIS[botId]}</span>
-          <h4 className="text-white font-medium">{summary.config.name} 详情</h4>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            summary.can_trade
-              ? 'bg-green-900/30 text-green-400'
-              : 'bg-red-900/30 text-red-400'
-          }`}>
-            {summary.can_trade ? '可交易' : '已停止'}
-          </span>
-        </div>
-        <button onClick={load} disabled={loading} className="text-slate-400 hover:text-white text-sm flex items-center gap-1">
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          刷新
-        </button>
+      <div className="flex items-center gap-2">
+        <span className="text-xl">{bot?.emoji}</span>
+        <h4 className="text-white font-medium">{summary.config.name} 详情</h4>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${
+          summary.can_trade
+            ? 'bg-green-900/30 text-green-400'
+            : 'bg-red-900/30 text-red-400'
+        }`}>
+          {summary.can_trade ? '可交易' : '已停止'}
+        </span>
       </div>
 
       {/* Stats Grid */}
@@ -159,6 +121,7 @@ export function BotDetailPanel({ botId, onClose }: BotDetailPanelProps) {
           </div>
         </div>
       )}
+
       {/* Evolution Summary */}
       {evolution && (
         <div>
@@ -213,7 +176,7 @@ function StatCard({
 }) {
   return (
     <div className="bg-slate-900/50 rounded px-3 py-2">
-      <div className={`flex items-center gap-1 text-xs text-slate-400 mb-1`}>
+      <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
         {icon}
         {label}
       </div>

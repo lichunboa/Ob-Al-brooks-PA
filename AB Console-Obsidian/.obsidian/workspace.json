@@ -20,8 +20,19 @@
               "icon": "lucide-file",
               "title": "260211_1854_量化_SOLUSDT"
             }
+          },
+          {
+            "id": "b5527997fda5b238",
+            "type": "leaf",
+            "state": {
+              "type": "journalit-home-view",
+              "state": {},
+              "icon": "circle-dot-dashed",
+              "title": "Journalit"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -75,7 +86,7 @@
             }
           },
           {
-            "id": "afd3afa42d5b75de",
+            "id": "6ec8c7593adf9664",
             "type": "leaf",
             "state": {
               "type": "mk-path-view",
