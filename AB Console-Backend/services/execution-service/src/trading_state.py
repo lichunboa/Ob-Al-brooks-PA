@@ -25,7 +25,7 @@ STATE_FILE = Path.home() / ".openclaw" / "workspace" / "trading_state.json"
 # V5.0: PA 聚焦模式 — 只允许 al-brooks 交易，其他 Agent 暂停
 # 恢复多 Agent 时改为 False
 PA_ONLY_MODE = True
-PA_ONLY_BOTS = {"al-brooks"}
+PA_ONLY_BOTS = {"al-brooks", "claude-pa"}
 
 
 @dataclass

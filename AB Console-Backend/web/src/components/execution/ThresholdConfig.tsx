@@ -2,37 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Sliders, Save, RefreshCw } from 'lucide-react';
-
-interface BotThreshold {
-  min_score: number;
-  trade_score: number;
-}
-
-interface Thresholds {
-  min_strength: number;
-  bot_thresholds: {
-    'al-brooks': BotThreshold;
-    trader: BotThreshold;
-    wyckoff: BotThreshold;
-  };
-  updated_at?: string;
-}
+import { getThresholds, updateThresholds } from '@/lib/executionApi';
+import type { Thresholds } from '@/lib/executionApi';
+import { botConfig, type BotId } from '@/lib/botConfig';
 
 interface ThresholdConfigProps {
   isLoading?: boolean;
 }
-
-const BOT_NAMES: Record<string, string> = {
-  'al-brooks': 'PA交易',
-  trader: '量化分析师',
-  wyckoff: '威科夫大师',
-};
-
-const BOT_EMOJIS: Record<string, string> = {
-  'al-brooks': '🦁',
-  trader: '📊',
-  wyckoff: '🔮',
-};
 
 export function ThresholdConfig({ isLoading: parentLoading }: ThresholdConfigProps) {
   const [thresholds, setThresholds] = useState<Thresholds | null>(null);
@@ -44,9 +20,8 @@ export function ThresholdConfig({ isLoading: parentLoading }: ThresholdConfigPro
   const fetchThresholds = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:8092/thresholds');
-      if (res.ok) {
-        const data = await res.json();
+      const data = await getThresholds();
+      if (data) {
         setThresholds(data);
         setEditedThresholds(data);
       }
@@ -68,31 +43,21 @@ export function ThresholdConfig({ isLoading: parentLoading }: ThresholdConfigPro
     setMessage(null);
 
     try {
-      // 保存全局阈值
-      await fetch('http://localhost:8092/thresholds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ min_strength: editedThresholds.min_strength }),
-      });
+      await updateThresholds({ min_strength: editedThresholds.min_strength });
 
-      // 保存各机器人阈值
-      for (const botId of Object.keys(editedThresholds.bot_thresholds) as Array<keyof typeof editedThresholds.bot_thresholds>) {
+      for (const botId of Object.keys(editedThresholds.bot_thresholds)) {
         const botThreshold = editedThresholds.bot_thresholds[botId];
-        await fetch('http://localhost:8092/thresholds', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bot_id: botId,
-            min_score: botThreshold.min_score,
-            trade_score: botThreshold.trade_score,
-          }),
+        await updateThresholds({
+          bot_id: botId,
+          min_score: botThreshold.min_score,
+          trade_score: botThreshold.trade_score,
         });
       }
 
       setMessage({ type: 'success', text: '阈值已保存' });
       setThresholds(editedThresholds);
       setTimeout(() => setMessage(null), 3000);
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: '保存失败' });
     } finally {
       setIsSaving(false);
@@ -193,16 +158,17 @@ export function ThresholdConfig({ isLoading: parentLoading }: ThresholdConfigPro
       {/* 各机器人阈值 */}
       <div className="space-y-4">
         <h4 className="text-sm font-medium text-slate-300">机器人阈值</h4>
-        {(Object.keys(editedThresholds.bot_thresholds) as Array<keyof typeof editedThresholds.bot_thresholds>).map((botId) => {
+        {Object.keys(editedThresholds.bot_thresholds).map((botId) => {
           const botThreshold = editedThresholds.bot_thresholds[botId];
+          const bot = botConfig[botId as BotId];
           return (
             <div
               key={botId}
               className="bg-slate-800/50 rounded-lg p-4"
             >
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">{BOT_EMOJIS[botId]}</span>
-                <span className="font-medium text-white">{BOT_NAMES[botId]}</span>
+                <span className="text-lg">{bot?.emoji ?? botId}</span>
+                <span className="font-medium text-white">{bot?.fullName ?? botId}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -28,10 +28,12 @@ const CATEGORY_CONFIG: Record<string, { emoji: string; label: string; color: str
 const DEFAULT_SYMBOLS: SymbolCard[] = [
   { id: 'BTC', ticker: 'BTCUSDT', name: 'Bitcoin', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
   { id: 'ETH', ticker: 'ETHUSDT', name: 'Ethereum', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
-  { id: 'SOL', ticker: 'SOLUSDT', name: 'Solana', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
   { id: 'BNB', ticker: 'BNBUSDT', name: 'BNB', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
-  { id: 'XRP', ticker: 'XRPUSDT', name: 'Ripple', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
+  { id: 'SOL', ticker: 'SOLUSDT', name: 'Solana', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
   { id: 'DOGE', ticker: 'DOGEUSDT', name: 'Dogecoin', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
+  { id: 'AAVE', ticker: 'AAVEUSDT', name: 'Aave', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
+  { id: 'ADA', ticker: 'ADAUSDT', name: 'Cardano', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
+  { id: 'AVAX', ticker: 'AVAXUSDT', name: 'Avalanche', category: 'crypto', price: 0, change: 0, changePercent: 0, trend: 'neutral', loading: true },
 ];
 
 export default function ScannerPage() {

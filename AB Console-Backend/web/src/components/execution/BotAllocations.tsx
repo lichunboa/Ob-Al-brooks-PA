@@ -1,31 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Bot, Edit2, Save, X, Check, Ban, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bot, Edit2, Save, X, Check, Ban } from 'lucide-react';
+import { getBotConfig } from '@/lib/botConfig';
+import type { BotAllocation } from '@/lib/executionApi';
 
-export interface BotAllocation {
-  bot_id: string;
-  name: string;
-  allocated_usdt: number;
-  max_leverage: number;
-  max_positions: number;
-  enabled: boolean;
-  current_positions?: number;
-  used_margin?: number;
-  risk_percent: number;
-  fee_rate_maker: number;
-  fee_rate_taker: number;
-  allowed_symbols: string[];
-  min_risk_reward: number;
-  daily_loss_limit: number;
-  daily_loss_pct: number;
-  trailing_stop_enabled: boolean;
-  trailing_stop_trigger: number;
-  max_hold_hours: number;
-  cooldown_minutes: number;
-  // V3.0
-  max_notional_per_position?: number;
-}
+export type { BotAllocation };
 
 interface BotAllocationsProps {
   allocations: Record<string, BotAllocation>;
@@ -33,18 +13,6 @@ interface BotAllocationsProps {
   onUpdate: (botId: string, data: Partial<BotAllocation>) => Promise<void>;
   isLoading?: boolean;
 }
-
-const BOT_EMOJIS: Record<string, string> = {
-  'al-brooks': '🦁',
-  trader: '📊',
-  wyckoff: '🔮',
-};
-
-const BOT_COLORS: Record<string, string> = {
-  'al-brooks': 'from-amber-900/30 to-amber-900/10 border-amber-700/50',
-  trader: 'from-blue-900/30 to-blue-900/10 border-blue-700/50',
-  wyckoff: 'from-purple-900/30 to-purple-900/10 border-purple-700/50',
-};
 
 export function BotAllocations({
   allocations,
@@ -120,7 +88,7 @@ export function BotAllocations({
             key={alloc.bot_id}
             className={`p-4 rounded-lg border transition-all ${
               alloc.enabled
-                ? `bg-gradient-to-br ${BOT_COLORS[alloc.bot_id] || 'from-slate-800/50 to-slate-800/30 border-slate-700'}`
+                ? `bg-gradient-to-br ${getBotConfig(alloc.bot_id)?.gradient || 'from-slate-800/50 to-slate-800/30 border-slate-700'}`
                 : 'bg-slate-800/20 border-slate-800 opacity-60'
             }`}
           >
@@ -129,7 +97,7 @@ export function BotAllocations({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-white font-medium flex items-center gap-2">
-                    <span className="text-2xl">{BOT_EMOJIS[alloc.bot_id]}</span>
+                    <span className="text-2xl">{getBotConfig(alloc.bot_id)?.emoji}</span>
                     {alloc.name}
                   </span>
                   <div className="flex gap-2">
@@ -217,7 +185,7 @@ export function BotAllocations({
               /* 显示模式 */
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{BOT_EMOJIS[alloc.bot_id]}</span>
+                  <span className="text-3xl">{getBotConfig(alloc.bot_id)?.emoji}</span>
                   <div>
                     <p className="text-white font-medium">{alloc.name}</p>
                     <p className="text-slate-400 text-sm">

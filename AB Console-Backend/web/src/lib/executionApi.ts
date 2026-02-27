@@ -604,3 +604,41 @@ export async function syncNotes(): Promise<{ success: boolean; synced: number }>
   if (!res.ok) throw new Error('同步笔记失败');
   return res.json();
 }
+
+// ========== 信号阈值 API ==========
+
+export interface BotThreshold {
+  min_score: number;
+  trade_score: number;
+}
+
+export interface Thresholds {
+  min_strength: number;
+  bot_thresholds: Record<string, BotThreshold>;
+  updated_at?: string;
+}
+
+export async function getThresholds(): Promise<Thresholds | null> {
+  try {
+    const res = await fetch(`${getBaseUrl()}/thresholds`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function updateThresholds(data: {
+  min_strength?: number;
+  bot_id?: string;
+  min_score?: number;
+  trade_score?: number;
+}): Promise<{ success: boolean }> {
+  const res = await fetch(`${getBaseUrl()}/thresholds`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('更新阈值失败');
+  return res.json();
+}

@@ -4,4 +4,7 @@ export { ThresholdConfig } from './ThresholdConfig';
 export { ReconciliationPanel } from './ReconciliationPanel';
 export { BotDetailPanel } from './BotDetailPanel';
 export { PatrolPanel } from './PatrolPanel';
+export { PositionsTable } from './PositionsTable';
+export { RiskStatusCard } from './RiskStatusCard';
+export { ApiConfigCard } from './ApiConfigCard';
 export type { BotAllocation } from './BotAllocations';

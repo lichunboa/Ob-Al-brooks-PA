@@ -1,48 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Shield, RefreshCw, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Shield, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import type { PatrolStatus } from '@/lib/executionApi';
-import { getPatrolStatus } from '@/lib/executionApi';
 
-export function PatrolPanel() {
-  const [status, setStatus] = useState<PatrolStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+interface PatrolPanelProps {
+  status: PatrolStatus | null;
+}
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    const data = await getPatrolStatus();
-    setStatus(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    load();
-    // 每 30 秒静默刷新
-    const timer = setInterval(() => load(true), 30000);
-    return () => clearInterval(timer);
-  }, [load]);
-
+export function PatrolPanel({ status }: PatrolPanelProps) {
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-slate-400" />
-          <h3 className="text-lg font-semibold text-white">持仓巡检</h3>
-          {status && (
-            <span className="text-xs text-slate-500">
-              已巡检 {status.patrol_count} 次
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => load()}
-          disabled={loading}
-          className="text-slate-400 hover:text-white text-sm flex items-center gap-1"
-        >
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          刷新
-        </button>
+      <div className="flex items-center gap-2 mb-4">
+        <Shield className="w-5 h-5 text-slate-400" />
+        <h3 className="text-lg font-semibold text-white">持仓巡检</h3>
+        {status && (
+          <span className="text-xs text-slate-500">
+            已巡检 {status.patrol_count} 次
+          </span>
+        )}
       </div>
 
       {status ? (
@@ -122,9 +97,7 @@ export function PatrolPanel() {
           )}
         </div>
       ) : (
-        <p className="text-slate-500 text-sm">
-          {loading ? '加载中...' : '巡检服务未就绪'}
-        </p>
+        <p className="text-slate-500 text-sm">巡检服务未就绪</p>
       )}
     </div>
   );

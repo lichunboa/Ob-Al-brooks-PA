@@ -1,7 +1,41 @@
 {
   "permissions": {
     "allow": [
-      "Bash(# Check the changelog between 2.9 and 2.12 npm view openclaw@2026.2.12 --json)"
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Task(*)",
+      "TodoWrite(*)",
+      "NotebookEdit(*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '═══ Trading Environment Check ═══' && (curl -sf http://localhost:8092/health > /dev/null 2>&1 && echo '✅ Execution Service: UP' || echo '❌ Execution Service: DOWN') && (curl -sf http://localhost:8092/trading/bot-summary/claude-pa 2>/dev/null | python3 -c \"import sys,json; d=json.load(sys.stdin); print(f'💰 Claude PA: ${d[\"available_margin\"]:.0f} 可用 | 持仓 {len(d[\"positions\"])}/{d[\"config\"][\"max_positions\"]} | 日盈亏 ${d[\"daily_pnl\"][\"realized\"]+d[\"daily_pnl\"][\"unrealized\"]:.2f}')\" 2>/dev/null || echo '⚠️ Claude PA bot: 无法获取状态')"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"$CLAUDE_NOTIFICATION\" with title \"Claude PA Trading\"' 2>/dev/null || true"
+          }
+        ]
+      }
     ]
   }
 }

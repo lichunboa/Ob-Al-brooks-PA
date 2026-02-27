@@ -65,11 +65,12 @@ export const config = {
   /** Backtest Service 地址（浏览器走代理） */
   backtestApiUrl: getRuntimeBacktestUrl(),
 
-  /** 默认交易对列表 */
+  /** 默认交易对列表 (与后端 SYMBOLS_GROUPS=main4 + SYMBOLS_EXTRA 一致) */
   defaultSymbols: [
-    'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT',
+    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT',
+    'DOGEUSDT', 'AAVEUSDT', 'ADAUSDT', 'AVAXUSDT',
   ] as const,
 
-  /** 支持的时间周期 */
-  timeframes: ['1m', '5m', '15m', '1h', '4h', '1d'] as const,
+  /** 支持的时间周期 (PA 引擎实际交易周期) */
+  timeframes: ['5m', '15m', '30m', '1h'] as const,
 } as const;

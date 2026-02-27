@@ -104,6 +104,17 @@ pkill -f "execution-service" 2>/dev/null
 pkill -f "src --port 8092" 2>/dev/null
 log_success "Execution Service 已停止"
 
+# 停止 Backtest Service
+echo ""
+log_info "停止 Backtest Service..."
+BACKTEST_PID_FILE="$BACKEND_DIR/libs/backtest/logs/backtest.pid"
+if [ -f "$BACKTEST_PID_FILE" ]; then
+    kill "$(cat "$BACKTEST_PID_FILE")" 2>/dev/null
+    rm -f "$BACKTEST_PID_FILE"
+fi
+pkill -f "libs.backtest.api_server" 2>/dev/null
+log_success "Backtest Service 已停止"
+
 # 停止 Web Dashboard
 echo ""
 log_info "停止 Web Dashboard..."
@@ -119,12 +130,12 @@ echo ""
 
 # 残留进程检查
 echo "【残留进程检查】"
-REMAINING=$(pgrep -f "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|telegram.*bot)" 2>/dev/null | wc -l)
+REMAINING=$(pgrep -f "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|backtest.api_server|telegram.*bot)" 2>/dev/null | wc -l)
 if [ "$REMAINING" -eq 0 ]; then
     log_success "无残留进程"
 else
     echo -e "${YELLOW}[WARN]${NC} 发现 $REMAINING 个残留进程"
-    pgrep -af "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|telegram.*bot)" | head -5
+    pgrep -af "(api-service|data-service|signal-service|trading-service|sync-service|execution-service|backtest.api_server|telegram.*bot)" | head -5
 fi
 
 # Docker 容器状态

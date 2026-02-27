@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/executionApi';
+import { BOT_IDS } from '@/lib/botConfig';
 import type {
   Balance,
   Position,
@@ -9,7 +10,9 @@ import type {
   ConfigStatus,
   HealthStatus,
   TradingStatus,
-  BotAllocation,
+  BotSummary,
+  EvolutionSummary,
+  PatrolStatus,
   AllocationUpdate,
 } from '@/lib/executionApi';
 
@@ -24,13 +27,15 @@ export function useExecutionData() {
   const [riskStatus, setRiskStatus] = useState<RiskStatus | null>(null);
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [tradingStatus, setTradingStatus] = useState<TradingStatus | null>(null);
+  const [botSummaries, setBotSummaries] = useState<Record<string, BotSummary>>({});
+  const [botEvolutions, setBotEvolutions] = useState<Record<string, EvolutionSummary>>({});
+  const [patrolStatus, setPatrolStatus] = useState<PatrolStatus | null>(null);
 
   const refresh = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     setError(null);
 
     try {
-      // 先检查健康状态
       const healthData = await api.checkHealth();
       if (!healthData) {
         setIsConnected(false);
@@ -42,13 +47,24 @@ export function useExecutionData() {
       setHealth(healthData);
       setIsConnected(true);
 
-      // 并行获取其他数据
-      const [balanceData, positionsData, riskData, configData, tradingData] = await Promise.all([
+      const [
+        balanceData,
+        positionsData,
+        riskData,
+        configData,
+        tradingData,
+        patrolData,
+        summariesArr,
+        evolutionsArr,
+      ] = await Promise.all([
         api.getBalance().catch(() => []),
         api.getPositions().catch(() => []),
         api.getRiskStatus().catch(() => null),
         api.getConfig().catch(() => null),
         api.getTradingStatus().catch(() => null),
+        api.getPatrolStatus().catch(() => null),
+        Promise.all(BOT_IDS.map((id) => api.getBotSummary(id).catch(() => null))),
+        Promise.all(BOT_IDS.map((id) => api.getEvolutionSummary(id).catch(() => null))),
       ]);
 
       setBalance(balanceData);
@@ -56,6 +72,16 @@ export function useExecutionData() {
       setRiskStatus(riskData);
       setConfig(configData);
       setTradingStatus(tradingData);
+      setPatrolStatus(patrolData);
+
+      const sMap: Record<string, BotSummary> = {};
+      const eMap: Record<string, EvolutionSummary> = {};
+      BOT_IDS.forEach((id, i) => {
+        if (summariesArr[i]) sMap[id] = summariesArr[i]!;
+        if (evolutionsArr[i]) eMap[id] = evolutionsArr[i]!;
+      });
+      setBotSummaries(sMap);
+      setBotEvolutions(eMap);
     } catch (err) {
       setError(err instanceof Error ? err.message : '未知错误');
       setIsConnected(false);
@@ -64,43 +90,30 @@ export function useExecutionData() {
     }
   }, []);
 
-  // 切换交易状态
   const toggleTrading = useCallback(async (enabled: boolean) => {
     const result = await api.toggleTrading(enabled);
-    if (result.success) {
-      // 刷新数据
-      await refresh();
-    }
+    if (result.success) await refresh();
     return result;
   }, [refresh]);
 
-  // 同步币安数据
   const syncFromBinance = useCallback(async () => {
     const result = await api.syncFromBinance();
-    if (result.success) {
-      await refresh();
-    }
+    if (result.success) await refresh();
     return result;
   }, [refresh]);
 
-  // 更新机器人分配
   const updateAllocation = useCallback(async (botId: string, data: AllocationUpdate) => {
     const result = await api.updateAllocation(botId, data);
-    if (result.success) {
-      await refresh();
-    }
+    if (result.success) await refresh();
     return result;
   }, [refresh]);
 
-  // 初始加载
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  // 定时刷新（每 10 秒）
   useEffect(() => {
     if (!isConnected) return;
-
     const interval = setInterval(() => refresh(true), 10000);
     return () => clearInterval(interval);
   }, [isConnected, refresh]);
@@ -115,6 +128,9 @@ export function useExecutionData() {
     riskStatus,
     config,
     tradingStatus,
+    botSummaries,
+    botEvolutions,
+    patrolStatus,
     refresh,
     toggleTrading,
     syncFromBinance,
