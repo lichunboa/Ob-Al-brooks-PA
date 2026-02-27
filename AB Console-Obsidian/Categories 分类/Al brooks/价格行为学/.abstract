@@ -1,0 +1,72 @@
+# 价格行为学 (最新版) 索引 (L0)
+更新时间：2026-02-19
+内容：220课最新版，含进阶实战内容、ROSE技巧、实盘案例
+
+## 主题分类导航
+
+### 市场周期 & 结构
+- `12A`: 四阶段周期详解 (BO→Tight→Broad→TR)，Momentum vs Value交易者，75%通道→TR
+- `12B`: 市场惯性与80%法则，Always-In 原理
+- `12C`: PB/TR 的二选一决策
+- `13A`: Always-In 方向 + Trader's Equation，用BO起点做止损
+
+### 突破 (BO)
+- `15A`: BO定义/80%规则/反转即突破 → BLSHS
+- `15B-H`: 跟进/第二腿/陷阱/成功/失败BO分析
+- `BO+FT(2破1随)`: 实战突破跟进规则
+
+### 通道 (Channel)
+- `16A-F`: 通道的画法、演变、入场方式
+- `17A-B`: Tight Channel / Micro Channel 定义与操作
+- `43A-D`: 做多 Tight Bull Channel 的详细方法 (含止损与获利)
+- `44A-D`: 做空 Tight Bear Channel 的详细方法
+- `45A-E`: Broad Bull Channel (买入区/50% PB/第二腿陷阱)
+- `46A-E`: Broad Bear Channel
+
+### 交易区间 (TR)
+- `18A-E`: TR定义/区间交易设置/真假突破/Vacuum效果
+- `47A`: TR广/窄判断标准
+- `47B`: 80%规则 / TR中的腿 vs 趋势中的腿 / 下1/3买上1/3卖
+- `47C`: 第二腿陷阱/Fade BO 策略
+- `47D`: 限价单入场/获利方式
+
+### 反转 (Reversal)
+- `MTR.md`: 大趋势反转案例图集
+- `22A`: Major vs Minor Reversals，MTR是最重要反转形态
+- `42A-C`: 气候性反转 (Climactic Reversal)
+
+### 概率 & 交易方程
+- `30A-E`: Edge/完美交易/三变量/Z-score/40-60法则
+- `30E`: 70-90%概率特殊场景/40-60规则/TR边缘高概率
+
+### Context & 心理
+- `context的重要性例子`: 同一形态在不同Context下意义完全不同 ← 核心必读
+- `13C`: Scalping vs Swing trading 的选择时机
+
+### 实战 ROSE 技巧
+- `ROSE 2+2+2 setup`: TTR突破setup，2连K超50%中线入场
+- `ROSE micro-TR我的理解`: Micro TR的操作理解
+- `ROSE 数点`: 回调腿计数法
+- `ROSE wedge push的情绪线`: 楔形推进的情绪分析
+- `Joo战术卡片`: 实战情景快速决策模板
+- `Pivot Reversal + Caveman`: 关键反转组合策略
+
+### 开盘策略
+- `48A-K`: 一天三部分/开盘反转/BOM/高低突破/缺口开盘/陷阱
+
+### 错误 & 心理
+- `51A-B`: 常见亏损原因/仓位管理错误
+
+## 快速导航
+
+当你需要**判断当前处于哪个周期阶段** → `12A`, `12B`
+当你需要**Always-In 方向从图表特征判断** → `13A`, `13B`
+当你需要**MTR 触发条件** → `MTR.md` + `22A`
+当你需要**Tight Bull Channel 怎么做多** → `43A`, `43D`
+当你需要**TR 入场最佳时机** → `47B`, `47C`, `47D`
+当你需要**ROSE 2+2+2 TTR突破** → `ROSE 2+2+2 setup`
+当你需要**BO是否会成功的判断** → `15B`, `15D`
+当你需要**概率与交易方程** → `30A`, `30E`
+当你需要**Context如何影响解读** → `context的重要性例子`
+当你需要**开盘交易策略** → `48A~48D`
+当你需要更多细节 → qmd query "[关键词]"

@@ -177,9 +177,49 @@ if [ "$USE_COMPOSE" = true ] && [ "$DB_READY" = true ]; then
         log_warn "Execution Service src 目录不存在，跳过"
     fi
 
+    # 启动 Backtest Service（本地 Python，不在 Docker 中）
+    echo ""
+    log_info "[9/11] 启动 Backtest Service (本地)..."
+    BACKTEST_PID_FILE="$BACKEND_DIR/libs/backtest/logs/backtest.pid"
+    if lsof -i :8093 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Backtest Service 已在运行 (端口 8093)"
+    else
+        cd "$BACKEND_DIR"
+        mkdir -p libs/backtest/logs
+        nohup "$BACKEND_DIR/.venv/bin/python" -m libs.backtest.api_server --port 8093 > libs/backtest/logs/backtest.log 2>&1 &
+        echo $! > "$BACKTEST_PID_FILE"
+        sleep 3
+        if lsof -i :8093 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Backtest Service 启动成功 (端口 8093)"
+        else
+            log_warn "Backtest Service 启动失败 (非关键，回测页面仍可浏览历史)"
+        fi
+    fi
+
+    # 启动 PA Bot (Al Brooks 自主交易)
+    echo ""
+    log_info "[10/12] 启动 PA Bot (Al Brooks 自主交易)..."
+    PA_BOT_PID_FILE="$BACKEND_DIR/data/pa_trader/pa_bot.pid"
+    if pgrep -f "pa_trader.py" > /dev/null 2>&1; then
+        log_success "PA Bot 已在运行 (PID: $(pgrep -f pa_trader.py))"
+    elif [ -f "$BACKEND_DIR/scripts/pa_trader.py" ]; then
+        cd "$BACKEND_DIR"
+        mkdir -p data/pa_trader
+        nohup python3 -u scripts/pa_trader.py --live --interval 300 > /tmp/pa_trader_live.log 2>&1 &
+        echo $! > "$PA_BOT_PID_FILE"
+        sleep 3
+        if pgrep -f "pa_trader.py" > /dev/null 2>&1; then
+            log_success "PA Bot 启动成功 (PID: $(cat $PA_BOT_PID_FILE))"
+        else
+            log_warn "PA Bot 启动失败，查看日志: tail -f /tmp/pa_trader_live.log"
+        fi
+    else
+        log_warn "PA Bot 脚本不存在，跳过"
+    fi
+
     # 启动 Web Dashboard（本地 Next.js，不在 Docker 中）
     echo ""
-    log_info "[9/10] 启动 Web Dashboard (本地)..."
+    log_info "[11/12] 启动 Web Dashboard (本地)..."
     if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
         log_success "Web Dashboard 已在运行 (端口 3001)"
     else
@@ -364,9 +404,49 @@ else
         log_warn "Execution Service src 目录不存在，跳过"
     fi
 
-    # 9. 启动 Web Dashboard
+    # 9. 启动 Backtest Service
     echo ""
-    log_info "[9/9] 启动 Web Dashboard..."
+    log_info "[9/10] 启动 Backtest Service..."
+    BACKTEST_PID_FILE="$BACKEND_DIR/libs/backtest/logs/backtest.pid"
+    if lsof -i :8093 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Backtest Service 已在运行 (端口 8093)"
+    else
+        cd "$BACKEND_DIR"
+        mkdir -p libs/backtest/logs
+        nohup "$BACKEND_DIR/.venv/bin/python" -m libs.backtest.api_server --port 8093 > libs/backtest/logs/backtest.log 2>&1 &
+        echo $! > "$BACKTEST_PID_FILE"
+        sleep 3
+        if lsof -i :8093 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Backtest Service 启动成功 (端口 8093)"
+        else
+            log_warn "Backtest Service 启动失败 (非关键，回测页面仍可浏览历史)"
+        fi
+    fi
+
+    # 10. 启动 PA Bot (Al Brooks 自主交易)
+    echo ""
+    log_info "[10/11] 启动 PA Bot (Al Brooks 自主交易)..."
+    PA_BOT_PID_FILE="$BACKEND_DIR/data/pa_trader/pa_bot.pid"
+    if pgrep -f "pa_trader.py" > /dev/null 2>&1; then
+        log_success "PA Bot 已在运行 (PID: $(pgrep -f pa_trader.py))"
+    elif [ -f "$BACKEND_DIR/scripts/pa_trader.py" ]; then
+        cd "$BACKEND_DIR"
+        mkdir -p data/pa_trader
+        nohup python3 -u scripts/pa_trader.py --live --interval 300 > /tmp/pa_trader_live.log 2>&1 &
+        echo $! > "$PA_BOT_PID_FILE"
+        sleep 3
+        if pgrep -f "pa_trader.py" > /dev/null 2>&1; then
+            log_success "PA Bot 启动成功 (PID: $(cat $PA_BOT_PID_FILE))"
+        else
+            log_warn "PA Bot 启动失败，查看日志: tail -f /tmp/pa_trader_live.log"
+        fi
+    else
+        log_warn "PA Bot 脚本不存在，跳过"
+    fi
+
+    # 11. 启动 Web Dashboard
+    echo ""
+    log_info "[11/11] 启动 Web Dashboard..."
     if lsof -i :3001 -sTCP:LISTEN > /dev/null 2>&1; then
         log_success "Web Dashboard 已在运行 (端口 3001)"
     else
@@ -402,10 +482,16 @@ echo ""
 echo "【核心服务】"
 check_service 8088 "API Service      "
 check_service 8089 "Sync Service     "
-check_service 8084 "Vis Service      "
+check_service 8087 "Vis Service      "
 check_service 8090 "Telegram Service "
 check_service 8083 "Signal Service   "
 check_service 8092 "Execution Service"
+check_service 8093 "Backtest Service "
+if pgrep -f "pa_trader.py" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} PA Bot (PID: $(pgrep -f pa_trader.py))"
+else
+    echo -e "${YELLOW}○${NC} PA Bot (未运行)"
+fi
 check_service 3001 "Web Dashboard    "
 
 echo ""
@@ -461,10 +547,12 @@ echo ""
 echo "  Web Dashboard:  http://localhost:3001/chart"
 echo "  API 文档:       http://localhost:8088/docs"
 echo "  API 健康:       http://localhost:8088/health"
-echo "  Vis 模板:       http://localhost:8084/templates"
+echo "  Vis 模板:       http://localhost:8087/templates"
 echo "  Sync 健康:      http://localhost:8089/api/v1/health"
 echo "  Execution:      http://localhost:8092/health"
+echo "  Backtest:       http://localhost:8093/health"
 echo "  交易状态:       http://localhost:8092/trading/status"
+echo "  PA Bot 面板:    http://localhost:3001/pa-bot"
 echo "  Obsidian 同步:  http://localhost:8088/api/v1/obsidian/sync/status"
 echo ""
 echo "【Telegram Bot 命令】"
