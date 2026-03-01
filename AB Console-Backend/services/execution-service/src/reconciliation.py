@@ -16,11 +16,9 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+from .config import WORKSPACE, SHARED_WORKSPACE
 
-# 文件路径
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-SHARED_WORKSPACE = Path.home() / ".openclaw" / "workspaces" / "trading-shared"
+logger = logging.getLogger(__name__)
 
 ACTIVE_TRADES_FILES = {
     "main": WORKSPACE / "active_trades.json",

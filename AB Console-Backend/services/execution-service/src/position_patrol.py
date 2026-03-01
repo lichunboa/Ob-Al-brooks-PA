@@ -12,9 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from .config import SHARED_WORKSPACE
+
 logger = logging.getLogger(__name__)
 
-SL_PLACED_FILE = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
+SL_PLACED_FILE = SHARED_WORKSPACE / "sl_placed.json"
 
 # 默认保护性止损百分比
 DEFAULT_STOP_PCT = 0.02
@@ -174,7 +176,7 @@ class PositionPatrol:
                     if fixed:
                         report["naked_fixed"] += 1
 
-                # 1.5 软件止损检查（Demo 模式替代条件委托）
+                # 1.5 软件止损检查（仅 fallback 模式，原生挂单由交易所执行）
                 if norm_sym in self._sl_placed:
                     stopped = await self._check_software_stop(pos)
                     if stopped:
@@ -358,20 +360,13 @@ class PositionPatrol:
                     pnl_usdt = (pos.entry_price - pos.mark_price) * pos.quantity
                 # 记录 bot 级日盈亏
                 self.executor.risk_manager.record_bot_pnl(bot_id, pnl_usdt)
-                # 记录进化系统
-                try:
-                    from .evolution_manager import get_evolution_manager
-                    evo = get_evolution_manager()
-                    strategy = self.executor.get_position_strategy(pos.symbol)
-                    raw_sym = pos.symbol.split(':')[0] if ':' in pos.symbol else pos.symbol
-                    evo.record_trade_result(
-                        bot_id=bot_id, strategy=strategy or "auto",
-                        symbol=raw_sym, pnl=pnl_usdt,
-                        is_win=pnl_usdt > 0,
-                    )
-                    logger.info(f"[巡检] 止损进化记录: {bot_id} {raw_sym} pnl=${pnl_usdt:.2f}")
-                except Exception as e:
-                    logger.warning(f"[巡检] 进化记录失败: {e}")
+                # V7.0: 进化系统暂停使用
+                # try:
+                #     from .evolution_manager import get_evolution_manager
+                #     evo = get_evolution_manager()
+                #     evo.record_trade_result(...)
+                # except Exception as e:
+                #     logger.warning(f"[巡检] 进化记录失败: {e}")
                 self.executor.unregister_position(
                     pos.symbol, bot_id)
             return True

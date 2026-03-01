@@ -169,8 +169,8 @@ export default function PABotPage() {
     return (
       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
         <Bot className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-        <p className="text-slate-400">PA Bot 未运行或无数据</p>
-        <p className="text-xs text-slate-600 mt-2">启动: python scripts/pa_trader.py --live</p>
+        <p className="text-slate-400">Claude PA 未运行或无数据</p>
+        <p className="text-xs text-slate-600 mt-2">在 Claude Code 中运行 /patrol 开始交易</p>
       </div>
     );
   }
@@ -183,8 +183,8 @@ export default function PABotPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${bot.alive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-          <h1 className="text-xl font-bold text-white">PA Bot</h1>
-          <span className="text-xs text-slate-500">Al Brooks 自主交易</span>
+          <h1 className="text-xl font-bold text-white">Claude PA</h1>
+          <span className="text-xs text-slate-500">Al Brooks PA 交易员</span>
         </div>
         <button
           onClick={fetchData}

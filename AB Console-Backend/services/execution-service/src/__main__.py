@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .config import SERVICE_PORT, BINANCE_MODE, get_current_config, save_env_config
+from .config import SERVICE_PORT, EXCHANGE, EXCHANGE_MODE, BINANCE_MODE, get_current_config, save_env_config
 from .models import (
     OrderRequest, OrderResponse, Position, Balance, RiskStatus,
     ConfigStatus, ConfigUpdate, OpenOrder, TradeHistory, AccountSummary
@@ -100,14 +100,15 @@ async def lifespan(app: FastAPI):
     """应用生命周期"""
     global risk_manager, executor, trading_state, reconciliation, order_tracker, note_sync, evolution_mgr, position_patrol, _periodic_task
 
-    logger.info("Execution Service V3.0 启动中...")
+    logger.info(f"Execution Service V4.1 启动中... (exchange={EXCHANGE}, mode={EXCHANGE_MODE})")
     risk_manager = RiskManager()
     executor = BinanceExecutor(risk_manager)
     trading_state = get_trading_state_manager()
     reconciliation = TradeReconciliation(executor)
     order_tracker = OrderTracker(executor)
     note_sync = NoteSync(executor)
-    evolution_mgr = get_evolution_manager()
+    # V7.0: 进化系统暂停使用，保留文件不删除
+    # evolution_mgr = get_evolution_manager()
     position_patrol = PositionPatrol(executor, trading_state)
 
     # 启动时同步币安数据
@@ -217,9 +218,10 @@ async def health():
     """健康检查"""
     return {
         "status": "healthy",
-        "mode": BINANCE_MODE,
+        "mode": EXCHANGE_MODE,
+        "exchange": EXCHANGE,
         "service": "execution-service",
-        "version": "4.0.0",
+        "version": "4.1.0",
         "trading_enabled": trading_state.is_trading_enabled() if trading_state else False,
     }
 
@@ -240,7 +242,7 @@ async def get_klines(
 
 @app.get("/klines/{symbol}/multi")
 async def get_multi_tf_klines(symbol: str):
-    """多周期 K 线快照（5m/15m/1h/4h/1d 各 20 根）"""
+    """多周期 K 线快照（5m/15m/30m/1h/4h/1d 各 20 根）"""
     if not executor:
         raise HTTPException(status_code=503, detail="服务未就绪")
     return executor.fetch_multi_tf_klines(symbol)
@@ -316,9 +318,9 @@ async def place_order(request: OrderRequest):
     if trading_state and bot_id:
         alloc = trading_state.state.allocations.get(bot_id, {})
         max_pos = alloc.get("max_positions", 10)
-        # 动态日亏限 = max(固定值, 分配资金 × 百分比)
-        fixed_limit = alloc.get("daily_loss_limit", 100)
-        pct_limit = alloc.get("allocated_usdt", 0) * alloc.get("daily_loss_pct", 5) / 100
+        # V7.0: 日亏限放宽为安全网（10%），不主动限制 agent
+        fixed_limit = alloc.get("daily_loss_limit", 500)
+        pct_limit = alloc.get("allocated_usdt", 0) * 0.10
         daily_loss = max(fixed_limit, pct_limit)
         # 自动应用 bot 配置的杠杆（agent 未传时使用配置值）
         if not request.leverage:
@@ -347,28 +349,7 @@ async def place_order(request: OrderRequest):
             # V3.9.2: 跨 bot 冲突检测已移除 — 每个 bot 独立管理同品种持仓
             # 多 bot 同品种共存于同一币安仓位，position_bot_map 以列表追踪
 
-            # V3.7: 盈亏比门禁
-            if (request.take_profit and request.stop_loss
-                    and request.price):
-                tp = float(request.take_profit)
-                sl = float(request.stop_loss)
-                ep = float(request.price)
-                risk = abs(ep - sl)
-                if risk > 0:
-                    rr = abs(tp - ep) / risk
-                    min_rr = alloc.get("min_risk_reward", 2.0)
-                    if rr < min_rr:
-                        return OrderResponse(
-                            success=False,
-                            symbol=request.symbol,
-                            side=request.side.value,
-                            quantity=request.quantity,
-                            status="REJECTED",
-                            message=(
-                                f"盈亏比 {rr:.1f}:1"
-                                f" < {min_rr}:1"
-                            ),
-                        )
+            # V7.0: 盈亏比门禁已移除 — 让 agent 自行判断
 
     return await executor.place_order(request, max_positions=max_pos, daily_loss_limit=daily_loss, bot_id=bot_id)
 
@@ -512,6 +493,25 @@ async def update_config(request: ConfigUpdate):
         "message": "配置已保存，请重启服务生效",
         "updated_keys": list(config.keys())
     }
+
+
+@app.get("/config/exchange")
+async def get_exchange():
+    """获取当前交易所配置"""
+    return {"exchange": EXCHANGE, "mode": EXCHANGE_MODE}
+
+
+@app.put("/config/exchange")
+async def switch_exchange(body: dict):
+    """切换交易所（需要重启服务生效）"""
+    exchange = body.get("exchange", "").lower()
+    if exchange not in ("okx", "binance"):
+        raise HTTPException(status_code=400, detail="exchange must be 'okx' or 'binance'")
+    mode = body.get("mode", "demo")
+    success = save_env_config({"EXCHANGE": exchange, "EXCHANGE_MODE": mode})
+    if not success:
+        raise HTTPException(status_code=500, detail="保存配置失败")
+    return {"success": True, "message": f"已切换到 {exchange} ({mode})，请重启服务生效", "exchange": exchange, "mode": mode}
 
 
 # ========== 交易状态管理 (V2.7.0 新增) ==========
@@ -679,7 +679,8 @@ import json
 import os
 from pathlib import Path
 
-THRESHOLDS_FILE = Path.home() / ".openclaw" / "workspace" / "stats" / "thresholds.json"
+from .config import WORKSPACE
+THRESHOLDS_FILE = WORKSPACE / "stats" / "thresholds.json"
 
 DEFAULT_THRESHOLDS = {
     "min_strength": 60,
@@ -1106,33 +1107,37 @@ async def modify_stop_loss(
         raise HTTPException(status_code=503, detail="巡检未就绪")
 
     try:
-        # 验证持仓存在
+        # 验证持仓存在（V4.1: 模糊匹配，兼容 SOLUSDT / SOLUSDT:USDT / SOL/USDT:USDT）
         positions = await executor.get_positions()
-        pos = next((p for p in positions if p.symbol == symbol), None)
+        norm_input = executor._norm_symbol_base(symbol)
+        pos = next((p for p in positions if executor._norm_symbol_base(p.symbol) == norm_input), None)
         if not pos:
             raise HTTPException(status_code=404, detail=f"未找到 {symbol} 持仓")
 
-        old_sl = position_patrol._sl_placed.get(symbol)
+        # 用持仓中的实际 symbol 做后续操作
+        pos_symbol = pos.symbol
+        old_sl = position_patrol._sl_placed.get(pos_symbol) or position_patrol._sl_placed.get(symbol)
 
         # 尝试取消原生止损单（真实账户可能有，Demo 忽略错误）
         try:
-            open_orders = await executor.get_open_orders(symbol)
+            open_orders = await executor.get_open_orders(pos_symbol)
             for order in open_orders:
                 if order.order_type in ('STOP_MARKET', 'STOP'):
                     if order.reduce_only:
-                        executor.exchange.cancel_order(order.order_id, symbol)
+                        ccxt_sym = executor._normalize_symbol_for_ccxt(pos_symbol)
+                        executor.exchange.cancel_order(order.order_id, ccxt_sym)
                         logger.info(f"已取消原生止损单: {order.order_id}")
         except Exception as e:
             logger.debug(f"取消原生止损单跳过: {e}")
 
-        # 更新软件止损 (sl_placed.json)
-        position_patrol._sl_placed[symbol] = new_stop_loss
+        # 更新软件止损 (sl_placed.json) — 用持仓的实际 symbol
+        position_patrol._sl_placed[pos_symbol] = new_stop_loss
         position_patrol._save_sl_placed()
 
         # 同步移动止损状态
-        if symbol in position_patrol._trailing_state:
-            position_patrol._trailing_state[symbol]["current_sl"] = new_stop_loss
-            logger.info(f"同步移动止损状态: {symbol} → {new_stop_loss}")
+        if pos_symbol in position_patrol._trailing_state:
+            position_patrol._trailing_state[pos_symbol]["current_sl"] = new_stop_loss
+            logger.info(f"同步移动止损状态: {pos_symbol} → {new_stop_loss}")
 
         logger.info(
             f"止损已更新: {symbol} {old_sl} → {new_stop_loss} (软件止损)"

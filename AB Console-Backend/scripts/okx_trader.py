@@ -81,13 +81,13 @@ class OKXTrader:
         else:
             full_path = path
         headers = self._headers('GET', full_path)
-        r = requests.get(f'{BASE_URL}{full_path}', headers=headers, timeout=10)
+        r = requests.get(f'{BASE_URL}{full_path}', headers=headers, timeout=30)
         return r.json()
 
     def _post(self, path, body=None):
         body_str = json.dumps(body) if body else ''
         headers = self._headers('POST', path, body_str)
-        r = requests.post(f'{BASE_URL}{path}', headers=headers, data=body_str, timeout=10)
+        r = requests.post(f'{BASE_URL}{path}', headers=headers, data=body_str, timeout=30)
         return r.json()
 
     # ── Account ──────────────────────────────────────────
@@ -158,12 +158,16 @@ class OKXTrader:
             'sz': str(size),
         }
 
-        if sl:
-            body['slTriggerPx'] = str(sl)
-            body['slOrdPx'] = '-1'
-        if tp:
-            body['tpTriggerPx'] = str(tp)
-            body['tpOrdPx'] = '-1'
+        # OKX v5 requires SL/TP via attachAlgoOrds
+        if sl or tp:
+            algo = {}
+            if sl:
+                algo['slTriggerPx'] = str(sl)
+                algo['slOrdPx'] = '-1'
+            if tp:
+                algo['tpTriggerPx'] = str(tp)
+                algo['tpOrdPx'] = '-1'
+            body['attachAlgoOrds'] = [algo]
 
         result = self._post('/api/v5/trade/order', body)
         return result
@@ -233,6 +237,28 @@ class OKXTrader:
                 'ctType': d.get('ctType', '?'),
             }
         return {'error': result.get('msg', 'unknown')}
+
+    def get_klines(self, symbol, bar='5m', limit=30):
+        """Fetch OHLCV candles from OKX real market data.
+        bar: 1m/3m/5m/15m/30m/1H/4H
+        Returns list of {time, O, H, L, C, vol} dicts
+        """
+        inst_id = to_okx(symbol)
+        okx_bar = bar.replace('m', 'm').replace('h', 'H').replace('1H', '1H')
+        result = self._get('/api/v5/market/candles', {
+            'instId': inst_id,
+            'bar': okx_bar,
+            'limit': str(limit),
+        })
+        if result.get('code') != '0':
+            return {'error': result.get('msg', 'unknown'), 'symbol': symbol}
+        candles = []
+        for row in reversed(result['data']):  # OKX returns newest first
+            ts, o, h, l, c, vol = int(row[0]), float(row[1]), float(row[2]), float(row[3]), float(row[4]), float(row[5])
+            from datetime import datetime, timezone
+            time_str = datetime.fromtimestamp(ts/1000, tz=timezone.utc).strftime('%H:%M')
+            candles.append({'time': time_str, 'O': o, 'H': h, 'L': l, 'C': c, 'vol': vol})
+        return candles
 
     def calc_size(self, symbol, entry_price, stop_loss, risk_usdt):
         """Calculate number of contracts from USDT risk amount.
@@ -329,6 +355,15 @@ def main():
             print(json.dumps({'error': 'Usage: leverage SYMBOL LEVER'}))
             sys.exit(1)
         print(json.dumps(trader.set_leverage(sys.argv[2], sys.argv[3]), indent=2))
+
+    elif cmd == 'klines':
+        # klines BTCUSDT 5m [limit]
+        if len(sys.argv) < 4:
+            print(json.dumps({'error': 'Usage: klines SYMBOL BAR [LIMIT]'}))
+            sys.exit(1)
+        limit = int(sys.argv[4]) if len(sys.argv) > 4 else 30
+        result = trader.get_klines(sys.argv[2], sys.argv[3], limit)
+        print(json.dumps(result))
 
     else:
         print(json.dumps({'error': f'Unknown command: {cmd}'}))

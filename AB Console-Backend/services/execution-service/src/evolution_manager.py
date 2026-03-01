@@ -17,10 +17,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-SHARED_WORKSPACE = (
-    Path.home() / ".openclaw" / "workspaces"
-    / "trading-shared"
-)
+from .config import SHARED_WORKSPACE
 
 # bot_id → evolution 文件名映射
 EVOLUTION_FILES = {

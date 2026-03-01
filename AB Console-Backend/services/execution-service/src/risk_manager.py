@@ -16,16 +16,14 @@ from typing import Optional
 
 from .config import (
     MAX_DAILY_LOSS_USDT, MAX_POSITION_SIZE_USDT,
-    MAX_LEVERAGE,
+    MAX_LEVERAGE, WORKSPACE,
 )
 from .models import RiskStatus
 
 logger = logging.getLogger(__name__)
 
 # 持久化路径（不再用 /tmp）
-DEFAULT_STATE_FILE = (
-    Path.home() / ".openclaw" / "workspace" / "risk_state.json"
-)
+DEFAULT_STATE_FILE = WORKSPACE / "risk_state.json"
 
 
 class RiskManager:

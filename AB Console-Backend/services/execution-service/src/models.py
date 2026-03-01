@@ -4,7 +4,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class OrderSide(str, Enum):
@@ -30,6 +30,20 @@ class OrderRequest(BaseModel):
     symbol: str = Field(..., description="交易对，如 BTCUSDT")
     side: OrderSide = Field(..., description="买卖方向")
     quantity: float = Field(..., gt=0, description="数量")
+
+    @field_validator("side", mode="before")
+    @classmethod
+    def normalize_side(cls, v):
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def normalize_symbol(cls, v):
+        if isinstance(v, str):
+            v = v.split(":")[0].upper()
+        return v
     order_type: OrderType = Field(default=OrderType.MARKET, description="订单类型")
     price: Optional[float] = Field(None, description="限价单价格")
     stop_loss: Optional[float] = Field(None, description="止损价格")
@@ -52,8 +66,16 @@ class OrderResponse(BaseModel):
     side: str
     quantity: float
     price: Optional[float] = None
-    status: str
+    status: str = "UNKNOWN"
     message: Optional[str] = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, v):
+        """OKX Demo 可能返回 status=None，防 Pydantic 校验崩溃"""
+        if v is None:
+            return "UNKNOWN"
+        return str(v)
     timestamp: datetime = Field(default_factory=datetime.now)
 
     # 关联的止损止盈订单

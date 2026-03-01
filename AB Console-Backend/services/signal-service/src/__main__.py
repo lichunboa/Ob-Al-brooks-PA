@@ -168,10 +168,9 @@ def main():
             "hooks-5fed4a9a7de03c21c542049f68669b0983b8119a471ae74a7909f2fb17ace267"
         )
 
-        # ── V5.0 信号路由: PA 聚焦模式 ──
-        # PA_ONLY_MODE: 只有 PA 相关信号到 al-brooks，其他全丢弃
-        # 恢复多 Agent 时改为 False
-        PA_ONLY_MODE = True
+        # ── V7.0 信号路由: 多 Agent 模式 ──
+        # al-brooks 已停用，信号分发给 trader + wyckoff
+        PA_ONLY_MODE = False
 
         # PA 相关的信号类别（Al Brooks 价格行为哲学）
         PA_CATEGORIES = {'pattern'}  # K线形态、SMC、斐波那契、支撑阻力
@@ -223,20 +222,21 @@ def main():
                 # 其他全部丢弃
                 return []
 
-            # ── 多 Agent 路由（PA_ONLY_MODE=False 时启用）──
+            # ── V7.0 多 Agent 路由 ──
+            # al-brooks 已停用，PA 信号作为参考发给 trader + wyckoff
             if source in ('pa_engine', 'pa') or entry_trigger > 0:
-                return ['al-brooks']
+                return ['trader', 'wyckoff']
             if source == 'wyckoff':
                 return ['wyckoff']
             if source == 'pg' or signal_type in WYCKOFF_PG_TYPES:
-                return ['wyckoff']
+                return ['wyckoff', 'trader']
             if source == 'sqlite':
                 if category in QUANT_CATEGORIES:
                     return ['trader']
                 elif category in WYCKOFF_CATEGORIES:
                     return ['wyckoff']
                 elif category in PATTERN_CATEGORIES:
-                    return ['al-brooks']
+                    return ['trader', 'wyckoff']
                 elif category in SHARED_CATEGORIES:
                     return ['trader', 'wyckoff']
                 else:
@@ -332,14 +332,7 @@ def main():
 
         def send_openclaw_webhook(ev):
             """发送信号到 OpenClaw HTTP Webhook（多机器人路由）"""
-            # 加载 AI 进化反馈配置
-            feedback = load_evolution_feedback()
-
-            # 智能过滤（基于 AI 进化反馈）
-            should_filter, reason = should_filter_signal(ev, feedback)
-            if should_filter:
-                logger.debug(f"[OpenClaw] 过滤信号: {ev.symbol} - {reason}")
-                return
+            # V7.0: 不做信号过滤，所有信号直接路由
 
             # 基础字段
             signal_data = {

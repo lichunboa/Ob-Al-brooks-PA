@@ -18,11 +18,9 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
 from .evolution_manager import get_evolution_manager
 
-logger = logging.getLogger(__name__)
+from .config import WORKSPACE, SHARED_WORKSPACE
 
-# 文件路径
-WORKSPACE = Path.home() / ".openclaw" / "workspace"
-SHARED_WORKSPACE = Path.home() / ".openclaw" / "workspaces" / "trading-shared"
+logger = logging.getLogger(__name__)
 
 ACTIVE_TRADES_FILES = {
     "main": WORKSPACE / "active_trades.json",
@@ -159,24 +157,10 @@ class OrderTracker:
                         except Exception as e:
                             logger.warning(f"[NoteBackfill] 回填失败: {e}")
 
-            # V3.9.1: 所有条目处理完后，按 symbol+bot 写一次进化记录
-            for evo_key, evo_data in evo_recorded.items():
-                try:
-                    evo = get_evolution_manager()
-                    sym_part, bot_part = evo_key.split(":", 1)
-                    raw_sym = sym_part.split(':')[0] if ':' in sym_part else sym_part
-                    total_pnl = evo_data["pnl"]
-
-                    evo.record_trade_result(
-                        bot_id=bot_part,
-                        strategy=evo_data["strategy"],
-                        symbol=raw_sym,
-                        pnl=total_pnl,
-                        is_win=total_pnl > 0,
-                    )
-                    logger.info(f"[Evolution] 合并记录: {bot_part} {raw_sym} pnl={total_pnl:.2f}")
-                except Exception as e:
-                    logger.warning(f"[Evolution] 记录失败: {e}")
+            # V7.0: 进化系统暂停使用
+            # for evo_key, evo_data in evo_recorded.items():
+            #     evo = get_evolution_manager()
+            #     evo.record_trade_result(...)
 
         except Exception as e:
             logger.error(f"检查文件订单失败: {e}")

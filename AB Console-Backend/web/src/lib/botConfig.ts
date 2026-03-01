@@ -2,7 +2,7 @@
  * Bot 统一配置 — 消除 4 处重复定义
  */
 
-export const BOT_IDS = ['al-brooks', 'trader', 'wyckoff'] as const;
+export const BOT_IDS = ['al-brooks', 'claude-pa', 'trader', 'wyckoff'] as const;
 export type BotId = (typeof BOT_IDS)[number];
 
 export interface BotConfig {
@@ -22,6 +22,14 @@ export const botConfig: Record<BotId, BotConfig> = {
     fullName: 'PA交易',
     color: 'text-amber-400',
     gradient: 'from-amber-900/30 to-amber-900/10 border-amber-700/50',
+  },
+  'claude-pa': {
+    id: 'claude-pa',
+    emoji: '🤖',
+    name: 'Claude PA',
+    fullName: 'Claude PA 交易员',
+    color: 'text-cyan-400',
+    gradient: 'from-cyan-900/30 to-cyan-900/10 border-cyan-700/50',
   },
   trader: {
     id: 'trader',

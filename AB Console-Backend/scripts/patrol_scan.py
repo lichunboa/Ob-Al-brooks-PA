@@ -17,17 +17,24 @@ patrol_scan.py — PA 巡逻扫描器 v1.1
 import json
 import sys
 import argparse
+import subprocess
+import os
 from datetime import datetime, timezone
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-API = "http://localhost:8092"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+API = "http://localhost:8092"  # 仅用于 can-trade 状态查询
 SYMBOLS = [
     "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
     "DOGEUSDT", "AAVEUSDT", "ADAUSDT", "AVAXUSDT",
 ]
 TIMEFRAMES = ["5m", "15m", "30m", "1h"]
 BOT_ID = "claude-pa"
+
+# OKX bar 格式映射
+OKX_BAR_MAP = {"5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H"}
 
 
 # ─── HTTP ────────────────────────────────────────────────────────────────
@@ -38,6 +45,73 @@ def fetch_json(url: str) -> dict:
             return json.loads(r.read())
     except Exception as e:
         return {"_error": str(e)}
+
+
+def fetch_okx_klines(symbol: str, bar: str, limit: int = 50) -> list:
+    """直接从 OKX 获取 K 线数据（真实市场价格）"""
+    try:
+        r = subprocess.run(
+            ["python3", os.path.join(SCRIPT_DIR, "okx_trader.py"),
+             "klines", symbol, bar, str(limit)],
+            capture_output=True, text=True, timeout=15
+        )
+        result = json.loads(r.stdout.strip())
+        return result if isinstance(result, list) else []
+    except Exception as e:
+        return []
+
+
+def calc_ema(values: list, period: int) -> list:
+    """计算 EMA，返回等长列表，前 period-1 个为 None"""
+    n = len(values)
+    if n < period:
+        return [None] * n
+    result = [None] * (period - 1)
+    sma = sum(values[:period]) / period
+    result.append(sma)
+    k = 2.0 / (period + 1)
+    for v in values[period:]:
+        result.append(result[-1] * (1 - k) + v * k)
+    return result
+
+
+def calc_atr(bars: list, period: int = 14) -> list:
+    """计算 ATR14"""
+    if len(bars) < 2:
+        return [0.0] * len(bars)
+    trs = [bars[0]["H"] - bars[0]["L"]]
+    for i in range(1, len(bars)):
+        h, l, pc = bars[i]["H"], bars[i]["L"], bars[i-1]["C"]
+        trs.append(max(h - l, abs(h - pc), abs(l - pc)))
+    atrs = [None] * (period - 1)
+    if len(trs) >= period:
+        atrs.append(sum(trs[:period]) / period)
+        for i in range(period, len(trs)):
+            atrs.append((atrs[-1] * (period - 1) + trs[i]) / period)
+    return [a or 0.0 for a in atrs]
+
+
+def okx_klines_to_tf_data(bars: list) -> dict:
+    """将 OKX K 线列表转换为 scan_all 所需的 tf_data 格式"""
+    if not bars or len(bars) < 5:
+        return {}
+    closes = [b["C"] for b in bars]
+    emas = calc_ema(closes, 20)
+    atrs = calc_atr(bars, 14)
+    # 取最后20根用于分析
+    bars20 = bars[-20:]
+    ema20_val = next((e for e in reversed(emas) if e is not None), closes[-1])
+    atr14_val = atrs[-1] if atrs else 0.0
+    price = closes[-1]
+    ema_dev = price - ema20_val
+    ema_dev_pct = (ema_dev / ema20_val * 100) if ema20_val else 0
+    pve = f"{ema_dev:+.1f} ({ema_dev_pct:+.2f}%)"
+    return {
+        "bars": bars20,
+        "ema20": round(ema20_val, 4),
+        "atr14": round(atr14_val, 4),
+        "price_vs_ema": pve,
+    }
 
 
 # ─── Body 计算 ───────────────────────────────────────────────────────────
@@ -276,39 +350,30 @@ def alignment_score(tf_results: dict) -> tuple:
 # ─── 扫描主函数 ──────────────────────────────────────────────────────────
 
 def scan_all() -> list:
+    """扫描所有品种 — 使用 OKX 真实市场数据"""
     results = []
     for sym in SYMBOLS:
-        data = fetch_json(f"{API}/klines/{sym}/multi")
-        if "_error" in data:
-            results.append({"symbol": sym, "_error": data["_error"]})
-            continue
-
         r = {"symbol": sym, "tfs": {}}
 
         for tf in TIMEFRAMES:
-            # /multi 不含 30m，需要单独请求
-            if tf in data:
-                td = data[tf]
-            elif tf == "30m":
-                td = fetch_json(f"{API}/klines/{sym}?interval=30m&limit=20")
-                if "_error" in td:
-                    continue
-            else:
+            raw_bars = fetch_okx_klines(sym, OKX_BAR_MAP[tf], 50)
+            if not raw_bars:
                 continue
 
-            bars = td.get("bars", [])
-            ema20 = td.get("ema20", 0)
-            if not bars:
+            td = okx_klines_to_tf_data(raw_bars)
+            if not td:
                 continue
 
-            atr14 = td.get("atr14", 0)
+            bars = td["bars"]
+            ema20 = td["ema20"]
+            atr14 = td["atr14"]
             ai_dir, ai_str = compute_ai(bars, ema20, atr14)
             r["tfs"][tf] = {
                 "ai": ai_dir,
                 "ai_str": ai_str,
                 "ema20": ema20,
                 "atr14": atr14,
-                "pve": td.get("price_vs_ema", "?"),
+                "pve": td["price_vs_ema"],
                 "price": bars[-1]["C"],
                 "bars": bars,  # 保留用于 detail 输出
             }
@@ -338,12 +403,16 @@ def scan_all() -> list:
 # ─── 持仓扫描 ────────────────────────────────────────────────────────────
 
 def scan_positions() -> list:
-    positions = fetch_json(f"{API}/positions")
-    if isinstance(positions, dict) and "_error" in positions:
+    # claude-pa 持仓来自 OKX，不从 8092 读取
+    try:
+        r = subprocess.run(
+            ["python3", os.path.join(SCRIPT_DIR, "okx_trader.py"), "positions"],
+            capture_output=True, text=True, timeout=10
+        )
+        positions = json.loads(r.stdout.strip())
+        return positions if isinstance(positions, list) else []
+    except Exception:
         return []
-    # 只看 claude-pa 的持仓
-    my_pos = [p for p in positions if p.get("bot_id") == BOT_ID]
-    return my_pos
 
 
 def position_summary(positions: list, scan_results: list) -> list:
@@ -355,7 +424,7 @@ def position_summary(positions: list, scan_results: list) -> list:
         entry = pos["entry_price"]
         mark = pos["mark_price"]
         pnl = pos["unrealized_pnl"]
-        qty = pos["quantity"]
+        qty = pos.get("contracts", pos.get("quantity", 0))
         pnl_pct = ((mark - entry) / entry * 100) if side == "LONG" else ((entry - mark) / entry * 100)
 
         # 找对应的扫描结果
@@ -495,33 +564,58 @@ def print_detail(results: list, symbol: str, tf_filter: str = "5m", num_bars: in
             prev = b
 
 
-def print_bot_status():
-    """Bot 状态 + can-trade 一行输出"""
-    bot = fetch_json(f"{API}/trading/bot-summary/{BOT_ID}")
-    if "_error" in bot:
-        print(f"Bot: ERROR {bot['_error']}")
-        return
+def get_okx_balance():
+    """从 OKX 获取实际余额（claude-pa 独立账户）"""
+    try:
+        r = subprocess.run(
+            ["python3", os.path.join(SCRIPT_DIR, "okx_trader.py"), "balance"],
+            capture_output=True, text=True, timeout=10
+        )
+        data = json.loads(r.stdout.strip())
+        return data.get("available", 0), data.get("usdt_equity", 0)
+    except Exception:
+        return None, None
 
-    cfg = bot.get("config", {})
-    can = bot.get("can_trade", False)
-    reason = bot.get("can_trade_reason", "?")
-    margin = bot.get("available_margin", 0)
-    cur_pos = cfg.get("current_positions", 0)
-    max_pos = cfg.get("max_positions", 0)
-    daily = bot.get("daily_pnl", {})
-    realized = daily.get("realized", 0)
-    unrealized = daily.get("unrealized", 0)
+
+def get_okx_positions():
+    """从 OKX 获取实际持仓数量"""
+    try:
+        r = subprocess.run(
+            ["python3", os.path.join(SCRIPT_DIR, "okx_trader.py"), "positions"],
+            capture_output=True, text=True, timeout=10
+        )
+        positions = json.loads(r.stdout.strip())
+        return len(positions) if isinstance(positions, list) else 0
+    except Exception:
+        return 0
+
+
+def print_bot_status():
+    """Bot 状态 + OKX 实际数据（claude-pa 独立OKX账户）"""
+    # OKX 实际数据（权威来源）
+    avail, equity = get_okx_balance()
+    okx_pos = get_okx_positions()
+
+    # 8092 仅用于 can-trade 和 K线服务状态
+    bot = fetch_json(f"{API}/trading/bot-summary/{BOT_ID}")
+    can = bot.get("can_trade", True) if "_error" not in bot else True
+    reason = bot.get("can_trade_reason", "OK") if "_error" not in bot else "OK"
 
     health = fetch_json(f"{API}/health")
     svc = "UP" if health.get("status") == "healthy" else "DOWN"
-    mode = health.get("mode", "?")
 
-    print(
-        f"Bot:{BOT_ID} | Svc:{svc}({mode}) | "
-        f"Pos:{cur_pos}/{max_pos} | Margin:${margin:.0f} | "
-        f"DayPnL:${realized + unrealized:.2f} | "
-        f"Trade:{'YES' if can else 'NO'}({reason})"
-    )
+    if avail is not None:
+        print(
+            f"Bot:{BOT_ID}(OKX) | KlineSvc:{svc} | "
+            f"Pos:{okx_pos} | OKX余额:${avail:.0f} | "
+            f"Trade:{'YES' if can else 'NO'}({reason})"
+        )
+    else:
+        print(
+            f"Bot:{BOT_ID}(OKX) | KlineSvc:{svc} | "
+            f"Pos:{okx_pos} | OKX余额:获取失败 | "
+            f"Trade:{'YES' if can else 'NO'}({reason})"
+        )
 
 
 # ─── Main ────────────────────────────────────────────────────────────────

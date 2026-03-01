@@ -120,7 +120,24 @@ export function BotAllocations({
                 <div>
                   <p className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">基础配置</p>
                   <div className="grid grid-cols-4 gap-3">
-                    <EditField label="资金 (USDT)" value={editData.allocated_usdt ?? alloc.allocated_usdt} onChange={(v) => setEditData({ ...editData, allocated_usdt: v })} />
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">资金 (USDT)</label>
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          value={editData.allocated_usdt ?? alloc.allocated_usdt}
+                          onChange={(e) => setEditData({ ...editData, allocated_usdt: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-blue-500 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => setEditData({ ...editData, allocated_usdt: Math.floor(totalBalance) })}
+                          className="px-2 py-1.5 bg-blue-900/40 border border-blue-700/50 rounded text-blue-400 text-xs whitespace-nowrap hover:bg-blue-900/60 transition-colors"
+                          title={`设为全部余额 $${totalBalance.toLocaleString()}`}
+                        >
+                          全额
+                        </button>
+                      </div>
+                    </div>
                     <EditField label="最大杠杆" value={editData.max_leverage ?? alloc.max_leverage} onChange={(v) => setEditData({ ...editData, max_leverage: v })} isInt />
                     <EditField label="最大持仓" value={editData.max_positions ?? alloc.max_positions} onChange={(v) => setEditData({ ...editData, max_positions: v })} isInt />
                     <EditField label="名义上限$" value={editData.max_notional_per_position ?? alloc.max_notional_per_position ?? 0} onChange={(v) => setEditData({ ...editData, max_notional_per_position: v })} />

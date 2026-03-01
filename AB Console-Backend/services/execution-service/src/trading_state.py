@@ -17,14 +17,15 @@ from dataclasses import dataclass, asdict, field
 from typing import Dict, Optional
 from datetime import datetime
 
+from .config import WORKSPACE
+
 logger = logging.getLogger(__name__)
 
 # 状态文件路径
-STATE_FILE = Path.home() / ".openclaw" / "workspace" / "trading_state.json"
+STATE_FILE = WORKSPACE / "trading_state.json"
 
-# V5.0: PA 聚焦模式 — 只允许 al-brooks 交易，其他 Agent 暂停
-# 恢复多 Agent 时改为 False
-PA_ONLY_MODE = True
+# V7.0: 多 Agent 模式 — 所有启用的 bot 均可交易
+PA_ONLY_MODE = False
 PA_ONLY_BOTS = {"al-brooks", "claude-pa"}
 
 

@@ -82,6 +82,7 @@ export interface OrderResponse {
 export interface HealthStatus {
   status: string;
   mode: string;
+  exchange?: string;
   service: string;
   version?: string;
   trading_enabled?: boolean;
@@ -244,6 +245,16 @@ export async function updateConfig(config: ConfigUpdate): Promise<{ success: boo
     body: JSON.stringify(config),
   });
   if (!res.ok) throw new Error('更新配置失败');
+  return res.json();
+}
+
+export async function switchExchange(exchange: 'okx' | 'binance', mode: string = 'demo'): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${getBaseUrl()}/config/exchange`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ exchange, mode }),
+  });
+  if (!res.ok) throw new Error('切换交易所失败');
   return res.json();
 }
 

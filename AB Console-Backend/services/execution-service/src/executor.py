@@ -1,5 +1,5 @@
 """
-交易执行器 - 使用 ccxt 连接币安
+交易执行器 - 使用 ccxt 连接交易所（支持 OKX / Binance）
 """
 import json
 import logging
@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Optional
 import ccxt
 
-from .config import BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE
+from .config import (
+    EXCHANGE, EXCHANGE_MODE,
+    OKX_API_KEY, OKX_SECRET, OKX_PASSPHRASE,
+    BINANCE_API_KEY, BINANCE_SECRET, BINANCE_MODE,
+    WORKSPACE, SHARED_WORKSPACE,
+)
 from .models import OrderRequest, OrderResponse, OrderSide, OrderType, Position, Balance, PositionSide, OpenOrder, TradeHistory, AccountSummary
 from .risk_manager import RiskManager
 from .trading_state import get_trading_state_manager
@@ -17,37 +22,48 @@ from .trading_state import get_trading_state_manager
 logger = logging.getLogger(__name__)
 
 # order_id → bot_id 映射文件
-ORDER_BOT_MAP_FILE = Path.home() / ".openclaw" / "workspace" / "order_bot_map.json"
+ORDER_BOT_MAP_FILE = WORKSPACE / "order_bot_map.json"
 # symbol → bot_id 持仓映射文件（冗余备份，直接记录哪个 bot 持有哪个品种）
-POSITION_BOT_MAP_FILE = Path.home() / ".openclaw" / "workspace" / "position_bot_map.json"
+POSITION_BOT_MAP_FILE = WORKSPACE / "position_bot_map.json"
 
 
 class BinanceExecutor:
-    """币安合约交易执行器"""
+    """合约交易执行器（支持 OKX / Binance）"""
 
     def __init__(self, risk_manager: RiskManager):
         self.risk_manager = risk_manager
-        self.mode = BINANCE_MODE
+        self.exchange_name = EXCHANGE  # "okx" or "binance"
+        self.mode = EXCHANGE_MODE
 
-        # 初始化 ccxt
-        self.exchange = ccxt.binanceusdm({
-            'apiKey': BINANCE_API_KEY,
-            'secret': BINANCE_SECRET,
-            'enableRateLimit': True,
-            'options': {
-                'defaultType': 'future',
-                'adjustForTimeDifference': True,
-                'warnOnFetchOpenOrdersWithoutSymbol': False,
-            },
-        })
-
-        # Demo Trading: 使用 enable_demo_trading() 方法
-        # 端点: https://demo-fapi.binance.com
-        if BINANCE_MODE == "demo":
-            self.exchange.enable_demo_trading(True)
-            logger.info("使用 Binance Demo Trading 端点: demo-fapi.binance.com")
-
-        logger.info(f"BinanceExecutor 初始化完成 (mode={self.mode})")
+        if EXCHANGE == "okx":
+            self.exchange = ccxt.okx({
+                'apiKey': OKX_API_KEY,
+                'secret': OKX_SECRET,
+                'password': OKX_PASSPHRASE,
+                'enableRateLimit': True,
+                'options': {
+                    'defaultType': 'swap',
+                },
+            })
+            if EXCHANGE_MODE == "demo":
+                self.exchange.set_sandbox_mode(True)
+                logger.info("使用 OKX Demo Trading (sandbox mode)")
+            logger.info(f"OKXExecutor 初始化完成 (mode={self.mode})")
+        else:
+            self.exchange = ccxt.binanceusdm({
+                'apiKey': BINANCE_API_KEY,
+                'secret': BINANCE_SECRET,
+                'enableRateLimit': True,
+                'options': {
+                    'defaultType': 'future',
+                    'adjustForTimeDifference': True,
+                    'warnOnFetchOpenOrdersWithoutSymbol': False,
+                },
+            })
+            if BINANCE_MODE == "demo":
+                self.exchange.enable_demo_trading(True)
+                logger.info("使用 Binance Demo Trading 端点: demo-fapi.binance.com")
+            logger.info(f"BinanceExecutor 初始化完成 (mode={self.mode})")
 
         # 加载 order_id → bot_id 映射
         self._order_bot_map = self._load_order_bot_map()
@@ -526,17 +542,8 @@ class BinanceExecutor:
 
     async def place_order(self, request: OrderRequest, max_positions: int = 10, daily_loss_limit: float = 0, bot_id: str = "") -> OrderResponse:
         """下单"""
-        symbol = request.symbol
-        # 标准化 symbol 为 ccxt 格式: SOLUSDT:USDT → SOL/USDT:USDT
-        if ':' in symbol and '/' not in symbol:
-            base_quote = symbol.split(':')[0]  # SOLUSDT
-            settle = symbol.split(':')[1]      # USDT
-            # 从末尾分离 quote（USDT/BUSD）
-            for quote in ['USDT', 'BUSD', 'USDC']:
-                if base_quote.endswith(quote):
-                    base = base_quote[:-len(quote)]
-                    symbol = f"{base}/{quote}:{settle}"
-                    break
+        # 统一标准化 symbol 为 ccxt 格式: SOLUSDT / SOLUSDT:USDT → SOL/USDT:USDT
+        symbol = self._normalize_symbol_for_ccxt(request.symbol)
 
         # 风控检查
         positions = await self.get_positions()
@@ -573,18 +580,7 @@ class BinanceExecutor:
             else:
                 bot_positions = positions
 
-            ok_exp, msg_exp = self.risk_manager.check_correlation(
-                symbol, request.side.value, request.quantity, current_price, bot_positions, total_bal
-            )
-            if not ok_exp:
-                return OrderResponse(
-                    success=False,
-                    symbol=symbol,
-                    side=request.side.value,
-                    quantity=request.quantity,
-                    status="REJECTED",
-                    message=f"相关性风控拒绝: {msg_exp}",
-                )
+            # V7.0: 相关性风控已移除 — 让 agent 自行管理敞口
 
         # Claude PA (独立交易员) 跳过所有风控检查
         ok, msg = self.risk_manager.check_can_open(
@@ -624,6 +620,19 @@ class BinanceExecutor:
             if request.bot_id:
                 client_id = f"AB_{request.bot_id}_{int(time.time())}"
                 order_params.setdefault('params', {})['newClientOrderId'] = client_id
+
+            # V7.0: OKX 嵌入式 SL/TP — 随主订单一起创建，交易所原生执行
+            if not request.reduce_only:
+                if request.stop_loss:
+                    order_params.setdefault('params', {})['stopLoss'] = {
+                        'triggerPrice': request.stop_loss,
+                        'type': 'market',
+                    }
+                if request.take_profit:
+                    order_params.setdefault('params', {})['takeProfit'] = {
+                        'triggerPrice': request.take_profit,
+                        'type': 'market',
+                    }
 
             order = self.exchange.create_order(**order_params)
 
@@ -668,22 +677,33 @@ class BinanceExecutor:
                 side=request.side.value,
                 quantity=request.quantity,
                 price=float(order.get('price', 0)) if order.get('price') else None,
-                status=order.get('status', 'NEW'),
+                status=order.get('status') or 'NEW',
                 bot_id=request.bot_id,
             )
+
+            # V7.0: SL/TP 已嵌入主订单 params（非 reduce_only 时）
+            sl_embedded = bool(request.stop_loss and not request.reduce_only)
+            tp_embedded = bool(request.take_profit and not request.reduce_only)
+
+            if sl_embedded:
+                response.stop_loss_order_id = "embedded_native"
+                logger.info(f"原生止损已嵌入主订单: {symbol} sl={request.stop_loss}")
+            if tp_embedded:
+                response.take_profit_order_id = "embedded_native"
+                logger.info(f"原生止盈已嵌入主订单: {symbol} tp={request.take_profit}")
 
             logger.info(f"订单已提交: {symbol} {request.side.value} {request.quantity} @ {order.get('price', 'MARKET')} [bot={request.bot_id or 'unknown'}]")
 
             # 强制保护性止损：agent 未传 stop_loss 时后端兜底
+            # 此时 SL 未嵌入主订单，需要单独挂
             if not request.stop_loss and not request.reduce_only:
                 risk_pct = 0.02  # 默认 2%，与 bot allocation risk_percent 一致
                 entry_price = float(order.get('average') or order.get('price') or 0)
-                # 兜底：市价单 ccxt 可能返回 average=None，用 ticker.last
                 if entry_price <= 0:
                     try:
                         ticker = self.exchange.fetch_ticker(symbol)
                         entry_price = float(ticker.get('last', 0))
-                        logger.warning(f"entry_price 兜底: 使用 ticker.last={entry_price} (ccxt 返回 avg={order.get('average')}, price={order.get('price')})")
+                        logger.warning(f"entry_price 兜底: 使用 ticker.last={entry_price}")
                     except Exception as te:
                         logger.error(f"fetch_ticker 兜底失败: {te}")
                 if entry_price > 0:
@@ -692,31 +712,22 @@ class BinanceExecutor:
                     else:
                         request.stop_loss = round(entry_price * (1 + risk_pct), 2)
                     logger.info(f"自动保护性止损: {request.stop_loss} (入场={entry_price}, risk={risk_pct*100}%)")
+                    # 自动 SL 未嵌入主订单，用软件止损 fallback
+                    from pathlib import Path
+                    import json as _json
+                    sl_file = SHARED_WORKSPACE / "sl_placed.json"
+                    try:
+                        sl_data = _json.loads(sl_file.read_text()) if sl_file.exists() else {}
+                    except Exception:
+                        sl_data = {}
+                    norm_sym = symbol.replace('/', '')
+                    sl_data[norm_sym] = request.stop_loss
+                    sl_file.write_text(_json.dumps(sl_data, indent=2))
+                    response.stop_loss_order_id = "software_sl"
+                    logger.info(f"自动保护性软件止损已记录: {norm_sym} sl={request.stop_loss}")
 
-            # V3.5: 软件止损 — 不下条件委托，记录到 sl_placed.json
-            # Demo 模式下 STOP_MARKET 不可查询/不可取消，改由巡检轮询
-            # TODO(真实账户): 切换真实账户后恢复交易所原生 STOP_MARKET 条件委托
-            #   原生止损更可靠（服务器端执行），软件止损依赖本地进程存活
-            if request.stop_loss:
-                from pathlib import Path
-                import json as _json
-                sl_file = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
-                try:
-                    sl_data = _json.loads(sl_file.read_text()) if sl_file.exists() else {}
-                except Exception:
-                    sl_data = {}
-                norm_sym = symbol.replace('/', '').replace(':USDT', ':USDT')
-                # ccxt symbol "ETH/USDT:USDT" → norm "ETHUSDT:USDT"
-                norm_sym = symbol.replace('/', '')
-                sl_data[norm_sym] = request.stop_loss
-                sl_file.write_text(_json.dumps(sl_data, indent=2))
-                response.stop_loss_order_id = "software_sl"
-                logger.info(
-                    f"软件止损已记录: {norm_sym} sl={request.stop_loss}"
-                    f" (巡检轮询执行)")
-
-            # 下止盈单
-            if request.take_profit:
+            # 下止盈单（仅未嵌入时单独下）
+            if request.take_profit and not tp_embedded:
                 try:
                     tp_side = OrderSide.SELL if request.side == OrderSide.BUY else OrderSide.BUY
                     tp_order = self.exchange.create_order(
@@ -755,7 +766,9 @@ class BinanceExecutor:
         """平仓 — V3.9.3: per-bot 数量平仓 + 只注销自己"""
         try:
             positions = await self.get_positions()
-            pos = next((p for p in positions if p.symbol == symbol), None)
+            # V4.1: 用 _norm_symbol_base 做模糊匹配，兼容 SOLUSDT / SOLUSDT:USDT / SOL/USDT:USDT
+            norm_input = self._norm_symbol_base(symbol)
+            pos = next((p for p in positions if self._norm_symbol_base(p.symbol) == norm_input), None)
 
             if not pos:
                 return OrderResponse(
@@ -799,23 +812,14 @@ class BinanceExecutor:
                     self.risk_manager.record_bot_pnl(effective_bot, pos.unrealized_pnl)
                 else:
                     self.risk_manager.record_pnl(pos.unrealized_pnl)
-                # 进化系统记录交易结果
-                if effective_bot:
-                    try:
-                        from .evolution_manager import get_evolution_manager
-                        evo = get_evolution_manager()
-                        raw_sym = symbol.split(':')[0] if ':' in symbol else symbol
-                        strategy = self.get_position_strategy(symbol, effective_bot)
-                        evo.record_trade_result(
-                            bot_id=effective_bot,
-                            strategy=strategy,
-                            symbol=raw_sym,
-                            pnl=pos.unrealized_pnl,
-                            is_win=pos.unrealized_pnl > 0,
-                        )
-                        logger.info(f"进化系统已记录: {effective_bot} [{strategy}] {raw_sym} pnl={pos.unrealized_pnl:.2f}")
-                    except Exception as e:
-                        logger.warning(f"进化系统记录失败: {e}")
+                # V7.0: 进化系统暂停使用
+                # if effective_bot:
+                #     try:
+                #         from .evolution_manager import get_evolution_manager
+                #         evo = get_evolution_manager()
+                #         ...
+                #     except Exception as e:
+                #         logger.warning(f"进化系统记录失败: {e}")
                 # V3.9.3: 注销持仓归属 — bot 平仓只注销自己
                 if effective_bot:
                     # 有明确 bot → 只注销该 bot，其他 bot 不受影响
@@ -824,25 +828,27 @@ class BinanceExecutor:
                 else:
                     # 无 bot_id → 全量平仓，注销所有
                     self.unregister_position(symbol)
-                    # V3.5: 平仓后清理软件止损记录
-                    try:
-                        from pathlib import Path
-                        import json as _json
-                        sl_file = Path("~/.openclaw/workspaces/trading-shared/sl_placed.json").expanduser()
-                        if sl_file.exists():
-                            sl_data = _json.loads(sl_file.read_text())
-                            norm_sym = symbol.replace('/', '')
-                            if norm_sym in sl_data:
-                                del sl_data[norm_sym]
-                                sl_file.write_text(_json.dumps(sl_data, indent=2))
-                                logger.info(f"平仓后清理软件止损: {norm_sym}")
-                    except Exception as e_clean:
-                        logger.warning(f"平仓后清理止损记录失败: {e_clean}")
-                    # 同时尝试清理交易所挂单（止盈单等）
-                    try:
-                        self.exchange.cancel_all_orders(symbol)
-                    except Exception:
-                        pass
+
+                # V7.0: 平仓后清理止损（软件 + 交易所挂单）
+                try:
+                    from pathlib import Path
+                    import json as _json
+                    sl_file = SHARED_WORKSPACE / "sl_placed.json"
+                    if sl_file.exists():
+                        sl_data = _json.loads(sl_file.read_text())
+                        norm_sym = symbol.replace('/', '')
+                        if norm_sym in sl_data:
+                            del sl_data[norm_sym]
+                            sl_file.write_text(_json.dumps(sl_data, indent=2))
+                            logger.info(f"平仓后清理软件止损: {norm_sym}")
+                except Exception as e_clean:
+                    logger.warning(f"平仓后清理止损记录失败: {e_clean}")
+                # 取消该品种所有交易所挂单（原生 SL + TP）
+                try:
+                    self.exchange.cancel_all_orders(symbol)
+                    logger.info(f"平仓后取消 {symbol} 所有挂单")
+                except Exception:
+                    pass
 
             return response
 
@@ -861,12 +867,12 @@ class BinanceExecutor:
         """取消所有订单"""
         try:
             if symbol:
-                self.exchange.cancel_all_orders(symbol)
+                self.exchange.cancel_all_orders(self._normalize_symbol_for_ccxt(symbol))
             else:
                 # 取消所有交易对的订单
                 positions = await self.get_positions()
                 for pos in positions:
-                    self.exchange.cancel_all_orders(pos.symbol)
+                    self.exchange.cancel_all_orders(self._normalize_symbol_for_ccxt(pos.symbol))
             logger.info(f"已取消所有订单 (symbol={symbol or 'ALL'})")
             return True
         except Exception as e:
@@ -878,13 +884,14 @@ class BinanceExecutor:
         try:
             orders = []
             if symbol:
-                orders = self.exchange.fetch_open_orders(symbol)
+                ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
+                orders = self.exchange.fetch_open_orders(ccxt_sym)
             else:
                 # 获取有持仓的交易对的挂单
                 positions = await self.get_positions()
                 symbols_to_check = set()
                 for pos in positions:
-                    symbols_to_check.add(pos.symbol)
+                    symbols_to_check.add(self._normalize_symbol_for_ccxt(pos.symbol))
                 # 添加常见交易对
                 symbols_to_check.update([
                     'SOL/USDT:USDT', 'BTC/USDT:USDT',
@@ -916,7 +923,7 @@ class BinanceExecutor:
                     quantity=float(order.get('amount', 0)),
                     price=float(order.get('price')) if order.get('price') else None,
                     stop_price=float(order.get('stopPrice')) if order.get('stopPrice') else None,
-                    status=order.get('status', ''),
+                    status=order.get('status') or '',
                     reduce_only=order.get('reduceOnly', False),
                     created_at=order.get('datetime'),
                     bot_id=bot_id,
@@ -936,7 +943,8 @@ class BinanceExecutor:
         """获取交易历史"""
         try:
             if symbol:
-                trades = self.exchange.fetch_my_trades(symbol, limit=limit)
+                ccxt_sym = self._normalize_symbol_for_ccxt(symbol)
+                trades = self.exchange.fetch_my_trades(ccxt_sym, limit=limit)
             else:
                 # 始终查询所有常见品种 + 有持仓的品种
                 symbols_to_check = {
@@ -945,7 +953,7 @@ class BinanceExecutor:
                 }
                 positions = await self.get_positions()
                 for pos in positions:
-                    symbols_to_check.add(pos.symbol)
+                    symbols_to_check.add(self._normalize_symbol_for_ccxt(pos.symbol))
 
                 trades = []
                 for sym in symbols_to_check:
@@ -1289,9 +1297,9 @@ class BinanceExecutor:
         }
 
     def fetch_multi_tf_klines(self, symbol: str) -> dict:
-        """多周期 K 线快照（5m/15m/1h/4h/1d 各 20 根）"""
+        """多周期 K 线快照（5m/15m/30m/1h/4h/1d 各 20 根）"""
         result = {}
-        for tf in ["5m", "15m", "1h", "4h", "1d"]:
+        for tf in ["5m", "15m", "30m", "1h", "4h", "1d"]:
             result[tf] = self.fetch_klines(symbol, tf, limit=20)
         return result
 
