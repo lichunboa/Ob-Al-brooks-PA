@@ -580,7 +580,7 @@ def generate_chart(
         style=AB_STYLE,
         title=title,
         volume=True,
-        figsize=(10, 5),
+        figsize=(12, 6),  # 增大尺寸，预留更多空间
         tight_layout=True,
         warn_too_much_data=200,
         savefig=dict(fname=outpath, dpi=120, bbox_inches="tight"),
@@ -591,7 +591,45 @@ def generate_chart(
         kwargs["hlines"] = hlines_cfg
 
     try:
-        mpf.plot(df, **kwargs)
+        # 先绘制图表（不保存）
+        fig, axes = mpf.plot(df, **{k: v for k, v in kwargs.items() if k != "savefig"}, returnfig=True)
+
+        # 添加 S/R 类型标签
+        if sr_info and hlines_cfg:
+            ax = axes[0]  # 主图 axis
+            y_min, y_max = ax.get_ylim()
+            x_max = len(df) - 1
+
+            # 类型简写映射
+            type_abbr = {
+                "swing_high": "SwH", "swing_low": "SwL",
+                "bo_origin": "BO", "50pct_pb": "50%",
+                "round_number": "Rnd", "gap_traditional": "Gap",
+                "gap_body": "GapB", "gap_micro": "GapM",
+            }
+
+            # 只标注可见的 S/R（最多 8 个）
+            visible_levels = [
+                lv for lv in sr_info.get("levels", [])
+                if y_min <= lv["price"] <= y_max
+            ][:8]
+
+            for lv in visible_levels:
+                price = lv["price"]
+                lv_type = lv.get("type", "")
+                abbr = type_abbr.get(lv_type, lv_type[:4])
+                color = "#66BB6A" if lv["side"] == "support" else "#EF5350"
+
+                # 标签位置：右侧，略微偏移
+                ax.text(
+                    x_max + 1, price, f" {abbr}",
+                    fontsize=7, color=color, alpha=0.8,
+                    verticalalignment="center",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="black", alpha=0.6, edgecolor=color, linewidth=0.5)
+                )
+
+        # 保存图表
+        fig.savefig(outpath, dpi=120, bbox_inches="tight")
         plt.close("all")
         size_kb = os.path.getsize(outpath) / 1024
         print(f"  ✅ {outpath}  ({size_kb:.0f} KB)")
