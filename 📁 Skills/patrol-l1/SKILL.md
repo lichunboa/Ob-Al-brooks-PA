@@ -231,29 +231,29 @@ curl -s "http://localhost:8094/klines/{SYMBOL}/multi"
 
 ### 2a-1. 预计算持仓管理数据（ab_* 模块）
 
-获取 5m 周期 K 线数据，调用 ab_* 模块预计算数值：
+获取持仓品种的**多周期** K 线数据，调用 ab_* 模块预计算数值：
 
 ```python
 from indicators.batch.ab_ema import analyze_ab_ema
 from indicators.batch.ab_sr import analyze_ab_sr
 from indicators.batch.ab_patterns import analyze_ab_patterns
 
-# 提取 5m K 线数组
-open_arr = [k['O'] for k in klines_5m]
-high = [k['H'] for k in klines_5m]
-low = [k['L'] for k in klines_5m]
-close = [k['C'] for k in klines_5m]
+# 对持仓品种的 1h/15m/5m 都调用（多周期分析）
+ema_info, sr_info, pat_info = {}, {}, {}
+for tf in ['1h', '15m', '5m']:
+    klines = get_klines(symbol, tf)
+    open_arr = [k['O'] for k in klines]
+    high, low, close = [k['H'] for k in klines], [k['L'] for k in klines], [k['C'] for k in klines]
 
-# 调用模块
-ema_info = analyze_ab_ema(open_arr, high, low, close)
-sr_info = analyze_ab_sr(open_arr, high, low, close)
-pat_info = analyze_ab_patterns(open_arr, high, low, close)
+    ema_info[tf] = analyze_ab_ema(open_arr, high, low, close)
+    sr_info[tf] = analyze_ab_sr(open_arr, high, low, close)
+    pat_info[tf] = analyze_ab_patterns(open_arr, high, low, close)
 ```
 
-**数据用途**：
-- `ema_info`: EMA 斜率、MAG 检测、First PB（用于方向确认）
-- `sr_info`: Premise Check 第 c 项（入场前提 - 支撑/阻力位置）
-- `pat_info`: Premise Check 第 b 项（市场状态 - 压力方向/形态）
+**数据用途**（多周期）：
+- `1h`: 大方向确认（S2 AI 方向）
+- `15m`: 中期结构（S3 市场状态）
+- `5m`: 精确入场（S7 Premise Check）
 
 **详细使用方式** → 见 [S7-management.md](references/S7-management.md) "Premise Check 示例"
 
@@ -439,16 +439,21 @@ if 'ab_patterns' in modules_needed:
 
 | 事件类型 | 需要 Read 的 S 文件 | 不需要 Read | 理由 |
 |---------|-------------------|------------|------|
-| **signal(顺势)** | S5 + S6-bo/S6-channel | S1-S4 从缓存 | 状态/方向已缓存，只需评估+入场 |
-| **signal(反转)** | S5 + S6-reversal | 同上 | 反转需要 S6-reversal 的 5/5 条件 |
-| **signal(TR)** | S5 + S6-tr | 同上 | TR 入场需要 S6-tr 的 BLSHS/Fade 规则 |
+| **signal(顺势)** | S3b + S5 + S6-common + S6-bo/channel | S1-S4 从缓存 | S3b 提供 S/R，S5 评估，S6-common 通用规则 |
+| **signal(反转)** | S3b + S5 + S6-common + S6-reversal | 同上 | 反转需要 S6-reversal 的 5/5 条件 |
+| **signal(TR)** | S3b + S5 + S6-common + S6-tr | 同上 | TR 入场需要 S6-tr 的 BLSHS/Fade 规则 |
 | **state_change** | S3 + S4 | S1,S2 从缓存 | 重新判断状态+匹配 Playbook |
 | **BC/SC 发生** | S3 + S6-reversal | 其他从缓存 | 判断 MG/EG + fade 可能 |
 | **climax_suspected** | S3 (BC 章节) | 其他从缓存 | Climax 快速检测评分 ≥ 4 |
-| **pre_signal 升级** | S6-channel only | 其他从缓存 | PB 碰 EMA 等，只需入场判断 |
-| **tr_edge** | S6-tr only | 其他从缓存 | TR 边缘 Scalp 快速通道 |
-| **stale 刷新** | S1 + S2 + S3 | — | 完整重新分析 |
-| **anomaly** | S1 + S2 | — | 大 K 线需要重新读盘+判断方向 |
+| **pre_signal 升级** | S6-common + S6-channel | 其他从缓存 | PB 碰 EMA 等，需要通用规则 |
+| **tr_edge** | S6-common + S6-tr | 其他从缓存 | TR 边缘 Scalp，需要通用规则 |
+| **stale 刷新** | S1 + S2 + S3 + S3b | — | 完整重新分析 |
+| **anomaly** | S1 + S2 + S3 | — | 大 K 线需要重新读盘+判断方向+状态 |
+
+**⚠️ S 文件加载顺序规则**：
+1. **S3b 必须在 S5 之前**：S5 评估需要 S3b 的 S/R 位置（TP 路径、SL 外侧）
+2. **S6-common 必须在任何 S6-* 之前**：通用规则（信号 K 线质量、订单类型）优先
+3. **S3 必须在 S4 之前**：S4 策略匹配依赖 S3 的市场状态判断
 
 **Token 缓存规则**：同一轮循环内已 Read 的 S 文件不重复 Read。例如 BTC 读了 S5+S6-bo，SOL 也需要 S5+S6-bo → 不再读。
 
@@ -461,6 +466,43 @@ if 'ab_patterns' in modules_needed:
 - **缓存验证失败** → 以新 K 线分析为准，更新缓存，记录 [AUDIT] CACHE_CORRECTED
 - **Read S1 时使用 [DEBATE]** — 强制多空辩论，详见 S1「结构化多空辩论」
 - **Read S2 时使用 [MULTI-TF]** — 瀑布式多周期分析，详见 S2「瀑布式多周期分析」
+
+**⚠️ 两层架构数据流转**（关键！）：
+
+```
+计算层（ab_* 模块）→ 提供数值数据
+  ↓
+决策层（你 Claude）→ Read S 文件 + 结合数值 → 做决策
+```
+
+**S 文件中的示例代码说明**：
+- S 文件中的 `{sr_info.nearest_support}` 是**伪代码占位符**
+- 表示"这里需要用 ab_* 模块的数据"
+- **你需要做的**：
+  1. 从 Phase B-0 获得的 `sr_info/mm_info/ema_info/pat_info` 数据
+  2. Read S 文件获得知识框架（为什么、怎么做）
+  3. **结合数值 + 知识 → 做出决策**
+
+**示例**：
+```python
+# Phase B-0 已获得数据：
+sr_info = {
+    "nearest_support": 2050.5,
+    "support_type": "swing_low",
+    "dist_support_pct": 0.45
+}
+
+# Phase B-1 Read S7-management.md 后，你（Claude）思考：
+# - S7 说：Premise Check 第 c 项 = 入场前提是否仍然成立
+# - 数值显示：支撑 2050.5 (swing_low)，距离 0.45%
+# - 结论：支撑仍在，前提成立 ✓
+
+# 你的输出：
+[PREMISE CHECK] ETH:
+  c. 入场前提: 支撑 2050.5 (swing_low)，距离 0.45% → ✓ 成立
+```
+
+
 
 #### 阶段 4: 策略匹配 + 场景规划
 
