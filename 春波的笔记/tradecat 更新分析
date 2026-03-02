@@ -1,0 +1,35 @@
+你的当前版本：已升级到 tradecat v5 + 品牌替换完成
+
+tradecat 原项目亮点（可以借鉴）：
+
+功能	tradecat	你的项目	是否适合借鉴
+Query Service	统一查询层，不直连数据库	直接调用 execution-service	✅ 高优先级
+事件驱动	SignalPublisher + 订阅 + 冷却	轮询式（2-12分钟）	✅ 长期优化
+AI 大负载处理	自动切换模型 + 智能摘要	每次 Read 全部 S 文件	✅ 中优先级
+数据预计算	stats/ 目录存储统计	只有 market_state_l1.json	✅ 中优先级
+历史数据集	HuggingFace 13GB 数据	sim_server 模拟	✅ 可选
+129条信号规则	通用量化信号	专注 Al Brooks PA	❌ 不需要
+Telegram Bot	实时推送	Discord 推送	❌ 已有替代
+38个技术指标	全面覆盖	只用 EMA20	❌ 不符合 PA 理念
+推荐借鉴的 4 个功能：
+
+Query Service 统一查询层（借鉴 tradecat api-service）
+
+缓存常用数据（K线、持仓、余额）
+减少重复 API 调用
+预计节省：20-30% API 调用
+事件驱动架构（借鉴 SignalPublisher）
+
+WebSocket 监听 K 线更新
+只在有新数据时触发分析
+预计节省：避免 50% 无效轮询
+AI 智能摘要（借鉴大负载处理）
+
+S 文件预加载 + 按需提取相关段落
+不是每次都传递全部 10 个文件
+预计节省：30-40% token 消耗
+数据预计算（借鉴 stats/ 目录）
+
+每日统计、品种相关性、胜率分析
+在定时等待期间完成
+预计节省：减少实时计算负担
