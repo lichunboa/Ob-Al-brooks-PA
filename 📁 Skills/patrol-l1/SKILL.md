@@ -257,6 +257,22 @@ for tf in ['1h', '15m', '5m']:
 
 **详细使用方式** → 见 [S7-management.md](references/S7-management.md) "Premise Check 示例"
 
+### 2a-2. 🆕 生成持仓品种图表（场景 3）
+
+**为每个持仓品种生成多周期图表**（2-3 秒/品种）：
+
+```bash
+# 生成 5m/15m/1h 三周期图表
+python AB\ Console-Backend/scripts/chart_gen.py -s {SYMBOL} -i 5m,15m,1h --port 8094
+```
+
+**输出路径**：`AB Console-Backend/data/charts/YYYY-MM-DD/{SYMBOL}_{INTERVAL}_{HHMMSS}.png`
+
+**用途**：
+- 视觉验证 ab_* 模块数据（S/R 线、形态标注、EMA 斜率）
+- 辅助 Premise Check（看图判断"是否还在 Channel 中"）
+- Discord 推送"移 SL"消息时附带图表
+
 ### 2b. 加载知识 + 执行管理
 
 **先加载知识**：
@@ -276,9 +292,12 @@ for tf in ['1h', '15m', '5m']:
 
 **移 SL 时推送 Discord**（仅移动时，持有不推）：
 ```bash
+# 获取最新生成的 5m 图表路径
+CHART_PATH=$(ls -t "AB Console-Backend/data/charts/$(date +%Y-%m-%d)/${SYMBOL}_5m_"*.png 2>/dev/null | head -1)
+
 WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 [ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**L1 移SL** {SYM} {SIDE}\nSL: {旧SL} → {新SL} | 浮盈{%}\n理由: {新HL/LH位置}"}'
+  -d '{"content":"**L1 移SL** {SYM} {SIDE}\nSL: {旧SL} → {新SL} | 浮盈{%}\n理由: {新HL/LH位置}\n📊 图表: '"$CHART_PATH"'"}'
 ```
 
 **Step 2 完成后更新缓存**：持仓品种的 market_state + ai_direction + key_levels
@@ -418,6 +437,23 @@ if 'ab_patterns' in modules_needed:
     from indicators.batch.ab_patterns import analyze_ab_patterns
     pat_info = analyze_ab_patterns(open_arr, high, low, close)
 ```
+
+**Phase B-0.5: 🆕 生成事件品种图表（场景 1）**
+
+**为触发事件的品种生成多周期图表**（2-3 秒/品种）：
+
+```bash
+# 生成 5m/15m/1h 三周期图表
+python AB\ Console-Backend/scripts/chart_gen.py -s {SYMBOL} -i 5m,15m,1h --port 8094
+```
+
+**输出路径**：`AB Console-Backend/data/charts/YYYY-MM-DD/{SYMBOL}_{INTERVAL}_{HHMMSS}.png`
+
+**用途**：
+- 视觉验证 ab_* 模块数据（S/R 线、形态标注、压力检测）
+- 辅助 Context 判断（看图比看数字更直观）
+- 确认形态有效性（MTR/Wedge/BC/SC 的视觉验证）
+- Discord 推送开仓/BC 警报时附带图表
 
 **数据用途**：
 - `ema_info`: EMA 斜率、MAG、First PB（用于方向确认，详见 S2/S6-channel）
@@ -648,8 +684,11 @@ Read [S5-evaluation.md](references/S5-evaluation.md)（如果本轮未读）
 
 Discord:
 ```bash
+# 获取最新生成的 5m 图表路径
+CHART_PATH=$(ls -t "AB Console-Backend/data/charts/$(date +%Y-%m-%d)/${SYMBOL}_5m_"*.png 2>/dev/null | head -1)
+
 WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" -d '{"content":"**AL BROOKS L1** {操作}\n{SYM} {SIDE} {QTY}@{PRICE}\nSL={SL} TP={TP}\nP={X}% R={X}:1 [{Scalp/Swing}]\nPremise: {一句话}"}'
+[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" -d '{"content":"**AL BROOKS L1** {操作}\n{SYM} {SIDE} {QTY}@{PRICE}\nSL={SL} TP={TP}\nP={X}% R={X}:1 [{Scalp/Swing}]\nPremise: {一句话}\n📊 图表: '"$CHART_PATH"'"}'
 ```
 
 平仓时：
@@ -712,11 +751,32 @@ SL打掉后重入: {N}次尝试 | 成功: {N}次
 ### 4d. Discord 周期汇报（每 6 轮一次，无需分析）
 
 `loop_count % 6 == 0` 时推送一条简短的状态卡：
+
+**4d-1. 🆕 生成全品种图表（场景 2）**
+
 ```bash
+# 批量生成 3 品种 × 3 周期图表（6-9 秒）
+python AB\ Console-Backend/scripts/chart_gen.py --patrol --port 8094
+```
+
+**输出路径**：`AB Console-Backend/data/charts/YYYY-MM-DD/`
+
+**用途**：
+- 定期视觉快照（方便复盘）
+- Discord 推送周期汇报时附带图表
+- 自动清理 3 天前的旧图片（chart_gen.py 内置）
+
+**4d-2. Discord 推送（附带图表链接）**
+
+```bash
+# 获取今日图表目录
+CHART_DIR="AB Console-Backend/data/charts/$(date +%Y-%m-%d)"
+
 WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 [ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**L1 定期汇报** Loop#{N} | {HH:MM}\n余额 ${bal} | 日盈亏 ${pnl} | 持仓 {n}个\n信号酝酿: {sym1}({条件}) {sym2}...\n下轮: {X}分钟后"}'
+  -d '{"content":"**L1 定期汇报** Loop#{N} | {HH:MM}\n余额 ${bal} | 日盈亏 ${pnl} | 持仓 {n}个\n信号酝酿: {sym1}({条件}) {sym2}...\n下轮: {X}分钟后\n📊 图表目录: '"$CHART_DIR"'"}'
 ```
+
 **什么时候跳过**：当本轮有开仓/平仓/BC警报推送时，不额外发周期汇报（避免刷屏）。
 
 ---
