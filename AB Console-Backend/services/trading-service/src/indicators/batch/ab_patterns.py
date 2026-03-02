@@ -228,38 +228,78 @@ def detect_wedge(high: np.ndarray, low: np.ndarray,
     n = len(high)
 
     # Wedge Up: 3 consecutive higher swing highs
+    # Al Brooks: 第三推可以不破新高（头肩顶 = MTR）
     highs = [(idx, price) for idx, price, stype in swings if stype == "high"]
     for i in range(len(highs) - 2):
         h1_idx, h1 = highs[i]
         h2_idx, h2 = highs[i + 1]
         h3_idx, h3 = highs[i + 2]
-        if h1 < h2 < h3:
-            # 递减动量 (可选: 检查 push 大小递减)
+
+        # Al Brooks 定义：只要求逐推弱化，不要求每推更高
+        # 标准 Wedge: h1 < h2 < h3
+        # MTR (头肩顶): h1 < h2, h3 ≈ h2 或 h3 < h2（第三推弱化）
+        if h1 < h2:  # 前两推必须上升
             push1 = h2 - h1
             push2 = h3 - h2
-            results.append({
-                "type": "wedge_up",
-                "direction": "bear",  # wedge up → 看跌反转
-                "push1": round(push1, 6),
-                "push2": round(push2, 6),
-                "top": h3,
-                "bars_ago": n - 1 - h3_idx,
-                "momentum_decreasing": push2 < push1,
-            })
+
+            # 检测逐推弱化（动量递减）
+            momentum_decreasing = push2 < push1
+
+            # Al Brooks: 第三推可以不破新高
+            is_standard_wedge = h3 > h2  # 标准 Wedge
+            is_mtr = h3 <= h2 and momentum_decreasing  # MTR（头肩顶）
+
+            if is_standard_wedge or is_mtr:
+                results.append({
+                    "type": "wedge_up" if is_standard_wedge else "mtr_top",
+                    "direction": "bear",  # wedge up / MTR → 看跌反转
+                    "push1_price": round(h1, 2),
+                    "push2_price": round(h2, 2),
+                    "push3_price": round(h3, 2),
+                    "push1": round(push1, 6),
+                    "push2": round(push2, 6),
+                    "top": h3,
+                    "bars_ago": n - 1 - h3_idx,
+                    "momentum_decreasing": momentum_decreasing,
+                    "is_mtr": is_mtr,
+       })
 
     # Wedge Down: 3 consecutive lower swing lows
+    # Al Brooks: 第三推可以不破新低（头肩底 = MTR）
     lows = [(idx, price) for idx, price, stype in swings if stype == "low"]
     for i in range(len(lows) - 2):
         l1_idx, l1 = lows[i]
         l2_idx, l2 = lows[i + 1]
         l3_idx, l3 = lows[i + 2]
-        if l1 > l2 > l3:
+
+        # Al Brooks 定义：只要求逐推弱化，不要求每推更低
+        # 标准 Wedge: l1 > l2 > l3
+        # MTR (头肩底): l1 > l2, l3 ≈ l2 或 l3 > l2（第三推弱化）
+        if l1 > l2:  # 前两推必须下降
             push1 = l1 - l2
             push2 = l2 - l3
-            results.append({
-                "type": "wedge_down",
-                "direction": "bull",  # wedge down → 看涨反转
-                "push1": round(push1, 6),
+
+            # 检测逐推弱化（动量递减）
+            momentum_decreasing = push2 < push1
+
+            # Al Brooks: 第三推可以不破新低
+            is_standard_wedge = l3 < l2  # 标准 Wedge
+            is_mtr = l3 >= l2 and momentum_decreasing  # MTR（头肩底）
+
+            if is_standard_wedge or is_mtr:
+                results.append({
+                    "type": "wedge_down" if is_standard_wedge else "mtr_bottom",
+                    "direction": "bull",  # wedge down / MTR → 看涨反转
+                    "push1_price": round(l1, 2),
+                    "push2_price": round(l2, 2),
+                    "push3_price": round(l3, 2),
+                    "push1": round(push1, 6),
+                    "push2": round(push2, 6),
+                    "bottom": l3,
+                    "bars_ago": n - 1 - l3_idx,
+                    "momentum_decreasing": momentum_decreasing,
+                    "is_mtr": is_mtr,
+                })
                 "push2": round(push2, 6),
                 "bottom": l3,
                 "bars_ago": n - 1 - l3_idx,
