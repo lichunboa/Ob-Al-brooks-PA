@@ -323,7 +323,7 @@ curl -s "http://localhost:8094/klines/BNBUSDT/multi"
 
 **⚠️ H2/L2 触发 ≠ 自动入场**。触发后进入 Scalp 快速通道（Context 清晰时）或 Phase B（需要深分析时）。Context 是否清晰 = 看缓存中的 `ai_direction` 和 `market_state`。
 
-**⚠️ 注意 Al Brooks 特殊形态**：标准 TA 的 Wedge/三推要求每推更低/高，Al Brooks 的三推只要求**逐推弱化**（第三推可以不破新低/高 = 头肩底/顶 = MTR）。这类形态无法纯数值机械检测，留给 Phase B 深分析。
+**⚠️ 注意 Al Brooks 特殊形态**：标准 TA 的 Wedge/三推要求每推更低/高，Al Brooks 的三推只要求**逐推弱化**（第三推可以不破新低/高 = 头肩底/顶 = MTR）。**ab_patterns 模块已支持 MTR 检测**（`is_mtr` 字段），但仍需 Phase B 深分析确认反转有效性。
 
 **⚠️ 状态一致性验证**（Quick Scan 最后一步，每轮必做）：
 > Al Brooks: "Most days change behavior after 1-3 hours. Always be ready to change how you trade."
