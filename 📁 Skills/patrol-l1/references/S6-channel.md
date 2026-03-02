@@ -248,3 +248,141 @@ PB 未完成 = 不是 PB，可能是趋势转换。**必须确认 PB 完成才�
 ---
 
 > **导航**: [S6-bo.md](S6-bo.md) (BO 入场) | [S6-tr.md](S6-tr.md) (TR 入场) | [S6-reversal.md](S6-reversal.md) (反转入场) | [S6-common.md](S6-common.md) (通用规则)
+
+---
+
+## ab_ema 模块使用示例
+
+**ab_ema 模块提供 EMA 斜率、MAG 检测、First PB 数据**，辅助通道入场判断，但 S6-channel 的入场逻辑（为什么这是好的入场点）仍然需要学习。
+
+### 场景 1: BTC 5m First PB 入场
+
+```
+[First PB 入场] BTCUSDT 5m:
+
+  # 使用 ab_ema 模块的 First PB 数据
+  {ema_info.first_pb_bull} = True
+  {ema_info.first_pb_bar_index} = 3 (3 根前触碰 EMA)
+  {ema_info.ema20_slope} = +0.8% (强上升)
+  {ema_info.ema20} = 95100
+
+  当前价: 95234.5
+  距离 EMA: +0.14% (134.5 点)
+
+  # PB 完成确认
+  最近 K 线: 多头 K，close > prior high
+  → First PB 完成，信号 K 线出现
+
+  → 入场: H1 LONG @ 95234.5
+  → SL: 94950 (EMA 下方 150 点)
+  → TP: 95800 (MM 目标)
+```
+
+**思考过程（S6-channel 知识）**:
+- ✅ First PB = 最高概率入场（Al Brooks: "First PB after BO = best setup"）
+- ✅ ema20_slope = +0.8% → 趋势强劲（> 0.5% 门槛）
+- ✅ 距离 EMA 0.14% → 刚触碰完成 PB，不是远离 EMA
+- 📋 结论: H1 入场，Swing 风格（R ≥ 2:1）
+
+### 场景 2: ETH 15m MAG 买点
+
+```
+[MAG 买点] ETHUSDT 15m:
+
+  # 使用 ab_ema 模块的 MAG 数据
+  {ema_info.mag_detected} = True
+  {ema_info.mag_type} = "bull_mag"
+  {ema_info.mag_bar_index} = 1 (上一根)
+  {ema_info.ema20} = 2050.0
+
+  当前价: 2048.5
+  距离 EMA: -0.07% (1.5 点)
+
+  # MAG 特征
+  上一根 K 线: 大阴线，low 穿透 EMA 但 close 在 EMA 上方
+  → MAG (Moving Average Gap) 确认
+
+  → 入场: H2 LONG @ 2048.5
+  → SL: 2045.0 (MAG 低点下方)
+  → TP: 2070.0 (MM 目标)
+```
+
+**思考过程（S6-channel 知识）**:
+- ✅ MAG = 强趋势中的最佳买点（Al Brooks: "MAG = magnet buy"）
+- ✅ low 穿透 EMA 但 close 在上方 → 多头控制
+- ✅ 距离 EMA 仅 0.07% → 完美的 EMA PB
+- 📋 结论: H2 入场（MAG 后第一个多头 K），Swing 风格
+
+### 场景 3: SOL 5m EMA 斜率确认
+
+```
+[EMA 斜率] SOLUSDT 5m:
+
+  # 使用 ab_ema 模块的斜率数据
+  {ema_info.ema20_slope} = +0.3%
+  {ema_info.ema60_slope} = +0.5%
+  {ema_info.ema240_slope} = +0.2%
+
+  # 多周期 EMA 确认
+  5m EMA: +0.3% (弱上升)
+  15m EMA: +0.5% (中等上升)
+  1h EMA: +0.2% (弱上升)
+
+  → 趋势强度: 中等
+  → 操作: 可以做多，但降级为 Scalp（R ≥ 1:1）
+```
+
+**思考过程（S6-channel 知识）**:
+- ⚠️ 5m EMA 斜率 +0.3% → 低于 +0.5% 强趋势门槛
+- ✅ 15m EMA 斜率 +0.5% → 中等趋势
+- ⚠️ 1h EMA 斜率 +0.2% → 弱趋势
+- 📋 结论: 多周期不一致 → 降级为 Scalp，不做 Swing
+
+### 场景 4: BNB 5m EMA S/R 有效性
+
+```
+[EMA S/R] BNBUSDT 5m:
+
+  # 使用 ab_ema 模块的 EMA S/R 数据
+  {ema_info.ema_sr_valid} = True
+  {ema_info.ema_touch_count} = 3 (最近 20 根触碰 3 次)
+  {ema_info.ema20} = 622.0
+
+  当前价: 625.5
+  距离 EMA: +0.56%
+
+  # EMA 作为支撑
+  最近 3 次触碰 EMA: 都反弹
+  → EMA 作为支撑有效
+
+  → 操作: 等价格回到 EMA 附近（622.0）再入场
+  → 不在当前价 625.5 追进（远离 EMA）
+```
+
+**思考过程（S6-channel 知识）**:
+- ✅ ema_touch_count = 3 → EMA 作为 S/R 有效（≥ 2 次触碰）
+- ⚠️ 当前距离 EMA 0.56% → 远离 EMA（> 0.3% 门槛）
+- ✅ Al Brooks: "EMA = magnet" → 价格会回到 EMA
+- 📋 结论: 等待 PB 到 EMA 附近，不追进
+
+---
+
+## 两层架构总结
+
+| 层次 | 负责内容 | 工具 |
+|------|---------|------|
+| **计算层** | EMA 斜率、MAG、First PB（数值） | ab_ema 模块 |
+| **决策层** | 入场逻辑、时机判断 | S6-channel 文件（本文件） |
+
+**agent 工作流程**:
+1. 调用 `analyze_ab_ema()` → 获取 EMA 数据
+2. Read S6-channel.md → 学习"为什么这是好的入场点"
+3. 结合数值 + 知识 → 做出决策（H1/H2 入场、Scalp/Swing）
+
+**S6-channel 不可替代的部分**:
+- ✅ First PB 的意义（为什么是最高概率）
+- ✅ MAG 的原理（为什么是最佳买点）
+- ✅ H1/H2/H3/H4 的区别（为什么 H4 概率低）
+- ✅ Scalp vs Swing 的判断（为什么趋势弱降级）
+- ✅ EMA 作为磁体的原理（为什么不追进）
+

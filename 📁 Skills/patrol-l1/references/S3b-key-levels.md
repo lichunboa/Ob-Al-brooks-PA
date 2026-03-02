@@ -127,3 +127,129 @@ MM目标: {X}（从哪里量的）
 ## 标完后去哪里
 
 → **[S4-strategy-match.md](S4-strategy-match.md)** — 带着关键位置匹配 Playbook（S/R 影响 TP 路径 + SL 定位）
+
+---
+
+## ab_sr 模块使用示例
+
+**ab_sr 模块完全替代手工标注 S/R 的数值计算部分**，但 S3b 的思考逻辑（为什么这些是关键位置、如何使用）仍然需要学习。
+
+### 场景 1: BTC 5m 关键位置快速标注
+
+```
+[S/R 标注] BTCUSDT 5m:
+
+  当前价: 95234.5
+  ATR: 123.45
+
+  # 使用 ab_sr 模块预计算的数据
+  {sr_info.levels} 返回 18 个关键位置:
+
+  支撑位（由近到远）:
+    1. 94800 (swing_low) - 距离 0.45% (0.36xATR)
+    2. 94500 (bo_origin) - 距离 0.77%
+    3. 94200 (round_number) - 距离 1.09%
+    4. 93850 (gap_body, breakaway) - 距离 1.45%
+
+  阻力位（由近到远）:
+    1. 95600 (swing_high) - 距离 0.38% (0.30xATR)
+    2. 96000 (round_number) - 距离 0.80%
+    3. 96350 (50pct_pb) - 距离 1.17%
+    4. 96800 (gap_traditional, measuring) - 距离 1.64%
+
+  重合区（强磁力）:
+    - 96000 附近: round_number + swing_high (score=4)
+    - 94200 附近: round_number + bo_origin (score=3)
+
+  TR 位置:
+    - {sr_info.tr_position} = "middle"
+    - TR 范围: 94000 - 96000
+    - 当前在 TR 中间 1/3 → 50/50，不做
+
+  Gap 统计:
+    - {sr_info.gap_stats.open_gaps} = 3 个未回补
+    - {sr_info.gap_stats.filled_gaps} = 1 个已回补
+    - {sr_info.gap_stats.trend_phase} = "breakout"
+    - 结论: 趋势强劲（开放 Gap > 回补 Gap）
+```
+
+**思考过程（S3b 知识）**:
+- ✅ 最近支撑 94800 (swing_low) 距离 0.45% → 如果做多，SL 应在 94750 以下
+- ✅ 最近阻力 95600 (swing_high) 距离 0.38% → 进入真空加速区（< 25%）
+- ⚠️ 当前在 TR 中间 → 不适合入场，等到 TR 上/下 1/3
+- ✅ Gap 统计显示 "breakout" → 趋势强劲，支持顺势交易
+
+### 场景 2: ETH 15m 磁力分析
+
+```
+[磁力分析] ETHUSDT 15m:
+
+  当前价: 2055.15
+
+  # 使用 ab_sr 模块的重合区数据
+  {sr_info.confluence_zones[0]}:
+    - price_center: 2070.0
+    - width: 10 点
+    - types: ["swing_high", "50pct_pb", "round_number"]
+    - count: 3
+    - score: 6 (3个类型 + 3个重合)
+
+  距离重合区: 14.85 点 (0.72%)
+  总运动距离: 2055.15 - 2040.0 = 15.15 点
+  剩余距离占比: 14.85 / 15.15 = 98%
+
+  → 尚未进入真空加速区（需 < 25%）
+  → 可以继续持有多单，目标 2070.0
+```
+
+**思考过程（S3b 知识）**:
+- ✅ 重合区 score=6 → 强磁力，高概率到达
+- ✅ 剩余距离 98% → 还没进入加速区，不是假 BO
+- ✅ 3 种类型重合 → 机构会在此获利了结
+- 📋 操作: TP1 设在 2068.0（略低于重合区，避免被挤出）
+
+### 场景 3: BNB 5m BO 失败识别
+
+```
+[BO 评估] BNBUSDT 5m:
+
+  当前价: 622.16
+
+  # 使用 ab_sr 模块的 BO origin 数据
+  {sr_info.nearest_resistance} = 625.5 (bo_origin)
+  {sr_info.dist_resistance_pct} = 0.53%
+
+  BO 尝试: 从 620.0 突破 625.5
+  当前回落: 622.16 < 625.5
+
+  → BO 失败（80% BO 失败定律）
+  → 考虑做空，SL 在 625.5 上方
+```
+
+**思考过程（S3b 知识）**:
+- ✅ bo_origin 是最强阻力类型（前一次 BO 的起点）
+- ✅ 价格回落到 BO origin 下方 → BO 失败确认
+- ✅ Al Brooks: "80% of BO fail" → 高概率回到 TR
+- 📋 操作: 做空，SL=625.6, TP=618.0 (TR 底部)
+
+---
+
+## 两层架构总结
+
+| 层次 | 负责内容 | 工具 |
+|------|---------|------|
+| **计算层** | 标注所有 S/R 位置（数值） | ab_sr 模块 |
+| **决策层** | 理解为什么、如何使用 | S3b 文件（本文件） |
+
+**agent 工作流程**:
+1. 调用 `analyze_ab_sr()` → 获取 18 个关键位置
+2. Read S3b-key-levels.md → 学习"为什么这些是关键位置"
+3. 结合数值 + 知识 → 做出决策（SL 位置、TP 路径、入场时机）
+
+**S3b 不可替代的部分**:
+- ✅ 真空效应的原理（为什么磁力存在）
+- ✅ 25% 加速区规则（为什么不能追进）
+- ✅ TR 1/3 规则（为什么中间不做）
+- ✅ 重合区的意义（为什么机构在此获利）
+- ✅ BO origin 的特殊性（为什么是最强阻力）
+

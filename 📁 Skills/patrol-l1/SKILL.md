@@ -234,6 +234,7 @@ curl -s "http://localhost:8094/klines/{SYMBOL}/multi"
 获取 5m 周期 K 线数据，调用 ab_* 模块预计算数值：
 
 ```python
+from indicators.batch.ab_ema import analyze_ab_ema
 from indicators.batch.ab_sr import analyze_ab_sr
 from indicators.batch.ab_patterns import analyze_ab_patterns
 
@@ -244,11 +245,13 @@ low = [k['L'] for k in klines_5m]
 close = [k['C'] for k in klines_5m]
 
 # 调用模块
+ema_info = analyze_ab_ema(open_arr, high, low, close)
 sr_info = analyze_ab_sr(open_arr, high, low, close)
 pat_info = analyze_ab_patterns(open_arr, high, low, close)
 ```
 
 **数据用途**：
+- `ema_info`: EMA 斜率、MAG 检测、First PB（用于方向确认）
 - `sr_info`: Premise Check 第 c 项（入场前提 - 支撑/阻力位置）
 - `pat_info`: Premise Check 第 b 项（市场状态 - 压力方向/形态）
 
@@ -392,6 +395,8 @@ WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 ```python
 # 根据事件类型决定调用哪些模块
 modules_needed = []
+if event_type in ['ema_touch', 'pb_complete']:
+    modules_needed.append('ab_ema')  # 需要 EMA 数据
 if event_type in ['level_break', 'tr_edge', 'signal(TR)']:
     modules_needed.append('ab_sr')  # 需要 S/R 数据
 if event_type in ['signal_trigger', 'h2_l2_trigger']:
@@ -400,6 +405,9 @@ if event_type in ['anomaly', 'momentum', 'climax_suspected']:
     modules_needed.append('ab_patterns')  # 需要形态/压力数据
 
 # 按需调用（避免不必要的计算）
+if 'ab_ema' in modules_needed:
+    from indicators.batch.ab_ema import analyze_ab_ema
+    ema_info = analyze_ab_ema(open_arr, high, low, close)
 if 'ab_sr' in modules_needed:
     from indicators.batch.ab_sr import analyze_ab_sr
     sr_info = analyze_ab_sr(open_arr, high, low, close)
@@ -412,11 +420,12 @@ if 'ab_patterns' in modules_needed:
 ```
 
 **数据用途**：
-- `sr_info`: S/R 位置（用于 SL/TP 设置）
+- `ema_info`: EMA 斜率、MAG、First PB（用于方向确认，详见 S2/S6-channel）
+- `sr_info`: S/R 位置（用于 SL/TP 设置，详见 S3b）
 - `mm_info`: MM 目标（用于 R 计算，详见 S5）
-- `pat_info`: 形态/压力（用于 Context 确认）
+- `pat_info`: 形态/压力（用于 Context 确认，详见 S3）
 
-**详细使用方式** → 见 [S5-evaluation.md](references/S5-evaluation.md) "MM 计算示例"
+**详细使用方式** → 见各 S 文件的"使用示例"章节
 
 **Phase B-1: 优先级排序 + S 文件加载**
 
