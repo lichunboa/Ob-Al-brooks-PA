@@ -34,7 +34,7 @@ from config import INTERVAL_TO_MS, settings
 
 logger = logging.getLogger(__name__)
 
-BINANCE_DATA_URL = "https://data.binance.vision"
+BINANCE_DATA_URL = settings.binance_data_base
 EXPECTED_1M_PER_DAY = 1440  # 1分钟 * 1440 = 1天
 EXPECTED_5M_PER_DAY = 288   # 5分钟 * 288 = 1天
 
@@ -100,9 +100,10 @@ class GapScanner:
         """扫描期货指标缺口"""
         min_count = int(EXPECTED_5M_PER_DAY * threshold)
 
-        sql = """
+        table = f"{self._ts.schema}.binance_futures_metrics_5m"
+        sql = f"""
             SELECT symbol, DATE(create_time) AS d, COUNT(*) AS c
-            FROM market_data.binance_futures_metrics_5m
+            FROM {table}
             WHERE symbol = ANY(%s) AND create_time >= %s AND create_time < %s
             GROUP BY symbol, DATE(create_time)
         """
@@ -191,7 +192,7 @@ class RestBackfiller:
 class MetricsRestBackfiller:
     """Metrics REST API 补齐 (用于 ZIP 未产出的近日数据)"""
 
-    FAPI = "https://fapi.binance.com"
+    FAPI = settings.binance_fapi_base
 
     def __init__(self, ts: TimescaleAdapter, workers: int = 3):
         self._ts = ts

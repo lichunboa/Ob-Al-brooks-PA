@@ -9,7 +9,7 @@ from typing import Optional
 
 # 服务根目录
 SERVICE_ROOT = Path(__file__).parent.parent  # src/config.py -> data-service
-PROJECT_ROOT = SERVICE_ROOT.parent.parent    # tradecat/
+PROJECT_ROOT = SERVICE_ROOT.parent.parent    # ab-console/
 
 # 加载 config/.env
 _env_file = PROJECT_ROOT / "config" / ".env"
@@ -51,6 +51,11 @@ class Settings:
     db_schema: str = field(default_factory=lambda: os.getenv("KLINE_DB_SCHEMA", "market_data"))
     db_exchange: str = field(default_factory=lambda: os.getenv("BINANCE_WS_DB_EXCHANGE", "binance_futures_um"))
     ccxt_exchange: str = field(default_factory=lambda: os.getenv("BINANCE_WS_CCXT_EXCHANGE", "binance"))
+
+    # Binance 原生 API 配置（ccxt.py Binance 原生 Kline 使用）
+    binance_fapi_base: str = field(default_factory=lambda: os.getenv("BINANCE_FAPI_BASE", "https://fapi.binance.com"))
+    binance_data_base: str = field(default_factory=lambda: os.getenv("BINANCE_DATA_BASE", "https://data-api.binance.vision"))
+    binance_alpha_url: str = field(default_factory=lambda: os.getenv("BINANCE_ALPHA_URL", "https://www.binance.com/bapi/futures/v1/public/future/common/get-all-symbols"))
 
     def __post_init__(self):
         self.log_dir.mkdir(parents=True, exist_ok=True)

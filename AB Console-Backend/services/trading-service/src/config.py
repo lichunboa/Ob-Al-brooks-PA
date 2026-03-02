@@ -3,7 +3,7 @@
 
 环境变量:
     DATABASE_URL: TimescaleDB 连接串
-    INDICATOR_SQLITE_PATH: SQLite 输出路径
+    INDICATOR_PG_SCHEMA: PG 指标 schema（默认 tg_cards）
     MAX_WORKERS: 并行计算线程数
     KLINE_INTERVALS: K线指标计算周期
     FUTURES_INTERVALS: 期货情绪计算周期
@@ -13,13 +13,13 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List
 
-# 安全计算路径（兼容 Docker 和本地）
-_file_path = Path(__file__)
-SERVICE_ROOT = _file_path.parents[1] if len(_file_path.parents) > 1 else Path("/app/src")
-PROJECT_ROOT = SERVICE_ROOT.parents[1] if len(SERVICE_ROOT.parents) > 1 else Path("/app")
+SERVICE_ROOT = Path(__file__).parents[1]  # src/config.py -> src -> trading-service
+PROJECT_ROOT = SERVICE_ROOT.parents[2]    # trading-service -> services -> ab-console
 
-# 加载 config/.env
-_env_file = PROJECT_ROOT / "config" / ".env"
+# 加载 assets/config/.env（优先）→ config/.env（兼容只读回退）
+_env_file = PROJECT_ROOT / "assets" / "config" / ".env"
+if not _env_file.exists():
+    _env_file = PROJECT_ROOT / "config" / ".env"
 if _env_file.exists():
     for line in _env_file.read_text().splitlines():
         line = line.strip()
@@ -40,11 +40,8 @@ class Config:
         "postgresql://postgres:postgres@localhost:5433/market_data"
     ))
 
-    # SQLite（写入指标结果）
-    sqlite_path: Path = field(default_factory=lambda: Path(os.getenv(
-        "INDICATOR_SQLITE_PATH",
-        str(PROJECT_ROOT / "libs/database/services/telegram-service/market_data.db")
-    )))
+    # PG 指标 schema（表名严格对齐历史指标表名）
+    indicator_pg_schema: str = field(default_factory=lambda: (os.getenv("INDICATOR_PG_SCHEMA", "tg_cards") or "tg_cards").strip())
 
     # 计算参数
     default_lookback: int = 300

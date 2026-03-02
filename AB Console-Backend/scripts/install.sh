@@ -1,5 +1,5 @@
 #!/bin/bash
-# tradecat 一键安装脚本
+# ab-console 一键安装脚本
 set -e
 
 GREEN='\033[0;32m'
@@ -8,7 +8,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
-echo -e "${GREEN}🐱 tradecat 一键安装${NC}"
+echo -e "${GREEN}🐱 ab-console 一键安装${NC}"
 echo "安装目录: $ROOT"
 
 # ========== 1. 检查系统依赖 ==========

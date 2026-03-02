@@ -28,9 +28,9 @@ pip install -q -r requirements.txt
 echo "🔍 检查 PostgreSQL..."
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5434}"
-DB_NAME="${DB_NAME:-tradecat}"
+DB_NAME="${DB_NAME:-ab_console}"
 DB_USER="${DB_USER:-postgres}"
-DB_PASS="${DB_PASSWORD:-tradecat123}"
+DB_PASS="${DB_PASSWORD:-ab_console123}"
 
 export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 

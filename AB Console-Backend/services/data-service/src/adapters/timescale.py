@@ -20,6 +20,21 @@ CANDLE_NOTIFY_CHANNEL = "candle_updates"
 METRICS_NOTIFY_CHANNEL = "metrics_updates"
 
 
+def _dedupe_rows(rows: Sequence[dict], key_cols: tuple) -> List[dict]:
+    """
+    对输入 rows 做幂等去重，避免 TEMP TABLE -> INSERT ... ON CONFLICT 时因"同 key 重复"触发：
+    `ON CONFLICT DO UPDATE command cannot affect row a second time`。
+    保留最后一次出现的值，保持首次出现的顺序。
+    """
+    if not rows:
+        return []
+    deduped: Dict[tuple, dict] = {}
+    for row in rows:
+        key = tuple(row.get(c) for c in key_cols)
+        deduped[key] = row
+    return list(deduped.values())
+
+
 class TimescaleAdapter:
     """TimescaleDB 操作"""
 
@@ -67,6 +82,9 @@ class TimescaleAdapter:
         """
         if not rows:
             return 0
+
+        # 去重：防止同 key 重复导致 ON CONFLICT 报错
+        rows = _dedupe_rows(list(rows), ("exchange", "symbol", "bucket"))
 
         interval = normalize_interval(interval)
         table_name = f"candles_{interval}"
@@ -147,6 +165,9 @@ class TimescaleAdapter:
         """使用 COPY 命令批量 upsert 指标数据，实现最高性能。"""
         if not rows:
             return 0
+
+        # 去重：防止同 key 重复导致 ON CONFLICT 报错
+        rows = _dedupe_rows(list(rows), ("exchange", "symbol", "bucket"))
 
         table_name = "binance_futures_metrics_5m"
         cols = list(rows[0].keys())

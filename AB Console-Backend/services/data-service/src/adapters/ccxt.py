@@ -98,6 +98,26 @@ def fetch_ohlcv(exchange: str, symbol: str, interval: str = "1m",
 
     ccxt_sym = f"{symbol[:-4]}/USDT:USDT"
 
+    # 优先尝试 Binance 原生 Kline（含 quote/taker 字段）
+    if exchange in {"binance", "binanceusdm", "binance_usdm", "binance_futures", "binance_futures_um"}:
+        for attempt in range(3):
+            acquire(2)
+            try:
+                client = get_client(exchange)
+                method = getattr(client, "fapiPublicGetKlines", None)
+                if method:
+                    params = {"symbol": symbol, "interval": interval, "limit": limit}
+                    if since_ms is not None:
+                        params["startTime"] = since_ms
+                    raw = method(params)
+                    if raw:
+                        return raw
+            except Exception as e:
+                if attempt == 2:
+                    logger.warning("binance 原生 klines 失败: %s", e)
+            finally:
+                release()
+
     for attempt in range(3):
         acquire(2)
         try:
@@ -125,14 +145,33 @@ def fetch_ohlcv(exchange: str, symbol: str, interval: str = "1m",
 
 
 def to_rows(exchange: str, symbol: str, candles: List[List], source: str = "ccxt") -> List[dict]:
-    return [{
-        "exchange": exchange, "symbol": symbol.upper(),
-        "bucket_ts": datetime.fromtimestamp(c[0] / 1000, tz=timezone.utc),
-        "open": float(c[1]), "high": float(c[2]), "low": float(c[3]),
-        "close": float(c[4]), "volume": float(c[5]),
-        "quote_volume": None, "trade_count": None, "is_closed": True, "source": source,
-        "taker_buy_volume": None, "taker_buy_quote_volume": None,
-    } for c in candles if len(c) >= 6]
+    rows = []
+    for c in candles:
+        if len(c) < 6:
+            continue
+        try:
+            open_time_ms = int(c[0])
+        except (TypeError, ValueError):
+            continue
+        # Binance 原生 klines: [openTime, open, high, low, close, volume, closeTime, quoteVolume, trades, takerBuyVol, takerBuyQuote, ...]
+        quote_volume = None
+        trade_count = None
+        taker_buy_volume = None
+        taker_buy_quote_volume = None
+        if len(c) >= 11:
+            quote_volume = float(c[7]) if c[7] not in (None, "") else None
+            trade_count = int(c[8]) if c[8] not in (None, "") else None
+            taker_buy_volume = float(c[9]) if c[9] not in (None, "") else None
+            taker_buy_quote_volume = float(c[10]) if c[10] not in (None, "") else None
+        rows.append({
+            "exchange": exchange, "symbol": symbol.upper(),
+            "bucket_ts": datetime.fromtimestamp(open_time_ms / 1000, tz=timezone.utc),
+            "open": float(c[1]), "high": float(c[2]), "low": float(c[3]),
+            "close": float(c[4]), "volume": float(c[5]),
+            "quote_volume": quote_volume, "trade_count": trade_count, "is_closed": True, "source": source,
+            "taker_buy_volume": taker_buy_volume, "taker_buy_quote_volume": taker_buy_quote_volume,
+        })
+    return rows
 
 
 def normalize_symbol(symbol: str) -> Optional[str]:

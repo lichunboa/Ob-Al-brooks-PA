@@ -24,11 +24,11 @@ fi
 # 2. 创建数据库
 echo ""
 echo "🗄️  设置数据库..."
-if psql -lqt | cut -d \| -f 1 | grep -qw tradecat; then
-    echo "✅ 数据库 'tradecat' 已存在"
+if psql -lqt | cut -d \| -f 1 | grep -qw ab-console; then
+    echo "✅ 数据库 'ab-console' 已存在"
 else
-    echo "创建数据库 'tradecat'..."
-    createdb tradecat || echo "使用默认用户创建失败，尝试 postgres 用户..."
+    echo "创建数据库 'ab-console'..."
+    createdb ab-console || echo "使用默认用户创建失败，尝试 postgres 用户..."
 fi
 
 # 3. 设置 Sync Service
@@ -45,7 +45,7 @@ pip install -q -r requirements.txt
 # 创建环境文件
 if [ ! -f ".env" ]; then
     cat > .env << EOF
-DATABASE_URL=postgresql://localhost:5432/tradecat
+DATABASE_URL=postgresql://localhost:5432/ab-console
 API_HOST=0.0.0.0
 API_PORT=8089
 LOG_LEVEL=INFO

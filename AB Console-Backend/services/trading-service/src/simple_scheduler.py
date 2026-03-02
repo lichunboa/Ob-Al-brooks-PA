@@ -11,10 +11,9 @@
 2. 每小时重新评估优先级
 """
 import os
-import sqlite3
 import sys
 import time
-import atexit
+from pathlib import Path
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -24,21 +23,9 @@ TRADING_SERVICE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 # 将服务根目录加入路径，保证以包方式导入 src.*
 if TRADING_SERVICE_DIR not in sys.path:
     sys.path.insert(0, TRADING_SERVICE_DIR)
-PROJECT_ROOT = os.path.dirname(os.path.dirname(TRADING_SERVICE_DIR))  # tradecat/
-
-def _resolve_sqlite_path(env_path: str | None, default_path: str) -> str:
-    """支持相对路径，统一基于项目根目录解析为绝对路径。"""
-    if env_path and env_path.strip():
-        path = env_path.strip()
-        if not os.path.isabs(path):
-            path = os.path.abspath(os.path.join(PROJECT_ROOT, path))
-        return path
-    return default_path
-
-SQLITE_PATH = _resolve_sqlite_path(
-    os.environ.get("INDICATOR_SQLITE_PATH"),
-    os.path.join(PROJECT_ROOT, "libs/database/services/telegram-service/market_data.db"),
-)
+REPO_ROOT = str(Path(__file__).resolve().parents[4])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 # 币种管理配置
 HIGH_PRIORITY_TOP_N = int(os.environ.get("HIGH_PRIORITY_TOP_N", "50"))
@@ -54,26 +41,6 @@ last_computed = {i: None for i in INTERVALS}
 last_priority_update = None
 high_priority_symbols = []
 
-# SQLite 连接复用（避免频繁开关连接）
-_sqlite_conn = None
-
-def _get_sqlite_conn():
-    """获取 SQLite 连接（单例复用）"""
-    global _sqlite_conn
-    if _sqlite_conn is None:
-        _sqlite_conn = sqlite3.connect(SQLITE_PATH, check_same_thread=False)
-        _sqlite_conn.execute("PRAGMA journal_mode=WAL")
-    return _sqlite_conn
-
-def _close_sqlite_conn():
-    """关闭 SQLite 连接"""
-    global _sqlite_conn
-    if _sqlite_conn:
-        _sqlite_conn.close()
-        _sqlite_conn = None
-
-atexit.register(_close_sqlite_conn)
-
 
 from src.db.reader import shared_pg_conn
 
@@ -81,14 +48,48 @@ from src.db.reader import shared_pg_conn
 def log(msg: str):
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}", flush=True)
 
+_TIME_DEBUG = os.environ.get("SCHEDULER_TIME_DEBUG", "").strip().lower() in {"1", "true", "yes", "y"}
 
-# 使用共享币种模块
-import sys as _sys
-from pathlib import Path as _Path
-_libs_path = str(_Path(__file__).parents[3] / "libs")
-if _libs_path not in _sys.path:
-    _sys.path.insert(0, _libs_path)
-from common.symbols import get_configured_symbols
+
+def _normalize_utc(ts: datetime | None) -> datetime | None:
+    """把 datetime 统一归一为 UTC tz-aware。"""
+    if ts is None:
+        return None
+    if getattr(ts, "tzinfo", None) is None:
+        return ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(timezone.utc)
+
+
+def _parse_tg_ts(v: object) -> datetime | None:
+    """
+    解析 tg_cards.* 的 "数据时间"（text）为 UTC tz-aware datetime。
+
+    兼容：
+    - 2026-03-01T19:45:00+00:00
+    - 2026-03-01 19:45:00+00:00
+    - 2026-03-01T19:45:00Z
+    - 2026-03-01 19:45:00   （无时区视为 UTC）
+    """
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return _normalize_utc(v)
+
+    s = str(v).strip()
+    if not s:
+        return None
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    s = s.replace("T", " ")
+    try:
+        dt = datetime.fromisoformat(s)
+    except Exception:
+        return None
+    return _normalize_utc(dt)
+
+
+# 使用共享币种模块（仓库内 assets/common/symbols.py）
+from assets.common.symbols import get_configured_symbols
 
 
 # ============ 高优先级币种识别（复用 async_full_engine 完整逻辑）============
@@ -156,7 +157,7 @@ def _query_futures_priority(top_n: int = 30) -> set:
                         sum_taker_long_short_vol_ratio as taker_ratio,
                         count_long_short_ratio as ls_ratio
                     FROM market_data.binance_futures_metrics_5m 
-                    WHERE create_time > NOW() - INTERVAL '7 days'
+                    WHERE create_time > (NOW() AT TIME ZONE 'UTC') - INTERVAL '7 days'
                     ORDER BY symbol, create_time DESC
                 """)
                 rows = cur.fetchall()
@@ -237,26 +238,98 @@ def get_source_latest(interval: str) -> datetime:
             with conn.cursor(row_factory=dict_row) as cur:
                 cur.execute(f"SELECT MAX(bucket_ts) as latest FROM market_data.{table}")
                 row = cur.fetchone()
-                return row["latest"] if row else None
+                return _normalize_utc(row["latest"] if row else None)
     except Exception as e:
         log(f"查询 {table} 最新时间失败: {e}")
         return None
 
 
-def get_indicator_latest(interval: str) -> datetime:
-    """查询 SQLite 指标该周期最新数据时间"""
+def get_futures_source_latest(interval: str) -> datetime:
+    """查询期货情绪源数据最新时间（5m=原始表，其他=*_last 物化表）"""
+    if interval == "1m":
+        return None
+
     try:
-        conn = _get_sqlite_conn()
-        row = conn.execute("""
-            SELECT MAX(数据时间) as latest FROM [MACD柱状扫描器.py] WHERE 周期 = ?
-        """, (interval,)).fetchone()
-        if row and row[0]:
-            ts_str = row[0].replace("+00:00", "").replace("T", " ")
-            return datetime.fromisoformat(ts_str).replace(tzinfo=timezone.utc)
+        with shared_pg_conn() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                if interval == "5m":
+                    cur.execute("SELECT MAX(create_time) AS latest FROM market_data.binance_futures_metrics_5m")
+                    row = cur.fetchone()
+                    latest = row["latest"] if row else None
+                else:
+                    table = f"binance_futures_metrics_{interval}_last"
+                    cur.execute(f"SELECT MAX(bucket) AS latest FROM market_data.{table}")
+                    row = cur.fetchone()
+                    latest = row["latest"] if row else None
+
+        return _normalize_utc(latest)
+    except Exception as e:
+        log(f"查询期货源最新时间失败({interval}): {e}")
+        return None
+
+
+def get_indicator_latest(interval: str) -> datetime:
+    """查询 PG 指标该周期最新数据时间（tg_cards）"""
+    try:
+        with shared_pg_conn() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    'SELECT MAX("数据时间") AS latest FROM tg_cards."MACD柱状扫描器.py" WHERE "周期"=%s',
+                    (interval,),
+                )
+                row = cur.fetchone()
+                if row and row.get("latest"):
+                    return _parse_tg_ts(row["latest"])
         return None
     except Exception as e:
-        log(f"查询 SQLite 指标 {interval} 最新时间失败: {e}")
+        log(f"查询 tg_cards 指标 {interval} 最新时间失败: {e}")
         return None
+
+
+def get_futures_indicator_latest(interval: str) -> datetime:
+    """查询期货相关指标表该周期最新时间（以 max(meta,agg) 作为有效进度）。"""
+    if interval == "1m":
+        return None
+    try:
+        with shared_pg_conn() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    'SELECT MAX("数据时间") AS latest FROM tg_cards."期货情绪元数据.py" WHERE "周期"=%s AND "持仓金额" IS NOT NULL',
+                    (interval,),
+                )
+                meta = cur.fetchone()
+                cur.execute(
+                    'SELECT MAX("数据时间") AS latest FROM tg_cards."期货情绪聚合表.py" WHERE "周期"=%s AND "持仓金额" IS NOT NULL',
+                    (interval,),
+                )
+                agg = cur.fetchone()
+
+        meta_ts = _parse_tg_ts(meta.get("latest") if meta else None)
+        agg_ts = _parse_tg_ts(agg.get("latest") if agg else None)
+        if meta_ts and agg_ts:
+            return max(meta_ts, agg_ts)
+        return meta_ts or agg_ts
+    except Exception as e:
+        log(f"查询 tg_cards 期货指标 {interval} 最新时间失败: {e}")
+        return None
+
+
+def get_effective_source_latest(interval: str) -> datetime:
+    """综合源最新时间：max(candles, futures)。"""
+    k_ts = get_source_latest(interval)
+    f_ts = get_futures_source_latest(interval)
+    if k_ts and f_ts:
+        return max(k_ts, f_ts)
+    return k_ts or f_ts
+
+
+def get_effective_indicator_latest(interval: str) -> datetime:
+    """综合指标最新时间：max(kline指标进度, 期货指标进度)。"""
+    k_ts = get_indicator_latest(interval)
+    f_ts = get_futures_indicator_latest(interval)
+    if k_ts and f_ts:
+        return max(k_ts, f_ts)
+    return k_ts or f_ts
 
 
 def check_need_calc() -> list:
@@ -265,16 +338,23 @@ def check_need_calc() -> list:
 
     for interval in INTERVALS:
         try:
-            source_ts = get_source_latest(interval)
-            indicator_ts = get_indicator_latest(interval)
+            source_ts = get_effective_source_latest(interval)
+            indicator_ts = get_effective_indicator_latest(interval)
 
             if source_ts is None:
                 continue
 
+            if _TIME_DEBUG:
+                delta = None
+                if indicator_ts is not None:
+                    try:
+                        delta = (source_ts - indicator_ts).total_seconds()
+                    except Exception:
+                        delta = None
+                log(f"[TIME_DEBUG] {interval} source={source_ts} indicator={indicator_ts} delta_s={delta}")
+
             if indicator_ts is None or source_ts > indicator_ts:
                 need_calc.append(interval)
-
-            last_computed[interval] = source_ts
         except Exception as e:
             log(f"检查 {interval} 需要计算失败: {e}")
             need_calc.append(interval)
@@ -285,7 +365,7 @@ def check_need_calc() -> list:
 def run_calculation(intervals: list, symbols: list):
     """执行指标计算"""
     if not intervals or not symbols:
-        return
+        return False
 
     import subprocess
 
@@ -308,8 +388,19 @@ def run_calculation(intervals: list, symbols: list):
         for line in result.stdout.split("\n"):
             if "计算完成" in line or "rows" in line.lower():
                 log(line.strip())
+        return True
     else:
-        log(f"错误: {result.stderr[:200]}")
+        stderr = (result.stderr or "").strip()
+        if not stderr:
+            log("错误: 子进程非0退出，但 stderr 为空")
+            return False
+
+        # 只打印尾部，避免日志爆炸；但要保留 “哪张表写入失败” 等关键信息
+        lines = stderr.splitlines()
+        tail = lines[-60:] if len(lines) > 60 else lines
+        for line in tail:
+            log(f"错误: {line}")
+        return False
 
 
 def update_priority():
@@ -371,7 +462,11 @@ def main():
 
     # 2. 启动时强制计算全部周期（确保表里有全周期数据）
     log(f"首次启动，计算全部周期: {INTERVALS}")
-    run_calculation(INTERVALS, high_priority_symbols)
+    ok = run_calculation(INTERVALS, high_priority_symbols)
+    if ok:
+        # 只有在计算成功后才推进 last_computed，避免一次失败后“永不重试直到新数据出现”
+        for interval in INTERVALS:
+            last_computed[interval] = get_effective_source_latest(interval)
 
     log("-" * 50)
     log("进入轮询检查 (每10秒检查新数据, 每小时更新优先级)...")
@@ -381,19 +476,13 @@ def main():
         if time.time() - last_priority_update > 3600:
             update_priority()
 
-        # 检查新数据
-        to_calc = []
-        for interval in INTERVALS:
-            try:
-                latest = get_source_latest(interval)
-                if latest and (last_computed[interval] is None or latest > last_computed[interval]):
-                    to_calc.append(interval)
-                    last_computed[interval] = latest
-            except Exception as e:
-                log(f"检查 {interval} 失败: {e}")
-
+        # 计算触发条件：以“指标进度 vs 源进度”为准（不是以 last_computed 为准）
+        to_calc = check_need_calc()
         if to_calc:
-            run_calculation(to_calc, high_priority_symbols)
+            ok = run_calculation(to_calc, high_priority_symbols)
+            if ok:
+                for interval in to_calc:
+                    last_computed[interval] = get_effective_source_latest(interval)
 
         time.sleep(10)
 

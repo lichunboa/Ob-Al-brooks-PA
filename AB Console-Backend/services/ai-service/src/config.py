@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 # 项目路径
 SERVICE_ROOT = Path(__file__).resolve().parents[1]  # ai-service/
-PROJECT_ROOT = SERVICE_ROOT.parents[1]  # tradecat/
+PROJECT_ROOT = SERVICE_ROOT.parents[1]  # ab-console/
 
 # 加载环境变量
 ENV_PATH = PROJECT_ROOT / "config" / ".env"

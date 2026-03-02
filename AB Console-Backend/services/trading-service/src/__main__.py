@@ -1,11 +1,11 @@
 """
-入口: python -m indicator_service
+入口: python -m src
 
 用法:
-    python -m indicator_service --once                   # 一次性计算（推荐）
-    python -m indicator_service --full-async             # 完全异步持续运行
-    python -m indicator_service --event                  # 事件驱动模式（实验性）
-    python -m indicator_service --symbols BTCUSDT,ETHUSDT --intervals 5m,15m
+    python -m src --once                   # 一次性计算（推荐）
+    python -m src --full-async             # 完全异步持续运行
+    python -m src --event                  # 事件驱动模式（实验性）
+    python -m src --symbols BTCUSDT,ETHUSDT --intervals 5m,15m
 """
 import argparse
 import os
@@ -15,8 +15,11 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-# 加载 config/.env
-_env_file = Path(__file__).parents[1] / "config" / ".env"
+# 加载 assets/config/.env（优先）→ config/.env（兼容只读回退）
+_repo_root = Path(__file__).resolve().parents[4]
+_env_file = _repo_root / "assets" / "config" / ".env"
+if not _env_file.exists():
+    _env_file = _repo_root / "config" / ".env"
 if _env_file.exists():
     for line in _env_file.read_text().splitlines():
         line = line.strip()
@@ -45,8 +48,6 @@ def main():
     parser.add_argument("--log-level", type=str, default="INFO", help="日志级别")
     parser.add_argument("--json-log", action="store_true", help="使用JSON格式日志")
     parser.add_argument("--metrics-file", type=str, help="指标输出文件路径")
-    parser.add_argument("--health-port", type=int, default=8082, help="健康检查端口")
-    parser.add_argument("--disable-health", action="store_true", help="禁用健康检查服务器")
 
     args = parser.parse_args()
 
@@ -67,11 +68,6 @@ def main():
 
     from . import indicators  # noqa - 触发指标注册
 
-    # 启动健康检查服务器
-    if not args.disable_health:
-        from .health import start_health_server, stop_health_server, set_running, set_progress, update_status
-        start_health_server(port=args.health_port)
-
     # 优先读 --symbols 参数，其次读 TEST_SYMBOLS 环境变量
     symbols = args.symbols.split(",") if args.symbols else None
     if not symbols:
@@ -83,10 +79,6 @@ def main():
     indicator_list = args.indicators.split(",") if args.indicators else None
 
     try:
-        # 设置运行状态
-        if not args.disable_health:
-            set_running(True, mode="full_async" if args.full_async else "event" if args.event else "once")
-        
         if args.full_async:
             from .core.async_full_engine import run_async_full
             run_async_full(
@@ -117,11 +109,6 @@ def main():
         # 保存指标
         if args.metrics_file:
             metrics.save(Path(args.metrics_file))
-        
-        # 停止健康检查服务器
-        if not args.disable_health:
-            set_running(False)
-            stop_health_server()
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from pathlib import Path
 
 # telegram-service 根目录
 SERVICE_ROOT = Path(__file__).parent.parent.parent  # utils -> src -> telegram-service
-PROJECT_ROOT = SERVICE_ROOT.parent.parent           # services -> tradecat
+PROJECT_ROOT = SERVICE_ROOT.parent.parent           # services -> ab-console
 
 # 数据库目录
 DATABASE_DIR = PROJECT_ROOT / "libs" / "database" / "services" / "telegram-service"

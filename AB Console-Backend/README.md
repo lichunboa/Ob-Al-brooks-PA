@@ -1268,7 +1268,7 @@ PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "\l"
 - **Telegram 交流群**: [glue_coding](https://t.me/glue_coding)
 - **Twitter/X**: [123olp](https://x.com/123olp)
 - **Twitter/X**: [123olp](https://x.com/123olp)
-- **discord**:  [tradecat](https://discord.gg/nppHyjrfqX)
+- **discord**:  [ab-console](https://discord.gg/nppHyjrfqX)
 
 </details>
 
@@ -1296,6 +1296,6 @@ PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -c "\l"
 
 **Made with ❤️ by AB Console Team**
 
-[⬆ 返回顶部](#-tradecat)
+[⬆ 返回顶部](#-ab-console)
 
 </div>

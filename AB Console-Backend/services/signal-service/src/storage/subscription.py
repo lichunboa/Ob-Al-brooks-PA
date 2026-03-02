@@ -4,16 +4,12 @@
 
 import json
 import logging
-import os
-import sqlite3
 import threading
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 
 try:
-    from ..config import get_subscription_db_path
     from ..rules import RULES_BY_TABLE
 except ImportError:
-    from config import get_subscription_db_path
     from rules import RULES_BY_TABLE
 
 logger = logging.getLogger(__name__)
@@ -21,87 +17,110 @@ logger = logging.getLogger(__name__)
 # 所有表
 ALL_TABLES = list(RULES_BY_TABLE.keys())
 
+_PG_SCHEMA = "signal_state"
 
-class SubscriptionManager:
-    """订阅管理器（解耦版）"""
 
-    def __init__(self, db_path: str = None):
-        self.db_path = db_path or str(get_subscription_db_path())
+class PgSubscriptionManager:
+    """PG 订阅管理器（signal_state.signal_subs）"""
+
+    def __init__(self, database_url: str | None = None, *, schema: str = _PG_SCHEMA):
+        try:
+            from ..config import get_database_url
+        except ImportError:
+            from config import get_database_url
+
+        self.database_url = (database_url or get_database_url() or "").strip()
+        if not self.database_url:
+            raise RuntimeError("缺少 DATABASE_URL，无法使用 PG 订阅存储")
+        self.schema = (schema or _PG_SCHEMA).strip() or _PG_SCHEMA
         self._cache: dict[int, dict] = {}
-        self._lock = threading.RLock()
-        self._init_db()
-
-    def _init_db(self):
-        """初始化数据库"""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        with self._conn() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS signal_subs (
-                    user_id INTEGER PRIMARY KEY,
-                    enabled INTEGER DEFAULT 1,
-                    tables TEXT
-                )
-            """)
+        self._lock = threading.Lock()
+        self._ensure_table()
 
     @contextmanager
     def _conn(self):
-        conn = None
+        import psycopg
+
+        conn = psycopg.connect(self.database_url, connect_timeout=3)
         try:
-            conn = sqlite3.connect(self.db_path, timeout=10)
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")
             yield conn
             conn.commit()
         finally:
-            if conn:
-                with suppress(Exception):
-                    conn.close()
+            conn.close()
+
+    def _ensure_table(self) -> None:
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT to_regclass(%s)", (f"{self.schema}.signal_subs",))
+                if cur.fetchone()[0] is None:
+                    raise RuntimeError(
+                        f"缺少 PG 表 {self.schema}.signal_subs；请先执行 assets/database/db/schema/022_signal_state.sql"
+                    )
+
+    @staticmethod
+    def _parse_tables(raw) -> set[str]:
+        if raw is None:
+            return set(ALL_TABLES)
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except Exception:
+                raw = []
+        if isinstance(raw, (list, tuple, set)):
+            return {str(x) for x in raw if str(x).strip()}
+        return set(ALL_TABLES)
 
     def _load(self, user_id: int) -> dict | None:
-        """从数据库加载订阅"""
         try:
             with self._conn() as conn:
-                row = conn.execute("SELECT enabled, tables FROM signal_subs WHERE user_id = ?", (user_id,)).fetchone()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f"SELECT enabled, tables FROM {self.schema}.signal_subs WHERE user_id=%s",
+                        (int(user_id),),
+                    )
+                    row = cur.fetchone()
             if row:
-                tables = set(json.loads(row[1])) if row[1] else set(ALL_TABLES)
-                return {"enabled": bool(row[0]), "tables": tables}
+                enabled = bool(row[0])
+                tables = self._parse_tables(row[1])
+                return {"enabled": enabled, "tables": tables}
         except Exception as e:
-            logger.warning(f"加载订阅失败 uid={user_id}: {e}")
+            logger.warning("加载订阅失败 uid=%s: %s", user_id, e)
         return None
 
-    def _save(self, user_id: int, sub: dict):
-        """保存订阅到数据库"""
-        with self._lock:
-            try:
-                with self._conn() as conn:
-                    conn.execute(
-                        "INSERT OR REPLACE INTO signal_subs (user_id, enabled, tables) VALUES (?, ?, ?)",
-                        (user_id, int(sub["enabled"]), json.dumps(list(sub["tables"]))),
+    def _save(self, user_id: int, sub: dict) -> None:
+        try:
+            tables_json = json.dumps(sorted(list(sub.get("tables") or [])), ensure_ascii=False)
+            with self._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f"""
+                        INSERT INTO {self.schema}.signal_subs (user_id, enabled, tables)
+                        VALUES (%s, %s, (%s)::jsonb)
+                        ON CONFLICT (user_id) DO UPDATE
+                        SET enabled=EXCLUDED.enabled, tables=EXCLUDED.tables, updated_at=now()
+                        """,
+                        (int(user_id), bool(sub.get("enabled", True)), tables_json),
                     )
-            except Exception as e:
-                logger.warning(f"保存订阅失败 uid={user_id}: {e}")
+        except Exception as e:
+            logger.warning("保存订阅失败 uid=%s: %s", user_id, e)
 
     def get(self, user_id: int) -> dict:
-        """获取用户订阅配置"""
         with self._lock:
             if user_id not in self._cache:
                 loaded = self._load(user_id)
                 if loaded:
                     self._cache[user_id] = loaded
                 else:
-                    # 默认开启推送，开启全部信号
                     self._cache[user_id] = {"enabled": True, "tables": set(ALL_TABLES)}
                     self._save(user_id, self._cache[user_id])
             return self._cache[user_id]
 
     def set_enabled(self, user_id: int, enabled: bool):
-        """设置推送开关"""
         sub = self.get(user_id)
         sub["enabled"] = enabled
         self._save(user_id, sub)
 
     def toggle_table(self, user_id: int, table: str) -> bool:
-        """切换表开关，返回新状态"""
         if table not in ALL_TABLES:
             return False
         sub = self.get(user_id)
@@ -115,51 +134,62 @@ class SubscriptionManager:
         return result
 
     def enable_all(self, user_id: int):
-        """开启全部"""
         sub = self.get(user_id)
         sub["tables"] = set(ALL_TABLES)
         self._save(user_id, sub)
 
     def disable_all(self, user_id: int):
-        """关闭全部"""
         sub = self.get(user_id)
         sub["tables"] = set()
         self._save(user_id, sub)
 
     def is_table_enabled(self, user_id: int, table: str) -> bool:
-        """判断表是否启用"""
         sub = self.get(user_id)
         return sub["enabled"] and table in sub["tables"]
 
     def get_enabled_subscribers(self) -> list[int]:
-        """获取所有启用推送的用户ID"""
         try:
             with self._conn() as conn:
-                rows = conn.execute("SELECT user_id FROM signal_subs WHERE enabled = 1").fetchall()
-            return [r[0] for r in rows]
+                with conn.cursor() as cur:
+                    cur.execute(f"SELECT user_id FROM {self.schema}.signal_subs WHERE enabled=true")
+                    rows = cur.fetchall() or []
+            return [int(r[0]) for r in rows if r and r[0] is not None]
         except Exception as e:
-            logger.warning(f"获取订阅用户失败: {e}")
+            logger.warning("获取订阅用户失败: %s", e)
             return []
 
     def get_subscribers_for_table(self, table: str) -> list[int]:
-        """获取订阅了指定表的用户列表"""
-        result = []
-        for uid in self.get_enabled_subscribers():
-            if self.is_table_enabled(uid, table):
-                result.append(uid)
-        return result
+        if table not in ALL_TABLES:
+            return []
+        try:
+            with self._conn() as conn:
+                with conn.cursor() as cur:
+                    # tables 为空/NULL 表示“全部订阅”（兼容旧语义）
+                    cur.execute(
+                        f"""
+                        SELECT user_id
+                        FROM {self.schema}.signal_subs
+                        WHERE enabled=true AND (tables IS NULL OR tables ? %s)
+                        """,
+                        (table,),
+                    )
+                    rows = cur.fetchall() or []
+            return [int(r[0]) for r in rows if r and r[0] is not None]
+        except Exception as e:
+            logger.warning("获取订阅表用户失败 table=%s: %s", table, e)
+            return []
 
 
 # 单例
-_manager: SubscriptionManager | None = None
+_manager: PgSubscriptionManager | None = None
 _manager_lock = threading.Lock()
 
 
-def get_subscription_manager() -> SubscriptionManager:
+def get_subscription_manager() -> PgSubscriptionManager:
     """获取订阅管理器单例"""
     global _manager
     if _manager is None:
         with _manager_lock:
             if _manager is None:
-                _manager = SubscriptionManager()
+                _manager = PgSubscriptionManager()
     return _manager

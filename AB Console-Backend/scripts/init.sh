@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tradecat Pro 初始化脚本
+# ab-console 初始化脚本
 # 用法: ./scripts/init.sh [service-name]
 # 示例: ./scripts/init.sh              # 初始化全部核心服务
 #       ./scripts/init.sh data-service  # 初始化单个服务

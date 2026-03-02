@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tradecat 环境检查脚本
+# ab-console 环境检查脚本
 # 用法: ./scripts/check_env.sh
 # 检查所有运行依赖，确保"安装即运行"
 

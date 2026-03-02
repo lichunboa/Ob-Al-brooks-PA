@@ -18,7 +18,7 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-BINANCE_ALPHA_URL = "https://www.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/cex/alpha/all/token/list"
+BINANCE_ALPHA_URL = settings.binance_alpha_url
 CACHE_TTL = timedelta(hours=6)
 
 
