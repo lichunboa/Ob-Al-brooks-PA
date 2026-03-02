@@ -47,6 +47,72 @@
 > 5 项全过 → 继续持有。任一项失效 → 执行对应操作，不等 SL 被触发。
 > "主动止损是清醒时的决断，被动止损是昏迷时的保险"
 
+#### Premise Check 示例（使用 ab_* 模块数值）
+
+**场景 1**: ETH LONG 持仓,入场价 2055.15,当前价 2062.30,浮盈 +0.35%
+
+```
+[PREMISE CHECK] ETH LONG:
+
+  1. AI 方向检查:
+     - S2 分析: AIL (1h vs_ema=+73.6, 15m vs_ema=+45.2)
+     - 持仓方向: LONG
+     - 结论: ✓ 一致,方向支持
+
+  2. 市场状态检查:
+     - 入场时: Bull Channel (5m)
+     - 当前压力: {pat_info.pressure.direction} = bull_pressure
+       - 多头 K 线占比: 65%
+       - 平均收盘位: 0.6 (偏上方)
+     - 结论: ✓ 市场状态仍支持多头
+
+  3. 入场前提检查:
+     - 原 premise: H2 @ 2055.15 (5m EMA 反弹)
+     - 当前支撑: {sr_info.nearest_support} = 2050.5 (swing_low)
+     - 距离支撑: 0.57% (2062.30 vs 2050.5)
+     - 支撑类型: swing_low (Major HL)
+     - 结论: ✓ 支撑仍在,前提成立
+
+  4. FT 质量检查:
+     - 入场后 K 线: 3 根多头 K,1 根小阴线
+     - 结论: ✓ FT 良好
+
+  5. 目标路径检查:
+     - TP1: 2070.0 (2R)
+     - 路径阻力: {sr_info.nearest_resistance} = 2075.5 (swing_high)
+     - 距离阻力: 0.64%
+     - 结论: ✓ 路径通畅,TP1 在阻力之前
+
+→ 决策: 继续持有,SL 保持在 2048.0
+```
+
+**场景 2**: BNB SHORT 持仓,Premise 失效示例
+
+```
+[PREMISE CHECK] BNB SHORT:
+
+  1. AI 方向检查:
+     - S2 分析: AIL (1h vs_ema=+82.3) ← 方向已反转!
+     - 持仓方向: SHORT
+     - 结论: ✗ 方向矛盾
+
+  2. 市场状态检查:
+     - 入场时: Bear Channel
+     - 当前压力: {pat_info.pressure.direction} = bull_pressure (70% 多头 K)
+     - 结论: ✗ 市场状态已改变
+
+  3. 入场前提检查:
+     - 原 premise: L2 @ 625.5 (Bear Channel PB)
+     - 当前阻力: {sr_info.nearest_resistance} = 630.0 (bo_origin)
+     - 价格已突破阻力: 当前 632.5 > 630.0
+     - 结论: ✗ 入场前提被否定 (BO 成功)
+
+→ 决策: 立即平仓 (Premise 失效,不等 SL)
+   理由: AI 方向反转 + 市场状态改变 + BO 成功否定原 premise
+```
+
+---
+
 ### 第二优先：三种保护（必须全部执行）
 
 | 保护类型 | 说明 | 执行方式 |

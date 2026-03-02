@@ -119,6 +119,94 @@ R = TP 距离 / SL 距离
 **嵌套 MM**：多重 MM 目标重合 = 强 S/R 区域 → 获利了结点
 **强 BO 中**：第一个阻力位通常挡不住 → 不在第一个 S/R 提前止盈
 
+#### MM 计算示例（使用 ab_mm 模块）
+
+**场景 1**: BNB BO 失败,考虑做空
+
+```
+[R 计算] BNB 5m:
+
+  当前价: 622.16
+
+  SL 位置:
+    - {sr_info.nearest_resistance} = 625.5 (bo_origin)
+    - SL = 625.5 + buffer(0.1%) = 625.6
+    - SL 距离 = 625.6 - 622.16 = 3.44 (0.55%)
+
+  TP 位置:
+    - {mm_info.nearest_bear_target.price} = 618.0
+    - {mm_info.nearest_bear_target.type} = tr_height
+    - {mm_info.nearest_bear_target.basis} = TR 高度 8.5 点
+    - TP = 618.0
+    - TP 距离 = 622.16 - 618.0 = 4.16 (0.67%)
+
+  R 计算:
+    - R = TP距离 / SL距离 = 4.16 / 3.44 = 1.21:1
+
+  评估:
+    - 风格: Scalp (TR 边缘)
+    - P 估计: ~55% (TR 边缘 DB)
+    - 门槛: P≥50%, R≥1:1
+    - P×R = 0.55 × 1.21 = 0.67 vs (1-P) = 0.45 ✓
+    - 结论: 勉强达标,但 R 偏低
+
+  决策: PASS-WAIT (等更好的 R,如价格反弹到 623.5)
+```
+
+**场景 2**: ETH H2 入场,R 充足
+
+```
+[R 计算] ETH 5m:
+
+  当前价: 2055.15 (H2 信号)
+
+  SL 位置:
+    - {sr_info.nearest_support} = 2050.5 (swing_low)
+    - SL = 2050.5 - buffer(0.1%) = 2048.0
+    - SL 距离 = 2055.15 - 2048.0 = 7.15 (0.35%)
+
+  TP 位置:
+    - {mm_info.nearest_bull_target.price} = 2070.0
+    - {mm_info.nearest_bull_target.type} = leg_height
+    - {mm_info.nearest_bull_target.basis} = 前一波上涨 15 点
+    - TP1 = 2070.0 (2R)
+    - TP2 = 2076.5 (3R,嵌套 MM)
+    - TP 距离 = 2070.0 - 2055.15 = 14.85 (0.72%)
+
+  R 计算:
+    - R = 14.85 / 7.15 = 2.08:1
+
+  评估:
+    - 风格: Swing (Bull Channel H2)
+    - P 估计: ~60% (强趋势 H2)
+    - 门槛: P≥50%, R≥1.5:1
+    - P×R = 0.60 × 2.08 = 1.25 vs (1-P) = 0.40 ✓
+    - 结论: 优秀 setup
+
+  决策: 执行入场
+    - 仓位: 0.3% 风险 (首仓)
+    - TP1: 2070.0 (减仓 50%)
+    - TP2: 2076.5 (再减 25%)
+    - 余下 25% trail
+```
+
+**场景 3**: 多重 MM 目标重合
+
+```
+[R 计算] BTC 15m:
+
+  当前价: 69500 (Wedge PB 完成)
+
+  TP 分析:
+    - {mm_info.bull_targets[0]} = 70200 (leg_height, 前波上涨 700 点)
+    - {mm_info.bull_targets[1]} = 70250 (tr_height, TR 高度 750 点)
+    - {mm_info.bull_targets[2]} = 70180 (bo_height, BO 幅度 680 点)
+    - **嵌套 MM 区域**: 70180-70250 (3 个目标重合)
+
+  结论: 70200 是强 S/R 区域,高概率获利了结点
+  策略: TP1 设在 70150 (略低于嵌套区域,避免被挤出)
+```
+
 ---
 
 ## 实际风险 vs 初始风险
