@@ -206,6 +206,11 @@ class PositionPatrol:
 
             self._cleanup_stale_state(active_symbols)
 
+            # V7.1: 自动清理残留的 reduce_only 委托单
+            stale_cleaned = await self._cleanup_stale_orders(active_symbols, open_orders)
+            if stale_cleaned > 0:
+                report["stale_orders_cleaned"] = stale_cleaned
+
         except Exception as e:
             logger.error(f"[巡检] 异常: {e}")
             report["errors"].append(str(e))
@@ -557,3 +562,34 @@ class PositionPatrol:
                     del self.executor._position_bot_map[sym]
                 self.executor._save_position_bot_map()
                 logger.debug(f"[巡检] 清理 position_bot_map 已平仓: {stale}")
+
+    async def _cleanup_stale_orders(self, active_symbols: set, open_orders: list) -> int:
+        """
+        自动清理残留的 reduce_only 委托单（V7.1）
+
+        问题：Binance Testnet 的 SL/TP 单触发后，对手方委托单不会自动撤销
+        解决：每轮巡检时，取消没有对应持仓的 reduce_only 单
+        """
+        stale_orders = []
+        for order in open_orders:
+            # 检查是否是 reduce_only 单（SL/TP）
+            if order.reduce_only or order.order_type in ('STOP_MARKET', 'TAKE_PROFIT_MARKET', 'STOP', 'TAKE_PROFIT'):
+                # 检查是否有对应持仓
+                if order.symbol not in active_symbols:
+                    stale_orders.append(order)
+
+        if not stale_orders:
+            return 0
+
+        # 取消残留委托单
+        cleaned = 0
+        for order in stale_orders:
+            try:
+                # 使用 ccxt 的 cancel_order
+                self.executor.exchange.cancel_order(order.order_id, order.symbol)
+                cleaned += 1
+                logger.info(f"[巡检] 自动清理残留委托单: {order.symbol} {order.order_type} {order.order_id}")
+            except Exception as e:
+                logger.warning(f"[巡检] 清理失败 {order.symbol} {order.order_id}: {e}")
+
+        return cleaned
