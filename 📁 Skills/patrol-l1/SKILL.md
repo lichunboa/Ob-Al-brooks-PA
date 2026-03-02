@@ -223,19 +223,46 @@ tail -10 data/pa_trader/pa_trader_l1.log 2>/dev/null || echo "NO_LOG"
 
 **此步骤完全不变，始终 Read S 文件。持仓管理不走缓存。**
 
-**先加载知识**：
-- Read [S2-direction.md](references/S2-direction.md) — 判断当前 AI 方向
-- Read [S3-market-state.md](references/S3-market-state.md) — 当前市场状态（影响管理方式：趋势 trail vs TR 固定 SL）
-- Read [S3b-key-levels.md](references/S3b-key-levels.md) — 关键位置（SL 移动参考 + TP 磁体）
-- Read [S7-management.md](references/S7-management.md) — 管理框架
-
 ### 2a. 获取持仓品种 K 线（多周期）
 ```bash
 curl -s "http://localhost:8094/klines/{SYMBOL}/multi"
 ```
 **多周期用途**：所有周期 PA 通用 — 1d（Daily 偏置/概率背景）→ 4h/1h/30m/15m/5m（每个周期独立寻找 setup + 互为 context）
 
-### 2b. 对每笔持仓（Read S2+S3+S3b+S7 后执行）
+### 2a-1. 预计算持仓管理数据（ab_* 模块）
+
+获取 5m 周期 K 线数据，调用 ab_* 模块预计算数值：
+
+```python
+from indicators.batch.ab_sr import analyze_ab_sr
+from indicators.batch.ab_patterns import analyze_ab_patterns
+
+# 提取 5m K 线数组
+open_arr = [k['O'] for k in klines_5m]
+high = [k['H'] for k in klines_5m]
+low = [k['L'] for k in klines_5m]
+close = [k['C'] for k in klines_5m]
+
+# 调用模块
+sr_info = analyze_ab_sr(open_arr, high, low, close)
+pat_info = analyze_ab_patterns(open_arr, high, low, close)
+```
+
+**数据用途**：
+- `sr_info`: Premise Check 第 c 项（入场前提 - 支撑/阻力位置）
+- `pat_info`: Premise Check 第 b 项（市场状态 - 压力方向/形态）
+
+**详细使用方式** → 见 [S7-management.md](references/S7-management.md) "Premise Check 示例"
+
+### 2b. 加载知识 + 执行管理
+
+**先加载知识**：
+- Read [S2-direction.md](references/S2-direction.md) — 判断当前 AI 方向
+- Read [S3-market-state.md](references/S3-market-state.md) — 当前市场状态
+- Read [S3b-key-levels.md](references/S3b-key-levels.md) — 关键位置
+- Read [S7-management.md](references/S7-management.md) — 管理框架
+
+**对每笔持仓执行**（结合 ab_* 数据 + S 文件知识）：
 1. **S7 [PREMISE CHECK]** — 5 项检查（30 秒），任一失效 → 对应操作
 2. **S2 方向** — AI 方向和持仓一致？
 3. **S7 三种保护** — 保护性SL / 反向信号 / 强反向BO
@@ -358,7 +385,42 @@ WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 
 ### Phase B: 深分析（仅有事件的品种）
 
-**优先级排序**：
+**Phase B-0: 按需调用 ab_* 模块**
+
+根据事件类型，按需调用 ab_* 模块获取数值数据：
+
+```python
+# 根据事件类型决定调用哪些模块
+modules_needed = []
+if event_type in ['level_break', 'tr_edge', 'signal(TR)']:
+    modules_needed.append('ab_sr')  # 需要 S/R 数据
+if event_type in ['signal_trigger', 'h2_l2_trigger']:
+    modules_needed.append('ab_mm')  # 需要 MM 目标计算 R
+if event_type in ['anomaly', 'momentum', 'climax_suspected']:
+    modules_needed.append('ab_patterns')  # 需要形态/压力数据
+
+# 按需调用（避免不必要的计算）
+if 'ab_sr' in modules_needed:
+    from indicators.batch.ab_sr import analyze_ab_sr
+    sr_info = analyze_ab_sr(open_arr, high, low, close)
+if 'ab_mm' in modules_needed:
+    from indicators.batch.ab_mm import analyze_ab_mm
+    mm_info = analyze_ab_mm(open_arr, high, low, close)
+if 'ab_patterns' in modules_needed:
+    from indicators.batch.ab_patterns import analyze_ab_patterns
+    pat_info = analyze_ab_patterns(open_arr, high, low, close)
+```
+
+**数据用途**：
+- `sr_info`: S/R 位置（用于 SL/TP 设置）
+- `mm_info`: MM 目标（用于 R 计算，详见 S5）
+- `pat_info`: 形态/压力（用于 Context 确认）
+
+**详细使用方式** → 见 [S5-evaluation.md](references/S5-evaluation.md) "MM 计算示例"
+
+**Phase B-1: 优先级排序 + S 文件加载**
+
+
 - P0: `signal_trigger`（信号已形成，最紧急）
 - P1: `anomaly` + `momentum`（状态可能正在变化）
 - P1: `level_break`（关键位突破，需重新评估）
