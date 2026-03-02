@@ -346,6 +346,14 @@ class PositionPatrol:
                 f"mark={pos.mark_price:.2f} <= "
                 f"sl={sl_price:.2f}, 已市价平仓"
                 f" qty={pos.quantity}")
+
+            # V7.1: 清理该品种所有委托单（修复 Testnet reduce_only 残留问题）
+            try:
+                await self.executor.cancel_all_orders(pos.symbol)
+                logger.info(f"[巡检] 软件止损后取消 {pos.symbol} 所有挂单")
+            except Exception as e:
+                logger.warning(f"[巡检] 取消挂单失败 {pos.symbol}: {e}")
+
             # 清理记录
             del self._sl_placed[pos.symbol]
             self._save_sl_placed()

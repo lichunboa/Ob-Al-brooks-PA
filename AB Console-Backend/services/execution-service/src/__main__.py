@@ -375,6 +375,72 @@ async def cancel_all_orders(symbol: Optional[str] = None):
     return {"success": success}
 
 
+@app.post("/orders/cleanup-stale")
+async def cleanup_stale_orders():
+    """
+    清理残留的 reduce_only 委托单（V7.1 修复 Testnet 问题）
+
+    问题：Binance Testnet 的 SL/TP 单触发后，对手方委托单不会自动撤销
+    解决：遍历所有挂单，取消没有对应持仓的 reduce_only 单
+    """
+    if not executor:
+        raise HTTPException(status_code=503, detail="服务未就绪")
+
+    try:
+        # 1. 获取当前持仓
+        positions = await executor.get_positions()
+        position_symbols = {pos.symbol for pos in positions}
+
+        # 2. 获取所有挂单
+        open_orders = await executor.get_open_orders()
+
+        # 3. 找出没有对应持仓的 reduce_only 单
+        stale_orders = []
+        for order in open_orders:
+            # 检查是否是 reduce_only 单（SL/TP）
+            if order.reduce_only or order.order_type in ('STOP_MARKET', 'TAKE_PROFIT_MARKET', 'STOP', 'TAKE_PROFIT'):
+                # 检查是否有对应持仓
+                if order.symbol not in position_symbols:
+                    stale_orders.append(order)
+
+        # 4. 取消残留委托单
+        cancelled = []
+        failed = []
+        for order in stale_orders:
+            try:
+                # 使用 ccxt 的 cancel_order
+                executor.exchange.cancel_order(order.order_id, order.symbol)
+                cancelled.append({
+                    "symbol": order.symbol,
+                    "order_id": order.order_id,
+                    "type": order.order_type,
+                    "side": order.side,
+                })
+                logger.info(f"[清理] 取消残留委托单: {order.symbol} {order.order_type} {order.order_id}")
+            except Exception as e:
+                failed.append({
+                    "symbol": order.symbol,
+                    "order_id": order.order_id,
+                    "error": str(e),
+                })
+                logger.warning(f"[清理] 取消失败 {order.symbol} {order.order_id}: {e}")
+
+        return {
+            "success": True,
+            "total_stale": len(stale_orders),
+            "cancelled": len(cancelled),
+            "failed": len(failed),
+            "details": {
+                "cancelled": cancelled,
+                "failed": failed,
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"[清理] 清理残留委托单失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/order/close-all")
 async def close_all_positions():
     """一键平仓所有持仓 + 取消所有挂单"""
