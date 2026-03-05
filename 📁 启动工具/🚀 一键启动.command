@@ -112,6 +112,26 @@ if [ "$PATROL_L1_MINIMAL" = true ]; then
         fi
     fi
 
+    # 3) 启动 Watchdog（终端守护）
+    echo ""
+    log_info "[3/3] 启动 Patrol Watchdog..."
+    WATCHDOG_SCRIPT="$BACKEND_DIR/scripts/patrol_watchdog.py"
+    WATCHDOG_PID_FILE="$BACKEND_DIR/data/pa_trader/patrol_watchdog.pid"
+
+    if [ -f "$WATCHDOG_PID_FILE" ] && kill -0 "$(cat "$WATCHDOG_PID_FILE" 2>/dev/null)" 2>/dev/null; then
+        log_success "Watchdog 已在运行 (PID $(cat "$WATCHDOG_PID_FILE"))"
+    elif [ -f "$WATCHDOG_SCRIPT" ]; then
+        nohup python3 "$WATCHDOG_SCRIPT" > /dev/null 2>&1 &
+        sleep 1
+        if [ -f "$WATCHDOG_PID_FILE" ]; then
+            log_success "Watchdog 启动成功 (PID $(cat "$WATCHDOG_PID_FILE"))"
+        else
+            log_warn "Watchdog 启动失败，交易不受影响但无自动恢复"
+        fi
+    else
+        log_warn "Watchdog 脚本不存在: $WATCHDOG_SCRIPT"
+    fi
+
     echo ""
     echo "╔════════════════════════════════════════════════════════════╗"
     echo "║                  Patrol-L1 最小模式状态                     ║"
@@ -119,11 +139,20 @@ if [ "$PATROL_L1_MINIMAL" = true ]; then
     echo ""
     check_service 8094 "Execution Service"
     check_service 18789 "OpenClaw Gateway"
+    # 显示 watchdog 状态
+    if [ -f "$WATCHDOG_PID_FILE" ] && kill -0 "$(cat "$WATCHDOG_PID_FILE" 2>/dev/null)" 2>/dev/null; then
+        echo "  ✅ Watchdog:       运行中 (PID $(cat "$WATCHDOG_PID_FILE"))"
+    else
+        echo "  ⚠️  Watchdog:       未运行"
+    fi
     echo ""
     echo "  Execution 健康:  http://localhost:8094/health"
     echo "  Gateway 端口:    18789"
+    echo "  Watchdog 日志:   $BACKEND_DIR/data/pa_trader/patrol_watchdog.log"
     echo ""
-    log_success "最小启动完成（未启动其他后端服务）"
+    echo "  停止命令: bash scripts/patrol_trading_control.sh stop"
+    echo ""
+    log_success "最小启动完成"
 
     if [ -t 0 ]; then
         read -p "按 Enter 键关闭..."
