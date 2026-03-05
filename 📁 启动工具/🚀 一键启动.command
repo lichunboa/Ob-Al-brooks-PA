@@ -47,12 +47,89 @@ BOT_PID_FILE="$BACKEND_DIR/services/telegram-service/pids/bot.pid"
 SIGNAL_PID_FILE="$BACKEND_DIR/services/signal-service/logs/signal-service.pid"
 DB_READY=false
 USE_COMPOSE=false
+# 临时模式：仅启动 patrol-l1 所需服务（execution-service + openclaw）
+# 若需恢复全量启动，将其改为 false。
+PATROL_L1_MINIMAL=true
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║          AB Console - 一键启动工具                         ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
+
+# ============================================================
+# Patrol-L1 最小启动模式（临时）
+# ============================================================
+if [ "$PATROL_L1_MINIMAL" = true ]; then
+    log_info "[patrol-only] 最小启动模式：仅启动 Execution Service(8094) + OpenClaw Gateway"
+
+    # 1) 启动 Execution Service (8094)
+    echo ""
+    log_info "[1/2] 启动 Execution Service (端口 8094)..."
+    EXEC_SVC_DIR="$BACKEND_DIR/services/execution-service"
+    EXEC_PID_FILE="$EXEC_SVC_DIR/logs/execution-8094.pid"
+    EXEC_LOG_FILE="$EXEC_SVC_DIR/logs/execution-8094.log"
+
+    if lsof -i :8094 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "Execution Service 已在运行 (端口 8094)"
+    elif [ -d "$EXEC_SVC_DIR/src" ]; then
+        cd "$EXEC_SVC_DIR"
+        mkdir -p logs
+        if [ -x ".venv/bin/python" ]; then
+            nohup .venv/bin/python -m src --port 8094 > "$EXEC_LOG_FILE" 2>&1 &
+        else
+            nohup python3 -m src --port 8094 > "$EXEC_LOG_FILE" 2>&1 &
+        fi
+        echo $! > "$EXEC_PID_FILE"
+        sleep 3
+        if lsof -i :8094 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "Execution Service 启动成功 (端口 8094)"
+        else
+            log_error "Execution Service 启动失败，查看日志: $EXEC_LOG_FILE"
+        fi
+    else
+        log_error "Execution Service 目录不存在: $EXEC_SVC_DIR"
+    fi
+
+    # 2) 启动 OpenClaw Gateway
+    echo ""
+    log_info "[2/2] 启动 OpenClaw Gateway..."
+    if lsof -i :18789 -sTCP:LISTEN > /dev/null 2>&1; then
+        log_success "OpenClaw Gateway 已在运行 (端口 18789)"
+    else
+        if launchctl list 2>/dev/null | grep -q "ai.openclaw.gateway"; then
+            launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway 2>/dev/null
+            sleep 3
+        elif [ -f "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" ]; then
+            launchctl load "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" 2>/dev/null
+            sleep 3
+        fi
+
+        if lsof -i :18789 -sTCP:LISTEN > /dev/null 2>&1; then
+            log_success "OpenClaw Gateway 启动成功 (端口 18789)"
+        else
+            log_error "OpenClaw Gateway 启动失败，可手动执行: launchctl kickstart -k gui/$(id -u)/ai.openclaw.gateway"
+        fi
+    fi
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║                  Patrol-L1 最小模式状态                     ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    check_service 8094 "Execution Service"
+    check_service 18789 "OpenClaw Gateway"
+    echo ""
+    echo "  Execution 健康:  http://localhost:8094/health"
+    echo "  Gateway 端口:    18789"
+    echo ""
+    log_success "最小启动完成（未启动其他后端服务）"
+
+    if [ -t 0 ]; then
+        read -p "按 Enter 键关闭..."
+    fi
+    exit 0
+fi
 
 # ============================================================
 # 1. Docker + TimescaleDB
