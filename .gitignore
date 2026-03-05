@@ -156,3 +156,5 @@ AB Console-Obsidian/.obsidian/plugins/*/.hotreload
 # /openclaw-config/  # 已恢复跟踪 - 存放 OpenClaw 配置快照（脱敏）
 /scripts/
 AB Console-Backend/services/execution-service/test_*.py
+
+AB Console-Backend/services/forex-data-service/config/.env
