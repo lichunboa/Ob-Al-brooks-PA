@@ -1,7 +1,7 @@
 {
-  "last_update": "2026-03-08T21:07:19.072292+00:00",
-  "loop_count": 713,
-  "last_full_refresh": "2026-03-08T21:03:12.445236+00:00",
+  "last_update": "2026-03-08T21:14:46.905700+00:00",
+  "loop_count": 714,
+  "last_full_refresh": "2026-03-08T21:14:46.905700+00:00",
   "total_signals": 4,
   "total_trades": 8,
   "total_passes": 24,
@@ -19,18 +19,18 @@
       "stage": "WAIT_FRESH_SIGNAL_AFTER_DEGRADED_H1",
       "last_pass_reason": "[PASS-WAIT] 当前贴着 67785.7-68005.8 阻力带，等待失败反弹或 66582.1 下方接受。",
       "event_tags": [
-        "state:TR",
+        "signal_trigger:L2@67099.6",
+        "state:TC",
         "ema_touch",
         "first_pb:bull_pb",
-        "pb_depth:normal",
+        "pb_depth:deep",
         "hl_signal:H4",
         "wedge_or_mtr",
-        "state_change:5m TR / 15m TC / 1h TR / 1d TR偏空->TR",
+        "state_change:5m TR / 15m TR / 1h TR / 1d TR偏空->TC",
         "cached_pre_signal",
         "state:TR",
-        "first_pb:bear_pb",
-        "tr_edge:bottom",
-        "pb_depth:normal"
+        "ema_touch",
+        "first_pb:bear_pb"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -59,10 +59,10 @@
         "category": "trend_continuation_candidate",
         "label": "顺势候选",
         "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "entry_ready",
+        "max_status": "watching",
         "allow_executable": true,
-        "preferred_style": "Scalp",
-        "preferred_order_type": "STOP_MARKET"
+        "preferred_style": "WAIT",
+        "preferred_order_type": "MARKET"
       },
       "trade": {
         "status": "flat",
@@ -70,7 +70,6 @@
         "intent": "等待新的 bull signal",
         "risk_percent": 0.0
       },
-      "thesis": "BTC 已从上一轮的 fresh H1 候选退回多周期 TR。5m、15m、1h、30m 全部回到 TR 读法，旧的 15m H1@67488.3 已失去即时性；当前不能继续沿用旧计划。",
       "ai_direction": {
         "5m": "TR",
         "15m": "TR",
@@ -102,13 +101,6 @@
           "verdict": "取消旧的执行资格，回到纯观察，等待新的 signal。"
         }
       },
-      "pre_signal": {
-        "active": false,
-        "side": "BUY",
-        "condition": "等待新的 H1/H2 在 1h EMA 上方形成",
-        "signal_price": 67488.3,
-        "reason": "旧 H1 已经过时，当前必须等待新的 trigger。"
-      },
       "key_levels": {
         "current_price": 67195.6,
         "ema20_5m": 67189.04,
@@ -123,70 +115,22 @@
         "daily_low": 66582.1,
         "note": "67488.3 仍是最近顶部磁体，但本轮不是 fresh signal；67238.76 是更高一级接受分界线。"
       },
-      "entry_idea": {
+      "thesis": "BTC 已从上一轮的 fresh H1 候选退回多周期 TR。5m、15m、1h、30m 全部回到 TR 读法，旧的 15m H1@67488.3 已失去即时性；当前不能继续沿用旧计划。",
+      "pre_signal": {
+        "active": false,
         "side": "BUY",
-        "style": "Scalp",
-        "playbook": "等待新的 H1/H2 重建",
-        "order_type": "STOP_MARKET",
-        "premise": "只有重新出现新的 fresh H1/H2，并且 1h 接受改善，BTC 多头才重新有执行价值。",
-        "not_now": "当前多周期都更像 TR，没有新的 signal。",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "WATCH",
-        "candidate_stage_cn": "继续观察",
-        "execution_mode": "WATCH_ONLY",
-        "execution_mode_cn": "仅观察，不生成委托"
+        "condition": "等待新的 H1/H2 在 1h EMA 上方形成",
+        "signal_price": 67488.3,
+        "reason": "旧 H1 已经过时，当前必须等待新的 trigger。"
       },
-      "evaluation": {
-        "verdict": "PASS-WAIT",
-        "style": "Scalp",
-        "p_estimate_on_new_trigger": 0.5,
-        "r_estimate_on_new_trigger": 1.35,
-        "traders_equation": "只有新 signal 出现后，交易方程才重新评估",
-        "reason": "当前没有可执行 setup，只能等新结构。",
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "继续观察",
-        "execution_mode": "仅观察，不生成委托"
-      },
-      "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        {
-          "name": "场景A",
-          "probability": "中等",
-          "description": "重新站回 1h EMA 上方并形成新的 H1/H2",
-          "trigger": "新的 bull signal",
-          "action": "恢复多头候选",
-          "style": "Scalp"
-        },
-        {
-          "name": "场景B",
-          "probability": "中等",
-          "description": "继续在 EMA 周围走成更大 TR",
-          "trigger": "无 fresh signal",
-          "action": "继续观察",
-          "style": "观察"
-        }
-      ],
-      "refs": [
-        "C1-market-cycle-and-state.md",
-        "C3-style-equation-and-order-planning.md",
-        "S1-reading.md",
-        "S5-evaluation.md",
-        "S6-channel.md",
-        "S3b-key-levels.md",
-        "S6-common.md",
-        "S6-tr.md",
-        "S6-reversal.md"
-      ],
       "priority": 9,
-      "align_score": 0,
-      "signal": "",
+      "align_score": 2,
+      "signal": "L2@67099.6",
       "timeframes": {
         "5m": {
-          "ai": "TR",
-          "state": "TR",
-          "signal": "",
+          "ai": "AIS",
+          "state": "TC",
+          "signal": "L2@67099.6",
           "summary": null
         },
         "15m": {
@@ -196,8 +140,8 @@
           "summary": null
         },
         "1h": {
-          "ai": "TR",
-          "state": "TR",
+          "ai": "AIS",
+          "state": "TC",
           "signal": "",
           "summary": null
         },
@@ -209,14 +153,56 @@
         }
       },
       "running_narrative": "BTC 已从上一轮的 fresh H1 候选退回多周期 TR。5m、15m、1h、30m 全部回到 TR 读法，旧的 15m H1@67488.3 已失去即时性；当前不能继续沿用旧计划。",
+      "refs": [
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md",
+        "S6-tr.md",
+        "S6-reversal.md"
+      ],
+      "entry_idea": {
+        "side": "WAIT",
+        "entry_zone": {
+          "active": false,
+          "side": "BUY",
+          "condition": "等待新的 H1/H2 在 1h EMA 上方形成",
+          "signal_price": 67488.3,
+          "reason": "旧 H1 已经过时，当前必须等待新的 trigger。"
+        },
+        "sl_reference": "",
+        "tp_reference": "",
+        "style": "WAIT",
+        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "WATCH",
+        "candidate_stage_cn": "继续观察",
+        "execution_mode": "WATCH_ONLY",
+        "execution_mode_cn": "仅观察，不生成委托"
+      },
+      "evaluation": {
+        "p_estimate": null,
+        "r_estimate": null,
+        "equation_value": null,
+        "threshold_rhs": null,
+        "passes_price_action": false,
+        "passes_execution_gate": null,
+        "regime": "顺势候选",
+        "execution_decision": "可继续执行链",
+        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "继续观察",
+        "execution_mode": "仅观察，不生成委托"
+      },
+      "scenarios": [
+        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+      ],
       "pre_signal_meta": {
         "timeframe": "1h",
-        "created_at": "2026-03-08T21:07:19.072462+00:00",
-        "expires_at": "2026-03-09T00:07:19.072462+00:00",
+        "created_at": "2026-03-08T21:14:46.906007+00:00",
+        "expires_at": "2026-03-09T00:14:46.906007+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-08T21:07:19.072482+00:00",
-      "source_cycle_id": "cycle_20260309_050719"
+      "updated_at": "2026-03-08T21:14:46.906031+00:00",
+      "source_cycle_id": "cycle_20260309_051446"
     },
     "ETHUSDT": {
       "daily_bias": {
@@ -231,18 +217,18 @@
       "stage": "WAIT_FRESH_SIGNAL_AFTER_STALL",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "state:TC",
+        "state:TR",
+        "ema_touch",
         "first_pb:bull_pb",
         "tr_edge:top",
-        "pb_depth:shallow",
+        "pb_depth:normal",
         "hl_signal:H4",
         "wedge_or_mtr",
-        "state_change:5m TC / 15m TC / 1h TR / 1d Bear Channel->TC",
+        "state_change:5m TC / 15m TC / 1h TR / 1d Bear Channel->TR",
         "cached_pre_signal",
         "stale:consecutive_watching",
         "state:TC",
-        "first_pb:bear_pb",
-        "pb_depth:deep"
+        "first_pb:bear_pb"
       ],
       "planned_trade": {
         "side": "BUY",
@@ -271,10 +257,10 @@
         "category": "trend_continuation_candidate",
         "label": "顺势候选",
         "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "entry_ready",
+        "max_status": "watching",
         "allow_executable": true,
-        "preferred_style": "Scalp",
-        "preferred_order_type": "STOP_MARKET"
+        "preferred_style": "WAIT",
+        "preferred_order_type": "MARKET"
       },
       "trade": {
         "status": "flat",
@@ -282,7 +268,6 @@
         "intent": "等待新的 bull signal",
         "risk_percent": 0.0
       },
-      "thesis": "ETH 仍是当前结构最强的品种，但上一轮的 fresh H1 已经失去即时性。5m 与 15m 仍在 EMA 上方，可是当前没有新的 signal_trigger，按 canonical 必须等新的 minor reversal 或新的接受。",
       "ai_direction": {
         "5m": "AIL",
         "15m": "AIL",
@@ -314,13 +299,6 @@
           "verdict": "继续观察，等待新的 H1/H2 或更清晰的接受后再动手。"
         }
       },
-      "pre_signal": {
-        "active": false,
-        "side": "BUY",
-        "condition": "等待新的 bull signal 在 1960-1969 区域形成并被触发",
-        "signal_price": 1968.87,
-        "reason": "旧的 fresh H1 已经变旧，当前必须等待新的 signal。"
-      },
       "key_levels": {
         "current_price": 1959.31,
         "ema20_5m": 1957.22,
@@ -334,69 +312,21 @@
         "support_2": 1952.1,
         "note": "1968.87 仍是最近顶部磁体，但本轮不是 fresh trigger；1952.30 是更高一级接受分界线。"
       },
-      "entry_idea": {
+      "thesis": "ETH 仍是当前结构最强的品种，但上一轮的 fresh H1 已经失去即时性。5m 与 15m 仍在 EMA 上方，可是当前没有新的 signal_trigger，按 canonical 必须等新的 minor reversal 或新的接受。",
+      "pre_signal": {
+        "active": false,
         "side": "BUY",
-        "style": "Scalp",
-        "playbook": "等待新的 H1/H2 continuation",
-        "order_type": "STOP_MARKET",
-        "premise": "只有重新出现新的 bull signal，ETH 的顺势多头才重新有执行价值。",
-        "not_now": "当前没有新的 bull signal，旧计划已经失去即时性。",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "WATCH",
-        "candidate_stage_cn": "继续观察",
-        "execution_mode": "WATCH_ONLY",
-        "execution_mode_cn": "仅观察，不生成委托"
+        "condition": "等待新的 bull signal 在 1960-1969 区域形成并被触发",
+        "signal_price": 1968.87,
+        "reason": "旧的 fresh H1 已经变旧，当前必须等待新的 signal。"
       },
-      "evaluation": {
-        "verdict": "PASS-WAIT",
-        "style": "Scalp",
-        "p_estimate_on_new_trigger": 0.53,
-        "r_estimate_on_new_trigger": 1.2,
-        "traders_equation": "只有新的 trigger 出现后，交易方程才重新有意义",
-        "reason": "结构最强，但本轮没有真实执行点。",
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "继续观察",
-        "execution_mode": "仅观察，不生成委托"
-      },
-      "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        {
-          "name": "场景A",
-          "probability": "中等偏高",
-          "description": "形成新的 bull signal 并重新上破 1968.87",
-          "trigger": "新的 H1/H2 出现",
-          "action": "恢复多头候选",
-          "style": "Scalp"
-        },
-        {
-          "name": "场景B",
-          "probability": "中等",
-          "description": "跌回 1h EMA 下方并继续走弱",
-          "trigger": "15m/1h 失守 1952.10",
-          "action": "取消多头观察",
-          "style": "观察"
-        }
-      ],
-      "refs": [
-        "C1-market-cycle-and-state.md",
-        "C3-style-equation-and-order-planning.md",
-        "S1-reading.md",
-        "S5-evaluation.md",
-        "S6-channel.md",
-        "S3b-key-levels.md",
-        "S6-common.md",
-        "S6-tr.md",
-        "S6-reversal.md"
-      ],
       "priority": 9,
-      "align_score": 2,
+      "align_score": 1,
       "signal": "",
       "timeframes": {
         "5m": {
-          "ai": "AIL",
-          "state": "TC",
+          "ai": "TR",
+          "state": "TR",
           "signal": "",
           "summary": null
         },
@@ -420,14 +350,56 @@
         }
       },
       "running_narrative": "ETH 仍是当前结构最强的品种，但上一轮的 fresh H1 已经失去即时性。5m 与 15m 仍在 EMA 上方，可是当前没有新的 signal_trigger，按 canonical 必须等新的 minor reversal 或新的接受。",
+      "refs": [
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md",
+        "S6-tr.md",
+        "S6-reversal.md"
+      ],
+      "entry_idea": {
+        "side": "WAIT",
+        "entry_zone": {
+          "active": false,
+          "side": "BUY",
+          "condition": "等待新的 bull signal 在 1960-1969 区域形成并被触发",
+          "signal_price": 1968.87,
+          "reason": "旧的 fresh H1 已经变旧，当前必须等待新的 signal。"
+        },
+        "sl_reference": "",
+        "tp_reference": "",
+        "style": "WAIT",
+        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "WATCH",
+        "candidate_stage_cn": "继续观察",
+        "execution_mode": "WATCH_ONLY",
+        "execution_mode_cn": "仅观察，不生成委托"
+      },
+      "evaluation": {
+        "p_estimate": null,
+        "r_estimate": null,
+        "equation_value": null,
+        "threshold_rhs": null,
+        "passes_price_action": false,
+        "passes_execution_gate": null,
+        "regime": "顺势候选",
+        "execution_decision": "可继续执行链",
+        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "继续观察",
+        "execution_mode": "仅观察，不生成委托"
+      },
+      "scenarios": [
+        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+      ],
       "pre_signal_meta": {
         "timeframe": "5m",
-        "created_at": "2026-03-08T21:07:19.072418+00:00",
-        "expires_at": "2026-03-08T21:32:19.072418+00:00",
+        "created_at": "2026-03-08T21:14:46.905944+00:00",
+        "expires_at": "2026-03-08T21:39:46.905944+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-08T21:07:19.072443+00:00",
-      "source_cycle_id": "cycle_20260309_050719"
+      "updated_at": "2026-03-08T21:14:46.905981+00:00",
+      "source_cycle_id": "cycle_20260309_051446"
     },
     "BNBUSDT": {
       "daily_bias": {
@@ -443,7 +415,6 @@
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
         "state:TR",
-        "ema_touch",
         "first_pb:bull_pb",
         "tr_edge:bottom",
         "pb_depth:too_deep",
@@ -453,39 +424,26 @@
         "cached_pre_signal",
         "state:TR",
         "first_pb:bear_pb",
-        "tr_edge:bottom"
+        "tr_edge:bottom",
+        "pb_depth:too_deep"
       ],
       "last_signal_reason": "5m L2、15m L1、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
-        "side": "SELL",
-        "entry_price": null,
-        "entry_zone": [
-          619.0,
-          619.3
-        ],
-        "entry_zone_label": "",
-        "stop_loss": 620.3,
-        "take_profit": 617.0,
-        "style": "反转试探",
-        "order_type": "STOP_MARKET",
-        "risk_percent": 0.3,
-        "invalid_if": "重新强势站回 619.23 上方并出现 bull follow-through",
-        "why_wait": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "CANDIDATE_STOP",
-        "candidate_stage_cn": "候选单（止损触发）",
-        "execution_mode": "STOP_TRIGGER",
-        "execution_mode_cn": "止损触发委托",
+        "candidate_stage": "CANDIDATE_MARKET",
+        "candidate_stage_cn": "候选单（市价）",
+        "execution_mode": "MARKET_IMMEDIATE",
+        "execution_mode_cn": "市价立即执行",
         "allow_executable": true,
-        "needs_exact_trigger": true
+        "needs_exact_trigger": false
       },
       "brooks_filter": {
         "category": "trend_continuation_candidate",
         "label": "顺势候选",
         "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "entry_ready",
+        "max_status": "pre_signal",
         "allow_executable": true,
-        "preferred_style": "反转试探",
-        "preferred_order_type": "STOP_MARKET"
+        "preferred_style": "WAIT",
+        "preferred_order_type": "MARKET"
       },
       "trade": {
         "status": "flat",
@@ -493,7 +451,6 @@
         "intent": "等待顶部失败",
         "risk_percent": 0.0
       },
-      "thesis": "BNB 继续是高位延伸后的顶部测试。5m、15m、1h 都在 EMA 附近来回，alignment_score=0，没有任何 fresh signal；只能继续等待顶部失败后的反转试探。",
       "ai_direction": {
         "5m": "TR",
         "15m": "TR",
@@ -525,13 +482,6 @@
           "verdict": "继续只保留顶部失败观察，不在当前 TR 里开新单。"
         }
       },
-      "pre_signal": {
-        "active": true,
-        "side": "SELL",
-        "condition": "619.0-619.3 区域出现 bear signal，并持续接受在 1h EMA 617.98 下方",
-        "signal_price": 619.23,
-        "reason": "当前位置仍是顶部测试观察区，空头只能从 reversal probe 开始。"
-      },
       "key_levels": {
         "current_price": 617.86,
         "ema20_5m": 617.67,
@@ -546,64 +496,14 @@
         "daily_low": 611.52,
         "note": "619.23 仍是短线顶部磁体；617.98 是当前接受/失败分界线。"
       },
-      "entry_idea": {
+      "thesis": "BNB 继续是高位延伸后的顶部测试。5m、15m、1h 都在 EMA 附近来回，alignment_score=0，没有任何 fresh signal；只能继续等待顶部失败后的反转试探。",
+      "pre_signal": {
+        "active": true,
         "side": "SELL",
-        "style": "反转试探",
-        "playbook": "顶部失败观察",
-        "order_type": "STOP_MARKET",
-        "premise": "只有顶部失败并持续在 1h EMA 下方接受，才考虑轻仓试探空单。",
-        "not_now": "当前没有 clear bear signal，且多周期更像 TR。",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "CANDIDATE_STOP",
-        "candidate_stage_cn": "候选单（止损触发）",
-        "execution_mode": "STOP_TRIGGER",
-        "execution_mode_cn": "止损触发委托"
+        "condition": "619.0-619.3 区域出现 bear signal，并持续接受在 1h EMA 617.98 下方",
+        "signal_price": 619.23,
+        "reason": "当前位置仍是顶部测试观察区，空头只能从 reversal probe 开始。"
       },
-      "evaluation": {
-        "verdict": "PASS-WAIT",
-        "current_long": "PASS-RULE",
-        "current_long_reason": "当前位置属于高位整理，不适合顺势追多。",
-        "style": "反转试探",
-        "p_estimate_on_trigger": 0.4,
-        "r_estimate_on_trigger": 2.0,
-        "traders_equation": "0.4 × 2.0 = 0.8 > 0.6，但前提是顶部失败真正出现",
-        "reason": "当前只保留失败观察，不执行。",
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "候选单（止损触发）",
-        "execution_mode": "止损触发委托"
-      },
-      "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        {
-          "name": "场景A",
-          "probability": "中等",
-          "description": "619.0-619.3 顶部失败并持续在 1h EMA 下方",
-          "trigger": "5m bear signal + 跌破信号低点",
-          "action": "试探做空",
-          "style": "反转试探"
-        },
-        {
-          "name": "场景B",
-          "probability": "中等",
-          "description": "继续在高位 TR 中来回",
-          "trigger": "仍在 619.23 附近横住",
-          "action": "继续观察",
-          "style": "观察"
-        }
-      ],
-      "refs": [
-        "C2-triggers-and-reversal-taxonomy.md",
-        "C3-style-equation-and-order-planning.md",
-        "S1-reading.md",
-        "S5-evaluation.md",
-        "S6-reversal.md",
-        "S3b-key-levels.md",
-        "S6-common.md",
-        "S6-channel.md",
-        "S6-tr.md"
-      ],
       "priority": 9,
       "align_score": 0,
       "signal": "",
@@ -634,23 +534,65 @@
         }
       },
       "running_narrative": "BNB 继续是高位延伸后的顶部测试。5m、15m、1h 都在 EMA 附近来回，alignment_score=0，没有任何 fresh signal；只能继续等待顶部失败后的反转试探。",
+      "refs": [
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md",
+        "S6-tr.md",
+        "S6-reversal.md"
+      ],
+      "entry_idea": {
+        "side": "WAIT",
+        "entry_zone": {
+          "active": true,
+          "side": "SELL",
+          "condition": "619.0-619.3 区域出现 bear signal，并持续接受在 1h EMA 617.98 下方",
+          "signal_price": 619.23,
+          "reason": "当前位置仍是顶部测试观察区，空头只能从 reversal probe 开始。"
+        },
+        "sl_reference": "",
+        "tp_reference": "",
+        "style": "WAIT",
+        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "CANDIDATE_MARKET",
+        "candidate_stage_cn": "候选单（市价）",
+        "execution_mode": "MARKET_IMMEDIATE",
+        "execution_mode_cn": "市价立即执行"
+      },
+      "evaluation": {
+        "p_estimate": null,
+        "r_estimate": null,
+        "equation_value": null,
+        "threshold_rhs": null,
+        "passes_price_action": false,
+        "passes_execution_gate": null,
+        "regime": "顺势候选",
+        "execution_decision": "可继续执行链",
+        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "候选单（市价）",
+        "execution_mode": "市价立即执行"
+      },
+      "scenarios": [
+        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+      ],
       "pre_signal_meta": {
         "timeframe": "1h",
-        "created_at": "2026-03-08T21:07:19.072358+00:00",
-        "expires_at": "2026-03-09T00:07:19.072358+00:00",
+        "created_at": "2026-03-08T21:14:46.905798+00:00",
+        "expires_at": "2026-03-09T00:14:46.905798+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-08T21:07:19.072399+00:00",
-      "source_cycle_id": "cycle_20260309_050719"
+      "updated_at": "2026-03-08T21:14:46.905923+00:00",
+      "source_cycle_id": "cycle_20260309_051446"
     }
   },
   "_meta": {
-    "loop_count": 713,
-    "total_signals": 1213,
+    "loop_count": 714,
+    "total_signals": 1216,
     "total_trades": 44,
     "total_passes": 640,
-    "last_full_refresh": "2026-03-08T21:03:12.445236+00:00",
-    "last_update": "2026-03-08T21:07:19.072292+00:00",
+    "last_full_refresh": "2026-03-08T21:14:46.905700+00:00",
+    "last_update": "2026-03-08T21:14:46.905700+00:00",
     "pass_wait": 613,
     "pass_rule": 2
   }
