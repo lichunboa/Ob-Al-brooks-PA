@@ -1,0 +1,15 @@
+新模块能覆盖什么？
+S7 内容	新模块能覆盖	新模块不能覆盖
+Premise Check 第 1 项（AI 方向）	❌ 不能	✅ 需要 S2 框架分析
+Premise Check 第 2 项（市场状态）	✅ 部分（pat_info.pressure.direction）	⚠️ 需要 S3 深度分析（Channel/TR/BO 失败）
+Premise Check 第 3 项（信号 K 线）	❌ 不能	✅ 需要记录入场信号 K 线，判断是否被否定
+Premise Check 第 4 项（FT 质量）	✅ 部分（pat_info.pressure）	⚠️ 需要 S1 读盘（FT 的 body/tail/close 位置）
+Premise Check 第 5 项（目标路径）	✅ 能（sr_info.levels 检查 TP 路径上的 S/R）	❌ 不能
+三种保护	❌ 不能	✅ 需要 S7 逻辑（反向信号、反向 BO）
+Trailing SL	✅ 能（pat_info.hl_entries 检测新 Major HL/LH）	❌ 不能
+TP 计划	✅ 能（mm_info 提供 MM 目标）	⚠️ 需要 S7 逻辑（2R/3R 计算）
+加仓策略	✅ 部分（pat_info.hl_entries 检测新 PB setup）	⚠️ 需要 S7 逻辑（总风险控制）
+
+
+
+**⚠️ 注意 Al Brooks 特殊形态**：标准 TA 的 Wedge/三推要求每推更低/高，Al Brooks 的三推只要求**逐推弱化**（第三推可以不破新低/高 = 头肩底/顶 = MTR）。这类形态无法纯数值机械检测，留给 Phase B 深分析。

@@ -1,0 +1,711 @@
+{
+  "cycle_id": "cycle_20260307_160815",
+  "phase": "SCAN",
+  "time_utc": "2026-03-07T08:08:16.003976+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "state:TR",
+        "cached_pre_signal"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR",
+        "cached_pre_signal"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "state:TR",
+        "cached_pre_signal"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "SCAN",
+    "summary": "无持仓且暂无明确执行窗口，维持扫描与监控。",
+    "full_refresh": false,
+    "full_refresh_reason": null,
+    "focus_symbols": [
+      "BTCUSDT",
+      "BNBUSDT",
+      "ETHUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "market_state_detail": "只能保守沿用上一轮高周期偏空、执行级别等待支撑失守或更高失败反抽的框架；本轮live结构为空。",
+        "structure_summary": "cached_state显示BTC整体仍处于68431.3失败上冲后的偏空区间/通道框架内，4小时与日线继续提供偏空背景。旧的精读叙事里，短线空头曾增强到5分钟L1@68101.7、15分钟L2@68101.7，但位置又贴近68090.8/68000.0支撑，因此不能机械追空，合理等待是：真正跌破68090.8/68000.0并有连续弱收盘，或等待反抽68209.6-68240.8失败。本轮虽然是全刷新，但live_timeframes与ab_context.timeframes为空，无法确认这些短线结构是否仍然有效；因此只能把BTC继续保留为偏空观察，而不能升级为执行。",
+        "running_narrative": "BTC仍是最佳候选，但本轮实时结构与交易就绪确认都缺失，只能延续等待。",
+        "pre_signal": "SELL_WATCH：等待真正跌破68090.8/68000.0并有连续弱收盘，或等待68209.6-68240.8失败。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T07:56:59.001060+00:00",
+          "expires_at": "2026-03-07T08:21:59.001060+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            68090.8,
+            68067.5,
+            68000.0,
+            67789.2,
+            67734.7
+          ],
+          "resistance": [
+            68165.6,
+            68197.3,
+            68209.6,
+            68240.8,
+            68315.8,
+            68347.7,
+            68391.0,
+            68431.3
+          ]
+        },
+        "thesis": "BTC仍是当前最强的空头观察对象，但本轮只能沿用缓存框架，不能执行。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BTCUSDT_1h_140237.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BTCUSDT_15m_140236.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BTCUSDT_5m_140236.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BTCUSDT_1h_135856.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/daily/BTCUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "market_state_detail": "只能保守按高周期偏空、短线曾在支撑附近承接后的TR观察处理；本轮live结构为空。",
+        "structure_summary": "cached_state仍停留在较早的‘626.45支撑前测试’叙事，但此前完整轮次已经说明BNB在625.12-626.45一带出现过承接并发生回补。因此本轮不能机械沿用旧缓存里的‘仍在626.45支撑前测试’作为最新事实，也不能因为当前没有live_timeframes就发明新结构。更保守的处理是：承认高周期偏空背景未变，同时维持BNB曾在支撑附近承接、短线需要等待更高失败反抽或重新转弱的观察框架。",
+        "running_narrative": "BNB仍值得观察，但本轮实时结构缺失，不能确认短线反弹是否延续或已失败。",
+        "pre_signal": "WATCH：等待更高失败反抽，或等待重新跌回支撑下方并转弱。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T07:56:59.001142+00:00",
+          "expires_at": "2026-03-07T08:21:59.001142+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            626.47,
+            626.45,
+            625.51,
+            625.07,
+            624.77,
+            623.08
+          ],
+          "resistance": [
+            627.8,
+            628.1,
+            628.72,
+            629.35,
+            629.57,
+            630.0,
+            630.53
+          ]
+        },
+        "thesis": "BNB仍保留高周期偏空但短线曾在626.45附近承接的观察，不过当前不能确认最新反弹是否仍有效。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BNBUSDT_1h_140232.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BNBUSDT_15m_140231.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BNBUSDT_5m_140231.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/BNBUSDT_1h_135815.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/daily/BNBUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "market_state_detail": "cached_state显示高周期偏空、执行级别TR；本轮仍无live结构细节。",
+        "structure_summary": "根据cached_state，ETH高周期偏空未变，但1976.65附近仍反复承接，缺少理想下破跟随，因此执行级别继续按TR处理。当前全刷新轮次里live_timeframes与ab_context.timeframes为空，无法重做真实条读，只能继续等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有真正跟随。",
+        "running_narrative": "ETH继续按TR处理，本轮无新的可执行变化。",
+        "pre_signal": "SELL_WATCH：等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有跟随。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T07:56:59.001117+00:00",
+          "expires_at": "2026-03-07T08:21:59.001117+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            1976.65,
+            1969.53,
+            1956.0
+          ],
+          "resistance": [
+            1980.4,
+            1984.41,
+            1989.39,
+            1995.24
+          ]
+        },
+        "thesis": "ETH继续按TR处理，高周期偏空背景仍在，但当前执行数据未确认。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/ETHUSDT_1h_135925.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/ETHUSDT_15m_135923.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/ETHUSDT_5m_135921.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/2026-03-07/ETHUSDT_1h_135305.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts/daily/ETHUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "SCAN",
+    "market_summary": "本轮仍不交易。与上一轮相比，当前没有任何能解除保守门控的新信息，反而quick_scan_events已经把三者都统一压成了5分钟state:TR加cached_pre_signal，这意味着当前前台只是在沿用缓存观察，而不是给出新的实时事件。与此同时，runtime_state.trade_readiness仍然是blocked:-，execution_snapshot关键字段继续全部为null，live_timeframes与ab_context.timeframes仍为空。按护栏，这种状态下不能把cached_pre_signal当成入场触发，也不能把旧的L1/L2、H1/H2叙事当作实时执行依据。当前最合理的处理仍是：BTC继续作为最佳候选保留SELL_WATCH，因为它的高周期偏空框架最完整；ETH继续按TR处理；BNB继续维持高周期偏空但支撑附近曾承接后的观察。三者统一LOG_ONLY，等待数据恢复。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "BNBUSDT",
+      "ETHUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "thesis": "BTC仍是当前最完整的空头观察对象，但当前仅是cached_pre_signal延续，不能执行。",
+        "priority": 1,
+        "priority_note": "三者里BTC的缓存结构与等待条件最清晰，仍是最佳候选。",
+        "priority_score": 0.6,
+        "align_score": 0,
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "quick_scan已退化成5分钟state:TR加cached_pre_signal；本轮无live结构，继续按高周期偏空、执行级别等待支撑失守或更高失败反抽处理。",
+        "structure_summary": "cached_state显示BTC整体仍处于68431.3失败上冲后的偏空框架内，4小时与日线继续提供偏空背景。旧的精读叙事里，短线空头曾增强但位置贴近68090.8/68000.0支撑，因此不能机械追空，合理等待是：真正跌破68090.8/68000.0并有连续弱收盘，或等待反抽68209.6-68240.8失败。当前轮次quick_scan_events只剩state:TR与cached_pre_signal，说明前台没有新的实时触发，只是在保留旧观察；再加上live_timeframes与ab_context.timeframes为空，因此本轮只能继续保守等待。",
+        "running_narrative": "BTC仍是最佳候选，但当前只是缓存观察延续，不能视为实时可执行信号。",
+        "signal": "无新的可执行信号确认，仅保留缓存观察。",
+        "pre_signal": "SELL_WATCH：等待真正跌破68090.8/68000.0并有连续弱收盘，或等待68209.6-68240.8失败。",
+        "key_levels": {
+          "support": [
+            68090.8,
+            68067.5,
+            68000.0,
+            67789.2,
+            67734.7
+          ],
+          "resistance": [
+            68165.6,
+            68197.3,
+            68209.6,
+            68240.8,
+            68315.8,
+            68347.7,
+            68391.0,
+            68431.3
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "等待68090.8/68000.0失守并有连续弱收盘，或等待68209.6-68240.8失败。",
+          "sl_reference": "若后续做回抽失败空头，止损放在68240.8上方。",
+          "tp_reference": "若空头成立，先看68000.0、67789.2，再看67734.7。",
+          "style": "当前无交易。"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "PASS-WAIT",
+          "p_estimate": 0.49,
+          "r_estimate": 0.66,
+          "equation_value": 0.323,
+          "threshold_rhs": 0.51,
+          "comment": "cached_pre_signal仍在，但trade_readiness为blocked:-且实时结构缺失，不能执行。"
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 35,
+            "description": "真正跌破68090.8/68000.0并压向67789.2。"
+          },
+          {
+            "id": "B",
+            "probability": 36,
+            "description": "先反抽68209.6-68240.8后失败。"
+          },
+          {
+            "id": "C",
+            "probability": 29,
+            "description": "继续在68000附近TR化。"
+          }
+        ],
+        "timeframes": {
+          "5m": {
+            "summary": "quick_scan仅显示state:TR与cached_pre_signal，缺少实时条读。"
+          },
+          "15m": {
+            "summary": "本轮无实时结构，只能等待。"
+          },
+          "30m": {
+            "summary": "沿用偏空背景。"
+          },
+          "1h": {
+            "summary": "沿用偏空背景。"
+          },
+          "4h": {
+            "summary": "4小时继续提供偏空压力。"
+          },
+          "1d": {
+            "summary": "日线继续提供偏空概率锚。"
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "thesis": "BNB仍保留高周期偏空但支撑附近曾承接后的观察，不过当前也只剩cached_pre_signal延续。",
+        "priority": 2,
+        "priority_note": "BNB此前有结构修正价值，但当前没有实时数据确认其反弹是否延续或失败。",
+        "priority_score": 0.46,
+        "align_score": 0,
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "quick_scan显示5分钟state:TR与cached_pre_signal；本轮只能保守按高周期偏空、短线曾在支撑附近承接后的TR观察处理。",
+        "structure_summary": "cached_state虽然仍保留较早的支撑前叙事，但此前完整轮次已经说明BNB曾在625.12-626.45一带出现承接并发生回补。本轮不能机械沿用旧缓存里的‘仍在626.45支撑前测试’作为最新事实，也不能因为当前没有live_timeframes就发明新结构。现在quick_scan_events只剩state:TR与cached_pre_signal，说明系统只是延续旧观察，并没有新的实时失败反抽或重新转弱确认。因此更保守的处理仍是：承认高周期偏空背景未变，同时等待更高失败反抽，或等待重新跌回支撑下方并转弱。",
+        "running_narrative": "BNB仍值得观察，但当前只是缓存观察延续，无法确认短线反弹是否延续或已失败。",
+        "signal": "无新的可执行信号确认，仅保留缓存观察。",
+        "pre_signal": "WATCH：等待更高失败反抽，或等待重新跌回支撑下方并转弱。",
+        "key_levels": {
+          "support": [
+            626.47,
+            626.45,
+            625.51,
+            625.07,
+            624.77,
+            623.08
+          ],
+          "resistance": [
+            627.8,
+            628.1,
+            628.72,
+            629.35,
+            629.57,
+            630.0,
+            630.53
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "当前不追多也不抢空；等待628.72-629.35/629.57失败，或等待重新跌回627.05/626.82下方。",
+          "sl_reference": "若后续做失败反抽空头，止损放在629.57或630.0/630.53上方。",
+          "tp_reference": "若高卖成立，先看627.8、627.05、626.45，再看625.51与625.12。",
+          "style": "当前无交易。"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "PASS-WAIT",
+          "p_estimate": 0.46,
+          "r_estimate": 0.69,
+          "equation_value": 0.317,
+          "threshold_rhs": 0.54,
+          "comment": "当前仅是缓存观察续期，trade_readiness仍为blocked:-，不能执行。"
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 34,
+            "description": "上测628.72-629.35/629.57后失败。"
+          },
+          {
+            "id": "B",
+            "probability": 25,
+            "description": "继续守在支撑上方并维持回补。"
+          },
+          {
+            "id": "C",
+            "probability": 41,
+            "description": "重新回到支撑附近拉锯，继续TR化。"
+          }
+        ],
+        "timeframes": {
+          "5m": {
+            "summary": "quick_scan仅显示state:TR与cached_pre_signal，缺少实时条读。"
+          },
+          "15m": {
+            "summary": "无实时结构可确认此前短线回补是否延续。"
+          },
+          "30m": {
+            "summary": "沿用TR背景。"
+          },
+          "1h": {
+            "summary": "高周期偏空背景未变。"
+          },
+          "4h": {
+            "summary": "4小时继续提供偏空压力。"
+          },
+          "1d": {
+            "summary": "日线偏空但仍在大区间。"
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      },
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "thesis": "ETH继续按TR处理，高周期偏空背景仍在，但当前也只是cached_pre_signal延续。",
+        "priority": 3,
+        "priority_note": "ETH本轮没有新增强事件，继续次级观察。",
+        "priority_score": 0.38,
+        "align_score": 0,
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "quick_scan显示5分钟state:TR与cached_pre_signal；本轮无live结构细节，继续保守等待。",
+        "structure_summary": "根据cached_state，ETH高周期偏空未变，但1976.65附近仍反复承接，缺少理想下破跟随，因此执行级别继续按TR处理。本轮quick_scan_events同样只剩state:TR与cached_pre_signal，说明当前没有新的实时触发，只是在续存旧观察；因此继续等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有真正跟随。",
+        "running_narrative": "ETH继续按TR处理，当前只是缓存观察延续。",
+        "signal": "无新的可执行信号确认，仅保留缓存观察。",
+        "pre_signal": "SELL_WATCH：等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有跟随。",
+        "key_levels": {
+          "support": [
+            1976.65,
+            1969.53,
+            1956.0
+          ],
+          "resistance": [
+            1980.4,
+            1984.41,
+            1989.39,
+            1995.24
+          ]
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有真正跟随。",
+          "sl_reference": "若后续做失败反抽空头，止损放在1984.41上方，保守参考1989.39上方。",
+          "tp_reference": "若空头成立，先看1976.65、1969.53，再看1956.0。",
+          "style": "当前无交易。"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "PASS-WAIT",
+          "p_estimate": 0.45,
+          "r_estimate": 0.8,
+          "equation_value": 0.36,
+          "threshold_rhs": 0.55,
+          "comment": "当前仅是缓存观察续期，trade_readiness仍为blocked:-，不能执行。"
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 34,
+            "description": "回抽1980.4-1984.41后失败。"
+          },
+          {
+            "id": "B",
+            "probability": 28,
+            "description": "重新跌破1976.65/1969.53并出现跟随。"
+          },
+          {
+            "id": "C",
+            "probability": 38,
+            "description": "继续围绕当前区间拉锯。"
+          }
+        ],
+        "timeframes": {
+          "5m": {
+            "summary": "quick_scan仅显示state:TR与cached_pre_signal。"
+          },
+          "15m": {
+            "summary": "继续按TR执行级别处理。"
+          },
+          "30m": {
+            "summary": "背景偏空。"
+          },
+          "1h": {
+            "summary": "高周期偏空未变。"
+          },
+          "4h": {
+            "summary": "4小时继续提供偏空背景。"
+          },
+          "1d": {
+            "summary": "日线偏空但仍在大区间内。"
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待支撑失守或失败反抽",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "本轮无可执行信号条确认，仅为cached_pre_signal延续",
+        "equation": "P=0.49 R=0.66 PxR=0.323",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ],
+        "bar_reading": "BTC仍是最佳候选，但当前只是缓存观察延续，且trade_readiness为blocked:-，不能执行。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "trade_readiness继续为blocked:-，execution_snapshot关键字段与live结构仍为空，cached_pre_signal不能当作开仓触发。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待更高失败反抽",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "本轮无可执行信号条确认，仅为cached_pre_signal延续",
+        "equation": "P=0.46 R=0.69 PxR=0.317",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ],
+        "bar_reading": "BNB仍有观察价值，但当前无法确认短线反弹是否延续或已失败。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "trade_readiness继续为blocked:-，且当前只剩缓存观察，不能执行。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待区间上沿失败或重新下破",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "本轮无可执行信号条确认，仅为cached_pre_signal延续",
+        "equation": "P=0.45 R=0.80 PxR=0.360",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ],
+        "bar_reading": "ETH继续按TR处理，但当前只是缓存观察续期。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "execution与实时结构数据仍不足，cached_pre_signal不能替代实时触发。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 180,
+    "next_scan_reason": "当前不是价格临界点主导，而是数据链路持续缺失主导。trade_readiness仍为blocked:-，execution_snapshot关键字段与live结构继续为空，且quick_scan已退化为cached_pre_signal续期；因此适当放宽到180秒复查，等待运行时数据恢复后再重做真实判断。",
+    "state_patch": {
+      "phase": "SCAN",
+      "best_candidate": "BTCUSDT",
+      "focus_symbols": [
+        "BTCUSDT",
+        "BNBUSDT",
+        "ETHUSDT"
+      ],
+      "pending_pre_signals": [
+        {
+          "symbol": "BTCUSDT",
+          "side": "SELL_WATCH",
+          "note": "高周期仍偏空；等待真正跌破68090.8/68000.0并有连续弱收盘，或等待68209.6-68240.8失败。",
+          "expires_hint": "若重新站回68240.8上方并持续走强，则空头观察降级。"
+        },
+        {
+          "symbol": "BNBUSDT",
+          "side": "WATCH",
+          "note": "高周期偏空未变，但曾在626.45附近承接；等待更高失败反抽，或等待重新跌回支撑下方并转弱。",
+          "expires_hint": "若重新跌回627.05/626.82下方，则恢复更明确的空头观察。"
+        },
+        {
+          "symbol": "ETHUSDT",
+          "side": "SELL_WATCH",
+          "note": "继续等待1980.4-1984.41失败反抽，或等待重新跌破1976.65/1969.53并有跟随。",
+          "expires_hint": "若重新站回1984.41上方并持续走强，则当前空头观察降级。"
+        }
+      ],
+      "runtime_health": {
+        "execution_snapshot_confirmed": false,
+        "trade_readiness": "blocked:-",
+        "reason": "execution_snapshot关键字段持续为null，live_timeframes与ab_context.timeframes仍为空，quick_scan仅剩cached_pre_signal"
+      },
+      "symbol_states": {
+        "BTCUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "thesis": "高周期偏空观察最完整，但当前只是缓存观察续期，不可执行。"
+        },
+        "BNBUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "thesis": "高周期偏空未变，但短线状态无法确认，当前只是缓存观察续期。"
+        },
+        "ETHUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "thesis": "继续按TR等待，当前只是缓存观察续期。"
+        }
+      },
+      "quiet_loops": 0,
+      "decision_model": "openai-codex/gpt-5.4",
+      "needs_post_trade_refresh": false
+    },
+    "explanation": "本轮最关键的新信息是quick_scan_events已经把三者都明确成了state:TR加cached_pre_signal，这说明系统当前没有在提供新的实时结构事件，而只是续存上一个观察状态。再结合trade_readiness继续为blocked:-、execution_snapshot关键字段持续为null、live_timeframes与ab_context.timeframes仍为空，按护栏必须继续统一LOG_ONLY，不能把cached_pre_signal当作真实执行触发。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T08:08:16.000089+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "trade_readiness继续为blocked:-，execution_snapshot关键字段与live结构仍为空，cached_pre_signal不能当作开仓触发。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T08:08:16.000133+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "trade_readiness继续为blocked:-，且当前只剩缓存观察，不能执行。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T08:08:16.000137+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "execution与实时结构数据仍不足，cached_pre_signal不能替代实时触发。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-07T08:11:16.001394+00:00",
+    "in_seconds": 180,
+    "reason_code": "当前不是价格临界点主导，而是数据链路持续缺失主导。trade_readiness仍为blocked:-，execution_snapshot关键字段与live结构继续为空，且quick_scan已退化为cached_pre_signal续期；因此适当放宽到180秒复查，等待运行时数据恢复后再重做真实判断。",
+    "reason_text": "当前不是价格临界点主导，而是数据链路持续缺失主导。trade_readiness仍为blocked:-，execution_snapshot关键字段与live结构继续为空，且quick_scan已退化为cached_pre_signal续期；因此适当放宽到180秒复查，等待运行时数据恢复后再重做真实判断。",
+    "derived_from_cycle": "cycle_20260307_160815",
+    "interruptible": true
+  }
+}

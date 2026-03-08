@@ -1,0 +1,10 @@
+{
+  "provider": "codex_cli",
+  "thread_id": "019cceee-af28-7da1-96ac-078842e19e62",
+  "model": "gpt-5.4",
+  "knowledge_hash": "b47b78622d57287adcb2ffd7a43ef851f27982a8e136ab2fd72094210ff7a448",
+  "bootstrapped_at": 1772998314.743157,
+  "last_used_at": 1773000506.5345988,
+  "turn_count": 9,
+  "bootstrap_mode": "full_original_chunks"
+}

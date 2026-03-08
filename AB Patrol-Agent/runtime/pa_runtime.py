@@ -4507,11 +4507,23 @@ class PatrolRuntime:
                 else:
                     cycle_symbol, cycle_chart = self.primary_chart_for_decision(decision, analysis_board)
                     if cycle_chart:
+                        phase_mapping = {
+                            "BOOTSTRAP": "初始化扫描",
+                            "SCAN": "全市场扫描",
+                            "WATCH": "观察阶段",
+                            "PRE_SIGNAL": "预信号",
+                            "ENTRY_READY": "临近触发",
+                            "IN_TRADE": "持仓中",
+                            "MANAGE": "管理持仓",
+                            "EXIT": "退出阶段",
+                            "COOLDOWN": "冷却期",
+                        }
+                        phase_text = phase_mapping.get(str(decision.get('phase') or ''), str(decision.get('phase') or '-'))
                         push_result = {
                             **push_result,
                             "photo": self.push_telegram_photo(
                                 cycle_chart,
-                                f"📈 PA交易 Crypto｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_cn(str(decision.get('phase') or '-'))}",
+                                f"📈 PA交易 Crypto｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_text}",
                             ),
                         }
         else:

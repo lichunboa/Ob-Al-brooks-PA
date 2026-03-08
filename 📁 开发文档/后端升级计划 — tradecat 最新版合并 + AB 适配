@@ -1,0 +1,192 @@
+# 后端升级计划 — tradecat 最新版合并 + AB 适配
+
+---
+
+## 一、升级概况
+
+### 背景
+后端 `AB Console-Backend` 基于开源项目 tradecat 定制。本次升级到官方最新版，品牌 tradecat → ab-console。
+
+### 升级范围
+
+| 服务 | 升级内容 | 状态 |
+|------|---------|------|
+| **trading-service** | PG 迁移 + 指标 bug fix + 新脚本 | ✅ 已完成 |
+| **signal-service** | PG 引擎 + storage 层更新 | ✅ 已完成 |
+| **data-service** | Binance 原生 Kline + 去重 bug fix | ✅ 已完成 |
+| **execution-service** | 不动（我们独有：OKX/Binance 双交易所） | 🛡️ 保护 |
+| **sync-service** | 不动（我们独有：Obsidian 同步 + Discord） | 🛡️ 保护 |
+
+### 关键变更
+
+- **SQLite → PostgreSQL** — 指标数据写入从 SQLite 迁移到 PG（tg_cards schema，38 张表）
+- **Bug Fix** — 批量写入去重、三键完整性、时区修正、连接池韧性
+- **功能增强** — Binance 原生 Kline API（含 taker_buy_volume 等字段）
+
+---
+
+## 二、AB 适配方案
+
+### 核心思路
+
+```
+现在: API → raw OHLC → Python 临时算 → Claude 判断 → 慢
+目标: API → 结构化分析 + K线图片 → Claude 看图+数据 → 快且准
+```
+
+**后端 = 眼睛和计算器 | SKILL 流程 = 大脑和纪律**
+
+### 要解决的问题
+
+| 问题 | 根因 | 解决方案 |
+|------|------|---------|
+| **交易机会少** | 信号检测不全面 + Agent 分析太慢错过窗口 | ab_patterns 模块预计算 + 减少 Agent 思考时间 |
+| **胜率不够** | context 判断不准（看数字不如看图） | 生成 K 线图片，像 AB 一样看图分析 |
+| **盈亏比不准** | SL/TP 位置靠手动找 | support_resistance + trend_line 自动标注 |
+| **分析时间过长** | 每轮写大量文字 + 陷在单个品种 | 预计算减少临时 Python + 图片替代文字分析 |
+| **Token 浪费** | 每轮重复计算 EMA/ATR/H2 + 写长分析报告 | 预计算存缓存 + 图片一张顶千字 |
+
+### 三层架构
+
+```
+第1层: execution-service (已有)
+  └── K线数据 / 下单 / 持仓 / 风控
+
+第2层: 分析增强层 (基于后端已有模块适配)
+  ├── ab_patterns  → 预计算 H1/H2/L1/L2/PB深度/Pressure/Gap/Climax
+  ├── chart_gen    → K线图片 + EMA + 关键位标注
+  ├── k_pattern    → TA-Lib 61 种 K 线形态（需 AB 适配）
+  ├── support_resistance → S/R + ATR
+  ├── lean_indicators → EMA/ATR/RSI
+  └── trend_line   → 趋势线 + 通道边界
+
+第3层: patrol-l1 SKILL (已有)
+  └── Quick Scan → 看图 + 看数据 → S 文件判断 → 入场
+```
+
+### Token 优化效果
+
+| 项目 | 现在 | 适配后 | 节省 |
+|------|------|--------|------|
+| EMA/ATR 计算 | 每轮 Python 脚本 ~500 tokens | API 直接返回 | ~500/轮 |
+| H2/L2 检测 | 每轮 Python 脚本 ~800 tokens | 预计算字段 | ~800/轮 |
+| Context 分析 | 500 字文字描述 ~1000 tokens | 看 1 张图 ~250 tokens | ~750/轮 |
+| 长分析报告 | ~2000 tokens/品种 | ≤3 行/品种 ~200 tokens | ~1800/品种 |
+| **每轮总计** | ~8000+ tokens | ~2000 tokens | **~75% 节省** |
+
+---
+
+## 三、适配清单
+
+### 已有模块（配置 + AB 适配）
+
+| 模块 | 位置 | 当前功能 | AB 适配要点 | 对应 SKILL |
+|------|------|---------|-----------|-----------|
+| **k_pattern** | trading-service/indicators/batch/ | TA-Lib 61 种 K 线形态 + 价格形态 | DT=L2(趋势中默认Flag)、Wedge 逐推弱化、H&S=minor MTR | Phase B 形态辅助 |
+| **support_resistance** | 同上 | 20 根 H/L + ATR | 加 EMA20 作为动态 S/R、加 MM 目标位 | S3b 关键位置 |
+| **lean_indicators** | 同上 | EMA/MACD/RSI 等 | 确保 EMA20 + ATR14 准确，其他不用 | 基础数值 |
+| **trend_line** | 同上 | 趋势线计算 | 用于 Channel 边界识别 | S3 Channel |
+| **scalping** | 同上 | Scalp 相关指标 | 评估是否对 TR 边缘 Scalp 有用 | S6-tr |
+
+### 需要新建的模块
+
+| 模块 | 说明 | 为什么后端没有 | 工作量 |
+|------|------|-------------|--------|
+| **ab_patterns** | AB 特有的 bar counting (H1/H2) + PB 深度 + Pressure | AB 是特有体系，通用 TA 库没有 | 中 |
+| **chart_gen** | K 线图片生成 | 后端本身不需要图片，这是给 AI 看的 | 中 |
+
+### 图片生成方案
+
+每轮生成图片：
+- **交易周期图**（5m）— 最近 100 根，标注 EMA20 + H2/L2 + S/R
+- **结构周期图**（15m 或 1h）— 最近 80 根，标注 EMA20 + Channel 边界
+- **日线图**（1d）— 每天更新一次即可，标注 Daily 偏置方向
+
+技术方案：`mplfinance` + `matplotlib`，输出到 `/tmp/charts/`
+
+#### ✅ chart_gen 已完成 (2026-03-02)
+
+**位置**: `AB Console-Backend/scripts/chart_gen.py`
+
+```bash
+# 单品种
+python chart_gen.py -s BTCUSDT -i 5m,15m,1d --port 8094
+
+# patrol-l1 批量 (5 品种 × 3 周期)
+python chart_gen.py --patrol --port 8094
+```
+
+**功能**: K 线蜡烛图 + EMA20 蓝线 + S/R 水平线 + TR 边界 + Volume
+**输出**: `/tmp/charts/{SYMBOL}_{INTERVAL}.png` (60-90 KB/张)
+**日线缓存**: 同一天只生成一次
+**已知问题**: Binance Testnet 小币种 (DOGE) 数据质量差，K 线不完整
+
+---
+
+## 四、实施优先级
+
+| 优先级 | 任务 | 解决 | 备注 |
+|--------|------|------|------|
+| **P0** | ~~chart_gen + 看图能力~~ | 胜率 + 速度 | ✅ 已完成 — `scripts/chart_gen.py` |
+| **P1** | ab_patterns 核心检测 | 交易机会 + Token | 减少临时 Python 计算 |
+| **P2** | SKILL 流程集成 | 速度 | 调用预计算 API 替代临时脚本 |
+| **P3** | k_pattern AB 适配 | 盈亏比 | 需要逐个形态对照 PDF 做适配 |
+| **P4** | support_resistance 增强 | 盈亏比 | 加 EMA20 + MM 目标位 |
+
+### AB 适配原则
+
+> 每个模块适配前，必须查看 Al Brooks PDF 确认他的理念。
+> 标准 TA ≠ AB。适配的核心是理解 AB 的思考方式，而不是套用通用指标。
+> 需要拆分出来单独优化的模块：k_pattern（形态定义差异最大）
+
+---
+
+## 五、升级详情（已完成）
+
+### 合并的文件（41 个，+1395 / -1671 行）
+
+**trading-service (PG 迁移 + bug fix)**
+- `db/reader.py` — PgDataWriter + WriterCompat + reset_shared_pg_pool
+- `db/__init__.py` + `db/cache.py`
+- `core/storage.py` — SQLite → PG 后处理
+- `core/compute.py` + `core/engine.py` + `core/async_full_engine.py`
+- `simple_scheduler.py` — SQLite → PG
+- `config.py` + `__main__.py` + `__init__.py`
+- `indicators/*` — PG 适配 + allow_placeholder + 时区修正 + 三键完整性
+- `+scripts/analog_forecast.py` + `+scripts/kline_quality_report.py`
+
+**signal-service (PG 引擎)**
+- `engines/pg_engine.py` + `engines/__init__.py` + `engines/base.py`
+- `config.py` + `__main__.py`
+- `storage/*` (cooldown/history/subscription)
+- `events/*` + `formatters/*`
+
+**data-service (bug fix + 增强)**
+- `adapters/ccxt.py` — Binance 原生 Kline + to_rows 丰富化
+- `adapters/timescale.py` — `_dedupe_rows()` 去重
+- `adapters/cryptofeed.py` + `collectors/alpha.py` + `collectors/backfill.py` + `collectors/metrics.py`
+- `config.py` — 新增 Binance API 配置
+
+**品牌清理**
+- 全部 tradecat → ab-console
+
+**数据库**
+- `021_tg_cards_sqlite_parity.sql` — 38 张指标表
+
+### 保护的文件（未改动）
+
+- execution-service 全部
+- sync-service 全部（除品牌注释）
+- data-service: __main__.py, collectors/__init__.py, ws.py, ws_manager.py
+- signal-service: pa_engine.py, wyckoff_detector.py, market_state_engine.py, realtime_engine.py, sqlite_engine.py, health.py
+- timescale.py 的 NOTIFY（realtime_engine 依赖）
+
+### 验证结果
+
+| 测试 | 结果 |
+|------|------|
+| psycopg 3.3.3 | ✅ |
+| trading-service config + reader | ✅ |
+| signal-service 129 rules + 35 tables | ✅ |
+| PG tg_cards 38 tables | ✅ |
+| execution-service 未受影响 | ✅ |

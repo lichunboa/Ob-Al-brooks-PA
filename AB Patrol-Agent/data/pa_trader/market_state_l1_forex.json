@@ -1,0 +1,294 @@
+{
+  "_meta": {
+    "loop_count": 1,
+    "last_full_refresh": "2026-03-06T04:38:28.293946",
+    "total_signals": 0,
+    "total_trades": 0,
+    "total_passes": 0,
+    "mode": "forex_simulated",
+    "cold_start": true
+  },
+  "EURUSD": {
+    "status": "pre_signal",
+    "pre_signal": {
+      "events": [
+        "ema_touch(dist=0.00031, ratio=0.0003)",
+        "ema_touch(dist=0.00110, ratio=0.0010)",
+        "climax_suspected(score=5/5)",
+        "momentum(bear x3)",
+        "ema_touch(dist=0.00192, ratio=0.0018)"
+      ],
+      "created_at": "2026-03-06T04:38:28.293954"
+    },
+    "consecutive_watching": 0,
+    "scenarios": [],
+    "timeframes": {
+      "5m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.08569,
+        "ema20": 1.086,
+        "atr14": 0.00026,
+        "metrics": {
+          "ema_slope": -0.04,
+          "vs_ema_atr": -1.19,
+          "bulls_20": 10,
+          "bears_20": 10,
+          "overlap": 4.4
+        },
+        "events": [
+          "ema_touch(dist=0.00031, ratio=0.0003)"
+        ]
+      },
+      "15m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.08437,
+        "ema20": 1.08547,
+        "atr14": 0.0004,
+        "metrics": {
+          "ema_slope": -0.231,
+          "vs_ema_atr": -2.75,
+          "bulls_20": 8,
+          "bears_20": 12,
+          "overlap": 3.2
+        },
+        "events": [
+          "ema_touch(dist=0.00110, ratio=0.0010)",
+          "climax_suspected(score=5/5)"
+        ]
+      },
+      "1h": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.08156,
+        "ema20": 1.08348,
+        "atr14": 0.0008,
+        "metrics": {
+          "ema_slope": -0.157,
+          "vs_ema_atr": -2.4,
+          "bulls_20": 6,
+          "bears_20": 14,
+          "overlap": 2.5
+        },
+        "events": [
+          "momentum(bear x3)",
+          "ema_touch(dist=0.00192, ratio=0.0018)"
+        ]
+      }
+    }
+  },
+  "GBPUSD": {
+    "status": "pre_signal",
+    "pre_signal": {
+      "events": [
+        "ema_touch(dist=0.00002, ratio=0.0000)",
+        "ema_touch(dist=0.00184, ratio=0.0015)",
+        "ema_touch(dist=0.00151, ratio=0.0012)",
+        "pb_complete(bear)"
+      ],
+      "created_at": "2026-03-06T04:38:28.293957"
+    },
+    "consecutive_watching": 0,
+    "scenarios": [],
+    "timeframes": {
+      "5m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.26194,
+        "ema20": 1.26196,
+        "atr14": 0.0003,
+        "metrics": {
+          "ema_slope": 0.012,
+          "vs_ema_atr": -0.07,
+          "bulls_20": 10,
+          "bears_20": 10,
+          "overlap": 4.7
+        },
+        "events": [
+          "ema_touch(dist=0.00002, ratio=0.0000)"
+        ]
+      },
+      "15m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.26799,
+        "ema20": 1.26615,
+        "atr14": 0.00059,
+        "metrics": {
+          "ema_slope": 0.292,
+          "vs_ema_atr": 3.12,
+          "bulls_20": 13,
+          "bears_20": 6,
+          "overlap": 2.8
+        },
+        "events": [
+          "ema_touch(dist=0.00184, ratio=0.0015)"
+        ]
+      },
+      "1h": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 1.26053,
+        "ema20": 1.26204,
+        "atr14": 0.00105,
+        "metrics": {
+          "ema_slope": -0.03,
+          "vs_ema_atr": -1.44,
+          "bulls_20": 10,
+          "bears_20": 10,
+          "overlap": 5.7
+        },
+        "events": [
+          "ema_touch(dist=0.00151, ratio=0.0012)",
+          "pb_complete(bear)"
+        ]
+      }
+    }
+  },
+  "USDJPY": {
+    "status": "pre_signal",
+    "pre_signal": {
+      "events": [
+        "anomaly(body=0.05600 > 2x avg=0.02420)",
+        "momentum(bear x3)",
+        "ema_touch(dist=0.02900, ratio=0.0002)",
+        "ema_touch(dist=0.07900, ratio=0.0005)",
+        "ema_touch(dist=0.10200, ratio=0.0007)"
+      ],
+      "created_at": "2026-03-06T04:38:28.293961"
+    },
+    "consecutive_watching": 0,
+    "scenarios": [],
+    "timeframes": {
+      "5m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 148.956,
+        "ema20": 148.985,
+        "atr14": 0.036,
+        "metrics": {
+          "ema_slope": 0.024,
+          "vs_ema_atr": -0.81,
+          "bulls_20": 10,
+          "bears_20": 10,
+          "overlap": 5.1
+        },
+        "events": [
+          "anomaly(body=0.05600 > 2x avg=0.02420)",
+          "momentum(bear x3)",
+          "ema_touch(dist=0.02900, ratio=0.0002)"
+        ]
+      },
+      "15m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 150.72,
+        "ema20": 150.641,
+        "atr14": 0.048,
+        "metrics": {
+          "ema_slope": 0.13,
+          "vs_ema_atr": 1.65,
+          "bulls_20": 13,
+          "bears_20": 7,
+          "overlap": 2.6
+        },
+        "events": [
+          "ema_touch(dist=0.07900, ratio=0.0005)"
+        ]
+      },
+      "1h": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 149.682,
+        "ema20": 149.58,
+        "atr14": 0.091,
+        "metrics": {
+          "ema_slope": 0.037,
+          "vs_ema_atr": 1.12,
+          "bulls_20": 12,
+          "bears_20": 8,
+          "overlap": 3.5
+        },
+        "events": [
+          "ema_touch(dist=0.10200, ratio=0.0007)"
+        ]
+      }
+    }
+  },
+  "AUDUSD": {
+    "status": "pre_signal",
+    "pre_signal": {
+      "events": [
+        "ema_touch(dist=0.00095, ratio=0.0015)",
+        "ema_touch(dist=0.00028, ratio=0.0004)"
+      ],
+      "created_at": "2026-03-06T04:38:28.293964"
+    },
+    "consecutive_watching": 0,
+    "scenarios": [],
+    "timeframes": {
+      "5m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 0.65024,
+        "ema20": 0.65119,
+        "atr14": 0.00032,
+        "metrics": {
+          "ema_slope": -0.255,
+          "vs_ema_atr": -2.97,
+          "bulls_20": 4,
+          "bears_20": 16,
+          "overlap": 2.2
+        },
+        "events": [
+          "ema_touch(dist=0.00095, ratio=0.0015)"
+        ]
+      },
+      "15m": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 0.64591,
+        "ema20": 0.64619,
+        "atr14": 0.00047,
+        "metrics": {
+          "ema_slope": -0.304,
+          "vs_ema_atr": -0.6,
+          "bulls_20": 10,
+          "bears_20": 10,
+          "overlap": 5.1
+        },
+        "events": [
+          "ema_touch(dist=0.00028, ratio=0.0004)"
+        ]
+      },
+      "1h": {
+        "state": "TR",
+        "ai_direction": "NEUTRAL",
+        "confidence": "low",
+        "last_close": 0.64894,
+        "ema20": 0.65344,
+        "atr14": 0.00102,
+        "metrics": {
+          "ema_slope": -0.208,
+          "vs_ema_atr": -4.41,
+          "bulls_20": 6,
+          "bears_20": 14,
+          "overlap": 1.8
+        },
+        "events": []
+      }
+    }
+  }
+}

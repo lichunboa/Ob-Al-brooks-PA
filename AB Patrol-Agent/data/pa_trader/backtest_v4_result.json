@@ -1,0 +1,907 @@
+{
+  "version": "V4.0",
+  "hours": 168,
+  "final_balance": 10115.11,
+  "total_pnl": 115.11,
+  "signals": 83,
+  "trades": 12,
+  "completed": 11,
+  "wins": 5,
+  "losses": 6,
+  "win_rate": 45.45454545454545,
+  "profit_factor": 1.6807000946073793,
+  "scalp_count": 6,
+  "swing_count": 6,
+  "trend_trades": 10,
+  "tr_trades": 2,
+  "multi_tf_signals": {
+    "5m": 17,
+    "15m": 18,
+    "30m": 22,
+    "1h": 26
+  },
+  "pass_count": 5,
+  "completed_trades": [
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:58.596728+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23488.12,
+      "exit_price": 24024.510000000002,
+      "quantity": 0.1229,
+      "pnl": 65.07,
+      "fee": 2.36,
+      "strategy": "T6-CH-PB"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:58.630333+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 24169.37,
+      "exit_price": 23578.74935,
+      "quantity": 0.0477,
+      "pnl": -28.38,
+      "fee": 0.9,
+      "strategy": "T2"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:58.771687+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23646.11,
+      "exit_price": 23481.355249999997,
+      "quantity": 0.2124,
+      "pnl": -38.74,
+      "fee": 3.99,
+      "strategy": "TR1-BLSHS"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.280491+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 22851.9,
+      "exit_price": 23951.547000000002,
+      "quantity": 0.0401,
+      "pnl": 45.45,
+      "fee": 0.77,
+      "strategy": "T3-EMA"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.414959+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23506.86,
+      "exit_price": 22937.137,
+      "quantity": 0.0496,
+      "pnl": -28.48,
+      "fee": 0.91,
+      "strategy": "T3-EMA"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.569832+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23276.0,
+      "exit_price": 22648.288,
+      "quantity": 0.0246,
+      "pnl": -15.47,
+      "fee": 0.45,
+      "strategy": "T1"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.714243+00:00",
+      "symbol": "BTCUSDT",
+      "side": "SELL",
+      "entry_price": 23098.58,
+      "exit_price": 23321.82385,
+      "quantity": 0.1065,
+      "pnl": -25.99,
+      "fee": 1.99,
+      "strategy": "TREND-SCALP"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.774837+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23341.39,
+      "exit_price": 23113.456000000002,
+      "quantity": 0.1313,
+      "pnl": -32.06,
+      "fee": 2.43,
+      "strategy": "T3-EMA"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:04:59.940794+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23263.0,
+      "exit_price": 23777.483000000004,
+      "quantity": 0.114,
+      "pnl": 57.78,
+      "fee": 2.17,
+      "strategy": "T6-CH-PB"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:05:00.105964+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 23653.06,
+      "exit_price": 24002.126,
+      "quantity": 0.0975,
+      "pnl": 32.66,
+      "fee": 1.87,
+      "strategy": "T3-EMA"
+    },
+    {
+      "action": "CLOSE",
+      "time": "2026-03-01T14:05:00.728977+00:00",
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "entry_price": 24027.67,
+      "exit_price": 27010.3345,
+      "quantity": 0.025,
+      "pnl": 83.28,
+      "fee": 0.54,
+      "strategy": "T1"
+    }
+  ],
+  "all_signals": [
+    {
+      "time": "2020-12-20T11:20:00",
+      "tf": "30m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-20T11:20:00",
+      "tf": "5m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "SELL",
+      "p": 0.55,
+      "r": 1.2004070123167776
+    },
+    {
+      "time": "2020-12-20T14:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.3297878097618299
+    },
+    {
+      "time": "2020-12-20T15:20:00",
+      "tf": "15m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-20T15:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-20T18:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-20T20:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-20T20:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-21T09:20:00",
+      "tf": "15m",
+      "playbook": "TR1-BLSHS",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 1.5741624178377867
+    },
+    {
+      "time": "2020-12-21T19:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.4667200072664313
+    },
+    {
+      "time": "2020-12-22T00:20:00",
+      "tf": "5m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "SELL",
+      "p": 0.55,
+      "r": 1.1385016431743467
+    },
+    {
+      "time": "2020-12-22T02:20:00",
+      "tf": "5m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T12:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T15:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T15:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T18:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T18:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T18:20:00",
+      "tf": "5m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T19:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T19:20:00",
+      "tf": "15m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-22T19:20:00",
+      "tf": "5m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.1710462354689302
+    },
+    {
+      "time": "2020-12-22T22:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-23T00:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-23T00:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-23T00:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-23T05:20:00",
+      "tf": "1h",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.329237838131288
+    },
+    {
+      "time": "2020-12-23T10:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.3318324886129236
+    },
+    {
+      "time": "2020-12-23T12:20:00",
+      "tf": "1h",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-23T16:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.4244026129631095
+    },
+    {
+      "time": "2020-12-23T18:20:00",
+      "tf": "1h",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.459285210943545
+    },
+    {
+      "time": "2020-12-23T20:20:00",
+      "tf": "15m",
+      "playbook": "TREND-SCALP",
+      "style": "Scalp",
+      "side": "SELL",
+      "p": 0.55,
+      "r": 1.2883098430048303
+    },
+    {
+      "time": "2020-12-24T02:20:00",
+      "tf": "15m",
+      "playbook": "TREND-SCALP",
+      "style": "Scalp",
+      "side": "SELL",
+      "p": 0.55,
+      "r": 1.6864330336568534
+    },
+    {
+      "time": "2020-12-24T05:20:00",
+      "tf": "5m",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T09:20:00",
+      "tf": "5m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.129432204059089
+    },
+    {
+      "time": "2020-12-24T11:20:00",
+      "tf": "15m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T13:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T14:20:00",
+      "tf": "5m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.1165501773419835
+    },
+    {
+      "time": "2020-12-24T15:20:00",
+      "tf": "1h",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.3883743098524985
+    },
+    {
+      "time": "2020-12-24T17:20:00",
+      "tf": "15m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T20:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T20:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T20:20:00",
+      "tf": "15m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T21:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T22:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T22:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-24T22:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T00:20:00",
+      "tf": "15m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.1922454628745145
+    },
+    {
+      "time": "2020-12-25T04:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T09:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T11:20:00",
+      "tf": "1h",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T11:20:00",
+      "tf": "15m",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T13:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T13:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T14:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T18:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.4611775460693155
+    },
+    {
+      "time": "2020-12-25T19:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T22:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T22:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-25T23:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T01:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T03:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T06:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T06:20:00",
+      "tf": "30m",
+      "playbook": "T3-EMA",
+      "style": "Scalp",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 1.305422146415909
+    },
+    {
+      "time": "2020-12-26T07:20:00",
+      "tf": "5m",
+      "playbook": "T6-CH-PB",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T08:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T11:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T15:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T16:20:00",
+      "tf": "1h",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T19:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T19:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T19:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T20:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T20:20:00",
+      "tf": "15m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T20:20:00",
+      "tf": "5m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-26T23:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T00:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T00:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T02:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T04:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T04:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.55,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T05:20:00",
+      "tf": "1h",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T06:20:00",
+      "tf": "1h",
+      "playbook": "T1",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    },
+    {
+      "time": "2020-12-27T06:20:00",
+      "tf": "30m",
+      "playbook": "T2",
+      "style": "Swing",
+      "side": "BUY",
+      "p": 0.6,
+      "r": 2.0
+    }
+  ]
+}

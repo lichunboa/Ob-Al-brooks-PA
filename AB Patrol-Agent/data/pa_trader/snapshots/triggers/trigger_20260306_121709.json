@@ -1,0 +1,5 @@
+{
+  "trigger_type": "manual_event",
+  "symbol": "ETHUSDT",
+  "source": "integration-test"
+}

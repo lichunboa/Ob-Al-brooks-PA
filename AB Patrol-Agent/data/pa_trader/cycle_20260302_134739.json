@@ -1,0 +1,54 @@
+{
+  "loop_number": 40,
+  "timestamp": "2026-03-02T13:47:39.749539+00:00",
+  "balance": 5089.55,
+  "available": 5008.59,
+  "unrealized_pnl": 34.4,
+  "positions": [
+    {
+      "sym": "ETHUSDT",
+      "side": "SHORT",
+      "qty": 4.195,
+      "entry": 1937.75,
+      "mark": 1929.6,
+      "pnl": 34.4
+    }
+  ],
+  "quick_scan_events": {
+    "BTCUSDT": [
+      "anomaly_5m(2.22xATR)",
+      "anomaly_15m",
+      "momentum_15m(5/5)",
+      "state_change:Bear_Channel→Bear_Spike_BO"
+    ],
+    "ETHUSDT": [
+      "in_trade",
+      "sl_moved_1942→1938.5"
+    ],
+    "BNBUSDT": [
+      "bo_fail_confirmed(15m_H=623.79_C=621.42)",
+      "momentum_bear"
+    ]
+  },
+  "trades_this_loop": [],
+  "passes": [
+    {
+      "sym": "BTCUSDT",
+      "type": "PASS-WAIT",
+      "reason": "Spike追进风险高,等PB L2@65800"
+    },
+    {
+      "sym": "BNBUSDT",
+      "type": "PASS-RULE",
+      "reason": "R=0.73<1:1, 入场太晚, 等回撤622.5+"
+    }
+  ],
+  "s_reads": [
+    "S7_known_from_skill"
+  ],
+  "actions": {
+    "ETHUSDT": "SL moved 1942.0→1938.5 (新LH=1937.79)",
+    "BTCUSDT": "pre_signal更新@65800 Spike_PB_L2",
+    "BNBUSDT": "pre_signal更新@622.5 BO_fail_pullback"
+  }
+}

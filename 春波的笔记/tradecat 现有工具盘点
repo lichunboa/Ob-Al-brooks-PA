@@ -1,0 +1,32 @@
+tradecat 现有工具盘点
+对 AB 交易直接有用的
+
+模块	文件	用途	AB 适配难度
+k_pattern.py	TA-Lib 61 种 K 线形态 + 价格形态	DT/DB、H&S、Wedge、Triangle 检测	需适配 — 标准 TA 定义≠AB 定义
+support_resistance.py	支撑阻力 + ATR	S/R 级别识别	可直接用
+lean_indicators.py	EMA/ATR/RSI 等核心指标	基础数值计算	可直接用
+trend_line.py	趋势线计算	Channel 边界识别	可直接用
+scalping.py	Scalp 相关指标	参考	看看有什么
+signal rules/pattern	H&S/DT/DB/Wedge 信号规则	形态信号触发	需适配
+
+需要 AB 适配的关键差异
+
+
+标准 TA	AB 的理解	适配要点
+DT = 两个等高 = 反转	DT = L2 setup，趋势中默认 Flag	加 context 参数：趋势中=Flag，末期=可能反转
+Wedge = 3 推新极值	Wedge = 3 推逐推弱化，不要求新极值	改检测逻辑：比较每推力量而非极值
+H&S = 反转形态	H&S = MTR，大多数是 minor reversal	加概率标注：默认 minor，需 TBTL 才 major
+TR BO = 方向信号	80% BO 会失败	加 BO 强弱评估（FT 质量）
+升级计划
+这是一个较大的工作。分两步：
+
+第一步：升级 tradecat 基础框架
+
+对比我们的 backend 和最新 tradecat 的结构差异
+升级通用模块（数据库、API、指标引擎）
+不碰我们的 execution-service（那是我们自定义的）
+第二步：创建 AB 适配层
+
+基于 k_pattern.py 创建 ab_pattern.py（AB 式形态检测）
+基于 lean_indicators.py 确保 EMA20/ATR14 计算准确
+新建 ab_bar_counting.py（H1/H2/L1/L2 + PB 深度 + Pressure）

@@ -1,0 +1,57 @@
+{
+  "loop_number": 106,
+  "timestamp": "2026-03-04T07:20:56.853650+00:00",
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "ema_touch"
+      ],
+      "15m": [
+        "momentum",
+        "ema_touch"
+      ],
+      "1h": [
+        "momentum",
+        "ema_touch"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "momentum",
+        "ema_touch"
+      ],
+      "15m": [
+        "watching"
+      ],
+      "1h": [
+        "watching"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "ema_touch"
+      ],
+      "15m": [
+        "ema_touch"
+      ],
+      "1h": [
+        "ema_touch"
+      ]
+    }
+  },
+  "s_reads": [],
+  "deep_analysis": [
+    {
+      "symbol": "BTCUSDT",
+      "decision": "PASS-WAIT",
+      "reason": "PB\u53ea1\u6839\uff0c\u7b49\u6807\u51c6H2"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "decision": "PASS-WAIT",
+      "reason": "\u53cd\u5f39\u592a\u5f31\uff0c\u7b49\u66f4\u5f3a\u4fe1\u53f7"
+    }
+  ],
+  "trades": [],
+  "passes": 2
+}

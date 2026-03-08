@@ -1,0 +1,244 @@
+{
+  "concept_mastery": {
+    "bar_reading": {
+      "tests": 20,
+      "correct": 16,
+      "confidence": 78,
+      "note": "三分类准确，body_ratio>0.6=趋势K，<0.35=TR，影线>实体=反转"
+    },
+    "signal_quality": {
+      "tests": 25,
+      "correct": 18,
+      "confidence": 73,
+      "note": "实体>前K线，收盘极端位，下影线短。弱K线不入场。"
+    },
+    "always_in": {
+      "tests": 31,
+      "correct": 18,
+      "confidence": 60,
+      "note": "三层优先级已编码。薄弱点：transition状态下AI方向判断偏中性"
+    },
+    "market_state": {
+      "tests": 25,
+      "correct": 18,
+      "confidence": 70,
+      "note": "Spike/TC分辨清楚。薄弱点：BC与TR边界、Climax识别延迟"
+    },
+    "trend_entry": {
+      "tests": 31,
+      "correct": 19,
+      "confidence": 63,
+      "note": "H1/L1最强，H2/BO-PB次之。EMA_PB稳定。回测7/7盈利验证。"
+    },
+    "reversal_entry": {
+      "tests": 5,
+      "correct": 2,
+      "confidence": 42,
+      "note": "MTR/DT/DB/Wedge尚未在pa_trader.py实现。需实战积累。"
+    },
+    "risk_reward": {
+      "tests": 25,
+      "correct": 22,
+      "confidence": 86,
+      "note": "RR<1.5一票否决已编码。ATR动态止损。交易者方程清楚。"
+    },
+    "context": {
+      "tests": 29,
+      "correct": 20,
+      "confidence": 67,
+      "note": "4H否决权已编码。逆4H扣10分。薄弱点：4H本身处于TR时判断"
+    }
+  },
+  "trade_journal": [
+    {
+      "time": "2026-02-26T21:52:58.642805+00:00",
+      "symbol": "BTCUSDT",
+      "strategy": "BO_PB",
+      "state": "Spike",
+      "side": "SELL",
+      "outcome": "loss",
+      "pnl": -2.4225,
+      "concepts_tested": {
+        "always_in": false,
+        "trend_entry": false,
+        "risk_reward": true,
+        "context": false
+      }
+    },
+    {
+      "time": "2026-02-26T22:49:16.903339+00:00",
+      "symbol": "SOLUSDT",
+      "strategy": "L2",
+      "state": "TC/BC",
+      "side": "SELL",
+      "outcome": "loss",
+      "pnl": -7.566,
+      "concepts_tested": {
+        "always_in": false,
+        "market_state": true,
+        "trend_entry": false,
+        "signal_quality": false,
+        "risk_reward": true,
+        "context": false
+      }
+    },
+    {
+      "time": "2026-02-26T22:59:30.099241+00:00",
+      "symbol": "AAVEUSDT",
+      "strategy": "EMA_PB",
+      "state": "trend",
+      "side": "BUY",
+      "outcome": "win",
+      "pnl": 2.691,
+      "concepts_tested": {
+        "always_in": true,
+        "trend_entry": true,
+        "signal_quality": true,
+        "risk_reward": true
+      }
+    },
+    {
+      "time": "2026-02-26T23:04:37.337492+00:00",
+      "symbol": "ETHUSDT",
+      "strategy": "H2",
+      "state": "TC/BC",
+      "side": "BUY",
+      "outcome": "loss",
+      "pnl": -0.7548,
+      "concepts_tested": {
+        "always_in": false,
+        "market_state": true,
+        "trend_entry": false,
+        "context": true
+      }
+    },
+    {
+      "time": "2026-02-26T23:50:51.864365+00:00",
+      "symbol": "AVAXUSDT",
+      "strategy": "H2",
+      "state": "TC/BC",
+      "side": "BUY",
+      "outcome": "loss",
+      "pnl": -0.676,
+      "concepts_tested": {
+        "always_in": false,
+        "market_state": true,
+        "trend_entry": false,
+        "context": true
+      }
+    },
+    {
+      "time": "2026-02-27T00:01:08.788001+00:00",
+      "symbol": "AAVEUSDT",
+      "strategy": "EMA_PB",
+      "state": "trend",
+      "side": "SELL",
+      "outcome": "loss",
+      "pnl": -4.695,
+      "concepts_tested": {
+        "always_in": false,
+        "trend_entry": false,
+        "context": false
+      }
+    },
+    {
+      "time": "2026-02-27T00:11:22.717916+00:00",
+      "symbol": "BNBUSDT",
+      "strategy": "EMA_PB",
+      "state": "trend",
+      "side": "BUY",
+      "outcome": "win",
+      "pnl": 14.1795,
+      "concepts_tested": {
+        "always_in": true,
+        "trend_entry": true,
+        "context": true
+      }
+    },
+    {
+      "time": "2026-02-27T00:57:26.804059+00:00",
+      "symbol": "SOLUSDT",
+      "strategy": "L2",
+      "state": "TC/BC",
+      "side": "SELL",
+      "outcome": "loss",
+      "pnl": -1.83,
+      "concepts_tested": {
+        "always_in": false,
+        "market_state": true,
+        "trend_entry": false,
+        "context": true
+      }
+    },
+    {
+      "time": "2026-02-27T00:57:27.624595+00:00",
+      "symbol": "AAVEUSDT",
+      "strategy": "L2",
+      "state": "TC/BC",
+      "side": "SELL",
+      "outcome": "loss",
+      "pnl": -12.6076,
+      "concepts_tested": {
+        "always_in": false,
+        "market_state": true,
+        "trend_entry": false,
+        "signal_quality": false,
+        "context": true
+      }
+    },
+    {
+      "time": "2026-02-27T01:07:41.268203+00:00",
+      "symbol": "AVAXUSDT",
+      "strategy": "EMA_PB",
+      "state": "trend",
+      "side": "SELL",
+      "outcome": "win",
+      "pnl": 5.9688,
+      "concepts_tested": {
+        "always_in": true,
+        "trend_entry": true,
+        "signal_quality": true,
+        "risk_reward": true
+      }
+    },
+    {
+      "time": "2026-02-27T02:19:19.817689+00:00",
+      "symbol": "AAVEUSDT",
+      "strategy": "EMA_PB",
+      "state": "trend",
+      "side": "SELL",
+      "outcome": "win",
+      "pnl": 5.1801,
+      "concepts_tested": {
+        "always_in": true,
+        "trend_entry": true,
+        "signal_quality": true,
+        "risk_reward": true,
+        "context": true
+      }
+    }
+  ],
+  "insights": [
+    {
+      "text": "反转入场(MTR/DT/DB/Wedge)尚未编码，遇到Climax/TR状态时只能观望 — 需要后续补充",
+      "concept": "reversal_entry",
+      "time": "2026-02-27T00:00:00Z"
+    },
+    {
+      "text": "BC与TR边界判断是薄弱点 — 回调比0.50和EMA穿越3次的阈值可能需要微调",
+      "concept": "market_state",
+      "time": "2026-02-27T00:00:00Z"
+    },
+    {
+      "text": "⚠️ AI方向 连续3次误判 — 需要回顾 references/1-*.md",
+      "concept": "always_in",
+      "time": "2026-02-27T00:01:08.788080+00:00"
+    },
+    {
+      "text": "⚠️ 顺势入场 连续3次误判 — 需要回顾 references/3-*.md",
+      "concept": "trend_entry",
+      "time": "2026-02-27T00:01:08.788405+00:00"
+    }
+  ],
+  "version": 2
+}

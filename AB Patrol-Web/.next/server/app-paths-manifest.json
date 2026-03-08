@@ -1,0 +1,16 @@
+{
+  "/api/charts/route": "app/api/charts/route.js",
+  "/api/runtime/full/route": "app/api/runtime/full/route.js",
+  "/api/training-logs/route": "app/api/training-logs/route.js",
+  "/page": "app/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(dashboard)/pa-bot/page": "app/(dashboard)/pa-bot/page.js",
+  "/(dashboard)/scanner/page": "app/(dashboard)/scanner/page.js",
+  "/(dashboard)/chart/page": "app/(dashboard)/chart/page.js",
+  "/(dashboard)/trades/page": "app/(dashboard)/trades/page.js",
+  "/(dashboard)/backtest/page": "app/(dashboard)/backtest/page.js",
+  "/(dashboard)/data-overview/page": "app/(dashboard)/data-overview/page.js",
+  "/(dashboard)/signals/page": "app/(dashboard)/signals/page.js",
+  "/(dashboard)/vpvr/page": "app/(dashboard)/vpvr/page.js",
+  "/(dashboard)/execution/page": "app/(dashboard)/execution/page.js"
+}

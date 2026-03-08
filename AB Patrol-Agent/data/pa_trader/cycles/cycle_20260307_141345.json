@@ -1,0 +1,411 @@
+{
+  "cycle_id": "cycle_20260307_141345",
+  "phase": "SCAN",
+  "time_utc": "2026-03-07T06:13:45.375957+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "state:TC"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TC"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "SCAN",
+    "summary": "无持仓且暂无明确执行窗口，维持扫描与监控。",
+    "full_refresh": false,
+    "full_refresh_reason": null,
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TC",
+        "market_state_detail": "5分钟L1@68101.7、15分钟L2@68101.7，30分钟与1小时继续AIS，失败上冲后的空头一致性增强；但当前仍在支撑前。",
+        "structure_summary": "浏览80根后，BTC整体仍处于68431.3失败上冲后的偏空区间/通道框架内，4小时与日线继续提供偏空背景。精读最近20根，02:20到02:35的第一段下压曾把市场压到68067.5附近，但未拿到直接扩张；随后02:40到03:10出现一轮强反弹，依次推到68327.0与68426.4，并最终在68431.3附近形成更明确的失败上冲。03:15开始空头重新主导，03:15大阴线直接把价格打回68305.6，03:20与03:25继续回落，03:40再次出现大阴线把市场压回68164.7，03:50又补出一根新的大阴线收在68101.7。刷新后最新读法是：5分钟最佳信号已经进一步切换到L1@68101.7，15分钟同步给出L2@68101.7，30分钟与1小时继续保持AIS，说明短线空头延续比上一轮更进一步。但按Al Brooks逻辑，这里依然不能机械追空：第一，当前价格离68090.8过近，下面紧接着就是68000.0整数关口；第二，5分钟虽然是大阴线，但仍是支撑前下压，不是支撑失守后的强跟随；第三，15分钟最新仍有较长上影，显示支撑前仍有明显争夺。因此刷新后的结构叙事已经重建得更偏空，但执行上仍只能等待真正跌破68090.8/68000.0并有连续弱收盘，或等待反抽68209.6-68240.8失败。",
+        "running_narrative": "BTC全刷新后仍是最强空头观察对象，但价格更贴近68090.8/68000.0支撑，仍不可追空。",
+        "key_levels": {
+          "support": [
+            68090.8,
+            68067.5,
+            68000.0,
+            67789.2,
+            67734.7
+          ],
+          "resistance": [
+            68165.6,
+            68197.3,
+            68209.6,
+            68240.8,
+            68315.8,
+            68347.7,
+            68391.0,
+            68431.3
+          ]
+        },
+        "thesis": "BTC全刷新后仍是最强空头观察对象，但价格更贴近68090.8/68000.0支撑，仍不可追空。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_1h_140237.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_15m_140236.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_5m_140236.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_1h_135856.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BTCUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "market_state_detail": "高周期偏空未变，但执行级别仍是区间下沿往返。",
+        "structure_summary": "浏览80根后，高周期偏空背景仍在；精读近20根，1976.65附近仍反复承接，缺少理想下破跟随，因此继续按TR处理。",
+        "running_narrative": "ETH全刷新后继续按TR处理，仍未出现成熟空头执行窗口。",
+        "key_levels": {
+          "support": [
+            1976.65,
+            1969.53,
+            1956.0
+          ],
+          "resistance": [
+            1980.4,
+            1984.41,
+            1989.39,
+            1995.24
+          ]
+        },
+        "thesis": "ETH全刷新后继续按TR处理，仍未出现成熟空头执行窗口。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_1h_135925.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_15m_135923.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_5m_135921.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_1h_135305.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/ETHUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TC",
+        "market_state_detail": "高周期偏空未变，执行级别仍在626.45支撑前测试。",
+        "structure_summary": "浏览80根后，630.0-630.53失败反抽框架未变；精读近20根后，近端虽保持空头压力，但626.45下方仍未形成干净扩张，因此继续只能等待真正失守或更高失败反抽。",
+        "running_narrative": "BNB全刷新后仍维持偏空，但继续贴近626.45支撑，仍不可追空。",
+        "key_levels": {
+          "support": [
+            626.47,
+            626.45,
+            625.51,
+            625.07,
+            624.77,
+            623.08
+          ],
+          "resistance": [
+            627.8,
+            628.1,
+            628.72,
+            629.35,
+            629.57,
+            630.0,
+            630.53
+          ]
+        },
+        "thesis": "BNB全刷新后仍维持偏空，但继续贴近626.45支撑，仍不可追空。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_1h_140232.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_15m_140231.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_5m_140231.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_1h_135815.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BNBUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "SCAN",
+    "market_summary": "本轮 OpenClaw 超时。系统保留上一轮观察结论，不做新开仓，快速重试下一轮。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "ai_direction": "bear_short_term_with_support_imminent",
+        "market_state": "TC",
+        "market_state_detail": "5分钟L1@68101.7、15分钟L2@68101.7，30分钟与1小时继续AIS，失败上冲后的空头一致性增强；但当前仍在支撑前。",
+        "structure_summary": "浏览80根后，BTC整体仍处于68431.3失败上冲后的偏空区间/通道框架内，4小时与日线继续提供偏空背景。精读最近20根，02:20到02:35的第一段下压曾把市场压到68067.5附近，但未拿到直接扩张；随后02:40到03:10出现一轮强反弹，依次推到68327.0与68426.4，并最终在68431.3附近形成更明确的失败上冲。03:15开始空头重新主导，03:15大阴线直接把价格打回68305.6，03:20与03:25继续回落，03:40再次出现大阴线把市场压回68164.7，03:50又补出一根新的大阴线收在68101.7。刷新后最新读法是：5分钟最佳信号已经进一步切换到L1@68101.7，15分钟同步给出L2@68101.7，30分钟与1小时继续保持AIS，说明短线空头延续比上一轮更进一步。但按Al Brooks逻辑，这里依然不能机械追空：第一，当前价格离68090.8过近，下面紧接着就是68000.0整数关口；第二，5分钟虽然是大阴线，但仍是支撑前下压，不是支撑失守后的强跟随；第三，15分钟最新仍有较长上影，显示支撑前仍有明显争夺。因此刷新后的结构叙事已经重建得更偏空，但执行上仍只能等待真正跌破68090.8/68000.0并有连续弱收盘，或等待反抽68209.6-68240.8失败。",
+        "key_levels": {
+          "support": [
+            68090.8,
+            68067.5,
+            68000.0,
+            67789.2,
+            67734.7
+          ],
+          "resistance": [
+            68165.6,
+            68197.3,
+            68209.6,
+            68240.8,
+            68315.8,
+            68347.7,
+            68391.0,
+            68431.3
+          ]
+        },
+        "thesis": "BTC全刷新后仍是最强空头观察对象，但价格更贴近68090.8/68000.0支撑，仍不可追空。",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "BTC全刷新后仍是最强空头观察对象，但价格更贴近68090.8/68000.0支撑，仍不可追空。"
+      },
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "ai_direction": "TR_with_bear_htf_pressure",
+        "market_state": "TR",
+        "market_state_detail": "高周期偏空未变，但执行级别仍是区间下沿往返。",
+        "structure_summary": "浏览80根后，高周期偏空背景仍在；精读近20根，1976.65附近仍反复承接，缺少理想下破跟随，因此继续按TR处理。",
+        "key_levels": {
+          "support": [
+            1976.65,
+            1969.53,
+            1956.0
+          ],
+          "resistance": [
+            1980.4,
+            1984.41,
+            1989.39,
+            1995.24
+          ]
+        },
+        "thesis": "ETH全刷新后继续按TR处理，仍未出现成熟空头执行窗口。",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "ETH全刷新后继续按TR处理，仍未出现成熟空头执行窗口。"
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "ai_direction": "bear_htf_with_support_edge",
+        "market_state": "TC",
+        "market_state_detail": "高周期偏空未变，执行级别仍在626.45支撑前测试。",
+        "structure_summary": "浏览80根后，630.0-630.53失败反抽框架未变；精读近20根后，近端虽保持空头压力，但626.45下方仍未形成干净扩张，因此继续只能等待真正失守或更高失败反抽。",
+        "key_levels": {
+          "support": [
+            626.47,
+            626.45,
+            625.51,
+            625.07,
+            624.77,
+            623.08
+          ],
+          "resistance": [
+            627.8,
+            628.1,
+            628.72,
+            629.35,
+            629.57,
+            630.0,
+            630.53
+          ]
+        },
+        "thesis": "BNB全刷新后仍维持偏空，但继续贴近626.45支撑，仍不可追空。",
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "running_narrative": "BNB全刷新后仍维持偏空，但继续贴近626.45支撑，仍不可追空。"
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:TC",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:TR",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:TC",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md"
+        ]
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "MODEL_TIMEOUT_RETRY",
+    "state_patch": {
+      "model_timeout": true,
+      "last_model_timeout_at": "2026-03-07T06:13:45.370668+00:00",
+      "needs_post_trade_refresh": false,
+      "quiet_loops": 0
+    },
+    "explanation": "OpenClaw timeout fallback: Gateway call failed: Error: gateway timeout after 180000ms\nGateway target: ws://127.0.0.1:18789\nSource: local loopback\nConfig: /Users/mitchellcb/.openclaw/openclaw.json\nBind: loopback"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T06:13:45.373238+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:TC"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T06:13:45.373253+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:TR"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T06:13:45.373256+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:TC"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-07T06:15:45.374750+00:00",
+    "in_seconds": 120,
+    "reason_code": "MODEL_TIMEOUT_RETRY",
+    "reason_text": "MODEL_TIMEOUT_RETRY",
+    "derived_from_cycle": "cycle_20260307_141345",
+    "interruptible": true
+  }
+}

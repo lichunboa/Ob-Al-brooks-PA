@@ -1,0 +1,10 @@
+{
+  "cycle_id": "cycle_20260306_142704",
+  "phase": "ENTRY_READY",
+  "focus_symbols": [
+    "ETHUSDT",
+    "BTCUSDT",
+    "BNBUSDT"
+  ],
+  "market_summary": "BTCUSDT and ETHUSDT are both urgent candidates on chart logic, but no order is emitted because runtime trade-readiness is unavailable; BNBUSDT remains TR watch-only without a valid edge."
+}

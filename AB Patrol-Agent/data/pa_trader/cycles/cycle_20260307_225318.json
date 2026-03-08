@@ -1,0 +1,3057 @@
+{
+  "cycle_id": "cycle_20260307_225318",
+  "phase": "SCAN",
+  "time_utc": "2026-03-07T14:53:18.443944+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "state:TC",
+        "first_pb:bear_pb",
+        "tr_edge:top",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "state_change:TR->TC",
+        "cached_pre_signal"
+      ],
+      "15m": [
+        "signal_trigger:H1@68002.9",
+        "state:TC",
+        "pb_depth:deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "1h": [
+        "state:TR",
+        "tr_edge:bottom",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "30m": [
+        "state:TR",
+        "ema_touch",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "pb_depth:deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "4h": [
+        "state:TC",
+        "first_pb:bull_pb",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "1d": [
+        "state:TR",
+        "first_pb:bear_pb",
+        "pb_depth:normal",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "signal_trigger:H1@1987.73",
+        "state:BO",
+        "first_pb:bear_pb",
+        "tr_edge:top",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "state_change:TR->BO",
+        "cached_pre_signal"
+      ],
+      "15m": [
+        "signal_trigger:H2@1987.73",
+        "state:TC",
+        "first_pb:bull_pb",
+        "tr_edge:top",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "1h": [
+        "state:TR",
+        "tr_edge:bottom",
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "30m": [
+        "state:TC",
+        "ema_touch",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "4h": [
+        "state:TC",
+        "first_pb:bull_pb",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "1d": [
+        "state:TR",
+        "ema_touch",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "pb_depth:deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:BO",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "hl_signal:H3",
+        "wedge_or_mtr",
+        "state_change:TR->BO",
+        "cached_pre_signal"
+      ],
+      "15m": [
+        "state:TR",
+        "ema_touch",
+        "tr_edge:bottom",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "1h": [
+        "signal_trigger:L1@626.3",
+        "state:TC",
+        "tr_edge:bottom",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "30m": [
+        "state:TR",
+        "ema_touch",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "4h": [
+        "state:TC",
+        "ema_touch",
+        "first_pb:bull_pb",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "anomaly:large_bar"
+      ],
+      "1d": [
+        "state:TR",
+        "ema_touch",
+        "first_pb:bear_pb",
+        "tr_edge:bottom",
+        "pb_depth:deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "SCAN",
+    "summary": "无持仓且暂无明确执行窗口，维持扫描与监控。",
+    "full_refresh": false,
+    "full_refresh_reason": null,
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，BTC日线仍处于bear偏置下的TR环境，4小时仍在EMA下方，高周期偏空背景不变。精读最近20根，本轮15分钟继续保留signal_trigger:H1@68002.9，说明68000整数位附近的反弹叙事未被否定；但30分钟14:30收盘从上一轮67980.0回到67954.8，说明反弹在关键磁体位下方仍未建立继续接受。5分钟继续只有TC/first_pb:bear_pb/tr_edge:top/pb_depth:too_deep，没有新的5分钟H2确认；1小时也仍是TR并带wedge_or_mtr，说明当前更像TR内反弹而不是干...",
+        "running_narrative": "BTC继续第二，15分钟反弹锚点仍在，但回吐幅度比ETH更明显。",
+        "pre_signal": "BUY_WATCH：15分钟H1@68002.9仍在，但5分钟继续偏深且无新显式触发；等待68002.9上方继续接受，或等待回落失守67984.1/67887.3后再重判。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T14:51:13.807676+00:00",
+          "expires_at": "2026-03-07T15:16:13.807676+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            67984.1,
+            67887.3,
+            67795.0,
+            67572.5
+          ],
+          "resistance": [
+            68002.9,
+            68005.3,
+            68020.1,
+            68431.3
+          ]
+        },
+        "thesis": "BTC继续第二，15分钟反弹锚点仍在，但回吐幅度比ETH更明显。",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": "trend=方向不明 — 在 EMA 附近震荡 | last_pullback=3 根前回调至 EMA，反弹 | range=67572.5-68020.1 (447.6 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 67891.27,
+          "atr14": 69.86,
+          "price_vs_ema": "+88.7 (+0.13%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-07T08:15",
+            "to": "2026-03-07T14:50",
+            "net_change": 160.7,
+            "bull_bars": 38,
+            "bear_bars": 42,
+            "doji_bars": 0,
+            "bars_above_ema": 46,
+            "high": 68169.6,
+            "low": 67572.5,
+            "avg_range": 59.02
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T13:15",
+            "to": "2026-03-07T14:50",
+            "net_change": -16.2,
+            "bull_bars": 10,
+            "bear_bars": 10,
+            "doji_bars": 0,
+            "bars_above_ema": 7,
+            "high": 68020.1,
+            "low": 67572.5,
+            "avg_range": 72.43
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:50",
+            "O": 67960.0,
+            "H": 67980.0,
+            "L": 67949.9,
+            "C": 67980.0,
+            "body": "+20.0 (bull)",
+            "bar_type": "中阳线，长下影",
+            "ema20": 67891.27,
+            "vs_ema20": "+88.7"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T14:15",
+              "O": 67697.4,
+              "H": 67750.0,
+              "L": 67688.9,
+              "C": 67749.9,
+              "body": "+52.5 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 67875.53,
+              "vs_ema20": "-125.6"
+            },
+            {
+              "time": "2026-03-07T14:20",
+              "O": 67749.9,
+              "H": 67756.1,
+              "L": 67712.9,
+              "C": 67740.4,
+              "body": "-9.5 (bear)",
+              "bar_type": "小阴线，长下影",
+              "ema20": 67862.66,
+              "vs_ema20": "-122.3"
+            },
+            {
+              "time": "2026-03-07T14:25",
+              "O": 67740.4,
+              "H": 67775.1,
+              "L": 67712.9,
+              "C": 67764.9,
+              "body": "+24.5 (bull)",
+              "bar_type": "中阳线，长下影",
+              "ema20": 67853.35,
+              "vs_ema20": "-88.5"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 67775.1,
+              "H": 67784.5,
+              "L": 67764.5,
+              "C": 67776.9,
+              "body": "+1.8 (bull)",
+              "bar_type": "十字星，长上影，长下影",
+              "ema20": 67846.07,
+              "vs_ema20": "-69.2"
+            },
+            {
+              "time": "2026-03-07T14:35",
+              "O": 67775.8,
+              "H": 68002.6,
+              "L": 67764.5,
+              "C": 68001.9,
+              "body": "+226.1 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 67860.91,
+              "vs_ema20": "+141.0"
+            },
+            {
+              "time": "2026-03-07T14:40",
+              "O": 68001.9,
+              "H": 68002.9,
+              "L": 67975.6,
+              "C": 67975.6,
+              "body": "-26.3 (bear)",
+              "bar_type": "大阴线",
+              "ema20": 67871.83,
+              "vs_ema20": "+103.8"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 67989.4,
+              "H": 68002.9,
+              "L": 67949.9,
+              "C": 67977.8,
+              "body": "-11.6 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 67881.93,
+              "vs_ema20": "+95.9"
+            },
+            {
+              "time": "2026-03-07T14:50",
+              "O": 67960.0,
+              "H": 67980.0,
+              "L": 67949.9,
+              "C": 67980.0,
+              "body": "+20.0 (bull)",
+              "bar_type": "中阳线，长下影",
+              "ema20": 67891.27,
+              "vs_ema20": "+88.7"
+            }
+          ]
+        },
+        "15m": {
+          "summary": "trend=方向不明 — 在 EMA 附近震荡 | last_pullback=1 根前回调至 EMA，反弹 | range=67572.5-68169.6 (597.1 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 67922.06,
+          "atr14": 124.76,
+          "price_vs_ema": "+54.0 (+0.08%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:45",
+            "net_change": -179.8,
+            "bull_bars": 38,
+            "bear_bars": 42,
+            "doji_bars": 0,
+            "bars_above_ema": 29,
+            "high": 68431.3,
+            "low": 67449.7,
+            "avg_range": 130.0
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T10:00",
+            "to": "2026-03-07T14:45",
+            "net_change": -8.4,
+            "bull_bars": 9,
+            "bear_bars": 11,
+            "doji_bars": 0,
+            "bars_above_ema": 11,
+            "high": 68169.6,
+            "low": 67572.5,
+            "avg_range": 121.01
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:45",
+            "O": 67989.4,
+            "H": 68005.3,
+            "L": 67949.9,
+            "C": 67976.1,
+            "body": "-13.3 (bear)",
+            "bar_type": "小阴线，长上影，长下影",
+            "ema20": 67922.06,
+            "vs_ema20": "+54.0"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:30",
+              "O": 67988.4,
+              "H": 68005.3,
+              "L": 67839.7,
+              "C": 67894.5,
+              "body": "-93.9 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 67955.98,
+              "vs_ema20": "-61.5"
+            },
+            {
+              "time": "2026-03-07T13:45",
+              "O": 67894.5,
+              "H": 67910.1,
+              "L": 67869.4,
+              "C": 67887.3,
+              "body": "-7.2 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 67949.44,
+              "vs_ema20": "-62.1"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 67887.1,
+              "H": 67887.5,
+              "L": 67572.5,
+              "C": 67697.4,
+              "body": "-189.7 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 67925.43,
+              "vs_ema20": "-228.0"
+            },
+            {
+              "time": "2026-03-07T14:15",
+              "O": 67697.4,
+              "H": 67775.1,
+              "L": 67688.9,
+              "C": 67764.9,
+              "body": "+67.5 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 67910.14,
+              "vs_ema20": "-145.2"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 67775.1,
+              "H": 68002.9,
+              "L": 67764.5,
+              "C": 67975.6,
+              "body": "+200.5 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 67916.38,
+              "vs_ema20": "+59.2"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 67989.4,
+              "H": 68005.3,
+              "L": 67949.9,
+              "C": 67976.1,
+              "body": "-13.3 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 67922.06,
+              "vs_ema20": "+54.0"
+            }
+          ]
+        },
+        "30m": {
+          "summary": "trend=Always In Short — 最近 6 根 K 线在 EMA 下方 | last_pullback=2 根前反弹至 EMA，回落 | range=67449.7-68169.6 (719.9 点区间) | day_type=趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T14:30",
+            "O": 67775.1,
+            "H": 68005.3,
+            "L": 67764.5,
+            "C": 67976.1,
+            "body": "+201.0 (bull)",
+            "bar_type": "大阳线",
+            "ema20": 67967.32,
+            "vs_ema20": "+8.8"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:00",
+              "O": 67970.7,
+              "H": 68020.1,
+              "L": 67914.8,
+              "C": 67984.1,
+              "body": "+13.4 (bull)",
+              "bar_type": "小阳线，长上影，长下影",
+              "ema20": 67998.17,
+              "vs_ema20": "-14.1"
+            },
+            {
+              "time": "2026-03-07T13:30",
+              "O": 67988.4,
+              "H": 68005.3,
+              "L": 67839.7,
+              "C": 67887.3,
+              "body": "-101.1 (bear)",
+              "bar_type": "中阴线",
+              "ema20": 67987.61,
+              "vs_ema20": "-100.3"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 67887.1,
+              "H": 67887.5,
+              "L": 67572.5,
+              "C": 67764.9,
+              "body": "-122.2 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 67966.4,
+              "vs_ema20": "-201.5"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 67775.1,
+              "H": 68005.3,
+              "L": 67764.5,
+              "C": 67976.1,
+              "body": "+201.0 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 67967.32,
+              "vs_ema20": "+8.8"
+            }
+          ]
+        },
+        "1h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=无明显回调 | range=67449.7-68431.3 (981.6 点区间) | day_type=窄幅趋势",
+          "bar_count_total": 150,
+          "ema20": 68219.89,
+          "atr14": 467.59,
+          "price_vs_ema": "-239.9 (-0.35%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-04T07:00",
+            "to": "2026-03-07T14:00",
+            "net_change": -496.0,
+            "bull_bars": 38,
+            "bear_bars": 42,
+            "doji_bars": 0,
+            "bars_above_ema": 31,
+            "high": 76055.2,
+            "low": 66130.0,
+            "avg_range": 900.68
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:00",
+            "net_change": -175.9,
+            "bull_bars": 9,
+            "bear_bars": 11,
+            "doji_bars": 0,
+            "bars_above_ema": 0,
+            "high": 68431.3,
+            "low": 67449.7,
+            "avg_range": 282.68
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:00",
+            "O": 67887.1,
+            "H": 68002.9,
+            "L": 67572.5,
+            "C": 67980.0,
+            "body": "+92.9 (bull)",
+            "bar_type": "小阳线，长下影",
+            "ema20": 68219.89,
+            "vs_ema20": "-239.9"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T11:00",
+              "O": 67859.0,
+              "H": 68169.6,
+              "L": 67839.9,
+              "C": 67995.4,
+              "body": "+136.4 (bull)",
+              "bar_type": "中阳线，长上影",
+              "ema20": 68317.37,
+              "vs_ema20": "-322.0"
+            },
+            {
+              "time": "2026-03-07T12:00",
+              "O": 68000.9,
+              "H": 68040.9,
+              "L": 67881.5,
+              "C": 67954.5,
+              "body": "-46.4 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 68282.81,
+              "vs_ema20": "-328.3"
+            },
+            {
+              "time": "2026-03-07T13:00",
+              "O": 67970.7,
+              "H": 68020.1,
+              "L": 67839.7,
+              "C": 67887.3,
+              "body": "-83.4 (bear)",
+              "bar_type": "中阴线，长上影，长下影",
+              "ema20": 68245.14,
+              "vs_ema20": "-357.8"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 67887.1,
+              "H": 68002.9,
+              "L": 67572.5,
+              "C": 67980.0,
+              "body": "+92.9 (bull)",
+              "bar_type": "小阳线，长下影",
+              "ema20": 68219.89,
+              "vs_ema20": "-239.9"
+            }
+          ]
+        },
+        "4h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=7 根前反弹至 EMA，回落 | range=66130.0-76055.2 (9925.2 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T12:00",
+            "O": 68000.9,
+            "H": 68040.9,
+            "L": 67572.5,
+            "C": 67980.0,
+            "body": "-20.9 (bear)",
+            "bar_type": "十字星，长下影",
+            "ema20": 69257.36,
+            "vs_ema20": "-1277.4"
+          }
+        },
+        "1d": {
+          "summary": "trend=偏空但不确定 — EMA 下方 5, 上方 3 | last_pullback=1 根前反弹至 EMA，回落 | range=56452.3-76055.2 (19602.9 点区间) | day_type=宽幅区间",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T00:00",
+            "O": 68094.5,
+            "H": 68431.3,
+            "L": 67449.7,
+            "C": 67976.1,
+            "body": "-118.4 (bear)",
+            "bar_type": "小阴线，长上影，长下影",
+            "ema20": 68833.5,
+            "vs_ema20": "-857.4"
+          }
+        }
+      },
+      "ab_context": {
+        "alignment_score": 2,
+        "dominant_direction": "AIL",
+        "best_signal": "15m:H1@68002.9",
+        "quick_scan": {
+          "5m": [
+            "state:TC",
+            "first_pb:bear_pb",
+            "tr_edge:top",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr",
+            "state_change:TR->TC",
+            "cached_pre_signal"
+          ],
+          "15m": [
+            "signal_trigger:H1@68002.9",
+            "state:TC",
+            "pb_depth:deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "1h": [
+            "state:TR",
+            "tr_edge:bottom",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "30m": [
+            "state:TR",
+            "ema_touch",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "pb_depth:deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "4h": [
+            "state:TC",
+            "first_pb:bull_pb",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "1d": [
+            "state:TR",
+            "first_pb:bear_pb",
+            "pb_depth:normal",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ]
+        },
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TC",
+              "first_pb:bear_pb",
+              "tr_edge:top",
+              "pb_depth:too_deep"
+            ],
+            "ab_ema": {
+              "mag_type": "bear_mag",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "top",
+              "trend_phase": "tr",
+              "nearest_support": 67945.0,
+              "nearest_resistance": 67981.5
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 68045.6,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 67652.1,
+                "leg_end": 67960.1,
+                "pb_point": 67737.6
+              },
+              "nearest_bear_target": {
+                "price": 67855.6,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 68115.0,
+                "leg_end": 67906.0,
+                "pb_point": 68064.6
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 13,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 11,
+              "wedge_count": 10,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.5,
+                "avg_close_position": 0.635,
+                "avg_body_ratio": 0.5468,
+                "bull_bars": 5,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "too_deep",
+                "pct": 0.9104,
+                "leg_range": 447.6,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "15m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "H1@68002.9",
+            "momentum_fading": false,
+            "events": [
+              "signal_trigger:H1@68002.9",
+              "state:TC",
+              "pb_depth:deep",
+              "hl_signal:H4"
+            ],
+            "ab_ema": {
+              "mag_type": "bear_mag",
+              "first_pb_type": "none",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": false
+            },
+            "ab_sr": {
+              "tr_position": "middle",
+              "trend_phase": "channel",
+              "nearest_support": 67975.85,
+              "nearest_resistance": 68000.0
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 68692.6,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 67789.2,
+                "leg_end": 68391.0,
+                "pb_point": 68090.8
+              },
+              "nearest_bear_target": {
+                "price": 67865.8,
+                "type": "tr_height",
+                "direction": "down",
+                "tr_top": 68315.8,
+                "tr_bottom": 68090.8,
+                "tr_height": 225.0
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 9,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 12,
+              "wedge_count": 10,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.4,
+                "avg_close_position": 0.5528,
+                "avg_body_ratio": 0.5094,
+                "bull_bars": 4,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "deep",
+                "pct": 0.6759,
+                "leg_range": 597.1,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1h": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "tr_edge:bottom",
+              "hl_signal:H4",
+              "wedge_or_mtr"
+            ],
+            "ab_ema": {
+              "mag_type": "bull_mag",
+              "first_pb_type": "none",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "tr",
+              "nearest_support": 67734.7,
+              "nearest_resistance": 68000.0
+            },
+            "ab_mm": {
+              "nearest_bull_target": null,
+              "nearest_bear_target": null
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 13,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 15,
+              "wedge_count": 15,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.4,
+                "avg_close_position": 0.5093,
+                "avg_body_ratio": 0.4576,
+                "bull_bars": 4,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "none",
+                "pct": 0.081,
+                "leg_range": 6550.3,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "first_pb:bear_pb",
+              "pb_depth:normal",
+              "hl_signal:H4"
+            ],
+            "ab_ema": {
+              "mag_type": "bull_mag",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 2,
+              "ema_sr_valid": false
+            },
+            "ab_sr": {
+              "tr_position": "middle",
+              "trend_phase": "tr",
+              "nearest_support": 67000.0,
+              "nearest_resistance": 68000.0
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 95435.0,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 80600.0,
+                "leg_end": 90480.0,
+                "pb_point": 85555.0
+              },
+              "nearest_bear_target": {
+                "price": 64765.6,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 118244.8,
+                "leg_end": 85122.4,
+                "pb_point": 97888.0
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 18,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 12,
+              "wedge_count": 15,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.3,
+                "avg_close_position": 0.4574,
+                "avg_body_ratio": 0.3348,
+                "bull_bars": 3,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "normal",
+                "pct": 0.4121,
+                "leg_range": 19602.9,
+                "leg_direction": "up"
+              }
+            }
+          }
+        }
+      },
+      "quick_scan": {
+        "5m": [
+          "state:TC",
+          "first_pb:bear_pb",
+          "tr_edge:top",
+          "pb_depth:too_deep",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "15m": [
+          "signal_trigger:H1@68002.9",
+          "state:TC",
+          "pb_depth:deep",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "1h": [
+          "state:TR",
+          "tr_edge:bottom",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "30m": [
+          "state:TR",
+          "ema_touch",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "pb_depth:deep",
+          "hl_signal:H4"
+        ],
+        "4h": [
+          "state:TC",
+          "first_pb:bull_pb",
+          "pb_depth:too_deep",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "1d": [
+          "state:TR",
+          "first_pb:bear_pb",
+          "pb_depth:normal",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ]
+      },
+      "chart_context": {
+        "chart_files": [
+          "BTCUSDT_1h_225214.png",
+          "BTCUSDT_15m_225214.png",
+          "BTCUSDT_5m_225213.png",
+          "BTCUSDT_1h_225005.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，ETH日线与4小时仍处于bear偏置下的TR环境，高周期没有转牛。精读最近20根，本轮15分钟继续保留signal_trigger:H1@1985.46，30分钟14:30阳线仍有效，只是收盘从上一轮1984.48小幅回到1983.68，说明反弹在高位进入更明确的确认等待。5分钟仍是BO，但无显式新信号，且pb_depth:too_deep；15分钟也仍是pb_depth:deep，说明最低两级执行周期都已偏深。1小时继续只是TR，没有给出更高一级的顺势确认。按S2、S3与S6-channel，这意味着ETH仍是当前最完整的反弹监控...",
+        "running_narrative": "ETH继续第一，虽然反弹略有钝化，但仍保留最完整的低周期向上切换锚点。",
+        "pre_signal": "BUY_WATCH：15分钟H1@1985.46仍在，但5分钟无新显式触发且低周期偏深；等待1985.46上方继续接受，或等待回踩1982.03/1979.9后的失败再重判。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T14:51:13.807593+00:00",
+          "expires_at": "2026-03-07T15:16:13.807593+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            1982.03,
+            1979.9,
+            1976.32,
+            1970.21
+          ],
+          "resistance": [
+            1985.46,
+            1985.27,
+            1989.57,
+            1991.9
+          ]
+        },
+        "thesis": "ETH继续第一，虽然反弹略有钝化，但仍保留最完整的低周期向上切换锚点。",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": "trend=方向不明 — 在 EMA 附近震荡 | last_pullback=3 根前回调至 EMA，反弹 | range=1970.2-1987.7 (17.5 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 1980.73,
+          "atr14": 2.61,
+          "price_vs_ema": "+7.0 (+0.35%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-07T08:15",
+            "to": "2026-03-07T14:50",
+            "net_change": 5.88,
+            "bull_bars": 39,
+            "bear_bars": 41,
+            "doji_bars": 0,
+            "bars_above_ema": 43,
+            "high": 1991.88,
+            "low": 1970.21,
+            "avg_range": 2.23
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T13:15",
+            "to": "2026-03-07T14:50",
+            "net_change": 6.31,
+            "bull_bars": 10,
+            "bear_bars": 10,
+            "doji_bars": 0,
+            "bars_above_ema": 4,
+            "high": 1987.73,
+            "low": 1970.21,
+            "avg_range": 2.63
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:50",
+            "O": 1985.11,
+            "H": 1987.73,
+            "L": 1984.9,
+            "C": 1987.72,
+            "body": "+2.6 (bull)",
+            "bar_type": "大阳线",
+            "ema20": 1980.73,
+            "vs_ema20": "+7.0"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T14:15",
+              "O": 1973.04,
+              "H": 1975.05,
+              "L": 1973.04,
+              "C": 1973.91,
+              "body": "+0.9 (bull)",
+              "bar_type": "中阳线，长上影",
+              "ema20": 1979.54,
+              "vs_ema20": "-5.6"
+            },
+            {
+              "time": "2026-03-07T14:20",
+              "O": 1974.26,
+              "H": 1974.95,
+              "L": 1972.92,
+              "C": 1974.73,
+              "body": "+0.5 (bull)",
+              "bar_type": "小阳线，长下影",
+              "ema20": 1979.08,
+              "vs_ema20": "-4.4"
+            },
+            {
+              "time": "2026-03-07T14:25",
+              "O": 1974.73,
+              "H": 1975.07,
+              "L": 1974.32,
+              "C": 1974.38,
+              "body": "-0.3 (bear)",
+              "bar_type": "中阴线，长上影",
+              "ema20": 1978.64,
+              "vs_ema20": "-4.3"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 1974.38,
+              "H": 1975.53,
+              "L": 1974.32,
+              "C": 1975.53,
+              "body": "+1.1 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1978.34,
+              "vs_ema20": "-2.8"
+            },
+            {
+              "time": "2026-03-07T14:35",
+              "O": 1975.53,
+              "H": 1985.27,
+              "L": 1975.02,
+              "C": 1985.18,
+              "body": "+9.7 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1978.99,
+              "vs_ema20": "+6.2"
+            },
+            {
+              "time": "2026-03-07T14:40",
+              "O": 1985.18,
+              "H": 1985.46,
+              "L": 1983.76,
+              "C": 1984.1,
+              "body": "-1.1 (bear)",
+              "bar_type": "中阴线",
+              "ema20": 1979.48,
+              "vs_ema20": "+4.6"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 1984.07,
+              "H": 1985.11,
+              "L": 1983.58,
+              "C": 1984.9,
+              "body": "+0.8 (bull)",
+              "bar_type": "中阳线，长下影",
+              "ema20": 1979.99,
+              "vs_ema20": "+4.9"
+            },
+            {
+              "time": "2026-03-07T14:50",
+              "O": 1985.11,
+              "H": 1987.73,
+              "L": 1984.9,
+              "C": 1987.72,
+              "body": "+2.6 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1980.73,
+              "vs_ema20": "+7.0"
+            }
+          ]
+        },
+        "15m": {
+          "summary": "trend=Always In Short — 最近 6 根 K 线在 EMA 下方 | last_pullback=1 根前回调至 EMA，反弹 | range=1970.2-1991.9 (21.7 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 1981.98,
+          "atr14": 4.82,
+          "price_vs_ema": "+5.7 (+0.29%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:45",
+            "net_change": 13.84,
+            "bull_bars": 39,
+            "bear_bars": 41,
+            "doji_bars": 0,
+            "bars_above_ema": 34,
+            "high": 2141.16,
+            "low": 1940.0,
+            "avg_range": 7.18
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T10:00",
+            "to": "2026-03-07T14:45",
+            "net_change": 2.42,
+            "bull_bars": 9,
+            "bear_bars": 11,
+            "doji_bars": 0,
+            "bars_above_ema": 12,
+            "high": 1991.88,
+            "low": 1970.21,
+            "avg_range": 4.24
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:45",
+            "O": 1984.07,
+            "H": 1987.73,
+            "L": 1983.58,
+            "C": 1987.72,
+            "body": "+3.7 (bull)",
+            "bar_type": "大阳线",
+            "ema20": 1981.98,
+            "vs_ema20": "+5.7"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:30",
+              "O": 1982.01,
+              "H": 1982.07,
+              "L": 1977.68,
+              "C": 1980.29,
+              "body": "-1.7 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 1983.01,
+              "vs_ema20": "-2.7"
+            },
+            {
+              "time": "2026-03-07T13:45",
+              "O": 1980.29,
+              "H": 1981.99,
+              "L": 1979.78,
+              "C": 1979.9,
+              "body": "-0.4 (bear)",
+              "bar_type": "小阴线，长上影",
+              "ema20": 1982.71,
+              "vs_ema20": "-2.8"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 1980.7,
+              "H": 1980.8,
+              "L": 1970.21,
+              "C": 1973.04,
+              "body": "-7.7 (bear)",
+              "bar_type": "大阴线",
+              "ema20": 1981.79,
+              "vs_ema20": "-8.8"
+            },
+            {
+              "time": "2026-03-07T14:15",
+              "O": 1973.04,
+              "H": 1975.07,
+              "L": 1972.92,
+              "C": 1974.38,
+              "body": "+1.3 (bull)",
+              "bar_type": "中阳线，长上影",
+              "ema20": 1981.08,
+              "vs_ema20": "-6.7"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 1974.38,
+              "H": 1985.46,
+              "L": 1974.32,
+              "C": 1984.1,
+              "body": "+9.7 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1981.37,
+              "vs_ema20": "+2.7"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 1984.07,
+              "H": 1987.73,
+              "L": 1983.58,
+              "C": 1987.72,
+              "body": "+3.7 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1981.98,
+              "vs_ema20": "+5.7"
+            }
+          ]
+        },
+        "30m": {
+          "summary": "trend=方向不明 — 在 EMA 附近震荡 | last_pullback=3 根前反弹至 EMA，回落 | range=1967.1-1991.9 (24.8 点区间) | day_type=宽幅区间",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T14:30",
+            "O": 1974.38,
+            "H": 1987.73,
+            "L": 1974.32,
+            "C": 1987.72,
+            "body": "+13.3 (bull)",
+            "bar_type": "大阳线",
+            "ema20": 1982.1,
+            "vs_ema20": "+5.6"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:00",
+              "O": 1981.22,
+              "H": 1982.68,
+              "L": 1979.22,
+              "C": 1982.03,
+              "body": "+0.8 (bull)",
+              "bar_type": "小阳线，长下影",
+              "ema20": 1982.5,
+              "vs_ema20": "-0.5"
+            },
+            {
+              "time": "2026-03-07T13:30",
+              "O": 1982.01,
+              "H": 1982.07,
+              "L": 1977.68,
+              "C": 1979.9,
+              "body": "-2.1 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 1982.25,
+              "vs_ema20": "-2.4"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 1980.7,
+              "H": 1980.8,
+              "L": 1970.21,
+              "C": 1974.38,
+              "body": "-6.3 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 1981.5,
+              "vs_ema20": "-7.1"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 1974.38,
+              "H": 1987.73,
+              "L": 1974.32,
+              "C": 1987.72,
+              "body": "+13.3 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 1982.1,
+              "vs_ema20": "+5.6"
+            }
+          ]
+        },
+        "1h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=2 根前反弹至 EMA，回落 | range=1940.0-2141.2 (201.2 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 1988.24,
+          "atr14": 22.33,
+          "price_vs_ema": "-0.5 (-0.03%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-04T07:00",
+            "to": "2026-03-07T14:00",
+            "net_change": 8.5,
+            "bull_bars": 38,
+            "bear_bars": 42,
+            "doji_bars": 0,
+            "bars_above_ema": 29,
+            "high": 2350.0,
+            "low": 1935.0,
+            "avg_range": 37.62
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:00",
+            "net_change": 13.84,
+            "bull_bars": 10,
+            "bear_bars": 10,
+            "doji_bars": 0,
+            "bars_above_ema": 0,
+            "high": 2141.16,
+            "low": 1940.0,
+            "avg_range": 20.34
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:00",
+            "O": 1980.7,
+            "H": 1987.73,
+            "L": 1970.21,
+            "C": 1987.72,
+            "body": "+7.0 (bull)",
+            "bar_type": "中阳线，长下影",
+            "ema20": 1988.24,
+            "vs_ema20": "-0.5"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T11:00",
+              "O": 1983.01,
+              "H": 1991.88,
+              "L": 1981.6,
+              "C": 1987.52,
+              "body": "+4.5 (bull)",
+              "bar_type": "中阳线，长上影",
+              "ema20": 1990.01,
+              "vs_ema20": "-2.5"
+            },
+            {
+              "time": "2026-03-07T12:00",
+              "O": 1987.52,
+              "H": 1989.57,
+              "L": 1980.19,
+              "C": 1981.22,
+              "body": "-6.3 (bear)",
+              "bar_type": "中阴线",
+              "ema20": 1989.17,
+              "vs_ema20": "-8.0"
+            },
+            {
+              "time": "2026-03-07T13:00",
+              "O": 1981.22,
+              "H": 1982.68,
+              "L": 1977.68,
+              "C": 1979.9,
+              "body": "-1.3 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 1988.29,
+              "vs_ema20": "-8.4"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 1980.7,
+              "H": 1987.73,
+              "L": 1970.21,
+              "C": 1987.72,
+              "body": "+7.0 (bull)",
+              "bar_type": "中阳线，长下影",
+              "ema20": 1988.24,
+              "vs_ema20": "-0.5"
+            }
+          ]
+        },
+        "4h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=3 根前反弹至 EMA，回落 | range=1935.0-2350.0 (415.0 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T12:00",
+            "O": 1987.52,
+            "H": 1989.57,
+            "L": 1970.21,
+            "C": 1985.89,
+            "body": "-1.6 (bear)",
+            "bar_type": "十字星，长下影",
+            "ema20": 2022.08,
+            "vs_ema20": "-36.2"
+          }
+        },
+        "1d": {
+          "summary": "trend=Always In Short — 最近 6 根 K 线在 EMA 下方 | last_pullback=1 根前反弹至 EMA，回落 | range=1676.4-2350.0 (673.6 点区间) | day_type=趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T00:00",
+            "O": 1977.42,
+            "H": 2141.16,
+            "L": 1940.0,
+            "C": 1987.72,
+            "body": "+10.3 (bull)",
+            "bar_type": "十字星，长上影",
+            "ema20": 2026.94,
+            "vs_ema20": "-39.2"
+          }
+        }
+      },
+      "ab_context": {
+        "alignment_score": 2,
+        "dominant_direction": "AIL",
+        "best_signal": "5m:H1@1987.73",
+        "quick_scan": {
+          "5m": [
+            "signal_trigger:H1@1987.73",
+            "state:BO",
+            "first_pb:bear_pb",
+            "tr_edge:top",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr",
+            "state_change:TR->BO",
+            "cached_pre_signal"
+          ],
+          "15m": [
+            "signal_trigger:H2@1987.73",
+            "state:TC",
+            "first_pb:bull_pb",
+            "tr_edge:top",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "1h": [
+            "state:TR",
+            "tr_edge:bottom",
+            "pb_depth:shallow",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "30m": [
+            "state:TC",
+            "ema_touch",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "pb_depth:shallow",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "4h": [
+            "state:TC",
+            "first_pb:bull_pb",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "1d": [
+            "state:TR",
+            "ema_touch",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "pb_depth:deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ]
+        },
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "BO",
+            "signal": "H1@1987.73",
+            "momentum_fading": false,
+            "events": [
+              "signal_trigger:H1@1987.73",
+              "state:BO",
+              "first_pb:bear_pb",
+              "tr_edge:top"
+            ],
+            "ab_ema": {
+              "mag_type": "bear_mag",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "top",
+              "trend_phase": "channel",
+              "nearest_support": 1987.56,
+              "nearest_resistance": 1989.57
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 1994.0,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 1967.06,
+                "leg_end": 1986.44,
+                "pb_point": 1974.62
+              },
+              "nearest_bear_target": {
+                "price": 1983.39,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 1991.88,
+                "leg_end": 1985.7,
+                "pb_point": 1989.57
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 13,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 11,
+              "wedge_count": 11,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.6,
+                "avg_close_position": 0.6025,
+                "avg_body_ratio": 0.6409,
+                "bull_bars": 6,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "too_deep",
+                "pct": 0.9706,
+                "leg_range": 18.04,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "15m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "H2@1987.73",
+            "momentum_fading": false,
+            "events": [
+              "signal_trigger:H2@1987.73",
+              "state:TC",
+              "first_pb:bull_pb",
+              "tr_edge:top"
+            ],
+            "ab_ema": {
+              "mag_type": "bear_mag",
+              "first_pb_type": "bull_pb",
+              "first_pb_bars_ago": 2,
+              "ema_sr_valid": false
+            },
+            "ab_sr": {
+              "tr_position": "top",
+              "trend_phase": "tr",
+              "nearest_support": 1983.01,
+              "nearest_resistance": 1991.88
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 2002.92,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 1956.0,
+                "leg_end": 1989.39,
+                "pb_point": 1969.53
+              },
+              "nearest_bear_target": {
+                "price": 1947.43,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 1994.42,
+                "leg_end": 1963.92,
+                "pb_point": 1977.93
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 16,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 9,
+              "wedge_count": 14,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.5,
+                "avg_close_position": 0.5435,
+                "avg_body_ratio": 0.5164,
+                "bull_bars": 5,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "too_deep",
+                "pct": 0.808,
+                "leg_range": 21.67,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1h": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "tr_edge:bottom",
+              "pb_depth:shallow",
+              "hl_signal:H4"
+            ],
+            "ab_ema": {
+              "mag_type": "bull_mag",
+              "first_pb_type": "none",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "tr",
+              "nearest_support": 1976.63,
+              "nearest_resistance": 1995.24
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 2515.0,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 1935.0,
+                "leg_end": 2350.0,
+                "pb_point": 2100.0
+              },
+              "nearest_bear_target": {
+                "price": 1867.69,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 2024.54,
+                "leg_end": 1906.4,
+                "pb_point": 1985.83
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 13,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 10,
+              "wedge_count": 16,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.5,
+                "avg_close_position": 0.4955,
+                "avg_body_ratio": 0.5631,
+                "bull_bars": 5,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "shallow",
+                "pct": 0.2372,
+                "leg_range": 201.16,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "ema_touch",
+              "first_pb:bear_pb",
+              "tr_edge:bottom"
+            ],
+            "ab_ema": {
+              "mag_type": "none",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 2,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "tr",
+              "nearest_support": 1900.0,
+              "nearest_resistance": 2000.0
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 3148.0,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 2777.0,
+                "leg_end": 3075.0,
+                "pb_point": 2850.0
+              },
+              "nearest_bear_target": {
+                "price": 1867.09,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 3977.0,
+                "leg_end": 2629.09,
+                "pb_point": 3215.0
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 18,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 12,
+              "wedge_count": 14,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.4,
+                "avg_close_position": 0.377,
+                "avg_body_ratio": 0.3052,
+                "bull_bars": 4,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "deep",
+                "pct": 0.5378,
+                "leg_range": 673.64,
+                "leg_direction": "up"
+              }
+            }
+          }
+        }
+      },
+      "quick_scan": {
+        "5m": [
+          "signal_trigger:H1@1987.73",
+          "state:BO",
+          "first_pb:bear_pb",
+          "tr_edge:top",
+          "pb_depth:too_deep",
+          "hl_signal:H4"
+        ],
+        "15m": [
+          "signal_trigger:H2@1987.73",
+          "state:TC",
+          "first_pb:bull_pb",
+          "tr_edge:top",
+          "pb_depth:too_deep",
+          "hl_signal:H4"
+        ],
+        "1h": [
+          "state:TR",
+          "tr_edge:bottom",
+          "pb_depth:shallow",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "30m": [
+          "state:TC",
+          "ema_touch",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "pb_depth:shallow",
+          "hl_signal:H4"
+        ],
+        "4h": [
+          "state:TC",
+          "first_pb:bull_pb",
+          "pb_depth:too_deep",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "1d": [
+          "state:TR",
+          "ema_touch",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "pb_depth:deep",
+          "hl_signal:H4"
+        ]
+      },
+      "chart_context": {
+        "chart_files": [
+          "ETHUSDT_1h_225216.png",
+          "ETHUSDT_15m_225215.png",
+          "ETHUSDT_5m_225215.png",
+          "ETHUSDT_1h_225007.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，BNB日线仍处于bear偏置下的TR环境，4小时与1小时整体仍偏空。精读最近20根，本轮5分钟继续保留signal_trigger:H2@627.41且处于BO，说明最低周期反弹还在；但15分钟继续只是TR/ema_touch/tr_edge:bottom，没有形成对应的15分钟H1/H2；1小时仍保留signal_trigger:L1@626.3，说明更高一级仍留有空头残影。30分钟14:30收盘从上一轮627.18回到626.84，说明反弹比ETH和BTC更容易回吐，也再次确认它更像TR内部的复杂摆动而非稳定的向上切换。按S2、...",
+        "running_narrative": "BNB继续第三，最低周期仍有反弹痕迹，但整体最像TR内杂波。",
+        "pre_signal": "WATCH_ONLY：5分钟H2@627.41仍在，但15分钟继续TR、1小时仍留有L1@626.3空头残影；等待627.41上方继续接受，或等待627.41/627.21再次失败后再重判。",
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-07T14:51:13.807701+00:00",
+          "expires_at": "2026-03-07T15:16:13.807701+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "support": [
+            626.3,
+            625.59,
+            623.52
+          ],
+          "resistance": [
+            627.41,
+            627.21,
+            627.33,
+            662.0
+          ]
+        },
+        "thesis": "BNB继续第三，最低周期仍有反弹痕迹，但整体最像TR内杂波。",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": "trend=偏空但不确定 — EMA 下方 5, 上方 3 | last_pullback=2 根前回调至 EMA，反弹 | range=623.5-662.0 (38.5 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 626.08,
+          "atr14": 1.66,
+          "price_vs_ema": "+0.8 (+0.13%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-07T08:15",
+            "to": "2026-03-07T14:50",
+            "net_change": -1.03,
+            "bull_bars": 40,
+            "bear_bars": 40,
+            "doji_bars": 0,
+            "bars_above_ema": 37,
+            "high": 662.0,
+            "low": 623.52,
+            "avg_range": 0.91
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T13:15",
+            "to": "2026-03-07T14:50",
+            "net_change": -0.24,
+            "bull_bars": 11,
+            "bear_bars": 9,
+            "doji_bars": 0,
+            "bars_above_ema": 5,
+            "high": 662.0,
+            "low": 623.52,
+            "avg_range": 2.42
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:50",
+            "O": 626.79,
+            "H": 626.89,
+            "L": 626.71,
+            "C": 626.89,
+            "body": "+0.1 (bull)",
+            "bar_type": "中阳线，长下影",
+            "ema20": 626.08,
+            "vs_ema20": "+0.8"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T14:15",
+              "O": 623.52,
+              "H": 624.49,
+              "L": 623.52,
+              "C": 624.47,
+              "body": "+1.0 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 626.19,
+              "vs_ema20": "-1.7"
+            },
+            {
+              "time": "2026-03-07T14:20",
+              "O": 624.47,
+              "H": 624.59,
+              "L": 624.17,
+              "C": 624.54,
+              "body": "+0.1 (bull)",
+              "bar_type": "小阳线，长下影",
+              "ema20": 626.04,
+              "vs_ema20": "-1.5"
+            },
+            {
+              "time": "2026-03-07T14:25",
+              "O": 624.53,
+              "H": 624.88,
+              "L": 624.53,
+              "C": 624.88,
+              "body": "+0.4 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 625.93,
+              "vs_ema20": "-1.0"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 624.88,
+              "H": 625.09,
+              "L": 624.86,
+              "C": 625.05,
+              "body": "+0.2 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 625.84,
+              "vs_ema20": "-0.8"
+            },
+            {
+              "time": "2026-03-07T14:35",
+              "O": 625.04,
+              "H": 625.84,
+              "L": 625.04,
+              "C": 625.23,
+              "body": "+0.2 (bull)",
+              "bar_type": "小阳线，长上影",
+              "ema20": 625.78,
+              "vs_ema20": "-0.6"
+            },
+            {
+              "time": "2026-03-07T14:40",
+              "O": 625.84,
+              "H": 627.41,
+              "L": 625.23,
+              "C": 627.17,
+              "body": "+1.3 (bull)",
+              "bar_type": "中阳线",
+              "ema20": 625.92,
+              "vs_ema20": "+1.3"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 627.17,
+              "H": 627.41,
+              "L": 626.71,
+              "C": 626.79,
+              "body": "-0.4 (bear)",
+              "bar_type": "中阴线，长上影",
+              "ema20": 626.0,
+              "vs_ema20": "+0.8"
+            },
+            {
+              "time": "2026-03-07T14:50",
+              "O": 626.79,
+              "H": 626.89,
+              "L": 626.71,
+              "C": 626.89,
+              "body": "+0.1 (bull)",
+              "bar_type": "中阳线，长下影",
+              "ema20": 626.08,
+              "vs_ema20": "+0.8"
+            }
+          ]
+        },
+        "15m": {
+          "summary": "trend=Always In Short — 最近 6 根 K 线在 EMA 下方 | last_pullback=1 根前回调至 EMA，反弹 | range=623.5-662.0 (38.5 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 626.89,
+          "atr14": 2.9,
+          "price_vs_ema": "+0.1 (+0.01%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:45",
+            "net_change": -3.72,
+            "bull_bars": 39,
+            "bear_bars": 41,
+            "doji_bars": 0,
+            "bars_above_ema": 23,
+            "high": 662.0,
+            "low": 623.52,
+            "avg_range": 1.41
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-07T10:00",
+            "to": "2026-03-07T14:45",
+            "net_change": -2.71,
+            "bull_bars": 7,
+            "bear_bars": 13,
+            "doji_bars": 0,
+            "bars_above_ema": 4,
+            "high": 662.0,
+            "low": 623.52,
+            "avg_range": 2.75
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:45",
+            "O": 627.17,
+            "H": 627.41,
+            "L": 626.71,
+            "C": 626.95,
+            "body": "-0.2 (bear)",
+            "bar_type": "中阴线，长上影，长下影",
+            "ema20": 626.89,
+            "vs_ema20": "+0.1"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:30",
+              "O": 627.09,
+              "H": 627.41,
+              "L": 626.3,
+              "C": 626.97,
+              "body": "-0.1 (bear)",
+              "bar_type": "小阴线，长上影，长下影",
+              "ema20": 627.49,
+              "vs_ema20": "-0.5"
+            },
+            {
+              "time": "2026-03-07T13:45",
+              "O": 626.97,
+              "H": 662.0,
+              "L": 626.51,
+              "C": 626.53,
+              "body": "-0.4 (bear)",
+              "bar_type": "十字星，长上影",
+              "ema20": 627.4,
+              "vs_ema20": "-0.9"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 626.53,
+              "H": 626.54,
+              "L": 623.52,
+              "C": 623.87,
+              "body": "-2.7 (bear)",
+              "bar_type": "大阴线",
+              "ema20": 627.06,
+              "vs_ema20": "-3.2"
+            },
+            {
+              "time": "2026-03-07T14:15",
+              "O": 623.52,
+              "H": 624.88,
+              "L": 623.52,
+              "C": 624.88,
+              "body": "+1.4 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 626.85,
+              "vs_ema20": "-2.0"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 624.88,
+              "H": 627.41,
+              "L": 624.86,
+              "C": 627.17,
+              "body": "+2.3 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 626.88,
+              "vs_ema20": "+0.3"
+            },
+            {
+              "time": "2026-03-07T14:45",
+              "O": 627.17,
+              "H": 627.41,
+              "L": 626.71,
+              "C": 626.95,
+              "body": "-0.2 (bear)",
+              "bar_type": "中阴线，长上影，长下影",
+              "ema20": 626.89,
+              "vs_ema20": "+0.1"
+            }
+          ]
+        },
+        "30m": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=2 根前反弹至 EMA，回落 | range=623.5-662.0 (38.5 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T14:30",
+            "O": 624.88,
+            "H": 627.41,
+            "L": 624.86,
+            "C": 626.95,
+            "body": "+2.1 (bull)",
+            "bar_type": "大阳线",
+            "ema20": 627.35,
+            "vs_ema20": "-0.4"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T13:00",
+              "O": 626.57,
+              "H": 627.21,
+              "L": 626.46,
+              "C": 627.09,
+              "body": "+0.5 (bull)",
+              "bar_type": "中阳线",
+              "ema20": 627.77,
+              "vs_ema20": "-0.7"
+            },
+            {
+              "time": "2026-03-07T13:30",
+              "O": 627.09,
+              "H": 662.0,
+              "L": 626.3,
+              "C": 626.53,
+              "body": "-0.6 (bear)",
+              "bar_type": "十字星，长上影",
+              "ema20": 627.65,
+              "vs_ema20": "-1.1"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 626.53,
+              "H": 626.54,
+              "L": 623.52,
+              "C": 624.88,
+              "body": "-1.6 (bear)",
+              "bar_type": "中阴线，长下影",
+              "ema20": 627.39,
+              "vs_ema20": "-2.5"
+            },
+            {
+              "time": "2026-03-07T14:30",
+              "O": 624.88,
+              "H": 627.41,
+              "L": 624.86,
+              "C": 626.95,
+              "body": "+2.1 (bull)",
+              "bar_type": "大阳线",
+              "ema20": 627.35,
+              "vs_ema20": "-0.4"
+            }
+          ]
+        },
+        "1h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=1 根前反弹至 EMA，回落 | range=623.5-662.0 (38.5 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "ema20": 629.0,
+          "atr14": 5.06,
+          "price_vs_ema": "-2.0 (-0.33%)",
+          "browse_window_stats": {
+            "count": 80,
+            "from": "2026-03-04T07:00",
+            "to": "2026-03-07T14:00",
+            "net_change": -7.76,
+            "bull_bars": 39,
+            "bear_bars": 41,
+            "doji_bars": 0,
+            "bars_above_ema": 28,
+            "high": 665.72,
+            "low": 615.0,
+            "avg_range": 4.97
+          },
+          "close_read_window_stats": {
+            "count": 20,
+            "from": "2026-03-06T19:00",
+            "to": "2026-03-07T14:00",
+            "net_change": -3.72,
+            "bull_bars": 10,
+            "bear_bars": 10,
+            "doji_bars": 0,
+            "bars_above_ema": 0,
+            "high": 662.0,
+            "low": 623.52,
+            "avg_range": 4.01
+          },
+          "latest_bar": {
+            "time": "2026-03-07T14:00",
+            "O": 626.53,
+            "H": 627.41,
+            "L": 623.52,
+            "C": 626.95,
+            "body": "+0.4 (bull)",
+            "bar_type": "小阳线，长下影",
+            "ema20": 629.0,
+            "vs_ema20": "-2.0"
+          },
+          "recent_bars": [
+            {
+              "time": "2026-03-07T11:00",
+              "O": 626.66,
+              "H": 628.62,
+              "L": 626.42,
+              "C": 627.8,
+              "body": "+1.1 (bull)",
+              "bar_type": "中阳线，长上影",
+              "ema20": 629.8,
+              "vs_ema20": "-2.0"
+            },
+            {
+              "time": "2026-03-07T12:00",
+              "O": 627.8,
+              "H": 628.07,
+              "L": 626.46,
+              "C": 626.57,
+              "body": "-1.2 (bear)",
+              "bar_type": "大阴线",
+              "ema20": 629.5,
+              "vs_ema20": "-2.9"
+            },
+            {
+              "time": "2026-03-07T13:00",
+              "O": 626.57,
+              "H": 662.0,
+              "L": 626.3,
+              "C": 626.53,
+              "body": "-0.0 (bear)",
+              "bar_type": "十字星，长上影",
+              "ema20": 629.21,
+              "vs_ema20": "-2.7"
+            },
+            {
+              "time": "2026-03-07T14:00",
+              "O": 626.53,
+              "H": 627.41,
+              "L": 623.52,
+              "C": 626.95,
+              "body": "+0.4 (bull)",
+              "bar_type": "小阳线，长下影",
+              "ema20": 629.0,
+              "vs_ema20": "-2.0"
+            }
+          ]
+        },
+        "4h": {
+          "summary": "trend=Always In Short — 最近 8 根 K 线在 EMA 下方 | last_pullback=7 根前反弹至 EMA，回落 | range=615.0-665.7 (50.7 点区间) | day_type=大趋势日",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T12:00",
+            "O": 627.8,
+            "H": 662.0,
+            "L": 623.52,
+            "C": 626.89,
+            "body": "-0.9 (bear)",
+            "bar_type": "十字星，长上影",
+            "ema20": 636.06,
+            "vs_ema20": "-9.2"
+          }
+        },
+        "1d": {
+          "summary": "trend=偏空但不确定 — EMA 下方 5, 上方 3 | last_pullback=1 根前反弹至 EMA，回落 | range=577.0-665.7 (88.7 点区间) | day_type=宽幅区间",
+          "bar_count_total": 150,
+          "latest_bar": {
+            "time": "2026-03-07T00:00",
+            "O": 626.97,
+            "H": 662.0,
+            "L": 623.52,
+            "C": 626.89,
+            "body": "-0.1 (bear)",
+            "bar_type": "十字星，长上影",
+            "ema20": 636.13,
+            "vs_ema20": "-9.2"
+          }
+        }
+      },
+      "ab_context": {
+        "alignment_score": 1,
+        "dominant_direction": "TR",
+        "best_signal": "1h:L1@626.3",
+        "quick_scan": {
+          "5m": [
+            "state:BO",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "hl_signal:H3",
+            "wedge_or_mtr",
+            "state_change:TR->BO",
+            "cached_pre_signal"
+          ],
+          "15m": [
+            "state:TR",
+            "ema_touch",
+            "tr_edge:bottom",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "1h": [
+            "signal_trigger:L1@626.3",
+            "state:TC",
+            "tr_edge:bottom",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "30m": [
+            "state:TR",
+            "ema_touch",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ],
+          "4h": [
+            "state:TC",
+            "ema_touch",
+            "first_pb:bull_pb",
+            "pb_depth:too_deep",
+            "hl_signal:H4",
+            "wedge_or_mtr",
+            "anomaly:large_bar"
+          ],
+          "1d": [
+            "state:TR",
+            "ema_touch",
+            "first_pb:bear_pb",
+            "tr_edge:bottom",
+            "pb_depth:deep",
+            "hl_signal:H4",
+            "wedge_or_mtr"
+          ]
+        },
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "BO",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:BO",
+              "first_pb:bear_pb",
+              "tr_edge:bottom",
+              "hl_signal:H3"
+            ],
+            "ab_ema": {
+              "mag_type": "bear_mag",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": false
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "channel",
+              "nearest_support": 626.57,
+              "nearest_resistance": 627.31
+            },
+            "ab_mm": {
+              "nearest_bull_target": null,
+              "nearest_bear_target": {
+                "price": 625.23,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 629.81,
+                "leg_end": 626.42,
+                "pb_point": 628.62
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H3",
+              "latest_h_bars_ago": 7,
+              "latest_l": "L3",
+              "latest_l_bars_ago": 11,
+              "wedge_count": 8,
+              "pressure": {
+                "direction": "bull_pressure",
+                "bull_pct": 0.7,
+                "avg_close_position": 0.6297,
+                "avg_body_ratio": 0.6377,
+                "bull_bars": 7,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "none",
+                "pct": 0.0876,
+                "leg_range": 38.48,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "15m": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "ema_touch",
+              "tr_edge:bottom",
+              "hl_signal:H4"
+            ],
+            "ab_ema": {
+              "mag_type": "none",
+              "first_pb_type": "none",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "tr",
+              "nearest_support": 626.42,
+              "nearest_resistance": 627.05
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 634.32,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 626.0,
+                "leg_end": 632.52,
+                "pb_point": 627.8
+              },
+              "nearest_bear_target": {
+                "price": 625.51,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 630.53,
+                "leg_end": 626.47,
+                "pb_point": 629.57
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 7,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 5,
+              "wedge_count": 10,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.3,
+                "avg_close_position": 0.5078,
+                "avg_body_ratio": 0.5535,
+                "bull_bars": 3,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "none",
+                "pct": 0.0891,
+                "leg_range": 38.48,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1h": {
+            "ai": "AIS",
+            "state": "TC",
+            "signal": "L1@626.3",
+            "momentum_fading": false,
+            "events": [
+              "signal_trigger:L1@626.3",
+              "state:TC",
+              "tr_edge:bottom",
+              "hl_signal:H4"
+            ],
+            "ab_ema": {
+              "mag_type": "bull_mag",
+              "first_pb_type": "none",
+              "first_pb_bars_ago": 0,
+              "ema_sr_valid": true
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "tr",
+              "nearest_support": 626.45,
+              "nearest_resistance": 628.72
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 646.33,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 620.84,
+                "leg_end": 638.45,
+                "pb_point": 628.72
+              },
+              "nearest_bear_target": {
+                "price": 622.66,
+                "type": "leg1_eq_leg2",
+                "direction": "down",
+                "leg_start": 652.22,
+                "leg_end": 633.03,
+                "pb_point": 641.85
+              }
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 11,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 15,
+              "wedge_count": 11,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.6,
+                "avg_close_position": 0.4339,
+                "avg_body_ratio": 0.4769,
+                "bull_bars": 6,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "none",
+                "pct": 0.0891,
+                "leg_range": 38.48,
+                "leg_direction": "down"
+              }
+            }
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "momentum_fading": false,
+            "events": [
+              "state:TR",
+              "ema_touch",
+              "first_pb:bear_pb",
+              "tr_edge:bottom"
+            ],
+            "ab_ema": {
+              "mag_type": "none",
+              "first_pb_type": "bear_pb",
+              "first_pb_bars_ago": 2,
+              "ema_sr_valid": false
+            },
+            "ab_sr": {
+              "tr_position": "bottom",
+              "trend_phase": "channel",
+              "nearest_support": 620.0,
+              "nearest_resistance": 627.085
+            },
+            "ab_mm": {
+              "nearest_bull_target": {
+                "price": 954.0,
+                "type": "leg1_eq_leg2",
+                "direction": "up",
+                "leg_start": 800.0,
+                "leg_end": 925.0,
+                "pb_point": 829.0
+              },
+              "nearest_bear_target": null
+            },
+            "ab_patterns": {
+              "latest_h": "H4",
+              "latest_h_bars_ago": 15,
+              "latest_l": "L4",
+              "latest_l_bars_ago": 17,
+              "wedge_count": 14,
+              "pressure": {
+                "direction": "neutral",
+                "bull_pct": 0.4,
+                "avg_close_position": 0.4516,
+                "avg_body_ratio": 0.3223,
+                "bull_bars": 4,
+                "total_bars": 10
+              },
+              "pb_depth": {
+                "depth": "deep",
+                "pct": 0.5318,
+                "leg_range": 100.62,
+                "leg_direction": "down"
+              }
+            }
+          }
+        }
+      },
+      "quick_scan": {
+        "5m": [
+          "state:BO",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "hl_signal:H3",
+          "wedge_or_mtr",
+          "state_change:TR->BO"
+        ],
+        "15m": [
+          "state:TR",
+          "ema_touch",
+          "tr_edge:bottom",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "1h": [
+          "signal_trigger:L1@626.3",
+          "state:TC",
+          "tr_edge:bottom",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "30m": [
+          "state:TR",
+          "ema_touch",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "4h": [
+          "state:TC",
+          "ema_touch",
+          "first_pb:bull_pb",
+          "pb_depth:too_deep",
+          "hl_signal:H4",
+          "wedge_or_mtr"
+        ],
+        "1d": [
+          "state:TR",
+          "ema_touch",
+          "first_pb:bear_pb",
+          "tr_edge:bottom",
+          "pb_depth:deep",
+          "hl_signal:H4"
+        ]
+      },
+      "chart_context": {
+        "chart_files": [
+          "BNBUSDT_1h_225218.png",
+          "BNBUSDT_15m_225217.png",
+          "BNBUSDT_5m_225217.png",
+          "BNBUSDT_1h_225009.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "SCAN",
+    "market_summary": "本轮仍不交易，但优先级继续维持ETHUSDT > BTCUSDT > BNBUSDT。核心变化是ETH的反弹重新增强并刷新近端触发，5分钟H1@1987.73、15分钟H2@1987.73同步出现，30分钟阳线也从1983.68进一步抬到1987.72，因此继续稳居第一；BTC仍只有15分钟H1@68002.9可用，30分钟反弹略有回吐，继续第二；BNB虽然30分钟也有反弹，但15分钟仍是TR、1小时仍留有L1@626.3空头残影，继续第三。三者统一LOG_ONLY。",
+    "focus_symbols": [
+      "ETHUSDT",
+      "BTCUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "thesis": "ETH继续第一，且本轮低周期反弹重新增强，是三者中最清晰的向上切换对象。",
+        "ai_direction": "AIL",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，ETH日线与4小时仍处于bear偏置下的TR环境，高周期没有转牛。精读最近20根，本轮最关键变化是低周期反弹重新增强：5分钟出现signal_trigger:H1@1987.73并处于BO，15分钟同步升级为H2@1987.73且处于TC，30分钟14:30阳线从上一轮1983.68进一步抬高到1987.72，说明反弹不只是高位停顿，而是重新获得了一次向上推动。与此同时，1小时仍只是TR而非AIL，因此这里仍属于TR内强反弹，而不是成熟趋势多头。按S2、S3与S6-channel，这意味着ETH当前是最强的反弹监控对象，但仍不能直接追多，必须等待1987.73上方继续接受并扩展到更高磁体，或等待回踩1985.46/1982.03后的失败再重判方向。",
+        "pre_signal": "BUY_WATCH：5分钟H1@1987.73、15分钟H2@1987.73同步，反弹重新增强；等待1987.73上方继续接受，或等待回踩1985.46/1982.03后的失败再重判。",
+        "key_levels": {
+          "support": [
+            1985.46,
+            1982.03,
+            1979.9,
+            1970.21
+          ],
+          "resistance": [
+            1987.73,
+            1989.57,
+            1991.9
+          ]
+        },
+        "refs": [
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-reversal.md",
+          "S6-channel.md",
+          "S6-bo.md"
+        ],
+        "priority": 9,
+        "align_score": 2,
+        "signal": "H1@1987.73",
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "BO",
+            "signal": "H1@1987.73",
+            "summary": null
+          },
+          "15m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "H2@1987.73",
+            "summary": null
+          },
+          "1h": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          }
+        },
+        "running_narrative": "ETH继续第一，且本轮低周期反弹重新增强，是三者中最清晰的向上切换对象。"
+      },
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 0,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "thesis": "BTC继续第二，反弹仍在，但没有像ETH那样刷新低周期触发。",
+        "ai_direction": "AIL",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，BTC日线仍处于bear偏置下的TR环境，4小时仍在EMA下方，高周期偏空背景不变。精读最近20根，本轮15分钟继续保留signal_trigger:H1@68002.9，说明68000整数位附近的反弹叙事仍未失效；但30分钟14:30收盘仅在67976.1，较上一轮67954.8略有回升，却仍明显低于68002.9与68005.3，说明关键磁体位上方还没有建立接受。5分钟继续只是TC/first_pb:bear_pb/tr_edge:top/pb_depth:too_deep，没有新的H1/H2；1小时仍是TR并伴随wedge_or_mtr，因此这里更像区间中轴反弹而不是趋势多头。按S2、S3与S6-channel，BTC继续第二，但处理上仍只能等待68002.9上方继续接受，或等待回落失守67984.1/67887.3后再重判。",
+        "pre_signal": "BUY_WATCH：15分钟H1@68002.9仍在，但关键磁体位上方仍未建立接受；等待68002.9上方继续接受，或等待回落失守67984.1/67887.3后再重判。",
+        "key_levels": {
+          "support": [
+            67984.1,
+            67887.3,
+            67795.0,
+            67572.5
+          ],
+          "resistance": [
+            68002.9,
+            68005.3,
+            68020.1,
+            68431.3
+          ]
+        },
+        "refs": [
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-reversal.md",
+          "S6-channel.md"
+        ],
+        "priority": 9,
+        "align_score": 2,
+        "signal": "H1@68002.9",
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "",
+            "summary": null
+          },
+          "15m": {
+            "ai": "AIL",
+            "state": "TC",
+            "signal": "H1@68002.9",
+            "summary": null
+          },
+          "1h": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          }
+        },
+        "running_narrative": "BTC继续第二，反弹仍在，但没有像ETH那样刷新低周期触发。"
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "consecutive_watching": 1,
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "thesis": "BNB继续第三，最低周期仍偏多，但更高一级没有完成向上切换。",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "structure_summary": "浏览约80根后，BNB日线仍处于bear偏置下的TR环境，4小时与1小时整体仍偏空。精读最近20根，本轮5分钟不再保留显式H2，只剩BO/first_pb:bear_pb/tr_edge:bottom/hl_signal:H3，说明最低周期反弹仍在但没有继续升级；15分钟继续是TR/ema_touch/tr_edge:bottom/hl_signal:H4，没有形成对应的15分钟H1/H2；1小时仍保留signal_trigger:L1@626.3，说明更高一级仍留有空头残影。30分钟14:30收在626.95，较上一轮626.84略有抬高，但离627.41高点仍有距离，说明反弹依旧只是TR内波动而非稳定上切。按S2、S3与S6-tr，BNB仍是三者中结构最杂的对象，只能等待627.41上方继续接受，或等待627.21/626.3附近再次失败后再重判。",
+        "pre_signal": "WATCH_ONLY：5分钟仍处BO但无新升级，15分钟继续TR、1小时仍留有L1@626.3空头残影；等待627.41上方继续接受，或等待627.21/626.3附近再次失败后再重判。",
+        "key_levels": {
+          "support": [
+            626.3,
+            625.59,
+            623.52
+          ],
+          "resistance": [
+            627.21,
+            627.33,
+            627.41,
+            662.0
+          ]
+        },
+        "refs": [
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-reversal.md",
+          "S6-channel.md",
+          "S6-bo.md"
+        ],
+        "priority": 9,
+        "align_score": 1,
+        "signal": "1h:L1@626.3",
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "state": "BO",
+            "signal": "",
+            "summary": null
+          },
+          "15m": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          },
+          "1h": {
+            "ai": "AIS",
+            "state": "TC",
+            "signal": "L1@626.3",
+            "summary": null
+          },
+          "1d": {
+            "ai": "TR",
+            "state": "TR",
+            "signal": "",
+            "summary": null
+          }
+        },
+        "running_narrative": "BNB继续第三，最低周期仍偏多，但更高一级没有完成向上切换。"
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "side": "BUY",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待低周期重新增强后的继续接受或失败确认",
+        "ai_direction": "AIL",
+        "market_state": "TR",
+        "signal_bar": "5分钟H1@1987.73、15分钟H2@1987.73同步，30分钟阳线进一步抬高",
+        "equation": "P=0.43 R=0.58 PxR=0.249",
+        "refs": [
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-reversal.md",
+          "S6-channel.md",
+          "S6-bo.md"
+        ],
+        "bar_reading": "ETH本轮重新增强，是最清晰的低周期向上切换对象，但1小时仍未同步，不能直接追多。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 等待1987.73上方继续接受并扩展，或等待回踩1985.46/1982.03后的失败再评估方向。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待68000整数位上方接受或失败确认",
+        "ai_direction": "AIL",
+        "market_state": "TR",
+        "signal_bar": "15分钟H1@68002.9仍在，但30分钟仍未站上关键磁体位",
+        "equation": "P=0.40 R=0.56 PxR=0.224",
+        "refs": [
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-channel.md",
+          "S6-reversal.md"
+        ],
+        "bar_reading": "BTC反弹叙事未坏，但没有像ETH那样刷新低周期触发，继续只能等待。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 等待68002.9上方继续接受，或等待回落失守67984.1/67887.3后再评估方向。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "side": "BOTH",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待TR内重新定向，不做中段追单",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "5分钟仍处BO但无新升级，15分钟继续TR，1小时仍保留L1@626.3",
+        "equation": "P=0.37 R=0.55 PxR=0.204",
+        "refs": [
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-reversal.md",
+          "S6-channel.md",
+          "S6-bo.md"
+        ],
+        "bar_reading": "BNB最低周期仍偏多，但更高一级未完成切换，当前仍是最杂的TR整理对象。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 等待627.41上方继续接受，或等待627.21/626.3附近再次失败后再重判方向。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 45,
+    "next_scan_reason": "ETH反弹重新增强并刷新近端触发，BTC仍在68000附近等待接受，BNB继续处于TR重定向阶段；未来1到2根5分钟K线内仍可能给出继续接受或再次失败，因此继续45秒复查。",
+    "state_patch": {
+      "best_candidate": "ETHUSDT",
+      "focus_symbols": [
+        "ETHUSDT",
+        "BTCUSDT",
+        "BNBUSDT"
+      ],
+      "pending_pre_signals": [
+        {
+          "symbol": "ETHUSDT",
+          "side": "BUY_WATCH",
+          "note": "5分钟H1@1987.73、15分钟H2@1987.73同步，反弹重新增强。",
+          "expires_hint": "若1987.73上方继续接受并扩展，则观察确认；若回踩1985.46/1982.03失败，则重新评估空头叙事。"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "side": "BUY_WATCH",
+          "note": "15分钟H1@68002.9仍在，但关键磁体位上方仍未建立接受。",
+          "expires_hint": "若68002.9上方继续接受，则观察确认；若回落失守67984.1/67887.3，则重新评估空头叙事。"
+        },
+        {
+          "symbol": "BNBUSDT",
+          "side": "WATCH_ONLY",
+          "note": "5分钟仍处BO但无新升级，15分钟继续TR、1小时仍留有L1@626.3空头残影。",
+          "expires_hint": "若627.41上方继续接受，则重新评估向上切换；若627.21/626.3附近再次失败，则可重新恢复空头观察。"
+        }
+      ],
+      "symbol_states": {
+        "ETHUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "ai_direction": "AIL"
+        },
+        "BTCUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "ai_direction": "AIL"
+        },
+        "BNBUSDT": {
+          "status": "watching",
+          "stage": "WATCH",
+          "market_state": "TR",
+          "ai_direction": "TR"
+        }
+      },
+      "quiet_loops": 0,
+      "decision_model": "openai-codex/gpt-5.4",
+      "needs_post_trade_refresh": false
+    },
+    "explanation": "本轮最关键的变化是ETH的低周期反弹重新增强，从上一轮的15分钟H1升级为5分钟H1与15分钟H2同步，因此继续稳居第一。BTC结构基本延续但没有新升级，BNB仍是TR内最杂对象，故排序继续维持ETH > BTC > BNB。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T14:53:18.411692+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 等待1987.73上方继续接受并扩展，或等待回踩1985.46/1982.03后的失败再评估方向。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T14:53:18.411730+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 等待68002.9上方继续接受，或等待回落失守67984.1/67887.3后再评估方向。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-07T14:53:18.411735+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 等待627.41上方继续接受，或等待627.21/626.3附近再次失败后再重判方向。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-07T14:54:03.442436+00:00",
+    "in_seconds": 45,
+    "reason_code": "ETH反弹重新增强并刷新近端触发，BTC仍在68000附近等待接受，BNB继续处于TR重定向阶段；未来1到2根5分钟K线内仍可能给出继续接受或再次失败，因此继续45秒复查。",
+    "reason_text": "ETH反弹重新增强并刷新近端触发，BTC仍在68000附近等待接受，BNB继续处于TR重定向阶段；未来1到2根5分钟K线内仍可能给出继续接受或再次失败，因此继续45秒复查。",
+    "derived_from_cycle": "cycle_20260307_225318",
+    "interruptible": true
+  }
+}

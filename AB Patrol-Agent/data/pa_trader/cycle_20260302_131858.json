@@ -1,0 +1,68 @@
+{
+  "loop_number": 37,
+  "timestamp": "2026-03-02T13:18:58Z",
+  "full_refresh": true,
+  "s_reads": [
+    "S2",
+    "S3",
+    "S3b",
+    "S5"
+  ],
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": "ema_touch, state_change",
+      "15m": "ema_touch",
+      "1h": "state_change"
+    },
+    "ETHUSDT": {
+      "5m": "ema_touch, tr_edge",
+      "15m": "momentum(bear)",
+      "1h": "momentum(3consec bears)"
+    },
+    "BNBUSDT": {
+      "5m": "ema_touch",
+      "15m": "ema_touch",
+      "1h": "ema_touch"
+    }
+  },
+  "audits": [
+    "CACHE_POSITION_MISMATCH: bot-summary 1pos vs API 0",
+    "CACHE_CORRECTED: BTC TR->Bear_Channel"
+  ],
+  "deep_analysis": {
+    "BTCUSDT": {
+      "direction": "AIS",
+      "state": "Bear_Channel",
+      "scenario_A": "L2 SHORT at EMA(55%)",
+      "decision": "PASS-WAIT PB不完整"
+    },
+    "ETHUSDT": {
+      "direction": "AIS",
+      "state": "Bear_Channel_strong",
+      "scenario_A": "等反弹到EMA做SHORT(50%)",
+      "decision": "PASS-WAIT 无边缘"
+    },
+    "BNBUSDT": {
+      "direction": "AIL",
+      "state": "Bull_Channel_TR",
+      "scenario_A": "H2 LONG at EMA PB(45%)",
+      "decision": "PASS-WAIT 不在买区"
+    }
+  },
+  "trades": [],
+  "passes": [
+    "PASS-RULE: ETH LONG R<1",
+    "PASS-RULE: ETH LONG fee kills TE",
+    "PASS-RULE: ETH SHORT at range bottom",
+    "PASS-RULE: BNB SHORT against AIL",
+    "PASS-WAIT: BTC L2 SHORT PB not complete",
+    "PASS-WAIT: ETH 等反弹",
+    "PASS-WAIT: BNB 不在买区"
+  ],
+  "pre_signals_active": {
+    "BTC": "L2 SHORT@66066",
+    "BNB": "H2 LONG@620.8"
+  },
+  "next_interval_minutes": 5,
+  "next_interval_reason": "ema_touch active + pre_signal forming"
+}

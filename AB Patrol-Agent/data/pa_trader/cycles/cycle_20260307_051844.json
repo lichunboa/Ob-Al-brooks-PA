@@ -1,0 +1,1046 @@
+{
+  "cycle_id": "cycle_20260307_051844",
+  "phase": "ENTRY_READY",
+  "time_utc": "2026-03-06T21:18:44.269045+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "ETHUSDT": {
+      "5m": [
+        "state:TC"
+      ]
+    },
+    "BTCUSDT": {
+      "5m": [
+        "state:BO"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "ENTRY_READY",
+    "summary": "存在 pre-signal / entry-ready 候选，进入评估与执行窗口。",
+    "full_refresh": false,
+    "focus_symbols": [
+      "ETHUSDT",
+      "BTCUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "stage": "SCAN",
+        "priority": 2,
+        "priority_score": 1,
+        "priority_note": "secondary_bear_pullback_watch",
+        "align_score": 4,
+        "daily_bias": "TR",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "market_state_detail": "Spike low 2085 HELD. BULL 97% bounce to 2090. Micro DB at spike low. Could become spike+channel. TBTL 3/10.",
+        "structure_summary": "Selloff 2161→2055. Strong bounce broke 5m EMA AND 15m EMA. At 2088.2 (new high). 15m EMA rejection FAILED — buyers in control. BC_post phase ending for ETH. Next: 1h EMA 2102.",
+        "running_narrative": "AIS/AIS/AIS/AIS",
+        "pre_signal": {
+          "type": "L2",
+          "timeframe": "5m",
+          "condition": "Quick scan detected L2 in state BO",
+          "signal_price": 2204.0,
+          "expires_at": "2026-03-06T14:57:11.785945+00:00",
+          "distance_atr": 0.774,
+          "created_at": "2026-03-06T14:27:11.785695+00:00"
+        },
+        "key_levels": {
+          "1h": {
+            "support": 2284.0,
+            "resistance": 2401.43,
+            "ema20": 2401.5398
+          },
+          "15m": {
+            "support": 2333.8,
+            "resistance": 2385.0,
+            "ema20": 2367.243
+          },
+          "5m": {
+            "support": 2333.78,
+            "resistance": 2371.0,
+            "ema20": 2361.4936
+          }
+        },
+        "entry_idea": {
+          "side": "SELL",
+          "entry_zone": "wait for failed rally under 1978-1988 or renewed break back below 1972/1956",
+          "sl_reference": "above 1988 then above 1994 if pullback extends",
+          "tp_reference": "1956 retest then continuation lower",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.45,
+          "r_estimate": 0.98,
+          "equation_value": 0.44,
+          "threshold_rhs": 0.55,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "1h与15m仍为空头背景，5m连续阴线后重新回到EMA下方，说明空头控制在恢复；但当前位置直接压到1978/1972支撑，手续费后R仍不足，继续等回抽到1978-1988下方失败。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 45,
+            "description": "Failed spike → sells back to 2080-2088. Shooting star = strong sell signal.",
+            "playbook": "wait",
+            "trigger": "Bear bar below 2088",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 30,
+            "description": "Consolidates 2088-2095. Absorbs spike, then decides.",
+            "playbook": "wait",
+            "trigger": "Overlapping bars 2088-2095",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "2nd push attempt toward 2120. Gap fill.",
+            "playbook": "wait",
+            "trigger": "Bull bar > 2095",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "AIS",
+            "ema20": 2296.064,
+            "atr14": 24.559,
+            "price": 2223.0
+          },
+          "15m": {
+            "ai": "AIS",
+            "ema20": 2335.7463,
+            "atr14": 40.8613,
+            "price": 2223.0
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 2351.906,
+            "atr14": 52.7332,
+            "price": 2223.0
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 2369.567,
+            "atr14": 86.7832,
+            "price": 2223.0
+          }
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_1h_041724.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_15m_041723.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_5m_041723.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/ETHUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "stage": "SCAN",
+        "priority": 1,
+        "priority_score": 0,
+        "priority_note": "best_candidate_if_reversal_confirms",
+        "align_score": 2,
+        "daily_bias": "TR",
+        "ai_direction": "AIS",
+        "market_state": "BO",
+        "market_state_detail": "BULL 100%. AT 15m EMA 71215! Testing resistance.",
+        "structure_summary": "BC 75300 → sell to 70635 → strong bounce broke 5m EMA (70951) and now AT 15m EMA (71335). 5 consecutive bull bars on 5m. BC_post phase ending. Next test: hold above 15m EMA or fail.",
+        "running_narrative": "AIL/AIL/TR/TR",
+        "pre_signal": {
+          "type": "H2",
+          "timeframe": "5m",
+          "condition": "Quick scan detected H2 in state TC",
+          "signal_price": 69969.4,
+          "expires_at": "2026-03-06T14:57:11.785823+00:00",
+          "distance_atr": 0.021,
+          "created_at": "2026-03-06T14:27:11.785695+00:00"
+        },
+        "key_levels": {
+          "1h": {
+            "support": 68744.5,
+            "resistance": 71621.4,
+            "ema20": 70959.4255
+          },
+          "15m": {
+            "support": 68744.5,
+            "resistance": 70627.6,
+            "ema20": 70429.4575
+          },
+          "5m": {
+            "support": 69167.0,
+            "resistance": 70535.6,
+            "ema20": 70192.6149
+          }
+        },
+        "entry_idea": {
+          "side": "SELL",
+          "entry_zone": "wait for failed rally under 68276-68650 or renewed break back below 68131/67734",
+          "sl_reference": "above 68650-68960 pullback resistance",
+          "tp_reference": "67734 retest then 67620",
+          "style": "Swing"
+        },
+        "evaluation": {
+          "p_estimate": 0.48,
+          "r_estimate": 1.18,
+          "equation_value": 0.57,
+          "threshold_rhs": 0.52,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "1h与15m继续偏空，5m重新压回EMA下方，空头背景最清楚；但价格仍贴近68011附近支撑，按S3b磁体与S5止损优先原则，此处追空会把止损放坏、把目标压缩，继续等更高位置的失败反抽。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "Tests 70635 and holds → TR 70635-71350",
+            "playbook": "TR1:BLSHS",
+            "trigger": "Bull bar at 70635-70700",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "Breaks 70635 → new low 70000 area",
+            "playbook": "wait",
+            "trigger": "Close < 70600",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "Range 70800-71100 consolidation",
+            "playbook": "wait",
+            "trigger": "Overlapping bars",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "ema20": 68932.6577,
+            "atr14": 659.1305,
+            "price": 69955.3
+          },
+          "15m": {
+            "ai": "AIL",
+            "ema20": 69532.6556,
+            "atr14": 1001.9474,
+            "price": 69951.1
+          },
+          "30m": {
+            "ai": "TR",
+            "ema20": 70106.3862,
+            "atr14": 1191.448,
+            "price": 69951.1
+          },
+          "1h": {
+            "ai": "TR",
+            "ema20": 70511.3075,
+            "atr14": 1365.2517,
+            "price": 69951.1
+          }
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-bo.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_1h_041726.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_15m_041726.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_5m_041726.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BTCUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "stage": null,
+        "priority": 3,
+        "priority_score": 2,
+        "priority_note": "watch_only_range_edge",
+        "align_score": 2,
+        "daily_bias": "TR",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "BULL 62%. Near 15m EMA. Recovering.",
+        "structure_summary": "BC selloff to 646.3. Strong bounce broke all lower EMAs. Above 15m EMA. Heading to 1h EMA 654 / bounce high 653.8. Strongest symbol.",
+        "running_narrative": "TR/TR/AIS/AIS",
+        "pre_signal": {
+          "type": "L1",
+          "timeframe": "5m",
+          "condition": "Quick scan detected L1 in state TR",
+          "signal_price": 631.7,
+          "expires_at": "2026-03-06T14:54:19.444431+00:00",
+          "distance_atr": 0.504,
+          "created_at": "2026-03-06T14:24:19.444032+00:00"
+        },
+        "key_levels": {
+          "swing_high": 665,
+          "bounce_high": 653.8,
+          "ema_1h": 653.75,
+          "ema_15m": 651.3,
+          "ema_5m": 650.5,
+          "swing_low": 646.3,
+          "round_number": 645
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "buy only nearer 626/624.8 support with confirmation or sell only after a clear failure from 629.8-631.7 resistance",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.5,
+          "r_estimate": 0.92,
+          "equation_value": 0.46,
+          "threshold_rhs": 0.5,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "5m与15m持续围绕EMA来回穿越，仍是标准TR。当前位置不在区间上下1/3边缘，也没有清晰反转K线，按S6-tr继续观望。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "Holds 15m EMA 651 area. Strongest of 3, could lead recovery.",
+            "playbook": "wait",
+            "trigger": "Bull bar at 651 area",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "Breaks below 15m EMA → follows BTC/ETH selling.",
+            "playbook": "T2:L2",
+            "trigger": "Bear bar < 650.5",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "TR 647-653 established.",
+            "playbook": "TR1:BLSHS",
+            "trigger": "Range bars between 648-653",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "TR",
+            "ema20": 641.6907,
+            "atr14": 12.507,
+            "price": 639.2
+          },
+          "15m": {
+            "ai": "TR",
+            "ema20": 643.6418,
+            "atr14": 15.5392,
+            "price": 639.2
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 646.048,
+            "atr14": 17.6945,
+            "price": 639.2
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 649.0147,
+            "atr14": 20.247,
+            "price": 639.2
+          }
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_1h_041731.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_15m_041731.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_5m_041730.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BNBUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "ENTRY_READY",
+    "market_summary": "本轮仍然不下单。BTC虽然仍是三者里最接近机会的品种，但5m已经从先前的空头延续转成对70635一带支撑的测试，5m与15m转为AIL而30m和1h仍偏TR，属于小周期反弹撞进大周期中性区，方向分裂，不能再按前几轮的直接空头延续处理；ETH仍是全周期AIS，但价格已经直接压到支撑前方，做空的空间被磁体吃掉；BNB继续是5m/15m的TR，中间区域没有BLSHS优势。再加上trade_readiness仍为blocked且can_trade未确认，本轮继续记录等待。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "daily_bias": "tr",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "entry_ready_blocked",
+        "trade": null,
+        "pre_signal": "等待70635被有效跌破，或等待更高位置出现失败反抽后的L2空头。",
+        "ai_direction": "AIS",
+        "market_state": "BO",
+        "market_state_detail": "大级别仍是卖压后的反弹测试，但5m/15m已出现对70635支撑的守住与EMA上方控场，30m/1h仍偏TR，当前更像区间内的反弹腿而非可直接追击的新空头。",
+        "consecutive_watching": 0,
+        "last_price": 69955.3,
+        "ema20": 71902,
+        "atr14": 961,
+        "ema20_5m": 68932.6577,
+        "atr14_5m": 659.1305,
+        "ema20_15m": 71280,
+        "atr14_15m": 354,
+        "structure_summary": "80根结构显示75300后的主跌段仍主导背景，但70635附近是清晰支撑磁体；最近20根里5m连续反弹后站上EMA，15m也转强，说明当前先进入下沿支撑到中部回拉的区间段。若后续在更高位失败，空头才重新有结构优势。",
+        "running_narrative": "5m与15m短线多头反弹占优，但30m与1h仍偏中性到偏空的大区间背景。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "BC",
+          "score": 6,
+          "gap_status": "open_bearish",
+          "bars_since_climax": 14,
+          "tbtl_countdown": 10
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "70635继续守住，价格在70635-71350之间演变为TR，下沿反弹延续。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "在70635附近出现继续承接并维持在其上方",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "重新跌破70635并收在其下，空头恢复，开始测试70000区域。",
+            "playbook": "wait",
+            "trigger": "收盘重新跌回70600下方并出现跟随",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "70800-71100之间继续重叠，形成中部震荡等待方向。",
+            "playbook": "wait",
+            "trigger": "连续重叠K线、缺乏跟随",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "1h": {
+            "support": 68744.5,
+            "resistance": 71621.4,
+            "ema20": 70959.4255
+          },
+          "15m": {
+            "support": 68744.5,
+            "resistance": 70627.6,
+            "ema20": 70429.4575
+          },
+          "5m": {
+            "support": 69167.0,
+            "resistance": 70535.6,
+            "ema20": 70192.6149
+          }
+        },
+        "updated_at": "2026-03-06T20:36:38.772144+00:00",
+        "source_cycle_id": "cycle_20260307_043638",
+        "last_signal": "H2@69969.4",
+        "last_quick_scan_state": "TC",
+        "stage": "ENTRY_READY",
+        "updated_by": "heuristic_provider",
+        "align_score": 2,
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "ema20": 68932.6577,
+            "atr14": 659.1305,
+            "price": 69955.3
+          },
+          "15m": {
+            "ai": "AIL",
+            "ema20": 69532.6556,
+            "atr14": 1001.9474,
+            "price": 69951.1
+          },
+          "30m": {
+            "ai": "TR",
+            "ema20": 70106.3862,
+            "atr14": 1191.448,
+            "price": 69951.1
+          },
+          "1h": {
+            "ai": "TR",
+            "ema20": 70511.3075,
+            "atr14": 1365.2517,
+            "price": 69951.1
+          }
+        },
+        "priority": 1,
+        "signal": "",
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "做空仅在反抽到70430-70630一带失败，或重新有效跌回70635/70000下方；做多也只可视为TR下沿反弹，不是当前任务。",
+          "sl_reference": "若后续做空，止损需放在70630上方到70960外侧；当前不追。",
+          "tp_reference": "空头若重获控场，先看70000再看68744支撑。",
+          "style": "Swing"
+        },
+        "evaluation": {
+          "p_estimate": 0.48,
+          "r_estimate": 1.18,
+          "equation_value": 0.57,
+          "threshold_rhs": 0.52,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-bo.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ],
+        "thesis": "浏览结构后可见BTC大级别仍处卖压后的反弹段，但近20根里5m与15m已转成AIL，说明70635附近先出现了支撑测试与反弹控场；同时30m与1h仍是TR，当前价格位于大级别中性区而非优质做空位。按S2多周期矩阵与S3b磁体过滤，此时不能追空，也没有形成高质量顺势做多。",
+        "priority_note": "最佳候选但需等待70635失守或更高位失败反抽",
+        "priority_score": 0
+      },
+      "ETHUSDT": {
+        "daily_bias": "tr",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "entry_ready_blocked",
+        "trade": null,
+        "pre_signal": "等待回抽到1978-1988下方失败，或等待有效跌破1972后再看是否有足够跟随。",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "market_state_detail": "全周期保持空头控场，但当前运行在近支撑前的通道下沿，空头位置不再优秀。",
+        "consecutive_watching": 0,
+        "last_price": 2223.0,
+        "ema20": 2102,
+        "atr14": 34,
+        "ema20_5m": 2296.064,
+        "atr14_5m": 24.559,
+        "ema20_15m": 2081.8,
+        "atr14_15m": 11.8,
+        "structure_summary": "80根结构仍是2161以来的主跌段；最近20根里反弹未能改变EMA压制，价格继续在各级EMA下方运行，但当前已贴近前方支撑磁体。",
+        "running_narrative": "空头背景完整，短线仍由空头掌控，但已进入支撑前的真空尾段。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "SC",
+          "score": 3,
+          "gap_status": "no_gap",
+          "bars_since_climax": 3,
+          "tbtl_countdown": 7
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 45,
+            "description": "回抽到1978-1988下方失败，形成更好的二次空头。",
+            "playbook": "wait",
+            "trigger": "反弹后出现阴线收回并失守前一根低点",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 30,
+            "description": "直接在1972附近横住，先演化成小TR后再选择方向。",
+            "playbook": "wait",
+            "trigger": "连续重叠K线围绕1972-1980震荡",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "支撑先守住，出现更深反抽到更高阻力区。",
+            "playbook": "wait",
+            "trigger": "强多头K线重回1988上方",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "1h": {
+            "support": 2284.0,
+            "resistance": 2401.43,
+            "ema20": 2401.5398
+          },
+          "15m": {
+            "support": 2333.8,
+            "resistance": 2385.0,
+            "ema20": 2367.243
+          },
+          "5m": {
+            "support": 2333.78,
+            "resistance": 2371.0,
+            "ema20": 2361.4936
+          }
+        },
+        "updated_at": "2026-03-06T20:36:38.772337+00:00",
+        "source_cycle_id": "cycle_20260307_043638",
+        "last_signal": "L2@2204.0",
+        "last_quick_scan_state": "BO",
+        "align_score": 4,
+        "timeframes": {
+          "5m": {
+            "ai": "AIS",
+            "ema20": 2296.064,
+            "atr14": 24.559,
+            "price": 2223.0
+          },
+          "15m": {
+            "ai": "AIS",
+            "ema20": 2335.7463,
+            "atr14": 40.8613,
+            "price": 2223.0
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 2351.906,
+            "atr14": 52.7332,
+            "price": 2223.0
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 2369.567,
+            "atr14": 86.7832,
+            "price": 2223.0
+          }
+        },
+        "stage": "ENTRY_READY",
+        "updated_by": "heuristic_provider",
+        "priority": 2,
+        "signal": "",
+        "entry_idea": {
+          "side": "SELL",
+          "entry_zone": "等待回抽至1978-1988下方失败，或重新跌破1972/1956并有跟随。",
+          "sl_reference": "1988上方，若回抽更深则放到1994外侧。",
+          "tp_reference": "先看1956，再看更低延续。",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.45,
+          "r_estimate": 0.98,
+          "equation_value": 0.44,
+          "threshold_rhs": 0.55,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ],
+        "thesis": "80根结构与近20根细读都显示ETH仍是最干净的AIS背景，5m/15m/30m/1h全部在EMA下方；但当前价已直接压到1978/1972一带近支撑，S3b磁体说明这里继续追空会让目标先撞支撑、把手续费后R压到Scalp门槛之下，因此继续等回抽失败。",
+        "priority_note": "次级空头回抽观察",
+        "priority_score": 1
+      },
+      "BNBUSDT": {
+        "daily_bias": "tr",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "entry_ready_blocked",
+        "pre_signal": "等待价格到647下沿承接或652-654上沿失败后再评估。",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "小周期为标准交易区间，中部拉锯明显；更高周期虽偏空，但当前未给出边缘优势。",
+        "consecutive_watching": 1,
+        "last_price": 639.2,
+        "ema20": 654.0,
+        "atr14": 5.5,
+        "ema20_5m": 641.6907,
+        "atr14_5m": 12.507,
+        "ema20_15m": 651.3,
+        "atr14_15m": 2.42,
+        "structure_summary": "80根浏览可见646.3以来的反弹未改变更大级别卖压，但最近20根集中表现为EMA附近往返、上下影增多、重叠加剧，是典型TR行为。",
+        "running_narrative": "5m与15m均衡拉锯，30m和1h偏空但未转化成可执行的小周期边缘信号。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "BC",
+          "score": 4,
+          "gap_status": "partially_closing",
+          "bars_since_climax": 14,
+          "tbtl_countdown": 10
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "继续在647-653之间运行，维持TR。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "边缘出现清晰反转K",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "跌破647后跟随BTC/ETH转弱，但需先确认不是假破。",
+            "playbook": "wait",
+            "trigger": "连续阴线有效跌破647并有跟随",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "回到652-654一带后受阻，再给顶部做空机会。",
+            "playbook": "wait",
+            "trigger": "上沿出现失败反抽阴线",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "swing_high": 665,
+          "bounce_high": 653.8,
+          "ema_1h": 653.75,
+          "ema_15m": 651.3,
+          "ema_5m": 650.5,
+          "swing_low": 646.3,
+          "round_number": 645
+        },
+        "updated_at": "2026-03-06T20:36:38.772350+00:00",
+        "source_cycle_id": "cycle_20260307_043638",
+        "last_signal": null,
+        "last_quick_scan_state": "TR",
+        "align_score": 2,
+        "timeframes": {
+          "5m": {
+            "ai": "TR",
+            "ema20": 641.6907,
+            "atr14": 12.507,
+            "price": 639.2
+          },
+          "15m": {
+            "ai": "TR",
+            "ema20": 643.6418,
+            "atr14": 15.5392,
+            "price": 639.2
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 646.048,
+            "atr14": 17.6945,
+            "price": 639.2
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 649.0147,
+            "atr14": 20.247,
+            "price": 639.2
+          }
+        },
+        "priority": 3,
+        "signal": "",
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "只在更接近647/645支撑承接，或652-654阻力失败时考虑TR交易。",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.5,
+          "r_estimate": 0.92,
+          "equation_value": 0.46,
+          "threshold_rhs": 0.5,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md",
+          "S7-management.md"
+        ],
+        "thesis": "80根结构显示BNB在更大级别仍受压，但近20根里5m与15m是典型TR：反复穿EMA、上下重叠、缺少连续跟随。虽然30m和1h偏AIS，但当前5m/15m没有位于区间上沿或下沿，按S6-tr中间1/3不做。",
+        "priority_note": "区间观察，不在边缘",
+        "priority_score": 2,
+        "stage": "WATCH"
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待支撑失守或更高位失败反抽后再空",
+        "ai_direction": "AIS",
+        "market_state": "BO",
+        "signal_bar": "近20根里5分钟在70635附近先出现承接并回到EMA上方，短线不是继续下压的信号K。",
+        "equation": "P=0.48 R=1.18 PxR=0.57",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-bo.md",
+          "S6-channel.md"
+        ],
+        "bar_reading": "80根结构仍偏空，但近20根显示70635支撑先守住，5m与15m转强而30m与1h仍中性，当前是区间支撑反弹腿，不是优质空头执行位。",
+        "order_type": "STOP_MARKET",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 大背景偏空，但短线先守住支撑并转成反弹段，等待70635失守或更高位失败反抽后再空。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待回抽失败再空",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "signal_bar": "近20根仍在EMA下方运行，但当前位置已压到1978/1972支撑前。",
+        "equation": "P=0.45 R=0.98 PxR=0.44",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md"
+        ],
+        "bar_reading": "ETH的多周期空头最完整，但也正因为如此，价格已经走到近支撑磁体前。此处继续追空，手续费后R不足，必须等回抽给出更好的止损与目标结构。",
+        "order_type": "STOP_MARKET",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 空头背景完整，但已贴近支撑且扣费后R不足，等待回抽失败后的二次空头。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "TR边缘等待",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "近20根围绕EMA反复重叠，没有上沿反转也没有下沿承接完成。",
+        "equation": "P=0.50 R=0.92 PxR=0.46",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md"
+        ],
+        "bar_reading": "BNB当前5m与15m仍是标准TR，小周期没有到边缘，按TR规则中间1/3不做；30m与1h偏空也不足以覆盖当前执行位差。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "[PASS-RULE] TR中部拉锯，无边缘优势，且扣费后R不足。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "当前无持仓；BTC需要等待70635失守或更高位失败反抽，ETH等待支撑前回抽失败，BNB继续等TR边缘，同时trade_readiness仍blocked且can_trade未确认，2分钟后复查。",
+    "state_patch": {
+      "BTCUSDT": {
+        "status": "entry_ready_blocked",
+        "stage": "ENTRY_READY",
+        "last_pass_reason": "短线先守住支撑并转成反弹段，等待更优空头位置",
+        "running_narrative": "小周期反弹对抗大级别空头，暂不追空"
+      },
+      "ETHUSDT": {
+        "status": "entry_ready_blocked",
+        "stage": "ENTRY_READY",
+        "last_pass_reason": "贴近支撑且R不足",
+        "running_narrative": "全周期偏空，但已进入支撑前真空尾段"
+      },
+      "BNBUSDT": {
+        "status": "entry_ready_blocked",
+        "stage": "WATCH",
+        "last_pass_reason": "TR中部无优势",
+        "running_narrative": "继续围绕EMA震荡，等待区间边缘"
+      },
+      "_meta": {
+        "last_cycle_decision": "NO_TRADE",
+        "last_evaluation_phase": "ENTRY_READY"
+      }
+    },
+    "explanation": "本轮严格按80根浏览与20根精读后，三品种仍都不满足执行条件。BTC最大的变化是不能再简单按前几轮当作直接空头延续，而应视作70635附近支撑后的区间反弹腿；ETH仍是空头但位置太差；BNB仍是TR中部。再叠加执行门未确认，只能继续LOG_ONLY。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:18:44.264394+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 大背景偏空，但短线先守住支撑并转成反弹段，等待70635失守或更高位失败反抽后再空。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:18:44.264431+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 空头背景完整，但已贴近支撑且扣费后R不足，等待回抽失败后的二次空头。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:18:44.264434+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-RULE] TR中部拉锯，无边缘优势，且扣费后R不足。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-06T21:20:44.266451+00:00",
+    "in_seconds": 120,
+    "reason_code": "当前无持仓；BTC需要等待70635失守或更高位失败反抽，ETH等待支撑前回抽失败，BNB继续等TR边缘，同时trade_readiness仍blocked且can_trade未确认，2分钟后复查。",
+    "reason_text": "当前无持仓；BTC需要等待70635失守或更高位失败反抽，ETH等待支撑前回抽失败，BNB继续等TR边缘，同时trade_readiness仍blocked且can_trade未确认，2分钟后复查。",
+    "derived_from_cycle": "cycle_20260307_051844",
+    "interruptible": true
+  }
+}

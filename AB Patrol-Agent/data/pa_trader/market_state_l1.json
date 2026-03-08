@@ -1,0 +1,564 @@
+{
+  "last_update": "2026-03-08T20:08:26.702001+00:00",
+  "loop_count": 703,
+  "last_full_refresh": "2026-03-08T19:42:07.484969+00:00",
+  "total_signals": 4,
+  "total_trades": 8,
+  "total_passes": 24,
+  "symbols": {
+    "BTCUSDT": {
+      "daily_bias": {
+        "bias": "偏空",
+        "state": "宽幅区间",
+        "source": "当轮刷新",
+        "note": "日线仍不是强多，因此任何多头都只能在更清晰的接受后重建。"
+      },
+      "daily_bias_expires": "2026-03-08T00:00:00Z",
+      "status": "watching",
+      "consecutive_watching": 2,
+      "stage": "WAIT_REBUILD_AFTER_FAILED_CONTINUATION",
+      "last_pass_reason": "[PASS-WAIT] 当前贴着 67785.7-68005.8 阻力带，等待失败反弹或 66582.1 下方接受。",
+      "event_tags": [
+        "state:BO",
+        "tr_edge:top",
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "state_change:5m BO / 15m TC / 1h TR / 1d TR偏空->BO",
+        "cached_pre_signal",
+        "state:TC",
+        "first_pb:bear_pb",
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
+      "planned_trade": {
+        "side": "BUY",
+        "entry_price": null,
+        "entry_zone": [
+          67246.7,
+          67393.6
+        ],
+        "entry_zone_label": "",
+        "stop_loss": 67143.0,
+        "take_profit": null,
+        "style": "Scalp",
+        "order_type": "STOP_MARKET",
+        "risk_percent": 0.3,
+        "invalid_if": "继续运行在 1h EMA 下方并出现更多 bear follow-through"
+      },
+      "trade": {
+        "status": "flat",
+        "style": "未入场",
+        "intent": "等待结构重建",
+        "risk_percent": 0.0
+      },
+      "thesis": "BTC 原有的小级别顺势 continuation 候选已经明显减弱。30m bear 停顿扩大且 1h 回到 EMA 下方，旧的 stop-entry 多单 thesis 需要撤销，等待新的结构重建。",
+      "ai_direction": {
+        "5m": "AIL",
+        "15m": "AIL",
+        "1h": "TR 偏空",
+        "1d": "TR 偏空",
+        "overall": "小级别仍在高位，但高周期接受已变差",
+        "confidence": "中等"
+      },
+      "market_state": "5m BO / 15m TC / 1h TR / 1d TR偏空",
+      "market_state_detail": "5m 仍在 EMA 上方，但 30m 最新 bear bar 扩大，1h 已回到 EMA 下方，说明 continuation 从推进转入失去接受。",
+      "structure_summary": {
+        "browse80": "浏览 80 根后，BTC 仍是大级别偏空背景中的反抽腿。",
+        "close20": "近 20 根里两根 bull bar 之后，最新 30m bear 停顿变大，且 1h 回到 EMA 下方。",
+        "pressure": "买压不再扩张，旧多头 premise 明显变弱。",
+        "debate": {
+          "bull_case": [
+            "5m 仍在 EMA 上方，短线并未直接转空。",
+            "15m pb_depth 仍是 shallow，尚未完全破坏结构。"
+          ],
+          "bear_case": [
+            "1h 已跌回 EMA 下方，说明上方接受失败。",
+            "30m bear 停顿扩大，继续保留旧 long trigger 属于延迟追价。"
+          ],
+          "verdict": "旧多头候选失效，退回观察。"
+        }
+      },
+      "pre_signal": {
+        "active": false,
+        "side": "BUY",
+        "condition": "等待新的 H1/H2 或重新站上 1h EMA 后再评估",
+        "signal_price": 67393.6,
+        "reason": "原多头 trigger 已过时，不能继续沿用。"
+      },
+      "key_levels": {
+        "current_price": 67225.7,
+        "ema20_5m": 67129.21,
+        "ema20_15m": 67097.94,
+        "ema20_1h": 67246.7,
+        "signal_high": 67393.6,
+        "signal_low": 67143.4,
+        "daily_high": 68153.9,
+        "daily_low": 66582.1,
+        "note": "67246.7 为 1h EMA；当前已在其下方，旧 trigger 67393.6 失去即时性。"
+      },
+      "entry_idea": {
+        "side": "BUY",
+        "style": "Scalp",
+        "playbook": "旧 continuation 候选已取消",
+        "order_type": "STOP_MARKET",
+        "premise": "需要新的上破和重新接受，才能恢复顺势多头。",
+        "not_now": "当前没有新的 bull signal，且旧 premise 已明显变弱。"
+      },
+      "evaluation": {
+        "verdict": "PASS-RULE",
+        "style": "Scalp",
+        "p_estimate_on_old_trigger": 0.48,
+        "r_estimate_on_old_trigger": 1.5,
+        "traders_equation": "旧 trigger 的数学不再关键，问题在于前提失效而不是公式不足",
+        "reason": "旧的 continuation premise 已改变，按规则应撤销，而不是延迟执行。"
+      },
+      "scenarios": [
+        {
+          "name": "场景A",
+          "probability": "中等",
+          "description": "重新站回 1h EMA 上方并出现新的 H1/H2",
+          "trigger": "新的 bull signal",
+          "action": "重新建立 long candidate",
+          "style": "Scalp"
+        },
+        {
+          "name": "场景B",
+          "probability": "中等",
+          "description": "继续在 1h EMA 下方走弱",
+          "trigger": "15m/30m bear pressure 持续",
+          "action": "继续观察，不抢反转",
+          "style": "观察"
+        }
+      ],
+      "refs": [
+        "C0-foundations.md",
+        "C5-step5-dynamic-timing.md",
+        "C2-triggers-and-reversal-taxonomy.md",
+        "C3-style-equation-and-order-planning.md",
+        "S0-daily-bias.md",
+        "S1-reading.md",
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-bo.md",
+        "S6-channel.md",
+        "S6-tr.md",
+        "S6-reversal.md"
+      ],
+      "priority": 9,
+      "align_score": 2,
+      "signal": "",
+      "timeframes": {
+        "5m": {
+          "ai": "AIL",
+          "state": "BO",
+          "signal": "",
+          "summary": null
+        },
+        "15m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "",
+          "summary": null
+        },
+        "1h": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        },
+        "1d": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        }
+      },
+      "running_narrative": "BTC 原有的小级别顺势 continuation 候选已经明显减弱。30m bear 停顿扩大且 1h 回到 EMA 下方，旧的 stop-entry 多单 thesis 需要撤销，等待新的结构重建。",
+      "pre_signal_meta": {
+        "timeframe": "1h",
+        "created_at": "2026-03-08T20:08:26.702126+00:00",
+        "expires_at": "2026-03-08T23:08:26.702126+00:00",
+        "extended_once": false
+      },
+      "updated_at": "2026-03-08T20:08:26.702264+00:00",
+      "source_cycle_id": "cycle_20260309_040826"
+    },
+    "ETHUSDT": {
+      "daily_bias": {
+        "bias": "偏空",
+        "state": "通道",
+        "source": "当轮刷新",
+        "note": "日线仍在 Bear Channel 中，所以多头只能先按 Scalp，不按 Swing。"
+      },
+      "daily_bias_expires": "2026-03-08T00:00:00Z",
+      "status": "candidate",
+      "consecutive_watching": 6,
+      "stage": "WAIT_RETRIGGER_OR_CANCEL",
+      "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+      "event_tags": [
+        "state:TC",
+        "tr_edge:top",
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "state_change:5m TC / 15m TC / 1h TR / 1d Bear Channel->TC",
+        "cached_pre_signal",
+        "stale:consecutive_watching",
+        "state:TC",
+        "first_pb:bear_pb",
+        "pb_depth:normal",
+        "hl_signal:H4"
+      ],
+      "planned_trade": {
+        "side": "BUY",
+        "entry_price": 1966.1,
+        "entry_zone": [
+          1966.08,
+          1966.3
+        ],
+        "entry_zone_label": "",
+        "stop_loss": 1957.0,
+        "take_profit": 1979.7,
+        "style": "Scalp",
+        "order_type": "STOP_MARKET",
+        "risk_percent": 0.3,
+        "invalid_if": "15m 明确跌回 1951.72 下方并出现 bear follow-through"
+      },
+      "last_signal_reason": "5m L2、15m L2、1h L1 空头方向一致，当前可按 Scalp 执行。",
+      "trade": {
+        "status": "planned_trade",
+        "style": "Scalp",
+        "intent": "NEW_ENTRY",
+        "risk_percent": 0.3
+      },
+      "thesis": "ETH 的结构仍是三者中最整齐的顺势候选，但本轮 30m 同样出现 bear 停顿，没有新的上破 trigger，所以继续等待，不执行。",
+      "ai_direction": {
+        "5m": "AIL",
+        "15m": "AIL",
+        "1h": "TR",
+        "1d": "AIS",
+        "overall": "小级别偏多，但高周期仍偏空",
+        "confidence": "中等"
+      },
+      "market_state": "5m TC / 15m TC / 1h TR / 1d Bear Channel",
+      "market_state_detail": "5m 与 15m 仍在 EMA 上方，但 30m 最新也变成 bear 停顿，说明当前只适合保留候选，不适合追价。",
+      "structure_summary": {
+        "browse80": "浏览 80 根后，ETH 仍在日线熊通道里的反抽腿中。",
+        "close20": "近 20 根里结构仍完整，但最新 30m 已从推进变成停顿。",
+        "pressure": "买压仍在，但没有新的扩张。",
+        "debate": {
+          "bull_case": [
+            "15m 仍在 EMA 上方，结构比 BTC 更整齐。",
+            "1h 仍在 EMA 上方，尚未像 BTC 一样失去接受。"
+          ],
+          "bear_case": [
+            "30m 已出现 bear 停顿，没有新的 bull trigger。",
+            "当前位置仍靠近顶部磁体，追价不优。"
+          ],
+          "verdict": "继续保留候选，但只等再触发。"
+        }
+      },
+      "pre_signal": {
+        "active": true,
+        "side": "BUY",
+        "condition": "重新上破 1966.08 并恢复 follow-through",
+        "signal_price": 1966.08,
+        "reason": "旧的多头 thesis 还没被完全破坏，但需要新的 trigger。"
+      },
+      "key_levels": {
+        "current_price": 1959.41,
+        "ema20_5m": 1951.41,
+        "ema20_15m": 1945.6,
+        "ema20_1h": 1951.72,
+        "signal_high": 1966.08,
+        "signal_low": 1957.0,
+        "daily_high": 1986.42,
+        "daily_low": 1926.77,
+        "note": "1966.08 是旧 trigger；1951.72 为当前接受分界线。"
+      },
+      "entry_idea": {
+        "side": "BUY",
+        "style": "Scalp",
+        "playbook": "continuation 候选",
+        "order_type": "STOP_MARKET",
+        "premise": "只有重新突破顶部并恢复跟随，当前多头 continuation 才值得执行。",
+        "not_now": "本轮没有新的 trigger，且 30m 已先停顿。"
+      },
+      "evaluation": {
+        "verdict": "PASS-WAIT",
+        "style": "Scalp",
+        "p_estimate_on_trigger": 0.52,
+        "r_estimate_on_trigger": 1.5,
+        "fee_adjusted_r": 1.44,
+        "traders_equation": "0.52 × 1.44 = 0.75 > 0.48，但前提是重新触发",
+        "reason": "结构仍可交易，但本轮没有执行时机。"
+      },
+      "scenarios": [
+        {
+          "name": "场景A",
+          "probability": "中等",
+          "description": "重新上破 1966.08 并恢复 bull follow-through",
+          "trigger": "5m/15m 再次突破顶部",
+          "action": "恢复为可执行多单",
+          "style": "Scalp"
+        },
+        {
+          "name": "场景B",
+          "probability": "中等",
+          "description": "跌回 1h EMA 下方并走弱",
+          "trigger": "15m/30m bear pressure 持续",
+          "action": "取消多头候选，退回观察",
+          "style": "观察"
+        }
+      ],
+      "refs": [
+        "C0-foundations.md",
+        "C5-step5-dynamic-timing.md",
+        "C3-style-equation-and-order-planning.md",
+        "S0-daily-bias.md",
+        "S1-reading.md",
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md",
+        "S6-bo.md",
+        "S6-tr.md",
+        "S6-reversal.md"
+      ],
+      "priority": 9,
+      "align_score": 2,
+      "signal": "",
+      "timeframes": {
+        "5m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "",
+          "summary": null
+        },
+        "15m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "",
+          "summary": null
+        },
+        "1h": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        },
+        "1d": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        }
+      },
+      "running_narrative": "ETH 的结构仍是三者中最整齐的顺势候选，但本轮 30m 同样出现 bear 停顿，没有新的上破 trigger，所以继续等待，不执行。",
+      "pre_signal_meta": {
+        "timeframe": "30m",
+        "created_at": "2026-03-08T20:08:26.702297+00:00",
+        "expires_at": "2026-03-08T21:38:26.702297+00:00",
+        "extended_once": false
+      },
+      "updated_at": "2026-03-08T20:08:26.702331+00:00",
+      "source_cycle_id": "cycle_20260309_040826"
+    },
+    "BNBUSDT": {
+      "daily_bias": {
+        "bias": "偏空",
+        "state": "宽幅区间",
+        "source": "当轮刷新",
+        "note": "日线宽幅区间偏空，当前 BO 只能视作强反抽，不是高质量新趋势。"
+      },
+      "daily_bias_expires": "2026-03-08T00:00:00Z",
+      "status": "pre_signal",
+      "consecutive_watching": 4,
+      "stage": "WAIT_MINOR_REVERSAL_AFTER_EXTENSION",
+      "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+      "event_tags": [
+        "state:BO",
+        "tr_edge:top",
+        "pb_depth:shallow",
+        "hl_signal:H3",
+        "wedge_or_mtr",
+        "state_change:5m BO / 15m TC / 1h TR / 1d TC偏空->BO",
+        "cached_pre_signal",
+        "state:TC",
+        "first_pb:bear_pb",
+        "pb_depth:too_deep",
+        "hl_signal:H4",
+        "wedge_or_mtr"
+      ],
+      "last_signal_reason": "5m L2、15m L1、1h 空头方向一致，当前可按 Scalp 执行。",
+      "planned_trade": {
+        "side": "SELL",
+        "entry_price": null,
+        "entry_zone": [
+          619.0,
+          619.3
+        ],
+        "entry_zone_label": "",
+        "stop_loss": 620.3,
+        "take_profit": 617.4,
+        "style": "反转试探",
+        "order_type": "STOP_MARKET",
+        "risk_percent": 0.3,
+        "invalid_if": "继续高位被接受并出现 bull follow-through"
+      },
+      "trade": {
+        "status": "flat",
+        "style": "未入场",
+        "intent": "等待顶部失败",
+        "risk_percent": 0.0
+      },
+      "thesis": "BNB 仍最像高位延伸后的停顿，而不是舒服的 continuation。顶部失败观察继续保留。",
+      "ai_direction": {
+        "5m": "AIL",
+        "15m": "AIL",
+        "1h": "TR",
+        "1d": "AIS",
+        "overall": "短线偏多，但高周期不支持追价",
+        "confidence": "中等"
+      },
+      "market_state": "5m BO / 15m TC / 1h TR / 1d TC偏空",
+      "market_state_detail": "5m 仍高位运行，15m 仍缺舒服的顺势入场点，当前位置继续更适合观察顶部失败。",
+      "structure_summary": {
+        "browse80": "浏览 80 根后，BNB 仍是高周期偏空背景中的反抽。",
+        "close20": "近 20 根里仍贴着 619 顶部磁体，高位延伸特征明显。",
+        "pressure": "买压还在，但没有新的舒服多头切入点。",
+        "debate": {
+          "bull_case": [
+            "5m 仍在 BO 状态，且价格仍在 EMA 上方。",
+            "15m 没有直接破坏短线多头。"
+          ],
+          "bear_case": [
+            "15m 仍太深，继续追多不优。",
+            "当前位置仍更适合等待顶部失败。"
+          ],
+          "verdict": "继续保持反转试探观察，不追多。"
+        }
+      },
+      "pre_signal": {
+        "active": true,
+        "side": "SELL",
+        "condition": "619.0-619.3 区域出现 bear signal，并跌回 1h EMA 下方",
+        "signal_price": 619.23,
+        "reason": "当前位置更适合等待顶部失败，而不是继续追高。"
+      },
+      "key_levels": {
+        "current_price": 618.46,
+        "ema20_5m": 616.55,
+        "ema20_15m": 615.86,
+        "ema20_1h": 617.98,
+        "signal_high": 619.23,
+        "signal_low": 618.46,
+        "daily_high": 623.5,
+        "daily_low": 611.65,
+        "note": "619.23 是顶部磁体，617.98 为第一条失败分界线。"
+      },
+      "entry_idea": {
+        "side": "SELL",
+        "style": "反转试探",
+        "playbook": "顶部失败观察",
+        "order_type": "STOP_MARKET",
+        "premise": "只有顶部失败并跌回 1h EMA 下方，才考虑试探空单。",
+        "not_now": "当前没有 bear signal，也没有真正跌回 1h EMA 下方。"
+      },
+      "evaluation": {
+        "verdict": "PASS-WAIT",
+        "current_long": "PASS-RULE",
+        "current_long_reason": "当前位置仍是高位延伸，缺少高质量 continuation 入场点。",
+        "style": "反转试探",
+        "p_estimate_on_trigger": 0.4,
+        "r_estimate_on_trigger": 2.0,
+        "traders_equation": "0.4 × 2.0 = 0.8 > 0.6，但前提是顶部失败触发",
+        "reason": "反转观察仍在，但本轮没有执行时机。"
+      },
+      "scenarios": [
+        {
+          "name": "场景A",
+          "probability": "中等",
+          "description": "619.0-619.3 顶部失败并跌回 1h EMA 下方",
+          "trigger": "5m bear signal + 跌破信号低点",
+          "action": "试探做空",
+          "style": "反转试探"
+        },
+        {
+          "name": "场景B",
+          "probability": "中等",
+          "description": "继续在高位被接受",
+          "trigger": "仍在高位横住或再冲高",
+          "action": "放弃空头观察，等更好回调",
+          "style": "观察"
+        }
+      ],
+      "refs": [
+        "C0-foundations.md",
+        "C2-triggers-and-reversal-taxonomy.md",
+        "C3-style-equation-and-order-planning.md",
+        "S0-daily-bias.md",
+        "S1-reading.md",
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-reversal.md",
+        "S6-bo.md",
+        "S6-channel.md",
+        "S6-tr.md"
+      ],
+      "priority": 9,
+      "align_score": 2,
+      "signal": "",
+      "timeframes": {
+        "5m": {
+          "ai": "AIL",
+          "state": "BO",
+          "signal": "",
+          "summary": null
+        },
+        "15m": {
+          "ai": "AIL",
+          "state": "TC",
+          "signal": "",
+          "summary": null
+        },
+        "1h": {
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
+          "summary": null
+        },
+        "1d": {
+          "ai": "AIS",
+          "state": "TC",
+          "signal": "",
+          "summary": null
+        }
+      },
+      "running_narrative": "BNB 仍最像高位延伸后的停顿，而不是舒服的 continuation。顶部失败观察继续保留。",
+      "pre_signal_meta": {
+        "timeframe": "1h",
+        "created_at": "2026-03-08T20:08:26.702357+00:00",
+        "expires_at": "2026-03-08T23:08:26.702357+00:00",
+        "extended_once": false
+      },
+      "updated_at": "2026-03-08T20:08:26.702432+00:00",
+      "source_cycle_id": "cycle_20260309_040826"
+    }
+  },
+  "_meta": {
+    "loop_count": 703,
+    "total_signals": 1183,
+    "total_trades": 39,
+    "total_passes": 640,
+    "last_full_refresh": "2026-03-08T19:42:07.484969+00:00",
+    "last_update": "2026-03-08T20:08:26.702001+00:00",
+    "pass_wait": 613,
+    "pass_rule": 2
+  }
+}

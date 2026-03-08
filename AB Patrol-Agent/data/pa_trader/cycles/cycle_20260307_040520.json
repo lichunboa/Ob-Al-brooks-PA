@@ -1,0 +1,979 @@
+{
+  "cycle_id": "cycle_20260307_040520",
+  "phase": "ENTRY_READY",
+  "time_utc": "2026-03-06T20:05:20.874900+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "ETHUSDT": {
+      "5m": [
+        "state:TC"
+      ]
+    },
+    "BTCUSDT": {
+      "5m": [
+        "state:BO"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "ENTRY_READY",
+    "summary": "存在 pre-signal / entry-ready 候选，进入评估与执行窗口。",
+    "full_refresh": false,
+    "focus_symbols": [
+      "ETHUSDT",
+      "BTCUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "daily_bias": "TR",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "market_state_detail": "Spike low 2085 HELD. BULL 97% bounce to 2090. Micro DB at spike low. Could become spike+channel. TBTL 3/10.",
+        "structure_summary": "Selloff 2161→2055. Strong bounce broke 5m EMA AND 15m EMA. At 2088.2 (new high). 15m EMA rejection FAILED — buyers in control. BC_post phase ending for ETH. Next: 1h EMA 2102.",
+        "running_narrative": "AIS/AIS/AIS/AIS",
+        "pre_signal": {
+          "type": "L2",
+          "timeframe": "5m",
+          "condition": "Quick scan detected L2 in state BO",
+          "signal_price": 2204.0,
+          "expires_at": "2026-03-06T14:57:11.785945+00:00",
+          "distance_atr": 0.774,
+          "created_at": "2026-03-06T14:27:11.785695+00:00"
+        },
+        "key_levels": {
+          "1h": {
+            "support": 2284.0,
+            "resistance": 2401.43,
+            "ema20": 2401.5398
+          },
+          "15m": {
+            "support": 2333.8,
+            "resistance": 2385.0,
+            "ema20": 2367.243
+          },
+          "5m": {
+            "support": 2333.78,
+            "resistance": 2371.0,
+            "ema20": 2361.4936
+          }
+        },
+        "entry_idea": {
+          "side": "SELL",
+          "entry_zone": "wait for failed rally under 1978-1988 or renewed break back below 1972/1956",
+          "sl_reference": "above 1988 then above 1994 if pullback extends",
+          "tp_reference": "1956 retest then continuation lower",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.45,
+          "r_estimate": 0.98,
+          "equation_value": 0.44,
+          "threshold_rhs": 0.55,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "Daily TR; 1h and 15m remain AIS, but 5m is still in a tight bull push above EMA and the latest 15m bar only paused near 1985-1987 instead of reversing. Bears still lack a valid signal bar back through support and post-fee scalp math remains below threshold.",
+        "signal": ""
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": {
+            "trend": "Always In Long — 最近 8 根 K 线在 EMA 上方",
+            "last_pullback": "无明显回调",
+            "range": "1972.0-1989.4 (17.4 点区间)",
+            "day_type": "大趋势日"
+          },
+          "ema20": 1981.22,
+          "atr14": 4.02,
+          "price_vs_ema": "+4.2 (+0.21%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T19:25",
+              "O": 1983.12,
+              "H": 1985.1,
+              "L": 1982.55,
+              "C": 1984.64,
+              "bar_type": "中阳线"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 1984.64,
+              "H": 1987.29,
+              "L": 1984.42,
+              "C": 1987.28,
+              "bar_type": "大阳线"
+            },
+            {
+              "time": "2026-03-06T19:35",
+              "O": 1987.29,
+              "H": 1987.29,
+              "L": 1984.37,
+              "C": 1984.38,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:40",
+              "O": 1984.38,
+              "H": 1988.57,
+              "L": 1984.28,
+              "C": 1984.43,
+              "bar_type": "十字星，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 1984.43,
+              "H": 1984.43,
+              "L": 1981.15,
+              "C": 1981.42,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:50",
+              "O": 1981.98,
+              "H": 1982.1,
+              "L": 1981.07,
+              "C": 1982.06,
+              "bar_type": "十字星，长下影"
+            },
+            {
+              "time": "2026-03-06T19:55",
+              "O": 1982.06,
+              "H": 1983.64,
+              "L": 1981.07,
+              "C": 1983.53,
+              "bar_type": "中阳线，长下影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 1983.64,
+              "H": 1986.68,
+              "L": 1983.29,
+              "C": 1985.46,
+              "bar_type": "中阳线，长上影"
+            }
+          ]
+        },
+        "15m": {
+          "summary": {
+            "trend": "Always In Short — 最近 7 根 K 线在 EMA 下方",
+            "last_pullback": "2 根前反弹至 EMA，回落",
+            "range": "1956.0-1994.4 (38.4 点区间)",
+            "day_type": "趋势日"
+          },
+          "ema20": 1985.4,
+          "atr14": 10.73,
+          "price_vs_ema": "+0.1 (+0.00%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T18:45",
+              "O": 1979.87,
+              "H": 1980.72,
+              "L": 1972.02,
+              "C": 1973.86,
+              "bar_type": "中阴线"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 1973.88,
+              "H": 1985.54,
+              "L": 1973.84,
+              "C": 1985.54,
+              "bar_type": "大阳线"
+            },
+            {
+              "time": "2026-03-06T19:15",
+              "O": 1985.54,
+              "H": 1989.39,
+              "L": 1980.02,
+              "C": 1984.64,
+              "bar_type": "十字星，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 1984.64,
+              "H": 1988.57,
+              "L": 1984.28,
+              "C": 1984.43,
+              "bar_type": "十字星，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 1984.43,
+              "H": 1984.43,
+              "L": 1981.07,
+              "C": 1983.53,
+              "bar_type": "小阴线，长下影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 1983.64,
+              "H": 1986.68,
+              "L": 1983.29,
+              "C": 1985.46,
+              "bar_type": "中阳线，长上影"
+            }
+          ]
+        },
+        "1h": {
+          "summary": {
+            "trend": "Always In Short — 最近 8 根 K 线在 EMA 下方",
+            "last_pullback": "无明显回调",
+            "range": "1950.0-2276.3 (326.3 点区间)",
+            "day_type": "大趋势日"
+          },
+          "ema20": 2022.75,
+          "atr14": 35.18,
+          "price_vs_ema": "-36.6 (-1.81%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T15:00",
+              "O": 1979.26,
+              "H": 1994.39,
+              "L": 1967.35,
+              "C": 1977.53,
+              "bar_type": "十字星，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T16:00",
+              "O": 1977.54,
+              "H": 1982.17,
+              "L": 1967.0,
+              "C": 1970.52,
+              "bar_type": "中阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T17:00",
+              "O": 1970.54,
+              "H": 1978.6,
+              "L": 1956.0,
+              "C": 1965.99,
+              "bar_type": "小阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T18:00",
+              "O": 1966.01,
+              "H": 1980.78,
+              "L": 1965.53,
+              "C": 1973.86,
+              "bar_type": "中阳线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 1973.88,
+              "H": 1989.39,
+              "L": 1973.84,
+              "C": 1983.53,
+              "bar_type": "中阳线，长上影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 1983.64,
+              "H": 1986.68,
+              "L": 1983.29,
+              "C": 1986.19,
+              "bar_type": "大阳线"
+            }
+          ]
+        }
+      }
+    },
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "daily_bias": "TR",
+        "ai_direction": "AIS",
+        "market_state": "BO",
+        "market_state_detail": "BULL 100%. AT 15m EMA 71215! Testing resistance.",
+        "structure_summary": "BC 75300 → sell to 70635 → strong bounce broke 5m EMA (70951) and now AT 15m EMA (71335). 5 consecutive bull bars on 5m. BC_post phase ending. Next test: hold above 15m EMA or fail.",
+        "running_narrative": "AIL/AIL/TR/TR",
+        "pre_signal": {
+          "type": "H2",
+          "timeframe": "5m",
+          "condition": "Quick scan detected H2 in state TC",
+          "signal_price": 69969.4,
+          "expires_at": "2026-03-06T14:57:11.785823+00:00",
+          "distance_atr": 0.021,
+          "created_at": "2026-03-06T14:27:11.785695+00:00"
+        },
+        "key_levels": {
+          "1h": {
+            "support": 68744.5,
+            "resistance": 71621.4,
+            "ema20": 70959.4255
+          },
+          "15m": {
+            "support": 68744.5,
+            "resistance": 70627.6,
+            "ema20": 70429.4575
+          },
+          "5m": {
+            "support": 69167.0,
+            "resistance": 70535.6,
+            "ema20": 70192.6149
+          }
+        },
+        "entry_idea": {
+          "side": "SELL",
+          "entry_zone": "wait for failed rally under 68276-68650 or renewed break back below 68131/67734",
+          "sl_reference": "above 68650-68960 pullback resistance",
+          "tp_reference": "67734 retest then 67620",
+          "style": "Swing"
+        },
+        "evaluation": {
+          "p_estimate": 0.48,
+          "r_estimate": 1.18,
+          "equation_value": 0.57,
+          "threshold_rhs": 0.52,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "Daily TR; 1h and 15m remain AIS, but 5m continues to hold above EMA after the 68158 reversal and is now printing another bull continuation close near 68407. This is still an active bull pullback, not a failed-rally short.",
+        "signal": ""
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": {
+            "trend": "Always In Short — 最近 7 根 K 线在 EMA 下方",
+            "last_pullback": "1 根前反弹至 EMA，回落",
+            "range": "68011.8-68413.2 (401.4 点区间)",
+            "day_type": "趋势日"
+          },
+          "ema20": 68196.35,
+          "atr14": 123.81,
+          "price_vs_ema": "+1.8 (+0.00%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T19:25",
+              "O": 68241.0,
+              "H": 68241.0,
+              "L": 68135.4,
+              "C": 68168.8,
+              "bar_type": "中阴线"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 68168.8,
+              "H": 68231.2,
+              "L": 68135.4,
+              "C": 68227.8,
+              "bar_type": "中阳线，长下影"
+            },
+            {
+              "time": "2026-03-06T19:35",
+              "O": 68227.8,
+              "H": 68231.2,
+              "L": 68135.4,
+              "C": 68142.8,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:40",
+              "O": 68139.4,
+              "H": 68253.6,
+              "L": 68135.0,
+              "C": 68135.0,
+              "bar_type": "十字星，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 68150.3,
+              "H": 68165.3,
+              "L": 68074.5,
+              "C": 68080.0,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:50",
+              "O": 68080.0,
+              "H": 68081.5,
+              "L": 68011.8,
+              "C": 68023.8,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:55",
+              "O": 68023.8,
+              "H": 68202.8,
+              "L": 68014.0,
+              "C": 68091.2,
+              "bar_type": "中阳线，长上影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 68093.1,
+              "H": 68206.7,
+              "L": 68088.5,
+              "C": 68198.2,
+              "bar_type": "大阳线"
+            }
+          ]
+        },
+        "15m": {
+          "summary": {
+            "trend": "Always In Short — 最近 8 根 K 线在 EMA 下方",
+            "last_pullback": "无明显回调",
+            "range": "67734.7-68960.7 (1226.0 点区间)",
+            "day_type": "大趋势日"
+          },
+          "ema20": 68422.52,
+          "atr14": 298.86,
+          "price_vs_ema": "-224.3 (-0.33%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T18:45",
+              "O": 68397.7,
+              "H": 68413.2,
+              "L": 68155.9,
+              "C": 68158.0,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 68155.9,
+              "H": 68340.4,
+              "L": 68155.9,
+              "C": 68340.4,
+              "bar_type": "大阳线"
+            },
+            {
+              "time": "2026-03-06T19:15",
+              "O": 68340.4,
+              "H": 68407.9,
+              "L": 68135.4,
+              "C": 68168.8,
+              "bar_type": "中阴线"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 68168.8,
+              "H": 68253.6,
+              "L": 68135.0,
+              "C": 68135.0,
+              "bar_type": "小阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 68150.3,
+              "H": 68202.8,
+              "L": 68011.8,
+              "C": 68091.2,
+              "bar_type": "中阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 68093.1,
+              "H": 68206.7,
+              "L": 68088.5,
+              "C": 68198.2,
+              "bar_type": "大阳线"
+            }
+          ]
+        },
+        "1h": {
+          "summary": {
+            "trend": "Always In Short — 最近 8 根 K 线在 EMA 下方",
+            "last_pullback": "10 根前反弹至 EMA，回落",
+            "range": "66500.0-76055.2 (9555.2 点区间)",
+            "day_type": "大趋势日"
+          },
+          "ema20": 69458.19,
+          "atr14": 993.94,
+          "price_vs_ema": "-1260.0 (-1.81%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T15:00",
+              "O": 68380.8,
+              "H": 68960.7,
+              "L": 68301.6,
+              "C": 68493.0,
+              "bar_type": "小阳线，长上影"
+            },
+            {
+              "time": "2026-03-06T16:00",
+              "O": 68493.0,
+              "H": 68693.6,
+              "L": 68250.9,
+              "C": 68425.8,
+              "bar_type": "小阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T17:00",
+              "O": 68456.5,
+              "H": 68600.6,
+              "L": 67734.7,
+              "C": 67991.8,
+              "bar_type": "中阴线，长下影"
+            },
+            {
+              "time": "2026-03-06T18:00",
+              "O": 67991.8,
+              "H": 68413.2,
+              "L": 67928.1,
+              "C": 68158.0,
+              "bar_type": "中阳线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 68155.9,
+              "H": 68407.9,
+              "L": 68011.8,
+              "C": 68091.2,
+              "bar_type": "小阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 68093.1,
+              "H": 68206.7,
+              "L": 68088.5,
+              "C": 68198.2,
+              "bar_type": "大阳线"
+            }
+          ]
+        }
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "cached_state": {
+        "status": "entry_ready_blocked",
+        "daily_bias": "TR",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "BULL 62%. Near 15m EMA. Recovering.",
+        "structure_summary": "BC selloff to 646.3. Strong bounce broke all lower EMAs. Above 15m EMA. Heading to 1h EMA 654 / bounce high 653.8. Strongest symbol.",
+        "running_narrative": "TR/TR/AIS/AIS",
+        "pre_signal": {
+          "type": "L1",
+          "timeframe": "5m",
+          "condition": "Quick scan detected L1 in state TR",
+          "signal_price": 631.7,
+          "expires_at": "2026-03-06T14:54:19.444431+00:00",
+          "distance_atr": 0.504,
+          "created_at": "2026-03-06T14:24:19.444032+00:00"
+        },
+        "key_levels": {
+          "swing_high": 665,
+          "bounce_high": 653.8,
+          "ema_1h": 653.75,
+          "ema_15m": 651.3,
+          "ema_5m": 650.5,
+          "swing_low": 646.3,
+          "round_number": 645
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "buy only nearer 626/624.8 support with confirmation or sell only after a clear failure from 629.8-631.7 resistance",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "p_estimate": 0.5,
+          "r_estimate": 0.92,
+          "equation_value": 0.46,
+          "threshold_rhs": 0.5,
+          "passes_price_action": false,
+          "passes_execution_gate": true
+        },
+        "thesis": "Daily TR; 5m and 15m are now pressing higher into 632.4 with consecutive bull bars, while 1h stays below EMA. In TR this is upper-third territory, but there is still no confirmed reversal bar or L1/L2 fade, so shorting is premature and buying here is poor math.",
+        "signal": ""
+      },
+      "live_timeframes": {
+        "5m": {
+          "summary": {
+            "trend": "偏多但不确定 — EMA 上方 5, 下方 3",
+            "last_pullback": "1 根前反弹至 EMA，回落",
+            "range": "630.2-632.5 (2.3 点区间)",
+            "day_type": "宽幅区间"
+          },
+          "ema20": 630.65,
+          "atr14": 0.73,
+          "price_vs_ema": "+0.6 (+0.09%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T19:25",
+              "O": 631.24,
+              "H": 631.42,
+              "L": 630.59,
+              "C": 630.59,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 630.9,
+              "H": 631.42,
+              "L": 630.59,
+              "C": 631.18,
+              "bar_type": "中阳线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T19:35",
+              "O": 631.18,
+              "H": 631.42,
+              "L": 630.74,
+              "C": 630.75,
+              "bar_type": "中阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:40",
+              "O": 630.74,
+              "H": 631.4,
+              "L": 630.64,
+              "C": 630.64,
+              "bar_type": "小阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 630.64,
+              "H": 630.65,
+              "L": 630.42,
+              "C": 630.46,
+              "bar_type": "大阴线"
+            },
+            {
+              "time": "2026-03-06T19:50",
+              "O": 630.47,
+              "H": 630.55,
+              "L": 630.23,
+              "C": 630.32,
+              "bar_type": "中阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T19:55",
+              "O": 630.32,
+              "H": 630.6,
+              "L": 630.23,
+              "C": 630.55,
+              "bar_type": "中阳线"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 630.23,
+              "H": 631.24,
+              "L": 630.23,
+              "C": 631.23,
+              "bar_type": "大阳线"
+            }
+          ]
+        },
+        "15m": {
+          "summary": {
+            "trend": "方向不明 — 在 EMA 附近震荡",
+            "last_pullback": "2 根前反弹至 EMA，回落",
+            "range": "626.0-632.5 (6.5 点区间)",
+            "day_type": "宽幅区间"
+          },
+          "ema20": 630.72,
+          "atr14": 1.72,
+          "price_vs_ema": "+0.5 (+0.08%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T18:45",
+              "O": 631.3,
+              "H": 631.67,
+              "L": 630.46,
+              "C": 630.63,
+              "bar_type": "中阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 630.67,
+              "H": 631.88,
+              "L": 630.59,
+              "C": 631.88,
+              "bar_type": "大阳线"
+            },
+            {
+              "time": "2026-03-06T19:15",
+              "O": 631.3,
+              "H": 632.52,
+              "L": 630.59,
+              "C": 630.59,
+              "bar_type": "中阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:30",
+              "O": 630.9,
+              "H": 631.42,
+              "L": 630.59,
+              "C": 630.64,
+              "bar_type": "中阴线，长上影"
+            },
+            {
+              "time": "2026-03-06T19:45",
+              "O": 630.64,
+              "H": 630.65,
+              "L": 630.23,
+              "C": 630.55,
+              "bar_type": "小阴线，长下影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 630.23,
+              "H": 631.24,
+              "L": 630.23,
+              "C": 631.23,
+              "bar_type": "大阳线"
+            }
+          ]
+        },
+        "1h": {
+          "summary": {
+            "trend": "Always In Short — 最近 8 根 K 线在 EMA 下方",
+            "last_pullback": "无明显回调",
+            "range": "624.8-651.5 (26.8 点区间)",
+            "day_type": "大趋势日"
+          },
+          "ema20": 636.83,
+          "atr14": 4.08,
+          "price_vs_ema": "-5.6 (-0.88%)",
+          "recent_bars": [
+            {
+              "time": "2026-03-06T15:00",
+              "O": 626.34,
+              "H": 631.23,
+              "L": 624.77,
+              "C": 627.76,
+              "bar_type": "小阳线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T16:00",
+              "O": 627.76,
+              "H": 630.87,
+              "L": 626.58,
+              "C": 628.97,
+              "bar_type": "小阳线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T17:00",
+              "O": 628.97,
+              "H": 629.92,
+              "L": 626.0,
+              "C": 628.33,
+              "bar_type": "小阴线，长上影，长下影"
+            },
+            {
+              "time": "2026-03-06T18:00",
+              "O": 628.33,
+              "H": 631.67,
+              "L": 628.33,
+              "C": 630.63,
+              "bar_type": "中阳线"
+            },
+            {
+              "time": "2026-03-06T19:00",
+              "O": 630.67,
+              "H": 632.52,
+              "L": 630.23,
+              "C": 630.55,
+              "bar_type": "十字星，长上影"
+            },
+            {
+              "time": "2026-03-06T20:00",
+              "O": 630.23,
+              "H": 631.24,
+              "L": 630.23,
+              "C": 631.23,
+              "bar_type": "大阳线"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "ENTRY_READY",
+    "market_summary": "BTC与ETH的大级别仍偏空，但两者5分钟都还没有完成可做空的失败反弹结构；BNB仍处在交易区间内，价格又回到EMA上方，顶部做空确认再次不足。本轮没有品种同时满足信号完成、结构止损合理、且扣费后P×R达标，因此继续空仓等待。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "status": "entry_ready_blocked",
+        "thesis": "日线为TR，1h与15m仍是AIS，但5m在68011一带止跌后又收回到EMA附近，最新一根是反弹阳线，不是失败反抽后的有效空头信号。空头仍缺少重新跌破68135/68011并带出跟随的确认。",
+        "priority": 1
+      },
+      "ETHUSDT": {
+        "status": "entry_ready_blocked",
+        "thesis": "日线为TR，1h仍是AIS，15m刚好压在EMA附近，5m则持续在EMA上方做紧密震荡后再度小幅抬高。这里仍是空头背景中的多头回拉，尚未出现跌回1981/1972下方的清晰失败反弹信号，手续费后Scalp数学仍偏差。",
+        "priority": 2
+      },
+      "BNBUSDT": {
+        "status": "entry_ready_blocked",
+        "thesis": "日线为TR，5m与15m都在EMA附近来回穿越，1h仍在EMA下方。虽然属于TR上半区思路，但最新5m又给出阳线收复，顶部反转并未确认；按S6-tr，TR边缘没有反转信号就不能提前做空。",
+        "priority": 3
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待失败反弹空头",
+        "ai_direction": "AIS",
+        "market_state": "BO",
+        "signal_bar": "5分钟先连出两根强阴后又出现反弹阳线，价格回到EMA附近，当前并不是跌破后的顺势跟随，而是仍在形成中的回拉结构。",
+        "equation": "P=0.48 R=1.18 PxR=0.57",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-bo.md"
+        ],
+        "bar_reading": "大级别背景依旧偏空，但5分钟没有完成失败反抽后的空头继续；按照S6-bo，这更像弱BO后的震荡回拉，而不是新的可执行空头PB结束。",
+        "order_type": "STOP_MARKET",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 空头延续尚未完成，失败反弹做空仍未确认。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "等待失败反弹空头",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "signal_bar": "5分钟仍站在EMA上方，最近8根K线没有给出有效L1/L2向下触发；15分钟也只是贴着EMA震荡，没有重新压回支撑下方。",
+        "equation": "P=0.45 R=0.98 PxR=0.44",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md"
+        ],
+        "bar_reading": "这是大级别空头背景里的5分钟紧密多头回拉，按S6-channel，逆着仍在运作的紧密通道提前做空属于坏位置，且扣费后R不足。",
+        "order_type": "STOP_MARKET",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 失败反弹空头仍未确认，且扣费后R仍低于Scalp门槛。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "side": "SELL",
+        "entry": 0.0,
+        "sl": 0.0,
+        "tp": 0.0,
+        "risk_usdt": 0.0,
+        "strategy": "TR上沿反转等待",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "5分钟前面一串小阴回落后，最新一根又用大阳线把价格拉回EMA上方，这不是TR顶部确认反转，而是继续区间震荡。",
+        "equation": "P=0.50 R=0.92 PxR=0.46",
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md"
+        ],
+        "bar_reading": "BNB仍是TR，不是趋势。按S6-tr，必须在上沿看到明确反转K线与确认后才能做空；现在只是回到区间中上部，且扣费后R不达标。",
+        "order_type": "LIMIT",
+        "price": 0.0,
+        "reason": "[PASS-WAIT] 区间上沿反转仍缺确认，且扣费后R低于Scalp最低要求。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "BTC与ETH都仍在失败反弹做空的观察窗口内，BNB也仍处于TR上半区，2分钟后复查最能兼顾确认速度与避免提前出手。",
+    "state_patch": {
+      "BTCUSDT": {
+        "status": "entry_ready_blocked",
+        "last_pass_reason": "失败反弹未完成",
+        "last_kline_close": 68198.2,
+        "running_narrative": "1h与15m仍偏空，但5m在68011止跌后回到EMA附近，空头继续仍未确认"
+      },
+      "ETHUSDT": {
+        "status": "entry_ready_blocked",
+        "last_pass_reason": "失败反弹未确认且R不足",
+        "last_kline_close": 1985.46,
+        "running_narrative": "1h偏空，15m压在EMA附近，5m仍在EMA上方做紧密回拉，空头信号尚未完成"
+      },
+      "BNBUSDT": {
+        "status": "entry_ready_blocked",
+        "last_pass_reason": "TR上沿反转未确认",
+        "last_kline_close": 631.23,
+        "running_narrative": "5m与15m继续围绕EMA震荡，仍是TR思维，等待上沿真正反转再评估"
+      }
+    },
+    "explanation": "这次继续等待不是恐惧，而是规则执行。BTC与ETH都还没有出现可执行的失败反弹空头，BNB在TR里也没有顶部确认；没有完成信号，就不允许硬做。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T20:05:20.871398+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 空头延续尚未完成，失败反弹做空仍未确认。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T20:05:20.871470+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 失败反弹空头仍未确认，且扣费后R仍低于Scalp门槛。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T20:05:20.871480+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "[PASS-WAIT] 区间上沿反转仍缺确认，且扣费后R低于Scalp最低要求。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-06T20:07:20.873071+00:00",
+    "in_seconds": 120,
+    "reason_code": "BTC与ETH都仍在失败反弹做空的观察窗口内，BNB也仍处于TR上半区，2分钟后复查最能兼顾确认速度与避免提前出手。",
+    "reason_text": "BTC与ETH都仍在失败反弹做空的观察窗口内，BNB也仍处于TR上半区，2分钟后复查最能兼顾确认速度与避免提前出手。",
+    "derived_from_cycle": "cycle_20260307_040520",
+    "interruptible": true
+  }
+}

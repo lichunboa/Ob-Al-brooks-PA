@@ -1,0 +1,58 @@
+{
+  "cycle_id": "cycle_20260306_120125",
+  "phase": "PRE_SIGNAL",
+  "time_utc": "2026-03-06T12:01:32.283437+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "L2@68880.5",
+        "state:BC"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "state:BC"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "PRE_SIGNAL",
+    "market_summary": "检测到 1 个高一致性候选，重点跟踪 BTCUSDT",
+    "focus_symbols": [
+      "BTCUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "stage": "PRE_SIGNAL",
+        "updated_by": "heuristic_provider"
+      }
+    },
+    "actions": [],
+    "position_management": [],
+    "next_scan_seconds": 240,
+    "next_scan_reason": "PRE_SIGNAL",
+    "state_patch": {
+      "focus_symbols": [
+        "BTCUSDT"
+      ]
+    },
+    "explanation": "Heuristic provider generated a structured patrol decision."
+  },
+  "execution_results": [],
+  "next_scan": {
+    "next_scan_at": "2026-03-06T12:03:32.280467+00:00",
+    "in_seconds": 120,
+    "reason_code": "FRESH_BC_SC",
+    "reason_text": "BC/SC 刚发生，需高频跟踪",
+    "derived_from_cycle": "cycle_20260306_120125",
+    "interruptible": true
+  }
+}

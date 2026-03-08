@@ -1,0 +1,18 @@
+{
+  "loop_number": 81,
+  "timestamp": "2026-03-03T23:47:54Z",
+  "quick_scan_events": {
+    "BTCUSDT": ["ema_touch_5m", "ema_touch_15m"],
+    "ETHUSDT": ["ema_touch_5m", "ema_touch_15m"],
+    "BNBUSDT": ["ema_touch_5m", "ema_touch_15m", "ema_touch_1h"]
+  },
+  "s_reads": ["S3"],
+  "deep_analysis": {
+    "BTCUSDT": {"state": "TR", "position": "middle_62pct", "decision": "PASS-WAIT"},
+    "ETHUSDT": {"state": "TR", "position": "middle_69pct", "decision": "PASS-WAIT"},
+    "BNBUSDT": {"state": "TTR", "position": "middle_60pct", "decision": "PASS-RULE"}
+  },
+  "trades": 0,
+  "passes": 3,
+  "pass_breakdown": {"RULE": 1, "WAIT": 2}
+}

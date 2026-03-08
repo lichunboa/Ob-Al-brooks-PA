@@ -1,0 +1,23 @@
+{
+  "loop": 147,
+  "time": "2026-03-05T14:45:00Z",
+  "type": "full_refresh",
+  "balance": 5026.66,
+  "unrealized_pnl": 45.37,
+  "positions": 1,
+  "quick_scan_events": {
+    "BTCUSDT": {"1h": "BC_confirmed,state_change", "15m": "momentum", "5m": "L2_trigger_not_actionable"},
+    "ETHUSDT": {"1h": "normal_PB", "15m": "momentum", "5m": "anomaly_2.82xATR"},
+    "BNBUSDT": {"1h": "normal_PB", "15m": "selling", "5m": "anomaly_2.14xATR,stale_reset"}
+  },
+  "s_reads": ["S0", "S2", "S3", "S3b", "S7"],
+  "position_management": {
+    "BTCUSDT": "SL moved 71100→71800, BC confirmed, Premise weakened"
+  },
+  "trades": 0,
+  "passes": 2,
+  "pass_details": [
+    {"sym": "ETHUSDT", "type": "PASS-WAIT", "reason": "PB_NOT_COMPLETE"},
+    {"sym": "BNBUSDT", "type": "PASS-WAIT", "reason": "PB_NOT_COMPLETE"}
+  ]
+}

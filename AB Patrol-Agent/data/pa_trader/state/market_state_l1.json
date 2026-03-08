@@ -1,0 +1,421 @@
+{
+  "last_update": "2026-03-06T14:32:21.199205+00:00",
+  "loop_count": 205,
+  "last_full_refresh": "2026-03-05T18:42:27+00:00",
+  "total_signals": 4,
+  "total_trades": 8,
+  "total_passes": 24,
+  "symbols": {
+    "BTCUSDT": {
+      "daily_bias": "TR",
+      "daily_bias_expires": "2026-03-06T00:00:00Z",
+      "status": "entry_ready_blocked",
+      "trade": null,
+      "pre_signal": {
+        "type": "H2",
+        "timeframe": "5m",
+        "condition": "Quick scan detected H2 in state TC",
+        "signal_price": 69969.4,
+        "expires_at": "2026-03-06T14:57:11.785823+00:00",
+        "distance_atr": 0.021,
+        "created_at": "2026-03-06T14:27:11.785695+00:00"
+      },
+      "ai_direction": "AIL",
+      "market_state": "TC",
+      "market_state_detail": "BULL 100%. AT 15m EMA 71215! Testing resistance.",
+      "consecutive_watching": 0,
+      "last_price": 69955.3,
+      "ema20": 71902,
+      "atr14": 961,
+      "ema20_5m": 68932.6577,
+      "atr14_5m": 659.1305,
+      "ema20_15m": 71280,
+      "atr14_15m": 354,
+      "structure_summary": "BC 75300 → sell to 70635 → strong bounce broke 5m EMA (70951) and now AT 15m EMA (71335). 5 consecutive bull bars on 5m. BC_post phase ending. Next test: hold above 15m EMA or fail.",
+      "running_narrative": "AIL/AIL/TR/TR",
+      "bc_sc_guard": {
+        "active": true,
+        "type": "BC",
+        "score": 6,
+        "gap_status": "open_bearish",
+        "bars_since_climax": 14,
+        "tbtl_countdown": 10
+      },
+      "scenarios": [
+        {
+          "id": "A",
+          "probability": 40,
+          "description": "Tests 70635 and holds → TR 70635-71350",
+          "playbook": "TR1:BLSHS",
+          "trigger": "Bull bar at 70635-70700",
+          "still_valid": true
+        },
+        {
+          "id": "B",
+          "probability": 35,
+          "description": "Breaks 70635 → new low 70000 area",
+          "playbook": "wait",
+          "trigger": "Close < 70600",
+          "still_valid": true
+        },
+        {
+          "id": "C",
+          "probability": 25,
+          "description": "Range 70800-71100 consolidation",
+          "playbook": "wait",
+          "trigger": "Overlapping bars",
+          "still_valid": true
+        }
+      ],
+      "key_levels": {
+        "1h": {
+          "support": 68744.5,
+          "resistance": 71621.4,
+          "ema20": 70959.4255
+        },
+        "15m": {
+          "support": 68744.5,
+          "resistance": 70627.6,
+          "ema20": 70429.4575
+        },
+        "5m": {
+          "support": 69167.0,
+          "resistance": 70535.6,
+          "ema20": 70192.6149
+        }
+      },
+      "updated_at": "2026-03-06T14:32:21.199205+00:00",
+      "source_cycle_id": "cycle_20260306_142704",
+      "last_signal": "H2@69969.4",
+      "last_quick_scan_state": "TC",
+      "stage": "SCAN",
+      "updated_by": "heuristic_provider",
+      "align_score": 2,
+      "timeframes": {
+        "5m": {
+          "ai": "AIL",
+          "ema20": 68932.6577,
+          "atr14": 659.1305,
+          "price": 69955.3
+        },
+        "15m": {
+          "ai": "AIL",
+          "ema20": 69532.6556,
+          "atr14": 1001.9474,
+          "price": 69951.1
+        },
+        "30m": {
+          "ai": "TR",
+          "ema20": 70106.3862,
+          "atr14": 1191.448,
+          "price": 69951.1
+        },
+        "1h": {
+          "ai": "TR",
+          "ema20": 70511.3075,
+          "atr14": 1365.2517,
+          "price": 69951.1
+        }
+      },
+      "priority": 0,
+      "signal": "H2@69980.1",
+      "entry_idea": {
+        "side": "BUY",
+        "entry_zone": "H2 continuation through 69980.1 / hold above 69525 EMA area",
+        "sl_reference": "below 67620.0 swing low",
+        "tp_reference": "1h resistance 71460.9",
+        "style": "Swing"
+      },
+      "evaluation": {
+        "p_estimate": 0.52,
+        "r_estimate": 1.57,
+        "equation_value": 0.82,
+        "threshold_rhs": 0.48,
+        "passes_price_action": true,
+        "passes_execution_gate": false
+      },
+      "refs": [
+        "S2-direction.md",
+        "S3-market-state.md",
+        "S3b-key-levels.md",
+        "S4-strategy-match.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md"
+      ],
+      "thesis": "BTC has shifted from bearish watch to a valid 5m/15m AIL H2 continuation in a bull leg inside broader TR context. The path to 71460.9 gives enough room relative to a stop beneath 67620.0, but execution remains blocked by the runtime can_trade failure."
+    },
+    "ETHUSDT": {
+      "daily_bias": "TR",
+      "daily_bias_expires": "2026-03-06T00:00:00Z",
+      "status": "entry_ready_blocked",
+      "trade": null,
+      "pre_signal": {
+        "type": "L2",
+        "timeframe": "5m",
+        "condition": "Quick scan detected L2 in state BO",
+        "signal_price": 2204.0,
+        "expires_at": "2026-03-06T14:57:11.785945+00:00",
+        "distance_atr": 0.774,
+        "created_at": "2026-03-06T14:27:11.785695+00:00"
+      },
+      "ai_direction": "AIS",
+      "market_state": "BO",
+      "market_state_detail": "Spike low 2085 HELD. BULL 97% bounce to 2090. Micro DB at spike low. Could become spike+channel. TBTL 3/10.",
+      "consecutive_watching": 0,
+      "last_price": 2223.0,
+      "ema20": 2102,
+      "atr14": 34,
+      "ema20_5m": 2296.064,
+      "atr14_5m": 24.559,
+      "ema20_15m": 2081.8,
+      "atr14_15m": 11.8,
+      "structure_summary": "Selloff 2161→2055. Strong bounce broke 5m EMA AND 15m EMA. At 2088.2 (new high). 15m EMA rejection FAILED — buyers in control. BC_post phase ending for ETH. Next: 1h EMA 2102.",
+      "running_narrative": "AIS/AIS/AIS/AIS",
+      "bc_sc_guard": {
+        "active": true,
+        "type": "SC",
+        "score": 3,
+        "gap_status": "no_gap",
+        "bars_since_climax": 3,
+        "tbtl_countdown": 7
+      },
+      "scenarios": [
+        {
+          "id": "A",
+          "probability": 45,
+          "description": "Failed spike → sells back to 2080-2088. Shooting star = strong sell signal.",
+          "playbook": "wait",
+          "trigger": "Bear bar below 2088",
+          "still_valid": true
+        },
+        {
+          "id": "B",
+          "probability": 30,
+          "description": "Consolidates 2088-2095. Absorbs spike, then decides.",
+          "playbook": "wait",
+          "trigger": "Overlapping bars 2088-2095",
+          "still_valid": true
+        },
+        {
+          "id": "C",
+          "probability": 25,
+          "description": "2nd push attempt toward 2120. Gap fill.",
+          "playbook": "wait",
+          "trigger": "Bull bar > 2095",
+          "still_valid": true
+        }
+      ],
+      "key_levels": {
+        "1h": {
+          "support": 2284.0,
+          "resistance": 2401.43,
+          "ema20": 2401.5398
+        },
+        "15m": {
+          "support": 2333.8,
+          "resistance": 2385.0,
+          "ema20": 2367.243
+        },
+        "5m": {
+          "support": 2333.78,
+          "resistance": 2371.0,
+          "ema20": 2361.4936
+        }
+      },
+      "updated_at": "2026-03-06T14:32:21.199205+00:00",
+      "source_cycle_id": "cycle_20260306_142704",
+      "last_signal": "L2@2204.0",
+      "last_quick_scan_state": "BO",
+      "align_score": 4,
+      "timeframes": {
+        "5m": {
+          "ai": "AIS",
+          "ema20": 2296.064,
+          "atr14": 24.559,
+          "price": 2223.0
+        },
+        "15m": {
+          "ai": "AIS",
+          "ema20": 2335.7463,
+          "atr14": 40.8613,
+          "price": 2223.0
+        },
+        "30m": {
+          "ai": "AIS",
+          "ema20": 2351.906,
+          "atr14": 52.7332,
+          "price": 2223.0
+        },
+        "1h": {
+          "ai": "AIS",
+          "ema20": 2369.567,
+          "atr14": 86.7832,
+          "price": 2223.0
+        }
+      },
+      "stage": "SCAN",
+      "updated_by": "heuristic_provider",
+      "priority": 0,
+      "signal": "L2@2204.0",
+      "entry_idea": {
+        "side": "SELL",
+        "entry_zone": "failed bounce / continuation under 2223-2275 with trigger already near 2204.0",
+        "sl_reference": "above 2275.0 bounce high",
+        "tp_reference": "retest 2204.0 then 2185.0",
+        "style": "Swing"
+      },
+      "evaluation": {
+        "p_estimate": 0.54,
+        "r_estimate": 1.53,
+        "equation_value": 0.83,
+        "threshold_rhs": 0.46,
+        "passes_price_action": true,
+        "passes_execution_gate": false
+      },
+      "refs": [
+        "S2-direction.md",
+        "S3-market-state.md",
+        "S3b-key-levels.md",
+        "S4-strategy-match.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-bo.md"
+      ],
+      "thesis": "All intraday timeframes remain AIS and the 5m L2 at 2204.0 has followed a failed bounce from 2279.79 back toward support. With stop above 2275 and target back to 2185, chart logic now passes, but execution cannot be confirmed because the can_trade endpoint is down."
+    },
+    "BNBUSDT": {
+      "daily_bias": "TR",
+      "daily_bias_expires": "2026-03-06T00:00:00Z",
+      "status": "watching",
+      "pre_signal": {
+        "type": "L1",
+        "timeframe": "5m",
+        "condition": "Quick scan detected L1 in state TR",
+        "signal_price": 631.7,
+        "expires_at": "2026-03-06T14:54:19.444431+00:00",
+        "distance_atr": 0.504,
+        "created_at": "2026-03-06T14:24:19.444032+00:00"
+      },
+      "ai_direction": "TR",
+      "market_state": "TR",
+      "market_state_detail": "BULL 62%. Near 15m EMA. Recovering.",
+      "consecutive_watching": 1,
+      "last_price": 639.2,
+      "ema20": 654.0,
+      "atr14": 5.5,
+      "ema20_5m": 641.6907,
+      "atr14_5m": 12.507,
+      "ema20_15m": 651.3,
+      "atr14_15m": 2.42,
+      "structure_summary": "BC selloff to 646.3. Strong bounce broke all lower EMAs. Above 15m EMA. Heading to 1h EMA 654 / bounce high 653.8. Strongest symbol.",
+      "running_narrative": "TR/TR/AIS/AIS",
+      "bc_sc_guard": {
+        "active": true,
+        "type": "BC",
+        "score": 4,
+        "gap_status": "partially_closing",
+        "bars_since_climax": 14,
+        "tbtl_countdown": 10
+      },
+      "scenarios": [
+        {
+          "id": "A",
+          "probability": 40,
+          "description": "Holds 15m EMA 651 area. Strongest of 3, could lead recovery.",
+          "playbook": "wait",
+          "trigger": "Bull bar at 651 area",
+          "still_valid": true
+        },
+        {
+          "id": "B",
+          "probability": 35,
+          "description": "Breaks below 15m EMA → follows BTC/ETH selling.",
+          "playbook": "T2:L2",
+          "trigger": "Bear bar < 650.5",
+          "still_valid": true
+        },
+        {
+          "id": "C",
+          "probability": 25,
+          "description": "TR 647-653 established.",
+          "playbook": "TR1:BLSHS",
+          "trigger": "Range bars between 648-653",
+          "still_valid": true
+        }
+      ],
+      "key_levels": {
+        "swing_high": 665,
+        "bounce_high": 653.8,
+        "ema_1h": 653.75,
+        "ema_15m": 651.3,
+        "ema_5m": 650.5,
+        "swing_low": 646.3,
+        "round_number": 645
+      },
+      "updated_at": "2026-03-06T14:32:21.199205+00:00",
+      "source_cycle_id": "cycle_20260306_142704",
+      "last_signal": null,
+      "last_quick_scan_state": "TR",
+      "align_score": 2,
+      "timeframes": {
+        "5m": {
+          "ai": "TR",
+          "ema20": 641.6907,
+          "atr14": 12.507,
+          "price": 639.2
+        },
+        "15m": {
+          "ai": "TR",
+          "ema20": 643.6418,
+          "atr14": 15.5392,
+          "price": 639.2
+        },
+        "30m": {
+          "ai": "AIS",
+          "ema20": 646.048,
+          "atr14": 17.6945,
+          "price": 639.2
+        },
+        "1h": {
+          "ai": "AIS",
+          "ema20": 649.0147,
+          "atr14": 20.247,
+          "price": 639.2
+        }
+      },
+      "priority": 1,
+      "signal": "",
+      "entry_idea": {
+        "side": "WAIT",
+        "entry_zone": "only buy lower near 631.7 support with confirmation or sell much higher in the range",
+        "style": "Scalp"
+      },
+      "evaluation": {
+        "p_estimate": 0.5,
+        "r_estimate": 0.9,
+        "equation_value": 0.45,
+        "threshold_rhs": 0.5,
+        "passes_price_action": false,
+        "passes_execution_gate": false
+      },
+      "refs": [
+        "S2-direction.md",
+        "S3-market-state.md",
+        "S3b-key-levels.md",
+        "S4-strategy-match.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-tr.md"
+      ],
+      "thesis": "BNB remains broad TR behavior with mixed lower timeframes and no clean edge. It is still a wait-for-better-location instrument, not an execution candidate."
+    }
+  },
+  "_meta": {
+    "loop_count": 219,
+    "total_signals": 31,
+    "total_trades": 8,
+    "total_passes": 25,
+    "last_full_refresh": "2026-03-06T13:48:20.970405+00:00"
+  }
+}

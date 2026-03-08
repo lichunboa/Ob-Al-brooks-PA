@@ -1,0 +1,8 @@
+{
+  "next_scan_at": "2026-03-08T20:10:36.090995+00:00",
+  "in_seconds": 120,
+  "reason_code": "BTC 已进入失效/重建区，ETH 与 BNB 仍处高位临界区，属于高优先级快扫条件。",
+  "reason_text": "BTC 已进入失效/重建区，ETH 与 BNB 仍处高位临界区，属于高优先级快扫条件。",
+  "derived_from_cycle": "cycle_20260309_040826",
+  "interruptible": true
+}

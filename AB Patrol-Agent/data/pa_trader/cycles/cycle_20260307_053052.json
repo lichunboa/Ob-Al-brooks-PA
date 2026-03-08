@@ -1,0 +1,1038 @@
+{
+  "cycle_id": "cycle_20260307_053052",
+  "phase": "BOOTSTRAP",
+  "time_utc": "2026-03-06T21:30:52.925849+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "ETHUSDT": {
+      "5m": [
+        "state:TC"
+      ]
+    },
+    "BTCUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:TR"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "BOOTSTRAP",
+    "summary": "冷启动或缓存过期，执行全刷新并重建 daily bias / structure / scenarios。",
+    "full_refresh": true,
+    "focus_symbols": [
+      "ETHUSDT",
+      "BTCUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S0-daily-bias.md",
+      "S1-reading.md",
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "analysis_board": {
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "ENTRY_READY",
+        "priority": 2,
+        "priority_score": 1,
+        "priority_note": "次级空头回抽观察",
+        "align_score": 4,
+        "daily_bias": "tr",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "market_state_detail": "空头通道背景仍在，但价格继续位于近支撑前的磁体区域。",
+        "structure_summary": "80根结构仍是2161以来的主跌段；最近20根里反弹未能改变EMA压制，价格继续在各级EMA下方运行，但当前已贴近前方支撑磁体。",
+        "running_narrative": "继续等待更好空头价位",
+        "pre_signal": "反抽到1978-1988下方失败形成L2，或有效跌破1972并出现跟随阴线。",
+        "key_levels": {
+          "1h": {
+            "support": 2284.0,
+            "resistance": 2401.43,
+            "ema20": 2401.5398
+          },
+          "15m": {
+            "support": 2333.8,
+            "resistance": 2385.0,
+            "ema20": 2367.243
+          },
+          "5m": {
+            "support": 2333.78,
+            "resistance": 2371.0,
+            "ema20": 2361.4936
+          }
+        },
+        "entry_idea": "只做回抽失败或破位跟随，不追当前支撑前低位。",
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": true,
+          "pass_type": "WAIT",
+          "p_estimate": 0.45,
+          "r_estimate": 0.98
+        },
+        "thesis": "15m与1h继续AIS，5m从偏多但不确定重新压回EMA下方，空头背景未变。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 45,
+            "description": "回抽到1978-1988下方失败，形成更好的二次空头。",
+            "playbook": "wait",
+            "trigger": "反弹后出现阴线收回并失守前一根低点",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 30,
+            "description": "直接在1972附近横住，先演化成小TR后再选择方向。",
+            "playbook": "wait",
+            "trigger": "连续重叠K线围绕1972-1980震荡",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "支撑先守住，出现更深反抽到更高阻力区。",
+            "playbook": "wait",
+            "trigger": "强多头K线重回1988上方",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "AIS",
+            "ema20": 2296.064,
+            "atr14": 24.559,
+            "price": 2223.0
+          },
+          "15m": {
+            "ai": "AIS",
+            "ema20": 2335.7463,
+            "atr14": 40.8613,
+            "price": 2223.0
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 2351.906,
+            "atr14": 52.7332,
+            "price": 2223.0
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 2369.567,
+            "atr14": 86.7832,
+            "price": 2223.0
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_1h_052702.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_15m_052701.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_5m_052701.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/ETHUSDT_1h_052513.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/ETHUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "ENTRY_READY",
+        "priority": 1,
+        "priority_score": 0,
+        "priority_note": "最佳候选但需等待70635失守或更高位失败反抽",
+        "align_score": 2,
+        "daily_bias": "tr",
+        "ai_direction": "AIS",
+        "market_state": "TR",
+        "market_state_detail": "大级别偏空背景下的区间回落腿，5m刚重新失守EMA，但仍未脱离区间内部。",
+        "structure_summary": "80根结构显示75300后的主跌段仍主导背景，但70635附近是清晰支撑磁体；最近20根里5m连续反弹后站上EMA，15m也转强，说明当前先进入下沿支撑到中部回拉的区间段。若后续在更高位失败，空头才重新有结构优势。",
+        "running_narrative": "等待空头确认而非立即追空",
+        "pre_signal": "若继续跌并有效失守关键支撑后有跟随，可转为空头执行；若先反抽到更高阻力区失败，优先做L2空头。",
+        "key_levels": {
+          "1h": {
+            "support": 68744.5,
+            "resistance": 71621.4,
+            "ema20": 70959.4255
+          },
+          "15m": {
+            "support": 68744.5,
+            "resistance": 70627.6,
+            "ema20": 70429.4575
+          },
+          "5m": {
+            "support": 69167.0,
+            "resistance": 70535.6,
+            "ema20": 70192.6149
+          }
+        },
+        "entry_idea": "不在区间内部直接追空；等破位确认或高位失败再做。",
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": true,
+          "pass_type": "WAIT",
+          "p_estimate": 0.5,
+          "r_estimate": 1.1
+        },
+        "thesis": "5m最新两根大阴线重新跌回EMA下方，15m与1h本就持续在EMA下方，短线空头恢复感增强。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "70635继续守住，价格在70635-71350之间演变为TR，下沿反弹延续。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "在70635附近出现继续承接并维持在其上方",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "重新跌破70635并收在其下，空头恢复，开始测试70000区域。",
+            "playbook": "wait",
+            "trigger": "收盘重新跌回70600下方并出现跟随",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "70800-71100之间继续重叠，形成中部震荡等待方向。",
+            "playbook": "wait",
+            "trigger": "连续重叠K线、缺乏跟随",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "AIL",
+            "ema20": 68932.6577,
+            "atr14": 659.1305,
+            "price": 69955.3
+          },
+          "15m": {
+            "ai": "AIL",
+            "ema20": 69532.6556,
+            "atr14": 1001.9474,
+            "price": 69951.1
+          },
+          "30m": {
+            "ai": "TR",
+            "ema20": 70106.3862,
+            "atr14": 1191.448,
+            "price": 69951.1
+          },
+          "1h": {
+            "ai": "TR",
+            "ema20": 70511.3075,
+            "atr14": 1365.2517,
+            "price": 69951.1
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-bo.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_1h_052704.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_15m_052704.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_5m_052704.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BTCUSDT_1h_052515.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BTCUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "watching",
+        "stage": "WATCH",
+        "priority": 3,
+        "priority_score": 2,
+        "priority_note": "区间观察，不在边缘",
+        "align_score": 2,
+        "daily_bias": "tr",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "小周期为标准交易区间，中部拉锯明显；更高周期虽偏空，但当前未给出边缘优势。",
+        "structure_summary": "80根浏览可见646.3以来的反弹未改变更大级别卖压，但最近20根集中表现为EMA附近往返、上下影增多、重叠加剧，是典型TR行为。",
+        "running_narrative": "观察",
+        "pre_signal": "等待TR边缘反转、有效突破跟随，或清晰H2/L2触发。",
+        "key_levels": {
+          "swing_high": 665,
+          "bounce_high": 653.8,
+          "ema_1h": 653.75,
+          "ema_15m": 651.3,
+          "ema_5m": 650.5,
+          "swing_low": 646.3,
+          "round_number": 645
+        },
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "只在更接近647/645支撑承接，或652-654阻力失败时考虑TR交易。",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": true,
+          "pass_type": "WAIT"
+        },
+        "thesis": "没有出现优先级高于BTC和ETH的新结构。",
+        "signal": "",
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "继续在647-653之间运行，维持TR。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "边缘出现清晰反转K",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "跌破647后跟随BTC/ETH转弱，但需先确认不是假破。",
+            "playbook": "wait",
+            "trigger": "连续阴线有效跌破647并有跟随",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "回到652-654一带后受阻，再给顶部做空机会。",
+            "playbook": "wait",
+            "trigger": "上沿出现失败反抽阴线",
+            "still_valid": true
+          }
+        ],
+        "trade": null,
+        "timeframes": {
+          "5m": {
+            "ai": "TR",
+            "ema20": 641.6907,
+            "atr14": 12.507,
+            "price": 639.2
+          },
+          "15m": {
+            "ai": "TR",
+            "ema20": 643.6418,
+            "atr14": 15.5392,
+            "price": 639.2
+          },
+          "30m": {
+            "ai": "AIS",
+            "ema20": 646.048,
+            "atr14": 17.6945,
+            "price": 639.2
+          },
+          "1h": {
+            "ai": "AIS",
+            "ema20": 649.0147,
+            "atr14": 20.247,
+            "price": 639.2
+          }
+        },
+        "refs": [
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md",
+          "S7-management.md"
+        ]
+      },
+      "live_timeframes": {
+        "1d": {
+          "summary": null,
+          "ema20": null,
+          "atr14": null,
+          "price_vs_ema": null,
+          "bar_count_total": 0,
+          "browse_window_stats": {},
+          "close_read_window_stats": {},
+          "recent_bars": []
+        }
+      },
+      "chart_context": {
+        "chart_paths": [
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_1h_052708.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_15m_052707.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_5m_052707.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/2026-03-07/BNBUSDT_1h_052517.png",
+          "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts/daily/BNBUSDT_1d.png"
+        ],
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "BOOTSTRAP",
+    "market_summary": "本轮是全刷新重建。基于缓存结构与已给出的全周期结论，三品种当前仍以等待为主：ETH日线与中低周期总体偏空，但现价贴近支撑磁体，追空位置差；BTC日线偏空到区间、小时级仍弱，但短线处于区间回落腿而非优质空头发起点；BNB仍是标准TR，中部拉锯未消失。全刷新后的结论不是降低标准强做，而是把日线偏置、结构摘要和场景重新校正后继续守更优位置。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "watching",
+        "trade": null,
+        "pre_signal": "若重新失守关键支撑并出现跟随阴线，或先反抽到更高阻力区后形成L2失败反抽，再评估空头执行。",
+        "ai_direction": "AIS",
+        "market_state": "TR",
+        "market_state_detail": "大级别处于偏空背景下的宽幅交易区间，5m回落重新偏空，但15m/1h仍更像区间内部腿而非已脱离区间的新趋势。",
+        "consecutive_watching": 0,
+        "last_price": 69955.3,
+        "ema20": 71902,
+        "atr14": 961,
+        "ema20_5m": 68932.6577,
+        "atr14_5m": 659.1305,
+        "ema20_15m": 71280,
+        "atr14_15m": 354,
+        "structure_summary": "浏览80根可见76055后主跌背景未改，最近20根表现为下探后反弹、再回落，说明70635一带支撑曾吸引买盘，但反弹又缺乏强跟随，属于TR中的双向腿。",
+        "running_narrative": "空头重新占优一些，但当前仍在区间中下部，继续等待更好的卖点或支撑失守后的跟随。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "BC",
+          "score": 6,
+          "gap_status": "open_bearish",
+          "bars_since_climax": 14,
+          "tbtl_countdown": 10
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "70635附近继续承接，演化为更清晰的区间震荡。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "再次下探支撑后出现强承接反转K",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "跌破70635/70000并出现跟随，空头恢复主导。",
+            "playbook": "等待顺势空头",
+            "trigger": "连续收盘失守关键支撑且跟随阴线出现",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "先反抽到EMA与阻力带，再给失败反抽L2空头。",
+            "playbook": "T2/L2空头",
+            "trigger": "反弹至70430-70630区域受阻并跌破前低",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "daily": {
+            "bias": "AIS/TR",
+            "ema20": "未知但日线背景偏空",
+            "major_resistance": "前高与日线反弹高点区域",
+            "major_support": "近期低点与整数关口"
+          },
+          "1h": {
+            "support": 68744.5,
+            "resistance": 71621.4,
+            "ema20": 70959.4255
+          },
+          "15m": {
+            "support": 68744.5,
+            "resistance": 70627.6,
+            "ema20": 70429.4575
+          },
+          "5m": {
+            "support": 69167.0,
+            "resistance": 70535.6,
+            "ema20": 70192.6149
+          },
+          "round_numbers": [
+            70000,
+            69000
+          ]
+        },
+        "updated_at": "2026-03-06T21:27:37.658446+00:00",
+        "source_cycle_id": "cycle_20260307_052737",
+        "last_signal": "H2@69969.4",
+        "last_quick_scan_state": "TC",
+        "stage": "WATCH",
+        "updated_by": "heuristic_provider",
+        "align_score": 3,
+        "timeframes": {
+          "1d": {
+            "ai": "AIS/TR",
+            "note": "日线无强BO确认，但总体仍偏空背景"
+          },
+          "5m": {
+            "ai": "AIS",
+            "note": "短线重新跌回EMA下侧，卖压恢复"
+          },
+          "15m": {
+            "ai": "AIS",
+            "note": "仍在EMA下，反弹质量一般"
+          },
+          "1h": {
+            "ai": "AIS",
+            "note": "近20根整体空头占优，仍压在EMA下方"
+          }
+        },
+        "priority": 1,
+        "signal": "",
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "不在区间内部直接追空；优先等70635/70000失守后的跟随，或反抽到70430-70630上方附近失败后做L2空头。",
+          "sl_reference": "若后续做空，止损应放在失败反抽高点外侧，并避免放在区间内部磁体内侧。",
+          "tp_reference": "先看70000与68744，再看区间下沿扩展。",
+          "style": "Scalp优先，若多周期同步转空再考虑Swing"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "WAIT",
+          "p_estimate": 0.48,
+          "r_estimate": 1.1,
+          "equation_value": 0.53,
+          "threshold_rhs": 0.52,
+          "comment": "数学边缘接近达标，但当前位置处于TR内部，按S3/S3b仍不该执行。"
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md",
+          "S7-management.md"
+        ],
+        "thesis": "日线偏空到区间，1h仍在EMA下且近20根整体卖压占优；5m虽有反弹后回落，但当前更像大区间内部的回落腿，不是优质中位追空。",
+        "priority_note": "最佳候选，但仍需关键位确认后才可执行",
+        "priority_score": 1,
+        "summary": "5m最新两根大阴线重新跌回EMA下方，15m与1h本就持续在EMA下方，短线空头恢复感增强。",
+        "decision": "等待空头确认而非立即追空",
+        "reason": "虽然5m重新转弱，但当前仍位于大区间内部，未到更高阻力失败位，也未明确失守更关键的大支撑；按S3与S3b，这更像TR/宽区间中的回落腿，不是优质中部追空位。",
+        "next_trigger": "若继续跌并有效失守关键支撑后有跟随，可转为空头执行；若先反抽到更高阻力区失败，优先做L2空头。"
+      },
+      "ETHUSDT": {
+        "daily_bias": "bear",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "watching",
+        "trade": null,
+        "pre_signal": "反抽到1978-1988下方失败形成L2，或有效跌破1972后出现跟随阴线。",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "market_state_detail": "空头通道仍在运行，但已进入支撑前真空尾段；此时动能看起来最强，实际更容易先撞磁体再进入停顿或反抽。",
+        "consecutive_watching": 0,
+        "last_price": 2223.0,
+        "ema20": 2102,
+        "atr14": 34,
+        "ema20_5m": 2296.064,
+        "atr14_5m": 24.559,
+        "ema20_15m": 2081.8,
+        "atr14_15m": 11.8,
+        "structure_summary": "浏览80根仍是2161以来主跌段，最近20根显示反弹无力、EMA压制持续、5m重新压回EMA下方，但1969-1956区域已经反复表现为近端支撑磁体。",
+        "running_narrative": "空头继续控场，但并未给出新的高质量卖点；等待回抽失败或破位跟随，而不是在支撑前最后冲刺区追空。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "SC",
+          "score": 3,
+          "gap_status": "no_gap",
+          "bars_since_climax": 3,
+          "tbtl_countdown": 7
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 45,
+            "description": "反抽至1978-1988受阻，形成更清晰二次空头。",
+            "playbook": "T2/L2空头",
+            "trigger": "反弹后阴线收回并跌破前一根低点",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 30,
+            "description": "1972附近先形成小TR，再决定是否跌破1956。",
+            "playbook": "wait",
+            "trigger": "连续重叠K线围绕1972-1980拉锯",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "支撑先守住，出现更深反抽到更高阻力区。",
+            "playbook": "wait",
+            "trigger": "强多头K线重回1988上方",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "daily": {
+            "bias": "AIS",
+            "major_resistance": "2030附近日线EMA与前高带",
+            "major_support": "1956与更低历史支撑"
+          },
+          "1h": {
+            "support": 2284.0,
+            "resistance": 2401.43,
+            "ema20": 2401.5398
+          },
+          "15m": {
+            "support": 2333.8,
+            "resistance": 2385.0,
+            "ema20": 2367.243
+          },
+          "5m": {
+            "support": 2333.78,
+            "resistance": 2371.0,
+            "ema20": 2361.4936
+          },
+          "live_support_zone": [
+            1972,
+            1956
+          ],
+          "live_resistance_zone": [
+            1978,
+            1988
+          ]
+        },
+        "updated_at": "2026-03-06T21:27:37.658451+00:00",
+        "source_cycle_id": "cycle_20260307_052737",
+        "last_signal": "L2@2204.0",
+        "last_quick_scan_state": "BO",
+        "align_score": 4,
+        "timeframes": {
+          "1d": {
+            "ai": "AIS",
+            "note": "日线偏空，反弹多表现为卖点"
+          },
+          "5m": {
+            "ai": "AIS",
+            "note": "重新跌回EMA下，短线卖压恢复"
+          },
+          "15m": {
+            "ai": "AIS",
+            "note": "持续在EMA下方，反弹未改结构"
+          },
+          "1h": {
+            "ai": "AIS",
+            "note": "近20根整体卖压明显，仍无趋势反转证据"
+          }
+        },
+        "stage": "WATCH",
+        "updated_by": "heuristic_provider",
+        "priority": 2,
+        "signal": "",
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "只做回抽失败空头，或破位后有跟随时再跟；不在1972/1956磁体前直接追空。",
+          "sl_reference": "回抽失败单的止损放在1988上方；若是更深反抽则放到1994外侧。",
+          "tp_reference": "先看1956，若有效跌破再看更低延续。",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "WAIT",
+          "p_estimate": 0.45,
+          "r_estimate": 0.98,
+          "equation_value": 0.44,
+          "threshold_rhs": 0.55,
+          "comment": "方向正确但R不足，属于标准PASS-WAIT。"
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md",
+          "S7-management.md"
+        ],
+        "thesis": "日线偏空，1h/15m/5m整体仍是AIS，空头背景在三周期中最干净；但价格已处在1972/1956支撑磁体前沿，位置差而不是方向差。",
+        "priority_note": "方向最清楚，但位置最不适合追空",
+        "priority_score": 2,
+        "summary": "15m与1h继续AIS，5m从偏多但不确定重新压回EMA下方，空头背景未变。",
+        "decision": "继续等待更好空头价位",
+        "reason": "当前1973.70几乎贴近1972/1956支撑磁体，继续追空会先撞支撑，手续费后R仍不足Scalp门槛；这是明显的PASS-WAIT，不是恐惧。",
+        "next_trigger": "反抽到1978-1988下方失败形成L2，或有效跌破1972并出现跟随阴线。"
+      },
+      "BNBUSDT": {
+        "daily_bias": "tr",
+        "daily_bias_expires": "2026-03-06T00:00:00Z",
+        "status": "watching",
+        "pre_signal": "等待647/645支撑承接后的BLSHS，或652-654阻力失败后的顶部空头。",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "market_state_detail": "小周期标准交易区间，中部拉锯明显；更高周期偏空只提供背景，不足以支持在TR中部追空。",
+        "consecutive_watching": 1,
+        "last_price": 639.2,
+        "ema20": 654.0,
+        "atr14": 5.5,
+        "ema20_5m": 641.6907,
+        "atr14_5m": 12.507,
+        "ema20_15m": 651.3,
+        "atr14_15m": 2.42,
+        "structure_summary": "浏览80根可见646.3以来反弹没有扭转更大级别压力，但最近20根集中表现为EMA附近往返、上下影增加、缺乏跟随，是典型Broad TR。",
+        "running_narrative": "继续等待区间边缘，不在中部做无优势交易。",
+        "bc_sc_guard": {
+          "active": true,
+          "type": "BC",
+          "score": 4,
+          "gap_status": "partially_closing",
+          "bars_since_climax": 14,
+          "tbtl_countdown": 10
+        },
+        "scenarios": [
+          {
+            "id": "A",
+            "probability": 40,
+            "description": "继续在647-653之间维持TR。",
+            "playbook": "TR1:BLSHS",
+            "trigger": "边缘出现清晰反转K",
+            "still_valid": true
+          },
+          {
+            "id": "B",
+            "probability": 35,
+            "description": "跌破647后跟随整体转弱，但需先确认不是假破。",
+            "playbook": "TR2/等待确认",
+            "trigger": "连续阴线有效跌破647并有跟随",
+            "still_valid": true
+          },
+          {
+            "id": "C",
+            "probability": 25,
+            "description": "回到652-654一带受阻，再给顶部做空机会。",
+            "playbook": "TR1顶部空头",
+            "trigger": "上沿出现失败反抽阴线",
+            "still_valid": true
+          }
+        ],
+        "key_levels": {
+          "daily": {
+            "bias": "TR",
+            "major_support": "645附近整数与区间下沿",
+            "major_resistance": "653-665区间上沿"
+          },
+          "intraday": {
+            "swing_high": 665,
+            "bounce_high": 653.8,
+            "ema_1h": 653.75,
+            "ema_15m": 651.3,
+            "ema_5m": 650.5,
+            "swing_low": 646.3,
+            "round_number": 645
+          }
+        },
+        "updated_at": "2026-03-06T21:27:37.658456+00:00",
+        "source_cycle_id": "cycle_20260307_052737",
+        "last_signal": null,
+        "last_quick_scan_state": "TR",
+        "align_score": 2,
+        "timeframes": {
+          "1d": {
+            "ai": "TR",
+            "note": "日线缺少强趋势限制，双向都需靠位置"
+          },
+          "5m": {
+            "ai": "TR",
+            "note": "EMA附近往返，典型中部拉锯"
+          },
+          "15m": {
+            "ai": "TR",
+            "note": "仍未脱离横盘特征"
+          },
+          "1h": {
+            "ai": "AIS",
+            "note": "小时级偏空，但不足以覆盖5m/15m的TR事实"
+          }
+        },
+        "priority": 3,
+        "signal": "",
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": "只在更接近647/645支撑承接，或652-654阻力失败时考虑TR交易。",
+          "sl_reference": "TR单必须放在边缘另一侧外面，不能放在区间内部。",
+          "tp_reference": "TR中间或对侧边缘。",
+          "style": "Scalp"
+        },
+        "evaluation": {
+          "passes_price_action": false,
+          "passes_execution_gate": false,
+          "pass_type": "RULE",
+          "comment": "TR中部无边缘优势，且当前没有足够R。"
+        },
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S4-strategy-match.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-tr.md",
+          "S7-management.md"
+        ],
+        "thesis": "日线与小时级偏空到中性，但5m/15m持续表现为EMA附近往返和重叠增多，当前仍是标准TR。",
+        "priority_note": "区间观察，未到边缘不交易",
+        "priority_score": 3,
+        "stage": "WATCH",
+        "summary": "没有出现优先级高于BTC和ETH的新结构。",
+        "decision": "观察",
+        "reason": "缺少多周期同向与边缘位置优势，当前不应放宽标准强做。",
+        "next_trigger": "等待TR边缘反转、有效突破跟随，或清晰H2/L2触发。"
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "side": "SELL",
+        "entry": 0,
+        "sl": 0,
+        "tp": 0,
+        "risk_usdt": 0,
+        "strategy": "WAIT",
+        "ai_direction": "AIS",
+        "market_state": "TR",
+        "signal_bar": "暂无有效信号K线",
+        "equation": "P=0.48 R=1.10 PxR=0.53",
+        "refs": [
+          "S0-daily-bias.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-tr.md"
+        ],
+        "bar_reading": "短线重新转弱，但仍处于区间内部回落腿，缺少边缘与跟随确认。",
+        "order_type": "MARKET",
+        "price": 0,
+        "reason": "全刷新后仍判定为PASS-WAIT，等待关键支撑失守或更高位失败反抽。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "side": "SELL",
+        "entry": 0,
+        "sl": 0,
+        "tp": 0,
+        "risk_usdt": 0,
+        "strategy": "WAIT",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "signal_bar": "暂无可执行信号K线",
+        "equation": "P=0.45 R=0.98 PxR=0.44",
+        "refs": [
+          "S0-daily-bias.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-channel.md"
+        ],
+        "bar_reading": "空头背景最清楚，但当前正压在支撑磁体前，属于位置差。",
+        "order_type": "MARKET",
+        "price": 0,
+        "reason": "PASS-WAIT，等待回抽失败或破位跟随，不在支撑前追空。"
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "side": "SELL",
+        "entry": 0,
+        "sl": 0,
+        "tp": 0,
+        "risk_usdt": 0,
+        "strategy": "WAIT",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "signal_bar": "暂无边缘反转K线",
+        "equation": "P=0.50 R=不足",
+        "refs": [
+          "S0-daily-bias.md",
+          "S2-direction.md",
+          "S3-market-state.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-tr.md"
+        ],
+        "bar_reading": "仍在TR中部拉锯，未到边缘1/3。",
+        "order_type": "LIMIT",
+        "price": 0,
+        "reason": "PASS-RULE，TR中部无边缘优势，继续等待。"
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 120,
+    "next_scan_reason": "全刷新后主结论未变，但ETH仍贴近支撑磁体，BTC仍在关键支撑上方徘徊，两个主观察品种都接近下一步确认窗口，继续2分钟跟踪。",
+    "state_patch": {
+      "_meta": {
+        "last_full_refresh": "2026-03-06T21:29:33.597040+00:00"
+      },
+      "BTCUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "daily_bias": "bear",
+        "ai_direction": "AIS",
+        "market_state": "TR",
+        "running_narrative": "空头恢复但仍需关键位确认",
+        "pre_signal": "等待关键支撑失守跟随，或更高位失败反抽L2空头",
+        "trade": null
+      },
+      "ETHUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "daily_bias": "bear",
+        "ai_direction": "AIS",
+        "market_state": "TC",
+        "running_narrative": "空头控场但位置仍差",
+        "pre_signal": "等待1978-1988失败反抽，或1972跌破后跟随",
+        "trade": null
+      },
+      "BNBUSDT": {
+        "status": "watching",
+        "stage": "WATCH",
+        "daily_bias": "tr",
+        "ai_direction": "TR",
+        "market_state": "TR",
+        "running_narrative": "TR中部继续观察",
+        "pre_signal": "等待TR边缘反转或突破失败确认",
+        "trade": null
+      }
+    },
+    "explanation": "这次是BOOTSTRAP全刷新，所以重点不是沿用旧结论，而是把Daily偏置、80根结构和最近20根行为重新对齐。重建后并没有出现新的必须执行交易：ETH日线到小时级都支持空头，但正处支撑磁体前，S3b明确禁止在真空尾段追空；BTC日线偏空、小时弱，但当前主要是区间回落腿，按S3/S6-tr仍需等待边缘或破位确认；BNB最标准，依旧是TR中部。因execution snapshot里的can_trade未确认，本轮也不输出OPEN_ORDER，继续LOG_ONLY并缩短观察间隔。"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:30:52.920298+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "全刷新后仍判定为PASS-WAIT，等待关键支撑失守或更高位失败反抽。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:30:52.920371+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "PASS-WAIT，等待回抽失败或破位跟随，不在支撑前追空。"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": true,
+      "started_at": "2026-03-06T21:30:52.920379+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "PASS-RULE，TR中部无边缘优势，继续等待。"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-06T21:32:52.922659+00:00",
+    "in_seconds": 120,
+    "reason_code": "全刷新后主结论未变，但ETH仍贴近支撑磁体，BTC仍在关键支撑上方徘徊，两个主观察品种都接近下一步确认窗口，继续2分钟跟踪。",
+    "reason_text": "全刷新后主结论未变，但ETH仍贴近支撑磁体，BTC仍在关键支撑上方徘徊，两个主观察品种都接近下一步确认窗口，继续2分钟跟踪。",
+    "derived_from_cycle": "cycle_20260307_053052",
+    "interruptible": true
+  }
+}

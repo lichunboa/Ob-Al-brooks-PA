@@ -1,0 +1,39 @@
+{
+  "loop_number": 163,
+  "time_utc": "2026-03-05T17:53:07.620160Z",
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "signal_trigger"
+      ],
+      "15m": [
+        "level_break"
+      ],
+      "1h": [
+        "level_break"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [],
+      "15m": [],
+      "1h": [
+        "level_break"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [],
+      "15m": [
+        "momentum"
+      ],
+      "1h": [
+        "anomaly",
+        "level_break"
+      ]
+    }
+  },
+  "trades": [],
+  "passes": [],
+  "notes": [
+    "ETH position closed at 2055.62 via API"
+  ]
+}
