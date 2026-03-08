@@ -401,6 +401,27 @@ def event_has_exact(events: list[str], names: set[str]) -> bool:
     return any(str(event) in names for event in events)
 
 
+SIGNAL_EVENT_PATTERN = re.compile(r"^(?:signal_trigger|hl_signal):([HL])(\d+)")
+
+
+def signal_event_ranks(events: list[str]) -> list[tuple[str, int]]:
+    ranks: list[tuple[str, int]] = []
+    for event in events:
+        match = SIGNAL_EVENT_PATTERN.match(str(event or "").strip())
+        if not match:
+            continue
+        ranks.append((match.group(1), int(match.group(2))))
+    return ranks
+
+
+def has_second_entry_signal(events: list[str]) -> bool:
+    return any(rank >= 2 for _, rank in signal_event_ranks(events))
+
+
+def has_first_entry_signal(events: list[str]) -> bool:
+    return any(rank == 1 for _, rank in signal_event_ranks(events))
+
+
 def classify_primary_s6_reference(state: str, events: list[str]) -> str:
     state_upper = str(state or "").upper()
     normalized = [str(event or "").strip() for event in events]
@@ -482,6 +503,9 @@ def infer_order_type_from_refs(
     reversal_like = "S6-REVERSAL.MD" in refs_upper
     channel_ref = "S6-CHANNEL.MD" in refs_upper
     channel_reversal_like = channel_ref and state_upper in {"TR", "BC", "TC"}
+    broad_channel_like = channel_ref and state_upper == "BC"
+    continuation_like = any(token in intent_upper for token in ("CONTINUATION", "PULLBACK", "TREND", "RESUMPTION", "STOP"))
+    countertrend_like = any(token in intent_upper for token in ("PROBE", "FADE", "COUNTERTREND", "试探", "LIMIT"))
 
     if "CANCEL" in intent_upper:
         return "MARKET"
@@ -491,9 +515,11 @@ def infer_order_type_from_refs(
         if state_upper in {"TR", "BC"} and ("PROBE" in intent_upper or "试探" in intent_upper) and has_price:
             return "LIMIT"
         return "STOP_MARKET" if has_price else "MARKET"
-    if channel_ref and state_upper == "BC":
-        if "LIMIT" in intent_upper or "TR_FADE" in intent_upper or "FAILED_BO_FADE" in intent_upper:
+    if broad_channel_like:
+        if countertrend_like or "TR_FADE" in intent_upper or "FAILED_BO_FADE" in intent_upper:
             return "LIMIT" if has_price else "MARKET"
+        if continuation_like:
+            return "STOP_MARKET" if has_price else "MARKET"
         return "STOP_MARKET" if has_price else "MARKET"
     if "S6-TR.MD" in refs_upper or state_upper == "TR":
         return "LIMIT" if has_price else "MARKET"
@@ -615,30 +641,30 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
     if category in {"tr_middle_no_edge", "watch_only"} or status in {"watching", "cooldown"}:
         stage = "WATCH"
         mode = "WATCH_ONLY"
-    elif category == "tbtl_incomplete":
+    elif category in {"tbtl_incomplete", "tr_edge_limit_wait_second_signal"}:
         stage = "PRE_SIGNAL"
         mode = "WAIT_ACCEPTANCE"
-    elif category == "strong_breakout_countertrend":
+    elif category in {"strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}:
         stage = "COUNTERTREND_PROBE"
         mode = "COUNTERTREND_PROBE"
-    elif category == "forty_percent_reversal_scalp_only":
-        if allow_executable and exact_entry is not None:
-            stage = "EXECUTABLE_LIMIT" if order_type == "LIMIT" else "EXECUTABLE_STOP"
-            mode = "LIMIT_PLAN" if order_type == "LIMIT" else "STOP_TRIGGER"
-        elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
-            stage = "CANDIDATE_LIMIT" if order_type == "LIMIT" else "COUNTERTREND_PROBE"
-            mode = "LIMIT_PLAN" if order_type == "LIMIT" else "COUNTERTREND_PROBE"
-        else:
-            stage = "PRE_SIGNAL"
-            mode = "WAIT_ACCEPTANCE"
-    elif category == "tr_edge_limit_only":
+    elif category in {"tr_edge_limit_only", "broad_channel_countertrend_limit"}:
         if allow_executable and exact_entry is not None:
             stage = "EXECUTABLE_LIMIT"
+        elif allow_executable and has_zone:
+            stage = "CANDIDATE_LIMIT"
         elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
             stage = "CANDIDATE_LIMIT"
         else:
             stage = "PRE_SIGNAL"
         mode = "LIMIT_PLAN"
+    elif category == "broad_channel_trend_stop":
+        if allow_executable and exact_entry is not None:
+            stage = "EXECUTABLE_STOP"
+        elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
+            stage = "CANDIDATE_STOP"
+        else:
+            stage = "PRE_SIGNAL"
+        mode = "STOP_TRIGGER"
     elif allow_executable:
         if order_type == "STOP_MARKET":
             stage = "EXECUTABLE_STOP" if exact_entry is not None else "CANDIDATE_STOP"
@@ -1227,18 +1253,32 @@ class PatrolRuntime:
             events,
         )
         has_signal_trigger = event_has_prefix(events, ("signal_trigger:", "hl_signal:", "trigger:"))
+        has_second_signal = has_second_entry_signal(events)
+        has_first_signal = has_first_entry_signal(events)
         has_tr_edge = event_has_prefix(events, ("tr_edge:",))
+        tr_edge_top = any(str(event).startswith("tr_edge:top") for event in events)
+        tr_edge_bottom = any(str(event).startswith("tr_edge:bottom") for event in events)
         has_breakout = event_has_prefix(events, ("state:BO", "state:BC", "state:TC", "state_change:"))
         reversal_clues = event_has_exact(events, {"wedge_or_mtr", "momentum_fading", "climax_suspected"}) or event_has_prefix(
             events,
             ("hl_signal:H",),
         ) or any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge", "reversal", "反转"))
+        broad_channel_like = state_upper == "BC" or any(
+            token in combined for token in ("宽幅多头通道", "宽幅空头通道", "broad channel", "宽通道")
+        )
         strong_breakout = state_upper in {"BO", "TC", "BC"} or any(
             token in combined for token in ("ais", "aib", "always in", "强突破", "紧通道", "宽通道")
         )
         limit_order_environment = state_upper == "TR" or any(
-            token in combined for token in ("交易区间", "limit order", "限价单", "blsh", "buy low sell high")
+            token in combined for token in ("交易区间", "limit order", "限价单", "blsh", "buy low sell high", "上三分之一", "下三分之一")
         )
+        failed_breakout_context = any(
+            token in combined for token in ("失败突破", "failed breakout", "双底下方失败突破", "双顶上方失败突破")
+        )
+        acceptance_clues = has_breakout or failed_breakout_context or any(
+            token in combined for token in ("接受", "站上", "站回", "跟进", "follow-through", "acceptance", "higher low", "lower high")
+        )
+        continuation_clues = event_has_prefix(events, ("first_pb:",)) or event_has_exact(events, {"ema_touch", "cached_pre_signal"})
         tbtl_incomplete = any(token in combined for token in ("tbtl", "two legs", "十条腿", "两波"))
         if not tbtl_incomplete and reversal_clues and not has_signal_trigger:
             tbtl_incomplete = any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge"))
@@ -1260,17 +1300,21 @@ class PatrolRuntime:
                 "allow_executable": False,
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
+                "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
+                "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
             }
 
-        if strong_breakout and reversal_clues and not has_signal_trigger:
+        if strong_breakout and reversal_clues and not has_second_signal:
             return {
                 "category": "strong_breakout_countertrend",
                 "label": "强突破环境下逆势不做",
-                "summary": "强突破背景里的反转先按反转试探/逆势 scalp 观察，不直接当 swing 可执行单。",
+                "summary": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。",
                 "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
                 "allow_executable": False,
                 "preferred_style": "反转试探",
                 "preferred_order_type": "STOP_MARKET" if has_breakout else preferred_order_type,
+                "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
+                "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
             }
 
         if tbtl_incomplete:
@@ -1282,28 +1326,72 @@ class PatrolRuntime:
                 "allow_executable": False,
                 "preferred_style": "反转试探",
                 "preferred_order_type": preferred_order_type,
+                "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+                "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
             }
 
-        if reversal_clues and not has_signal_trigger:
+        if reversal_clues and not has_second_signal:
             return {
                 "category": "forty_percent_reversal_scalp_only",
                 "label": "40%反转仅够 scalp",
-                "summary": "当前反转更像 40% 级别的反转试探，只适合 scalp 观察，暂不作为 swing 可执行单。",
+                "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
                 "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
-                "allow_executable": scalp_style and has_plan,
-                "preferred_style": "反转试探",
+                "allow_executable": False,
+                "preferred_style": inferred_style if scalp_style else "反转试探",
                 "preferred_order_type": "LIMIT" if limit_order_environment else "STOP_MARKET",
+                "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+                "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+            }
+
+        if broad_channel_like and reversal_clues:
+            return {
+                "category": "broad_channel_countertrend_limit",
+                "label": "宽通道逆势先限价",
+                "summary": "宽通道更接近交易区间，逆势反转优先在边缘做 limit scalp，不直接追价做 swing。",
+                "max_status": "entry_ready" if (has_plan and has_tr_edge and has_second_signal) else "pre_signal",
+                "allow_executable": bool(has_plan and has_tr_edge and has_second_signal),
+                "preferred_style": "反转试探" if not has_second_signal else inferred_style or "Scalp",
+                "preferred_order_type": "LIMIT",
+                "upgrade_condition": "先等到边缘，再等二次信号；没有二次信号就只保留试探/观察。",
+                "brooks_rule": "Broad Channel 本质更像 TR：scalp more、swing less、use limit orders。",
+            }
+
+        if broad_channel_like and continuation_clues:
+            return {
+                "category": "broad_channel_trend_stop",
+                "label": "宽通道顺势用 stop",
+                "summary": "宽通道里的顺势恢复可以继续做，但更像通道恢复而不是纯趋势追价，优先等 stop trigger。",
+                "max_status": "entry_ready" if (has_plan and (has_signal_trigger or acceptance_clues)) else "pre_signal",
+                "allow_executable": bool(has_plan and (has_signal_trigger or acceptance_clues)),
+                "preferred_style": inferred_style or "Swing",
+                "preferred_order_type": "STOP_MARKET",
+                "upgrade_condition": "要有继续接受/跟进，或 first pullback 后的恢复信号；否则继续观察。",
+                "brooks_rule": "Broad Channel 顺势延续可用 stop 参与，但仍要尊重通道中‘swing less’的属性。",
             }
 
         if limit_order_environment and has_tr_edge:
+            if not has_second_signal and not has_signal_trigger:
+                return {
+                    "category": "tr_edge_limit_wait_second_signal",
+                    "label": "TR 边缘先等二次信号",
+                    "summary": "交易区间边缘虽然有位置优势，但只有第一次信号或背景不够清晰时，应先等二次信号，再把限价单升级为可执行单。",
+                    "max_status": "pre_signal",
+                    "allow_executable": False,
+                    "preferred_style": inferred_style or "Scalp",
+                    "preferred_order_type": "LIMIT",
+                    "upgrade_condition": "等 H2/L2、二次失败或明确 signal bar，再从预信号升级成候选单。" if has_first_signal else "先等边缘出现明确 signal bar，再看是否形成二次入场。",
+                    "brooks_rule": "TR 低买高卖主要靠边缘和二次入场；背景不清晰时要等第二次信号。",
+                }
             return {
                 "category": "tr_edge_limit_only",
                 "label": "TR 边缘限价单环境",
-                "summary": "当前属于 TR 边缘处理环境，候选单可以存在，但应优先按计划委托/限价处理。",
-                "max_status": "entry_ready" if (has_signal_trigger or has_plan) else "pre_signal",
-                "allow_executable": has_signal_trigger or has_plan,
+                "summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
+                "max_status": "entry_ready" if ((has_second_signal or has_signal_trigger) and has_plan) else "pre_signal",
+                "allow_executable": bool((has_second_signal or has_signal_trigger) and has_plan),
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
+                "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+                "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
             }
 
         if has_signal_trigger or event_has_prefix(events, ("first_pb:", "pb_depth:")):
@@ -1315,6 +1403,8 @@ class PatrolRuntime:
                 "allow_executable": True,
                 "preferred_style": inferred_style,
                 "preferred_order_type": preferred_order_type,
+                "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+                "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
             }
 
         return {
@@ -1325,6 +1415,8 @@ class PatrolRuntime:
             "allow_executable": False,
             "preferred_style": inferred_style or "Scalp",
             "preferred_order_type": preferred_order_type,
+            "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+            "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
         }
 
     def apply_brooks_filter_to_patch(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
@@ -1400,7 +1492,8 @@ class PatrolRuntime:
             }
 
         normalized = dict(action)
-        if category == "tr_edge_limit_only":
+        preferred_order_type = str(filter_meta.get("preferred_order_type") or normalized.get("order_type") or "").strip().upper()
+        if category in {"tr_edge_limit_only", "broad_channel_countertrend_limit"}:
             planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
             entry_price = (
                 first_float(normalized.get("entry"))
@@ -1418,6 +1511,26 @@ class PatrolRuntime:
             normalized["entry"] = entry_price
             normalized.setdefault("entry_price", entry_price)
             normalized["order_type"] = "LIMIT"
+        elif category == "broad_channel_trend_stop":
+            planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+            entry_price = (
+                first_float(normalized.get("entry"))
+                or first_float(normalized.get("entry_price"))
+                or first_float(planned_trade.get("entry_price"))
+            )
+            if entry_price is None:
+                return {
+                    "type": "LOG_ONLY",
+                    "symbol": action.get("symbol"),
+                    "reason": "[PASS-WAIT] 宽通道顺势恢复仍缺少明确 stop trigger 价格，继续观察。",
+                    "refs": normalize_refs(action.get("refs")) or normalize_refs(patch.get("refs")),
+                    "style": filter_meta.get("preferred_style") or action.get("style") or "",
+                }
+            normalized["entry"] = entry_price
+            normalized.setdefault("entry_price", entry_price)
+            normalized["order_type"] = "STOP_MARKET"
+        elif preferred_order_type in {"LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+            normalized["order_type"] = preferred_order_type
         if filter_meta.get("preferred_style"):
             normalized["style"] = filter_meta["preferred_style"]
         return normalized
@@ -3706,6 +3819,7 @@ class PatrolRuntime:
                 {
                     "symbol": symbol,
                     "status": current.get("status"),
+                    "market_state": current.get("market_state"),
                     "pre_signal": pre_signal,
                     "expires_at": meta.get("expires_at"),
                     "timeframe": meta.get("timeframe") or infer_signal_timeframe(pre_signal),
@@ -3795,6 +3909,8 @@ class PatrolRuntime:
         if planned_trade.get("take_profit"):
             planned_bits.append(f"止盈 {planned_trade.get('take_profit')}")
         plan_text = "｜".join(str(item) for item in planned_bits if item) or "-"
+        filter_text = trim_text(brooks_filter.get("label") or "-", 80)
+        upgrade_text = trim_text(brooks_filter.get("upgrade_condition") or "-", 120)
         chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
         chart_files = ", ".join(str(item) for item in (chart_context.get("chart_files") or [])[:3]) or "-"
         chart_hint = chart_context.get("primary_chart_path") or "-"
@@ -3809,23 +3925,51 @@ class PatrolRuntime:
         # 简化状态
         market_state = notice.get('market_state', '')
         if isinstance(market_state, str) and '/' in market_state:
-            # 提取关键信息: "5m XX / 15m XX / 1h XX / 1d XX"
             state_parts = market_state.split('/')
             state_summary = ' / '.join(part.strip() for part in state_parts[:4])
         else:
             state_summary = str(market_state)[:80]
 
+        # 格式化有效期
+        if 'T' in expiry:
+            expiry_date = expiry.split('T')[0]
+            expiry_time = expiry.split('T')[1][:5]
+            expiry_formatted = f"{expiry_date} {expiry_time}"
+        else:
+            expiry_formatted = expiry
+
         return "\n".join(
             [
-                f"🟡 {symbol} 预信号 | {timeframe}",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"🟡 预信号 | {symbol}",
+                "━━━━━━━━━━━━━━━━━━━━",
                 "",
-                f"💵 当前: {close_formatted}",
-                f"📊 状态: {state_summary}",
-                f"🎯 等待: {pre_signal_text[:100]}",
+                f"⏱️  周期: {timeframe}",
+                f"💵 价格: {close_formatted}",
                 "",
-                f"📝 结构: {thesis[:150]}",
+                f"📊 市场状态",
+                f"  {state_summary}",
                 "",
-                f"⏰ 有效期: {expiry.split('T')[0]} {expiry.split('T')[1][:5] if 'T' in expiry else expiry}",
+                f"🎯 等待触发",
+                f"  {pre_signal_text[:120]}",
+                "",
+                f"📚 Brooks 分类",
+                f"  {filter_text}",
+                "",
+                f"🔓 升级条件",
+                f"  {upgrade_text}",
+                "",
+                f"📝 结构分析",
+                f"  {thesis[:180]}",
+                "",
+                f"📋 计划",
+                f"  {plan_text[:150]}",
+                "",
+                f"🖼 图表",
+                f"  {chart_files}",
+                "",
+                f"⏰ 有效期: {expiry_formatted}",
+                "━━━━━━━━━━━━━━━━━━━━",
             ]
         )
 
@@ -3853,21 +3997,42 @@ class PatrolRuntime:
         )
         # 提取市场总结
         market_summary = decision.get('market_summary') or {}
-        regime = market_summary.get('regime', '-') if isinstance(market_summary, dict) else str(market_summary)[:100]
+        regime = market_summary.get('regime', '-') if isinstance(market_summary, dict) else str(market_summary)[:200]
         best_candidate = market_summary.get('best_candidate', '-') if isinstance(market_summary, dict) else '-'
         trade_posture = market_summary.get('trade_posture', '-') if isinstance(market_summary, dict) else '-'
 
+        # 格式化余额
+        try:
+            balance_num = float(str(balance_value).replace(',', '').replace('$', ''))
+            balance_formatted = f"${balance_num:,.2f}"
+        except:
+            balance_formatted = str(balance_value)
+
         return "\n".join(
             [
-                f"📊 PA交易 #{updated_runtime.get('loop_seq')} | ⏱️ {next_scan_seconds}s",
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"📊 PA交易 Loop #{updated_runtime.get('loop_seq')}",
+                "━━━━━━━━━━━━━━━━━━━━",
                 "",
-                f"💰 余额: {balance_value} | 📈 持仓: {len(positions)} | 🎯 预信号: {pre_signal_text}",
-                f"📊 累计: 信号 {meta.get('total_signals', 0)} | 交易 {meta.get('total_trades', 0)} | PASS {meta.get('total_passes', 0)}",
+                f"💰 余额: {balance_formatted}",
+                f"📈 持仓: {len(positions)} 个",
+                f"🎯 预信号: {pre_signal_text}",
                 "",
-                f"🎯 本轮最佳: {best_candidate}",
-                f"📝 策略: {trade_posture[:150]}",
+                f"📊 累计统计",
+                f"  • 信号: {meta.get('total_signals', 0)}",
+                f"  • 交易: {meta.get('total_trades', 0)}",
+                f"  • PASS: {meta.get('total_passes', 0)}",
                 "",
-                f"📉 市场: {regime[:150]}",
+                f"🎯 本轮最佳品种: {best_candidate}",
+                "",
+                f"📝 策略",
+                f"{trade_posture[:200]}",
+                "",
+                f"📉 市场概况",
+                f"{regime[:200]}",
+                "",
+                f"⏱️ 下轮扫描: {next_scan_seconds} 秒后",
+                "━━━━━━━━━━━━━━━━━━━━",
             ]
         )
 
@@ -4475,11 +4640,12 @@ class PatrolRuntime:
                     f"• 方向: {direction_text}",
                     f"• 市场状态: {market_state_cn(market_state)}",
                     f"• Brooks 分类: {trim_text((patch.get('brooks_filter') or {}).get('label') or '-', 80)}",
+                    f"• 升级条件: {trim_text((patch.get('brooks_filter') or {}).get('upgrade_condition') or '-', 120)}",
                     f"• 触发事件: {event_text(symbol)}",
                     f"• 结构: {thesis}",
                     f"• 入场条件: {pre_signal}",
                     f"• 计划价位: {price_text}",
-                    f"• 执行语义: {trim_text((planned_trade.get('candidate_stage_cn') or '-') + '｜' + (planned_trade.get('execution_mode_cn') or '-'), 120)}",
+                    f"• 执行语义: {trim_text((planned_trade.get('candidate_stage_cn') or '-') + '｜' + (planned_trade.get('execution_mode_cn') or '-') + '｜' + order_type_cn(planned_trade.get('order_type') or '-'), 140)}",
                     f"• 交易方程: {equation}",
                     f"• 候选动作: {entry_text}",
                     f"• 最终执行: {result_text}",
