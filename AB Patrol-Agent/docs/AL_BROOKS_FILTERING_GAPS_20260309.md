@@ -119,4 +119,4 @@
    - `execution_mode`: 限价计划委托 / 止损触发委托 / 市价立即执行 / 等待接受
    - `TR` 边缘优先 `LIMIT`
    - `BO/TC` 顺势优先 `STOP_MARKET`
-   - `Broad Channel` 允许 `Stop/Limit` 混合，但不再一律当成 `MARKET`
+   - `Broad Channel` 允许 `Stop/Limit` 混合，不再因为 `BC` 状态被粗暴短路成固定 `LIMIT` 或固定 `MARKET`

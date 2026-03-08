@@ -480,7 +480,8 @@ def infer_order_type_from_refs(
     state_upper = str(market_state or "").upper()
     intent_upper = str(intent or "").upper()
     reversal_like = "S6-REVERSAL.MD" in refs_upper
-    channel_reversal_like = "S6-CHANNEL.MD" in refs_upper and state_upper in {"TR", "BC", "TC"}
+    channel_ref = "S6-CHANNEL.MD" in refs_upper
+    channel_reversal_like = channel_ref and state_upper in {"TR", "BC", "TC"}
 
     if "CANCEL" in intent_upper:
         return "MARKET"
@@ -490,15 +491,17 @@ def infer_order_type_from_refs(
         if state_upper in {"TR", "BC"} and ("PROBE" in intent_upper or "试探" in intent_upper) and has_price:
             return "LIMIT"
         return "STOP_MARKET" if has_price else "MARKET"
-    if "S6-TR.MD" in refs_upper or state_upper in {"TR", "BC"}:
+    if channel_ref and state_upper == "BC":
+        if "LIMIT" in intent_upper or "TR_FADE" in intent_upper or "FAILED_BO_FADE" in intent_upper:
+            return "LIMIT" if has_price else "MARKET"
+        return "STOP_MARKET" if has_price else "MARKET"
+    if "S6-TR.MD" in refs_upper or state_upper == "TR":
         return "LIMIT" if has_price else "MARKET"
     if "ADD_ON" in intent_upper or "SCALE_IN" in intent_upper:
         return "LIMIT" if has_price else "MARKET"
     if "S6-BO.MD" in refs_upper or state_upper in {"BO", "TC"}:
         return "STOP_MARKET" if has_price else "MARKET"
-    if "S6-CHANNEL.MD" in refs_upper:
-        if state_upper == "BC":
-            return "LIMIT" if has_price else "MARKET"
+    if channel_ref:
         return "STOP_MARKET" if has_price else "MARKET"
     return "MARKET"
 
@@ -3781,6 +3784,8 @@ class PatrolRuntime:
             planned_bits.append(str(planned_trade.get("candidate_stage_cn")))
         if planned_trade.get("execution_mode_cn"):
             planned_bits.append(str(planned_trade.get("execution_mode_cn")))
+        if planned_trade.get("order_type"):
+            planned_bits.append(order_type_cn(str(planned_trade.get("order_type") or "")))
         if planned_trade.get("entry_price"):
             planned_bits.append(f"触发价 {planned_trade.get('entry_price')}")
         elif planned_trade.get("entry_zone"):
@@ -4410,7 +4415,7 @@ class PatrolRuntime:
                 planned_bits = [
                     str(planned_trade.get("candidate_stage_cn") or "").strip(),
                     str(planned_trade.get("execution_mode_cn") or "").strip(),
-                    str(planned_trade.get("order_type") or "").strip(),
+                    order_type_cn(str(planned_trade.get("order_type") or "").strip()),
                     {"BUY": "做多", "SELL": "做空"}.get(str(planned_trade.get("side") or "").upper(), ""),
                     str(planned_trade.get("style") or "").strip(),
                 ]

@@ -60,6 +60,16 @@ function phaseCn(value: unknown) {
   return mapping[String(value || "")] || String(value || "-");
 }
 
+function orderTypeCn(value: unknown) {
+  const mapping: Record<string, string> = {
+    LIMIT: "限价委托",
+    STOP_MARKET: "止损触发委托",
+    TAKE_PROFIT_MARKET: "止盈触发委托",
+    MARKET: "市价执行",
+  };
+  return mapping[String(value || "").toUpperCase()] || String(value || "-");
+}
+
 function statusCn(value: unknown) {
   const mapping: Record<string, string> = {
     watching: "继续观察",
@@ -106,7 +116,7 @@ function plannedTradeBadge(patch: Record<string, any>) {
   const planned = patch?.planned_trade || {};
   const stage = displayText(planned?.candidate_stage_cn || patch?.entry_idea?.candidate_stage_cn);
   const mode = displayText(planned?.execution_mode_cn || patch?.entry_idea?.execution_mode_cn);
-  const orderType = displayText(planned?.order_type);
+  const orderType = orderTypeCn(planned?.order_type);
   return [stage, mode, orderType].filter((item) => item && item !== "-").join(" ｜ ") || "-";
 }
 
