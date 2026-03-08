@@ -30,6 +30,27 @@ from typing import Any
 from env_loader import load_agent_env
 from providers import DecisionProviderConfig, build_decision_provider
 
+# 2026-03-09: 导入优化模块（7 个核心优化）
+try:
+    from pa_runtime_optimizations import (
+        validate_trader_equation,
+        simplify_status,
+        validate_signal_bar,
+        calculate_context_score,
+        should_trigger_deep_analysis,
+        extract_trigger_timeframes,
+        detect_scalp_trigger,
+        scalp_fast_lane,
+        FearDetector,
+        validate_h1_entry,
+    )
+    OPTIMIZATIONS_ENABLED = True
+    LOG_OPTIMIZATION = lambda msg: LOG.info(f"[OPTIMIZATION] {msg}")
+except ImportError as e:
+    OPTIMIZATIONS_ENABLED = False
+    LOG_OPTIMIZATION = lambda msg: LOG.warning(f"[OPTIMIZATION-DISABLED] {msg}")
+    LOG.warning(f"优化模块导入失败，使用原始逻辑: {e}")
+
 
 LOG = logging.getLogger("ab_patrol_runtime")
 
@@ -474,9 +495,11 @@ def infer_order_type_from_refs(
     if "ADD_ON" in intent_upper or "SCALE_IN" in intent_upper:
         return "LIMIT" if has_price else "MARKET"
     if "S6-BO.MD" in refs_upper or state_upper in {"BO", "TC"}:
-        return "MARKET"
+        return "STOP_MARKET" if has_price else "MARKET"
     if "S6-CHANNEL.MD" in refs_upper:
-        return "MARKET"
+        if state_upper == "BC":
+            return "LIMIT" if has_price else "MARKET"
+        return "STOP_MARKET" if has_price else "MARKET"
     return "MARKET"
 
 
@@ -537,6 +560,106 @@ def has_trade_plan(base: dict[str, Any]) -> bool:
             trigger_price.get("take_profit"),
         )
     )
+
+
+def candidate_stage_cn(value: str) -> str:
+    mapping = {
+        "WATCH": "继续观察",
+        "PRE_SIGNAL": "预信号",
+        "COUNTERTREND_PROBE": "反转试探",
+        "CANDIDATE_LIMIT": "候选单（限价）",
+        "CANDIDATE_STOP": "候选单（止损触发）",
+        "CANDIDATE_MARKET": "候选单（市价）",
+        "EXECUTABLE_LIMIT": "规则通过可执行单（限价）",
+        "EXECUTABLE_STOP": "规则通过可执行单（止损触发）",
+        "EXECUTABLE_MARKET": "规则通过可执行单（市价）",
+    }
+    return mapping.get(str(value or "").strip().upper(), str(value or "").strip() or "-")
+
+
+def execution_mode_cn(value: str) -> str:
+    mapping = {
+        "WATCH_ONLY": "仅观察，不生成委托",
+        "WAIT_ACCEPTANCE": "等待接受/二次确认",
+        "COUNTERTREND_PROBE": "仅反转试探，不直接做 swing",
+        "LIMIT_PLAN": "限价计划委托",
+        "STOP_TRIGGER": "止损触发委托",
+        "MARKET_IMMEDIATE": "市价立即执行",
+    }
+    return mapping.get(str(value or "").strip().upper(), str(value or "").strip() or "-")
+
+
+def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str, Any]) -> dict[str, Any]:
+    planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+    status = str(base.get("status") or "watching").strip().lower()
+    category = str(filter_meta.get("category") or "").strip()
+    order_type = str(planned_trade.get("order_type") or filter_meta.get("preferred_order_type") or "").strip().upper()
+    exact_entry = first_float(planned_trade.get("entry_price"))
+    has_zone = planned_trade.get("entry_zone") not in (None, "", [], {})
+    has_plan = has_trade_plan(base)
+    allow_executable = bool(filter_meta.get("allow_executable"))
+
+    if category in {"tr_middle_no_edge", "watch_only"} or status in {"watching", "cooldown"}:
+        stage = "WATCH"
+        mode = "WATCH_ONLY"
+    elif category == "tbtl_incomplete":
+        stage = "PRE_SIGNAL"
+        mode = "WAIT_ACCEPTANCE"
+    elif category == "strong_breakout_countertrend":
+        stage = "COUNTERTREND_PROBE"
+        mode = "COUNTERTREND_PROBE"
+    elif category == "forty_percent_reversal_scalp_only":
+        if allow_executable and exact_entry is not None:
+            stage = "EXECUTABLE_LIMIT" if order_type == "LIMIT" else "EXECUTABLE_STOP"
+            mode = "LIMIT_PLAN" if order_type == "LIMIT" else "STOP_TRIGGER"
+        elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
+            stage = "CANDIDATE_LIMIT" if order_type == "LIMIT" else "COUNTERTREND_PROBE"
+            mode = "LIMIT_PLAN" if order_type == "LIMIT" else "COUNTERTREND_PROBE"
+        else:
+            stage = "PRE_SIGNAL"
+            mode = "WAIT_ACCEPTANCE"
+    elif category == "tr_edge_limit_only":
+        if allow_executable and exact_entry is not None:
+            stage = "EXECUTABLE_LIMIT"
+        elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
+            stage = "CANDIDATE_LIMIT"
+        else:
+            stage = "PRE_SIGNAL"
+        mode = "LIMIT_PLAN"
+    elif allow_executable:
+        if order_type == "STOP_MARKET":
+            stage = "EXECUTABLE_STOP" if exact_entry is not None else "CANDIDATE_STOP"
+            mode = "STOP_TRIGGER"
+        elif order_type == "LIMIT":
+            stage = "EXECUTABLE_LIMIT" if exact_entry is not None else "CANDIDATE_LIMIT"
+            mode = "LIMIT_PLAN"
+        else:
+            stage = "EXECUTABLE_MARKET" if status in {"entry_ready", "entry_ready_blocked"} else "CANDIDATE_MARKET"
+            mode = "MARKET_IMMEDIATE"
+    elif has_plan or has_zone or status in {"pre_signal", "entry_ready", "entry_ready_blocked"}:
+        if order_type == "LIMIT":
+            stage = "CANDIDATE_LIMIT"
+            mode = "LIMIT_PLAN"
+        elif order_type == "STOP_MARKET":
+            stage = "CANDIDATE_STOP"
+            mode = "STOP_TRIGGER"
+        else:
+            stage = "PRE_SIGNAL"
+            mode = "WAIT_ACCEPTANCE"
+    else:
+        stage = "WATCH"
+        mode = "WATCH_ONLY"
+
+    return {
+        "candidate_stage": stage,
+        "candidate_stage_cn": candidate_stage_cn(stage),
+        "execution_mode": mode,
+        "execution_mode_cn": execution_mode_cn(mode),
+        "allow_executable": allow_executable,
+        "needs_exact_trigger": order_type in {"LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"} and exact_entry is None,
+        "has_entry_price": exact_entry is not None,
+        "has_entry_zone": has_zone,
+    }
 
 
 def recent_continuation_momentum(recent_bars: list[dict[str, Any]]) -> bool:
@@ -1211,13 +1334,32 @@ class PatrolRuntime:
             if filter_meta.get("preferred_order_type"):
                 planned_trade["order_type"] = filter_meta["preferred_order_type"]
             planned_trade.setdefault("why_wait", filter_meta.get("summary"))
+        semantics = derive_trade_execution_semantics(
+            {**base, "planned_trade": planned_trade},
+            filter_meta,
+        )
+        if planned_trade or semantics["candidate_stage"] != "WATCH":
+            planned_trade["candidate_stage"] = semantics["candidate_stage"]
+            planned_trade["candidate_stage_cn"] = semantics["candidate_stage_cn"]
+            planned_trade["execution_mode"] = semantics["execution_mode"]
+            planned_trade["execution_mode_cn"] = semantics["execution_mode_cn"]
+            planned_trade["allow_executable"] = semantics["allow_executable"]
+            planned_trade["needs_exact_trigger"] = semantics["needs_exact_trigger"]
             base["planned_trade"] = planned_trade
 
         evaluation = base.get("evaluation") if isinstance(base.get("evaluation"), dict) else {}
         evaluation["regime"] = filter_meta.get("label")
         evaluation["execution_decision"] = "可继续执行链" if filter_meta.get("allow_executable") else "继续观察/等待"
         evaluation["risk"] = filter_meta.get("summary")
+        evaluation["candidate_stage"] = semantics["candidate_stage_cn"]
+        evaluation["execution_mode"] = semantics["execution_mode_cn"]
         base["evaluation"] = evaluation
+
+        entry_idea["candidate_stage"] = semantics["candidate_stage"]
+        entry_idea["candidate_stage_cn"] = semantics["candidate_stage_cn"]
+        entry_idea["execution_mode"] = semantics["execution_mode"]
+        entry_idea["execution_mode_cn"] = semantics["execution_mode_cn"]
+        base["entry_idea"] = entry_idea
 
         scenarios = base.get("scenarios") if isinstance(base.get("scenarios"), list) else []
         summary = str(filter_meta.get("summary") or "").strip()
@@ -3625,6 +3767,10 @@ class PatrolRuntime:
         planned_trade = notice.get("planned_trade") if isinstance(notice.get("planned_trade"), dict) else {}
         brooks_filter = notice.get("brooks_filter") if isinstance(notice.get("brooks_filter"), dict) else {}
         planned_bits = []
+        if planned_trade.get("candidate_stage_cn"):
+            planned_bits.append(str(planned_trade.get("candidate_stage_cn")))
+        if planned_trade.get("execution_mode_cn"):
+            planned_bits.append(str(planned_trade.get("execution_mode_cn")))
         if planned_trade.get("entry_price"):
             planned_bits.append(f"触发价 {planned_trade.get('entry_price')}")
         elif planned_trade.get("entry_zone"):
@@ -4032,6 +4178,8 @@ class PatrolRuntime:
             result_status = str(result.get("status") or "")
             action_type = str(action.get("type") or "").upper()
             patch_status = str(patch.get("status") or "").lower()
+            planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+            candidate_stage = str(planned_trade.get("candidate_stage_cn") or "").strip()
             if result_status in {"FILLED", "PLACED", "MODIFIED", "closed", "CLOSED", "NEW"}:
                 return "已执行"
             if action_type == "OPEN_ORDER":
@@ -4039,7 +4187,9 @@ class PatrolRuntime:
                     return "候选单（规则拒绝）"
                 if result_status in {"BLOCKED", "SIZE_FAILED", "FAILED"}:
                     return "候选单（执行受阻）"
-                return "候选单"
+                return candidate_stage or "候选单"
+            if candidate_stage:
+                return candidate_stage
             if patch_status == "entry_ready_blocked":
                 return "候选单（规则待通过）"
             if patch_status == "entry_ready":
@@ -4133,6 +4283,9 @@ class PatrolRuntime:
             action_type = canonical_action_type(action.get("type"))
             side = str(action.get("side") or (patch.get("entry_idea") or {}).get("side") or "").upper()
             style = str(action.get("style") or (patch.get("entry_idea") or {}).get("style") or "").strip()
+            planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+            candidate_stage = str(planned_trade.get("candidate_stage_cn") or "").strip()
+            execution_mode = str(planned_trade.get("execution_mode_cn") or "").strip()
             label_map = {
                 "OPEN_ORDER": "准备开仓",
                 "PARTIAL_CLOSE": "分批减仓",
@@ -4144,7 +4297,7 @@ class PatrolRuntime:
             }
             label = label_map.get(action_type or "", "观察")
             side_text = {"BUY": "做多", "SELL": "做空"}.get(side, "")
-            base = " ".join(part for part in [label, side_text, style] if part)
+            base = " ".join(part for part in [label, side_text, style, candidate_stage, execution_mode] if part)
             reason = manage_item.get("reason") if isinstance(manage_item, dict) and manage_item.get("reason") else action.get("reason")
             if base and reason:
                 return f"{base}｜{trim_text(reason, 100)}"
@@ -4245,6 +4398,8 @@ class PatrolRuntime:
             planned_summary = ""
             if planned_trade:
                 planned_bits = [
+                    str(planned_trade.get("candidate_stage_cn") or "").strip(),
+                    str(planned_trade.get("execution_mode_cn") or "").strip(),
                     str(planned_trade.get("order_type") or "").strip(),
                     {"BUY": "做多", "SELL": "做空"}.get(str(planned_trade.get("side") or "").upper(), ""),
                     str(planned_trade.get("style") or "").strip(),
@@ -4287,10 +4442,12 @@ class PatrolRuntime:
                     f"━━ {rank}. {symbol}｜{stage_text} ━━",
                     f"• 方向: {direction_text}",
                     f"• 市场状态: {market_state_cn(market_state)}",
+                    f"• Brooks 分类: {trim_text((patch.get('brooks_filter') or {}).get('label') or '-', 80)}",
                     f"• 触发事件: {event_text(symbol)}",
                     f"• 结构: {thesis}",
                     f"• 入场条件: {pre_signal}",
                     f"• 计划价位: {price_text}",
+                    f"• 执行语义: {trim_text((planned_trade.get('candidate_stage_cn') or '-') + '｜' + (planned_trade.get('execution_mode_cn') or '-'), 120)}",
                     f"• 交易方程: {equation}",
                     f"• 候选动作: {entry_text}",
                     f"• 最终执行: {result_text}",
