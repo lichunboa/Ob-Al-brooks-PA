@@ -13,6 +13,27 @@ description: "PA 交易 V5.0 — 3品种×3周期 + 全周期H2/L2扫描 + quote
 - 市场永远在循环：**TR → BO → Channel → TR**。80% BO 失败。
 - **Context > 形态 > 信号K线**。最好的 setup 也只有 60% 概率。
 
+**交易心态**（Al Brooks 原话）：
+- **"Setups never look quite good enough"** — 信号永远不够完美，但这不是不做的理由
+- **"Experts buy for any reason"** — 高手觉得够好了就做，不需要完美
+- **"If you are a trader, TRADE!"** — 你是交易员，就该交易
+- **"Never worry about perfection"** — 不要追求完美，只要 P×R > (1-P) 就值得做
+- **"90% of bars, both bulls and bears can make money"** — 90% 的 K 线都可以做多或做空
+- **"Whenever there is fear, there is opportunity"** — 害怕时恰恰是机会
+
+**交易频率预期**：
+- 3 品种 × 3 周期 = 每天数十个候选
+- **最终下单预期：5-15 笔/天**（含 Scalp）
+- 不是每笔都要 Swing，Scalp 也是交易
+- **连续 2 轮所有品种 PASS 且无有效理由 → 强制执行下一笔达标交易（反恐惧）**
+
+**决策原则**：
+1. **P×R > (1-P) 是唯一硬门槛** — 其他都是调整参数的理由，不是不做的理由
+2. Context 清晰时，小 body 也可以
+3. 多周期冲突时，降级为 Scalp 而非不做
+4. TR 边缘 BLSHS = 60% 概率，立即做
+5. 阻力位附近不是不做的理由，而是调整 SL/TP 的理由
+
 **交易周期**（3 个周期，PA 技术在所有周期通用）：
 
 > Al Brooks: "Price action is same for all markets, and all time frames"

@@ -2,28 +2,28 @@
   "version": "2.0",
   "bot_id": "claude-pa",
   "market_profile": "crypto",
-  "loop_seq": 722,
+  "loop_seq": 725,
   "status": "RUNNING",
   "current_phase": "BOOTSTRAP 全刷新观察轮",
-  "last_run_at": "2026-03-08T20:51:37.559534+00:00",
-  "last_success_at": "2026-03-08T20:51:37.559542+00:00",
+  "last_run_at": "2026-03-08T21:07:25.052498+00:00",
+  "last_success_at": "2026-03-08T21:07:25.052501+00:00",
   "next_scan": {
-    "next_scan_at": "2026-03-08T20:53:37.559480+00:00",
+    "next_scan_at": "2026-03-08T21:09:25.052483+00:00",
     "in_seconds": 120,
-    "reason_code": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
-    "reason_text": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
-    "derived_from_cycle": "cycle_20260309_045130",
+    "reason_code": "当前没有真实可执行单，但 ETH 与 BTC 都处在等待新 signal 的临界区，BNB 仍在顶部测试区，适合继续快扫。",
+    "reason_text": "当前没有真实可执行单，但 ETH 与 BTC 都处在等待新 signal 的临界区，BNB 仍在顶部测试区，适合继续快扫。",
+    "derived_from_cycle": "cycle_20260309_050719",
     "interruptible": true
   },
   "active_symbols": [
     "BNBUSDT",
-    "BTCUSDT",
-    "ETHUSDT"
+    "ETHUSDT",
+    "BTCUSDT"
   ],
   "focus_symbols": [
-    "BTCUSDT",
+    "BNBUSDT",
     "ETHUSDT",
-    "BNBUSDT"
+    "BTCUSDT"
   ],
   "open_positions": [],
   "pending_pre_signals": [
@@ -32,25 +32,25 @@
   "risk_mode": "NORMAL",
   "host_mode": "CLI_SESSION",
   "last_trigger": null,
-  "last_cycle_id": "cycle_20260309_045130",
+  "last_cycle_id": "cycle_20260309_050719",
   "quiet_loops": 0,
   "full_refresh": true,
   "needs_post_trade_refresh": false,
-  "last_full_refresh_at": "2026-03-08T20:51:37.559596+00:00",
+  "last_full_refresh_at": "2026-03-08T21:07:25.052511+00:00",
   "last_scan_decision": {
-    "regime": "BTC 与 ETH 都从高位停顿里重新走出 fresh H1/H2 continuation，但高周期仍偏空或只是 TR 接受，因此两者都只能按顺势 Scalp 处理；BNB 继续停留在顶部测试后的多周期 TR。",
-    "best_candidate": "BTCUSDT",
-    "trade_posture": "BTC、ETH 允许各挂一笔轻仓顺势 Scalp stop-entry；BNB 继续只保留顶部失败观察，不开新单。",
+    "regime": "三品种都处在高周期偏空背景下的反抽后整理阶段。ETH 结构相对最强，但本轮已经没有 fresh trigger；BTC 与 BNB 都退回多周期 TR。",
+    "best_candidate": "ETHUSDT",
+    "trade_posture": "本轮不追多，也不预判裸空。三品种都没有真实可执行单，只保留观察、候选重建与顶部失败计划。",
     "daily_bias_overview": {
-      "BTCUSDT": "日线宽幅区间偏空",
+      "BNBUSDT": "日线宽幅区间偏空",
       "ETHUSDT": "日线空头通道偏空",
-      "BNBUSDT": "日线宽幅区间偏空"
+      "BTCUSDT": "日线宽幅区间偏空"
     },
-    "risk_posture": "当前无持仓；本轮两笔候选单总风险 0.6%，低于 1% 总风险上限。"
+    "risk_posture": "当前无持仓、无有效挂单。本轮只维护计划与观察状态，不新增风险敞口。"
   },
   "trade_readiness": "can_trade_true",
-  "best_candidate": "BTCUSDT",
-  "best_candidate_status": "candidate",
+  "best_candidate": "BNBUSDT",
+  "best_candidate_status": "pre_signal",
   "openclaw_session_id": "619f7c27-693d-4e28-97fa-b4030e333108",
   "llm_provider": "codex_cli",
   "openclaw_agent": "ab-patrol-runtime",
@@ -165,13 +165,13 @@
     }
   },
   "_meta": {
-    "best_candidate": "BTCUSDT",
-    "current_phase": "BOOTSTRAP 全刷新观察轮"
+    "best_candidate": "ETHUSDT",
+    "current_phase": "BOOTSTRAP"
   },
   "phase": "SCAN",
   "daily_bias_expires": "2026-03-08T00:00:00Z",
   "model_timeout": false,
-  "last_model_timeout_at": "2026-03-08T19:42:07.478875+00:00",
+  "last_model_timeout_at": "2026-03-08T21:03:12.439032+00:00",
   "decision_model": "gpt-5.4",
   "runtime_health": {
     "execution_snapshot_confirmed": true,
@@ -256,19 +256,19 @@
   "last_failure_reason": "name 'phase_cn' is not defined",
   "last_failure_context": "loop",
   "symbols": {
-    "BTCUSDT": {
-      "status": "candidate",
-      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H1_SCALP",
-      "planned_trade_status": "executable"
-    },
-    "ETHUSDT": {
-      "status": "candidate",
-      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H1_SCALP",
-      "planned_trade_status": "executable"
-    },
     "BNBUSDT": {
       "status": "pre_signal",
       "stage": "WAIT_MINOR_REVERSAL_AFTER_EXTENSION",
+      "planned_trade_status": "watch"
+    },
+    "ETHUSDT": {
+      "status": "watching",
+      "stage": "WAIT_FRESH_SIGNAL_AFTER_STALL",
+      "planned_trade_status": "watch"
+    },
+    "BTCUSDT": {
+      "status": "watching",
+      "stage": "WAIT_FRESH_SIGNAL_AFTER_DEGRADED_H1",
       "planned_trade_status": "watch"
     }
   },

@@ -3798,23 +3798,34 @@ class PatrolRuntime:
         chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
         chart_files = ", ".join(str(item) for item in (chart_context.get("chart_files") or [])[:3]) or "-"
         chart_hint = chart_context.get("primary_chart_path") or "-"
+
+        # 格式化价格
+        try:
+            price_num = float(close_text.replace(',', ''))
+            close_formatted = f"${price_num:,.2f}" if price_num > 100 else f"${price_num:.4f}"
+        except:
+            close_formatted = close_text
+
+        # 简化状态
+        market_state = notice.get('market_state', '')
+        if isinstance(market_state, str) and '/' in market_state:
+            # 提取关键信息: "5m XX / 15m XX / 1h XX / 1d XX"
+            state_parts = market_state.split('/')
+            state_summary = ' / '.join(part.strip() for part in state_parts[:4])
+        else:
+            state_summary = str(market_state)[:80]
+
         return "\n".join(
             [
-                f"🟡 PA交易 Crypto｜{symbol} 预信号",
+                f"🟡 {symbol} 预信号 | {timeframe}",
                 "",
-                "【当前条件】",
-                f"• 周期: {timeframe}｜状态: {status_cn(direction)}",
-                f"• 信号摘要: {pre_signal_text}",
-                f"• 当前价格: {close_text}",
-                f"• Brooks 分类: {brooks_filter.get('label') or '-'}",
-                f"• 计划委托: {plan_text}",
+                f"💵 当前: {close_formatted}",
+                f"📊 状态: {state_summary}",
+                f"🎯 等待: {pre_signal_text[:100]}",
                 "",
-                "【盘面摘要】",
-                f"• 结构: {thesis}",
-                f"• 关键事件: {events}",
-                f"• 图表文件: {chart_files}",
-                f"• Web查看: http://127.0.0.1:3001/pa-bot（图: {chart_hint}）",
-                f"• 有效期: {expiry}",
+                f"📝 结构: {thesis[:150]}",
+                "",
+                f"⏰ 有效期: {expiry.split('T')[0]} {expiry.split('T')[1][:5] if 'T' in expiry else expiry}",
             ]
         )
 
@@ -3840,17 +3851,23 @@ class PatrolRuntime:
             or balance.get("wallet_balance")
             or "-"
         )
+        # 提取市场总结
+        market_summary = decision.get('market_summary') or {}
+        regime = market_summary.get('regime', '-') if isinstance(market_summary, dict) else str(market_summary)[:100]
+        best_candidate = market_summary.get('best_candidate', '-') if isinstance(market_summary, dict) else '-'
+        trade_posture = market_summary.get('trade_posture', '-') if isinstance(market_summary, dict) else '-'
+
         return "\n".join(
             [
-                "📌 PA交易 Crypto | 定期汇报",
-                f"• Loop: #{updated_runtime.get('loop_seq')}",
-                f"• 阶段: {updated_runtime.get('current_phase') or '-'}",
-                f"• 余额: {balance_value}",
-                f"• 持仓数: {len(positions)} | 预信号: {pre_signal_text}",
-                f"• PASS 统计: WAIT={pass_wait} | RULE={pass_rule}",
-                f"• 累计: signals={meta.get('total_signals', 0)} | trades={meta.get('total_trades', 0)} | passes={meta.get('total_passes', 0)}",
-                f"• 本轮结论: {decision.get('market_summary') or '-'}",
-                f"• 下轮: {next_scan_seconds} 秒后",
+                f"📊 PA交易 #{updated_runtime.get('loop_seq')} | ⏱️ {next_scan_seconds}s",
+                "",
+                f"💰 余额: {balance_value} | 📈 持仓: {len(positions)} | 🎯 预信号: {pre_signal_text}",
+                f"📊 累计: 信号 {meta.get('total_signals', 0)} | 交易 {meta.get('total_trades', 0)} | PASS {meta.get('total_passes', 0)}",
+                "",
+                f"🎯 本轮最佳: {best_candidate}",
+                f"📝 策略: {trade_posture[:150]}",
+                "",
+                f"📉 市场: {regime[:150]}",
             ]
         )
 

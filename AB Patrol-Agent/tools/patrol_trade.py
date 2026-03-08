@@ -108,9 +108,28 @@ def validate_equation(eq_str: str) -> tuple:
     ok, metrics = parse_equation_metrics(eq_str)
     if not ok:
         return False, metrics["error"]
-    if metrics["pxr"] <= metrics["rhs"]:
-        return False, f"P×R={metrics['pxr']:.2f} <= (1-P)={metrics['rhs']:.2f}，交易方程不成立"
-    return True, f"P×R={metrics['pxr']:.2f} > (1-P)={metrics['rhs']:.2f} ✓"
+
+    # 显式计算和日志
+    left = metrics["pxr"]
+    right = metrics["rhs"]
+    te = left - right
+
+    if left <= right:
+        detailed_msg = (
+            f"❌ P×R 不达标\n"
+            f"   P={metrics['p']:.0%} R={metrics['r']:.2f}\n"
+            f"   P×R={left:.3f} ≤ (1-P)={right:.3f}\n"
+            f"   TE={te:.3f} (为负，期望值不足)"
+        )
+        return False, detailed_msg
+
+    detailed_msg = (
+        f"✅ P×R 达标\n"
+        f"   P={metrics['p']:.0%} R={metrics['r']:.2f}\n"
+        f"   P×R={left:.3f} > (1-P)={right:.3f}\n"
+        f"   TE={te:.3f} (正期望值)"
+    )
+    return True, detailed_msg
 
 
 def validate_refs(refs_str: str) -> tuple:
