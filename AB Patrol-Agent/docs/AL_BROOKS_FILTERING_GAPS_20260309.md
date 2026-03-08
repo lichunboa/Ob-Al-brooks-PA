@@ -104,6 +104,33 @@
 
 后者只是工程表面，前者才是 Al Brooks 语义层。
 
+## 已经回写到状态机的三条执行规则
+
+### A. 反转试探什么时候升级
+
+根据课程大纲 `21C / 22A` 与 PDF 中“大多数 MTR 只有约 40% 概率走出 2R 以上波段、第一次反转通常较小”的表述，当前状态机约束为：
+
+- 仅有 `wedge / MTR / DB / DT` 线索时，只能停在 `反转试探 / pre_signal`
+- 至少出现 `H2 / L2 / HL MTR / LH MTR` 这类二次信号，才允许向 `candidate` 升级
+- 若处在强突破背景中，还必须再看到接受/跟进，才考虑从 `反转试探` 升成真正可执行单
+
+### B. TR 边缘限价单什么时候可执行
+
+根据 `47A-47D` 与 PDF 中 `TR: Buy Low Sell High Scalp (BLSHS)`、`交易区间上/下三分之一`、`背景不清晰时等待第二次信号`：
+
+- 只在 `tr_edge:top/bottom` 的边缘环境里允许进入 `TR 边缘限价单`
+- 只有边缘但没有二次信号时，维持 `pre_signal`
+- 边缘 + 二次信号/清晰 signal bar 同时出现时，才能升级成 `candidate/executable`
+- 委托方式优先 `LIMIT`
+
+### C. Broad Channel 里 stop 和 limit 的切换
+
+根据 PDF 中对 `Broad Channel` 的表述：`scalp more, swing less, use limit orders`，以及顺势恢复仍可继续参与的例子：
+
+- `Broad Channel + 反转/边缘 fade`：优先 `LIMIT`
+- `Broad Channel + 顺势恢复/first pullback/接受继续`：优先 `STOP_MARKET`
+- 不再把所有 `BC` 统一粗暴压成同一种委托方式
+
 ## 下一步
 
 1. 已经把这些类别接入状态机，用于限制 `pre_signal -> candidate -> executable`：

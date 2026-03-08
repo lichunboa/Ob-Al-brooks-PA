@@ -301,6 +301,7 @@ export default function PABotPage() {
                   patch?.brooks_filter?.label ||
                   patch?.evaluation?.regime ||
                   "-";
+                const upgradeCondition = patch?.brooks_filter?.upgrade_condition || "-";
                 const executionBadge = plannedTradeBadge(patch);
                 return (
                   <article key={symbol} className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
@@ -319,6 +320,7 @@ export default function PABotPage() {
                       <div><span className="text-slate-500">执行语义:</span> {trimText(executionBadge, 120)}</div>
                       <div><span className="text-slate-500">Trader&apos;s Equation:</span> {trimText(equation, 120)}</div>
                       <div><span className="text-slate-500">Brooks分类:</span> {trimText(filterLabel, 120)}</div>
+                      <div><span className="text-slate-500">升级条件:</span> {trimText(upgradeCondition, 140)}</div>
                       <div><span className="text-slate-500">候选动作:</span> {trimText(entryIdea, 140)}</div>
                     </div>
                   </article>
