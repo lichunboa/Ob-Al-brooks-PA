@@ -1,92 +1,112 @@
 # AB Patrol-Agent
 
-`AB Patrol-Agent` 是 `PA交易 Crypto` 的独立 runtime 根目录。
+`AB Patrol-Agent` 是当前项目中独立的 Al Brooks 巡逻交易主脑。
 
-当前结构：
+当前目标不是“先想办法下几笔单”，而是先把整套 Patrol 升级到尽可能接近完整 Al Brooks 理论的状态，再恢复稳定的 Binance demo 自动执行。
+
+## 当前最高权威
+
+当前权威层级已经固定为：
+
+1. `AB Console-Obsidian` 中完整的 Al Brooks 知识库
+2. `knowledge/patrol-l1/canonical/` Canonical Rulebook
+3. `knowledge/patrol-l1/SKILL.md + references/S0-S7`
+4. 代码中的执行安全 / 持久化 / 展示逻辑
+
+关键点：
+
+- `canonical` 是理论层
+- `SKILL/S` 是 agent 的可执行子集
+- 代码不允许再发明新的策略门槛、偏见或固定过滤器
+- `runtime-brief` 已退出主链，不再作为知识源
+
+## 升级期默认策略
+
+当前处于 Parity 升级期。默认行为是：
+
+- 保留采集、分析、推送、回放、Query、Web
+- 暂停自动交易
+- 先完成理论层、`SKILL/S`、代码规则、回放验证
+- 达到门槛后再恢复 Binance demo 自动执行
+
+默认模式由以下配置控制：
+
+- [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/config/.env.example](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/config/.env.example)
+  - `AB_PATROL_ENABLE_AUTOTRADE=0`
+
+也就是说：
+
+- `./scripts/start.sh start` 默认是观察模式
+- 只有显式 `--execute` 或设置 `AB_PATROL_ENABLE_AUTOTRADE=1` 才会自动交易
+
+## 当前真实架构
+
+```text
+完整 Al Brooks 知识库 (AB Console-Obsidian)
+  -> Canonical Rulebook
+  -> SKILL.md + S0-S7
+  -> AB Patrol-Agent
+  -> codex_cli 长会话
+  -> patrol_trade.py 执行安全校验
+  -> execution-service
+  -> Binance demo
+  -> Query Service / AB Patrol-Web / TG
+```
+
+`OpenClaw` 当前只负责：
+
+- TG operator
+- host
+- workspace memory
+
+它不是当前交易主脑，也不是唯一决策 provider。
+
+## 当前目录边界
 
 - `knowledge/patrol-l1/`
-  - 从原 `.claude/skills/patrol-l1/` 镜像出来的 `SKILL.md + S0-S7 + quotes`
-- `runtime/pa_runtime.py`
-  - 常驻 patrol loop
+  - 巡逻知识树
+  - 包含 `canonical/`、`SKILL.md`、`references/`
+- `runtime/`
+  - 巡逻循环、决策、状态机、执行编排、TG 渲染
+- `tools/`
+  - `patrol_trade.py`、`patrol_scan.py`、`chart_gen.py`、回放/回测工具
 - `services/consumption/query-service/`
-  - Query Service，统一输出 status / recent / decision
-- `scripts/watchdog.py`
-  - 15 分钟无新 cycle / query 异常时自动恢复 patrol loop
-- `scripts/start.sh`
-  - `start|stop|restart|recover|once|loop|status|recent|decision|logs`
-- `run/`
-  - PID 与 runtime 日志
+  - 状态与审计出口
+- `data/pa_trader/`
+  - `runtime_state / decision_session / cycles / journals / charts`
+- `scripts/`
+  - 启停脚本、watchdog、初始化
 
-设计原则：
+## 当前已经接回的核心能力
 
-- 尽量保持原 `patrol-l1` skill 的 Al Brooks 交易逻辑
-- 把模型会话和交易状态拆开：状态落到 `AB Patrol-Agent/data/pa_trader/`
-- `OpenClaw agent ab-patrol-runtime` 只负责 TG / operator host
-- `ab-patrol-loop` 的 decision 现在走可切换 provider
-- 每轮输出 `runtime_state / cycle / decision / execution_log`
-- 每轮可推送状态到 TG 话题 `PA交易 Crypto`
-- 可以通过 Query Service / Web / TG 三个入口查看状态
+- 原始 `SKILL.md + S0-S7`
+- `ab_ema / ab_sr / ab_mm / ab_patterns`
+- `150 bars / 浏览 80 / 精读 20`
+- `codex_cli` 长会话决策
+- `Query Service / Web / TG` 可见性
+- `watchdog` 自恢复骨架
+- `execution-service` 的 Binance demo 执行链
 
-当前目录边界：
+## 当前仍未完成的重点
 
-- `AB Patrol-Agent/knowledge/`
-  - 原 Claude `skill + S 文件` 的运行副本
-- `AB Patrol-Agent/tools/`
-  - patrol 专用图表、AB 上下文、交易闸门、回测/回放脚本
-- `AB Patrol-Agent/indicators/batch/`
-  - `ab_ema / ab_sr / ab_mm / ab_patterns`
-- `AB Patrol-Agent/data/`
-  - patrol 状态、cycle、journal、charts
-- `AB Patrol-Agent/.venv/`
-  - patrol 自己的 Python 运行环境，不再依赖 `AB Console-Backend` 的虚拟环境
-- `AB Patrol-Agent/config/`
-  - patrol 自己的配置模板与本地 `.env`
-- `AB Patrol-Agent/services/consumption/query-service/`
-  - Patrol 专用 Query Service
+- `codex_cli` 长会话稳定性仍需继续打磨
+- 新架构下首笔自然 `OPEN_ORDER` 还没稳定复现
+- `S7-management` 还缺新架构下的 live 闭环验证
+- `SKILL/S` 与完整知识库的回写式重构仍在进行中
+- 代码中仍有部分流程编排型硬规则，需要继续下放给 agent
 
-当前外部基础设施依赖：
+## 当前最重要的文档
 
-- `execution-service`：通过 HTTP 提供 K 线、持仓、下单、改止损
-- `OpenClaw`：只负责 TG 话题、operator agent、可选 decision provider
+- 规范层：
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/knowledge/patrol-l1/canonical/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/knowledge/patrol-l1/canonical/README.md)
+- Patrol 文档入口：
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md)
+- 当前规则偏差审计：
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md)
+- 当前目标状态：
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/GOAL_STATUS_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/GOAL_STATUS_20260308.md)
 
-当前已经借自上游 `tradecat` 的工程思路：
-
-- Query Service 作为消费层统一读出口
-- 更保守的默认启动链
-- Agent 自己的 `config/.env`
-- host / provider 解耦
-
-当前真正使用中的原始资产：
-
-- 原始 Claude skill：
-  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/.claude/skills/patrol-l1/SKILL.md`
-- 当前 runtime 副本：
-  - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/knowledge/patrol-l1/SKILL.md`
-- 当前 runtime 会按阶段加载 `S0-S7`：
-  - `BOOTSTRAP`：全量读盘与建模
-  - `ENTRY_READY`：方向/状态/关键位/评估/入场/管理
-  - `MANAGE`：方向/关键位/评估/通用规则/管理
-
-## 与原 Claude skill 的差异
-
-保持不变的部分：
-
-- `SKILL.md + S0-S7` 是当前决策 authority
-- `tools/patrol_trade.py` 仍然是开仓前硬校验
-- `execution-service` 仍然是仓位计算、下单、平仓、改止损入口
-- `runtime_state / cycle / journal` 继续保留 patrol 语义
-- `execution-service` 提供每周期 150 根 K 线；runtime 现在按原 S1 思路保留“浏览 80 根 + 精读 20 根”的读盘目标
-- `tools/chart_gen.py` 已接入 patrol runtime 的 `analysis_board.chart_context`
-- 图表上下文会调用 `ab_ema / ab_sr / ab_mm / ab_patterns`
-
-当前还没完全接回的部分：
-
-- `tools/sim_server.py` 逐根模拟还有一部分 backtest 依赖待清理
-- `tools/backtest_v4.py / tools/backtest_tool.py` 还需要继续从参考项目抽离
-- OpenClaw runtime 仍是“单轮 JSON 决策 + 外部状态持久化”，不是旧 Claude 那种单终端隐式长会话
-- 目前仍然依赖外部基础设施服务本身（如 `execution-service`），但不再依赖 Backend 里的 patrol 脚本或 Python 环境
-
-初始化：
+## 初始化
 
 ```bash
 cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
@@ -95,45 +115,20 @@ cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
 
 这会创建 `AB Patrol-Agent/.venv` 并安装本项目自己的运行依赖。
 
-本地配置模板：
-
-- `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/config/.env.example`
-
-也就是说：
-
-- 核心分析逻辑已经接回
-- 图表上下文已经重新纳入 patrol loop 主循环
-- 回测 / 逐根回放继续保持按需启动，不放进常驻巡逻里
-- Query Service 是 Patrol 的统一可视化读出口
-- watchdog 负责 15 分钟卡死自动恢复
-
-常用命令：
+## 常用命令
 
 ```bash
 cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
 
-# 单轮 dry-run
+# 单轮观察
 ./scripts/start.sh once
 
-# 常驻 dry-run
+# 常驻观察（升级期默认）
 ./scripts/start.sh start
 
-# 常驻真实执行（demo 环境）
-./scripts/start.sh start --execute
-
-# 走 OpenClaw host、decision 直连独立 provider
-AB_PATROL_DECISION_PROVIDER=openai_compat \
-AB_PATROL_LLM_API_BASE=http://127.0.0.1:11434/v1 \
-AB_PATROL_LLM_MODEL=qwen2.5:14b \
-./scripts/start.sh start --execute
-
-# 查看状态
+# 查看状态 / 最近几轮 / 最新决策
 ./scripts/start.sh status
-
-# 最近几轮巡逻
 ./scripts/start.sh recent
-
-# 最新决策 JSON
 ./scripts/start.sh decision
 
 # 单独管理 watchdog
@@ -147,6 +142,13 @@ AB_PATROL_LLM_MODEL=qwen2.5:14b \
 ./scripts/start.sh stop
 ```
 
-Web 看板：
+只有在 parity / replay / demo 验证通过后，才应启用：
 
-- `AB Patrol-Web`：`http://127.0.0.1:3001`
+```bash
+./scripts/start.sh start --execute
+```
+
+## Web 看板
+
+- `AB Patrol-Web`：
+  - [http://127.0.0.1:3001](http://127.0.0.1:3001)

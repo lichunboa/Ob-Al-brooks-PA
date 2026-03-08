@@ -57,7 +57,7 @@ def load_json(path: Path, default: Any) -> Any:
 
 def write_text(path: Path, text: str) -> None:
     ensure_dir(path.parent)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_suffix(path.suffix + f".{uuid.uuid4().hex}.tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
 
@@ -428,6 +428,8 @@ def infer_trade_style_from_refs(
         return "反转试探"
     if "S6-REVERSAL.MD" in refs_upper:
         return "反转试探"
+    if "S6-CHANNEL.MD" in refs_upper and state_upper in {"TR", "BC"}:
+        return "Scalp"
     if "S6-TR.MD" in refs_upper or state_upper == "TR":
         return "Scalp"
     if state_upper == "BC":
@@ -456,9 +458,17 @@ def infer_order_type_from_refs(
     refs_upper = {str(item).upper() for item in refs}
     state_upper = str(market_state or "").upper()
     intent_upper = str(intent or "").upper()
+    reversal_like = "S6-REVERSAL.MD" in refs_upper
+    channel_reversal_like = "S6-CHANNEL.MD" in refs_upper and state_upper in {"TR", "BC", "TC"}
 
     if "CANCEL" in intent_upper:
         return "MARKET"
+    if reversal_like or channel_reversal_like:
+        if "LIMIT" in intent_upper and has_price:
+            return "LIMIT"
+        if state_upper in {"TR", "BC"} and ("PROBE" in intent_upper or "试探" in intent_upper) and has_price:
+            return "LIMIT"
+        return "STOP_MARKET" if has_price else "MARKET"
     if "S6-TR.MD" in refs_upper or state_upper in {"TR", "BC"}:
         return "LIMIT" if has_price else "MARKET"
     if "ADD_ON" in intent_upper or "SCALE_IN" in intent_upper:
@@ -739,7 +749,10 @@ class Config:
             query_service_base=os.getenv("AB_PATROL_QUERY_BASE", "http://127.0.0.1:8086").strip() or "http://127.0.0.1:8086",
             dry_run=dry_run,
             post_to_telegram=post_to_telegram,
-            telegram_forward_url=os.getenv("AB_PATROL_TELEGRAM_FORWARD_URL", "").strip(),
+            telegram_forward_url=(
+                os.getenv("AB_PATROL_TELEGRAM_FORWARD_URL", "").strip()
+                or "http://127.0.0.1:8090/api/patrol-forward"
+            ),
             telegram_chat_id=os.getenv("AB_PATROL_TELEGRAM_CHAT_ID", "-1003512657369").strip() or "-1003512657369",
             telegram_thread_id=int(os.getenv("AB_PATROL_TELEGRAM_THREAD_ID", "3")),
             trigger_file=Path.home() / ".openclaw" / "patrol-l1-trigger.json",
@@ -800,16 +813,48 @@ class PatrolRuntime:
     def tool_python(self) -> str:
         return self.chart_python()
 
+    def chart_roots(self) -> list[Path]:
+        roots = [self.config.charts_root]
+        legacy_root = self.config.vault_root / "AB Console-Backend" / "data" / "charts"
+        if legacy_root not in roots:
+            roots.append(legacy_root)
+        return roots
+
     def latest_chart_paths(self, symbol: str) -> list[str]:
-        today_dir = self.config.charts_root / datetime.now().strftime("%Y-%m-%d")
-        daily_dir = self.config.charts_root / "daily"
         paths: list[Path] = []
-        if today_dir.exists():
-            paths.extend(sorted(today_dir.glob(f"{symbol}_*.png"), key=lambda p: p.stat().st_mtime, reverse=True)[:4])
-        daily_path = daily_dir / f"{symbol}_1d.png"
-        if daily_path.exists():
-            paths.append(daily_path)
+        for root in self.chart_roots():
+            today_dir = root / datetime.now().strftime("%Y-%m-%d")
+            daily_dir = root / "daily"
+            if today_dir.exists():
+                paths.extend(sorted(today_dir.glob(f"{symbol}_*.png"), key=lambda p: p.stat().st_mtime, reverse=True)[:4])
+            daily_path = daily_dir / f"{symbol}_1d.png"
+            if daily_path.exists():
+                paths.append(daily_path)
+        paths = sorted(paths, key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True)
         return [str(path) for path in paths[:5]]
+
+    def chart_relative_path(self, path: str) -> str:
+        resolved = Path(path).resolve()
+        for root in self.chart_roots():
+            try:
+                return str(resolved.relative_to(root.resolve()))
+            except Exception:
+                continue
+        return Path(path).name
+
+    def chart_absolute_path(self, path: str | None) -> Path | None:
+        if not path:
+            return None
+        candidate = Path(path)
+        candidates = [candidate] if candidate.is_absolute() else [root / str(path) for root in self.chart_roots()]
+        for item in candidates:
+            try:
+                resolved = item.expanduser().resolve()
+            except Exception:
+                continue
+            if resolved.exists() and resolved.is_file():
+                return resolved
+        return None
 
     def build_chart_context(self, symbol: str, live: dict[str, Any]) -> dict[str, Any]:
         now = time.time()
@@ -839,9 +884,27 @@ class PatrolRuntime:
             except Exception as exc:
                 LOG.warning("generate charts failed for %s: %s", symbol, exc)
         chart_paths = self.latest_chart_paths(symbol)
+        relative_paths = [self.chart_relative_path(path) for path in chart_paths[:4]]
+        latest_generated_at = None
+        if chart_paths:
+            try:
+                latest_generated_at = datetime.fromtimestamp(
+                    max(Path(path).stat().st_mtime for path in chart_paths[:4]),
+                    tz=timezone.utc,
+                ).astimezone().isoformat()
+            except Exception:
+                latest_generated_at = None
 
         return {
             "chart_files": [Path(path).name for path in chart_paths[:4]],
+            "chart_paths": relative_paths,
+            "chart_api_paths": [f"/api/charts?path={urllib.parse.quote(path)}" for path in relative_paths],
+            "primary_chart_file": Path(chart_paths[0]).name if chart_paths else None,
+            "primary_chart_path": relative_paths[0] if relative_paths else None,
+            "primary_chart_api_path": (
+                f"/api/charts?path={urllib.parse.quote(relative_paths[0])}" if relative_paths else None
+            ),
+            "latest_generated_at": latest_generated_at,
             "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。",
         }
 
@@ -1115,6 +1178,59 @@ class PatrolRuntime:
 
         return selected
 
+    def select_canonical_references(
+        self,
+        phase_plan: dict[str, Any],
+        execution: dict[str, Any],
+        symbol_cache: dict[str, Any],
+        quick_scan_events: dict[str, Any],
+    ) -> list[str]:
+        selected: list[str] = []
+
+        def add(*ref_names: str) -> None:
+            for ref_name in ref_names:
+                if ref_name and ref_name not in selected:
+                    selected.append(ref_name)
+
+        add("C0-foundations.md", "C5-step5-dynamic-timing.md")
+
+        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+        if positions:
+            add("C4-management-and-exit-operations.md")
+
+        if phase_plan.get("full_refresh") or self.daily_bias_stale(symbol_cache):
+            add("C1-market-cycle-and-state.md")
+
+        aggregate_events: list[str] = []
+        for event_map in quick_scan_events.values():
+            aggregate_events.extend(self.flatten_events(event_map))
+
+        if any(
+            event == "wedge_or_mtr"
+            or event == "cached_pre_signal"
+            or event.startswith(("signal_trigger:", "hl_signal:", "first_pb:", "state_change:", "tr_edge:", "level_break:"))
+            for event in aggregate_events
+        ):
+            add("C2-triggers-and-reversal-taxonomy.md", "C3-style-equation-and-order-planning.md")
+
+        phase = str(phase_plan.get("phase") or "").upper()
+        if phase in {"SCALP_FAST", "ENTRY_READY", "ENTRY_READY_BLOCKED", "MANAGE"}:
+            add("C3-style-equation-and-order-planning.md")
+        if phase == "MANAGE":
+            add("C4-management-and-exit-operations.md")
+
+        if not selected:
+            add("C0-foundations.md", "C1-market-cycle-and-state.md", "C5-step5-dynamic-timing.md")
+
+        return selected
+
+    def merge_reference_sets(self, canonical_refs: list[str], selected_refs: list[str]) -> list[str]:
+        merged: list[str] = []
+        for ref_name in [*canonical_refs, *selected_refs]:
+            if ref_name and ref_name not in merged:
+                merged.append(ref_name)
+        return merged
+
     def select_prompt_references(
         self,
         phase_plan: dict[str, Any],
@@ -1124,6 +1240,12 @@ class PatrolRuntime:
         ab_context_by_symbol: dict[str, Any],
     ) -> list[str]:
         selected: list[str] = []
+        canonical_refs = self.select_canonical_references(
+            phase_plan,
+            execution,
+            symbol_cache,
+            quick_scan_events,
+        )
 
         def add(*ref_names: str) -> None:
             for ref_name in ref_names:
@@ -1161,14 +1283,14 @@ class PatrolRuntime:
                 add("S2-direction.md", "S3-market-state.md", "S3b-key-levels.md")
             if any(ref.startswith("S6-") for ref in selected) and "S5-evaluation.md" not in selected:
                 add("S5-evaluation.md")
-            return selected
+            return self.merge_reference_sets(canonical_refs, selected)
 
         if self.daily_bias_stale(symbol_cache):
             add("S0-daily-bias.md")
 
         if positions:
             add("S2-direction.md", "S3-market-state.md", "S3b-key-levels.md", "S5-evaluation.md", "S7-management.md")
-            return selected
+            return self.merge_reference_sets(canonical_refs, selected)
 
         for symbol in self.ranked_eventful_symbols(
             phase_plan,
@@ -1188,7 +1310,7 @@ class PatrolRuntime:
 
         if any(ref.startswith("S6-") for ref in selected) and "S5-evaluation.md" not in selected:
             add("S5-evaluation.md")
-        return selected
+        return self.merge_reference_sets(canonical_refs, selected)
 
     def http_get_json(self, path: str, query: dict[str, Any] | None = None) -> Any:
         url = self.config.execution_base + path
@@ -1261,6 +1383,77 @@ class PatrolRuntime:
         except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as exc:
             return {"_error": str(exc)}
 
+    def backend_bot_token(self) -> str:
+        openclaw_config = Path.home() / ".openclaw" / "openclaw.json"
+        if openclaw_config.exists():
+            payload = load_json(openclaw_config, {})
+            telegram_cfg = payload.get("channels", {}).get("telegram", {}) if isinstance(payload, dict) else {}
+            token = str(telegram_cfg.get("botToken") or "").strip()
+            if token:
+                return token
+        env_path = self.config.vault_root / "AB Console-Backend" / "config" / ".env"
+        if env_path.exists():
+            try:
+                for raw in env_path.read_text(encoding="utf-8").splitlines():
+                    line = raw.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    if key.strip() == "BOT_TOKEN":
+                        token = value.strip().strip("\"' ")
+                        if token:
+                            return token
+            except OSError:
+                pass
+        return ""
+
+    def telegram_api_send_photo(self, photo_path: Path, caption: str) -> dict[str, Any]:
+        token = self.backend_bot_token()
+        if not token:
+            return {"_error": "telegram bot token unavailable"}
+        boundary = f"----ABPatrol{uuid.uuid4().hex}"
+        parts: list[bytes] = []
+
+        def add_field(name: str, value: str) -> None:
+            parts.append(f"--{boundary}\r\n".encode("utf-8"))
+            parts.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8"))
+            parts.append(value.encode("utf-8"))
+            parts.append(b"\r\n")
+
+        add_field("chat_id", self.config.telegram_chat_id)
+        add_field("parse_mode", "HTML")
+        add_field("disable_notification", "true")
+        if self.config.telegram_thread_id:
+            add_field("message_thread_id", str(self.config.telegram_thread_id))
+        if caption:
+            add_field("caption", caption[:1024])
+
+        image_bytes = photo_path.read_bytes()
+        parts.append(f"--{boundary}\r\n".encode("utf-8"))
+        parts.append(
+            (
+                f'Content-Disposition: form-data; name="photo"; filename="{photo_path.name}"\r\n'
+                "Content-Type: image/png\r\n\r\n"
+            ).encode("utf-8")
+        )
+        parts.append(image_bytes)
+        parts.append(b"\r\n")
+        parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+        body = b"".join(parts)
+        request = urllib.request.Request(
+            f"https://api.telegram.org/bot{token}/sendPhoto",
+            data=body,
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")
+            return {"_error": f"http {exc.code}: {detail}"}
+        except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+            return {"_error": str(exc)}
+
     def openclaw_message_send(self, message: str) -> dict[str, Any]:
         cmd = [
             "openclaw",
@@ -1294,6 +1487,41 @@ class PatrolRuntime:
                     return {"_error": f"invalid openclaw send json: {exc}"}
             return {"_error": f"invalid openclaw send json: {exc}"}
 
+    def openclaw_photo_send(self, photo_path: Path, caption: str) -> dict[str, Any]:
+        cmd = [
+            "openclaw",
+            "message",
+            "send",
+            "--channel",
+            "telegram",
+            "--target",
+            self.config.telegram_chat_id,
+            "--thread-id",
+            str(self.config.telegram_thread_id),
+            "--media",
+            str(photo_path),
+            "--message",
+            caption[:1024],
+            "--silent",
+            "--json",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
+            return {"_error": stderr or f"openclaw photo send rc={result.returncode}"}
+        stdout = (result.stdout or "").strip()
+        try:
+            return json.loads(stdout or "{}")
+        except json.JSONDecodeError as exc:
+            start = stdout.find("{")
+            end = stdout.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    return json.loads(stdout[start : end + 1])
+                except json.JSONDecodeError as inner_exc:
+                    return {"_error": f"invalid openclaw photo json: {inner_exc}"}
+            return {"_error": f"invalid openclaw photo json: {exc}"}
+
     def load_runtime_state(self) -> dict[str, Any]:
         return load_json(self.runtime_state_path, {})
 
@@ -1306,6 +1534,21 @@ class PatrolRuntime:
             return None, {}
         path = cycles[-1]
         return path, load_json(path, {})
+
+    def record_runtime_failure(self, error: Exception | str, *, context: str = "loop") -> None:
+        runtime = self.load_runtime_state()
+        message = " ".join(str(error).split()) or "-"
+        updated = dict(runtime)
+        updated.update(
+            {
+                "status": "DEGRADED",
+                "degraded": True,
+                "last_failure_at": utc_iso(),
+                "last_failure_reason": message[:500],
+                "last_failure_context": context,
+            }
+        )
+        write_json(self.runtime_state_path, updated)
 
     def latest_execution_log(self, limit: int = 8) -> list[dict[str, Any]]:
         path = self.journal_dir / "execution_log.jsonl"
@@ -1707,10 +1950,10 @@ class PatrolRuntime:
         return ""
 
     def read_reference_text(self, ref_name: str) -> str:
-        ref_dir = self.config.knowledge_root / "references"
-        path = ref_dir / ref_name
-        if path.exists():
-            return path.read_text(encoding="utf-8")
+        for ref_dir_name in ("canonical", "references"):
+            path = self.config.knowledge_root / ref_dir_name / ref_name
+            if path.exists():
+                return path.read_text(encoding="utf-8")
         return ""
 
     def parse_full_skill_sections(self) -> tuple[str, list[str], dict[str, str]]:
@@ -1980,8 +2223,10 @@ class PatrolRuntime:
         system_parts = [
             "AB Patrol-Agent decision turn.",
             "",
-            "Use the original patrol-l1 skill and the selected S-files below as the authority.",
+            "Use the full Obsidian Al Brooks knowledge base through the canonical rulebook and the original patrol-l1 skill/S-files below as authority.",
+            "Canonical rulebook files are the highest theory layer. SKILL.md + S-files are the executable subset. If they appear to conflict, prefer the canonical rulebook and explain the conflict explicitly in Chinese.",
             "Keep the original Al Brooks logic intact. Do not invent new trading rules.",
+            "Al Brooks notes to honor explicitly: most reversals are some form of DT/DB test; MTR is often only a 40% winner and starts as a reversal probe until acceptance appears; bad wedges are not reversal setups; in channel reversals most traders should prefer stop orders while only excellent context justifies limit orders; scalp begins on the minor reversal, swing waits for clearer acceptance.",
             "Single cycle only. Do not sleep. Do not call tools.",
             "Return raw JSON only.",
             "All human-readable narrative fields in the JSON must be written in Simplified Chinese.",
@@ -1996,7 +2241,8 @@ class PatrolRuntime:
             "When S7 加仓条件成立，继续用 OPEN_ORDER，但在 action.intent 或 trade.intent 中明确写 ADD_ON / SCALE_IN；这是同方向新交易，不是修改旧单。加仓时必须显式给出 risk_percent，并保持总加仓风险不超过 1%。",
             "当 setup 已明确但价格尚未到位时，可以使用 OPEN_ORDER + LIMIT + price 预先挂委托；如果前提失效，必须配套 CANCEL_ALL_ORDERS 清理旧挂单。",
             "当 setup 还在等待价位触发时，请在 symbol_update.planned_trade 中明确写 entry_price 或 entry_zone，以及 stop_loss / take_profit / order_type / style，便于后续管理与复盘。",
-            "不要让 runtime 再发明额外过滤器；只依据原 skill / S 文件输出风格、前提、交易方程、执行动作和定时建议。",
+            "不要让 runtime 再发明额外过滤器；只依据 canonical rulebook + 原 skill / S 文件输出风格、前提、交易方程、执行动作和定时建议。",
+            "升级期可能处于观察模式（dry_run=true）。即便当前不自动下单，也必须照常输出 planned_trade、candidate、executable 和管理动作，供回放与验收。",
             "If no real trade is executable this cycle, still emit one LOG_ONLY action per focus symbol with reason, refs, and bar_reading.",
             f"Knowledge loading: skill={knowledge_meta.get('skill_mode')} | refs full={knowledge_meta.get('full_reference_count')} | budget={knowledge_meta.get('budget_chars')} chars.",
             "",
@@ -2134,6 +2380,7 @@ class PatrolRuntime:
             "Use the original patrol-l1 skill and selected S-files as authority.",
             "This is the original Scalp 快速通道: do not run full multi-symbol Phase B unless the setup is unclear.",
             "Apply the 3-item fast self-check only: direction aligned, SL on PA structure, P×R > (1-P).",
+            "Remember the Al Brooks notes: scalp can begin on the minor reversal, but swing must wait for clearer acceptance; bad wedges are not reversal setups; most reversals are DT/DB style tests and only become swings after confirmation.",
             "If the fast lane passes, emit exactly one OPEN_ORDER action for this symbol.",
             "If it does not pass, emit exactly one LOG_ONLY action with reason starting [AUDIT] FAST_TRACK_SKIP or [PASS-WAIT].",
             "Return raw JSON only and write all human-readable fields in Simplified Chinese.",
@@ -2568,8 +2815,11 @@ class PatrolRuntime:
             return existing
         evaluation = patch.get("evaluation") if isinstance(patch.get("evaluation"), dict) else {}
         p_values = [value for value in all_floats(evaluation.get("p_estimate")) if 0 < value <= 100]
+        p_values.extend(value for value in all_floats(evaluation.get("p_estimate_if_triggered")) if 0 < value <= 100)
         r_values = []
         r_text = str(evaluation.get("r_estimate") or "")
+        if not r_text:
+            r_text = str(evaluation.get("r_estimate_if_triggered") or "")
         for match in re.findall(r"(\d+(?:\.\d+)?)\s*:\s*1", r_text):
             try:
                 r_values.append(float(match))
@@ -2577,6 +2827,14 @@ class PatrolRuntime:
                 continue
         if not r_values:
             r_values = [value for value in all_floats(r_text) if 0 < value <= 10]
+        if not r_values:
+            equation_text = str(evaluation.get("equation") or "")
+            equation_values = [value for value in all_floats(equation_text) if 0 < value <= 10]
+            if equation_values:
+                if len(equation_values) >= 2:
+                    r_values.append(float(equation_values[1]))
+                elif len(equation_values) == 1:
+                    r_values.append(float(equation_values[0]))
         p = max(p_values) if p_values else None
         if p is not None and p > 1:
             p = p / 100.0
@@ -3030,6 +3288,8 @@ class PatrolRuntime:
                     "close": latest_bar.get("C") if isinstance(latest_bar, dict) else None,
                     "thesis": current.get("thesis") or current.get("structure_summary") or current.get("market_state_detail"),
                     "events": self.flatten_events(quick_scan_events.get(symbol)),
+                    "planned_trade": current.get("planned_trade") if isinstance(current.get("planned_trade"), dict) else {},
+                    "chart_context": board.get("chart_context") if isinstance(board.get("chart_context"), dict) else {},
                 }
             )
         return notices
@@ -3103,6 +3363,9 @@ class PatrolRuntime:
         if planned_trade.get("take_profit"):
             planned_bits.append(f"止盈 {planned_trade.get('take_profit')}")
         plan_text = "｜".join(str(item) for item in planned_bits if item) or "-"
+        chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
+        chart_files = ", ".join(str(item) for item in (chart_context.get("chart_files") or [])[:3]) or "-"
+        chart_hint = chart_context.get("primary_chart_path") or "-"
         return "\n".join(
             [
                 f"🟡 PA交易 Crypto｜{symbol} 预信号",
@@ -3116,6 +3379,8 @@ class PatrolRuntime:
                 "【盘面摘要】",
                 f"• 结构: {thesis}",
                 f"• 关键事件: {events}",
+                f"• 图表文件: {chart_files}",
+                f"• Web查看: http://127.0.0.1:3001/pa-bot（图: {chart_hint}）",
                 f"• 有效期: {expiry}",
             ]
         )
@@ -3362,6 +3627,7 @@ class PatrolRuntime:
                 "pending_pre_signals": pre_signals,
                 "risk_mode": "NORMAL",
                 "host_mode": "CLI_SESSION" if self.config.decision_provider == "codex_cli" else "OPENCLAW",
+                "degraded": False,
                 "last_trigger": None,
                 "last_cycle_id": cycle_id,
                 "quiet_loops": int((decision.get("state_patch") or {}).get("quiet_loops") or runtime.get("quiet_loops") or 0),
@@ -3405,6 +3671,7 @@ class PatrolRuntime:
     def render_push_card(
         self,
         cycle_id: str,
+        runtime: dict[str, Any],
         decision: dict[str, Any],
         execution: dict[str, Any],
         execution_results: list[dict[str, Any]],
@@ -3412,11 +3679,13 @@ class PatrolRuntime:
         trigger: dict[str, Any] | None,
         quick_scan_events: dict[str, Any],
     ) -> str:
+        runtime_state = runtime if isinstance(runtime, dict) else {}
         can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         orders = execution.get("orders") if isinstance(execution.get("orders"), list) else []
-        actions = decision.get("actions") or []
-        position_management = decision.get("position_management") or []
+        actions = [item for item in (decision.get("actions") or []) if isinstance(item, dict)]
+        position_management = [item for item in (decision.get("position_management") or []) if isinstance(item, dict)]
+        execution_results = [item for item in execution_results if isinstance(item, dict)]
         symbol_updates = decision.get("symbol_updates") or {}
 
         def phase_cn(value: str) -> str:
@@ -3541,19 +3810,23 @@ class PatrolRuntime:
 
         def action_for_symbol(symbol: str) -> dict[str, Any]:
             for action in actions:
-                if str(action.get("symbol") or "").upper() == symbol:
+                if isinstance(action, dict) and str(action.get("symbol") or "").upper() == symbol:
                     return action
             return {}
 
         def management_for_symbol(symbol: str) -> dict[str, Any]:
             for item in position_management:
-                if str(item.get("symbol") or "").upper() == symbol:
+                if isinstance(item, dict) and str(item.get("symbol") or "").upper() == symbol:
                     return item
             return {}
 
+        def chart_for_symbol(symbol: str) -> dict[str, Any]:
+            board = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
+            return board.get("chart_context") if isinstance(board.get("chart_context"), dict) else {}
+
         def execution_result_for_symbol(symbol: str) -> dict[str, Any]:
             for item in execution_results:
-                if str(item.get("symbol") or "").upper() == symbol:
+                if isinstance(item, dict) and str(item.get("symbol") or "").upper() == symbol:
                     return item
             return {}
 
@@ -3735,6 +4008,15 @@ class PatrolRuntime:
                     f"• 最终执行: {result_text}",
                 ]
             )
+            chart_context = chart_for_symbol(symbol)
+            chart_files = ", ".join(str(item) for item in (chart_context.get("chart_files") or [])[:3]) or "-"
+            primary_chart = chart_context.get("primary_chart_path") or "-"
+            lines.extend(
+                [
+                    f"• 图表文件: {chart_files}",
+                    f"• Web查看: http://127.0.0.1:3001/pa-bot（图: {primary_chart}）",
+                ]
+            )
 
         if positions:
             lines.extend(["", "━━ 持仓管理 ━━"])
@@ -3750,7 +4032,7 @@ class PatrolRuntime:
             str(item.get("status") or "") not in {"", "LOG_ONLY", "SKIPPED", "NO_ACTION"}
             for item in execution_results
             if isinstance(item, dict)
-        ) or int(runtime.get("loop_seq") or 0) % 6 == 0
+        ) or int(runtime_state.get("loop_seq") or 0) % 6 == 0
         if show_debug:
             lines.extend(
                 [
@@ -3824,6 +4106,46 @@ class PatrolRuntime:
         }
         fallback = self.http_post_telegram(payload)
         return {"openclaw": direct, "fallback": fallback}
+
+    def push_telegram_photo(self, photo_path: str | None, caption: str) -> dict[str, Any]:
+        if not self.config.post_to_telegram:
+            return {"ok": False, "skipped": True, "reason": "telegram_disabled"}
+        absolute_path = self.chart_absolute_path(photo_path)
+        if absolute_path is None:
+            return {"ok": False, "skipped": True, "reason": "photo_missing"}
+        direct = self.telegram_api_send_photo(absolute_path, caption)
+        if not direct.get("_error"):
+            return {"mode": "direct_bot_api", **direct}
+        payload = {
+            "chat_id": self.config.telegram_chat_id,
+            "message_thread_id": self.config.telegram_thread_id,
+            "message": "",
+            "caption": caption[:1024],
+            "photo_path": str(absolute_path),
+            "disable_notification": True,
+        }
+        via_forward = self.http_post_telegram(payload)
+        if not via_forward.get("_error"):
+            return {"mode": "forward", **via_forward}
+        direct_openclaw = self.openclaw_photo_send(absolute_path, caption)
+        if not direct_openclaw.get("_error"):
+            return {"mode": "openclaw", **direct_openclaw}
+        return {
+            "ok": False,
+            "mode": "photo_failed",
+            "direct_bot_api": direct,
+            "forward": via_forward,
+            "openclaw": direct_openclaw,
+        }
+
+    def primary_chart_for_decision(self, decision: dict[str, Any], analysis_board: dict[str, Any]) -> tuple[str | None, str | None]:
+        for symbol in [str(item).upper() for item in (decision.get("focus_symbols") or [])]:
+            board = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
+            chart_context = board.get("chart_context") if isinstance(board.get("chart_context"), dict) else {}
+            primary = chart_context.get("primary_chart_path")
+            if primary:
+                return symbol, str(primary)
+        return None, None
 
     def timeout_fallback_decision(
         self,
@@ -4127,12 +4449,131 @@ class PatrolRuntime:
             "decision": decision,
             "execution_results": execution_results,
             "next_scan": next_scan,
+            "render_status": {
+                "cycle_card": {"ok": None, "skipped": True},
+                "pre_signal": [],
+                "housekeeping": {"ok": None, "skipped": True},
+            },
+            "push_status": {
+                "cycle_card": {"ok": False, "skipped": True, "reason": "not_significant"},
+                "pre_signal": [],
+                "housekeeping": {"ok": False, "skipped": True, "reason": "not_due"},
+            },
         }
         cycle_path = self.cycles_dir / f"{cycle_id}.json"
         write_json(cycle_path, cycle_payload)
         write_json(self.logs_dir / f"{cycle_id}_response.json", payload)
         write_json(self.logs_dir / f"{cycle_id}_decision.json", decision)
         write_text(self.logs_dir / f"{cycle_id}_request.md", (self.logs_dir / "last_request.md").read_text(encoding="utf-8"))
+
+        push_result = {"ok": False, "skipped": True, "reason": "not_significant"}
+        cycle_card_render = {"ok": True, "skipped": False}
+        if self.should_push_cycle_card(
+            runtime,
+            updated_runtime,
+            decision,
+            execution,
+            execution_results,
+            pre_signal_notices,
+            trigger,
+        ):
+            try:
+                push_text = self.render_push_card(
+                    cycle_id,
+                    updated_runtime,
+                    decision,
+                    execution,
+                    execution_results,
+                    int(next_scan.get("in_seconds") or 120),
+                    trigger,
+                    quick_scan_events,
+                )
+            except Exception as exc:
+                cycle_card_render = {"ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
+                LOG.exception("cycle card render failed: %s", exc)
+                push_result = {"ok": False, "skipped": True, "reason": "render_failed"}
+            else:
+                try:
+                    push_result = self.push_telegram_update(push_text)
+                except Exception as exc:
+                    push_result = {"ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
+                    LOG.exception("cycle card push failed: %s", exc)
+                else:
+                    cycle_symbol, cycle_chart = self.primary_chart_for_decision(decision, analysis_board)
+                    if cycle_chart:
+                        push_result = {
+                            **push_result,
+                            "photo": self.push_telegram_photo(
+                                cycle_chart,
+                                f"📈 PA交易 Crypto｜{cycle_symbol or '-'} 图表\n• 轮次: {cycle_id}\n• 阶段: {phase_cn(str(decision.get('phase') or '-'))}",
+                            ),
+                        }
+        else:
+            cycle_card_render = {"ok": True, "skipped": True, "reason": "not_significant"}
+        pre_signal_pushes: list[dict[str, Any]] = []
+        pre_signal_renders: list[dict[str, Any]] = []
+        for notice in pre_signal_notices:
+            symbol = str(notice.get("symbol") or "-")
+            try:
+                message = self.render_pre_signal_push(notice)
+            except Exception as exc:
+                pre_signal_renders.append(
+                    {"symbol": symbol, "ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
+                )
+                pre_signal_pushes.append({"symbol": symbol, "ok": False, "skipped": True, "reason": "render_failed"})
+                LOG.exception("pre-signal render failed for %s: %s", symbol, exc)
+                continue
+            pre_signal_renders.append({"symbol": symbol, "ok": True, "skipped": False})
+            try:
+                result = self.push_telegram_update(message)
+            except Exception as exc:
+                result = {"symbol": symbol, "ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
+                LOG.exception("pre-signal push failed for %s: %s", symbol, exc)
+            else:
+                if isinstance(result, dict):
+                    chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
+                    result = {
+                        "symbol": symbol,
+                        **result,
+                        "photo": self.push_telegram_photo(
+                            str(chart_context.get("primary_chart_path") or ""),
+                            f"🖼 PA交易 Crypto｜{symbol} 预信号图表\n• 状态: {notice.get('status') or '-'}\n• 图表: {chart_context.get('primary_chart_file') or '-'}",
+                        ),
+                    }
+            pre_signal_pushes.append(result)
+        housekeeping_push = None
+        housekeeping_render = {"ok": True, "skipped": True, "reason": "not_due"}
+        if int(updated_runtime.get("loop_seq") or 0) % 6 == 0:
+            try:
+                housekeeping_text = self.render_housekeeping_card(
+                    updated_runtime,
+                    market_cache,
+                    execution,
+                    decision,
+                    int(next_scan.get("in_seconds") or 120),
+                )
+            except Exception as exc:
+                housekeeping_render = {"ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
+                housekeeping_push = {"ok": False, "skipped": True, "reason": "render_failed"}
+                LOG.exception("housekeeping render failed: %s", exc)
+            else:
+                housekeeping_render = {"ok": True, "skipped": False}
+                try:
+                    housekeeping_push = self.push_telegram_update(housekeeping_text)
+                except Exception as exc:
+                    housekeeping_push = {"ok": False, "skipped": True, "reason": "push_failed", "error": " ".join(str(exc).split())[:240]}
+                    LOG.exception("housekeeping push failed: %s", exc)
+        cycle_payload["render_status"] = {
+            "cycle_card": cycle_card_render,
+            "pre_signal": pre_signal_renders,
+            "housekeeping": housekeeping_render,
+        }
+        cycle_payload["push_status"] = {
+            "cycle_card": push_result,
+            "pre_signal": pre_signal_pushes,
+            "housekeeping": housekeeping_push,
+        }
+        write_json(cycle_path, cycle_payload)
 
         append_jsonl(
             self.journal_dir / "decision_log.jsonl",
@@ -4150,6 +4591,8 @@ class PatrolRuntime:
                 "next_scan_reason": decision.get("next_scan_reason"),
                 "references": ref_names,
                 "explanation": decision.get("explanation"),
+                "render_status": cycle_payload["render_status"],
+                "push_status": cycle_payload["push_status"],
             },
         )
         for item in execution_results:
@@ -4160,41 +4603,6 @@ class PatrolRuntime:
                     "cycle_id": cycle_id,
                     **item,
                 },
-            )
-
-        push_result = {"ok": False, "skipped": True, "reason": "not_significant"}
-        if self.should_push_cycle_card(
-            runtime,
-            updated_runtime,
-            decision,
-            execution,
-            execution_results,
-            pre_signal_notices,
-            trigger,
-        ):
-            push_text = self.render_push_card(
-                cycle_id,
-                decision,
-                execution,
-                execution_results,
-                int(next_scan.get("in_seconds") or 120),
-                trigger,
-                quick_scan_events,
-            )
-            push_result = self.push_telegram_update(push_text)
-        pre_signal_pushes: list[dict[str, Any]] = []
-        for notice in pre_signal_notices:
-            pre_signal_pushes.append(self.push_telegram_update(self.render_pre_signal_push(notice)))
-        housekeeping_push = None
-        if int(updated_runtime.get("loop_seq") or 0) % 6 == 0:
-            housekeeping_push = self.push_telegram_update(
-                self.render_housekeeping_card(
-                    updated_runtime,
-                    market_cache,
-                    execution,
-                    decision,
-                    int(next_scan.get("in_seconds") or 120),
-                )
             )
         LOG.info("cycle complete: %s phase=%s push=%s", cycle_id, decision.get("phase"), push_result)
         if trigger:
@@ -4240,6 +4648,7 @@ class PatrolRuntime:
                 break
             except Exception as exc:
                 LOG.exception("loop cycle failed: %s", exc)
+                self.record_runtime_failure(exc, context="loop")
                 time.sleep(30)
                 trigger = None
         self.pid_path.unlink(missing_ok=True)

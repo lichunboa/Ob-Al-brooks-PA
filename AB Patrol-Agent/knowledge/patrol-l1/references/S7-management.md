@@ -48,6 +48,28 @@
 > 6 项全过 → 继续持有。任一项失效 → 执行对应操作，不等 SL 被触发。
 > "主动止损是清醒时的决断，被动止损是昏迷时的保险"
 
+## 管理动作语义（系统必须支持）
+
+| 动作 | 语义 | 典型场景 |
+|------|------|---------|
+| `CLOSE_POSITION` | 全平 | premise 失效、方向反转、失败 follow-through |
+| `PARTIAL_CLOSE` | 分批止盈 / 强制降风险 | TP1、TP2、context 变弱 |
+| `MODIFY_STOP_LOSS` | 移动止损 | breakeven、trail 到 HL/LH、climax 后收紧 |
+| `MODIFY_TAKE_PROFIT` | 调整止盈目标 | measured move 更新、从 scalp 目标切换到 swing 目标 |
+| `CANCEL_ALL_ORDERS` | 撤掉失效挂单 | planned trade 过期、thesis 切换、setup 降级回 watch |
+| `OPEN_ORDER` | 同方向新单 | add-on / scale-in / re-entry（必须明确 intent） |
+
+### planned trade / pending order 管理
+
+管理不仅针对已成交仓位，也针对还没成交的计划委托：
+
+- `planned_trade` 仍有效 → 保持
+- `planned_trade` 过期 → `CANCEL_ALL_ORDERS`
+- 价格已经越过最佳入场区但未成交：
+  - 重新评估是 `chase` 还是 `cancel`
+- 旧 thesis 被新 thesis 替代：
+  - 先撤单，再建立新的 planned trade
+
 ### [STRENGTH CHECK] 持仓增强评估（Premise Check 通过后执行）
 
 > Al Brooks: "Management is based on what market is doing NOW."
@@ -354,6 +376,18 @@ Premise 有效 + 无异常 → 持有，不干预。
 2. **TP2 = 3x 初始风险** → 减仓 25%
 3. **余下 25%** → 跟踪止损 → 每次强 BO 到新极端后移止损
 
+### 分批止盈与 trail 的执行语义
+
+- `TP1`
+  - 首次达到计划目标区、或者 first measured move 完成
+  - 动作：`PARTIAL_CLOSE 25%-50%`
+- `TP2`
+  - 第二目标区、嵌套 MM、前高/前低、通道边界
+  - 动作：再次 `PARTIAL_CLOSE`
+- `trail`
+  - 只对 premise 仍强、Strength Check 高的余仓使用
+  - 不允许用 trail 掩盖 premise 失效
+
 - **2x 初始风险止盈 = "Always results in positive TE"**
 - 强 BO 后 Actual Risk 很小 → 改用 MM / trend line / prior H/L 作为目标
 
@@ -413,6 +447,7 @@ Al Brooks: "Scale in is best when scaling into a winner"
 - 趋势继续 + 新的 PB setup 出现（H2/L2/EMA PB/Wedge PB）
 - 每次加仓 = 独立的新交易，有自己的 SL 和 Premise
 - 加仓后**总风险不超过 1% 账户**
+- 系统动作表达：继续使用 `OPEN_ORDER`，但必须在 `intent` 中写明 `ADD_ON / SCALE_IN / REENTRY`
 
 **加仓流程**：
 1. 首仓 0.3% → 趋势确认 + PB1 出现 → 加仓 0.3%（总 0.6%）

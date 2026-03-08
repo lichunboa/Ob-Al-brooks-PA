@@ -12,6 +12,7 @@ WATCHDOG="$ROOT/scripts/watchdog.py"
 EXECUTION_ROOT="$ROOT/../AB Console-Backend/services/execution-service"
 WEB_ROOT="$ROOT/../AB Patrol-Web"
 RUN_DIR="$ROOT/run"
+CYCLES_DIR="$ROOT/data/pa_trader/cycles"
 LOG_FILE="$RUN_DIR/service.log"
 PID_FILE="$RUN_DIR/service.pid"
 LOOP_STOP_FILE="$RUN_DIR/loop.stop"
@@ -40,7 +41,7 @@ WATCHDOG_WRAPPER="$LAUNCHD_DIR/$WATCHDOG_LABEL.sh"
 USE_LAUNCHD="${AB_PATROL_USE_LAUNCHD:-0}"
 LOOP_HOST="${AB_PATROL_LOOP_HOST:-terminal}"
 TERMINAL_HOST="${AB_PATROL_TERMINAL_HOST:-0}"
-SIDECAR_USE_LAUNCHD="${AB_PATROL_SIDECAR_USE_LAUNCHD:-0}"
+SIDECAR_USE_LAUNCHD="${AB_PATROL_SIDECAR_USE_LAUNCHD:-1}"
 
 mkdir -p "$RUN_DIR"
 mkdir -p "$LAUNCHD_DIR"
@@ -50,6 +51,9 @@ if [[ -f "$ENV_FILE" ]]; then
   source "$ENV_FILE"
   set +a
 fi
+
+AUTOTRADE_ENABLED="${AB_PATROL_ENABLE_AUTOTRADE:-0}"
+LOOP_ARGS=()
 
 launchd_enabled() {
   [[ "$(uname -s)" == "Darwin" ]] && [[ "$USE_LAUNCHD" != "0" ]]
@@ -65,6 +69,37 @@ terminal_loop_enabled() {
 
 terminal_host_enabled() {
   [[ "$(uname -s)" == "Darwin" ]] && [[ "$TERMINAL_HOST" != "0" ]] && command -v osascript >/dev/null 2>&1
+}
+
+resolve_loop_args() {
+  LOOP_ARGS=("$@")
+  local arg
+  local has_execute=0
+  for arg in "${LOOP_ARGS[@]}"; do
+    if [[ "$arg" == "--execute" ]]; then
+      has_execute=1
+      break
+    fi
+  done
+  if [[ "$has_execute" -eq 0 && "$AUTOTRADE_ENABLED" == "1" ]]; then
+    LOOP_ARGS+=("--execute")
+  fi
+}
+
+loop_mode_label() {
+  local args=("$@")
+  local arg
+  for arg in "${args[@]}"; do
+    if [[ "$arg" == "--execute" ]]; then
+      printf '%s\n' "自动交易"
+      return 0
+    fi
+  done
+  if [[ "$AUTOTRADE_ENABLED" == "1" ]]; then
+    printf '%s\n' "自动交易"
+  else
+    printf '%s\n' "观察模式"
+  fi
 }
 
 tool_python() {
@@ -365,6 +400,36 @@ wait_for_ready() {
       return 1
     fi
     sleep 1
+  done
+}
+
+latest_cycle_marker() {
+  local latest
+  latest="$(ls -1 "$CYCLES_DIR"/cycle_*.json 2>/dev/null | sort | tail -1 || true)"
+  if [[ -z "$latest" ]]; then
+    printf '%s\n' "-"
+    return 0
+  fi
+  local mtime
+  mtime="$(stat -f '%m' "$latest" 2>/dev/null || printf '0')"
+  printf '%s\n' "${latest##*/}:$mtime"
+}
+
+wait_for_cycle_advance() {
+  local baseline="$1"
+  local timeout_seconds="$2"
+  local start_ts
+  start_ts="$(date +%s)"
+  while true; do
+    local marker
+    marker="$(latest_cycle_marker)"
+    if [[ "$marker" != "$baseline" && "$marker" != "-" ]]; then
+      return 0
+    fi
+    if (( $(date +%s) - start_ts >= timeout_seconds )); then
+      return 1
+    fi
+    sleep 2
   done
 }
 
@@ -693,6 +758,7 @@ start_loop() {
     return 0
   fi
   export_tool_python
+  resolve_loop_args "$@"
   if terminal_loop_enabled; then
     kill_wrapper_processes "$LOOP_WRAPPER"
     rm -f "$LOOP_STOP_FILE"
@@ -704,7 +770,7 @@ start_loop() {
       "$AB_PATROL_TOOL_PYTHON" \
       "$RUNTIME" \
       "loop" \
-      "$@"
+      "${LOOP_ARGS[@]}"
     open_terminal_wrapper "AB Patrol Loop" "$LOOP_WRAPPER"
     if wait_for_ready loop 25; then
       echo "AB Patrol-Agent 已在 Terminal 长会话中启动 (PID: $(cat "$PID_FILE" 2>/dev/null || printf '-'))"
@@ -725,7 +791,7 @@ start_loop() {
       "$AB_PATROL_TOOL_PYTHON" \
       "$RUNTIME" \
       "loop" \
-      "$@"
+      "${LOOP_ARGS[@]}"
     bootstrap_launchd_service "$LOOP_LABEL" "$LOOP_PLIST"
     if wait_for_ready loop 20; then
       echo "AB Patrol-Agent 已由 launchd 启动 (PID: $(cat "$PID_FILE" 2>/dev/null || printf '-'))"
@@ -734,7 +800,7 @@ start_loop() {
     echo "AB Patrol-Agent launchd 启动失败，查看日志: $LOG_FILE"
     return 1
   fi
-  nohup "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "$@" </dev/null >>"$LOG_FILE" 2>&1 &
+  nohup "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "${LOOP_ARGS[@]}" </dev/null >>"$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   if wait_for_ready loop 10; then
     echo "AB Patrol-Agent 已启动 (PID: $(cat "$PID_FILE"))"
@@ -769,10 +835,17 @@ stop_loop() {
 case "${1:-status}" in
   start)
     shift
+    baseline_cycle="$(latest_cycle_marker)"
     start_execution
     start_query
     start_loop "$@"
     start_watchdog
+    echo "mode: $(loop_mode_label "$@")"
+    if wait_for_cycle_advance "$baseline_cycle" 90; then
+      echo "fresh: 已观察到新 cycle 产出"
+    else
+      echo "fresh: 90 秒内未观察到新 cycle，建议立即执行 status 检查"
+    fi
     ;;
   stop)
     stop_loop
@@ -782,6 +855,7 @@ case "${1:-status}" in
     ;;
   restart)
     shift
+    baseline_cycle="$(latest_cycle_marker)"
     stop_loop
     stop_watchdog
     stop_query
@@ -790,21 +864,41 @@ case "${1:-status}" in
     start_query
     start_loop "$@"
     start_watchdog
+    echo "mode: $(loop_mode_label "$@")"
+    if wait_for_cycle_advance "$baseline_cycle" 90; then
+      echo "fresh: 已观察到新 cycle 产出"
+    else
+      echo "fresh: 90 秒内未观察到新 cycle，建议立即执行 status 检查"
+    fi
     ;;
   recover)
     shift
+    baseline_cycle="$(latest_cycle_marker)"
     stop_loop
     stop_query
     start_execution
     start_query
     start_loop "$@"
+    echo "mode: $(loop_mode_label "$@")"
+    if wait_for_cycle_advance "$baseline_cycle" 90; then
+      echo "fresh: 已观察到新 cycle 产出"
+    else
+      echo "fresh: 90 秒内未观察到新 cycle，建议立即执行 status 检查"
+    fi
     ;;
   stack-start)
     shift
+    baseline_cycle="$(latest_cycle_marker)"
     start_execution
     start_query
     start_loop "$@"
     start_watchdog
+    echo "mode: $(loop_mode_label "$@")"
+    if wait_for_cycle_advance "$baseline_cycle" 90; then
+      echo "fresh: 已观察到新 cycle 产出"
+    else
+      echo "fresh: 90 秒内未观察到新 cycle，建议立即执行 status 检查"
+    fi
     ;;
   stack-stop)
     stop_loop
@@ -822,12 +916,14 @@ case "${1:-status}" in
   once)
     shift
     export_tool_python
-    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" once "$@"
+    resolve_loop_args "$@"
+    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" once "${LOOP_ARGS[@]}"
     ;;
   loop)
     shift
     export_tool_python
-    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "$@"
+    resolve_loop_args "$@"
+    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "${LOOP_ARGS[@]}"
     ;;
   loop-start)
     shift
@@ -890,6 +986,7 @@ case "${1:-status}" in
     ;;
   *)
     echo "用法: $0 {start|stop|restart|recover|stack-start|stack-stop|once|loop|loop-start|loop-stop|loop-restart|status|recent|decision|query-start|query-stop|query-restart|watchdog-start|watchdog-stop|watchdog-restart|web-start|web-stop|charts|backtest|replay|logs} [--execute] [--no-telegram]"
+    echo "默认模式: 观察模式（AB_PATROL_ENABLE_AUTOTRADE=0）。只有显式 --execute 或设置 AB_PATROL_ENABLE_AUTOTRADE=1 才会自动交易。"
     exit 1
     ;;
 esac

@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from runtime.env_loader import load_agent_env
-from runtime.status_common import render_recent_text, render_status_card, runtime_snapshot
+from runtime.status_common import render_recent_text, render_status_card, render_trade_funnel_text, runtime_snapshot
 
 
 load_agent_env(ROOT)
@@ -32,8 +32,13 @@ PID_FILE = RUN_DIR / "query-service.pid"
 app = FastAPI(title="AB Patrol-Agent Query Service", version="0.1.0")
 
 
-def build_snapshot() -> dict:
-    snapshot = runtime_snapshot(ROOT, execution_base=EXECUTION_BASE, execution_bot_id=EXECUTION_BOT_ID)
+def build_snapshot(*, include_funnel: bool = False) -> dict:
+    snapshot = runtime_snapshot(
+        ROOT,
+        execution_base=EXECUTION_BASE,
+        execution_bot_id=EXECUTION_BOT_ID,
+        include_funnel=include_funnel,
+    )
     snapshot["query_live"] = True
     snapshot["query_pid"] = os.getpid()
     return snapshot
@@ -78,9 +83,19 @@ def decision() -> dict:
     }
 
 
+@app.get("/api/v1/runtime/funnel")
+def funnel() -> dict:
+    snapshot = build_snapshot(include_funnel=True)
+    funnel_data = snapshot.get("trade_funnel") or {}
+    return {
+        "funnel": funnel_data,
+        "text": render_trade_funnel_text(funnel_data),
+    }
+
+
 @app.get("/api/v1/runtime/full")
 def full() -> dict:
-    snapshot = build_snapshot()
+    snapshot = build_snapshot(include_funnel=True)
     latest_cycle = snapshot.get("latest_cycle") or {}
     recent_rows = (snapshot.get("recent_cycles") or [])[:5]
     return {
@@ -93,6 +108,10 @@ def full() -> dict:
         "decision": {
             "cycle_path": snapshot.get("latest_cycle_path"),
             "decision": latest_cycle.get("decision") or {},
+        },
+        "funnel": {
+            "data": snapshot.get("trade_funnel") or {},
+            "text": render_trade_funnel_text(snapshot.get("trade_funnel") or {}),
         },
     }
 

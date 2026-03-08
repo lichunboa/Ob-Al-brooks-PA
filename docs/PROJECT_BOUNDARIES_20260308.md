@@ -60,7 +60,9 @@
 ## 当前主链
 
 ```text
-AB Console-Obsidian / .claude 原始知识
+AB Console-Obsidian 完整知识库
+  -> Canonical Rulebook
+  -> .claude / AB Patrol-Agent 中的原始知识副本
   -> AB Patrol-Agent
   -> codex_cli 长会话
   -> patrol_trade.py
@@ -68,6 +70,11 @@ AB Console-Obsidian / .claude 原始知识
   -> Binance demo
   -> Query Service / AB Patrol-Web / TG
 ```
+
+当前默认模式：
+
+- 升级期默认观察模式
+- 只有显式 `--execute` 才恢复自动交易
 
 ## OpenClaw 的角色
 
@@ -85,3 +92,4 @@ AB Console-Obsidian / .claude 原始知识
 - 新架构下首笔自然新单还未稳定复现
 - `S7-management` 还缺 live 仓位闭环验证
 - `codex_cli` timeout 噪音仍在
+- Canonical -> SKILL/S -> 代码的完全回写仍在进行中

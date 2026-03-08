@@ -28,6 +28,50 @@ function prettyStatus(ok) {
   return { text: "待确认", tone: "amber" };
 }
 
+function cycleFreshness(snapshot) {
+  if (snapshot?.cycle_fresh === true) return "新鲜";
+  if (snapshot?.cycle_fresh === false) return "陈旧";
+  return "待确认";
+}
+
+function trimText(value, limit = 180) {
+  const text = String(value ?? "").trim();
+  if (!text) return "-";
+  if (text.length <= limit) return text;
+  return `${text.slice(0, Math.max(0, limit - 1)).trim()}…`;
+}
+
+function displayText(value, limit = 180) {
+  if (value == null || value === "") return "-";
+  if (Array.isArray(value)) {
+    return value.length ? trimText(value.join(" / "), limit) : "-";
+  }
+  if (typeof value === "object") {
+    const dict = value;
+    const preferred = [
+      dict.summary,
+      dict.decision,
+      dict.value,
+      dict.detail,
+      dict.execution_decision,
+      dict.market_state,
+      dict.daily_bias,
+      dict.regime,
+      dict.reason,
+      dict.status,
+    ].find((item) => item != null && item !== "");
+    if (preferred != null && typeof preferred !== "object") {
+      return trimText(preferred, limit);
+    }
+    try {
+      return trimText(JSON.stringify(value, null, 2), limit);
+    } catch {
+      return "-";
+    }
+  }
+  return trimText(value, limit);
+}
+
 function symbolCards(decision) {
   const updates = decision?.symbol_updates || {};
   return Object.entries(updates).slice(0, 3);
@@ -104,9 +148,9 @@ export default function HomePage() {
 
             <div className="mt-6 grid gap-3 md:grid-cols-4">
               {[
-                { label: "Patrol", value: prettyStatus(snapshot.patrol_live).text },
+                { label: "总体健康", value: snapshot.overall_health || "待确认" },
+                { label: "Patrol 进程", value: prettyStatus(snapshot.patrol_live).text },
                 { label: "Query Service", value: prettyStatus(snapshot.query_live).text },
-                { label: "Watchdog", value: prettyStatus(snapshot.watchdog_live).text },
                 { label: "Execution", value: execution?.can_trade?.can_trade ? "可交易" : "待确认" },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
@@ -132,13 +176,14 @@ export default function HomePage() {
               </div>
             </div>
             <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 text-sm leading-7 text-slate-300">
-              <div><span className="text-slate-500">可交易:</span> {String(execution?.can_trade?.can_trade ?? "-")} ({execution?.can_trade?.reason || "OK"})</div>
+              <div><span className="text-slate-500">可交易:</span> {String(execution?.can_trade?.can_trade ?? "-")} ({displayText(execution?.can_trade?.reason || "OK", 90)})</div>
               <div><span className="text-slate-500">关注:</span> {focusSymbols.join(", ") || "-"}</div>
+              <div><span className="text-slate-500">Cycle 新鲜度:</span> {cycleFreshness(snapshot)} / {snapshot?.stale_but_running ? "stale-but-running" : "正常"}</div>
               <div><span className="text-slate-500">下一次扫描:</span> {(snapshot.next_scan || {}).in_seconds || "-"} 秒</div>
               <div><span className="text-slate-500">刷新时间:</span> {updatedAt || "-"}</div>
             </div>
             <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 text-sm leading-7 text-slate-300">
-              {latestDecision.market_summary || runtime.last_scan_decision || "暂无决策摘要"}
+              {displayText(latestDecision.market_summary || runtime.last_scan_decision || "暂无决策摘要", 360)}
             </div>
             {error ? <div className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">{error}</div> : null}
           </div>
@@ -187,11 +232,11 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-                    {patch.ai_direction || "-"} / {patch.market_state || "-"}
+                    {displayText(patch.ai_direction, 50)} / {displayText(patch.market_state, 50)}
                   </div>
                   <div className="mt-4 text-sm leading-7 text-slate-300">
-                    <div><span className="text-slate-500">结构:</span> {patch.structure_summary || patch.thesis || "-"}</div>
-                    <div><span className="text-slate-500">预信号:</span> {patch.pre_signal || patch.signal || "-"}</div>
+                    <div><span className="text-slate-500">结构:</span> {displayText(patch.structure_summary || patch.thesis || "-", 180)}</div>
+                    <div><span className="text-slate-500">预信号:</span> {displayText(patch.pre_signal || patch.signal || "-", 180)}</div>
                   </div>
                 </article>
               ))}

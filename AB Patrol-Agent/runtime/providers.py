@@ -23,7 +23,7 @@ def ensure_dir(path: Path) -> None:
 
 def write_text(path: Path, text: str) -> None:
     ensure_dir(path.parent)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_suffix(path.suffix + f".{uuid.uuid4().hex}.tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
 

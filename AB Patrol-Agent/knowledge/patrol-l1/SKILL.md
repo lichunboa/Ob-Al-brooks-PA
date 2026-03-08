@@ -46,26 +46,32 @@ description: "PA 交易 V5.0 — 3品种×3周期 + 全周期H2/L2扫描 + quote
 
 1. **禁止修改 references 文件** — skill 目录下的知识文件只读
 2. **禁止自创交易规则** — 所有判断追溯到 S 系列知识文件
-3. **禁止自行停止交易** — 只有用户指示才能停。**没有日亏限额，一直跑。**
+3. **升级期默认观察模式** — 先做采集、分析、推送、回放和 demo 验证；只有明确启用执行时才允许自动下单
 4. **仓位必须用 API 计算** — `/trading/calculate-size`，禁止手算
 5. **手续费必须计入** — 最大杠杆（75-100x），往返 ~0.1% notional，写入日志
 6. **无冷静期** — AI 没有情绪
 7. **PnL 含手续费** — 日志中的盈亏必须含费用
 8. **缓存是记忆，不是偷懒工具** — Quick Scan 必须认真检测 6 类事件，不允许全标 "watching"
+9. **Canonical Rulebook 高于当前 skill/S** — 如与完整 Al Brooks 知识库冲突，必须回到 canonical 理论层校正
 
 ---
 
 ## 环境
 
-- **API**: `http://localhost:8094`
+- **执行 API**: `http://localhost:8092`
 - **Bot ID**: `claude-pa`
 - **工作目录**: `~/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent`
-- **日志**: `data/pa_trader/pa_trader_l1.log`
-- **缓存**: `data/pa_trader/market_state_l1.json`
+- **决策运行**: `codex_cli` 长会话（同一 thread 持续 resume）
+- **Host/TG**: `OpenClaw` 负责收发、频道路由和工作区记忆
+- **日志**: `data/pa_trader/journal/` + `run/service.log`
+- **缓存**: `data/pa_trader/state/runtime_state.json` + `data/pa_trader/state/market_state_l1.json`
 - **监控**: BTCUSDT, ETHUSDT, BNBUSDT（3 品种，专注深度分析而非广度覆盖）
 - **风险**: 每笔最终风险 1%（首次 30%，最多加仓两次至 100%）— 加仓规则详见 [S7-management.md](references/S7-management.md) 加仓策略章节
 - **杠杆**: **最大杠杆**（币安 USDT-M 合约：BTC/ETH/BNB 100x，部分品种 75x）— 下单时不指定 leverage 字段，使用账户默认杠杆
 - **复利**: 余额涨 10% -> 更新风险基数
+- **知识 authority**:
+  - canonical: `knowledge/patrol-l1/canonical`
+  - executable subset: `knowledge/patrol-l1/SKILL.md` + `references/S0-S7`
 
 **快捷控制（al-brooks 频道可直接用）**：
 - `一键启动交易`：调用 `POST /trading/toggle?enabled=true`

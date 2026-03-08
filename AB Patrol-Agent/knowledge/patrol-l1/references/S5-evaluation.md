@@ -439,6 +439,34 @@ R = TP 距离 / SL 距离
 
 → 执行：下单 + 写信号日志（必须包含 P、R、P×R 和理由）
 
+### 预信号 / 候选单 / 可执行单
+
+评估输出必须明确区分 4 个阶段：
+
+| 阶段 | 含义 | 应输出什么 |
+|------|------|-----------|
+| `WATCH` | 只是观察结构 | thesis + invalid_if |
+| `planned_trade` | 交易计划已明确，但价格/触发未到 | `entry_price/entry_zone` + `stop_loss` + `take_profit` + `order_type` + `style` |
+| `candidate` | 接近执行，等待最后接受/trigger | `planned_trade` + `why not executable yet` |
+| `executable` | 已通过评估，可直接执行 | 动作 + 风格 + 交易方程 + 无效条件 |
+
+### 计划委托（Planned Orders）
+
+当 setup 已明确但价格尚未到位时，应优先考虑 **计划委托**，而不是等价于“没有机会”：
+
+- `LIMIT`
+  - TR 边缘、50% PB、buy/sell zone、limit order market
+- `STOP_MARKET`
+  - breakout acceptance、信号条高低点突破
+- `MARKET`
+  - 强 BO、Scalp 快速通道、必须立即跟随的 setup
+
+计划委托必须同时给出：
+
+- `invalid_if`
+- `cancel_if`
+- `degrade_to_watch_if`
+
 ## 没通过评估
 
 → 记录"该品种有潜在信号但 P×R 不达标"，等下次机会。

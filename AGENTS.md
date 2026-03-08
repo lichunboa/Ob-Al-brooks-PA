@@ -1,7 +1,7 @@
 # AB Console - AI Agent 操作手册
 
 > 本文档面向 AI 编码 Agent，以可执行指令的视角编写，约束与指导 Agent 行为。
-> 更新于 2026-02-04 (V2.3)。
+> 更新于 2026-03-07 (V2.3)。
 
 ---
 
@@ -19,6 +19,7 @@ Al-brooks-PA/                          项目根目录
 │   ├── config/                        配置文件 (.env)
 │   ├── Makefile, pyproject.toml       构建工具
 │   └── docs/                          后端文档
+├── AB Patrol-Agent/                   持久化巡逻 Agent（独立 host / state / knowledge）
 ├── 📁 启动工具/                       一键启动/停止脚本
 ├── docs/                              项目级文档
 └── AGENTS.md                          本文件
@@ -81,6 +82,14 @@ cd "AB Console-Backend"
 ./scripts/init.sh                     # 初始化 .venv
 ./scripts/start.sh start             # 启动核心服务
 ./scripts/start.sh status            # 查看状态
+
+# 方式四：AB Patrol-Agent（独立巡逻 host）
+cd "AB Patrol-Agent"
+cp .env.example .env                # 填入 GPT / provider 配置
+PYTHONPATH=src python3 -m ab_patrol_agent.runner.patrol_runner --profile crypto --full-refresh
+PYTHONPATH=src python3 -m ab_patrol_agent.host.service_loop --profile crypto --max-cycles 1
+./scripts/start.sh loop             # 常驻巡逻
+./scripts/start.sh status           # 查看状态
 ```
 
 > 顶层 `./scripts/start.sh` 管理 ai-service / data-service / signal-service / telegram-service / trading-service（ai-service 仅做就绪检查，无独立进程）。
@@ -405,6 +414,13 @@ tradecat/
 │   │   ├── proxy_manager.py        # 代理管理器
 │   │   └── utils/                  # 工具函数
 │   └── external/                   # 外部依赖/数据
+│
+├── AB Patrol-Agent/                 # 独立 Patrol Agent 根目录
+│   ├── knowledge/                   # 迁移后的 patrol skill / references
+│   ├── schemas/                     # runtime / decision schema
+│   ├── src/ab_patrol_agent/         # runner / host / state / scheduler
+│   ├── tests/                       # 单测
+│   └── README.md                    # 架构与迁移说明
 │
 ├── .github/                        # 社区规范与 CI
 │   ├── workflows/                  # CI 配置
@@ -744,6 +760,10 @@ CI（`.github/workflows/ci.yml`）仅执行：
 
 # 启动/停止
 ./scripts/start.sh start|stop|status
+
+# OpenClaw 控制台（带鉴权）
+openclaw dashboard
+# 不要直接打开 http://127.0.0.1:18789/overview ，否则会因缺少 gateway token 被拒绝
 
 # 单服务管理
 cd services/<name> && make start|stop|status

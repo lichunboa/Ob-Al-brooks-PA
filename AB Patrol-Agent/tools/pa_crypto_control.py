@@ -105,6 +105,42 @@ def _decision_payload() -> dict[str, Any]:
     }
 
 
+def _funnel_text() -> str:
+    payload = _query_get("/api/v1/runtime/funnel")
+    if isinstance(payload, dict) and payload.get("text"):
+        return str(payload["text"])
+    snapshot = runtime_snapshot(ROOT, execution_base=_execution_base(), execution_bot_id=_execution_bot_id(), include_funnel=True)
+    from runtime.status_common import render_trade_funnel_text
+
+    return render_trade_funnel_text(snapshot.get("trade_funnel") or {})
+
+
+def _full_payload() -> dict[str, Any]:
+    payload = _query_get("/api/v1/runtime/full")
+    if isinstance(payload, dict) and payload.get("snapshot") is not None:
+        return payload
+    snapshot = runtime_snapshot(ROOT, execution_base=_execution_base(), execution_bot_id=_execution_bot_id(), include_funnel=True)
+    recent_rows = (snapshot.get("recent_cycles") or [])[:5]
+    from runtime.status_common import render_trade_funnel_text
+
+    return {
+        "snapshot": snapshot,
+        "card": render_status_card(snapshot),
+        "recent": {
+            "items": recent_rows,
+            "text": render_recent_text({"recent_cycles": recent_rows}),
+        },
+        "decision": {
+            "cycle_path": snapshot.get("latest_cycle_path"),
+            "decision": ((snapshot.get("latest_cycle") or {}).get("decision") or {}),
+        },
+        "funnel": {
+            "data": snapshot.get("trade_funnel") or {},
+            "text": render_trade_funnel_text(snapshot.get("trade_funnel") or {}),
+        },
+    }
+
+
 def cmd_status() -> int:
     print(_status_text())
     return 0
@@ -140,6 +176,16 @@ def cmd_paths() -> int:
     return 0
 
 
+def cmd_funnel() -> int:
+    print(_funnel_text())
+    return 0
+
+
+def cmd_full() -> int:
+    print(json.dumps(_full_payload(), ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_start(extra: list[str]) -> int:
     result = _run(["bash", str(START_SCRIPT), "start", *extra], cwd=ROOT)
     print((result.stdout or result.stderr or "").strip())
@@ -160,7 +206,7 @@ def cmd_restart(extra: list[str]) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="PA交易 Crypto local controller")
-    parser.add_argument("command", choices=["status", "card", "recent", "decision", "paths", "start", "stop", "restart"])
+    parser.add_argument("command", choices=["status", "card", "recent", "decision", "funnel", "full", "paths", "start", "stop", "restart"])
     parser.add_argument("extra", nargs="*")
     args = parser.parse_args()
 
@@ -170,6 +216,10 @@ def main() -> int:
         return cmd_recent()
     if args.command == "decision":
         return cmd_decision()
+    if args.command == "funnel":
+        return cmd_funnel()
+    if args.command == "full":
+        return cmd_full()
     if args.command == "paths":
         return cmd_paths()
     if args.command == "start":

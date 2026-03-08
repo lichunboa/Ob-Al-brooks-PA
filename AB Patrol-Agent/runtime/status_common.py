@@ -8,6 +8,7 @@ import os
 import re
 import socket
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -146,7 +147,233 @@ def orders_count(orders: Any) -> int:
     return len(orders) if isinstance(orders, list) else 0
 
 
-def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str) -> dict[str, Any]:
+def _watchdog_state(path: Path) -> dict[str, Any]:
+    return read_json(path)
+
+
+def _latest_failure_summary(runtime: dict[str, Any], watchdog: dict[str, Any]) -> tuple[str | None, str | None]:
+    failure_at = runtime.get("last_failure_at")
+    failure_reason = runtime.get("last_failure_reason")
+    watchdog_reason = watchdog.get("reason")
+    watchdog_at = watchdog.get("checked_at")
+    if not failure_at and watchdog_reason and str(watchdog.get("health") or "").upper() == "DEGRADED":
+        failure_at = watchdog_at
+        failure_reason = watchdog_reason
+    return (str(failure_at) if failure_at else None, str(failure_reason) if failure_reason else None)
+
+
+def _cycle_health(latest_cycle_age_seconds: int | None, stale_seconds: int, patrol_live: bool) -> tuple[bool | None, bool]:
+    if latest_cycle_age_seconds is None:
+        return (None, patrol_live)
+    cycle_fresh = latest_cycle_age_seconds <= stale_seconds
+    return (cycle_fresh, patrol_live and not cycle_fresh)
+
+
+def classify_trade_funnel(snapshot: dict[str, Any], hours: int = 48) -> dict[str, Any]:
+    root = Path(str(snapshot["root"]))
+    cycles_dir = root / "data" / "pa_trader" / "cycles"
+    cutoff = time.time() - max(1, hours) * 3600
+
+    counts = {
+        "no_candidate": 0,
+        "pre_signal_only": 0,
+        "candidate_gate_rejected": 0,
+        "candidate_execution_failed": 0,
+        "candidate_pending": 0,
+        "filled": 0,
+    }
+    themes = {
+        "浅 PB 失效": 0,
+        "顶部失败未完成": 0,
+        "first PB 未完成": 0,
+        "P×R 不通过": 0,
+        "gate 格式问题": 0,
+        "顺势 first PB 候选被格式链挡住": 0,
+        "TR 边缘测试未确认": 0,
+        "反转试探未被接受": 0,
+        "反抽失败条件未完成": 0,
+        "坏楔形/弱 MTR": 0,
+        "强突破环境下逆势不做": 0,
+        "交易区间中部无优势": 0,
+        "40%反转仅够 scalp": 0,
+        "TBTL 反转未完成": 0,
+        "限价单环境未到边缘": 0,
+    }
+    samples: list[dict[str, Any]] = []
+
+    for path in sorted(cycles_dir.glob("cycle_*.json")):
+        try:
+            if path.stat().st_mtime < cutoff:
+                continue
+        except OSError:
+            continue
+        payload = read_json(path)
+        decision = payload.get("decision") if isinstance(payload.get("decision"), dict) else {}
+        actions = decision.get("actions") if isinstance(decision.get("actions"), list) else []
+        execution_results = payload.get("execution_results") if isinstance(payload.get("execution_results"), list) else []
+        symbol_updates = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
+        summary_text = json.dumps(decision.get("market_summary"), ensure_ascii=False) if decision.get("market_summary") else ""
+
+        open_action = next(
+            (
+                item
+                for item in actions
+                if isinstance(item, dict) and str(item.get("type") or "").upper() == "OPEN_ORDER"
+            ),
+            None,
+        )
+        open_result = next(
+            (
+                item
+                for item in execution_results
+                if isinstance(item, dict) and str(item.get("type") or "").upper() == "OPEN_ORDER"
+            ),
+            None,
+        )
+
+        bucket = "no_candidate"
+        if open_result:
+            status = str(open_result.get("status") or "").upper()
+            message = str(open_result.get("message") or "")
+            if status in {"FILLED", "PLACED", "NEW", "OPEN", "PARTIALLY_FILLED"} and bool(open_result.get("success")):
+                bucket = "filled"
+            elif status == "VALIDATION_REJECTED":
+                bucket = "candidate_gate_rejected"
+                if "无法解析 Trader" in message or "格式应为" in message:
+                    themes["gate 格式问题"] += 1
+                if "盈亏比" in message or "P×R" in message:
+                    themes["P×R 不通过"] += 1
+            else:
+                bucket = "candidate_execution_failed"
+        elif open_action:
+            bucket = "candidate_pending"
+        else:
+            statuses = {
+                str(item.get("status") or "").lower()
+                for item in symbol_updates.values()
+                if isinstance(item, dict)
+            }
+            if statuses & {"pre_signal", "entry_ready", "entry_ready_blocked"}:
+                bucket = "pre_signal_only"
+
+        for symbol, patch in symbol_updates.items():
+            if not isinstance(patch, dict):
+                continue
+            thesis = str(patch.get("thesis") or "")
+            structure = str(patch.get("structure_summary") or "")
+            market_state = str(patch.get("market_state") or "")
+            pre_signal = patch.get("pre_signal")
+            pre_signal_text = json.dumps(pre_signal, ensure_ascii=False) if isinstance(pre_signal, dict) else str(pre_signal or "")
+            combined = " ".join([summary_text, thesis, structure, market_state, pre_signal_text])
+
+            if any(token in combined for token in ("第一次正常 PB", "first PB", "首次正常回踩", "首次正常回抽")):
+                if bucket in {"candidate_gate_rejected", "candidate_pending", "candidate_execution_failed"}:
+                    themes["顺势 first PB 候选被格式链挡住"] += 1
+                elif bucket == "pre_signal_only":
+                    themes["first PB 未完成"] += 1
+            if any(token in combined for token in ("TR", "区间", "tr_edge", "下沿", "上沿")):
+                if bucket in {"no_candidate", "pre_signal_only"}:
+                    themes["TR 边缘测试未确认"] += 1
+            if any(token in combined for token in ("TR", "区间", "中部", "range middle", "middle of range")):
+                if bucket in {"no_candidate", "pre_signal_only"} and not any(
+                    token in combined for token in ("tr_edge:top", "tr_edge:bottom", "上沿", "下沿")
+                ):
+                    themes["交易区间中部无优势"] += 1
+            if any(token in combined for token in ("双底", "双顶", "楔形", "wedge", "MTR", "reversal", "反转")):
+                if bucket in {"no_candidate", "pre_signal_only", "candidate_gate_rejected"}:
+                    themes["反转试探未被接受"] += 1
+                    themes["40%反转仅够 scalp"] += 1
+            if any(token in combined for token in ("TBTL", "十条腿", "两波", "two legs", "双底", "双顶")):
+                if bucket in {"no_candidate", "pre_signal_only", "candidate_gate_rejected"}:
+                    themes["TBTL 反转未完成"] += 1
+            if any(token in combined for token in ("坏楔形", "bad wedge", "弱 MTR", "weak MTR")):
+                themes["坏楔形/弱 MTR"] += 1
+            if any(token in combined for token in ("等待回抽", "等待反抽", "pullback fail", "回抽失败", "反抽失败")):
+                if bucket in {"pre_signal_only", "candidate_pending"}:
+                    themes["反抽失败条件未完成"] += 1
+            if any(token in combined for token in ("BO", "突破", "always in", "AIS", "AIB")) and any(
+                token in combined for token in ("双底", "双顶", "楔形", "wedge", "MTR", "reversal", "反转")
+            ):
+                if bucket in {"no_candidate", "pre_signal_only", "candidate_gate_rejected"}:
+                    themes["强突破环境下逆势不做"] += 1
+            if any(token in combined for token in ("限价单", "limit order", "BLSH", "sell high", "buy low")):
+                if bucket in {"no_candidate", "pre_signal_only"} and not any(
+                    token in combined for token in ("tr_edge:top", "tr_edge:bottom", "上沿", "下沿")
+                ):
+                    themes["限价单环境未到边缘"] += 1
+
+        for item in execution_results:
+            if not isinstance(item, dict):
+                continue
+            message = str(item.get("message") or "")
+            if "浅 PB" in message:
+                themes["浅 PB 失效"] += 1
+            if "顶部失败" in message and "没完成" in message:
+                themes["顶部失败未完成"] += 1
+            if "first PB" in message and ("仍在继续" in message or "未完成" in message):
+                themes["first PB 未完成"] += 1
+        counts[bucket] += 1
+        if bucket != "no_candidate" and len(samples) < 8:
+            samples.append(
+                {
+                    "cycle_id": payload.get("cycle_id") or path.stem,
+                    "bucket": bucket,
+                    "summary": decision.get("market_summary"),
+                    "symbol": (open_result or open_action or {}).get("symbol"),
+                    "open_action": open_action,
+                    "open_result": open_result,
+                }
+            )
+
+    return {
+        "lookback_hours": hours,
+        "counts": counts,
+        "themes": themes,
+        "samples": samples,
+    }
+
+
+def render_trade_funnel_text(funnel: dict[str, Any]) -> str:
+    counts = funnel.get("counts") or {}
+    themes = funnel.get("themes") or {}
+    rows = [
+        f"最近 {funnel.get('lookback_hours', 48)} 小时交易漏斗",
+        f"- 无候选: {counts.get('no_candidate', 0)}",
+        f"- 有预信号未到候选单: {counts.get('pre_signal_only', 0)}",
+        f"- 候选单被 gate 拒绝: {counts.get('candidate_gate_rejected', 0)}",
+        f"- 候选单执行失败: {counts.get('candidate_execution_failed', 0)}",
+        f"- 候选单待执行/未落执行结果: {counts.get('candidate_pending', 0)}",
+        f"- 已成交: {counts.get('filled', 0)}",
+        "",
+        "无单主题归因",
+        f"- 浅 PB 失效: {themes.get('浅 PB 失效', 0)}",
+        f"- 顶部失败未完成: {themes.get('顶部失败未完成', 0)}",
+        f"- first PB 未完成: {themes.get('first PB 未完成', 0)}",
+        f"- P×R 不通过: {themes.get('P×R 不通过', 0)}",
+        f"- gate 格式问题: {themes.get('gate 格式问题', 0)}",
+        f"- 顺势 first PB 候选被格式链挡住: {themes.get('顺势 first PB 候选被格式链挡住', 0)}",
+        f"- TR 边缘测试未确认: {themes.get('TR 边缘测试未确认', 0)}",
+        f"- 反转试探未被接受: {themes.get('反转试探未被接受', 0)}",
+        f"- 反抽失败条件未完成: {themes.get('反抽失败条件未完成', 0)}",
+        f"- 坏楔形/弱 MTR: {themes.get('坏楔形/弱 MTR', 0)}",
+        f"- 强突破环境下逆势不做: {themes.get('强突破环境下逆势不做', 0)}",
+        f"- 交易区间中部无优势: {themes.get('交易区间中部无优势', 0)}",
+        f"- 40%反转仅够 scalp: {themes.get('40%反转仅够 scalp', 0)}",
+        f"- TBTL 反转未完成: {themes.get('TBTL 反转未完成', 0)}",
+        f"- 限价单环境未到边缘: {themes.get('限价单环境未到边缘', 0)}",
+    ]
+    samples = funnel.get("samples") or []
+    if samples:
+        rows.append("")
+        rows.append("候选单样本")
+        for item in samples[:5]:
+            rows.append(
+                f"- {item.get('cycle_id')} | {item.get('symbol') or '-'} | {item.get('bucket')} | {str(item.get('summary') or '')[:120]}"
+            )
+    return "\n".join(rows)
+
+
+def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, include_funnel: bool = False) -> dict[str, Any]:
     data_dir = root / "data" / "pa_trader"
     state_file = data_dir / "state" / "runtime_state.json"
     next_scan_file = data_dir / "state" / "next_scan.json"
@@ -159,6 +386,7 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str) -> 
     query_log = root / "run" / "query-service.log"
     watchdog_pid = root / "run" / "watchdog.pid"
     watchdog_log = root / "run" / "watchdog.log"
+    watchdog_state_file = root / "run" / "watchdog-state.json"
     loop_label = os.getenv("AB_PATROL_LAUNCHD_LOOP_LABEL", "ai.abpatrol.loop").strip() or "ai.abpatrol.loop"
     query_label = os.getenv("AB_PATROL_LAUNCHD_QUERY_LABEL", "ai.abpatrol.query").strip() or "ai.abpatrol.query"
     watchdog_label = os.getenv("AB_PATROL_LAUNCHD_WATCHDOG_LABEL", "ai.abpatrol.watchdog").strip() or "ai.abpatrol.watchdog"
@@ -168,6 +396,7 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str) -> 
     cycle_path, cycle = latest_cycle(cycles_dir)
     decision_tail = read_jsonl_tail(decision_log, limit=5)
     execution_tail = read_jsonl_tail(execution_log, limit=5)
+    watchdog_state = _watchdog_state(watchdog_state_file)
 
     patrol_pid = _pid_from_file(run_pid) or _launchd_pid(loop_label)
     patrol_live = _pid_alive(patrol_pid)
@@ -199,7 +428,15 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str) -> 
     }
     if runtime.get("dry_run") is None:
         runtime["dry_run"] = "--execute" not in patrol_command if patrol_command else True
-    return {
+    stale_seconds = int(os.getenv("AB_PATROL_WATCHDOG_STALE_SECONDS", "900"))
+    cycle_fresh, stale_but_running = _cycle_health(latest_cycle_age_seconds, stale_seconds, patrol_live)
+    last_failure_at, last_failure_reason = _latest_failure_summary(runtime, watchdog_state)
+    overall_health = "DOWN"
+    if patrol_live or query_live or watchdog_live:
+        overall_health = "DEGRADED"
+    if patrol_live and query_live and watchdog_live and execution.get("health", {}).get("status") == "healthy" and cycle_fresh is True:
+        overall_health = "HEALTHY"
+    snapshot = {
         "root": str(root),
         "runtime": runtime,
         "next_scan": next_scan,
@@ -222,7 +459,18 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str) -> 
         "recent_cycles": recent_cycles(cycles_dir, limit=5),
         "latest_cycle_mtime": latest_cycle_mtime,
         "latest_cycle_age_seconds": latest_cycle_age_seconds,
+        "stale_seconds": stale_seconds,
+        "cycle_fresh": cycle_fresh,
+        "stale_but_running": stale_but_running,
+        "overall_health": overall_health,
+        "last_success_at": runtime.get("last_success_at"),
+        "last_failure_at": last_failure_at,
+        "last_failure_reason": last_failure_reason,
+        "watchdog_state": watchdog_state,
     }
+    if include_funnel:
+        snapshot["trade_funnel"] = classify_trade_funnel({"root": str(root)})
+    return snapshot
 
 
 def render_status_card(snapshot: dict[str, Any]) -> str:
@@ -233,26 +481,41 @@ def render_status_card(snapshot: dict[str, Any]) -> str:
     orders = execution.get("orders") if isinstance(execution.get("orders"), list) else []
     decision = (snapshot.get("latest_cycle") or {}).get("decision") or {}
     summary = decision.get("market_summary") or runtime.get("last_scan_decision") or "-"
+    if isinstance(summary, dict):
+        summary = summary.get("decision") or summary.get("summary") or json.dumps(summary, ensure_ascii=False)
     active_provider = runtime.get("llm_provider") or "-"
     requested_provider = runtime.get("decision_requested_provider") or active_provider
     model = runtime.get("decision_model") or "-"
     decision_session_id = runtime.get("decision_session_id") or "-"
     next_scan = snapshot.get("next_scan") if isinstance(snapshot.get("next_scan"), dict) else {}
+    overall_health = snapshot.get("overall_health") or "-"
+    cycle_fresh = snapshot.get("cycle_fresh")
+    stale_but_running = bool(snapshot.get("stale_but_running"))
+    freshness_text = "新鲜" if cycle_fresh is True else ("陈旧" if cycle_fresh is False else "待确认")
+    last_success_at = snapshot.get("last_success_at") or "-"
+    last_failure_at = snapshot.get("last_failure_at") or "-"
+    last_failure_reason = snapshot.get("last_failure_reason") or "-"
+    mode_label = "自动交易" if not runtime.get("dry_run", True) else "观察模式"
     lines = [
         "PA交易 Crypto",
+        f"overall_health: {overall_health}",
         f"patrol: {'UP' if snapshot['patrol_live'] else 'DOWN'} | pid: {snapshot['patrol_pid'] or '-'}",
         f"query-service: {'UP' if snapshot['query_live'] else 'DOWN'} | pid: {snapshot['query_pid'] or '-'}",
         f"watchdog: {'UP' if snapshot['watchdog_live'] else 'DOWN'} | pid: {snapshot['watchdog_pid'] or '-'}",
+        f"cycle_fresh: {freshness_text} | stale_but_running: {stale_but_running}",
         f"execution-service: {'UP' if snapshot['execution_port_open'] else 'DOWN'}",
         f"provider: active={active_provider} | requested={requested_provider} | model={model}",
         f"decision_session: {decision_session_id}",
         f"phase: {runtime.get('current_phase') or decision.get('phase') or '-'}",
         f"focus: {', '.join(runtime.get('focus_symbols') or []) or '-'}",
         f"can_trade: {can_trade.get('can_trade')} | reason: {can_trade.get('reason') or 'OK'}",
-        f"positions: {positions_count(positions)} | open_orders: {orders_count(orders)} | dry_run: {runtime.get('dry_run', True)}",
+        f"positions: {positions_count(positions)} | open_orders: {orders_count(orders)} | mode: {mode_label} | dry_run: {runtime.get('dry_run', True)}",
         f"latest_cycle: {snapshot.get('latest_cycle_path') or '-'}",
         f"cycle_age: {snapshot.get('latest_cycle_age_seconds') if snapshot.get('latest_cycle_age_seconds') is not None else '-'}s",
         f"next_scan: {next_scan.get('in_seconds') or '-'}s | {next_scan.get('reason_code') or next_scan.get('reason_text') or '-'}",
+        f"last_success_at: {last_success_at}",
+        f"last_failure_at: {last_failure_at}",
+        f"last_failure_reason: {last_failure_reason}",
         "",
         "本轮结论",
         str(summary).strip(),

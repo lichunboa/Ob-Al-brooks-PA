@@ -6,6 +6,13 @@
 
 按原 Claude patrol 的 `skill / S 文件` 逻辑运行 `AB Patrol-Agent`，尽可能稳定地从市场中提取利润。
 
+当前进一步明确为：
+
+- 以完整 Al Brooks 知识库为最高权威
+- 用 Canonical Rulebook 统一理论层
+- 让 `SKILL/S` 成为理论层的可执行子集
+- 把会改变交易判断的隐藏代码规则尽量清回 agent / 知识层
+
 主链必须覆盖:
 
 1. 数据获取
@@ -27,6 +34,7 @@
 ## 已完成
 
 - 原始 `SKILL.md` 与原始 `S` 文件已接回，运行时不再依赖 `runtime-brief`
+- Canonical Rulebook 已建立并接入运行时知识选择
 - `ab_ema / ab_sr / ab_mm / ab_patterns` 已接入 live 分析链
 - `Codex CLI` 已改成长会话 session，不再每轮 cold start
 - session 编号已持久化，可供 watchdog / 复盘 / 恢复使用
@@ -40,6 +48,7 @@
 - `Step 5` 动态扫描逻辑还没和原 Claude 版完全等价
 - `开仓 -> 持仓管理 -> 平仓` 的整条链还没在新架构中用真实订单完整验证
 - 展示层可用，但还不是最终交易员视图
+- 升级期默认仍应保持观察模式，不能误以为已经适合长期自动执行
 
 ## 接下来优先级
 

@@ -4,6 +4,17 @@
 
 当前 Patrol 主 Web 入口已经迁到这里，不再以 `AB Console-Backend/web` 作为主看板。
 
+当前展示语义也已经和 Patrol 升级期保持一致：
+
+- 上游最高权威是完整 Al Brooks 知识库
+- 当前默认是观察模式
+- Web 需要明确区分：
+  - `预信号`
+  - `候选单`
+  - `规则通过可执行单`
+  - `已实际成交`
+  - `管理中仓位`
+
 ## 当前定位
 
 - 展示 `AB Patrol-Agent` 的运行态、最近巡逻和最新决策
@@ -48,6 +59,7 @@ bash scripts/start.sh
   - `codex_cli` timeout 噪音
   - 首笔自然新单还未稳定出现
   - `S7-management` 还缺 live 验证
+  - 交易员视图仍在继续统一到 TG / Query / 回放同一套字段
 
 ## 相关文档
 

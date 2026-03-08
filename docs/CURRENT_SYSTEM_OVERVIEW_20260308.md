@@ -23,7 +23,9 @@ Al-brooks-PA/
 ## 当前真实主链
 
 ```text
-原始 patrol-l1 SKILL.md + S0-S7
+完整 Al Brooks 知识库
+  -> Canonical Rulebook
+  -> 原始 patrol-l1 SKILL.md + S0-S7
   -> AB Patrol-Agent
   -> codex_cli 长会话
   -> patrol_trade.py
@@ -36,12 +38,13 @@ Al-brooks-PA/
 
 - 当前默认决策不是 `OpenClaw GPT 5.4`。
 - 当前默认决策是 `codex_cli` 长会话。
+- 当前默认运行模式不是自动交易，而是观察模式。
 - `OpenClaw` 当前负责：
   - TG operator
   - 工作区记忆
   - 启停与状态查询外壳
 - `AB Patrol-Agent` 不再使用 `runtime-brief` 作为主知识源。
-- 当前运行 authority 是原始 `SKILL.md + S0-S7`。
+- 当前运行 authority 是 `完整知识库 -> canonical -> 原始 SKILL.md + S0-S7`。
 
 ## 当前 OpenClaw / TG 映射
 
@@ -121,6 +124,15 @@ Al-brooks-PA/
 
 - `query-service / watchdog` 有时会显示掉线或驻留不稳
 - 不影响核心代码方向，但影响“是不是活着”的判断体验
+
+### 5. 升级期仍未到恢复自动交易的门槛
+
+- 当前默认维持观察模式
+- 需要先完成：
+  - Canonical -> SKILL/S 回写
+  - 代码硬规则矩阵继续清理
+  - 回放集对齐
+  - 新架构下 `OPEN_ORDER -> S7-management -> EXIT` demo 闭环
 
 ## 关键路径
 

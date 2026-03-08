@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-patrol_trade.py — PA 交易执行网关 v1.0
+patrol_trade.py — AB Patrol 交易执行网关
 
-所有 claude-pa 的开仓必须通过此脚本。
-它会强制校验分析日志是否完整，缺项则拒绝下单。
+所有 Patrol 候选单在进入真实执行前都必须通过此脚本。
+它负责把 `SKILL/S` 中明确写出的交易方程、风格门槛、读盘完整性
+和执行安全检查变成确定性校验；它不应该发明新的策略规则。
 
 用法:
   python3 scripts/patrol_trade.py \\
@@ -241,7 +242,7 @@ def validate_stop_loss(
     return True, f"Risk={risk:.2f} Reward={reward:.2f} R:R={rr:.2f} [{profile['label']}] ✓"
 
 
-# ─── 下单执行（通过 okx_trader.py）─────────────────────────────────────────
+# ─── 下单执行（本地 demo/trader mock）──────────────────────────────────────
 
 import subprocess
 OKX_TRADER = os.path.join(SCRIPT_DIR, "okx_trader.py")

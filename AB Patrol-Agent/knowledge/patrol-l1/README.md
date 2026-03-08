@@ -2,6 +2,7 @@
 
 ## 当前权威文件
 
+- 规范层 canonical：`AB Patrol-Agent/knowledge/patrol-l1/canonical/`
 - 完整 skill: `AB Patrol-Agent/knowledge/patrol-l1/SKILL.md`
 - 完整 S 文件目录: `AB Patrol-Agent/knowledge/patrol-l1/references/`
 
@@ -14,19 +15,32 @@
 
 `AB Patrol-Agent/runtime/pa_runtime.py` 在每轮决策里按以下规则读取知识：
 
-1. **只读原始权威文件**
-   - `SKILL.md` 只从完整原文读取
-   - `references/*.md` 只从完整原文读取
+1. **分层读取权威文件**
+   - `canonical/*.md`：来自完整 Obsidian Al Brooks 知识库的规范层
+   - `SKILL.md`：流程编排与阶段切换
+   - `references/*.md`：S0-S7 可执行子集
    - 不再使用 `runtime-brief` 或其它摘要版知识文件
 
 2. **按状态选择原文，不压缩知识**
    - `SKILL.md` 会按章节切块后按状态加载，避免每轮整份全文硬塞
-   - 会根据 `phase / quick_scan_events / 持仓状态 / pre_signal / entry_ready` 选择需要的完整 S 文件
+   - 会根据 `phase / quick_scan_events / 持仓状态 / pre_signal / entry_ready` 选择需要的 canonical + S 文件
    - 这是“选择原文”，不是“摘要原文”
 
 3. **优化点在流程，不在删知识**
    - 通过状态路由、事件路由、推送节流和 prompt 结构优化来降低超时
-   - 不通过删减 `SKILL.md` 或 `S` 文件知识量来换稳定性
+   - 不通过删减 `canonical / SKILL / S` 文件知识量来换稳定性
+
+## 规范层与可执行层的关系
+
+- **最高理论 authority**：
+  - `AB Console-Obsidian/Categories 分类/Al brooks`
+- **规范层**：
+  - `canonical/*.md`
+- **可执行层**：
+  - `SKILL.md`
+  - `references/S0-S7`
+
+运行时应优先服从 canonical 里的理论原则；`SKILL/S` 是面向 agent 的可执行语言，不应与 canonical 冲突。
 
 ## `SKILL.md` 章节路由
 
@@ -68,6 +82,7 @@
 
 ## 当前没有做的事
 
+- 没有把 canonical 知识简化成另一套经验阈值
 - 没有删除完整 `SKILL.md` 和完整 `references/`
 - 没有把 patrol 改成只靠一个简化 prompt 自由发挥
 - 没有跳过 S 文件路由

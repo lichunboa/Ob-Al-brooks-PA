@@ -31,6 +31,7 @@ RUN_DIR = ROOT / "run"
 DATA_DIR = ROOT / "data" / "pa_trader"
 PID_FILE = RUN_DIR / "watchdog.pid"
 LOG_FILE = RUN_DIR / "watchdog.log"
+STATE_FILE = RUN_DIR / "watchdog-state.json"
 SERVICE_PID = RUN_DIR / "service.pid"
 QUERY_PID = RUN_DIR / "query-service.pid"
 SERVICE_LOG = RUN_DIR / "service.log"
@@ -171,6 +172,13 @@ def _notify(message: str) -> None:
         return
 
 
+def _write_state(payload: dict) -> None:
+    RUN_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(STATE_FILE)
+
+
 def _run_start_command(*args: str, timeout: int = 90) -> tuple[bool, str]:
     result = subprocess.run(
         ["bash", str(START_SCRIPT), *args],
@@ -196,7 +204,7 @@ def _recover(reason: str, loop_alive: bool, query_alive: bool) -> bool:
             ok = _terminate_pid(pid, "patrol loop") and ok
         else:
             actions.append("loop-start")
-            step_ok, output = _run_start_command("loop-start", "--execute", timeout=90)
+            step_ok, output = _run_start_command("loop-start", timeout=90)
             ok = step_ok and ok
             if not step_ok:
                 log.error("watchdog loop-start failed: %s", output)
@@ -209,7 +217,7 @@ def _recover(reason: str, loop_alive: bool, query_alive: bool) -> bool:
     else:
         if not loop_alive:
             actions.append("loop-start")
-            step_ok, output = _run_start_command("loop-start", "--execute", timeout=90)
+            step_ok, output = _run_start_command("loop-start", timeout=90)
             ok = step_ok and ok
             if not step_ok:
                 log.error("watchdog loop-start failed: %s", output)
@@ -270,8 +278,20 @@ def run() -> int:
         elif age_seconds > STALE_SECONDS:
             reason = f"stale:{age_seconds}s:{age_label}"
 
+        state_payload = {
+            "checked_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "loop_alive": loop_alive,
+            "query_alive": query_alive,
+            "age_seconds": age_seconds,
+            "age_label": age_label,
+            "reason": reason,
+            "health": "HEALTHY",
+            "last_recovery_at": None,
+            "last_recovery_reason": None,
+        }
         if reason:
             remaining = RECOVERY_COOLDOWN - (time.time() - last_recovery_at)
+            state_payload["health"] = "DEGRADED"
             log.warning(
                 "watchdog trigger | reason=%s | loop=%s | query=%s | age=%s",
                 reason,
@@ -282,10 +302,14 @@ def run() -> int:
             if remaining <= 0:
                 if _recover(reason, loop_alive, query_alive):
                     last_recovery_at = time.time()
+                    state_payload["health"] = "RECOVERING"
+                    state_payload["last_recovery_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+                    state_payload["last_recovery_reason"] = reason
             else:
                 log.info("watchdog cooldown active: %ss", int(remaining))
         else:
             log.info("watchdog ok | age=%ss via %s", age_seconds, age_label)
+        _write_state(state_payload)
         time.sleep(CHECK_INTERVAL)
 
 

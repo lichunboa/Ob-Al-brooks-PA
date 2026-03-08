@@ -20,9 +20,29 @@ type RuntimeFull = {
 };
 
 function trimText(value: unknown, limit = 180) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  const text = displayText(value).replace(/\s+/g, " ").trim();
   if (!text) return "-";
   return text.length <= limit ? text : `${text.slice(0, limit - 1).trimEnd()}…`;
+}
+
+function displayText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map((item) => displayText(item)).filter(Boolean).join(" / ");
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const orderedKeys = ["regime", "daily_bias", "execution_decision", "risk"];
+    const ordered = orderedKeys
+      .map((key) => {
+        const current = displayText(record[key]);
+        return current ? `${key}: ${current}` : "";
+      })
+      .filter(Boolean);
+    if (ordered.length > 0) return ordered.join(" ｜ ");
+    return JSON.stringify(record, null, 2);
+  }
+  return String(value);
 }
 
 function phaseCn(value: unknown) {
@@ -54,6 +74,9 @@ function statusCn(value: unknown) {
 }
 
 function marketStateCn(value: unknown) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return displayText(value);
+  }
   const mapping: Record<string, string> = {
     TR: "区间",
     BO: "突破",
@@ -64,8 +87,24 @@ function marketStateCn(value: unknown) {
   return mapping[String(value || "").toUpperCase()] || String(value || "-");
 }
 
+function cycleFreshness(snapshot: Record<string, any>) {
+  if (snapshot?.cycle_fresh === true) return "新鲜";
+  if (snapshot?.cycle_fresh === false) return "陈旧";
+  return "待确认";
+}
+
+function directionText(value: unknown) {
+  if (typeof value === "string") return value || "-";
+  return displayText(value) || "-";
+}
+
 function symbolEntries(decision: Record<string, any>) {
   return Object.entries((decision?.symbol_updates || {}) as Record<string, any>).slice(0, 3);
+}
+
+function latestAnalysisBoard(snapshot: Record<string, any>) {
+  const latestCycle = snapshot?.latest_cycle || {};
+  return (latestCycle?.analysis_board || {}) as Record<string, any>;
 }
 
 function actionForSymbol(decision: Record<string, any>, symbol: string) {
@@ -94,6 +133,11 @@ function skillSectionsText(decision: Record<string, any>) {
   const sections = decision?.state_patch?.knowledge_loading?.skill_sections;
   if (!Array.isArray(sections) || sections.length === 0) return "-";
   return sections.join(" / ");
+}
+
+function summaryText(decision: Record<string, any>, runtime: Record<string, any>) {
+  const summary = decision?.market_summary ?? runtime?.last_scan_decision;
+  return trimText(summary, 260);
 }
 
 export default function PABotPage() {
@@ -130,6 +174,13 @@ export default function PABotPage() {
   const latestDecision = data.decision?.decision || {};
   const recentItems = data.recent?.items || [];
   const symbols = useMemo(() => symbolEntries(latestDecision), [latestDecision]);
+  const analysisBoard = useMemo(() => latestAnalysisBoard(snapshot), [snapshot]);
+  const chartSymbols = useMemo(() => {
+    const focus = Array.isArray(runtime.focus_symbols) ? runtime.focus_symbols : [];
+    const keys = Object.keys(analysisBoard || {});
+    const ordered = [...focus, ...keys].filter((value, index, arr) => value && arr.indexOf(value) === index);
+    return ordered.slice(0, 3);
+  }, [analysisBoard, runtime.focus_symbols]);
 
   return (
     <div className="space-y-6">
@@ -178,7 +229,7 @@ export default function PABotPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-slate-500">当前可交易</div>
             <div className="mt-2 text-2xl font-semibold text-white">{execution?.can_trade?.can_trade ? "可以" : "不可以"}</div>
-            <div className="mt-2 text-sm text-slate-400">{execution?.can_trade?.reason || "OK"}</div>
+            <div className="mt-2 text-sm text-slate-400">{displayText(execution?.can_trade?.reason) || "OK"}</div>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-slate-500">持仓 / 挂单</div>
@@ -188,9 +239,11 @@ export default function PABotPage() {
             <div className="mt-2 text-sm text-slate-400">dry-run: {String(runtime.dry_run ?? true)}</div>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">下一次扫描</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{nextScan.in_seconds || "-"}s</div>
-            <div className="mt-2 text-sm text-slate-400">{updatedAt || "-"}</div>
+            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">总体健康 / 新鲜度</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{snapshot.overall_health || "-"}</div>
+            <div className="mt-2 text-sm text-slate-400">
+              {cycleFreshness(snapshot)} / {snapshot.stale_but_running ? "stale-but-running" : "正常"}
+            </div>
           </div>
         </div>
       </section>
@@ -203,7 +256,7 @@ export default function PABotPage() {
               巡逻结论
             </div>
             <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-5 text-sm leading-8 text-slate-300">
-              {latestDecision.market_summary || runtime.last_scan_decision || "暂无摘要"}
+              {summaryText(latestDecision, runtime) || "暂无摘要"}
             </div>
           </div>
 
@@ -233,9 +286,9 @@ export default function PABotPage() {
                         {statusCn(patch?.status)}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-                      {patch?.ai_direction || "-"} / {marketStateCn(patch?.market_state)}
-                    </div>
+                      <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
+                        {directionText(patch?.ai_direction)} / {marketStateCn(patch?.market_state)}
+                      </div>
                     <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
                       <div><span className="text-slate-500">结构:</span> {trimText(patch?.structure_summary || patch?.thesis, 160)}</div>
                       <div><span className="text-slate-500">预信号:</span> {trimText(patch?.pre_signal || patch?.signal, 120)}</div>
@@ -275,6 +328,58 @@ export default function PABotPage() {
 
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+              <Radar className="h-4 w-4" />
+              图表绑定
+            </div>
+            <div className="mt-4 grid gap-4">
+              {chartSymbols.length === 0 ? (
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400">
+                  当前 cycle 没有可展示的图表上下文
+                </div>
+              ) : (
+                chartSymbols.map((symbol) => {
+                  const board = analysisBoard?.[symbol] || {};
+                  const chartContext = board?.chart_context || {};
+                  const apiPaths = Array.isArray(chartContext?.chart_api_paths) ? chartContext.chart_api_paths : [];
+                  const chartFiles = Array.isArray(chartContext?.chart_files) ? chartContext.chart_files : [];
+                  return (
+                    <article key={symbol} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-base font-semibold text-white">{symbol}</div>
+                        <div className="text-xs text-slate-500">{chartContext?.latest_generated_at || "图表时间未知"}</div>
+                      </div>
+                      <div className="mt-2 text-sm leading-6 text-slate-400">
+                        {trimText(chartContext?.chart_note, 120)}
+                      </div>
+                      <div className="mt-2 text-xs text-amber-300">
+                        {(chartFiles || []).join(" / ") || "当前没有图表文件"}
+                      </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {apiPaths.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/70 p-4 text-sm text-slate-500">
+                            图表尚未生成
+                          </div>
+                        ) : (
+                          apiPaths.slice(0, 4).map((path: string, index: number) => (
+                            <div key={`${symbol}-${path}-${index}`} className="overflow-hidden rounded-2xl border border-slate-800 bg-[#030712]">
+                              <img
+                                src={path}
+                                alt={`${symbol} 图表 ${index + 1}`}
+                                className="h-auto w-full object-cover"
+                              />
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
               <FileJson2 className="h-4 w-4" />
               原始决策 JSON
             </div>
@@ -298,6 +403,9 @@ export default function PABotPage() {
               <p>阶段: <code className="text-amber-300">{phaseCn(runtime.current_phase || latestDecision.phase)}</code></p>
               <p>关注品种: <code className="text-amber-300">{(runtime.focus_symbols || []).join(", ") || "-"}</code></p>
               <p>读盘窗口: <code className="text-amber-300">150 根 / 浏览 80 根 / 精读 20 根</code></p>
+              <p>Cycle 年龄: <code className="text-amber-300">{snapshot.latest_cycle_age_seconds ?? "-"} 秒</code></p>
+              <p>最近成功: <code className="text-amber-300">{snapshot.last_success_at || "-"}</code></p>
+              <p>最近失败: <code className="text-amber-300">{snapshot.last_failure_at || "-"}</code></p>
             </div>
           </div>
 
@@ -308,7 +416,8 @@ export default function PABotPage() {
             </div>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
               <p>倒计时: <code className="text-amber-300">{nextScan.in_seconds || "-"} 秒</code></p>
-              <p>原因: <code className="text-amber-300">{nextScan.reason_text || nextScan.reason_code || "-"}</code></p>
+              <p>原因: <code className="text-amber-300">{displayText(nextScan.reason_text || nextScan.reason_code) || "-"}</code></p>
+              <p>失败摘要: <code className="text-amber-300">{trimText(snapshot.last_failure_reason, 120)}</code></p>
               <p>更新于: <code className="text-amber-300">{updatedAt || "-"}</code></p>
             </div>
           </div>
