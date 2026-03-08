@@ -114,3 +114,9 @@
    - `TR 边缘限价单环境`
 2. 继续把这些类别回写到 `canonical` 和 `S4/S5/S6`
 3. 回放旧 Claude 成交样本，确认这些类别不会把原本应成交的单再次压成 `LOG_ONLY`
+4. 已把分类继续推进到 `planned_trade` 的执行语义层：
+   - `candidate_stage`: 继续观察 / 预信号 / 候选单 / 规则通过可执行单
+   - `execution_mode`: 限价计划委托 / 止损触发委托 / 市价立即执行 / 等待接受
+   - `TR` 边缘优先 `LIMIT`
+   - `BO/TC` 顺势优先 `STOP_MARKET`
+   - `Broad Channel` 允许 `Stop/Limit` 混合，但不再一律当成 `MARKET`

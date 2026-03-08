@@ -102,6 +102,14 @@ function symbolEntries(decision: Record<string, any>) {
   return Object.entries((decision?.symbol_updates || {}) as Record<string, any>).slice(0, 3);
 }
 
+function plannedTradeBadge(patch: Record<string, any>) {
+  const planned = patch?.planned_trade || {};
+  const stage = displayText(planned?.candidate_stage_cn || patch?.entry_idea?.candidate_stage_cn);
+  const mode = displayText(planned?.execution_mode_cn || patch?.entry_idea?.execution_mode_cn);
+  const orderType = displayText(planned?.order_type);
+  return [stage, mode, orderType].filter((item) => item && item !== "-").join(" ｜ ") || "-";
+}
+
 function latestAnalysisBoard(snapshot: Record<string, any>) {
   const latestCycle = snapshot?.latest_cycle || {};
   return (latestCycle?.analysis_board || {}) as Record<string, any>;
@@ -283,6 +291,7 @@ export default function PABotPage() {
                   patch?.brooks_filter?.label ||
                   patch?.evaluation?.regime ||
                   "-";
+                const executionBadge = plannedTradeBadge(patch);
                 return (
                   <article key={symbol} className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
                     <div className="flex items-center justify-between">
@@ -297,6 +306,7 @@ export default function PABotPage() {
                     <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
                       <div><span className="text-slate-500">结构:</span> {trimText(patch?.structure_summary || patch?.thesis, 160)}</div>
                       <div><span className="text-slate-500">预信号:</span> {trimText(patch?.pre_signal || patch?.signal, 120)}</div>
+                      <div><span className="text-slate-500">执行语义:</span> {trimText(executionBadge, 120)}</div>
                       <div><span className="text-slate-500">Trader&apos;s Equation:</span> {trimText(equation, 120)}</div>
                       <div><span className="text-slate-500">Brooks分类:</span> {trimText(filterLabel, 120)}</div>
                       <div><span className="text-slate-500">候选动作:</span> {trimText(entryIdea, 140)}</div>
