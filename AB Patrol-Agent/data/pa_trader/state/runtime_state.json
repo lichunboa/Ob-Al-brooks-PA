@@ -2,17 +2,17 @@
   "version": "2.0",
   "bot_id": "claude-pa",
   "market_profile": "crypto",
-  "loop_seq": 721,
+  "loop_seq": 722,
   "status": "RUNNING",
   "current_phase": "BOOTSTRAP 全刷新观察轮",
-  "last_run_at": "2026-03-08T20:41:51.661635+00:00",
-  "last_success_at": "2026-03-08T20:41:51.661649+00:00",
+  "last_run_at": "2026-03-08T20:51:37.559534+00:00",
+  "last_success_at": "2026-03-08T20:51:37.559542+00:00",
   "next_scan": {
-    "next_scan_at": "2026-03-08T20:43:51.661527+00:00",
+    "next_scan_at": "2026-03-08T20:53:37.559480+00:00",
     "in_seconds": 120,
-    "reason_code": "BTC 与 ETH 两笔新挂单都非常接近触发位，BNB 也仍在高位测试区，符合高优先级快扫条件。",
-    "reason_text": "BTC 与 ETH 两笔新挂单都非常接近触发位，BNB 也仍在高位测试区，符合高优先级快扫条件。",
-    "derived_from_cycle": "cycle_20260309_044141",
+    "reason_code": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
+    "reason_text": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
+    "derived_from_cycle": "cycle_20260309_045130",
     "interruptible": true
   },
   "active_symbols": [
@@ -32,21 +32,21 @@
   "risk_mode": "NORMAL",
   "host_mode": "CLI_SESSION",
   "last_trigger": null,
-  "last_cycle_id": "cycle_20260309_044141",
+  "last_cycle_id": "cycle_20260309_045130",
   "quiet_loops": 0,
   "full_refresh": true,
   "needs_post_trade_refresh": false,
-  "last_full_refresh_at": "2026-03-08T20:41:51.661679+00:00",
+  "last_full_refresh_at": "2026-03-08T20:51:37.559596+00:00",
   "last_scan_decision": {
-    "regime": "BTC 与 ETH 都从单纯观察升级成低周期 fresh H1/H2 continuation，但高周期仍偏空或只属 TR，因此两者都只能按 Scalp 处理；BNB 继续停在顶部测试区。",
-    "best_candidate": "ETHUSDT",
-    "trade_posture": "本轮对 BTC、ETH 各挂一笔 0.3% 风险的顺势 Scalp stop-entry；BNB 继续只保留顶部失败观察，不做单。",
+    "regime": "BTC 与 ETH 都从高位停顿里重新走出 fresh H1/H2 continuation，但高周期仍偏空或只是 TR 接受，因此两者都只能按顺势 Scalp 处理；BNB 继续停留在顶部测试后的多周期 TR。",
+    "best_candidate": "BTCUSDT",
+    "trade_posture": "BTC、ETH 允许各挂一笔轻仓顺势 Scalp stop-entry；BNB 继续只保留顶部失败观察，不开新单。",
     "daily_bias_overview": {
       "BTCUSDT": "日线宽幅区间偏空",
       "ETHUSDT": "日线空头通道偏空",
       "BNBUSDT": "日线宽幅区间偏空"
     },
-    "risk_posture": "当前无持仓；本轮两笔候选单总风险 0.6%，低于 1% 上限。"
+    "risk_posture": "当前无持仓；本轮两笔候选单总风险 0.6%，低于 1% 总风险上限。"
   },
   "trade_readiness": "can_trade_true",
   "best_candidate": "BTCUSDT",
@@ -165,7 +165,7 @@
     }
   },
   "_meta": {
-    "best_candidate": "ETHUSDT",
+    "best_candidate": "BTCUSDT",
     "current_phase": "BOOTSTRAP 全刷新观察轮"
   },
   "phase": "SCAN",
@@ -183,7 +183,7 @@
   "query_service_base": "http://127.0.0.1:8086",
   "knowledge_loading": {
     "budget_chars": 108000,
-    "knowledge_chars": 82339,
+    "knowledge_chars": 78916,
     "over_budget": false,
     "skill_mode": "full_sections",
     "skill_sections": [
@@ -207,7 +207,6 @@
       "3d-3. SL 打掉后重新入场",
       "3e. 自我验证（下单前必做，10 项全过）",
       "3f. 执行开仓（含加仓路由）",
-      "4d. Discord 周期汇报（每 6 轮一次，无需分析）",
       "Step 5: 定时器（智能动态间隔）",
       "强制全刷新（Anti-Stale 机制）",
       "pre_signal 超时（按周期区分）"
@@ -225,10 +224,9 @@
       "S6-common.md": "full",
       "S6-channel.md": "full",
       "S6-tr.md": "full",
-      "S6-reversal.md": "full",
-      "S6-bo.md": "full"
+      "S6-reversal.md": "full"
     },
-    "full_reference_count": 14
+    "full_reference_count": 13
   },
   "prompt_references": [
     "C0-foundations.md",
@@ -243,8 +241,7 @@
     "S6-common.md",
     "S6-channel.md",
     "S6-tr.md",
-    "S6-reversal.md",
-    "S6-bo.md"
+    "S6-reversal.md"
   ],
   "fast_lane_attempted": false,
   "fast_lane_executed": false,
@@ -261,12 +258,12 @@
   "symbols": {
     "BTCUSDT": {
       "status": "candidate",
-      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H2_SCALP",
+      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H1_SCALP",
       "planned_trade_status": "executable"
     },
     "ETHUSDT": {
       "status": "candidate",
-      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H2_SCALP",
+      "stage": "WAIT_STOP_TRIGGER_FOR_FRESH_H1_SCALP",
       "planned_trade_status": "executable"
     },
     "BNBUSDT": {

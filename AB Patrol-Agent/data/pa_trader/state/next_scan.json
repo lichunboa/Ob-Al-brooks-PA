@@ -1,8 +1,8 @@
 {
-  "next_scan_at": "2026-03-08T20:43:51.661527+00:00",
+  "next_scan_at": "2026-03-08T20:53:37.559480+00:00",
   "in_seconds": 120,
-  "reason_code": "BTC 与 ETH 两笔新挂单都非常接近触发位，BNB 也仍在高位测试区，符合高优先级快扫条件。",
-  "reason_text": "BTC 与 ETH 两笔新挂单都非常接近触发位，BNB 也仍在高位测试区，符合高优先级快扫条件。",
-  "derived_from_cycle": "cycle_20260309_044141",
+  "reason_code": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
+  "reason_text": "BTC 与 ETH 两笔挂单都非常接近触发位，BNB 也仍在顶部测试区，符合高优先级快扫条件。",
+  "derived_from_cycle": "cycle_20260309_045130",
   "interruptible": true
 }

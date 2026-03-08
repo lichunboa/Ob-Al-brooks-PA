@@ -589,6 +589,16 @@ def execution_mode_cn(value: str) -> str:
     return mapping.get(str(value or "").strip().upper(), str(value or "").strip() or "-")
 
 
+def order_type_cn(value: str) -> str:
+    mapping = {
+        "LIMIT": "限价委托",
+        "STOP_MARKET": "止损触发委托",
+        "TAKE_PROFIT_MARKET": "止盈触发委托",
+        "MARKET": "市价执行",
+    }
+    return mapping.get(str(value or "").strip().upper(), str(value or "").strip() or "-")
+
+
 def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str, Any]) -> dict[str, Any]:
     planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
     status = str(base.get("status") or "watching").strip().lower()

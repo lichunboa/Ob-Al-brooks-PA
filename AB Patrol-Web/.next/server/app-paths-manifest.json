@@ -1,6 +1,5 @@
 {
-  "/api/charts/route": "app/api/charts/route.js",
   "/api/runtime/full/route": "app/api/runtime/full/route.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/charts/route": "app/api/charts/route.js",
   "/(dashboard)/pa-bot/page": "app/(dashboard)/pa-bot/page.js"
 }
