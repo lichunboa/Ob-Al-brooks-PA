@@ -315,7 +315,7 @@ class CodexCLIDecisionProvider:
                 cmd.extend(["resume", thread_id, "-"])
             else:
                 cmd.extend(["-C", str(self._agent_root(logs_dir)), "-"])
-            stdout, _ = self._run_codex(cmd, prompt, timeout_seconds=max(self.config.timeout_seconds + 180, 420))
+            stdout, _ = self._run_codex(cmd, prompt, timeout_seconds=max(self.config.timeout_seconds + 180, 600))
             write_text(response_path, stdout)
             next_thread_id = self._extract_thread_id(stdout)
             if next_thread_id:

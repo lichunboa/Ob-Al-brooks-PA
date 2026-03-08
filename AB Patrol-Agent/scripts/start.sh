@@ -9,7 +9,7 @@ CHART_GEN="$ROOT/tools/chart_gen.py"
 BACKTEST="$ROOT/tools/backtest_v4.py"
 REPLAY="$ROOT/tools/sim_server.py"
 WATCHDOG="$ROOT/scripts/watchdog.py"
-EXECUTION_ROOT="$ROOT/../AB Console-Backend/services/execution-service"
+EXECUTION_ROOT="$ROOT/services/execution-service"
 WEB_ROOT="$ROOT/../AB Patrol-Web"
 RUN_DIR="$ROOT/run"
 CYCLES_DIR="$ROOT/data/pa_trader/cycles"
@@ -753,6 +753,10 @@ stop_watchdog() {
 }
 
 start_loop() {
+  # 清理旧的 codex 进程避免冲突
+  pkill -f "codex exec resume" 2>/dev/null || true
+  sleep 2
+
   if is_running; then
     echo "AB Patrol-Agent 已运行 (PID: $(cat "$PID_FILE"))"
     return 0

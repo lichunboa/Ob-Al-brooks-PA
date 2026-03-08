@@ -736,6 +736,8 @@ class Config:
             tools_root=agent_root / "tools",
             charts_root=agent_root / "data" / "charts",
             knowledge_root=agent_root / "knowledge" / "patrol-l1",
+            openclaw_agent=os.getenv("AB_PATROL_OPENCLAW_AGENT", "ab-patrol-loop").strip() or "ab-patrol-loop",
+            operator_agent=os.getenv("AB_PATROL_OPERATOR_AGENT", "ab-patrol-runtime").strip() or "ab-patrol-runtime",
             requested_decision_provider=requested_provider,
             decision_provider=decision_provider,
             decision_fallback_provider=fallback_provider,
@@ -3678,6 +3680,7 @@ class PatrolRuntime:
         next_scan_seconds: int,
         trigger: dict[str, Any] | None,
         quick_scan_events: dict[str, Any],
+        analysis_board: dict[str, Any] | None = None,
     ) -> str:
         runtime_state = runtime if isinstance(runtime, dict) else {}
         can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
@@ -3821,6 +3824,8 @@ class PatrolRuntime:
             return {}
 
         def chart_for_symbol(symbol: str) -> dict[str, Any]:
+            if not analysis_board or not isinstance(analysis_board, dict):
+                return {}
             board = analysis_board.get(symbol) if isinstance(analysis_board.get(symbol), dict) else {}
             return board.get("chart_context") if isinstance(board.get("chart_context"), dict) else {}
 
@@ -4487,6 +4492,7 @@ class PatrolRuntime:
                     int(next_scan.get("in_seconds") or 120),
                     trigger,
                     quick_scan_events,
+                    analysis_board,
                 )
             except Exception as exc:
                 cycle_card_render = {"ok": False, "skipped": False, "error": " ".join(str(exc).split())[:240]}
