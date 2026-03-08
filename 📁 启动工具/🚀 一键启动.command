@@ -45,11 +45,11 @@ fi
 case "$choice" in
   1)
     log_info "启动 AB Patrol 主链..."
-    bash "$START_SCRIPT" stack-start --execute
+    AB_PATROL_SIDECAR_USE_LAUNCHD=0 bash "$START_SCRIPT" stack-start --execute
     ;;
   2)
     log_info "启动 AB Patrol 主链..."
-    bash "$START_SCRIPT" stack-start --execute
+    AB_PATROL_SIDECAR_USE_LAUNCHD=0 bash "$START_SCRIPT" stack-start --execute
     log_info "启动 AB Patrol Web..."
     bash "$AGENT_DIR/scripts/start.sh" web-start
     ;;
@@ -61,7 +61,7 @@ case "$choice" in
     ;;
   *)
     log_warn "无效选项，按默认主链启动"
-    bash "$START_SCRIPT" stack-start --execute
+    AB_PATROL_SIDECAR_USE_LAUNCHD=0 bash "$START_SCRIPT" stack-start --execute
     ;;
 esac
 

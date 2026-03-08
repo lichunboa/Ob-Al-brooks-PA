@@ -22,6 +22,7 @@ QUERY_STOP_FILE="$RUN_DIR/query.stop"
 WATCHDOG_LOG_FILE="$RUN_DIR/watchdog.log"
 WATCHDOG_PID_FILE="$RUN_DIR/watchdog.pid"
 WATCHDOG_STOP_FILE="$RUN_DIR/watchdog.stop"
+LOOP_MODE_FILE="$RUN_DIR/loop-mode.env"
 EXECUTION_LOG_FILE="$RUN_DIR/execution-service.log"
 EXECUTION_PID_FILE="$RUN_DIR/execution-service.pid"
 WEB_LOG_FILE="$RUN_DIR/web.log"
@@ -41,7 +42,7 @@ WATCHDOG_WRAPPER="$LAUNCHD_DIR/$WATCHDOG_LABEL.sh"
 USE_LAUNCHD="${AB_PATROL_USE_LAUNCHD:-0}"
 LOOP_HOST="${AB_PATROL_LOOP_HOST:-terminal}"
 TERMINAL_HOST="${AB_PATROL_TERMINAL_HOST:-0}"
-SIDECAR_USE_LAUNCHD="${AB_PATROL_SIDECAR_USE_LAUNCHD:-1}"
+SIDECAR_USE_LAUNCHD="${AB_PATROL_SIDECAR_USE_LAUNCHD:-0}"
 
 mkdir -p "$RUN_DIR"
 mkdir -p "$LAUNCHD_DIR"
@@ -53,7 +54,36 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 AUTOTRADE_ENABLED="${AB_PATROL_ENABLE_AUTOTRADE:-0}"
-LOOP_ARGS=()
+declare -a LOOP_ARGS=()
+
+persist_loop_mode() {
+  local execute="0"
+  local no_telegram="0"
+  local arg
+  if ((${#LOOP_ARGS[@]})); then
+    for arg in "${LOOP_ARGS[@]}"; do
+      [[ "$arg" == "--execute" ]] && execute="1"
+      [[ "$arg" == "--no-telegram" ]] && no_telegram="1"
+    done
+  fi
+  cat >"$LOOP_MODE_FILE" <<EOF
+AB_PATROL_PERSIST_EXECUTE=$execute
+AB_PATROL_PERSIST_NO_TELEGRAM=$no_telegram
+EOF
+}
+
+load_persisted_loop_mode() {
+  local execute="0"
+  local no_telegram="0"
+  if [[ -f "$LOOP_MODE_FILE" ]]; then
+    # shellcheck disable=SC1090
+    source "$LOOP_MODE_FILE"
+    execute="${AB_PATROL_PERSIST_EXECUTE:-0}"
+    no_telegram="${AB_PATROL_PERSIST_NO_TELEGRAM:-0}"
+  fi
+  [[ "$execute" == "1" ]] && LOOP_ARGS+=("--execute")
+  [[ "$no_telegram" == "1" ]] && LOOP_ARGS+=("--no-telegram")
+}
 
 launchd_enabled() {
   [[ "$(uname -s)" == "Darwin" ]] && [[ "$USE_LAUNCHD" != "0" ]]
@@ -72,29 +102,40 @@ terminal_host_enabled() {
 }
 
 resolve_loop_args() {
-  LOOP_ARGS=("$@")
+  local args=("$@")
+  LOOP_ARGS=()
+  if ((${#args[@]})); then
+    LOOP_ARGS=("${args[@]}")
+  else
+    load_persisted_loop_mode
+  fi
   local arg
   local has_execute=0
-  for arg in "${LOOP_ARGS[@]}"; do
-    if [[ "$arg" == "--execute" ]]; then
-      has_execute=1
-      break
-    fi
-  done
+  if ((${#LOOP_ARGS[@]})); then
+    for arg in "${LOOP_ARGS[@]}"; do
+      if [[ "$arg" == "--execute" ]]; then
+        has_execute=1
+        break
+      fi
+    done
+  fi
   if [[ "$has_execute" -eq 0 && "$AUTOTRADE_ENABLED" == "1" ]]; then
     LOOP_ARGS+=("--execute")
   fi
+  persist_loop_mode
 }
 
 loop_mode_label() {
   local args=("$@")
   local arg
-  for arg in "${args[@]}"; do
-    if [[ "$arg" == "--execute" ]]; then
-      printf '%s\n' "自动交易"
-      return 0
-    fi
-  done
+  if ((${#args[@]})); then
+    for arg in "${args[@]}"; do
+      if [[ "$arg" == "--execute" ]]; then
+        printf '%s\n' "自动交易"
+        return 0
+      fi
+    done
+  fi
   if [[ "$AUTOTRADE_ENABLED" == "1" ]]; then
     printf '%s\n' "自动交易"
   else
@@ -764,17 +805,21 @@ start_loop() {
   export_tool_python
   resolve_loop_args "$@"
   if terminal_loop_enabled; then
+    local terminal_cmd=(
+      "AB Patrol Loop"
+      "$LOOP_WRAPPER"
+      "supervise"
+      "$LOOP_STOP_FILE"
+      "$AB_PATROL_TOOL_PYTHON"
+      "$RUNTIME"
+      "loop"
+    )
+    if ((${#LOOP_ARGS[@]})); then
+      terminal_cmd+=("${LOOP_ARGS[@]}")
+    fi
     kill_wrapper_processes "$LOOP_WRAPPER"
     rm -f "$LOOP_STOP_FILE"
-    write_terminal_service_wrapper \
-      "AB Patrol Loop" \
-      "$LOOP_WRAPPER" \
-      "supervise" \
-      "$LOOP_STOP_FILE" \
-      "$AB_PATROL_TOOL_PYTHON" \
-      "$RUNTIME" \
-      "loop" \
-      "${LOOP_ARGS[@]}"
+    write_terminal_service_wrapper "${terminal_cmd[@]}"
     open_terminal_wrapper "AB Patrol Loop" "$LOOP_WRAPPER"
     if wait_for_ready loop 25; then
       echo "AB Patrol-Agent 已在 Terminal 长会话中启动 (PID: $(cat "$PID_FILE" 2>/dev/null || printf '-'))"
@@ -784,18 +829,22 @@ start_loop() {
     return 1
   fi
   if launchd_enabled; then
+    local launchd_cmd=(
+      "$LOOP_WRAPPER"
+      "$AB_PATROL_TOOL_PYTHON"
+      "$RUNTIME"
+      "loop"
+    )
+    if ((${#LOOP_ARGS[@]})); then
+      launchd_cmd+=("${LOOP_ARGS[@]}")
+    fi
     write_launchd_plist \
       "$LOOP_LABEL" \
       "$LOOP_PLIST" \
       "$LOOP_WRAPPER" \
       "$LOG_FILE" \
       "$LOG_FILE"
-    write_launchd_wrapper \
-      "$LOOP_WRAPPER" \
-      "$AB_PATROL_TOOL_PYTHON" \
-      "$RUNTIME" \
-      "loop" \
-      "${LOOP_ARGS[@]}"
+    write_launchd_wrapper "${launchd_cmd[@]}"
     bootstrap_launchd_service "$LOOP_LABEL" "$LOOP_PLIST"
     if wait_for_ready loop 20; then
       echo "AB Patrol-Agent 已由 launchd 启动 (PID: $(cat "$PID_FILE" 2>/dev/null || printf '-'))"
@@ -804,7 +853,11 @@ start_loop() {
     echo "AB Patrol-Agent launchd 启动失败，查看日志: $LOG_FILE"
     return 1
   fi
-  nohup "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "${LOOP_ARGS[@]}" </dev/null >>"$LOG_FILE" 2>&1 &
+  local loop_cmd=("$AB_PATROL_TOOL_PYTHON" "$RUNTIME" "loop")
+  if ((${#LOOP_ARGS[@]})); then
+    loop_cmd+=("${LOOP_ARGS[@]}")
+  fi
+  nohup "${loop_cmd[@]}" </dev/null >>"$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   if wait_for_ready loop 10; then
     echo "AB Patrol-Agent 已启动 (PID: $(cat "$PID_FILE"))"
@@ -921,13 +974,21 @@ case "${1:-status}" in
     shift
     export_tool_python
     resolve_loop_args "$@"
-    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" once "${LOOP_ARGS[@]}"
+    if ((${#LOOP_ARGS[@]})); then
+      exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" once "${LOOP_ARGS[@]}"
+    else
+      exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" once
+    fi
     ;;
   loop)
     shift
     export_tool_python
     resolve_loop_args "$@"
-    exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "${LOOP_ARGS[@]}"
+    if ((${#LOOP_ARGS[@]})); then
+      exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop "${LOOP_ARGS[@]}"
+    else
+      exec "$AB_PATROL_TOOL_PYTHON" "$RUNTIME" loop
+    fi
     ;;
   loop-start)
     shift

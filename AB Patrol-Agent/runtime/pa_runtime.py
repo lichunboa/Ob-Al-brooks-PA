@@ -3908,6 +3908,12 @@ class PatrolRuntime:
             }
             return mapping.get(str(value), str(value))
 
+        def trim_text(value: Any, limit: int = 180) -> str:
+            text = " ".join(str(value or "-").split())
+            if len(text) <= limit:
+                return text
+            return text[: max(0, limit - 1)].rstrip() + "…"
+
         def format_event(raw: Any) -> str:
             text = str(raw or "").strip()
             if not text:
