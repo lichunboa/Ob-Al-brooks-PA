@@ -1,5 +1,28 @@
 # patrol-l1 Knowledge Loading
 
+## 文件分工（优化后的固定边界）
+
+- `SKILL.md`
+  - 只负责目录、流程编排、阶段切换、Step 0-5、路由策略
+  - 不应该继续堆积大量交易理论原文
+  - 任何具体交易规则，优先放到 `S` 或 `C`
+
+- `references/S*.md`
+  - 负责可执行交易规则与 playbook
+  - `S0-S3b` 是读盘与状态层
+  - `S4-S6` 是候选/入场层
+  - `S7` 是持仓管理层
+
+- `canonical/C*.md`
+  - 负责完整 Al Brooks 理论的规范层
+  - 来源是 `AB Console-Obsidian` 知识库
+  - 用于约束 `SKILL/S`，不允许代码偷偷发明新交易理论
+
+- `references/quotes/Q*.md`
+  - 负责短句锚点、纪律修正、反犹豫、反完美主义、管理提醒
+  - 不是独立交易系统
+  - 只在需要时随 `S` 一起路由加载，用来纠正 agent 的行为偏差
+
 ## 当前权威文件
 
 - 规范层 canonical：`AB Patrol-Agent/knowledge/patrol-l1/canonical/`
@@ -16,9 +39,10 @@
 `AB Patrol-Agent/runtime/pa_runtime.py` 在每轮决策里按以下规则读取知识：
 
 1. **分层读取权威文件**
-   - `canonical/*.md`：来自完整 Obsidian Al Brooks 知识库的规范层
+   - `canonical/*.md`：完整 Obsidian Al Brooks 知识库的规范层
    - `SKILL.md`：流程编排与阶段切换
-   - `references/*.md`：S0-S7 可执行子集
+   - `references/S*.md`：S0-S7 可执行子集
+   - `references/quotes/Q*.md`：短句锚点与纪律修正
    - 不再使用 `runtime-brief` 或其它摘要版知识文件
 
 2. **按状态选择原文，不压缩知识**
@@ -34,13 +58,15 @@
 
 - **最高理论 authority**：
   - `AB Console-Obsidian/Categories 分类/Al brooks`
-- **规范层**：
+- **规范层（C）**：
   - `canonical/*.md`
-- **可执行层**：
+- **可执行层（S）**：
   - `SKILL.md`
   - `references/S0-S7`
+- **纪律锚点层（Q）**：
+  - `references/quotes/Q1-Q6`
 
-运行时应优先服从 canonical 里的理论原则；`SKILL/S` 是面向 agent 的可执行语言，不应与 canonical 冲突。
+运行时应优先服从 canonical 里的理论原则；`SKILL/S/Q` 是面向 agent 的可执行语言，不应与 canonical 冲突。
 
 ## `SKILL.md` 章节路由
 
@@ -73,6 +99,21 @@
 - `SCAN`: `S2 S3 S3b S4 S5 + 对应 S6-*`
 - `ENTRY_READY`: `S2 S3 S3b S4 S5 S6-common + 对应 S6-* + S7`
 - `MANAGE`: `S2 S3b S5 S6-common S7`
+
+## 什么时候会选哪些 Q 文件
+
+- `Q1-context`
+  - 读盘、方向、市场状态、关键位相关轮次
+- `Q2-direction`
+  - 顺势/逆势方向选择、playbook 路由轮次
+- `Q3-fear`
+  - 候选单犹豫、反完美主义、该做而不敢做的场景
+- `Q4-entry`
+  - 入场、signal bar、是否升级成 candidate / executable
+- `Q5-te`
+  - Trader's Equation、Scalp vs Swing、P/R 审核
+- `Q6-management`
+  - 持仓管理、止损移动、部分止盈、重新入场
 
 ## 如何核对当前这一轮到底读了什么
 

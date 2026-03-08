@@ -1812,6 +1812,39 @@ class PatrolRuntime:
                 merged.append(ref_name)
         return merged
 
+    def select_quote_references(
+        self,
+        selected_refs: list[str],
+        phase_plan: dict[str, Any],
+        execution: dict[str, Any],
+    ) -> list[str]:
+        refs = set(selected_refs)
+        phase = str(phase_plan.get("phase") or "").upper()
+        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+        selected: list[str] = []
+
+        def add(*ref_names: str) -> None:
+            for ref_name in ref_names:
+                if ref_name and ref_name not in selected:
+                    selected.append(ref_name)
+
+        if refs & {"S0-daily-bias.md", "S1-reading.md", "S2-direction.md", "S3-market-state.md", "S3b-key-levels.md"}:
+            add("quotes/Q1-context.md")
+
+        if refs & {"S2-direction.md", "S4-strategy-match.md", "S6-bo.md", "S6-channel.md", "S6-tr.md", "S6-reversal.md"}:
+            add("quotes/Q2-direction.md")
+
+        if refs & {"S4-strategy-match.md", "S5-evaluation.md", "S6-bo.md", "S6-channel.md", "S6-tr.md", "S6-reversal.md"}:
+            add("quotes/Q3-fear.md", "quotes/Q4-entry.md")
+
+        if "S5-evaluation.md" in refs or phase in {"SCALP_FAST", "ENTRY_READY", "ENTRY_READY_BLOCKED"}:
+            add("quotes/Q5-te.md")
+
+        if positions or "S7-management.md" in refs or phase == "MANAGE":
+            add("quotes/Q6-management.md")
+
+        return selected
+
     def select_prompt_references(
         self,
         phase_plan: dict[str, Any],
@@ -1864,14 +1897,16 @@ class PatrolRuntime:
                 add("S2-direction.md", "S3-market-state.md", "S3b-key-levels.md")
             if any(ref.startswith("S6-") for ref in selected) and "S5-evaluation.md" not in selected:
                 add("S5-evaluation.md")
-            return self.merge_reference_sets(canonical_refs, selected)
+            quote_refs = self.select_quote_references(selected, phase_plan, execution)
+            return self.merge_reference_sets(canonical_refs, [*selected, *quote_refs])
 
         if self.daily_bias_stale(symbol_cache):
             add("S0-daily-bias.md")
 
         if positions:
             add("S2-direction.md", "S3-market-state.md", "S3b-key-levels.md", "S5-evaluation.md", "S7-management.md")
-            return self.merge_reference_sets(canonical_refs, selected)
+            quote_refs = self.select_quote_references(selected, phase_plan, execution)
+            return self.merge_reference_sets(canonical_refs, [*selected, *quote_refs])
 
         for symbol in self.ranked_eventful_symbols(
             phase_plan,
@@ -1891,7 +1926,8 @@ class PatrolRuntime:
 
         if any(ref.startswith("S6-") for ref in selected) and "S5-evaluation.md" not in selected:
             add("S5-evaluation.md")
-        return self.merge_reference_sets(canonical_refs, selected)
+        quote_refs = self.select_quote_references(selected, phase_plan, execution)
+        return self.merge_reference_sets(canonical_refs, [*selected, *quote_refs])
 
     def http_get_json(self, path: str, query: dict[str, Any] | None = None) -> Any:
         url = self.config.execution_base + path
@@ -2531,8 +2567,14 @@ class PatrolRuntime:
         return ""
 
     def read_reference_text(self, ref_name: str) -> str:
-        for ref_dir_name in ("canonical", "references"):
-            path = self.config.knowledge_root / ref_dir_name / ref_name
+        for ref_dir in (
+            self.config.knowledge_root / "canonical",
+            self.config.knowledge_root / "references",
+            self.config.knowledge_root / "references" / "quotes",
+        ):
+            path = ref_dir / ref_name
+            if not path.exists() and "/" in ref_name:
+                path = self.config.knowledge_root / "references" / ref_name
             if path.exists():
                 return path.read_text(encoding="utf-8")
         return ""
@@ -2805,7 +2847,8 @@ class PatrolRuntime:
             "AB Patrol-Agent decision turn.",
             "",
             "Use the full Obsidian Al Brooks knowledge base through the canonical rulebook and the original patrol-l1 skill/S-files below as authority.",
-            "Canonical rulebook files are the highest theory layer. SKILL.md + S-files are the executable subset. If they appear to conflict, prefer the canonical rulebook and explain the conflict explicitly in Chinese.",
+            "Canonical rulebook files are the highest theory layer. SKILL.md is the routing/index layer. S-files are the executable playbooks. Q-files are short Al Brooks quote anchors used to correct hesitation, perfectionism, and entry/management bias.",
+            "If they appear to conflict, prefer the canonical rulebook and explain the conflict explicitly in Chinese.",
             "Keep the original Al Brooks logic intact. Do not invent new trading rules.",
             "Al Brooks notes to honor explicitly: most reversals are some form of DT/DB test; MTR is often only a 40% winner and starts as a reversal probe until acceptance appears; bad wedges are not reversal setups; in channel reversals most traders should prefer stop orders while only excellent context justifies limit orders; scalp begins on the minor reversal, swing waits for clearer acceptance.",
             "Single cycle only. Do not sleep. Do not call tools.",

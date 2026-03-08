@@ -17,18 +17,21 @@
   - `/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Obsidian/Categories 分类/Al brooks`
 - **规范层**：
   - `AB Patrol-Agent/knowledge/patrol-l1/canonical/*.md`
-- **可执行子集**：
+- **目录/流程层（SKILL）**：
   - `AB Patrol-Agent/knowledge/patrol-l1/SKILL.md`
+- **可执行子集（S）**：
   - `AB Patrol-Agent/knowledge/patrol-l1/references/S0-S7`
+- **纪律锚点（Q）**：
+  - `AB Patrol-Agent/knowledge/patrol-l1/references/quotes/Q1-Q6`
 
 规则优先级：
 
 1. Obsidian Al Brooks 知识库
 2. Canonical Rulebook
-3. `SKILL.md + S0-S7`
+3. `SKILL.md + S0-S7 + Q1-Q6`
 4. 代码中的执行安全逻辑
 
-代码不允许发明新的交易理论。如果 `SKILL/S` 与 canonical 不一致，应优先回写 `SKILL/S`，而不是偷偷在代码里加阈值。
+代码不允许发明新的交易理论。如果 `SKILL/S/Q` 与 canonical 不一致，应优先回写知识文件，而不是偷偷在代码里加阈值。
 
 ## 文件说明
 
