@@ -106,9 +106,11 @@
 
 ## 下一步
 
-1. 把这些类别继续回写到 `canonical` 和 `S4/S5/S6`
-2. 调整状态机:
-   - `countertrend scalp watch`
-   - `swing executable`
-   - `TR edge limit-order only`
+1. 已经把这些类别接入状态机，用于限制 `pre_signal -> candidate -> executable`：
+   - `交易区间中部无优势`
+   - `强突破环境下逆势不做`
+   - `40%反转仅够 scalp`
+   - `TBTL 反转未完成`
+   - `TR 边缘限价单环境`
+2. 继续把这些类别回写到 `canonical` 和 `S4/S5/S6`
 3. 回放旧 Claude 成交样本，确认这些类别不会把原本应成交的单再次压成 `LOG_ONLY`

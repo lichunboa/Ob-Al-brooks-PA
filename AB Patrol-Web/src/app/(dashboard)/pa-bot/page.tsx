@@ -274,9 +274,14 @@ export default function PABotPage() {
                   patch?.trade?.equation ||
                   "-";
                 const entryIdea =
-                  action?.reason ||
                   patch?.entry_idea?.summary ||
                   patch?.entry_idea?.setup ||
+                  patch?.brooks_filter?.summary ||
+                  action?.reason ||
+                  "-";
+                const filterLabel =
+                  patch?.brooks_filter?.label ||
+                  patch?.evaluation?.regime ||
                   "-";
                 return (
                   <article key={symbol} className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
@@ -288,11 +293,12 @@ export default function PABotPage() {
                     </div>
                       <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
                         {directionText(patch?.ai_direction)} / {marketStateCn(patch?.market_state)}
-                      </div>
+                    </div>
                     <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
                       <div><span className="text-slate-500">结构:</span> {trimText(patch?.structure_summary || patch?.thesis, 160)}</div>
                       <div><span className="text-slate-500">预信号:</span> {trimText(patch?.pre_signal || patch?.signal, 120)}</div>
                       <div><span className="text-slate-500">Trader&apos;s Equation:</span> {trimText(equation, 120)}</div>
+                      <div><span className="text-slate-500">Brooks分类:</span> {trimText(filterLabel, 120)}</div>
                       <div><span className="text-slate-500">候选动作:</span> {trimText(entryIdea, 140)}</div>
                     </div>
                   </article>

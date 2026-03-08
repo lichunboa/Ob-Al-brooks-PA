@@ -480,6 +480,65 @@ def infer_order_type_from_refs(
     return "MARKET"
 
 
+STATUS_PRIORITY = {
+    "watching": 0,
+    "cooldown": 0,
+    "pre_signal": 1,
+    "entry_ready_blocked": 2,
+    "entry_ready": 3,
+    "in_trade": 4,
+    "manage": 5,
+}
+
+
+def cap_status(current_status: Any, max_status: str) -> str:
+    current = str(current_status or "watching").strip().lower() or "watching"
+    capped = str(max_status or current).strip().lower() or current
+    if STATUS_PRIORITY.get(current, 0) > STATUS_PRIORITY.get(capped, 0):
+        return capped
+    return current
+
+
+def combine_brooks_text(*values: Any) -> str:
+    parts: list[str] = []
+    for value in values:
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, dict):
+            try:
+                parts.append(json.dumps(value, ensure_ascii=False))
+            except TypeError:
+                parts.append(str(value))
+            continue
+        if isinstance(value, list):
+            parts.extend(str(item) for item in value if item not in (None, ""))
+            continue
+        parts.append(str(value))
+    return " ".join(part for part in parts if part).lower()
+
+
+def has_trade_plan(base: dict[str, Any]) -> bool:
+    planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+    pre_signal = base.get("pre_signal") if isinstance(base.get("pre_signal"), dict) else {}
+    trigger_price = pre_signal.get("trigger_price") if isinstance(pre_signal.get("trigger_price"), dict) else {}
+    return any(
+        value not in (None, "", [], {})
+        for value in (
+            planned_trade.get("entry_price"),
+            planned_trade.get("entry_zone"),
+            planned_trade.get("stop_loss"),
+            planned_trade.get("take_profit"),
+            trigger_price.get("entry"),
+            trigger_price.get("entry_zone"),
+            trigger_price.get("retest_zone"),
+            trigger_price.get("breakout"),
+            trigger_price.get("breakdown"),
+            trigger_price.get("stop_loss"),
+            trigger_price.get("take_profit"),
+        )
+    )
+
+
 def recent_continuation_momentum(recent_bars: list[dict[str, Any]]) -> bool:
     if not isinstance(recent_bars, list) or len(recent_bars) < 3:
         return False
@@ -1005,6 +1064,208 @@ class PatrolRuntime:
             if isinstance(frame, dict) and frame.get("state"):
                 return str(frame.get("state"))
         return str(cached.get("market_state") or "")
+
+    def classify_brooks_filter(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
+        state_upper = str(base.get("market_state") or "").strip().upper()
+        refs = normalize_refs(base.get("refs"))
+        explicit_style = str(
+            (base.get("entry_idea") or {}).get("style")
+            or (base.get("planned_trade") or {}).get("style")
+            or (base.get("trade") or {}).get("style")
+            or ""
+        ).strip()
+        inferred_style = infer_trade_style_from_refs(
+            market_state=state_upper,
+            refs=refs,
+            explicit_style=explicit_style,
+        )
+        combined = combine_brooks_text(
+            base.get("market_state_detail"),
+            base.get("structure_summary"),
+            base.get("thesis"),
+            base.get("running_narrative"),
+            base.get("pre_signal"),
+            base.get("planned_trade"),
+            base.get("trade"),
+            base.get("evaluation"),
+            events,
+        )
+        has_signal_trigger = event_has_prefix(events, ("signal_trigger:", "hl_signal:", "trigger:"))
+        has_tr_edge = event_has_prefix(events, ("tr_edge:",))
+        has_breakout = event_has_prefix(events, ("state:BO", "state:BC", "state:TC", "state_change:"))
+        reversal_clues = event_has_exact(events, {"wedge_or_mtr", "momentum_fading", "climax_suspected"}) or event_has_prefix(
+            events,
+            ("hl_signal:H",),
+        ) or any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge", "reversal", "反转"))
+        strong_breakout = state_upper in {"BO", "TC", "BC"} or any(
+            token in combined for token in ("ais", "aib", "always in", "强突破", "紧通道", "宽通道")
+        )
+        limit_order_environment = state_upper == "TR" or any(
+            token in combined for token in ("交易区间", "limit order", "限价单", "blsh", "buy low sell high")
+        )
+        tbtl_incomplete = any(token in combined for token in ("tbtl", "two legs", "十条腿", "两波"))
+        if not tbtl_incomplete and reversal_clues and not has_signal_trigger:
+            tbtl_incomplete = any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge"))
+        has_plan = has_trade_plan(base)
+        scalp_style = any(token in inferred_style for token in ("Scalp", "逆势", "反转试探"))
+        preferred_order_type = infer_order_type_from_refs(
+            market_state=state_upper,
+            refs=refs,
+            explicit_order_type=str((base.get("planned_trade") or {}).get("order_type") or ""),
+            has_price=has_plan,
+        )
+
+        if limit_order_environment and not has_tr_edge and not has_signal_trigger:
+            return {
+                "category": "tr_middle_no_edge",
+                "label": "交易区间中部无优势",
+                "summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+                "max_status": "watching",
+                "allow_executable": False,
+                "preferred_style": inferred_style or "Scalp",
+                "preferred_order_type": "LIMIT",
+            }
+
+        if strong_breakout and reversal_clues and not has_signal_trigger:
+            return {
+                "category": "strong_breakout_countertrend",
+                "label": "强突破环境下逆势不做",
+                "summary": "强突破背景里的反转先按反转试探/逆势 scalp 观察，不直接当 swing 可执行单。",
+                "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
+                "allow_executable": False,
+                "preferred_style": "反转试探",
+                "preferred_order_type": "STOP_MARKET" if has_breakout else preferred_order_type,
+            }
+
+        if tbtl_incomplete:
+            return {
+                "category": "tbtl_incomplete",
+                "label": "TBTL 反转未完成",
+                "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+                "max_status": "pre_signal",
+                "allow_executable": False,
+                "preferred_style": "反转试探",
+                "preferred_order_type": preferred_order_type,
+            }
+
+        if reversal_clues and not has_signal_trigger:
+            return {
+                "category": "forty_percent_reversal_scalp_only",
+                "label": "40%反转仅够 scalp",
+                "summary": "当前反转更像 40% 级别的反转试探，只适合 scalp 观察，暂不作为 swing 可执行单。",
+                "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
+                "allow_executable": scalp_style and has_plan,
+                "preferred_style": "反转试探",
+                "preferred_order_type": "LIMIT" if limit_order_environment else "STOP_MARKET",
+            }
+
+        if limit_order_environment and has_tr_edge:
+            return {
+                "category": "tr_edge_limit_only",
+                "label": "TR 边缘限价单环境",
+                "summary": "当前属于 TR 边缘处理环境，候选单可以存在，但应优先按计划委托/限价处理。",
+                "max_status": "entry_ready" if (has_signal_trigger or has_plan) else "pre_signal",
+                "allow_executable": has_signal_trigger or has_plan,
+                "preferred_style": inferred_style or "Scalp",
+                "preferred_order_type": "LIMIT",
+            }
+
+        if has_signal_trigger or event_has_prefix(events, ("first_pb:", "pb_depth:")):
+            return {
+                "category": "trend_continuation_candidate",
+                "label": "顺势候选",
+                "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+                "max_status": "entry_ready" if has_plan else str(base.get("status") or "pre_signal"),
+                "allow_executable": True,
+                "preferred_style": inferred_style,
+                "preferred_order_type": preferred_order_type,
+            }
+
+        return {
+            "category": "watch_only",
+            "label": "继续观察",
+            "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+            "max_status": "watching" if not has_plan else str(base.get("status") or "watching"),
+            "allow_executable": False,
+            "preferred_style": inferred_style or "Scalp",
+            "preferred_order_type": preferred_order_type,
+        }
+
+    def apply_brooks_filter_to_patch(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
+        filter_meta = self.classify_brooks_filter(base, events)
+        base["brooks_filter"] = filter_meta
+        current_status = str(base.get("status") or "watching")
+        base["status"] = cap_status(current_status, str(filter_meta.get("max_status") or current_status))
+
+        entry_idea = base.get("entry_idea") if isinstance(base.get("entry_idea"), dict) else {}
+        if filter_meta.get("preferred_style"):
+            entry_idea["style"] = filter_meta["preferred_style"]
+        if filter_meta.get("summary"):
+            entry_idea.setdefault("filter_summary", filter_meta["summary"])
+        base["entry_idea"] = entry_idea
+
+        planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+        if planned_trade:
+            if filter_meta.get("preferred_style"):
+                planned_trade["style"] = filter_meta["preferred_style"]
+            if filter_meta.get("preferred_order_type"):
+                planned_trade["order_type"] = filter_meta["preferred_order_type"]
+            planned_trade.setdefault("why_wait", filter_meta.get("summary"))
+            base["planned_trade"] = planned_trade
+
+        evaluation = base.get("evaluation") if isinstance(base.get("evaluation"), dict) else {}
+        evaluation["regime"] = filter_meta.get("label")
+        evaluation["execution_decision"] = "可继续执行链" if filter_meta.get("allow_executable") else "继续观察/等待"
+        evaluation["risk"] = filter_meta.get("summary")
+        base["evaluation"] = evaluation
+
+        scenarios = base.get("scenarios") if isinstance(base.get("scenarios"), list) else []
+        summary = str(filter_meta.get("summary") or "").strip()
+        if summary and summary not in scenarios:
+            scenarios.insert(0, summary)
+        base["scenarios"] = scenarios[:4]
+        return base
+
+    def apply_brooks_filter_to_action(self, action: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(action, dict):
+            return action
+        if canonical_action_type(action.get("type")) != "OPEN_ORDER":
+            return action
+
+        filter_meta = patch.get("brooks_filter") if isinstance(patch.get("brooks_filter"), dict) else {}
+        category = str(filter_meta.get("category") or "").strip()
+        summary = str(filter_meta.get("summary") or "").strip() or "Brooks 分类要求继续观察"
+        if filter_meta and not filter_meta.get("allow_executable"):
+            return {
+                "type": "LOG_ONLY",
+                "symbol": action.get("symbol"),
+                "reason": f"[PASS-WAIT] {summary}",
+                "refs": normalize_refs(action.get("refs")) or normalize_refs(patch.get("refs")),
+                "style": filter_meta.get("preferred_style") or action.get("style") or "",
+            }
+
+        normalized = dict(action)
+        if category == "tr_edge_limit_only":
+            planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+            entry_price = (
+                first_float(normalized.get("entry"))
+                or first_float(normalized.get("entry_price"))
+                or first_float(planned_trade.get("entry_price"))
+            )
+            if entry_price is None:
+                return {
+                    "type": "LOG_ONLY",
+                    "symbol": action.get("symbol"),
+                    "reason": "[PASS-WAIT] TR 边缘属于限价单环境，但当前缺少计划委托价格，继续观察。",
+                    "refs": normalize_refs(action.get("refs")) or normalize_refs(patch.get("refs")),
+                    "style": filter_meta.get("preferred_style") or action.get("style") or "",
+                }
+            normalized["entry"] = entry_price
+            normalized.setdefault("entry_price", entry_price)
+            normalized["order_type"] = "LIMIT"
+        if filter_meta.get("preferred_style"):
+            normalized["style"] = filter_meta["preferred_style"]
+        return normalized
 
     def event_score(self, symbol: str, phase_plan: dict[str, Any], symbol_cache: dict[str, Any], quick_scan_events: dict[str, Any]) -> int:
         cached = symbol_cache.get(symbol, {})
@@ -2696,6 +2957,7 @@ class PatrolRuntime:
                 }
             if "trade" not in base:
                 base["trade"] = None
+            base = self.apply_brooks_filter_to_patch(base, event_tags)
             merged_updates[key] = base
         for symbol, patch in (decision.get("symbol_updates") or {}).items():
             key = str(symbol).upper()
@@ -2706,6 +2968,11 @@ class PatrolRuntime:
         for action in decision.get("actions") or []:
             if not isinstance(action, dict):
                 continue
+            raw_action = dict(action)
+            symbol_key = str(action.get("symbol") or "").upper()
+            patch = merged_updates.get(symbol_key) if isinstance(merged_updates.get(symbol_key), dict) else {}
+            action.clear()
+            action.update(self.apply_brooks_filter_to_action(raw_action, patch))
             action["type"] = canonical_action_type(action.get("type"))
             action["refs"] = [ref for ref in normalize_refs(action.get("refs")) if ref in ref_names]
             if not action["refs"] and ref_names:
@@ -3292,6 +3559,7 @@ class PatrolRuntime:
                     "events": self.flatten_events(quick_scan_events.get(symbol)),
                     "planned_trade": current.get("planned_trade") if isinstance(current.get("planned_trade"), dict) else {},
                     "chart_context": board.get("chart_context") if isinstance(board.get("chart_context"), dict) else {},
+                    "brooks_filter": current.get("brooks_filter") if isinstance(current.get("brooks_filter"), dict) else {},
                 }
             )
         return notices
@@ -3355,6 +3623,7 @@ class PatrolRuntime:
         timeframe = notice.get("timeframe") or "-"
         pre_signal_text = format_pre_signal_text(notice.get("pre_signal"))
         planned_trade = notice.get("planned_trade") if isinstance(notice.get("planned_trade"), dict) else {}
+        brooks_filter = notice.get("brooks_filter") if isinstance(notice.get("brooks_filter"), dict) else {}
         planned_bits = []
         if planned_trade.get("entry_price"):
             planned_bits.append(f"触发价 {planned_trade.get('entry_price')}")
@@ -3376,6 +3645,7 @@ class PatrolRuntime:
                 f"• 周期: {timeframe}｜状态: {status_cn(direction)}",
                 f"• 信号摘要: {pre_signal_text}",
                 f"• 当前价格: {close_text}",
+                f"• Brooks 分类: {brooks_filter.get('label') or '-'}",
                 f"• 计划委托: {plan_text}",
                 "",
                 "【盘面摘要】",
@@ -3443,6 +3713,11 @@ class PatrolRuntime:
         ]
 
         statuses = [str((patch or {}).get("status") or "").lower() for patch in symbol_updates.values() if isinstance(patch, dict)]
+        brooks_categories = {
+            str(((patch or {}).get("brooks_filter") or {}).get("category") or "")
+            for patch in symbol_updates.values()
+            if isinstance(patch, dict) and isinstance(patch.get("brooks_filter"), dict)
+        }
         has_entry_ready = any(status in {"entry_ready", "entry_ready_blocked"} for status in statuses)
         has_pre_signal = any(
             str((patch or {}).get("status") or "").lower() == "pre_signal"
@@ -3538,6 +3813,8 @@ class PatrolRuntime:
         if model_timeout:
             if near_trigger or position_volatility_high or fresh_bc_sc or tr_edge_active:
                 return 120
+            if any(category in brooks_categories for category in {"tr_edge_limit_only", "strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}):
+                return 180
             if momentum_active:
                 return 180
             if positions or has_pre_signal:
@@ -3550,6 +3827,12 @@ class PatrolRuntime:
 
         if near_trigger or position_volatility_high or fresh_bc_sc or tr_edge_active:
             return 120
+        if any(category in brooks_categories for category in {"tr_edge_limit_only", "strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}):
+            return 180
+        if "tbtl_incomplete" in brooks_categories:
+            return 240
+        if "tr_middle_no_edge" in brooks_categories:
+            return 480
         if momentum_active:
             return 180
         if positions:

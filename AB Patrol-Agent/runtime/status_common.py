@@ -259,12 +259,17 @@ def classify_trade_funnel(snapshot: dict[str, Any], hours: int = 48) -> dict[str
         for symbol, patch in symbol_updates.items():
             if not isinstance(patch, dict):
                 continue
+            brooks_filter = patch.get("brooks_filter") if isinstance(patch.get("brooks_filter"), dict) else {}
+            brooks_label = str(brooks_filter.get("label") or "").strip()
             thesis = str(patch.get("thesis") or "")
             structure = str(patch.get("structure_summary") or "")
             market_state = str(patch.get("market_state") or "")
             pre_signal = patch.get("pre_signal")
             pre_signal_text = json.dumps(pre_signal, ensure_ascii=False) if isinstance(pre_signal, dict) else str(pre_signal or "")
             combined = " ".join([summary_text, thesis, structure, market_state, pre_signal_text])
+
+            if brooks_label in themes:
+                themes[brooks_label] += 1
 
             if any(token in combined for token in ("第一次正常 PB", "first PB", "首次正常回踩", "首次正常回抽")):
                 if bucket in {"candidate_gate_rejected", "candidate_pending", "candidate_execution_failed"}:
