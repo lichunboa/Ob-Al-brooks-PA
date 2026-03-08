@@ -701,6 +701,29 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
     }
 
 
+def build_execution_semantics(
+    planned_trade: dict[str, Any],
+    filter_meta: dict[str, Any],
+    semantics: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "candidate_stage": semantics.get("candidate_stage"),
+        "candidate_stage_cn": semantics.get("candidate_stage_cn"),
+        "execution_mode": semantics.get("execution_mode"),
+        "execution_mode_cn": semantics.get("execution_mode_cn"),
+        "order_type": planned_trade.get("order_type"),
+        "order_type_cn": order_type_cn(str(planned_trade.get("order_type") or "")),
+        "style": planned_trade.get("style"),
+        "allow_executable": semantics.get("allow_executable"),
+        "needs_exact_trigger": semantics.get("needs_exact_trigger"),
+        "has_entry_price": semantics.get("has_entry_price"),
+        "has_entry_zone": semantics.get("has_entry_zone"),
+        "brooks_label": filter_meta.get("label"),
+        "upgrade_condition": filter_meta.get("upgrade_condition"),
+        "brooks_rule": filter_meta.get("brooks_rule"),
+    }
+
+
 def recent_continuation_momentum(recent_bars: list[dict[str, Any]]) -> bool:
     if not isinstance(recent_bars, list) or len(recent_bars) < 3:
         return False
@@ -1361,12 +1384,16 @@ class PatrolRuntime:
                 "category": "broad_channel_trend_stop",
                 "label": "宽通道顺势用 stop",
                 "summary": "宽通道里的顺势恢复可以继续做，但更像通道恢复而不是纯趋势追价，优先等 stop trigger。",
-                "max_status": "entry_ready" if (has_plan and (has_signal_trigger or acceptance_clues)) else "pre_signal",
-                "allow_executable": bool(has_plan and (has_signal_trigger or acceptance_clues)),
+                "max_status": "entry_ready"
+                if (has_plan and continuation_clues and acceptance_clues and (has_signal_trigger or has_first_signal or has_second_signal))
+                else "pre_signal",
+                "allow_executable": bool(
+                    has_plan and continuation_clues and acceptance_clues and (has_signal_trigger or has_first_signal or has_second_signal)
+                ),
                 "preferred_style": inferred_style or "Swing",
                 "preferred_order_type": "STOP_MARKET",
-                "upgrade_condition": "要有继续接受/跟进，或 first pullback 后的恢复信号；否则继续观察。",
-                "brooks_rule": "Broad Channel 顺势延续可用 stop 参与，但仍要尊重通道中‘swing less’的属性。",
+                "upgrade_condition": "先有顺势恢复/first pullback 完成，再看到接受或触发信号；没有恢复信号时不追 stop。",
+                "brooks_rule": "Broad Channel 更像 TR：逆势多用 limit，顺势只有在恢复信号和接受都清晰时才用 stop。",
             }
 
         if limit_order_environment and has_tr_edge:
@@ -1450,6 +1477,11 @@ class PatrolRuntime:
             planned_trade["execution_mode_cn"] = semantics["execution_mode_cn"]
             planned_trade["allow_executable"] = semantics["allow_executable"]
             planned_trade["needs_exact_trigger"] = semantics["needs_exact_trigger"]
+            planned_trade["brooks_label"] = filter_meta.get("label")
+            planned_trade["upgrade_condition"] = filter_meta.get("upgrade_condition")
+            planned_trade["brooks_rule"] = filter_meta.get("brooks_rule")
+            planned_trade["order_type_cn"] = order_type_cn(str(planned_trade.get("order_type") or ""))
+            planned_trade["execution_semantics"] = build_execution_semantics(planned_trade, filter_meta, semantics)
             base["planned_trade"] = planned_trade
 
         evaluation = base.get("evaluation") if isinstance(base.get("evaluation"), dict) else {}
@@ -1458,12 +1490,15 @@ class PatrolRuntime:
         evaluation["risk"] = filter_meta.get("summary")
         evaluation["candidate_stage"] = semantics["candidate_stage_cn"]
         evaluation["execution_mode"] = semantics["execution_mode_cn"]
+        evaluation["brooks_rule"] = filter_meta.get("brooks_rule")
         base["evaluation"] = evaluation
 
         entry_idea["candidate_stage"] = semantics["candidate_stage"]
         entry_idea["candidate_stage_cn"] = semantics["candidate_stage_cn"]
         entry_idea["execution_mode"] = semantics["execution_mode"]
         entry_idea["execution_mode_cn"] = semantics["execution_mode_cn"]
+        entry_idea["upgrade_condition"] = filter_meta.get("upgrade_condition")
+        entry_idea["brooks_rule"] = filter_meta.get("brooks_rule")
         base["entry_idea"] = entry_idea
 
         scenarios = base.get("scenarios") if isinstance(base.get("scenarios"), list) else []
@@ -1489,6 +1524,9 @@ class PatrolRuntime:
                 "reason": f"[PASS-WAIT] {summary}",
                 "refs": normalize_refs(action.get("refs")) or normalize_refs(patch.get("refs")),
                 "style": filter_meta.get("preferred_style") or action.get("style") or "",
+                "brooks_label": filter_meta.get("label"),
+                "upgrade_condition": filter_meta.get("upgrade_condition"),
+                "brooks_rule": filter_meta.get("brooks_rule"),
             }
 
         normalized = dict(action)
@@ -1533,6 +1571,18 @@ class PatrolRuntime:
             normalized["order_type"] = preferred_order_type
         if filter_meta.get("preferred_style"):
             normalized["style"] = filter_meta["preferred_style"]
+        if filter_meta.get("label"):
+            normalized["brooks_label"] = filter_meta["label"]
+        if filter_meta.get("upgrade_condition"):
+            normalized["upgrade_condition"] = filter_meta["upgrade_condition"]
+        if filter_meta.get("brooks_rule"):
+            normalized["brooks_rule"] = filter_meta["brooks_rule"]
+        planned_trade = patch.get("planned_trade") if isinstance(patch.get("planned_trade"), dict) else {}
+        execution_semantics = planned_trade.get("execution_semantics") if isinstance(planned_trade.get("execution_semantics"), dict) else {}
+        if execution_semantics:
+            normalized["candidate_stage"] = execution_semantics.get("candidate_stage")
+            normalized["execution_mode"] = execution_semantics.get("execution_mode")
+            normalized["order_type_cn"] = execution_semantics.get("order_type_cn")
         return normalized
 
     def event_score(self, symbol: str, phase_plan: dict[str, Any], symbol_cache: dict[str, Any], quick_scan_events: dict[str, Any]) -> int:
@@ -2772,6 +2822,7 @@ class PatrolRuntime:
             "When S7 加仓条件成立，继续用 OPEN_ORDER，但在 action.intent 或 trade.intent 中明确写 ADD_ON / SCALE_IN；这是同方向新交易，不是修改旧单。加仓时必须显式给出 risk_percent，并保持总加仓风险不超过 1%。",
             "当 setup 已明确但价格尚未到位时，可以使用 OPEN_ORDER + LIMIT + price 预先挂委托；如果前提失效，必须配套 CANCEL_ALL_ORDERS 清理旧挂单。",
             "当 setup 还在等待价位触发时，请在 symbol_update.planned_trade 中明确写 entry_price 或 entry_zone，以及 stop_loss / take_profit / order_type / style，便于后续管理与复盘。",
+            "Brooks 执行语义必须严格遵守：TR 边缘只在边缘 + 二次信号/清晰 signal bar 后升级为 LIMIT 可执行单；Broad Channel 逆势优先 LIMIT，顺势恢复/first pullback 完成 + 接受清晰时才允许 STOP_MARKET；第一次 wedge/MTR/DB/DT 只算反转试探，不要直接升级成 swing 可执行单。",
             "不要让 runtime 再发明额外过滤器；只依据 canonical rulebook + 原 skill / S 文件输出风格、前提、交易方程、执行动作和定时建议。",
             "升级期可能处于观察模式（dry_run=true）。即便当前不自动下单，也必须照常输出 planned_trade、candidate、executable 和管理动作，供回放与验收。",
             "If no real trade is executable this cycle, still emit one LOG_ONLY action per focus symbol with reason, refs, and bar_reading.",
@@ -3454,6 +3505,17 @@ class PatrolRuntime:
         hydrated["bar_reading"] = self.build_action_bar_reading(patch, hydrated)
         market_state = hydrated.get("market_state") or patch.get("market_state") or ""
         hydrated["strategy"] = hydrated.get("strategy") or (patch.get("entry_idea") or {}).get("style") or "PA_PATROL"
+        if planned_trade.get("brooks_label"):
+            hydrated["brooks_label"] = planned_trade.get("brooks_label")
+        if planned_trade.get("upgrade_condition"):
+            hydrated["upgrade_condition"] = planned_trade.get("upgrade_condition")
+        if planned_trade.get("brooks_rule"):
+            hydrated["brooks_rule"] = planned_trade.get("brooks_rule")
+        execution_semantics = planned_trade.get("execution_semantics") if isinstance(planned_trade.get("execution_semantics"), dict) else {}
+        if execution_semantics:
+            hydrated["candidate_stage"] = execution_semantics.get("candidate_stage")
+            hydrated["execution_mode"] = execution_semantics.get("execution_mode")
+            hydrated["order_type_cn"] = execution_semantics.get("order_type_cn")
         hydrated["style"] = infer_trade_style_from_refs(
             market_state=str(market_state),
             refs=normalize_refs(hydrated.get("refs")),

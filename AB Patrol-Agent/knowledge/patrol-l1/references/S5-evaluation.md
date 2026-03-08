@@ -243,6 +243,28 @@ R = TP 距离 / SL 距离
 
 **→ 核心判定**：回报 ≥ 2x 风险 = swing，< 2x = scalp
 
+## 路由一致性检查（执行前必过）
+
+> S5 不只是算 P×R，还要检查“这笔单的风格、市场状态、订单类型”是否互相匹配。若不匹配，说明不是执行问题，而是 playbook 还没成熟。
+
+| 环境 | 合法风格 | 合法订单类型 | 典型升级条件 |
+|------|---------|-------------|-------------|
+| **强 BO / Tight Channel** | Swing 优先 | `STOP_MARKET` / `MARKET` | PB 完成 + signal trigger |
+| **Normal Channel** | Swing / Scalp | `STOP_MARKET` | H1/H2/L1/L2 或 first PB 完成 |
+| **Broad Channel 顺势** | Scalp→Swing | `STOP_MARKET` | 恢复信号 + 接受清晰 |
+| **Broad Channel 逆势** | 反转试探 / Scalp | `LIMIT` | 到边缘 + H2/L2/HL/LH MTR |
+| **TR 边缘** | Scalp | `LIMIT` | 边缘 + 二次信号/清晰 signal bar |
+| **TR 中部** | — | — | 不做 |
+| **MTR 第一次尝试** | 反转试探 | `LIMIT` 或继续等待 | 先记录试探，不直接 swing |
+
+### 若出现以下冲突 → 继续等待，不执行
+
+- `TR` 环境却想用 `STOP_MARKET` 追突破
+- `Broad Channel` 逆势 fade 想直接用市价/stop 追单
+- 只有第一次反转线索，却把风格写成 `Swing executable`
+- `Scalp` 的结构，却用 `Swing` 的止损和管理
+- `candidate` 还没有明确 `entry_price / entry_zone`，却直接当 `executable`
+
 ### 初学者只应做波段 — 铁律
 
 - **"Beginners should look for swings rather than scalps"**

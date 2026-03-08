@@ -40,6 +40,45 @@
 满足 3-4/5 → 观察但不入场
 满足 <3 → 不考虑
 
+## 反转试探的升级规则
+
+> 反转不是一下子从“看到楔形”跳成“可以 swing”。Brooks 的默认立场是：第一次反转通常较小，先按试探处理。
+
+### `PRE_SIGNAL / 反转试探`
+
+出现以下任一线索时进入：
+- `wedge`
+- `MTR`
+- `DB / DT`
+- `Final Flag`
+- `climax + trendline break`
+
+但此时仍然默认：
+- 只够 `反转试探`
+- 不直接做 swing executable
+
+### `CANDIDATE`
+
+必须至少再出现一项：
+1. `H2/L2`
+2. `HL/LH MTR`
+3. 失败突破后的接受
+4. 明确的二次反转信号
+
+### `EXECUTABLE`
+
+在 `candidate` 基础上还要满足：
+1. 有明确 `entry_price`
+2. 风格与订单类型匹配
+3. `P×R` 达标
+4. 若背景仍是强 BO / Tight Channel，必须再看到接受/跟进
+
+### 订单类型原则
+
+- `TR` / `Broad Channel` 边缘的反转试探 → 优先 `LIMIT`
+- 强突破后的真正反转确认 → 可转 `STOP_MARKET`
+- 没有 acceptance，就不要把第一次反转升级成可执行 swing
+
 ---
 
 ## MTR 三部曲 — 核心机制

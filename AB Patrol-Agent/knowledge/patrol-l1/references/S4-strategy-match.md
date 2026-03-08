@@ -79,6 +79,30 @@
 
 **⚠️ 路由表执行检查**：入场前必过 5 步自检 → 详见 [S5-evaluation.md](S5-evaluation.md)「入场前路由验证」
 
+## pre_signal → candidate → executable 升级总表
+
+> 这张表把 Brooks 语义直接映射到 Patrol 的执行阶段。核心原则：不是“看到结构就下单”，而是先看位置，再看信号，再看风格与订单类型。
+
+| 环境 | `pre_signal` | `candidate` | `executable` | 默认订单类型 |
+|------|--------------|-------------|--------------|-------------|
+| **TR 边缘** | 只到边缘/只有第一次信号 | 边缘 + 二次信号/H2/L2 或清晰 signal bar，且已形成计划委托 | `candidate` 基础上再有明确 entry 价格与正 TE | **LIMIT** |
+| **TR 中部** | 可记录观察 | 不升级 | 不执行 | — |
+| **Broad Channel 逆势** | DB/DT/Wedge/MTR 第一次出现，只算反转试探 | 边缘 + H2/L2/HL/LH MTR + 已有计划 | `candidate` 基础上再有明确 entry 价格与正 TE | **LIMIT** |
+| **Broad Channel 顺势恢复** | first PB / EMA PB / 恢复线索出现 | PB 完成 + 接受/跟进清晰，且计划已就绪 | `candidate` 基础上再有明确 stop trigger 价格 | **STOP_MARKET** |
+| **强 BO / Tight Channel 逆势** | 只算反转试探 | 至少等第二次信号 + 接受 | 仍需明显接受与正 TE | **STOP_MARKET**（若最终允许） |
+| **顺势趋势恢复** | 观察 pullback 质量 | PB 完成 + signal trigger + 计划就绪 | 有明确 trigger 价，且结构未失效 | **STOP_MARKET** |
+
+### 三条强制规则
+
+1. **TR = 限价单环境**
+   - 只有在边缘 1/3 区域，且出现二次信号或清晰 signal bar，`pre_signal` 才能升级。
+2. **Broad Channel = scalp more, swing less**
+   - 逆势 fade 优先 `LIMIT`
+   - 顺势恢复只有在接受与恢复信号都清晰时才允许 `STOP_MARKET`
+3. **第一次反转只算试探**
+   - 仅有 `wedge / MTR / DB / DT` 线索，不得直接升级成 swing 可执行单
+   - 至少等 `H2/L2` 或 `HL/LH MTR`，再看是否升级
+
 ---
 
 ## Daily 偏置 × 5m 方向叠加

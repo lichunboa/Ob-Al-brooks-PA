@@ -117,6 +117,44 @@ PB 未完成 = 不是 PB，可能是趋势转换。**必须确认 PB 完成才�
 - 此时入场 = 信号 K 线还没出现 = SL 只能放微观位 = 必然太紧
 - 记录 `[PASS-WAIT] PB_NOT_COMPLETE`
 
+## Broad Channel 的执行语义
+
+> 这是 Patrol 最容易误判的地方。Brooks 的核心不是“BC 一律做多/做空”，而是：**scalp more, swing less；逆势优先 limit，顺势恢复才考虑 stop。**
+
+### Broad Channel 逆势 fade
+
+- 默认只算 **反转试探**
+- 必须先到边缘（上沿/下沿或明显通道线测试）
+- 只有在以下条件出现后，才允许从 `pre_signal` 升到 `candidate`
+  1. `H2/L2`
+  2. `HL/LH MTR`
+  3. 双顶/双底 + 失败突破后的接受
+- 真正 `executable` 还要求：
+  - 明确 `entry_price`
+  - `LIMIT` 委托
+  - 正 TE
+
+### Broad Channel 顺势恢复
+
+- 典型模式：
+  - `first pullback`
+  - `EMA PB`
+  - `H2/L2 in Channel`
+  - `PB 完成后恢复`
+- 从 `pre_signal` 升到 `candidate` 的条件：
+  - PB 完成
+  - 恢复方向的 signal 出现
+  - 有接受/跟进证据
+- 真正 `executable` 时：
+  - 默认 `STOP_MARKET`
+  - 没有 trigger 价，不得提前追单
+
+### Broad Channel 的铁律
+
+- **逆势不要追 stop**
+- **顺势不要在中部乱挂 limit**
+- 边缘不清晰、接受不清晰时，继续观察
+
 ---
 
 ## 趋势形态

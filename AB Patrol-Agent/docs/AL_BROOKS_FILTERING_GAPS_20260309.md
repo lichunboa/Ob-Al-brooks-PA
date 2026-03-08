@@ -147,3 +147,10 @@
    - `TR` 边缘优先 `LIMIT`
    - `BO/TC` 顺势优先 `STOP_MARKET`
    - `Broad Channel` 允许 `Stop/Limit` 混合，不再因为 `BC` 状态被粗暴短路成固定 `LIMIT` 或固定 `MARKET`
+5. 这些执行语义现在不只停在展示层，已继续推进到 `action` payload：
+   - `brooks_label`
+   - `upgrade_condition`
+   - `brooks_rule`
+   - `candidate_stage`
+   - `execution_mode`
+   - `order_type_cn`
