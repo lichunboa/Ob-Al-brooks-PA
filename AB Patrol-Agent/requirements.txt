@@ -1,0 +1,8 @@
+fastapi>=0.116,<1.0
+matplotlib>=3.9,<4.0
+mplfinance>=0.12.10b0,<1.0
+numpy>=2.0,<3.0
+pandas>=2.2,<3.0
+pydantic>=2.8,<3.0
+requests>=2.32,<3.0
+uvicorn>=0.35,<1.0

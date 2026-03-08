@@ -1,0 +1,459 @@
+"""
+数据加载器 — 多数据源历史 K 线数据加载
+
+加载优先级:
+  1. 本地 Parquet 缓存（最快）
+  2. HF Parquet 分片本地提取（data/hf_parquet/）
+  3. TimescaleDB 导出（Docker 运行时）
+  4. 本地 CSV.gz 流式读取
+  5. Binance API 下载（需 VPN）
+  6. datasets 库 streaming（最慢但最可靠）
+"""
+
+import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+
+
+class DataLoader:
+    """从 HuggingFace 加载历史 K 线数据"""
+
+    SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+    HF_DATASET = "123olp/binance-futures-ohlcv-2018-2026"
+    CSV_GZ_FILE = "candles_1m.csv.gz"
+
+    @staticmethod
+    def load(symbol: str, start_date: str = None, end_date: str = None,
+             cache_dir: str = None) -> pd.DataFrame:
+        """
+        加载 1m K 线数据（自动选择最优方式）
+
+        返回 DataFrame，列: timestamp, open, high, low, close, volume
+        """
+        # 检查 Parquet 缓存
+        cache_path = None
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            safe_start = start_date or "all"
+            safe_end = end_date or "all"
+            cache_path = Path(cache_dir) / f"{symbol}_{safe_start}_{safe_end}.parquet"
+            if cache_path.exists():
+                print(f"  从缓存加载: {cache_path}")
+                df = pd.read_parquet(cache_path)
+                # 兼容旧缓存列名 (open_time → timestamp)
+                if "open_time" in df.columns and "timestamp" not in df.columns:
+                    df = df.rename(columns={"open_time": "timestamp"})
+                if df["timestamp"].dt.tz is not None:
+                    df["timestamp"] = df["timestamp"].dt.tz_localize(None)
+                print(f"  {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+                return df
+
+        # 方式1: HF Parquet 分片（本地已下载）
+        hf_parquet_dir = Path(__file__).parent.parent.parent / "data" / "hf_parquet"
+        if hf_parquet_dir.exists() and any(hf_parquet_dir.glob("*.parquet")):
+            df = DataLoader.load_from_hf_parquet(
+                symbol, start_date, end_date, parquet_dir=str(hf_parquet_dir),
+            )
+            if not df.empty:
+                if cache_path:
+                    df.to_parquet(cache_path)
+                    print(f"  已缓存到: {cache_path}")
+                return df
+
+        # 方式2: TimescaleDB 导出（Docker 运行时）
+        try:
+            import psycopg
+            df = DataLoader.load_from_timescaledb(symbol, start_date, end_date)
+            if not df.empty:
+                if cache_path:
+                    df.to_parquet(cache_path)
+                    print(f"  已缓存到: {cache_path}")
+                return df
+        except (ImportError, Exception):
+            pass
+
+        # 方式3: 本地 CSV.gz 流式加载
+        csv_gz_path = DataLoader._find_csv_gz(cache_dir)
+        if csv_gz_path:
+            print(f"  从本地 CSV.gz 加载: {csv_gz_path}")
+            df = DataLoader._stream_csv_gz(csv_gz_path, symbol, start_date, end_date)
+            if not df.empty and cache_path:
+                df.to_parquet(cache_path)
+                print(f"  已缓存到: {cache_path}")
+            return df
+
+        # 方式4: Binance API 下载（需 VPN）
+        df = DataLoader.download_from_binance(symbol, days=90, cache_dir=cache_dir)
+        if not df.empty:
+            if start_date:
+                df = df[df["timestamp"] >= pd.Timestamp(start_date)]
+            if end_date:
+                df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+            return df
+
+        # 方式5: datasets 库 streaming（最慢）
+        return DataLoader._load_streaming(symbol, start_date, end_date, cache_path)
+
+    @staticmethod
+    def _find_csv_gz(cache_dir: str = None) -> Optional[Path]:
+        """查找已下载的 CSV.gz 文件"""
+        search_paths = []
+        if cache_dir:
+            search_paths.append(Path(cache_dir).parent / "hf_downloads" / DataLoader.CSV_GZ_FILE)
+        search_paths.extend([
+            Path.home() / ".cache" / "backtest" / DataLoader.CSV_GZ_FILE,
+            Path(__file__).parent.parent.parent / "data" / "hf_downloads" / DataLoader.CSV_GZ_FILE,
+        ])
+        for p in search_paths:
+            if p.exists():
+                return p
+        return None
+
+    @staticmethod
+    def _stream_csv_gz(filepath: Path, symbol: str,
+                       start_date: str = None, end_date: str = None) -> pd.DataFrame:
+        """从 CSV.gz 流式读取并过滤"""
+        start_ts = pd.Timestamp(start_date) if start_date else None
+        end_ts = pd.Timestamp(end_date) if end_date else None
+
+        chunks = []
+        total = 0
+        for chunk in pd.read_csv(filepath, compression="gzip", chunksize=200000):
+            chunk = chunk[chunk["symbol"] == symbol]
+            if chunk.empty:
+                continue
+            chunk["timestamp"] = pd.to_datetime(chunk["bucket_ts"])
+            if start_ts:
+                chunk = chunk[chunk["timestamp"] >= start_ts]
+            if end_ts:
+                chunk = chunk[chunk["timestamp"] <= end_ts]
+            if not chunk.empty:
+                chunks.append(chunk[["timestamp", "open", "high", "low", "close", "volume"]])
+                total += len(chunks[-1])
+                print(f"  已读取 {total:,} 根 {symbol} K线...", end="\r")
+
+        if not chunks:
+            print(f"  警告: {symbol} 无数据")
+            return pd.DataFrame()
+
+        df = pd.concat(chunks, ignore_index=True)
+        df = df.sort_values("timestamp").reset_index(drop=True)
+        print(f"  加载完成: {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+        return df
+
+    @staticmethod
+    def _load_streaming(symbol: str, start_date: str = None, end_date: str = None,
+                        cache_path: Path = None) -> pd.DataFrame:
+        """使用 datasets 库 streaming 模式"""
+        try:
+            from datasets import load_dataset
+        except ImportError:
+            print("请安装: pip install datasets huggingface_hub")
+            sys.exit(1)
+
+        print(f"  从 HuggingFace streaming 加载 {symbol} 数据...")
+
+        ds = load_dataset(DataLoader.HF_DATASET, split="train", streaming=True)
+        rows = []
+        count = 0
+        for row in ds:
+            if row.get("symbol") != symbol:
+                continue
+            ts = row.get("bucket_ts")
+            if ts is None:
+                continue
+            if isinstance(ts, str):
+                ts = pd.Timestamp(ts)
+            elif isinstance(ts, (int, float)):
+                ts = pd.Timestamp(ts, unit="ms")
+
+            if start_date and ts < pd.Timestamp(start_date):
+                continue
+            if end_date and ts > pd.Timestamp(end_date):
+                if count > 0:
+                    break
+                continue
+
+            rows.append({
+                "timestamp": ts,
+                "open": float(row["open"]),
+                "high": float(row["high"]),
+                "low": float(row["low"]),
+                "close": float(row["close"]),
+                "volume": float(row.get("volume", 0)),
+            })
+            count += 1
+            if count % 50000 == 0:
+                print(f"  已加载 {count:,} 根K线...", end="\r")
+
+        if not rows:
+            print(f"  警告: {symbol} 无数据")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(rows)
+        df = df.sort_values("timestamp").reset_index(drop=True)
+        print(f"  加载完成: {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+
+        if cache_path:
+            df.to_parquet(cache_path)
+            print(f"  已缓存到: {cache_path}")
+        return df
+
+    @staticmethod
+    def load_from_parquet(filepath: str, symbol: str = None,
+                          start_date: str = None, end_date: str = None) -> pd.DataFrame:
+        """从本地 Parquet 文件加载"""
+        df = pd.read_parquet(filepath)
+        if symbol and "symbol" in df.columns:
+            df = df[df["symbol"] == symbol]
+        if "bucket_ts" in df.columns:
+            df = df.rename(columns={"bucket_ts": "timestamp"})
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_localize(None)
+        if start_date:
+            df = df[df["timestamp"] >= pd.Timestamp(start_date)]
+        if end_date:
+            df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+        df = df.sort_values("timestamp").reset_index(drop=True)
+        return df
+
+    @staticmethod
+    def download_from_binance(symbol: str, days: int = 90,
+                              cache_dir: str = None) -> pd.DataFrame:
+        """
+        直接从 Binance Futures API 下载 1m K 线数据
+
+        需要网络可访问 fapi.binance.com（可能需要 VPN）
+        下载后自动保存为 Parquet 缓存
+        """
+        import requests
+        import time as _time
+
+        interval = "1m"
+        limit = 1000
+        end_ms = int(_time.time() * 1000)
+        start_ms = end_ms - days * 24 * 60 * 60 * 1000
+
+        all_data = []
+        current = start_ms
+        batch = 0
+        session = requests.Session()
+
+        print(f"从 Binance API 获取 {symbol} {days}天 1m K线数据...")
+
+        while current < end_ms:
+            url = "https://fapi.binance.com/fapi/v1/klines"
+            params = {
+                "symbol": symbol, "interval": interval,
+                "startTime": current, "endTime": end_ms, "limit": limit,
+            }
+            try:
+                resp = session.get(url, params=params, timeout=15)
+                if resp.status_code == 429:
+                    _time.sleep(10)
+                    continue
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                if not data:
+                    break
+                all_data.extend(data)
+                batch += 1
+                current = data[-1][0] + 1
+                if batch % 20 == 0:
+                    print(f"  已获取 {len(all_data):,} 根K线 (batch {batch})...")
+                _time.sleep(0.05)
+            except Exception:
+                break
+
+        if not all_data:
+            print("  下载失败（网络不通？需要 VPN？）")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(all_data, columns=[
+            "timestamp", "open", "high", "low", "close", "volume",
+            "close_time", "quote_volume", "trades", "taker_buy_base",
+            "taker_buy_quote", "ignore",
+        ])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+        for c in ["open", "high", "low", "close", "volume"]:
+            df[c] = df[c].astype(float)
+        df = df[["timestamp", "open", "high", "low", "close", "volume"]]
+        df = df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+
+        print(f"  总计: {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            s = df["timestamp"].min().strftime("%Y-%m-%d")
+            e = df["timestamp"].max().strftime("%Y-%m-%d")
+            path = os.path.join(cache_dir, f"{symbol}_{s}_{e}.parquet")
+            df.to_parquet(path)
+            print(f"  已缓存到: {path}")
+
+        return df
+
+    @staticmethod
+    def load_from_timescaledb(symbol: str, start_date: str = None,
+                               end_date: str = None, cache_dir: str = None,
+                               db_url: str = None) -> pd.DataFrame:
+        """
+        从本地 TimescaleDB (Docker) 导出 1m K 线数据
+
+        默认连接: postgresql://postgres:postgres@localhost:5434/market_data
+        导出后自动保存为 Parquet 缓存
+        """
+        try:
+            import psycopg
+        except ImportError:
+            print("需要安装: pip install psycopg[binary]")
+            return pd.DataFrame()
+
+        if not db_url:
+            db_url = "postgresql://postgres:postgres@localhost:5434/market_data"
+
+        print(f"  从 TimescaleDB 导出 {symbol} 数据...")
+
+        where_clauses = ["symbol = %s"]
+        params: list = [symbol]
+        if start_date:
+            where_clauses.append("bucket_ts >= %s")
+            params.append(start_date)
+        if end_date:
+            where_clauses.append("bucket_ts <= %s")
+            params.append(end_date)
+
+        query = f"""
+            SELECT bucket_ts as timestamp, open, high, low, close, volume
+            FROM market_data.candles_1m
+            WHERE {' AND '.join(where_clauses)}
+            ORDER BY bucket_ts
+        """
+
+        try:
+            with psycopg.connect(db_url) as conn:
+                df = pd.read_sql(query, conn, params=params)
+        except Exception as e:
+            print(f"  连接失败: {e}")
+            return pd.DataFrame()
+
+        if df.empty:
+            print(f"  警告: TimescaleDB 中 {symbol} 无数据")
+            return pd.DataFrame()
+
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        for c in ["open", "high", "low", "close", "volume"]:
+            df[c] = df[c].astype(float)
+        df = df.sort_values("timestamp").reset_index(drop=True)
+
+        print(f"  导出完成: {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            s = df["timestamp"].min().strftime("%Y-%m-%d")
+            e = df["timestamp"].max().strftime("%Y-%m-%d")
+            path = os.path.join(cache_dir, f"{symbol}_{s}_{e}.parquet")
+            df.to_parquet(path)
+            print(f"  已缓存到: {path}")
+
+        return df
+
+    @staticmethod
+    def load_from_hf_parquet(symbol: str, start_date: str = None,
+                              end_date: str = None,
+                              cache_dir: str = None,
+                              parquet_dir: str = None) -> pd.DataFrame:
+        """
+        从下载好的 HuggingFace Parquet 分片中提取指定币种数据
+
+        parquet_dir: 存放 shard_*.parquet 的目录
+        """
+        import pyarrow.parquet as pq
+        import pyarrow.compute as pc
+        import pyarrow as pa
+
+        if not parquet_dir:
+            parquet_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "data", "hf_parquet"
+            )
+
+        shards = sorted(
+            [os.path.join(parquet_dir, f) for f in os.listdir(parquet_dir)
+             if f.endswith(".parquet")],
+        )
+        if not shards:
+            print(f"  未找到 Parquet 分片: {parquet_dir}")
+            return pd.DataFrame()
+
+        print(f"  从 {len(shards)} 个 Parquet 分片提取 {symbol}...")
+        tables = []
+        for i, shard in enumerate(shards):
+            try:
+                table = pq.read_table(
+                    shard,
+                    filters=[("symbol", "=", symbol)],
+                    columns=["bucket_ts", "open", "high", "low", "close", "volume"],
+                )
+                if len(table) > 0:
+                    tables.append(table)
+                    print(f"    分片 {i}: {len(table):,} 行", end="\r")
+            except Exception as e:
+                print(f"    分片 {i}: 错误 {e}")
+
+        if not tables:
+            print(f"  警告: {symbol} 在所有分片中无数据")
+            return pd.DataFrame()
+
+        combined = pa.concat_tables(tables)
+        df = combined.to_pandas()
+        df = df.rename(columns={"bucket_ts": "timestamp"})
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        for c in ["open", "high", "low", "close", "volume"]:
+            df[c] = df[c].astype(float)
+
+        if start_date:
+            ts_start = pd.Timestamp(start_date)
+            if df["timestamp"].dt.tz is not None and ts_start.tzinfo is None:
+                ts_start = ts_start.tz_localize("UTC")
+            df = df[df["timestamp"] >= ts_start]
+        if end_date:
+            ts_end = pd.Timestamp(end_date)
+            if df["timestamp"].dt.tz is not None and ts_end.tzinfo is None:
+                ts_end = ts_end.tz_localize("UTC")
+            df = df[df["timestamp"] <= ts_end]
+
+        df = df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+        print(f"  提取完成: {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            s = df["timestamp"].min().strftime("%Y-%m-%d")
+            e = df["timestamp"].max().strftime("%Y-%m-%d")
+            path = os.path.join(cache_dir, f"{symbol}_{s}_{e}.parquet")
+            df.to_parquet(path)
+            print(f"  已缓存到: {path}")
+
+        return df
+
+    @staticmethod
+    def resample(df_1m: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+        """从 1m 聚合到更高时间框架"""
+        tf_map = {"5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h", "1d": "1D"}
+        rule = tf_map.get(timeframe)
+        if not rule:
+            raise ValueError(f"不支持的时间框架: {timeframe}")
+
+        df = df_1m.set_index("timestamp")
+        resampled = df.resample(rule).agg({
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        }).dropna()
+        resampled = resampled.reset_index()
+        return resampled
