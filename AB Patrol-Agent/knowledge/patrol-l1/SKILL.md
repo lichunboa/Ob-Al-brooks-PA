@@ -40,33 +40,15 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 - 什么时候从 `watching` 升级到 `pre_signal / candidate / executable`
 - 什么时候进入 `S7-management`
 
+理论解释、风格差异、多周期概率、订单类型和管理原则，统一去这些原文里读：
 
-**交易周期**（3 个周期，PA 技术在所有周期通用）：
+- 多周期与方向背景：`S2-direction.md`
+- 风格、方程和订单类型：`S5-evaluation.md`
+- playbook 与市场状态路由：`S4-strategy-match.md`
+- 规范层：`canonical/C0-C5`
+- 纪律锚点：`references/quotes/Q1-Q6`
 
-> Al Brooks: "Price action is same for all markets, and all time frames"
-
-| 周期 | 角色 | 持仓风格倾向 | 信号频率/品种 |
-|------|------|-------------|-------------|
-| **1h** | 方向 + 结构 + Swing 入场 | Swing 为主 | 1-3 候选/天 |
-| **15m** | 结构 + Swing/Scalp 入场 | Swing / Scalp 均可 | 3-8 候选/天 |
-| **5m** | 主力图 + Scalp/Swing | Scalp 为主（也可 Swing） | 5-15 候选/天 |
-
-- **所有 PA setup 在所有周期有效** — 5m 的 H2 和 1h 的 H2 用同样的逻辑评估。策略不分周期。
-- 周期差异只影响：**持仓时间、SL 宽度、仓位大小** — 不影响策略选择
-- **多周期信号叠加**：不同周期同时出现信号 → 更高概率 → 优先执行
-- Al Brooks: "5 Minute TR: Think about Higher Time Frame" — 低周期无机会时**必须**往上找
-
-**Scalp vs Swing**（详见 S5 完整定义+阈值）：
-- **Scalp** 1R, P≥50% | **Swing** 2R+, P≥40% R≥1.5 | 两者**SL 都用结构位**，仓位不同
-
-**风格 + 订单类型路由表** → 详见 [S4-strategy-match.md](references/S4-strategy-match.md)「风格+订单类型路由表」
-
-**⚠️ 路由表执行检查**：入场前必过 5 步自检 → 详见 [S5-evaluation.md](references/S5-evaluation.md)「入场前路由验证」
-
-**多周期关系** → 详见 [S2-direction.md](references/S2-direction.md)「多周期概率调整矩阵」
-
-> Al Brooks 从不因大周期方向而禁止小周期交易。大周期是 **context（背景）**，不是 **constraint（限制）**。
-> **5m TR → 立即查 15m/30m/1h** 是否有 setup → 低周期无机会不等于无机会
+`SKILL` 本身不再重复这些理论，只保留流程和路由。
 
 ---
 
@@ -86,201 +68,73 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 
 ## 环境
 
-- **执行 API**: `http://localhost:8092`
-- **Bot ID**: `claude-pa`
-- **工作目录**: `~/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent`
-- **决策运行**: `codex_cli` 长会话（同一 thread 持续 resume）
-- **Host/TG**: `OpenClaw` 负责收发、频道路由和工作区记忆
-- **日志**: `data/pa_trader/journal/` + `run/service.log`
-- **缓存**: `data/pa_trader/state/runtime_state.json` + `data/pa_trader/state/market_state_l1.json`
-- **监控**: BTCUSDT, ETHUSDT, BNBUSDT（3 品种，专注深度分析而非广度覆盖）
-- **风险**: 每笔最终风险 1%（首次 30%，最多加仓两次至 100%）— 加仓规则详见 [S7-management.md](references/S7-management.md) 加仓策略章节
-- **杠杆**: **最大杠杆**（币安 USDT-M 合约：BTC/ETH/BNB 100x，部分品种 75x）— 下单时不指定 leverage 字段，使用账户默认杠杆
-- **复利**: 余额涨 10% -> 更新风险基数
-- **知识 authority**:
-  - canonical: `knowledge/patrol-l1/canonical`
-  - executable subset: `knowledge/patrol-l1/SKILL.md` + `references/S0-S7`
+- 决策：`codex_cli` 长会话
+- Host/TG：`OpenClaw`
+- 状态与缓存：`runtime_state + market_state_l1`
+- 监控品种：BTCUSDT / ETHUSDT / BNBUSDT
+- 理论 authority：`canonical + S + Q`
 
-**快捷控制（al-brooks 频道可直接用）**：
-- `一键启动交易`：调用 `POST /trading/toggle?enabled=true`
-- `一键停止交易`：调用 `POST /trading/toggle?enabled=false`
-- `一键切换交易所 币安`：调用 `PUT /config/exchange {"exchange":"binance","mode":"demo"}`，随后重启 execution-service(8094)
-- `一键切换交易所 OKX`：调用 `PUT /config/exchange {"exchange":"okx","mode":"demo"}`，随后重启 execution-service(8094)
-- 推荐命令：`bash scripts/patrol_trading_control.sh start|stop|switch binance|okx|status`
+命令、端口、API、启动/停止方式已移出 `SKILL`，统一看：
 
-**执行模板（优先使用）**：
-```bash
-cd ~/Desktop/Obsidian/Al-brooks-PA/AB\ Console-Backend
-
-# 一键启动交易
-bash scripts/patrol_trading_control.sh start
-
-# 一键停止交易
-bash scripts/patrol_trading_control.sh stop
-
-# 一键切换到币安（自动重启 8094）
-bash scripts/patrol_trading_control.sh switch binance
-
-# 一键切换到 OKX（自动重启 8094）
-bash scripts/patrol_trading_control.sh switch okx
-
-# 查看当前状态（交易开关+交易所）
-bash scripts/patrol_trading_control.sh status
-```
-
-```
-API:
-  余额      GET  /balance
-  持仓      GET  /positions
-  Bot状态   GET  /trading/bot-summary/claude-pa
-  可交易    GET  /trading/can-trade/claude-pa
-  K线       GET  /klines/{SYM}/multi  → 各周期 bar 数量见下表
-  仓位计算  GET  /trading/calculate-size/claude-pa?entry_price=X&stop_loss=Y&risk_percent={0.3~1}
-  下单      POST /order  {"symbol","side","quantity","stop_loss","take_profit","bot_id":"claude-pa","signal_source":"claude-pa","strategy","order_type":"MARKET|LIMIT|STOP_MARKET","price":null}
-  # ⚠️ 不指定 leverage 字段 — 使用账户默认杠杆（已在 execution-service 启动时设置为最大杠杆）
-  # order_type: MARKET(默认) | LIMIT(TR限价) | STOP_MARKET(突破入场)
-  # price: LIMIT/STOP_MARKET 时必填，MARKET 时不填
-  # ⚠️ Binance Testnet LIMIT 单可能无法查询成交状态 → 下单后用 GET /positions 验证是否成交
-  平仓      POST /order/{SYM}/close?bot_id=claude-pa
-  改止损    POST /order/{SYM}/modify-sl?new_stop_loss={价}&bot_id=claude-pa
-```
+- `knowledge/patrol-l1/README.md`
+- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
 
 ### K 线数据量（Al Brooks: "Traders should only be trading charts that have about 100 bars"）
 
-| 周期 | 返回数量 | 时间跨度 | Al Brooks 依据 |
-|------|---------|---------|---------------|
-| **5m** | **150 根** | 12.5h | "图表至少 100 bars" + S1 "浏览80+精读20" |
-| **15m** | **150 根** | 37.5h | 同上，PA 技术在所有图表通用 |
-| **30m** | **150 根** | 75h (3天) | 同上，"200+ bars to see Broad Channel" |
-| **1h** | **150 根** | 6.3天 | 同上 |
-| **4h** | **150 根** | 25天 | 同上 |
-| **1d** | **150 根** | 150天 | 同上，长期趋势背景 |
+- 默认统一：`150 bars`
+- 读盘约束：`浏览 80 + 精读 20`
 
-**Al Brooks 原文**: "Price action techniques work on all charts" — 所有周期同等对待，统一 150 根。
-
-**S1 读盘策略与 bar 数量的映射：**
-- **浏览80根**：扫视整体结构（趋势方向、主要HL/LH、通道边界、S/R位）→ 写入缓存 `structure_summary`
-- **精读20根**：最近20根逐根分析每根K线的含义 → 做交易决策
-- **冷启动/全刷新**：读全部 150 根，提取结构写入缓存
-- **Quick Scan**：只看最新 1-3 根 + 缓存中的 `structure_summary`，不重读历史
+理论说明和数量依据统一看：
+- `S1-reading.md`
+- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
 
 ### 缓存与 bar 数量的关系
 
-**缓存承接历史压力** — 全刷新时从 150 根中提取结构信息写入缓存，后续循环通过缓存获得历史 context 而不重读全部 bar：
+缓存只负责承接历史结构，不替代理论判断。
 
-| 缓存字段 | 来源 | 何时更新 | 用途 |
-|---------|------|---------|------|
-| `structure_summary` | 全刷新时从 80+ 根中提取 | 全刷新 / 状态变化 | 替代重读历史 bar |
-| `trend_origin` | S2 方向判断时记录 | 方向改变时 | 知道趋势起点价位 |
-| `channel_boundaries` | S3 市场状态判断 | 状态变化时 | 通道上下轨价位 |
-| `key_levels` | S3b 关键位置 | 全刷新 / 新 S/R 出现 | 历史 S/R 不丢失 |
-| `ema_history` | 各周期 EMA20 | 每轮 | EMA 趋势方向 |
+- 全刷新：重建结构摘要
+- 普通轮次：缓存 + 最新 bars 联合决策
+- 缓存失效：回到 `S1/S2/S3/S3b`
 
 ## S 系列知识体系（L1+L2 融合）
 
-每个分析阶段对应一个 S 文件，包含**完整的框架+深度知识**。
+这里只保留导航：
 
-| 阶段 | 文件 | 用途 | 何时 Read |
-|------|------|------|----------|
-| Daily 偏置 | [S0-daily-bias.md](references/S0-daily-bias.md) | Daily AI 方向 + 概率锚 | 每日首轮 / 缓存过期 |
-| 读盘 | [S1-reading.md](references/S1-reading.md) | 逐根读 K 线，Pressure，结构 | 缓存过期刷新 |
-| 方向 | [S2-direction.md](references/S2-direction.md) | Always-In + Gap + 多周期确认 | 持仓管理 / 缓存过期刷新 |
-| 市场状态 | [S3-market-state.md](references/S3-market-state.md) | BO/Channel(Tight/Broad)/TR/BC | 状态变化 / BC-SC |
-| 关键位置 | [S3b-key-levels.md](references/S3b-key-levels.md) | 9 种 S/R + 真空效应 + 磁力 | 持仓管理 / 全刷新 |
-| 策略匹配 | [S4-strategy-match.md](references/S4-strategy-match.md) | 15 个 Playbook + 状态矩阵 | 状态变化 |
-| 评估 | [S5-evaluation.md](references/S5-evaluation.md) | P×R + MM + Scalp/Swing + 获利计划 | 信号 K 线出现 |
-| BO 入场 | [S6-bo.md](references/S6-bo.md) | BO 评估 + Buy The Close + Spike 追进 | S3=BO/Spike |
-| 通道入场 | [S6-channel.md](references/S6-channel.md) | H1/H2/EMA PB/Wedge + TC/BC 规则 | S3=TC/BC |
-| TR 入场 | [S6-tr.md](references/S6-tr.md) | BLSHS + Failed BO Fade + 2nd Leg Trap | S3=TR |
-| 反转入场 | [S6-reversal.md](references/S6-reversal.md) | MTR + Climax + Channel Line Fade | BC/SC / Channel 末期 |
-| 通用规则 | [S6-common.md](references/S6-common.md) | 信号K线 + 订单类型 + 关键概率 | 所有入场前 |
-| 持仓管理 | [S7-management.md](references/S7-management.md) | Premise + 三种保护 + Trailing + 加仓 | 持仓管理（每轮） |
+- `S0-S3b`：背景、方向、状态、关键位
+- `S4-S6`：playbook、评估、入场
+- `S7`：持仓管理
+- `Q1-Q6`：纪律与纠偏
 
-S 文件**按需加载**，不是每轮全读。缓存保存分析结果，只在事件发生时 Read 对应的 S 文件。
+详细矩阵统一看 `knowledge/patrol-l1/README.md`。
 
 ---
 
 ## 运行模式
 
-patrol-l1 支持两种运行模式：
+当前只认新架构：
 
-### 模式 1：定时轮询（默认，通过 /patrol-l1 调用）
+- `codex_cli` 长会话负责决策
+- `OpenClaw` 负责 TG host / operator
+- `query-service + Web + TG` 负责可见性
+- `watchdog` 负责卡死恢复
+- 扫描间隔由 `Step 5` + 当前状态机共同决定
 
-**特点**：
-- 每 2-12 分钟执行一次（智能动态间隔）
-- 适合测试、调试、手动控制
-- 由 Claude Code 直接调用
+旧的 Claude slash 命令、trigger file、event-driver 启动说明，不再属于本文件。
+运行入口统一看：
 
-**使用方式**：
-```bash
-/patrol-l1 start    # 开始交易
-/patrol-l1 status   # 查看状态
-/patrol-l1 refresh  # 强制全刷新
-```
-
-### 模式 2：事件驱动（推荐，生产环境）
-
-**特点**：
-- WebSocket 监听 K 线更新（5m/15m/1h）
-- K 线更新 → 立即触发分析
-- 持仓管理定时器（每 60 秒，独立于 K 线事件）
-- 响应速度提升 50-80%（不需要轮询）
-- 符合 Al Brooks "Every bar matters" 原则
-
-**启动方式**：
-```bash
-# 在后台启动事件驱动器
-cd ~/Desktop/Obsidian/Al-brooks-PA/AB\ Console-Backend
-python scripts/patrol_l1_event_driver.py \
-  --exchange binance \
-  --port 8094 \
-  --symbols BTCUSDT,ETHUSDT,BNBUSDT \
-  --intervals 5m,15m,1h &
-
-# 查看日志
-tail -f data/pa_trader/pa_trader_l1.log
-```
-
-**工作原理**：
-1. WebSocket 监听 K 线更新
-2. 防抖机制（10 秒内不重复触发）
-3. 写入触发文件：`~/.claude/patrol-l1-trigger.json`
-4. Claude Code 读取触发文件 → 执行 /patrol-l1
-5. 持仓管理定时器：独立运行，每 60 秒检查一次
-
-**停止方式**：
-```bash
-# 查找进程
-ps aux | grep patrol_l1_event_driver
-
-# 停止进程
-kill <PID>
-```
-
-**两种模式对比**：
-
-| 特性 | 定时轮询 | 事件驱动 |
-|------|---------|---------|
-| 响应速度 | 2-12 分钟 | < 10 秒 |
-| 资源消耗 | 低 | 中（WebSocket 连接） |
-| 适用场景 | 测试、调试 | 生产环境 |
-| 错过 K 线风险 | 可能（轮询间隔内） | 极低（实时监听） |
-| 启动方式 | /patrol-l1 | python 脚本 |
+- `AB Patrol-Agent/scripts/start.sh`
+- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
 
 ---
 
 ## Step 0: 首轮初始化
 
-```bash
-DISCORD_WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null || echo "")
-cd ~/Desktop/Obsidian/Al-brooks-PA/AB\ Console-Backend
-```
+初始化运行上下文，准备日志、状态文件和推送能力。
+具体命令由 runtime / start.sh 负责，不在 `SKILL` 中重复。
 
 ## Step 0b: 加载缓存
 
-```bash
-cat data/pa_trader/market_state_l1.json 2>/dev/null || echo "CACHE_EMPTY"
-```
+读取 `market_state_l1` 与 `runtime_state`，判断本轮是冷启动、强制刷新还是正常续跑。
 
 **缓存存在时**：
 - 解析 `_meta.last_full_refresh` — 距今超过 1 小时 → 标记全部品种 `stale`
@@ -299,42 +153,14 @@ cat data/pa_trader/market_state_l1.json 2>/dev/null || echo "CACHE_EMPTY"
 
 ## Step 1: 获取全局数据 + Daily 偏置
 
-**Query Service 缓存层（V6.0）**：
-
-execution-service 提供了智能缓存层，减少重复 API 调用，提高响应速度：
-
-| API | 缓存 TTL | 说明 | 自动清除时机 |
-|-----|---------|------|------------|
-| `/klines/{SYMBOL}/multi` | 60 秒 | 一根 5m bar 的时间，符合 Al Brooks "Every bar matters" | 不清除（时间过期） |
-| `/positions` | 5 秒 | 实时性要求高 | 下单/平仓后立即清除 |
-| `/balance` | 30 秒 | 变化不频繁 | 下单/平仓后立即清除 |
-
-✅ **可以放心多次调用 API**：缓存命中时响应 < 1ms，不会造成性能问题。
-
-✅ **数据一致性保证**：下单/平仓后自动清除持仓和余额缓存，确保获取最新数据。
-
-✅ **符合 Al Brooks 原则**：K 线缓存 60 秒不会错过新 K 线（5m 周期 = 300 秒）。
+这里默认依赖 Query Service 的缓存层；TTL 与调用细节放在运行说明里，不再在 `SKILL` 重复。
 
 ---
 
 ### 1a. API 数据（并行，每轮必做）
 
-```bash
-curl -s http://localhost:8094/balance
-curl -s http://localhost:8094/positions
-curl -s http://localhost:8094/trading/bot-summary/claude-pa
-curl -s http://localhost:8094/health && curl -s http://localhost:8094/trading/can-trade/claude-pa
-tail -10 data/pa_trader/pa_trader_l1.log 2>/dev/null || echo "NO_LOG"
-```
-
-提取：余额（风险基数）、持仓、can-trade、最近交易记录。
-
-**余额 API 扩展字段（V6.0）**：
-- `margin_ratio`: 保证金率（健康度指标）
-- `maintenance_margin`: 维持保证金（强平线）
-- `total_position_margin`: 持仓占用保证金
-- `leverage`: 当前杠杆倍数
-- 详见 [S7-management.md](references/S7-management.md) 风险指标检查章节
+并行拉取余额、持仓、bot summary、health / can-trade 与最近运行摘要。
+这些字段由 runtime 固定取数；`SKILL` 只规定顺序和用途。
 
 **持仓和缓存不一致检查**：如果 /positions 返回品种 X 有持仓但缓存 status 不是 "in_trade" → 立即修正缓存，记录 [AUDIT] CACHE_POSITION_MISMATCH。
 
@@ -355,31 +181,11 @@ tail -10 data/pa_trader/pa_trader_l1.log 2>/dev/null || echo "NO_LOG"
 **此步骤完全不变，始终 Read S 文件。持仓管理不走缓存。**
 
 ### 2a. 获取持仓品种 K 线（多周期）
-```bash
-curl -s "http://localhost:8094/klines/{SYMBOL}/multi"
-```
 **多周期用途**：所有周期 PA 通用 — 1d（Daily 偏置/概率背景）→ 4h/1h/30m/15m/5m（每个周期独立寻找 setup + 互为 context）
 
 ### 2a-1. 预计算持仓管理数据（ab_* 模块）
 
-获取持仓品种的**多周期** K 线数据，调用 ab_* 模块预计算数值：
-
-```python
-from indicators.batch.ab_ema import analyze_ab_ema
-from indicators.batch.ab_sr import analyze_ab_sr
-from indicators.batch.ab_patterns import analyze_ab_patterns
-
-# 对持仓品种的 1h/15m/5m 都调用（多周期分析）
-ema_info, sr_info, pat_info = {}, {}, {}
-for tf in ['1h', '15m', '5m']:
-    klines = get_klines(symbol, tf)
-    open_arr = [k['O'] for k in klines]
-    high, low, close = [k['H'] for k in klines], [k['L'] for k in klines], [k['C'] for k in klines]
-
-    ema_info[tf] = analyze_ab_ema(open_arr, high, low, close)
-    sr_info[tf] = analyze_ab_sr(open_arr, high, low, close)
-    pat_info[tf] = analyze_ab_patterns(open_arr, high, low, close)
-```
+对持仓品种做多周期 `ab_ema / ab_sr / ab_patterns` 预计算。
 
 **数据用途**（多周期）：
 - `1h`: 大方向确认（S2 AI 方向）
@@ -390,14 +196,8 @@ for tf in ['1h', '15m', '5m']:
 
 ### 2a-2. 生成持仓品种图表（Discord 推送 + 人工复盘用）
 
-```bash
-# 生成 5m/15m/1h 三周期图表
-python AB\ Patrol-Agent/tools/chart_gen.py -s {SYMBOL} -i 5m,15m,1h --port 8094
-```
-
-**输出路径**：`AB Patrol-Agent/data/charts/YYYY-MM-DD/{SYMBOL}_{INTERVAL}_{HHMMSS}.png`
-
-**用途**：Discord 推送附图 + 用户人工复盘。**Agent 决策基于 ab_* 模块数值数据，不依赖图表视觉判断。**
+由 runtime 生成 5m/15m/1h 图表，供推送和人工复盘使用。
+Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身。
 
 ### 2b. 加载知识 + 执行管理
 
@@ -419,15 +219,7 @@ python AB\ Patrol-Agent/tools/chart_gen.py -s {SYMBOL} -i 5m,15m,1h --port 8094
 
 输出：`{SYM} | {方向} | 浮盈{%} | AI方向{一致/矛盾} | Premise{成立/失效} | Strength{高/中/低} | 操作{持有/移SL/平仓}`
 
-**移 SL 时推送 Discord**（仅移动时，持有不推）：
-```bash
-# 获取最新生成的 5m 图表路径
-CHART_PATH=$(ls -t "AB Patrol-Agent/data/charts/$(date +%Y-%m-%d)/${SYMBOL}_5m_"*.png 2>/dev/null | head -1)
-
-WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**L1 移SL** {SYM} {SIDE}\nSL: {旧SL} → {新SL} | 浮盈{%}\n理由: {新HL/LH位置}\n📊 图表: '"$CHART_PATH"'"}'
-```
+**移 SL 时推送 Discord**：由 runtime 负责；`SKILL` 只要求“移动保护时必须留下可复盘记录”。
 
 **Step 2 完成后更新缓存**：持仓品种的 market_state + ai_direction + key_levels
 
@@ -443,23 +235,7 @@ WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 > Quick Scan 的目的不是过滤掉不完美的信号，而是**找到所有可能的机会**。
 
 获取所有品种 K 线（**并行获取，V5.1 性能优化**）：
-
-```bash
-# 并行获取（使用 & 后台执行）
-curl -s "http://localhost:8094/klines/BTCUSDT/multi" > /tmp/klines_btc.json &
-curl -s "http://localhost:8094/klines/ETHUSDT/multi" > /tmp/klines_eth.json &
-curl -s "http://localhost:8094/klines/BNBUSDT/multi" > /tmp/klines_bnb.json &
-wait  # 等待所有并行任务完成
-
-# 读取结果
-BTC_KLINES=$(cat /tmp/klines_btc.json)
-ETH_KLINES=$(cat /tmp/klines_eth.json)
-BNB_KLINES=$(cat /tmp/klines_bnb.json)
-```
-
-⚡ **性能提升**：从串行（3 × RTT）→ 并行（1 × RTT），节省 1-2 秒/轮。
-
-✅ **Query Service 缓存**：K 线缓存 60 秒，重复调用时 < 1ms（见 Step 1 缓存说明）。
+由 runtime 并行获取 BTC/ETH/BNB 的多周期 K 线，并复用 Query 缓存层。
 
 **⚠️ 对每个品种，必须同时扫描 5m + 15m + 1h 三个周期**。每个周期独立检测 9 类事件 → 详见 [S6-common.md](references/S6-common.md)「Quick Scan 事件检测表」+「H2/L2 触发检测」
 
@@ -475,12 +251,7 @@ BNB_KLINES=$(cat /tmp/klines_bnb.json)
 - `running_narrative`：谁在控制(bulls/bears/均衡) + 力量变化(increasing/stable/decreasing) + 异常
 - `last_kline_close`：更新为本轮最新值
 - `ema20` / `avg_bar_size`：从 API 数据更新
-- `pre_signal`：如果条件正在酝酿但未触发 → 更新；已过期 → 清除；**新建 pre_signal 时立即 Discord 推送**：
-```bash
-WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**L1 信号酝酿** {SYM} {方向}\n条件: {condition}\n触发价: {signal_price} | 当前: {close} | 距离: {距离/ATR:.1f}xATR\n过期: {expires_at}"}'
-```
+- `pre_signal`：如果条件正在酝酿但未触发 → 更新；已过期 → 清除；新建时立即推送
 - `consecutive_watching`：无事件 → +1；有事件 → 重置为 0
 
 **Quick Scan 输出表**：
@@ -514,45 +285,12 @@ WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 
 **Phase B-0: 按需调用 ab_* 模块**
 
-根据事件类型，按需调用 ab_* 模块获取数值数据：
-
-```python
-# 根据事件类型决定调用哪些模块
-modules_needed = []
-if event_type in ['ema_touch', 'pb_complete']:
-    modules_needed.append('ab_ema')  # 需要 EMA 数据
-if event_type in ['level_break', 'tr_edge', 'signal(TR)']:
-    modules_needed.append('ab_sr')  # 需要 S/R 数据
-if event_type in ['signal_trigger', 'h2_l2_trigger']:
-    modules_needed.append('ab_mm')  # 需要 MM 目标计算 R
-if event_type in ['anomaly', 'momentum', 'climax_suspected']:
-    modules_needed.append('ab_patterns')  # 需要形态/压力数据
-
-# 按需调用（避免不必要的计算）
-if 'ab_ema' in modules_needed:
-    from indicators.batch.ab_ema import analyze_ab_ema
-    ema_info = analyze_ab_ema(open_arr, high, low, close)
-if 'ab_sr' in modules_needed:
-    from indicators.batch.ab_sr import analyze_ab_sr
-    sr_info = analyze_ab_sr(open_arr, high, low, close)
-if 'ab_mm' in modules_needed:
-    from indicators.batch.ab_mm import analyze_ab_mm
-    mm_info = analyze_ab_mm(open_arr, high, low, close)
-if 'ab_patterns' in modules_needed:
-    from indicators.batch.ab_patterns import analyze_ab_patterns
-    pat_info = analyze_ab_patterns(open_arr, high, low, close)
-```
+按事件类型调用必要的 `ab_*` 模块，不做无意义全量计算。
 
 **Phase B-0.5: 生成事件品种图表（Discord 推送 + 人工复盘用）**
 
-```bash
-# 生成 5m/15m/1h 三周期图表
-python AB\ Patrol-Agent/tools/chart_gen.py -s {SYMBOL} -i 5m,15m,1h --port 8094
-```
-
-**输出路径**：`AB Patrol-Agent/data/charts/YYYY-MM-DD/{SYMBOL}_{INTERVAL}_{HHMMSS}.png`
-
-**用途**：Discord 推送开仓/BC 警报时附图 + 用户人工复盘。**Agent 决策基于 ab_* 模块数值。**
+生成 5m/15m/1h 图表，供推送和人工复盘使用。
+图片是辅助审计，不是主决策来源。
 
 **数据用途**：
 - `ema_info`: EMA 斜率、MAG、First PB（用于方向确认，详见 S2/S6-channel）
@@ -641,12 +379,7 @@ S3 判定 BC/SC → 执行：
 2. 等 2-3 根看 FT — 恢复=MG(假Climax) / 不恢复=真Climax
 3. Gap 关闭=EG → 可 fade | Gap 保持+恢复=MG → 恢复顺势
 4. 更新缓存 `bc_sc_guard`，持续跟进直到 MG/EG 确认
-5. **BC/SC 确认立即 Discord 推送**（含评分，提醒警惕）：
-```bash
-WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**⚠️ L1 BC/SC 警报** {SYM}\n{类型} {N}/5 | bar={X}xATR | close={X}% of range\n操作: 停止追顺势，等 TBTL 验证\n状态→ bc_guard"}'
-```
+5. **BC/SC 确认立即推送风险提醒**（含评分，提醒警惕；具体发送由 runtime 负责）
 
 #### 阶段 5: 按周期独立路由入场
 

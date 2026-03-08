@@ -5,6 +5,7 @@
 - `SKILL.md`
   - 只负责目录、流程编排、阶段切换、Step 0-5、路由策略
   - 不应该继续堆积大量交易理论原文
+  - 不应该继续堆积命令、端口、API 与旧 Claude 运行说明
   - 任何具体交易规则，优先放到 `S` 或 `C`
 
 - `references/S*.md`
@@ -28,6 +29,7 @@
 - 规范层 canonical：`AB Patrol-Agent/knowledge/patrol-l1/canonical/`
 - 完整 skill: `AB Patrol-Agent/knowledge/patrol-l1/SKILL.md`
 - 完整 S 文件目录: `AB Patrol-Agent/knowledge/patrol-l1/references/`
+- 运行维护说明：`AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
 
 这两处是当前 Al Brooks patrol 的完整权威知识副本，对应原始来源：
 
@@ -49,6 +51,7 @@
    - `SKILL.md` 会按章节切块后按状态加载，避免每轮整份全文硬塞
    - 会根据 `phase / quick_scan_events / 持仓状态 / pre_signal / entry_ready` 选择需要的 canonical + S 文件
    - 这是“选择原文”，不是“摘要原文”
+   - 命令/API/端口说明已从 `SKILL` 移出，不再进入决策 prompt
 
 3. **优化点在流程，不在删知识**
    - 通过状态路由、事件路由、推送节流和 prompt 结构优化来降低超时

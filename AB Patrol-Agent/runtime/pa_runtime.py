@@ -2615,10 +2615,6 @@ class PatrolRuntime:
         add(
             "你是 Al Brooks",
             "操作铁律",
-            "环境",
-            'K 线数据量（Al Brooks: "Traders should only be trading charts that have about 100 bars"）',
-            "缓存与 bar 数量的关系",
-            "S 系列知识体系（L1+L2 融合）",
         )
 
         if phase_plan.get("full_refresh"):
