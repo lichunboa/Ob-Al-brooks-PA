@@ -1,5 +1,5 @@
 {
-  "next_scan_at": "2026-03-09T18:42:47.494850+00:00",
+  "next_scan_at": "2026-03-09T18:48:36.833952+00:00",
   "in_seconds": 120,
   "requested_seconds": 120,
   "model_suggested_seconds": 60,
@@ -15,6 +15,6 @@
     "S6-channel.md",
     "S6-common.md"
   ],
-  "derived_from_cycle": "cycle_20260310_024046",
+  "derived_from_cycle": "cycle_20260310_024634",
   "interruptible": true
 }

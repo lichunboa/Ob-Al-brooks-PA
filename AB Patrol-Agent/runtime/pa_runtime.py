@@ -3813,7 +3813,7 @@ class PatrolRuntime:
                 "stop_loss": action.get("sl"),
                 "take_profit": action.get("tp"),
                 "strategy": action.get("strategy"),
-                "signal_source": self.config.operator_agent,
+                "signal_source": action.get("signal_source") or self.config.operator_agent,
                 "bot_id": self.config.execution_bot_id,
             }
             result["order_payload"] = order_payload
