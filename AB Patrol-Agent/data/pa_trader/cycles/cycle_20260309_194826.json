@@ -1,0 +1,1108 @@
+{
+  "cycle_id": "cycle_20260309_194826",
+  "phase": "BOOTSTRAP",
+  "time_utc": "2026-03-09T11:48:26.239744+00:00",
+  "trigger": null,
+  "quick_scan_events": {
+    "BTCUSDT": {
+      "5m": [
+        "state:5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部",
+        "cached_pre_signal"
+      ]
+    },
+    "ETHUSDT": {
+      "5m": [
+        "state:5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测",
+        "cached_pre_signal",
+        "stale:consecutive_watching"
+      ]
+    },
+    "BNBUSDT": {
+      "5m": [
+        "state:5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理",
+        "cached_pre_signal"
+      ]
+    }
+  },
+  "phase_plan": {
+    "phase": "BOOTSTRAP",
+    "summary": "冷启动或缓存过期，执行全刷新并重建 daily bias / structure / scenarios。",
+    "full_refresh": true,
+    "full_refresh_reason": "stale_symbol_threshold",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "manage_symbols": [],
+    "prompt_references": [
+      "S0-daily-bias.md",
+      "S1-reading.md",
+      "S2-direction.md",
+      "S3-market-state.md",
+      "S3b-key-levels.md",
+      "S4-strategy-match.md",
+      "S5-evaluation.md",
+      "S6-common.md",
+      "S6-bo.md",
+      "S6-channel.md",
+      "S6-tr.md",
+      "S7-management.md"
+    ],
+    "trigger_symbol": null
+  },
+  "knowledge_loading": {
+    "budget_chars": 108000,
+    "knowledge_chars": 59919,
+    "over_budget": false,
+    "skill_mode": "full_sections",
+    "skill_sections": [
+      "你是 Al Brooks",
+      "操作铁律",
+      "Step 0: 首轮初始化",
+      "Step 0b: 加载缓存",
+      "Step 1: 获取全局数据 + Daily 偏置",
+      "1a. 运行快照（每轮必做）",
+      "1b. Daily 偏置（条件化）",
+      "Step 3: 扫描新机会（两阶段扫描）",
+      "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
+      "Scalp 快速通道（不进 Phase B，< 30 秒决策）",
+      "Phase B: 深分析（仅有事件的品种）",
+      "3d. 快速放弃条件（详见 S5 评估 + S6-channel / S6-bo 入场）",
+      "3d-2. PASS 分类 + 反恐惧硬检查",
+      "3d-3. SL 打掉后重新入场",
+      "3e. 自我验证（下单前必做，10 项全过）",
+      "3f. 执行开仓与计划委托",
+      "Step 5: 定时器（智能动态间隔）",
+      "强制全刷新（Anti-Stale 机制）",
+      "pre_signal 超时（按周期区分）"
+    ],
+    "reference_modes": {
+      "C0-foundations.md": "full",
+      "C5-step5-dynamic-timing.md": "full",
+      "C1-market-cycle-and-state.md": "full",
+      "C2-triggers-and-reversal-taxonomy.md": "full",
+      "C3-style-equation-and-order-planning.md": "full",
+      "S0-daily-bias.md": "full",
+      "S1-reading.md": "full",
+      "S4-strategy-match.md": "full",
+      "S3b-key-levels.md": "full",
+      "S5-evaluation.md": "full",
+      "S6-common.md": "full",
+      "S6-channel.md": "full",
+      "quotes/Q1-context.md": "full",
+      "quotes/Q2-direction.md": "full",
+      "quotes/Q3-fear.md": "full",
+      "quotes/Q4-entry.md": "full",
+      "quotes/Q5-te.md": "full"
+    },
+    "full_reference_count": 17
+  },
+  "analysis_board": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "pre_signal",
+        "stage": "TR_TOP_REVERSAL_PROBE_WAIT_ACCEPTANCE",
+        "consecutive_watching": 2,
+        "daily_bias": {
+          "bias": "中性偏空到中性",
+          "state": "日线TR内反弹测试",
+          "source": "本轮重判",
+          "note": "日线仍是TR，当前更应尊重TR顶部的失败突破风险，而不是继续沿用旧的突破接受叙事。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部",
+        "market_state_detail": "5分钟已经转成AIS并连续下行，15分钟与1小时都在TR顶部；但当前只有wedge_or_mtr类整理线索，没有新的清晰L2。",
+        "structure_summary": "浏览80根后，大区间仍是主背景；精读近20根显示高位上破后连续三根30分钟bear body。这里不能因为先前有H2就继续主导多头thesis。按Brooks原话，多数反转先是DT/DB测试，MTR/L2起步只算试探；而坏楔形本身不是反转setup，所以当前只能把它视作顶部short probe，不直接执行。",
+        "running_narrative": "BTCUSDT的主导thesis仍是TR顶部失败突破反转试探。当前5分钟空头占优、15分钟与1小时都在TR顶部语境里，但并没有新的清晰L2确认，因此只能继续作为一般性反转试探观察。",
+        "pre_signal": {
+          "active": true,
+          "side": "SHORT",
+          "kind": "TR顶部失败突破反转试探",
+          "trigger": "优先等反弹回到67850-68036失败，或30分钟接受在67572.7下方",
+          "invalid_if": "30分钟重新接受在68036.4上方",
+          "note": "当前没有新的清晰L2，不能因为wedge_or_mtr就升级执行。"
+        },
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-09T11:39:55.635084+00:00",
+          "expires_at": "2026-03-09T12:04:55.635084+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "current_zone": "68036.4旧上沿下方的失败突破区",
+          "support": [
+            "67572.7",
+            "67572.7-67691.3 短线确认带",
+            "67238.07 1h EMA"
+          ],
+          "resistance": [
+            "67851.1",
+            "68036.4",
+            "68374.3"
+          ],
+          "magnets": [
+            "68036.4 旧上沿",
+            "67572.7 短线确认位"
+          ]
+        },
+        "thesis": "BTCUSDT的主导thesis仍是TR顶部失败突破反转试探。当前5分钟空头占优、15分钟与1小时都在TR顶部语境里，但并没有新的清晰L2确认，因此只能继续作为一般性反转试探观察。",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp / 反转试探",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "[PASS-WAIT] 当前贴着 67785.7-68005.8 阻力带，等待失败反弹或 66582.1 下方接受。"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_files": [
+          "BTCUSDT_1d.png",
+          "BTCUSDT_1h_191656.png",
+          "BTCUSDT_15m_191655.png",
+          "BTCUSDT_5m_191655.png"
+        ],
+        "chart_paths": [
+          "daily/BTCUSDT_1d.png",
+          "2026-03-09/BTCUSDT_1h_191656.png",
+          "2026-03-09/BTCUSDT_15m_191655.png",
+          "2026-03-09/BTCUSDT_5m_191655.png"
+        ],
+        "chart_api_paths": [
+          "/api/charts?path=daily/BTCUSDT_1d.png",
+          "/api/charts?path=2026-03-09/BTCUSDT_1h_191656.png",
+          "/api/charts?path=2026-03-09/BTCUSDT_15m_191655.png",
+          "/api/charts?path=2026-03-09/BTCUSDT_5m_191655.png"
+        ],
+        "primary_chart_file": "BTCUSDT_1d.png",
+        "primary_chart_path": "daily/BTCUSDT_1d.png",
+        "primary_chart_api_path": "/api/charts?path=daily/BTCUSDT_1d.png",
+        "latest_generated_at": "2026-03-09T19:16:56.675477+08:00",
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "pre_signal",
+        "stage": "TR_TOP_L2_REVERSAL_PROBE_WAIT_ACCEPTANCE",
+        "consecutive_watching": 6,
+        "daily_bias": {
+          "bias": "中性偏多试探",
+          "state": "日线TR底部深回调反弹",
+          "source": "本轮重判",
+          "note": "日线仍是TR；当前更应尊重TR顶部失败突破风险，而不是继续沿用旧的突破接受叙事。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测",
+        "market_state_detail": "5分钟已经出现L2@1995.89，15分钟回到TR顶部，30分钟重新跌到1994一带；当前更像失败突破反转试探，而不是多头延续。",
+        "structure_summary": "浏览80根后，日线仍属区间；精读近20根显示上破后两根30分钟bear body，最新30分钟虽有小反弹但仍收在低位。这里不能继续把long reaccept当主导叙事。按Brooks原话，多数反转先是DT/DB测试，L2/MTR起步只算试探；因此当前先把它作为顶部short probe，不直接执行。",
+        "running_narrative": "ETHUSDT的主导thesis仍是TR顶部L2反转试探。5分钟L2@1995.89出现在15分钟TR顶部与30分钟失守的背景里，但这仍只是第一次反转试探，不能直接升级成可执行swing空单。",
+        "pre_signal": {
+          "active": true,
+          "side": "SHORT",
+          "kind": "TR顶部L2反转试探",
+          "trigger": "优先等反弹回到2000-2012失败，或30分钟接受在1993.97下方",
+          "invalid_if": "30分钟重新接受在2011.95上方",
+          "note": "第一次L2只算反转试探，不直接做swing。"
+        },
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-09T11:39:55.635195+00:00",
+          "expires_at": "2026-03-09T12:04:55.635195+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "current_zone": "2011.95旧上沿下方的失败突破区",
+          "support": [
+            "1995.89 5m L2",
+            "1993.97",
+            "1975.02 1h EMA"
+          ],
+          "resistance": [
+            "1998.51",
+            "2003.24",
+            "2011.95",
+            "2019.55"
+          ],
+          "magnets": [
+            "2011.95 旧上沿",
+            "1995.89 短线确认位"
+          ]
+        },
+        "thesis": "ETHUSDT的主导thesis仍是TR顶部L2反转试探。5分钟L2@1995.89出现在15分钟TR顶部与30分钟失守的背景里，但这仍只是第一次反转试探，不能直接升级成可执行swing空单。",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp / 反转试探",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_files": [
+          "ETHUSDT_1d.png",
+          "ETHUSDT_1h_191658.png",
+          "ETHUSDT_15m_191658.png",
+          "ETHUSDT_5m_191657.png"
+        ],
+        "chart_paths": [
+          "daily/ETHUSDT_1d.png",
+          "2026-03-09/ETHUSDT_1h_191658.png",
+          "2026-03-09/ETHUSDT_15m_191658.png",
+          "2026-03-09/ETHUSDT_5m_191657.png"
+        ],
+        "chart_api_paths": [
+          "/api/charts?path=daily/ETHUSDT_1d.png",
+          "/api/charts?path=2026-03-09/ETHUSDT_1h_191658.png",
+          "/api/charts?path=2026-03-09/ETHUSDT_15m_191658.png",
+          "/api/charts?path=2026-03-09/ETHUSDT_5m_191657.png"
+        ],
+        "primary_chart_file": "ETHUSDT_1d.png",
+        "primary_chart_path": "daily/ETHUSDT_1d.png",
+        "primary_chart_api_path": "/api/charts?path=daily/ETHUSDT_1d.png",
+        "latest_generated_at": "2026-03-09T19:16:59.019957+08:00",
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "analysis_mode": "deep",
+      "reading_targets": {
+        "bar_count_total": 150,
+        "browse_target_bars": 80,
+        "close_read_target_bars": 20
+      },
+      "cached_state": {
+        "status": "pre_signal",
+        "stage": "UPPER_RANGE_RETEST_WAIT_FRESH_TRIGGER",
+        "consecutive_watching": 4,
+        "daily_bias": {
+          "bias": "中性偏多试探",
+          "state": "日线TR底部反弹",
+          "source": "本轮重判",
+          "note": "大级别反弹背景仍在，但当前仍属于区间上沿再测试，不是已确认突破。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "market_state": "5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理",
+        "market_state_detail": "30分钟仍维持BO背景，但5分钟与15分钟都没有新的顺势触发；当前更像上沿下方的整理，而不是立即续涨。",
+        "structure_summary": "浏览80根后仍是区间背景；精读近20根显示从下沿强力反弹后，上探630.2但没有真正站稳。最新30分钟回吐到626.57，5分钟与15分钟都退回TR，说明上一轮minor reversal的执行窗口已经关闭。这里也还不能直接当作高质量反手空单，因为失败突破尚未获得足够接受。",
+        "running_narrative": "BNBUSDT的上沿再测试多头背景仍在，但旧的可执行Scalp前提已经失效。5分钟与15分钟都回到TR，没有新的H1/H2接受，因此只能等待新的顺势触发。",
+        "pre_signal": {
+          "active": true,
+          "side": "LONG",
+          "kind": "上沿再测试等待新的H1/H2",
+          "trigger": "重新站上628.45并出现新的H1/H2或清晰bull signal",
+          "invalid_if": "30分钟重新接受在626.3下方",
+          "note": "旧的628.5 STOP计划已经过期。"
+        },
+        "pre_signal_meta": {
+          "timeframe": "5m",
+          "created_at": "2026-03-09T11:39:55.635226+00:00",
+          "expires_at": "2026-03-09T12:04:55.635226+00:00",
+          "extended_once": false
+        },
+        "key_levels": {
+          "current_zone": "629.8上沿下方的整理区",
+          "support": [
+            "626.57",
+            "627.09 5m EMA",
+            "625.53 15m EMA",
+            "621.44 1h EMA"
+          ],
+          "resistance": [
+            "628.45",
+            "629.8 旧上沿",
+            "630.2"
+          ],
+          "magnets": [
+            "629.8 旧上沿",
+            "630.2 1h H2"
+          ]
+        },
+        "thesis": "BNBUSDT的上沿再测试多头背景仍在，但旧的可执行Scalp前提已经失效。5分钟与15分钟都回到TR，没有新的H1/H2接受，因此只能等待新的顺势触发。",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED"
+      },
+      "live_timeframes": {},
+      "ab_context": {
+        "alignment_score": 0,
+        "dominant_direction": "TR",
+        "best_signal": "",
+        "quick_scan": {},
+        "timeframes": {}
+      },
+      "quick_scan": {},
+      "chart_context": {
+        "chart_files": [
+          "BNBUSDT_1d.png",
+          "BNBUSDT_1h_191700.png",
+          "BNBUSDT_15m_191700.png",
+          "BNBUSDT_5m_191659.png"
+        ],
+        "chart_paths": [
+          "daily/BNBUSDT_1d.png",
+          "2026-03-09/BNBUSDT_1h_191700.png",
+          "2026-03-09/BNBUSDT_15m_191700.png",
+          "2026-03-09/BNBUSDT_5m_191659.png"
+        ],
+        "chart_api_paths": [
+          "/api/charts?path=daily/BNBUSDT_1d.png",
+          "/api/charts?path=2026-03-09/BNBUSDT_1h_191700.png",
+          "/api/charts?path=2026-03-09/BNBUSDT_15m_191700.png",
+          "/api/charts?path=2026-03-09/BNBUSDT_5m_191659.png"
+        ],
+        "primary_chart_file": "BNBUSDT_1d.png",
+        "primary_chart_path": "daily/BNBUSDT_1d.png",
+        "primary_chart_api_path": "/api/charts?path=daily/BNBUSDT_1d.png",
+        "latest_generated_at": "2026-03-09T19:17:01.223465+08:00",
+        "chart_note": "图表由 chart_gen.py 生成，内部会应用 ab_ema / ab_sr / ab_mm / ab_patterns 做可视化标注。"
+      }
+    }
+  },
+  "positions": [],
+  "position_summaries": [],
+  "decision": {
+    "phase": "BOOTSTRAP",
+    "market_summary": "本轮决策模型超时。系统保留上一轮观察结论，不做新开仓，快速重试下一轮。",
+    "focus_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "symbol_updates": {
+      "BTCUSDT": {
+        "status": "pre_signal",
+        "stage": "TR_TOP_REVERSAL_PROBE_WAIT_ACCEPTANCE",
+        "consecutive_watching": 2,
+        "daily_bias": {
+          "bias": "中性偏空到中性",
+          "state": "日线TR内反弹测试",
+          "source": "本轮重判",
+          "note": "日线仍是TR，当前更应尊重TR顶部的失败突破风险，而不是继续沿用旧的突破接受叙事。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp / 反转试探",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "[PASS-WAIT] 当前贴着 67785.7-68005.8 阻力带，等待失败反弹或 66582.1 下方接受。",
+        "ai_direction": "5分钟AIS，15分钟TR，1小时TR，日线TR",
+        "market_state": "5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部",
+        "market_state_detail": "5分钟已经转成AIS并连续下行，15分钟与1小时都在TR顶部；但当前只有wedge_or_mtr类整理线索，没有新的清晰L2。",
+        "structure_summary": "浏览80根后，大区间仍是主背景；精读近20根显示高位上破后连续三根30分钟bear body。这里不能因为先前有H2就继续主导多头thesis。按Brooks原话，多数反转先是DT/DB测试，MTR/L2起步只算试探；而坏楔形本身不是反转setup，所以当前只能把它视作顶部short probe，不直接执行。",
+        "key_levels": {
+          "current_zone": "68036.4旧上沿下方的失败突破区",
+          "support": [
+            "67572.7",
+            "67572.7-67691.3 短线确认带",
+            "67238.07 1h EMA"
+          ],
+          "resistance": [
+            "67851.1",
+            "68036.4",
+            "68374.3"
+          ],
+          "magnets": [
+            "68036.4 旧上沿",
+            "67572.7 短线确认位"
+          ]
+        },
+        "thesis": "BTCUSDT的主导thesis仍是TR顶部失败突破反转试探。当前5分钟空头占优、15分钟与1小时都在TR顶部语境里，但并没有新的清晰L2确认，因此只能继续作为一般性反转试探观察。",
+        "pre_signal": {
+          "active": true,
+          "side": "SHORT",
+          "kind": "TR顶部失败突破反转试探",
+          "trigger": "优先等反弹回到67850-68036失败，或30分钟接受在67572.7下方",
+          "invalid_if": "30分钟重新接受在68036.4上方",
+          "note": "当前没有新的清晰L2，不能因为wedge_or_mtr就升级执行。"
+        },
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "event_tags": [
+          "state:5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部",
+          "cached_pre_signal"
+        ],
+        "running_narrative": "BTCUSDT的主导thesis仍是TR顶部失败突破反转试探。当前5分钟空头占优、15分钟与1小时都在TR顶部语境里，但并没有新的清晰L2确认，因此只能继续作为一般性反转试探观察。",
+        "refs": [
+          "S4-strategy-match.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md"
+        ],
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": {
+            "active": true,
+            "side": "SHORT",
+            "kind": "TR顶部失败突破反转试探",
+            "trigger": "优先等反弹回到67850-68036失败，或30分钟接受在67572.7下方",
+            "invalid_if": "30分钟重新接受在68036.4上方",
+            "note": "当前没有新的清晰L2，不能因为wedge_or_mtr就升级执行。"
+          },
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
+          "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md",
+            "S5-evaluation.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "强突破环境下逆势不做",
+          "execution_decision": "继续观察/等待",
+          "risk": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。",
+          "candidate_stage": "反转试探",
+          "execution_mode": "仅反转试探，不直接做 swing",
+          "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md",
+            "S5-evaluation.md"
+          ]
+        },
+        "scenarios": [
+          "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。"
+        ],
+        "brooks_filter": {
+          "category": "strong_breakout_countertrend",
+          "label": "强突破环境下逆势不做",
+          "summary": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
+          "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md",
+            "S5-evaluation.md"
+          ]
+        },
+        "planned_trade": {
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "强突破环境下逆势不做",
+          "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
+          "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md",
+            "S5-evaluation.md"
+          ],
+          "order_type_cn": "-",
+          "execution_semantics": {
+            "candidate_stage": "COUNTERTREND_PROBE",
+            "candidate_stage_cn": "反转试探",
+            "execution_mode": "COUNTERTREND_PROBE",
+            "execution_mode_cn": "仅反转试探，不直接做 swing",
+            "order_type": null,
+            "order_type_cn": "-",
+            "style": null,
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "强突破环境下逆势不做",
+            "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
+            "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md",
+              "S5-evaluation.md"
+            ],
+            "stage_rule_summary": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。"
+          }
+        }
+      },
+      "ETHUSDT": {
+        "status": "pre_signal",
+        "stage": "TR_TOP_L2_REVERSAL_PROBE_WAIT_ACCEPTANCE",
+        "consecutive_watching": 6,
+        "daily_bias": {
+          "bias": "中性偏多试探",
+          "state": "日线TR底部深回调反弹",
+          "source": "本轮重判",
+          "note": "日线仍是TR；当前更应尊重TR顶部失败突破风险，而不是继续沿用旧的突破接受叙事。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp / 反转试探",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "ai_direction": "5分钟AIS，15分钟TR，1小时TC，日线TR",
+        "market_state": "5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测",
+        "market_state_detail": "5分钟已经出现L2@1995.89，15分钟回到TR顶部，30分钟重新跌到1994一带；当前更像失败突破反转试探，而不是多头延续。",
+        "structure_summary": "浏览80根后，日线仍属区间；精读近20根显示上破后两根30分钟bear body，最新30分钟虽有小反弹但仍收在低位。这里不能继续把long reaccept当主导叙事。按Brooks原话，多数反转先是DT/DB测试，L2/MTR起步只算试探；因此当前先把它作为顶部short probe，不直接执行。",
+        "key_levels": {
+          "current_zone": "2011.95旧上沿下方的失败突破区",
+          "support": [
+            "1995.89 5m L2",
+            "1993.97",
+            "1975.02 1h EMA"
+          ],
+          "resistance": [
+            "1998.51",
+            "2003.24",
+            "2011.95",
+            "2019.55"
+          ],
+          "magnets": [
+            "2011.95 旧上沿",
+            "1995.89 短线确认位"
+          ]
+        },
+        "thesis": "ETHUSDT的主导thesis仍是TR顶部L2反转试探。5分钟L2@1995.89出现在15分钟TR顶部与30分钟失守的背景里，但这仍只是第一次反转试探，不能直接升级成可执行swing空单。",
+        "pre_signal": {
+          "active": true,
+          "side": "SHORT",
+          "kind": "TR顶部L2反转试探",
+          "trigger": "优先等反弹回到2000-2012失败，或30分钟接受在1993.97下方",
+          "invalid_if": "30分钟重新接受在2011.95上方",
+          "note": "第一次L2只算反转试探，不直接做swing。"
+        },
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "event_tags": [
+          "state:5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测",
+          "cached_pre_signal",
+          "stale:consecutive_watching"
+        ],
+        "running_narrative": "ETHUSDT的主导thesis仍是TR顶部L2反转试探。5分钟L2@1995.89出现在15分钟TR顶部与30分钟失守的背景里，但这仍只是第一次反转试探，不能直接升级成可执行swing空单。",
+        "refs": [
+          "S4-strategy-match.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md"
+        ],
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": {
+            "active": true,
+            "side": "SHORT",
+            "kind": "TR顶部L2反转试探",
+            "trigger": "优先等反弹回到2000-2012失败，或30分钟接受在1993.97下方",
+            "invalid_if": "30分钟重新接受在2011.95上方",
+            "note": "第一次L2只算反转试探，不直接做swing。"
+          },
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "PRE_SIGNAL",
+          "candidate_stage_cn": "预信号",
+          "execution_mode": "WAIT_ACCEPTANCE",
+          "execution_mode_cn": "等待接受/二次确认",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "TBTL 反转未完成",
+          "execution_decision": "继续观察/等待",
+          "risk": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "candidate_stage": "预信号",
+          "execution_mode": "等待接受/二次确认",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+        ],
+        "brooks_filter": {
+          "category": "tbtl_incomplete",
+          "label": "TBTL 反转未完成",
+          "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "wait_acceptance",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "MARKET",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "candidate_stage": "PRE_SIGNAL",
+          "candidate_stage_cn": "预信号",
+          "execution_mode": "WAIT_ACCEPTANCE",
+          "execution_mode_cn": "等待接受/二次确认",
+          "allow_executable": false,
+          "needs_exact_trigger": false,
+          "brooks_label": "TBTL 反转未完成",
+          "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+          "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "-",
+          "execution_semantics": {
+            "candidate_stage": "PRE_SIGNAL",
+            "candidate_stage_cn": "预信号",
+            "execution_mode": "WAIT_ACCEPTANCE",
+            "execution_mode_cn": "等待接受/二次确认",
+            "order_type": null,
+            "order_type_cn": "-",
+            "style": null,
+            "allow_executable": false,
+            "needs_exact_trigger": false,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "TBTL 反转未完成",
+            "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
+            "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。"
+          }
+        }
+      },
+      "BNBUSDT": {
+        "status": "pre_signal",
+        "stage": "UPPER_RANGE_RETEST_WAIT_FRESH_TRIGGER",
+        "consecutive_watching": 4,
+        "daily_bias": {
+          "bias": "中性偏多试探",
+          "state": "日线TR底部反弹",
+          "source": "本轮重判",
+          "note": "大级别反弹背景仍在，但当前仍属于区间上沿再测试，不是已确认突破。"
+        },
+        "daily_bias_expires": "2026-03-08T00:00:00Z",
+        "trade": {
+          "status": "flat",
+          "style": "Scalp",
+          "intent": "PLANNED_ENTRY_PENDING"
+        },
+        "last_pass_reason": "PRE_SIGNAL_EXPIRED",
+        "ai_direction": "1小时AIL，5分钟/15分钟TR，日线TR",
+        "market_state": "5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理",
+        "market_state_detail": "30分钟仍维持BO背景，但5分钟与15分钟都没有新的顺势触发；当前更像上沿下方的整理，而不是立即续涨。",
+        "structure_summary": "浏览80根后仍是区间背景；精读近20根显示从下沿强力反弹后，上探630.2但没有真正站稳。最新30分钟回吐到626.57，5分钟与15分钟都退回TR，说明上一轮minor reversal的执行窗口已经关闭。这里也还不能直接当作高质量反手空单，因为失败突破尚未获得足够接受。",
+        "key_levels": {
+          "current_zone": "629.8上沿下方的整理区",
+          "support": [
+            "626.57",
+            "627.09 5m EMA",
+            "625.53 15m EMA",
+            "621.44 1h EMA"
+          ],
+          "resistance": [
+            "628.45",
+            "629.8 旧上沿",
+            "630.2"
+          ],
+          "magnets": [
+            "629.8 旧上沿",
+            "630.2 1h H2"
+          ]
+        },
+        "thesis": "BNBUSDT的上沿再测试多头背景仍在，但旧的可执行Scalp前提已经失效。5分钟与15分钟都回到TR，没有新的H1/H2接受，因此只能等待新的顺势触发。",
+        "pre_signal": {
+          "active": true,
+          "side": "LONG",
+          "kind": "上沿再测试等待新的H1/H2",
+          "trigger": "重新站上628.45并出现新的H1/H2或清晰bull signal",
+          "invalid_if": "30分钟重新接受在626.3下方",
+          "note": "旧的628.5 STOP计划已经过期。"
+        },
+        "priority": 9,
+        "align_score": 0,
+        "signal": "",
+        "event_tags": [
+          "state:5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理",
+          "cached_pre_signal"
+        ],
+        "running_narrative": "BNBUSDT的上沿再测试多头背景仍在，但旧的可执行Scalp前提已经失效。5分钟与15分钟都回到TR，没有新的H1/H2接受，因此只能等待新的顺势触发。",
+        "refs": [
+          "S4-strategy-match.md",
+          "S3b-key-levels.md",
+          "S5-evaluation.md",
+          "S6-common.md",
+          "S6-channel.md"
+        ],
+        "entry_idea": {
+          "side": "WAIT",
+          "entry_zone": {
+            "active": true,
+            "side": "LONG",
+            "kind": "上沿再测试等待新的H1/H2",
+            "trigger": "重新站上628.45并出现新的H1/H2或清晰bull signal",
+            "invalid_if": "30分钟重新接受在626.3下方",
+            "note": "旧的628.5 STOP计划已经过期。"
+          },
+          "sl_reference": "",
+          "tp_reference": "",
+          "style": "反转试探",
+          "filter_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "evaluation": {
+          "p_estimate": null,
+          "r_estimate": null,
+          "equation_value": null,
+          "threshold_rhs": null,
+          "passes_price_action": false,
+          "passes_execution_gate": null,
+          "regime": "40%反转仅够 scalp",
+          "execution_decision": "继续观察/等待",
+          "risk": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "candidate_stage": "反转试探",
+          "execution_mode": "仅反转试探，不直接做 swing",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "scenarios": [
+          "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+        ],
+        "brooks_filter": {
+          "category": "forty_percent_reversal_scalp_only",
+          "label": "40%反转仅够 scalp",
+          "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
+          "max_status": "pre_signal",
+          "allow_executable": false,
+          "stage_family": "countertrend_probe",
+          "preferred_style": "反转试探",
+          "preferred_order_type": "STOP_MARKET",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ]
+        },
+        "planned_trade": {
+          "candidate_stage": "COUNTERTREND_PROBE",
+          "candidate_stage_cn": "反转试探",
+          "execution_mode": "COUNTERTREND_PROBE",
+          "execution_mode_cn": "仅反转试探，不直接做 swing",
+          "allow_executable": false,
+          "needs_exact_trigger": true,
+          "brooks_label": "40%反转仅够 scalp",
+          "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+          "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+          "source_refs": [
+            "S4-strategy-match.md",
+            "S5-evaluation.md",
+            "S6-reversal.md"
+          ],
+          "order_type_cn": "-",
+          "execution_semantics": {
+            "candidate_stage": "COUNTERTREND_PROBE",
+            "candidate_stage_cn": "反转试探",
+            "execution_mode": "COUNTERTREND_PROBE",
+            "execution_mode_cn": "仅反转试探，不直接做 swing",
+            "order_type": null,
+            "order_type_cn": "-",
+            "style": null,
+            "allow_executable": false,
+            "needs_exact_trigger": true,
+            "has_entry_price": false,
+            "has_entry_zone": false,
+            "brooks_label": "40%反转仅够 scalp",
+            "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
+            "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+            "stage_rule_source_refs": [
+              "S4-strategy-match.md",
+              "S5-evaluation.md",
+              "S6-reversal.md"
+            ],
+            "stage_rule_summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。"
+          }
+        }
+      }
+    },
+    "actions": [
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BTCUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部, cached_pre_signal",
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md"
+        ]
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "ETHUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测, cached_pre_signal, stale:consecutive_watching",
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md"
+        ]
+      },
+      {
+        "type": "LOG_ONLY",
+        "symbol": "BNBUSDT",
+        "reason": "模型超时，保留上一轮判断；事件参考: state:5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理, cached_pre_signal",
+        "refs": [
+          "S0-daily-bias.md",
+          "S1-reading.md"
+        ]
+      }
+    ],
+    "position_management": [],
+    "next_scan_seconds": 240,
+    "next_scan_reason": "MODEL_TIMEOUT_RETRY",
+    "state_patch": {
+      "model_timeout": true,
+      "last_model_timeout_at": "2026-03-09T11:48:26.224339+00:00",
+      "needs_post_trade_refresh": false,
+      "quiet_loops": 0,
+      "last_full_refresh_reason": "stale_symbol_threshold",
+      "fast_lane_attempted": false,
+      "fast_lane_executed": false,
+      "knowledge_loading": {
+        "budget_chars": 108000,
+        "knowledge_chars": 59919,
+        "over_budget": false,
+        "skill_mode": "full_sections",
+        "skill_sections": [
+          "你是 Al Brooks",
+          "操作铁律",
+          "Step 0: 首轮初始化",
+          "Step 0b: 加载缓存",
+          "Step 1: 获取全局数据 + Daily 偏置",
+          "1a. 运行快照（每轮必做）",
+          "1b. Daily 偏置（条件化）",
+          "Step 3: 扫描新机会（两阶段扫描）",
+          "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
+          "Scalp 快速通道（不进 Phase B，< 30 秒决策）",
+          "Phase B: 深分析（仅有事件的品种）",
+          "3d. 快速放弃条件（详见 S5 评估 + S6-channel / S6-bo 入场）",
+          "3d-2. PASS 分类 + 反恐惧硬检查",
+          "3d-3. SL 打掉后重新入场",
+          "3e. 自我验证（下单前必做，10 项全过）",
+          "3f. 执行开仓与计划委托",
+          "Step 5: 定时器（智能动态间隔）",
+          "强制全刷新（Anti-Stale 机制）",
+          "pre_signal 超时（按周期区分）"
+        ],
+        "reference_modes": {
+          "C0-foundations.md": "full",
+          "C5-step5-dynamic-timing.md": "full",
+          "C1-market-cycle-and-state.md": "full",
+          "C2-triggers-and-reversal-taxonomy.md": "full",
+          "C3-style-equation-and-order-planning.md": "full",
+          "S0-daily-bias.md": "full",
+          "S1-reading.md": "full",
+          "S4-strategy-match.md": "full",
+          "S3b-key-levels.md": "full",
+          "S5-evaluation.md": "full",
+          "S6-common.md": "full",
+          "S6-channel.md": "full",
+          "quotes/Q1-context.md": "full",
+          "quotes/Q2-direction.md": "full",
+          "quotes/Q3-fear.md": "full",
+          "quotes/Q4-entry.md": "full",
+          "quotes/Q5-te.md": "full"
+        },
+        "full_reference_count": 17
+      },
+      "prompt_references": [
+        "C0-foundations.md",
+        "C5-step5-dynamic-timing.md",
+        "C1-market-cycle-and-state.md",
+        "C2-triggers-and-reversal-taxonomy.md",
+        "C3-style-equation-and-order-planning.md",
+        "S0-daily-bias.md",
+        "S1-reading.md",
+        "S4-strategy-match.md",
+        "S3b-key-levels.md",
+        "S5-evaluation.md",
+        "S6-common.md",
+        "S6-channel.md",
+        "quotes/Q1-context.md",
+        "quotes/Q2-direction.md",
+        "quotes/Q3-fear.md",
+        "quotes/Q4-entry.md",
+        "quotes/Q5-te.md"
+      ],
+      "scan_bucket": {
+        "requested_seconds": 240,
+        "in_seconds": 240,
+        "reason_code": "MODEL_TIMEOUT_ACTIVE_CONTEXT",
+        "reason_text": "模型建议未返回，但仍有持仓、预信号、候选单或反转试探未完成，按 4 分钟保守复扫。",
+        "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+        "bucket_source_refs": [
+          "SKILL.md#Step 2",
+          "SKILL.md#Step 5",
+          "C5-step5-dynamic-timing.md",
+          "S4-strategy-match.md",
+          "S6-reversal.md",
+          "S7-management.md"
+        ],
+        "bucket_priority": "P2",
+        "cadence_tier": "常规巡逻",
+        "matched_conditions": [
+          "countertrend_probe_active",
+          "tbtl_incomplete"
+        ]
+      }
+    },
+    "explanation": "Decision provider timeout fallback: codex cli timeout after 240s"
+  },
+  "execution_results": [
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BTCUSDT",
+      "dry_run": false,
+      "started_at": "2026-03-09T11:48:26.236391+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:5分钟BO向下 + 15分钟TR顶部 + 1小时TR顶部, cached_pre_signal"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "ETHUSDT",
+      "dry_run": false,
+      "started_at": "2026-03-09T11:48:26.236406+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:5分钟TC向下 + 15分钟TR顶部 + 30分钟失守回测, cached_pre_signal, stale:consecutive_watching"
+    },
+    {
+      "type": "LOG_ONLY",
+      "symbol": "BNBUSDT",
+      "dry_run": false,
+      "started_at": "2026-03-09T11:48:26.236411+00:00",
+      "success": true,
+      "status": "LOG_ONLY",
+      "message": "模型超时，保留上一轮判断；事件参考: state:5分钟TR + 15分钟TR + 30分钟BO，区间上沿下方整理, cached_pre_signal"
+    }
+  ],
+  "next_scan": {
+    "next_scan_at": "2026-03-09T11:52:26.238538+00:00",
+    "in_seconds": 240,
+    "requested_seconds": 240,
+    "model_suggested_seconds": 240,
+    "model_suggested_reason": "MODEL_TIMEOUT_RETRY",
+    "reason_code": "MODEL_TIMEOUT_ACTIVE_CONTEXT",
+    "reason_text": "模型建议未返回，但仍有持仓、预信号、候选单或反转试探未完成，按 4 分钟保守复扫。",
+    "bucket_rule": "P2：有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 → 4 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 2",
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-reversal.md",
+      "S7-management.md"
+    ],
+    "derived_from_cycle": "cycle_20260309_194826",
+    "interruptible": true
+  },
+  "render_status": {
+    "cycle_card": {
+      "ok": true,
+      "skipped": true,
+      "reason": "not_significant"
+    },
+    "pre_signal": [],
+    "housekeeping": {
+      "ok": true,
+      "skipped": true,
+      "reason": "not_due"
+    }
+  },
+  "push_status": {
+    "cycle_card": {
+      "ok": false,
+      "skipped": true,
+      "reason": "not_significant"
+    },
+    "pre_signal": [],
+    "housekeeping": null
+  }
+}

@@ -107,6 +107,7 @@ export default function HomePage() {
   const snapshot = data?.snapshot || {};
   const runtime = snapshot.runtime || {};
   const execution = snapshot.execution || {};
+  const monitoring = snapshot.monitoring || {};
   const latestDecision = data?.decision?.decision || {};
   const recentItems = data?.recent?.items || [];
   const focusSymbols = runtime.focus_symbols || latestDecision.focus_symbols || [];
@@ -181,6 +182,13 @@ export default function HomePage() {
               <div><span className="text-slate-500">Cycle 新鲜度:</span> {cycleFreshness(snapshot)} / {snapshot?.stale_but_running ? "stale-but-running" : "正常"}</div>
               <div><span className="text-slate-500">下一次扫描:</span> {(snapshot.next_scan || {}).in_seconds || "-"} 秒</div>
               <div><span className="text-slate-500">刷新时间:</span> {updatedAt || "-"}</div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 text-sm leading-7 text-slate-300">
+              <div className="text-xs uppercase tracking-[0.22em] text-slate-500">上下文监控</div>
+              <div className="mt-2"><span className="text-slate-500">knowledge_chars:</span> {monitoring.knowledge_chars ?? "-"}</div>
+              <div><span className="text-slate-500">refs_count:</span> {monitoring.refs_count ?? 0}（完整 {monitoring.full_refs_count ?? 0} / 摘要 {monitoring.brief_refs_count ?? 0}）</div>
+              <div><span className="text-slate-500">request_size:</span> {monitoring.request_chars ?? "-"} chars / {monitoring.request_size_bytes ?? "-"} bytes</div>
+              <div><span className="text-slate-500">session_age:</span> {monitoring.session_age_seconds ?? "-"} 秒 / turns {monitoring.session_turn_count ?? "-"}</div>
             </div>
             <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 text-sm leading-7 text-slate-300">
               {displayText(latestDecision.market_summary || runtime.last_scan_decision || "暂无决策摘要", 360)}
@@ -258,7 +266,7 @@ export default function HomePage() {
                     <div className="text-xs text-slate-500">{item.phase || "-"} / {item.next_scan_seconds || "-"}s</div>
                   </div>
                   <div className="mt-2 text-xs text-slate-500">{(item.focus_symbols || []).join(", ") || "-"}</div>
-                  <div className="mt-3 text-sm leading-6 text-slate-300">{item.market_summary || "无摘要"}</div>
+                  <div className="mt-3 text-sm leading-6 text-slate-300">{displayText(item.market_summary, 180)}</div>
                 </div>
               ))}
             </div>

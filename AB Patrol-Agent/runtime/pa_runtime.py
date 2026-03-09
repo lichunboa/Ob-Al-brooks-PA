@@ -4068,6 +4068,30 @@ class PatrolRuntime:
             )
         return notices
 
+    def monitoring_snapshot(self, knowledge_loading: dict[str, Any] | None = None) -> dict[str, Any]:
+        knowledge_loading = knowledge_loading if isinstance(knowledge_loading, dict) else {}
+        session_state = load_json(self.state_dir / "decision_session.json", {})
+        request_path = self.logs_dir / "last_request.md"
+        request_text = read_text(request_path)
+        session_bootstrapped_at = session_state.get("bootstrapped_at")
+        session_age_seconds = None
+        if session_bootstrapped_at:
+            try:
+                session_age_seconds = max(0, int(time.time() - float(session_bootstrapped_at)))
+            except (TypeError, ValueError):
+                session_age_seconds = None
+        refs_count = int(knowledge_loading.get("full_reference_count") or 0) + int(
+            knowledge_loading.get("brief_reference_count") or 0
+        )
+        return {
+            "knowledge_chars": knowledge_loading.get("knowledge_chars"),
+            "refs_count": refs_count,
+            "request_chars": len(request_text),
+            "session_age_seconds": session_age_seconds,
+            "session_turn_count": session_state.get("turn_count"),
+            "session_model": session_state.get("model"),
+        }
+
     def render_pre_signal_push(self, notice: dict[str, Any]) -> str:
         def status_cn(value: str) -> str:
             mapping = {
@@ -4155,6 +4179,11 @@ class PatrolRuntime:
         chart_context = notice.get("chart_context") if isinstance(notice.get("chart_context"), dict) else {}
         chart_files = ", ".join(str(item) for item in (chart_context.get("chart_files") or [])[:3]) or "-"
         chart_hint = chart_context.get("primary_chart_path") or "-"
+        monitoring = self.monitoring_snapshot()
+        monitor_text = (
+            f"knowledge {monitoring.get('knowledge_chars') or '-'} | refs {monitoring.get('refs_count') or 0}"
+            f" | request {monitoring.get('request_chars') or '-'} | age {monitoring.get('session_age_seconds') or '-'}s"
+        )
 
         # 格式化价格
         try:
@@ -4208,6 +4237,9 @@ class PatrolRuntime:
                 "",
                 f"🖼 图表",
                 f"  {chart_files}",
+                "",
+                f"🧠 上下文",
+                f"  {monitor_text}",
                 "",
                 f"⏰ 有效期: {expiry_formatted}",
                 "━━━━━━━━━━━━━━━━━━━━",
@@ -5017,6 +5049,7 @@ class PatrolRuntime:
         trade_reason = str(can_trade.get("reason") or "-")
         dry_run_text = "是" if self.config.dry_run else "否"
         knowledge_loading = (decision.get("state_patch") or {}).get("knowledge_loading") or {}
+        monitoring = self.monitoring_snapshot(knowledge_loading)
         refs_text = ", ".join(collect_refs()) or "-"
         summary_text = trim_text(decision.get("market_summary"), 260)
         explanation_text = trim_text(decision.get("explanation"), 320)
@@ -5172,6 +5205,12 @@ class PatrolRuntime:
                     "━━ 调试信息 ━━",
                     f"• 参考文件: {refs_text}",
                     f"• 知识加载: {knowledge_text}",
+                    (
+                        f"• 上下文监控: knowledge {monitoring.get('knowledge_chars') or '-'}"
+                        f" | refs {monitoring.get('refs_count') or 0}"
+                        f" | request {monitoring.get('request_chars') or '-'}"
+                        f" | session_age {monitoring.get('session_age_seconds') or '-'}s"
+                    ),
                     f"• Skill章节: {trim_text(skill_sections_text, 180)}",
                     f"• 原始模型解释: {explanation_text}",
                     "• 图表上下文: chart_gen.py + ab_ema / ab_sr / ab_mm / ab_patterns 已接入分析板",

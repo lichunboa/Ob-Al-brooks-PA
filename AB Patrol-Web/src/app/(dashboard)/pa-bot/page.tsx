@@ -188,6 +188,7 @@ export default function PABotPage() {
   const snapshot = data.snapshot || {};
   const runtime = snapshot.runtime || {};
   const execution = snapshot.execution || {};
+  const monitoring = snapshot.monitoring || {};
   const nextScan = snapshot.next_scan || {};
   const latestDecision = data.decision?.decision || {};
   const recentItems = data.recent?.items || [];
@@ -434,6 +435,22 @@ export default function PABotPage() {
               <p>Cycle 年龄: <code className="text-amber-300">{snapshot.latest_cycle_age_seconds ?? "-"} 秒</code></p>
               <p>最近成功: <code className="text-amber-300">{snapshot.last_success_at || "-"}</code></p>
               <p>最近失败: <code className="text-amber-300">{snapshot.last_failure_at || "-"}</code></p>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+              <Activity className="h-4 w-4" />
+              上下文监控
+            </div>
+            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
+              <p>knowledge_chars: <code className="text-amber-300">{monitoring.knowledge_chars ?? "-"}</code></p>
+              <p>refs_count: <code className="text-amber-300">{monitoring.refs_count ?? 0}</code></p>
+              <p>refs 拆分: <code className="text-amber-300">完整 {monitoring.full_refs_count ?? 0} / 摘要 {monitoring.brief_refs_count ?? 0}</code></p>
+              <p>request_size: <code className="text-amber-300">{monitoring.request_chars ?? "-"} chars / {monitoring.request_size_bytes ?? "-"} bytes</code></p>
+              <p>session_age: <code className="text-amber-300">{monitoring.session_age_seconds ?? "-"} 秒</code></p>
+              <p>session_turns: <code className="text-amber-300">{monitoring.session_turn_count ?? "-"}</code></p>
+              <p>session_model: <code className="text-amber-300">{displayText(monitoring.session_model) || "-"}</code></p>
             </div>
           </div>
 

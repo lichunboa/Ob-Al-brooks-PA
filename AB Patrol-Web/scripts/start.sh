@@ -8,4 +8,14 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
-exec npm run dev
+MODE="${1:-prod}"
+
+if [[ "$MODE" == "dev" ]]; then
+  exec npm run dev
+fi
+
+if [[ ! -f ".next/BUILD_ID" ]]; then
+  npm run build
+fi
+
+exec npm run start

@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 
 
+def _now_ts() -> float:
+    return time.time()
+
+
 def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -41,6 +45,15 @@ def read_jsonl_tail(path: Path, limit: int = 10) -> list[dict[str, Any]]:
         if isinstance(payload, dict):
             items.append(payload)
     return items
+
+
+def read_text(path: Path) -> str:
+    if not path.exists():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
 
 
 def port_open(port: int, host: str = "127.0.0.1") -> bool:
@@ -382,9 +395,11 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
     data_dir = root / "data" / "pa_trader"
     state_file = data_dir / "state" / "runtime_state.json"
     next_scan_file = data_dir / "state" / "next_scan.json"
+    session_state_file = data_dir / "state" / "decision_session.json"
     cycles_dir = data_dir / "cycles"
     decision_log = data_dir / "journal" / "decision_log.jsonl"
     execution_log = data_dir / "journal" / "execution_log.jsonl"
+    request_path = data_dir / "logs" / "decision" / "last_request.md"
     run_pid = root / "run" / "service.pid"
     run_log = root / "run" / "service.log"
     query_pid = root / "run" / "query-service.pid"
@@ -398,6 +413,7 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
 
     runtime = read_json(state_file)
     next_scan = read_json(next_scan_file)
+    session_state = read_json(session_state_file)
     cycle_path, cycle = latest_cycle(cycles_dir)
     decision_tail = read_jsonl_tail(decision_log, limit=5)
     execution_tail = read_jsonl_tail(execution_log, limit=5)
@@ -418,11 +434,48 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
     if cycle_path and cycle_path.exists():
         try:
             latest_cycle_mtime = cycle_path.stat().st_mtime
-            import time
-            latest_cycle_age_seconds = max(0, int(time.time() - latest_cycle_mtime))
+            latest_cycle_age_seconds = max(0, int(_now_ts() - latest_cycle_mtime))
         except OSError:
             latest_cycle_mtime = None
             latest_cycle_age_seconds = None
+
+    latest_cycle_decision = (cycle.get("decision") or {}) if isinstance(cycle, dict) else {}
+    latest_cycle_state_patch = (
+        latest_cycle_decision.get("state_patch") if isinstance(latest_cycle_decision.get("state_patch"), dict) else {}
+    )
+    latest_knowledge = (
+        latest_cycle_state_patch.get("knowledge_loading")
+        if isinstance(latest_cycle_state_patch.get("knowledge_loading"), dict)
+        else {}
+    )
+    request_text = read_text(request_path)
+    request_chars = len(request_text)
+    request_size_bytes = request_path.stat().st_size if request_path.exists() else 0
+    session_bootstrapped_at = session_state.get("bootstrapped_at")
+    session_last_used_at = session_state.get("last_used_at")
+    session_age_seconds = None
+    if session_bootstrapped_at:
+        try:
+            session_age_seconds = max(0, int(_now_ts() - float(session_bootstrapped_at)))
+        except (TypeError, ValueError):
+            session_age_seconds = None
+    monitoring = {
+        "knowledge_chars": latest_knowledge.get("knowledge_chars"),
+        "refs_count": int(latest_knowledge.get("full_reference_count") or 0)
+        + int(latest_knowledge.get("brief_reference_count") or 0),
+        "full_refs_count": int(latest_knowledge.get("full_reference_count") or 0),
+        "brief_refs_count": int(latest_knowledge.get("brief_reference_count") or 0),
+        "request_chars": request_chars,
+        "request_size_bytes": request_size_bytes,
+        "session_age_seconds": session_age_seconds,
+        "session_turn_count": session_state.get("turn_count"),
+        "session_thread_id": session_state.get("thread_id"),
+        "session_model": session_state.get("model"),
+        "session_bootstrapped_at": session_bootstrapped_at,
+        "session_last_used_at": session_last_used_at,
+        "skill_mode": latest_knowledge.get("skill_mode"),
+        "skill_sections": latest_knowledge.get("skill_sections") if isinstance(latest_knowledge.get("skill_sections"), list) else [],
+    }
 
     execution = {
         "health": http_get(execution_base, "/health"),
@@ -472,6 +525,7 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
         "last_failure_at": last_failure_at,
         "last_failure_reason": last_failure_reason,
         "watchdog_state": watchdog_state,
+        "monitoring": monitoring,
     }
     if include_funnel:
         snapshot["trade_funnel"] = classify_trade_funnel({"root": str(root)})
@@ -481,6 +535,7 @@ def runtime_snapshot(root: Path, execution_base: str, execution_bot_id: str, *, 
 def render_status_card(snapshot: dict[str, Any]) -> str:
     runtime = snapshot["runtime"]
     execution = snapshot["execution"]
+    monitoring = snapshot.get("monitoring") if isinstance(snapshot.get("monitoring"), dict) else {}
     can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
     positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
     orders = execution.get("orders") if isinstance(execution.get("orders"), list) else []
@@ -511,6 +566,12 @@ def render_status_card(snapshot: dict[str, Any]) -> str:
         f"execution-service: {'UP' if snapshot['execution_port_open'] else 'DOWN'}",
         f"provider: active={active_provider} | requested={requested_provider} | model={model}",
         f"decision_session: {decision_session_id}",
+        (
+            f"context_monitor: knowledge={monitoring.get('knowledge_chars') or '-'} chars"
+            f" | refs={monitoring.get('refs_count') or 0}"
+            f" | request={monitoring.get('request_chars') or '-'} chars"
+            f" | session_age={monitoring.get('session_age_seconds') or '-'}s"
+        ),
         f"phase: {runtime.get('current_phase') or decision.get('phase') or '-'}",
         f"focus: {', '.join(runtime.get('focus_symbols') or []) or '-'}",
         f"can_trade: {can_trade.get('can_trade')} | reason: {can_trade.get('reason') or 'OK'}",

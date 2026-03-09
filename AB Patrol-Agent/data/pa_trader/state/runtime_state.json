@@ -2,45 +2,55 @@
   "version": "2.0",
   "bot_id": "claude-pa",
   "market_profile": "crypto",
-  "loop_seq": 726,
+  "loop_seq": 879,
   "status": "RUNNING",
   "current_phase": "BOOTSTRAP",
-  "last_run_at": "2026-03-08T21:14:46.907604+00:00",
-  "last_success_at": "2026-03-08T21:14:46.907610+00:00",
+  "last_run_at": "2026-03-09T12:59:59.679678+00:00",
+  "last_success_at": "2026-03-09T12:59:59.679695+00:00",
   "next_scan": {
-    "next_scan_at": "2026-03-08T21:16:46.907528+00:00",
+    "next_scan_at": "2026-03-09T13:01:59.679609+00:00",
     "in_seconds": 120,
-    "reason_code": "MODEL_TIMEOUT_RETRY",
-    "reason_text": "MODEL_TIMEOUT_RETRY",
-    "derived_from_cycle": "cycle_20260309_051446",
+    "requested_seconds": 480,
+    "model_suggested_seconds": 480,
+    "model_suggested_reason": "MODEL_TIMEOUT_RETRY",
+    "reason_code": "MODEL_TIMEOUT_HIGH_EDGE_ACTIVE",
+    "reason_text": "模型建议未返回，但当前处于 fresh BC/SC、TR 边缘或已接近可执行条件，按 2 分钟继续守候。",
+    "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
+    "bucket_source_refs": [
+      "SKILL.md#Step 5",
+      "C5-step5-dynamic-timing.md",
+      "S4-strategy-match.md",
+      "S6-tr.md",
+      "S6-channel.md",
+      "S6-common.md"
+    ],
+    "derived_from_cycle": "cycle_20260309_205959",
     "interruptible": true
   },
   "active_symbols": [
-    "BNBUSDT",
+    "BTCUSDT",
     "ETHUSDT",
-    "BTCUSDT"
-  ],
-  "focus_symbols": [
-    "BNBUSDT",
-    "ETHUSDT",
-    "BTCUSDT"
-  ],
-  "open_positions": [],
-  "pending_pre_signals": [
     "BNBUSDT"
   ],
+  "focus_symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT"
+  ],
+  "open_positions": [],
+  "pending_pre_signals": [],
   "risk_mode": "NORMAL",
   "host_mode": "CLI_SESSION",
   "last_trigger": null,
-  "last_cycle_id": "cycle_20260309_051446",
+  "last_cycle_id": "cycle_20260309_205959",
   "quiet_loops": 0,
   "full_refresh": true,
   "needs_post_trade_refresh": false,
-  "last_full_refresh_at": "2026-03-08T21:14:46.907623+00:00",
+  "last_full_refresh_at": "2026-03-09T12:59:59.679726+00:00",
   "last_scan_decision": "本轮决策模型超时。系统保留上一轮观察结论，不做新开仓，快速重试下一轮。",
   "trade_readiness": "can_trade_true",
-  "best_candidate": "BNBUSDT",
-  "best_candidate_status": "pre_signal",
+  "best_candidate": "BTCUSDT",
+  "best_candidate_status": "executable",
   "openclaw_session_id": "619f7c27-693d-4e28-97fa-b4030e333108",
   "llm_provider": "codex_cli",
   "openclaw_agent": "ab-patrol-runtime",
@@ -62,7 +72,7 @@
       "expires": "2026-03-10T00:00:00Z"
     }
   },
-  "openclaw_runtime_session_id": "019cceee-af28-7da1-96ac-078842e19e62",
+  "openclaw_runtime_session_id": "019cd19c-090a-7210-a61b-00f9a4b4b33d",
   "symbol_states": {
     "BNBUSDT": {
       "status": "watching",
@@ -86,82 +96,61 @@
   "openclaw_runtime_agent": null,
   "openclaw_operator_agent": "ab-patrol-runtime",
   "BTCUSDT": {
-    "status": "pre_signal",
-    "stage": "WAIT_PULLBACK_FAIL_AFTER_EXTENSION",
-    "daily_bias": {
-      "bias": "偏空",
-      "state": "宽幅区间",
-      "source": "fresh"
-    },
-    "ai_direction": "AIS",
-    "market_state": "FAILED_BO_BEAR_PAUSE",
-    "structure_summary": "15m/1h 空头仍在，但当前已转成 low bull pause。",
-    "pre_signal": {
-      "active": true,
-      "side": "SHORT",
-      "trigger": "15m L1@66842.5 / 1h L2@66842.5",
-      "condition": "67224.22-67407.66 反抽失败后再评估。"
-    },
-    "planned_trade": {
-      "entry_zone": "67224.22-67407.66 反抽失败后，或重新跌破 66842.5 并有新的跟进",
-      "order_type": "STOP_MARKET",
-      "style": "Scalp"
-    }
+    "status": "candidate",
+    "stage": "WAIT_PULLBACK_TO_66220_66460_OR_65500_BREAK",
+    "market_state": "5分钟Bear BO / 15分钟Bear Channel / 1小时Bear Channel / 日线TR偏空",
+    "pre_signal": "已升级为 candidate，等待更好价格或下破确认",
+    "planned_trade": "SHORT 计划保留，STOP/MARKET 优先",
+    "refs": [
+      "C3-style-equation-and-order-planning.md",
+      "S5-evaluation.md",
+      "S6-bo.md",
+      "S6-channel.md"
+    ]
   },
   "ETHUSDT": {
     "status": "pre_signal",
-    "stage": "WAIT_PULLBACK_FAIL_AFTER_EXTENSION",
-    "daily_bias": {
-      "bias": "偏空",
-      "state": "通道",
-      "source": "fresh"
-    },
-    "ai_direction": "AIS",
-    "market_state": "TOP_FAILURE_WEAK_PULLBACK",
-    "structure_summary": "多周期空头仍强，但当前已转成弱位 bull pause。",
-    "pre_signal": {
-      "active": true,
-      "side": "SHORT",
-      "trigger": "1h L1@1926.77",
-      "condition": "1942.78-1956.88 反抽失败后再评估。"
-    },
-    "planned_trade": {
-      "entry_zone": "1942.78-1956.88 反抽失败后，或重新跌破 1926.77 并有新的跟进",
-      "order_type": "STOP_MARKET",
-      "style": "反转试探"
-    }
+    "stage": "WAIT_PULLBACK_TO_1942_1945_OR_1911_BREAK",
+    "market_state": "5分钟TR / 15分钟TR到Bear BO过渡 / 1小时Bear Channel / 日线Bear Channel",
+    "pre_signal": "继续等待 5分钟 acceptance",
+    "planned_trade": "SHORT 计划保留，STOP 优先",
+    "refs": [
+      "C2-triggers-and-reversal-taxonomy.md",
+      "S5-evaluation.md",
+      "S6-bo.md",
+      "S6-tr.md"
+    ]
   },
   "BNBUSDT": {
-    "status": "pre_signal",
-    "stage": "WAIT_FAILED_CONTINUATION_RETEST",
-    "daily_bias": {
-      "bias": "偏空",
-      "state": "宽幅区间",
-      "source": "fresh"
-    },
-    "ai_direction": "AIS",
-    "market_state": "FAILED_CONTINUATION_WEAK_PULLBACK",
-    "structure_summary": "15m/1h 空头增强，但当前已转成低位 bull pause。",
-    "pre_signal": {
-      "active": true,
-      "side": "SHORT",
-      "trigger": "15m L1@613.05 / 1h L2@613.05",
-      "condition": "616.90-620.02 反抽失败后再评估。"
-    },
-    "planned_trade": {
-      "entry_zone": "616.90-620.02 反抽失败后，或重新跌破 613.05 并有新的跟进",
-      "order_type": "STOP_MARKET",
-      "style": "反转试探"
-    }
+    "status": "candidate",
+    "stage": "WAIT_PULLBACK_REENTRY_OR_6092_BREAK",
+    "market_state": "5分钟Bear BO / 15分钟Bear Channel / 1小时Bear BO / 日线Bear Channel",
+    "pre_signal": "结构仍空，但等待更好二次机会",
+    "planned_trade": "SHORT 计划保留，STOP/MARKET 优先",
+    "refs": [
+      "C3-style-equation-and-order-planning.md",
+      "S5-evaluation.md",
+      "S6-bo.md",
+      "S6-channel.md"
+    ]
   },
   "_meta": {
-    "best_candidate": "ETHUSDT",
-    "current_phase": "BOOTSTRAP"
+    "phase": "BOOTSTRAP",
+    "loop_count_delta": 1,
+    "full_refresh": true,
+    "last_full_refresh": "2026-03-09T07:48:18.454556+00:00",
+    "last_update": "2026-03-09T07:48:18.454556+00:00",
+    "best_candidate": "BTCUSDT",
+    "next_scan_seconds": 120,
+    "signals_delta": 0,
+    "trades_delta": 0,
+    "pass_wait_delta": 3,
+    "pass_rule_delta": 0
   },
   "phase": "SCAN",
   "daily_bias_expires": "2026-03-08T00:00:00Z",
   "model_timeout": true,
-  "last_model_timeout_at": "2026-03-08T21:14:46.899039+00:00",
+  "last_model_timeout_at": "2026-03-09T12:59:59.668879+00:00",
   "decision_model": "gpt-5.4",
   "runtime_health": {
     "execution_snapshot_confirmed": true,
@@ -173,20 +162,16 @@
   "query_service_base": "http://127.0.0.1:8086",
   "knowledge_loading": {
     "budget_chars": 108000,
-    "knowledge_chars": 79626,
+    "knowledge_chars": 78093,
     "over_budget": false,
     "skill_mode": "full_sections",
     "skill_sections": [
       "你是 Al Brooks",
       "操作铁律",
-      "环境",
-      "K 线数据量（Al Brooks: \"Traders should only be trading charts that have about 100 bars\"）",
-      "缓存与 bar 数量的关系",
-      "S 系列知识体系（L1+L2 融合）",
       "Step 0: 首轮初始化",
       "Step 0b: 加载缓存",
       "Step 1: 获取全局数据 + Daily 偏置",
-      "1a. API 数据（并行，每轮必做）",
+      "1a. 运行快照（每轮必做）",
       "1b. Daily 偏置（条件化）",
       "Step 3: 扫描新机会（两阶段扫描）",
       "Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）",
@@ -196,7 +181,7 @@
       "3d-2. PASS 分类 + 反恐惧硬检查",
       "3d-3. SL 打掉后重新入场",
       "3e. 自我验证（下单前必做，10 项全过）",
-      "3f. 执行开仓（含加仓路由）",
+      "3f. 执行开仓与计划委托",
       "Step 5: 定时器（智能动态间隔）",
       "强制全刷新（Anti-Stale 机制）",
       "pre_signal 超时（按周期区分）"
@@ -209,14 +194,21 @@
       "C3-style-equation-and-order-planning.md": "full",
       "S0-daily-bias.md": "full",
       "S1-reading.md": "full",
+      "S4-strategy-match.md": "full",
       "S3b-key-levels.md": "full",
       "S5-evaluation.md": "full",
       "S6-common.md": "full",
+      "S6-bo.md": "full",
       "S6-channel.md": "full",
       "S6-tr.md": "full",
-      "S6-reversal.md": "full"
+      "S6-reversal.md": "full",
+      "quotes/Q1-context.md": "full",
+      "quotes/Q2-direction.md": "full",
+      "quotes/Q3-fear.md": "full",
+      "quotes/Q4-entry.md": "full",
+      "quotes/Q5-te.md": "full"
     },
-    "full_reference_count": 13
+    "full_reference_count": 20
   },
   "prompt_references": [
     "C0-foundations.md",
@@ -226,12 +218,19 @@
     "C3-style-equation-and-order-planning.md",
     "S0-daily-bias.md",
     "S1-reading.md",
+    "S4-strategy-match.md",
     "S3b-key-levels.md",
     "S5-evaluation.md",
     "S6-common.md",
+    "S6-bo.md",
     "S6-channel.md",
     "S6-tr.md",
-    "S6-reversal.md"
+    "S6-reversal.md",
+    "quotes/Q1-context.md",
+    "quotes/Q2-direction.md",
+    "quotes/Q3-fear.md",
+    "quotes/Q4-entry.md",
+    "quotes/Q5-te.md"
   ],
   "fast_lane_attempted": false,
   "fast_lane_executed": false,
@@ -239,27 +238,63 @@
     "BTCUSDT",
     "ETHUSDT"
   ],
-  "decision_session_id": "019cceee-af28-7da1-96ac-078842e19e62",
+  "decision_session_id": "019cd19c-090a-7210-a61b-00f9a4b4b33d",
   "dry_run": false,
   "degraded": false,
   "last_failure_at": "2026-03-08T20:08:41.181803+00:00",
   "last_failure_reason": "name 'phase_cn' is not defined",
   "last_failure_context": "loop",
   "symbols": {
-    "BNBUSDT": {
-      "status": "pre_signal",
-      "stage": "WAIT_MINOR_REVERSAL_AFTER_EXTENSION",
-      "planned_trade_status": "watch"
+    "BTCUSDT": {
+      "status": "executable",
+      "stage": "15M_H2_1H_H1_BREAKOUT_CONTINUATION_READY",
+      "market_state": "5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续",
+      "thesis": "从顶部反转试探切换成突破接受后的顺势延续",
+      "pre_signal": {
+        "active": true,
+        "side": "LONG",
+        "kind": "突破接受后的顺势延续"
+      },
+      "planned_trade": {
+        "status": "executable",
+        "order_type": "STOP_MARKET",
+        "style": "Scalp",
+        "entry_price": 68310.0
+      }
     },
     "ETHUSDT": {
-      "status": "watching",
-      "stage": "WAIT_FRESH_SIGNAL_AFTER_STALL",
-      "planned_trade_status": "watch"
+      "status": "candidate",
+      "stage": "1H_H1_RECLAIM_2011_WAIT_ACCEPTANCE",
+      "market_state": "5分钟TC + 15分钟BO + 1小时TC，旧上沿下方回收",
+      "thesis": "从顶部反转试探切换成旧上沿再接受候选",
+      "pre_signal": {
+        "active": true,
+        "side": "LONG",
+        "kind": "旧上沿下方的顺势再接受候选"
+      },
+      "planned_trade": {
+        "status": "candidate",
+        "order_type": "STOP_MARKET",
+        "style": "Scalp",
+        "entry_price": 2019.7
+      }
     },
-    "BTCUSDT": {
-      "status": "watching",
-      "stage": "WAIT_FRESH_SIGNAL_AFTER_DEGRADED_H1",
-      "planned_trade_status": "watch"
+    "BNBUSDT": {
+      "status": "candidate",
+      "stage": "15M_H2_1H_H1_BREAKOUT_CONTINUATION_NEAR_633",
+      "market_state": "5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续",
+      "thesis": "从等待新触发切换成突破延续候选，但当前贴近 632.54/633 磁体",
+      "pre_signal": {
+        "active": true,
+        "side": "LONG",
+        "kind": "突破接受后的顺势延续候选"
+      },
+      "planned_trade": {
+        "status": "candidate",
+        "order_type": "STOP_MARKET",
+        "style": "Scalp",
+        "entry_price": 633.1
+      }
     }
   },
   "planned_trades": {
@@ -308,5 +343,24 @@
       ],
       "style": "反转试探"
     }
+  },
+  "runtime_state": {
+    "pending_pre_signals": [
+      "BTCUSDT"
+    ]
+  },
+  "runtime": {
+    "best_candidate": "BTCUSDT",
+    "pending_pre_signals": [
+      "ETHUSDT",
+      "BNBUSDT"
+    ],
+    "next_scan_seconds": 120
+  },
+  "meta": {
+    "passes_delta": 2,
+    "pass_wait_delta": 2,
+    "planned_orders_delta": 1,
+    "trades_delta": 0
   }
 }
