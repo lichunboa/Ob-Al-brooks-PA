@@ -5381,43 +5381,42 @@ class PatrolRuntime:
                 "planned_trade": cached.get("planned_trade"),
             }
 
-            # 只在无持仓时生成开仓 actions
-            if not positions:
-                matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
-                if matching_trade:
-                    action_type = "OPEN_ORDER"
-                    action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
-                    LOG.info(f"[RULE_ENGINE_DECISION] {symbol} 生成 OPEN_ORDER")
+            # 生成开仓 actions（规则引擎优先模式：始终运行）
+            matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
+            if matching_trade:
+                action_type = "OPEN_ORDER"
+                action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
+                LOG.info(f"[RULE_ENGINE_DECISION] {symbol} 生成 OPEN_ORDER")
 
-                    # 构建完整的 action（包含所有必要参数）
-                    actions.append({
-                        "type": action_type,
-                        "symbol": symbol,
-                        "side": matching_trade["side"],
-                        "entry": matching_trade["entry_price"],
-                        "sl": matching_trade["stop_loss"],
-                        "tp": matching_trade["take_profit"],
-                        "strategy": matching_trade["strategy"],
-                        "style": matching_trade["style"],
-                        "reason": action_reason,
-                        "refs": [],
-                        "market_state": cached.get("market_state", ""),
-                        "signal_bar": "",
-                        "equation": "",
-                        "bar_reading": "",
-                        "ai_direction": matching_trade["side"],
-                        "risk_usdt": 10,
-                    })
-                else:
-                    action_type = "LOG_ONLY"
-                    action_reason = f"规则引擎: 未识别到可执行交易"
+                # 构建完整的 action（包含所有必要参数）
+                actions.append({
+                    "type": action_type,
+                    "symbol": symbol,
+                    "side": matching_trade["side"],
+                    "entry": matching_trade["entry_price"],
+                    "sl": matching_trade["stop_loss"],
+                    "tp": matching_trade["take_profit"],
+                    "strategy": matching_trade["strategy"],
+                    "style": matching_trade["style"],
+                    "reason": action_reason,
+                    "refs": [],
+                    "market_state": cached.get("market_state", ""),
+                    "signal_bar": "",
+                    "equation": "",
+                    "bar_reading": "",
+                    "ai_direction": matching_trade["side"],
+                    "risk_usdt": 10,
+                })
+            else:
+                action_type = "LOG_ONLY"
+                action_reason = f"规则引擎: 未识别到可执行交易"
 
-                    actions.append({
-                        "type": action_type,
-                        "symbol": symbol,
-                        "reason": action_reason,
-                        "refs": [],
-                    })
+                actions.append({
+                    "type": action_type,
+                    "symbol": symbol,
+                    "reason": action_reason,
+                    "refs": [],
+                })
 
         if positions:
             market_summary = f"规则引擎优先模式：当前有 {len(positions)} 个持仓，生成 {len(position_management)} 个管理 actions。"
