@@ -1,6 +1,6 @@
 # S2 方向判断 — 如果被迫现在入场，你站哪边？
 
-> Always-In Direction 是 Al Brooks 体系的核心。方向判断错了，后面全错。
+方向判断必须先于策略匹配与评估。
 
 ---
 
@@ -54,11 +54,7 @@
 - 趋势方连续 3+ 根反向 K 线 + 回调超过 50% → **控场丧失**，方向要重新评估
 - 但单独 1-2 根反向 K 线 ≠ 控场丧失（正常 PB）
 
-> Al Brooks: "当你不确定市场当前是趋势还是交易区间时，那它就是交易区间。"
-> Al Brooks: "如果你一直在等待回调但它却一直未出现，那它就处在趋势当中。"
-
-> 🔴 **原话锚点** → 详见 [Q2-direction.md](quotes/Q2-direction.md)
-> 核心: 方向确定后找入场理由，不找否决理由。"MUST BUY / MUST SELL"。
+原话锚点统一看 [Q2-direction.md](quotes/Q2-direction.md)。
 
 ### 多周期确认：15m + 1h + Daily
 
@@ -68,12 +64,11 @@
 - **15m/1h 也不确定** → 大概率是大级别 TR，5m 的趋势可能很快反转
 - **Daily 偏置**（S0）与 5m 方向一致 → 概率上调；矛盾 → 概率下调，倾向 Scalp
 
-> Al Brooks: "Context > 形态 > 信号K线"。大级别方向 > 小级别形态。
-> Al Brooks: "Channels: Can Be Opposite on Different Time Frames" — 大周期方向≠禁止，是概率背景。
+大级别方向 > 小级别形态。大周期方向≠禁止，是概率背景。
 
 ### 多周期概率调整矩阵
 
-大周期是**context（背景）**，不是**constraint（限制）**。Al Brooks 从不因大周期方向而禁止小周期交易。
+大周期是**背景**，不是**禁止条件**。大周期只调整概率、风格和仓位，不直接取消小周期机会。
 
 | 大周期关系 | P 调整 | 仓位/风格 | 示例 |
 |-----------|--------|----------|------|
@@ -82,12 +77,7 @@
 | **大周期 TR** | 不调整 | 看交易周期自身方向 | 1h TR → 5m 自由操作 |
 | **"顺双势"（全同向）** | 最高概率 | Swing + 正常仓位 | 5m+15m+1h 全 AIL |
 
-> PPT 进阶篇: "Usually only slight reduction in probability, and big reduction in risk" — 用小周期入场+大周期方向不矛盾时概率变化不大
-> PPT 进阶篇: "Bull BO on higher time frame → More likely at least 2 legs up" — 大周期 BO 确认 = 小周期概率显著提升
-
-**实战示例**：
-- **5m 牛趋势 + Daily 熊通道 → 仍可做多 5m**：但知道 Daily 阻力位在哪 → TP 设在 Daily 阻力前，SL 用更宽结构位
-- Tight Channel on 交易周期 = BO on 大周期 → 顺交易周期方向操作（大周期确认只增加信心）
+大周期 BO 确认 = 小周期概率显著提升；大周期逆向时只是概率与风格调整，不是直接禁止。
 
 ### [MULTI-TF] 瀑布式多周期分析（Phase B 深分析时使用）
 
@@ -109,8 +99,7 @@
 - 多个周期同时出现信号 → P 上调 → 优先执行
 - 5m trend + 1h TR → 5m 趋势可能是 1h 的一个 leg → TP 设在 1h 边界前
 
-> Al Brooks: "5 Minute TR: Think about Higher Time Frame"
-> Al Brooks: "Price action is same for all markets, and all time frames"
+多周期分析原则统一看 `canonical/C0-foundations.md` + `canonical/C1-market-cycle-and-state.md`。
 
 ---
 

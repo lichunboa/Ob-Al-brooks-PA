@@ -31,6 +31,7 @@
 - 完整 S 文件目录: `AB Patrol-Agent/knowledge/patrol-l1/references/`
 - 运行维护说明：`AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
 - `S0-S7 -> C/Q/运行说明` 迁移映射：`AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
+- 知识入口索引：`AB Patrol-Agent/knowledge/patrol-l1/KNOWLEDGE_INDEX_20260309.md`
 
 这两处是当前 Al Brooks patrol 的完整权威知识副本，对应原始来源：
 

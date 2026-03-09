@@ -1,6 +1,6 @@
 # S1 读盘 — 图表在告诉你什么故事？
 
-> 像 Al Brooks 那样一根一根读 K 线，理解多空博弈。不是找形态，是理解正在发生什么。
+先回答当前多空正在做什么，再去判断 setup。
 
 ---
 
@@ -33,8 +33,7 @@
 - 横盘中的大实体 → 仍然是 TR K线
 - **不能只看单根K线大小来判断**
 
-> 🔴 **原话锚点** → 详见 [Q1-context.md](quotes/Q1-context.md)
-> 核心: Context 覆盖外观。微观瑕疵不否定宏观方向。
+原话锚点与纪律提醒统一看 [Q1-context.md](quotes/Q1-context.md)。
 
 **Context 权重覆盖规则**：
 - **Tight Channel 中小实体 K 线 ≠ 弱信号** — TC 中 PB 天然就小，小阳线在 TC 中 = 强势，在 TR 中 = 弱势
@@ -74,8 +73,6 @@
 - Bull channel 中 bull bar 没有好的 FT + 形成三推 wedge → 卖压增加 → 变 TR
 - Bear channel 中 bear bar 长下影线 → bear 在 scalp（卖了立刻买回）→ 买压增加
 - **Spike 后的 channel 有 75% 概率 reverse/sideways，25% 继续**
-
-> Al Brooks: "每根 K 线都是下一根的信号 K 线"
 
 ## 第三步：识别结构
 
@@ -152,9 +149,7 @@
 4. Range ≥ 近 5 根平均 K 线大小
 5. Close 明显高于（多）或低于（空）前一根 close
 
-**"只占 1% 的 K 线"** — strong signal bar 非常稀有，大多数 K 线都不够格。这就是为什么大多数交易要等 H2/L2（第二次确认），而不是 H1。
-
-> Al Brooks: "setups 永远看起来不够好，这就是为什么大多数人错过了它们"
+strong signal bar 非常稀有，大多数 K 线都不够格。这就是为什么大多数交易要等 H2/L2（第二次确认），而不是 H1。
 
 ## 关键概率
 
@@ -189,8 +184,7 @@
 - 裁决必须说明**关键差异**是什么（哪条证据最有决定性）
 - 如果双方证据势均力敌 → 结论 = TR，不要强判方向
 
-> Al Brooks: "90% 的 K 线处于 Channel 或 TR 中" — 双方几乎总有话说。
-> 单线思维 = 最常见的分析错误。DEBATE 是防护网。
+单线思维 = 最常见的分析错误。DEBATE 是防护网。
 
 ---
 

@@ -67,10 +67,7 @@
 4. PB 与 BO point 之间有 gap
 5. 用 stop entry 做空 = 多数亏损
 
-> "Never Trade Against Trend in Tight Channel" — 即使 70% 准确做空也会亏，因为那 30% 被趋势带走很远（R:R 极差）
-
-> 🔴 **原话锚点** → 详见 [Q3-fear.md](quotes/Q3-fear.md) + [Q4-entry.md](quotes/Q4-entry.md)
-> 核心: "Buy, right now, this minute! Trust your stop" / "Whenever there is fear, there is opportunity"
+紧密通道里不要逆势追反转；需要纪律提醒时看 [Q3-fear.md](quotes/Q3-fear.md) + [Q4-entry.md](quotes/Q4-entry.md)。
 
 **紧密通道 = HTF BO**：5m tight channel = 15m/30m 上的强势 BO → 只顺势买入
 
@@ -239,8 +236,7 @@
 - BC 后**不立即反做**：60% 变 TR，40% MTR
 - 等 1-3 根 K 线看 FT
 
-> Al Brooks PPT: "Most climaxes lead to 3-10 bar TR. Then, the trend can reverse or resume"
-> Al Brooks PPT: "Series of consecutive Buy Climaxes usually leads to exhaustion — No more buyers"
+高潮后先按 `3-10 bar TR` 处理，再决定是恢复原趋势还是进入反转尝试。
 
 ### BC/SC 后操作指南
 
@@ -263,7 +259,7 @@
 - 不可做：继续追顺势新仓
 - 更新缓存 `bc_sc_guard.gap_status: "EG"`
 
-> Al Brooks PPT: "Channel, so 75% reverse into TR or opposite trend"
+通道高潮后优先预期退化为 `TR / 反向测试`，而不是继续追单。
 
 ### Climax 快速检测（Quick Scan 可用）
 
@@ -286,7 +282,7 @@
 
 ## Look for Change — 状态转换识别
 
-> "Most days change behavior after 1-3 hours. Always be ready to change how you trade."
+开盘后 `1-3` 小时要持续准备切换交易方式，不允许沿用失效状态。
 
 **强趋势的 5 个衰减信号**：
 1. 连续 Buy/Sell Climax → 不可持续
@@ -320,8 +316,6 @@
 | **Channel** → TR | 3 推完成 + 弱化 | Wedge top/bottom | 反向 BO 后横盘 |
 
 ### Quick Scan 状态一致性验证
-
-> Al Brooks: "Most days change behavior after 1-3 hours. Always be ready to change how you trade."
 
 对每个品种，比对缓存 `market_state` 与当前 K 线数据（纯数值，不需要 Read S 文件）：
 - 缓存=TC，但 PB 深度 > 50% → **可能变 BC**，标记 `state_change` 事件
@@ -375,134 +369,14 @@
 
 ---
 
-## ab_patterns 模块使用示例
+## 指标层与状态层的边界
 
-**ab_patterns 模块提供压力方向和形态数据**，辅助市场状态判断，但 S3 的深度分析逻辑（为什么是这个状态、如何转换）仍然需要学习。
-
-### 场景 1: ETH 5m 压力方向确认
-
-```
-[市场状态] ETHUSDT 5m:
-
-  # 使用 ab_patterns 模块的压力数据
-  {pat_info.pressure.direction} = "bull_pressure"
-  {pat_info.pressure.bull_bars_pct} = 65%
-  {pat_info.pressure.avg_close_position} = 0.6 (偏上方)
-  {pat_info.pressure.consecutive_bull} = 3 根
-
-  # 结合 K 线分析
-  最近 20 根: 13 根多头 K, 7 根空头 K
-  EMA 20: 价格在 EMA 上方 +2.3%
-  PB 深度: 最深回调 30% (浅 PB)
-
-  → 状态判断: Tight Channel (Bull)
-  → 理由: 65% 多头 K + 浅 PB + 连续 3 根多头 K
-```
-
-**思考过程（S3 知识）**:
-- ✅ bull_bars_pct = 65% → 多头控制（> 60% 门槛）
-- ✅ avg_close_position = 0.6 → K 线收在上半部（强势）
-- ✅ consecutive_bull = 3 → 动能持续
-- 📋 结论: Tight Channel → 只做顺势 Scalp/Swing
-
-### 场景 2: BTC 15m 状态转换检测
-
-```
-[状态转换] BTCUSDT 15m:
-
-  缓存状态: Tight Channel (Bull)
-
-  # 使用 ab_patterns 模块检测变化
-  {pat_info.pressure.direction} = "mixed"
-  {pat_info.pressure.bull_bars_pct} = 52%
-  {pat_info.pressure.bear_bars_pct} = 48%
-  {pat_info.pressure.avg_close_position} = 0.5 (中间)
-
-  # 形态检测
-  {pat_info.wedge_up} = True
-  {pat_info.wedge_up.is_mtr} = False (标准 Wedge)
-  {pat_info.wedge_up.push_count} = 3
-
-  → 状态转换信号: Tight Channel → Broad Channel
-  → 理由: 压力平衡 (52% vs 48%) + Wedge 出现
-```
-
-**思考过程（S3 知识）**:
-- ⚠️ bull_bars_pct 从 65% 降到 52% → 多头力量减弱
-- ⚠️ avg_close_position = 0.5 → K 线收在中间（犹豫）
-- ⚠️ Wedge 出现 → 趋势衰减信号（5 个衰减信号之一）
-- 📋 结论: 从 Tight Channel 转为 Broad Channel → 降级为 Scalp
-
-### 场景 3: SOL 5m Climax 检测
-
-```
-[Climax 检测] SOLUSDT 5m:
-
-  # 使用 ab_patterns 模块的形态数据
-  {pat_info.latest_h} = "H4" (第 4 次做多入场)
-  {pat_info.h4_bar_index} = 2 (2 根前)
-  {pat_info.pressure.consecutive_bull} = 5 根
-
-  # Climax 评分（S3 快速检测）
-  - 连续 5+ 同向 K: ✓ (2 分)
-  - H4/L4 出现: ✓ (2 分)
-  - K 线变大 (> 2x avg): ✓ (1 分)
-  - Gap 出现: ✗ (0 分)
-  - 总分: 5 分 (≥ 4 = Climax 可能)
-
-  → BC (Buying Climax) 可能
-  → 操作: 等待 MG/EG 确认，不追进
-```
-
-**思考过程（S3 知识）**:
-- ⚠️ H4 出现 → 第 4 次入场，概率降低（Al Brooks: "H4/L4 = low probability"）
-- ⚠️ consecutive_bull = 5 → 过度延伸
-- ⚠️ Climax 评分 5 分 → 高概率 BC
-- 📋 结论: 等待 MG (Measuring Gap) 或 EG (Exhaustion Gap) 确认反转
-
-### 场景 4: BNB 5m TR 压力平衡
-
-```
-[TR 确认] BNBUSDT 5m:
-
-  # 使用 ab_patterns 模块的压力数据
-  {pat_info.pressure.direction} = "mixed"
-  {pat_info.pressure.bull_bars_pct} = 51%
-  {pat_info.pressure.bear_bars_pct} = 49%
-  {pat_info.pressure.avg_close_position} = 0.5
-
-  # TR 特征
-  最近 20 根: 横盘，无明显方向
-  EMA 20: 价格来回穿越 EMA
-  PB 深度: 多次 50% PB
-
-  → 状态判断: TR (Trading Range)
-  → 理由: 压力完全平衡 (51% vs 49%)
-```
-
-**思考过程（S3 知识）**:
-- ✅ bull_bars_pct ≈ bear_bars_pct → 多空平衡（TR 核心特征）
-- ✅ avg_close_position = 0.5 → K 线收在中间（犹豫）
-- ✅ 多次 50% PB → TR 特征（Al Brooks: "TR = 50% PB"）
-- 📋 结论: TR → 只在边缘 1/3 做 BLSHS
-
----
-
-## 两层架构总结
-
-| 层次 | 负责内容 | 工具 |
-|------|---------|------|
-| **计算层** | 压力方向、形态检测（数值） | ab_patterns 模块 |
-| **决策层** | 状态判断、转换逻辑 | S3 文件（本文件） |
-
-**agent 工作流程**:
-1. 调用 `analyze_ab_patterns()` → 获取压力数据 + 形态
-2. Read S3-market-state.md → 学习"为什么是这个状态"
-3. 结合数值 + 知识 → 做出决策（状态判断、转换检测）
-
-**S3 不可替代的部分**:
-- ✅ 5 个状态的定义（BO/TC/BC/TR/Climax）
-- ✅ 状态转换逻辑（为什么从 TC 变 BC）
-- ✅ 5 个衰减信号（为什么趋势结束）
-- ✅ 80% BO 失败定律（为什么不追 BO）
-- ✅ TR 1/3 规则（为什么中间不做）
+- `ab_patterns` 提供压力方向、形态检测、H1-H4/L1-L4、wedge/MTR 等数值证据
+- `S3-market-state` 只负责把这些证据翻译成状态判断与状态转换：
+  - 这是 `BO / Tight Channel / Broad Channel / TR / Climax` 中的哪一个
+  - 这是继续原状态，还是降级/升级到新状态
+  - 这次转换要把后续路由送去哪个 `S4/S6`
+- 详细理论背景统一看：
+  - `canonical/C1-market-cycle-and-state.md`
+  - `canonical/C2-triggers-and-reversal-taxonomy.md`
+  - `quotes/Q1-context.md`

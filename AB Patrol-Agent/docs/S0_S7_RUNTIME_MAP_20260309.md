@@ -92,3 +92,10 @@
 3. 规则偏差先改 `S0-S7`，不要直接在代码里补新门槛
 4. 纪律偏差再补 `Q`
 5. 只有当 `S/C/Q` 都说不清楚时，才回头改 `SKILL`
+
+---
+
+## 七、知识入口
+
+- 知识分层入口：`AB Patrol-Agent/knowledge/patrol-l1/KNOWLEDGE_INDEX_20260309.md`
+- 运行维护入口：`AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`

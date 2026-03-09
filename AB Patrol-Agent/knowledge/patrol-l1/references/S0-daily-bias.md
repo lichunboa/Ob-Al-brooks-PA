@@ -28,19 +28,19 @@
 
 ## Daily 偏置表
 
-> PPT: "Only 10% of bars are in strong BO → only trade with the trend. For 90% of bars, possible to structure profitable long AND profitable short."
-> Daily 偏置 = **概率偏向**，不是绝对禁令。只有 Strong BO（10%）才接近"只顺势"。
+Daily 偏置 = **概率偏向**，不是绝对禁令。只有 Strong BO 才接近“只顺势”。
+理论边界统一看 `canonical/C0-foundations.md` + `canonical/C1-market-cycle-and-state.md`。
 
-| Daily 状态 | 偏置 | 操作限制 | Al Brooks 原文 |
-|-----------|------|---------|---------------|
-| **AIL + Strong BO** | 只做多。PB = 买点 | 逆势 Swing 禁止；逆势 Scalp 仅限 Climax 处 | "When strong BO, only trade with the trend" |
-| **AIL + Channel/TC** | 偏多。做多 P 更高 + R:R 更好 | 逆势可 Scalp（P 下调 5-10%）| "Can make money buying or selling, higher P buying" |
-| **AIL + BC** | 偏多但谨慎。看有没有 MTR | Swing 多，Scalp 可双向 | |
-| **AIS + Strong BO** | 只做空。反弹 = 卖点 | 逆势 Swing 禁止；逆势 Scalp 仅限 Climax 处 | "When strong BO, only trade with the trend" |
-| **AIS + Channel/TC** | 偏空。做空 P 更高 + R:R 更好 | 逆势可 Scalp（P 下调 5-10%）| "Can make money buying or selling, higher P selling" |
-| **AIS + BC** | 偏空但谨慎 | Swing 空，Scalp 可双向 | |
-| **TR** | 无偏置。BLSHS | 双向 Scalp | "40-60 rule, both directions" |
-| **不确定** | 无偏置 | 只做高确信度 setup | |
+| Daily 状态 | 偏置 | 操作限制 |
+|-----------|------|---------|
+| **AIL + Strong BO** | 只做多。PB = 买点 | 逆势 Swing 禁止；逆势 Scalp 仅限 Climax 处 |
+| **AIL + Channel/TC** | 偏多。做多 P 更高 + R:R 更好 | 逆势可 Scalp（P 下调 5-10%） |
+| **AIL + BC** | 偏多但谨慎。看有没有 MTR | Swing 多，Scalp 可双向 |
+| **AIS + Strong BO** | 只做空。反弹 = 卖点 | 逆势 Swing 禁止；逆势 Scalp 仅限 Climax 处 |
+| **AIS + Channel/TC** | 偏空。做空 P 更高 + R:R 更好 | 逆势可 Scalp（P 下调 5-10%） |
+| **AIS + BC** | 偏空但谨慎 | Swing 空，Scalp 可双向 |
+| **TR** | 无偏置。BLSHS | 双向 Scalp |
+| **不确定** | 无偏置 | 只做高确信度 setup |
 
 **Strong BO 判定**：连续 2+ 根大趋势 K 线 + 少重叠 + Gap 未关 → 10% 场景。其余都是 Channel/TR。
 
