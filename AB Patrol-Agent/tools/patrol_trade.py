@@ -33,9 +33,10 @@ import re
 from pathlib import Path
 from datetime import datetime
 from urllib.request import urlopen, Request
+from urllib.parse import urlencode
 
-API = "http://localhost:8092"
-BOT_ID = "claude-pa"
+API = os.getenv("AB_PATROL_EXECUTION_BASE", "http://127.0.0.1:8092").rstrip("/")
+BOT_ID = os.getenv("AB_PATROL_EXECUTION_BOT_ID", "claude-pa")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 LOG_PATH = os.path.join(PROJECT_ROOT, "data", "pa_trader", "pa_trader.log")
@@ -275,34 +276,68 @@ def validate_stop_loss(
     return True, f"Risk={risk:.2f} Reward={reward:.2f} R:R={rr:.2f} [{profile['label']}] ✓"
 
 
-# ─── 下单执行（本地 demo/trader mock）──────────────────────────────────────
-
-import subprocess
-OKX_TRADER = os.path.join(SCRIPT_DIR, "okx_trader.py")
+# ─── 下单执行（统一走 execution-service / Binance demo）──────────────────────
 
 
-def run_okx(args_list: list) -> dict:
-    """调用 okx_trader.py 并返回 JSON 结果"""
+def http_get_json(path: str, params: dict | None = None) -> dict:
+    url = f"{API}{path}"
+    if params:
+        query = urlencode({k: v for k, v in params.items() if v is not None})
+        if query:
+            url = f"{url}?{query}"
+    req = Request(url, headers={"Accept": "application/json"})
     try:
-        result = subprocess.run(
-            ["python3", OKX_TRADER] + args_list,
-            capture_output=True, text=True, timeout=15,
-            cwd=PROJECT_ROOT,
-        )
-        return json.loads(result.stdout) if result.stdout.strip() else {"_error": result.stderr or "empty output"}
+        with urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        return {"_error": str(e)}
+
+
+def http_post_json(path: str, payload: dict) -> dict:
+    url = f"{API}{path}"
+    body = json.dumps(payload).encode("utf-8")
+    req = Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
         return {"_error": str(e)}
 
 
 def calculate_size(symbol: str, entry: float, sl: float, risk_usdt: float) -> dict:
-    return run_okx(["calc-size", symbol, str(entry), str(sl), str(risk_usdt)])
+    return http_get_json(
+        f"/trading/calculate-size/{BOT_ID}",
+        {
+            "symbol": symbol,
+            "entry_price": entry,
+            "stop_loss": sl,
+            "risk_percent": risk_usdt,
+        },
+    )
 
 
 def place_order(symbol: str, side: str, qty: float, leverage: int,
-                sl: float, tp: float) -> dict:
-    cmd = ["order", symbol, side.lower(), str(qty), str(leverage),
-           "--sl", str(sl), "--tp", str(tp)]
-    return run_okx(cmd)
+                sl: float, tp: float, order_type: str = "MARKET", price: float | None = None,
+                strategy: str = "") -> dict:
+    payload = {
+        "symbol": symbol,
+        "side": side,
+        "quantity": qty,
+        "order_type": order_type,
+        "price": price,
+        "stop_loss": sl,
+        "take_profit": tp,
+        "leverage": leverage,
+        "strategy": strategy,
+        "signal_source": "patrol_trade_gate",
+        "bot_id": BOT_ID,
+    }
+    return http_post_json("/order", payload)
 
 
 def write_log(message: str):
@@ -417,7 +452,7 @@ def main():
 
     print("\n✅ 全部校验通过")
 
-    # ── 计算仓位（通过 okx_trader.py calc-size）──
+    # ── 计算仓位（通过 execution-service）──
     risk_usdt = args.risk  # 直接传 USDT 金额（如 60 = $3000 * 2%）
     size_info = calculate_size(args.symbol, args.entry, args.sl, risk_usdt)
     if "_error" in size_info:
@@ -445,10 +480,11 @@ def main():
     write_log(signal_log)
     print(f"\n📝 Signal logged")
 
-    # ── 下单（通过 okx_trader.py）──
+    # ── 下单（统一走 execution-service / Binance demo）──
     result = place_order(
         args.symbol, args.side, qty, leverage,
         args.sl, args.tp,
+        strategy=args.strategy,
     )
 
     if "_error" in result:

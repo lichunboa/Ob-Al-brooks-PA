@@ -576,7 +576,10 @@ start_execution() {
   if [[ ! -x "$exec_python" ]]; then
     exec_python="$(command -v python3 || true)"
   fi
-  nohup bash -lc "cd '$EXECUTION_ROOT' && exec '$exec_python' -m src --port 8092" </dev/null >>"$EXECUTION_LOG_FILE" 2>&1 &
+  local exec_exchange="${AB_PATROL_EXECUTION_EXCHANGE:-binance}"
+  local exec_mode="${AB_PATROL_EXECUTION_MODE:-demo}"
+  local binance_mode="${AB_PATROL_BINANCE_MODE:-$exec_mode}"
+  nohup bash -lc "cd '$EXECUTION_ROOT' && export EXCHANGE='$exec_exchange' EXCHANGE_MODE='$exec_mode' BINANCE_MODE='$binance_mode' && exec '$exec_python' -m src --port 8092" </dev/null >>"$EXECUTION_LOG_FILE" 2>&1 &
   echo $! > "$EXECUTION_PID_FILE"
   sleep 4
   if is_execution_running; then

@@ -12,7 +12,8 @@ if ENV_FILE.exists():
     load_dotenv(ENV_FILE, override=True)
 
 # 交易所选择: okx | binance
-EXCHANGE = os.getenv("EXCHANGE", "okx")
+# Patrol 本地执行链默认固定到 Binance demo；仅在显式覆盖时才允许切到其他交易所。
+EXCHANGE = os.getenv("EXCHANGE", "binance")
 
 # 模式: demo | mainnet
 EXCHANGE_MODE = os.getenv("EXCHANGE_MODE", "demo")
