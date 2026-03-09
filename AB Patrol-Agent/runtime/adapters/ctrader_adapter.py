@@ -128,6 +128,7 @@ class CTraderAdapter(ExchangeAdapter):
                     "current_price": current_price,
                     "unrealized_pnl": float(pos.get("swap", 0)) + float(pos.get("commission", 0)),
                     "margin": float(pos.get("margin", 0)),
+                    "position_id": str(pos.get("positionId", "")),  # 添加 position_id
                 })
 
             return positions

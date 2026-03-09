@@ -151,22 +151,23 @@ class BinanceAdapter(ExchangeAdapter):
         stop_loss: float | None = None,
         take_profit: float | None = None,
     ) -> dict[str, Any]:
-        """下单"""
+        """下单（同时挂止损止盈委托单）"""
         params = {
             "symbol": self.normalize_symbol(symbol),
             "side": side,
             "type": order_type,
             "quantity": self.format_quantity(symbol, quantity),
         }
-        
+
         if order_type == "LIMIT":
             params["price"] = self.format_price(symbol, price)
             params["timeInForce"] = "GTC"
         elif order_type == "STOP_MARKET":
             params["stopPrice"] = self.format_price(symbol, price)
-        
+
+        # 下主单
         result = self._request("POST", "/fapi/v1/order", params, signed=True)
-        
+
         if "error" in result:
             return {
                 "success": False,
@@ -175,12 +176,94 @@ class BinanceAdapter(ExchangeAdapter):
                 "filled_price": None,
                 "error": result["error"],
             }
-        
+
+        order_id = str(result.get("orderId"))
+        filled_qty = float(result.get("executedQty", 0))
+        filled_price = float(result.get("avgPrice", 0))
+
+        # 如果有止损/止盈，立即挂委托单
+        sl_order_id = None
+        tp_order_id = None
+
+        if stop_loss and filled_qty > 0:
+            sl_result = self._place_stop_loss_order(symbol, side, filled_qty, stop_loss)
+            if sl_result.get("success"):
+                sl_order_id = sl_result.get("order_id")
+
+        if take_profit and filled_qty > 0:
+            tp_result = self._place_take_profit_order(symbol, side, filled_qty, take_profit)
+            if tp_result.get("success"):
+                tp_order_id = tp_result.get("order_id")
+
+        return {
+            "success": True,
+            "order_id": order_id,
+            "filled_quantity": filled_qty,
+            "filled_price": filled_price,
+            "stop_loss_order_id": sl_order_id,
+            "take_profit_order_id": tp_order_id,
+            "error": None,
+        }
+
+    def _place_stop_loss_order(
+        self,
+        symbol: str,
+        position_side: str,
+        quantity: float,
+        stop_price: float,
+    ) -> dict[str, Any]:
+        """挂止损委托单"""
+        # 止损方向与持仓相反
+        close_side = "SELL" if position_side == "BUY" else "BUY"
+
+        params = {
+            "symbol": self.normalize_symbol(symbol),
+            "side": close_side,
+            "type": "STOP_MARKET",
+            "quantity": self.format_quantity(symbol, quantity),
+            "stopPrice": self.format_price(symbol, stop_price),
+            "reduceOnly": "true",  # 只减仓
+        }
+
+        result = self._request("POST", "/fapi/v1/order", params, signed=True)
+
+        if "error" in result:
+            return {"success": False, "order_id": None, "error": result["error"]}
+
         return {
             "success": True,
             "order_id": str(result.get("orderId")),
-            "filled_quantity": float(result.get("executedQty", 0)),
-            "filled_price": float(result.get("avgPrice", 0)),
+            "error": None,
+        }
+
+    def _place_take_profit_order(
+        self,
+        symbol: str,
+        position_side: str,
+        quantity: float,
+        take_profit_price: float,
+    ) -> dict[str, Any]:
+        """挂止盈委托单"""
+        # 止盈方向与持仓相反
+        close_side = "SELL" if position_side == "BUY" else "BUY"
+
+        params = {
+            "symbol": self.normalize_symbol(symbol),
+            "side": close_side,
+            "type": "TAKE_PROFIT_MARKET",
+            "quantity": self.format_quantity(symbol, quantity),
+            "stopPrice": self.format_price(symbol, take_profit_price),
+            "reduceOnly": "true",  # 只减仓
+        }
+
+        result = self._request("POST", "/fapi/v1/order", params, signed=True)
+
+        if "error" in result:
+            return {"success": False, "order_id": None, "error": result["error"]}
+
+        return {
+            "success": True,
+            "order_id": str(result.get("orderId")),
             "error": None,
         }
 
@@ -216,10 +299,48 @@ class BinanceAdapter(ExchangeAdapter):
         take_profit: float | None = None,
     ) -> dict[str, Any]:
         """修改持仓的止损/止盈"""
-        # Binance 需要通过下单来设置 SL/TP
-        # 这里简化实现，实际需要更复杂的逻辑
+        # 获取当前持仓
+        positions = self.get_positions()
+        position = next((p for p in positions if p["symbol"] == symbol), None)
+
+        if not position:
+            return {"success": False, "error": "Position not found"}
+
+        # 1. 取消旧的止损止盈委托单
+        orders = self.get_open_orders(symbol)
+        for order in orders:
+            order_type = order.get("type", "")
+            if order_type in ["STOP_MARKET", "TAKE_PROFIT_MARKET"]:
+                self.cancel_order(symbol, order["order_id"])
+
+        # 2. 挂新的止损止盈委托单
+        sl_order_id = None
+        tp_order_id = None
+
+        if stop_loss:
+            sl_result = self._place_stop_loss_order(
+                symbol,
+                position["side"],
+                position["quantity"],
+                stop_loss
+            )
+            if sl_result.get("success"):
+                sl_order_id = sl_result.get("order_id")
+
+        if take_profit:
+            tp_result = self._place_take_profit_order(
+                symbol,
+                position["side"],
+                position["quantity"],
+                take_profit
+            )
+            if tp_result.get("success"):
+                tp_order_id = tp_result.get("order_id")
+
         return {
             "success": True,
+            "stop_loss_order_id": sl_order_id,
+            "take_profit_order_id": tp_order_id,
             "error": None,
         }
 

@@ -347,32 +347,71 @@ class OKXAdapter(ExchangeAdapter):
         try:
             inst_id = self.normalize_symbol(symbol)
 
-            # OKX 使用 algo 订单设置 TP/SL
+            # 获取当前持仓
+            positions = self.get_positions()
+            position = next((p for p in positions if p["symbol"] == symbol), None)
+
+            if not position:
+                return {"success": False, "error": "Position not found"}
+
+            # 平仓方向与持仓相反
+            close_side = "sell" if position["side"] == "BUY" else "buy"
+
+            # 1. 取消旧的止损止盈算法订单
+            # OKX 需要先查询算法订单，然后取消
+            algo_orders = self._request("GET", "/api/v5/trade/orders-algo-pending", params={
+                "instId": inst_id,
+                "ordType": "conditional"
+            })
+
+            if isinstance(algo_orders, list):
+                for order in algo_orders:
+                    if isinstance(order, dict):
+                        algo_id = order.get("algoId")
+                        if algo_id:
+                            self._request("POST", "/api/v5/trade/cancel-algos", data=[{
+                                "instId": inst_id,
+                                "algoId": algo_id
+                            }])
+
+            # 2. 挂新的止损止盈算法订单
+            sl_order_id = None
+            tp_order_id = None
+
             if stop_loss:
                 sl_data = {
                     "instId": inst_id,
                     "tdMode": "cross",
-                    "side": "sell",  # 止损是平仓方向
+                    "side": close_side,
                     "ordType": "conditional",
-                    "sz": "-1",  # 全部平仓
+                    "sz": str(position["quantity"]),
                     "slTriggerPx": str(stop_loss),
                     "slOrdPx": "-1",  # 市价
                 }
-                self._request("POST", "/api/v5/trade/order-algo", data=sl_data)
+                sl_result = self._request("POST", "/api/v5/trade/order-algo", data=sl_data)
+                if isinstance(sl_result, list) and len(sl_result) > 0:
+                    sl_order_id = sl_result[0].get("algoId")
 
             if take_profit:
                 tp_data = {
                     "instId": inst_id,
                     "tdMode": "cross",
-                    "side": "sell",
+                    "side": close_side,
                     "ordType": "conditional",
-                    "sz": "-1",
+                    "sz": str(position["quantity"]),
                     "tpTriggerPx": str(take_profit),
-                    "tpOrdPx": "-1",
+                    "tpOrdPx": "-1",  # 市价
                 }
-                self._request("POST", "/api/v5/trade/order-algo", data=tp_data)
+                tp_result = self._request("POST", "/api/v5/trade/order-algo", data=tp_data)
+                if isinstance(tp_result, list) and len(tp_result) > 0:
+                    tp_order_id = tp_result[0].get("algoId")
 
-            return {"success": True, "error": None}
+            return {
+                "success": True,
+                "stop_loss_order_id": sl_order_id,
+                "take_profit_order_id": tp_order_id,
+                "error": None,
+            }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
