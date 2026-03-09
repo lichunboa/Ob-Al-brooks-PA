@@ -57,7 +57,7 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 1. **禁止修改 references 文件** — skill 目录下的知识文件只读
 2. **禁止自创交易规则** — 所有判断追溯到 S 系列知识文件
 3. **升级期默认观察模式** — 先做采集、分析、推送、回放和 demo 验证；只有明确启用执行时才允许自动下单
-4. **仓位必须用 API 计算** — `/trading/calculate-size`，禁止手算
+4. **仓位必须由执行层统一计算** — 禁止手算
 5. **手续费必须计入** — 最大杠杆（75-100x），往返 ~0.1% notional，写入日志
 6. **无冷静期** — AI 没有情绪
 7. **PnL 含手续费** — 日志中的盈亏必须含费用
@@ -68,44 +68,33 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 
 ## 环境
 
+这里只保留运行边界，不保留实现细节：
+
 - 决策：`codex_cli` 长会话
 - Host/TG：`OpenClaw`
 - 状态与缓存：`runtime_state + market_state_l1`
 - 监控品种：BTCUSDT / ETHUSDT / BNBUSDT
 - 理论 authority：`canonical + S + Q`
 
-命令、端口、API、启动/停止方式已移出 `SKILL`，统一看：
+命令、端口、API、启动/停止方式、bar 数量和缓存字段定义统一看：
 
 - `knowledge/patrol-l1/README.md`
 - `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
-
-### K 线数据量（Al Brooks: "Traders should only be trading charts that have about 100 bars"）
-
-- 默认统一：`150 bars`
-- 读盘约束：`浏览 80 + 精读 20`
-
-理论说明和数量依据统一看：
-- `S1-reading.md`
-- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
-
-### 缓存与 bar 数量的关系
-
-缓存只负责承接历史结构，不替代理论判断。
-
-- 全刷新：重建结构摘要
-- 普通轮次：缓存 + 最新 bars 联合决策
-- 缓存失效：回到 `S1/S2/S3/S3b`
+- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
 
 ## S 系列知识体系（L1+L2 融合）
 
-这里只保留导航：
+这里只保留导航，不再解释实现细节：
 
 - `S0-S3b`：背景、方向、状态、关键位
 - `S4-S6`：playbook、评估、入场
 - `S7`：持仓管理
 - `Q1-Q6`：纪律与纠偏
 
-详细矩阵统一看 `knowledge/patrol-l1/README.md`。
+详细矩阵统一看：
+
+- `knowledge/patrol-l1/README.md`
+- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
 
 ---
 
@@ -115,22 +104,19 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 
 - `codex_cli` 长会话负责决策
 - `OpenClaw` 负责 TG host / operator
-- `query-service + Web + TG` 负责可见性
-- `watchdog` 负责卡死恢复
+- `查询层 + Web + TG` 负责可见性
+- `恢复层` 负责卡死恢复
 - 扫描间隔由 `Step 5` + 当前状态机共同决定
 
 旧的 Claude slash 命令、trigger file、event-driver 启动说明，不再属于本文件。
-运行入口统一看：
-
-- `AB Patrol-Agent/scripts/start.sh`
-- `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`
+运行维护入口统一看 `AB Patrol-Agent/docs/SKILL_RUNTIME_REFERENCE_20260309.md`。
 
 ---
 
 ## Step 0: 首轮初始化
 
 初始化运行上下文，准备日志、状态文件和推送能力。
-具体命令由 runtime / start.sh 负责，不在 `SKILL` 中重复。
+具体操作方式由运行说明负责，不在 `SKILL` 中重复。
 
 ## Step 0b: 加载缓存
 
@@ -147,7 +133,7 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 - 在 Step 4 写入首份 `market_state_l1.json`
 - 冷启动后正常进入缓存模式
 
-**`/patrol-l1 refresh` 参数**：强制全刷新（等同冷启动，但保留缓存中的 scenarios 作为先验）
+强制刷新由 runtime 触发；`SKILL` 只规定其语义：等同冷启动，但允许保留仍有效的 `scenarios` 作为先验。
 
 ---
 
@@ -157,12 +143,12 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 
 ---
 
-### 1a. API 数据（并行，每轮必做）
+### 1a. 运行快照（每轮必做）
 
-并行拉取余额、持仓、bot summary、health / can-trade 与最近运行摘要。
+获取余额、持仓、可交易状态与最近运行摘要。
 这些字段由 runtime 固定取数；`SKILL` 只规定顺序和用途。
 
-**持仓和缓存不一致检查**：如果 /positions 返回品种 X 有持仓但缓存 status 不是 "in_trade" → 立即修正缓存，记录 [AUDIT] CACHE_POSITION_MISMATCH。
+**持仓和缓存不一致检查**：如果运行快照显示品种 X 有持仓但缓存 status 不是 "in_trade" → 立即修正缓存，记录 [AUDIT] CACHE_POSITION_MISMATCH。
 
 ### 1b. Daily 偏置（条件化）
 
@@ -194,9 +180,9 @@ description: "PA 交易 V5.1 — SKILL 只负责编排，S/C/Q 承载交易知�
 
 **详细使用方式** → 见 [S7-management.md](references/S7-management.md) "Premise Check 示例"
 
-### 2a-2. 生成持仓品种图表（Discord 推送 + 人工复盘用）
+### 2a-2. 图表与复盘快照
 
-由 runtime 生成 5m/15m/1h 图表，供推送和人工复盘使用。
+持仓品种的图表由 runtime 生成，供推送审计和人工复盘使用。
 Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身。
 
 ### 2b. 加载知识 + 执行管理
@@ -219,7 +205,7 @@ Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身�
 
 输出：`{SYM} | {方向} | 浮盈{%} | AI方向{一致/矛盾} | Premise{成立/失效} | Strength{高/中/低} | 操作{持有/移SL/平仓}`
 
-**移 SL 时推送 Discord**：由 runtime 负责；`SKILL` 只要求“移动保护时必须留下可复盘记录”。
+**移动保护时必须留下可复盘记录**。具体推送方式由 runtime 负责。
 
 **Step 2 完成后更新缓存**：持仓品种的 market_state + ai_direction + key_levels
 
@@ -227,7 +213,7 @@ Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身�
 
 ## Step 3: 扫描新机会（两阶段扫描）
 
-**前提**：can-trade=true（API 内部已含仓位数量/风险限额检查）
+**前提**：执行层当前允许交易
 
 ### Phase A: Quick Scan（3 品种 × 3 周期，不读 S 文件）
 
@@ -250,7 +236,7 @@ Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身�
 **同时更新缓存**：
 - `running_narrative`：谁在控制(bulls/bears/均衡) + 力量变化(increasing/stable/decreasing) + 异常
 - `last_kline_close`：更新为本轮最新值
-- `ema20` / `avg_bar_size`：从 API 数据更新
+- `ema20` / `avg_bar_size`：从运行快照更新
 - `pre_signal`：如果条件正在酝酿但未触发 → 更新；已过期 → 清除；新建时立即推送
 - `consecutive_watching`：无事件 → +1；有事件 → 重置为 0
 
@@ -287,9 +273,9 @@ Agent 仍以结构化数值和 S/C/Q 规则决策，不依赖图片视觉本身�
 
 按事件类型调用必要的 `ab_*` 模块，不做无意义全量计算。
 
-**Phase B-0.5: 生成事件品种图表（Discord 推送 + 人工复盘用）**
+**Phase B-0.5: 生成事件品种图表**
 
-生成 5m/15m/1h 图表，供推送和人工复盘使用。
+事件品种图表由 runtime 生成，作用是推送审计和人工复盘。
 图片是辅助审计，不是主决策来源。
 
 **数据用途**：
@@ -435,7 +421,7 @@ Read [S5-evaluation.md](references/S5-evaluation.md)（如果本轮未读）
 9. Scalp/Swing 风格确定？不混淆（详见 S5）
 10. 订单类型和路由表一致？TR=限价，趋势=止损（详见 S4）
 
-### 3f. 执行开仓（含加仓路由）
+### 3f. 执行开仓与计划委托
 
 **Al Brooks 铁律: "Stop determines position size"**
 - 先确定 PA 合理的 SL 位置 → 再算仓位 → 不因信号强弱调整初始仓位
@@ -446,42 +432,22 @@ Read [S5-evaluation.md](references/S5-evaluation.md)（如果本轮未读）
 **TP1 保护性止盈** → 详见 [S7-management.md](references/S7-management.md)「TP1 保护性止盈」
 - Scalp=1.5R(100%) | Swing=2R(50%) | 反转试探=1R(100%)
 
-**开仓前图表生成（Discord 推送用）**：
-```bash
-# 生成最新的 5m 图表（开仓记录 + Discord 推送）
-python AB\ Patrol-Agent/tools/chart_gen.py -s {SYMBOL} -i 5m --port 8094
-```
-- 用途：Discord 推送开仓消息附图 + 复盘记录
-- 时机：TE 评估通过后、下单前（2-3 秒）
+执行层只承担 4 件事：
 
-```
-1. 生成开仓前图表（见上）
-2. GET /trading/calculate-size/claude-pa?entry_price={}&stop_loss={}&risk_percent={见S7加仓策略}
-3. 计算 TP1: 按 S7 TP1 表计算（Scalp→1.5R, Swing→2R, 反转试探→1R）
-4. 写日志: [SIGNAL] {分析摘要} | P=?% R=?:1 P*R=? | 风格=[Scalp/Swing] | 仓位={首仓/加仓1/加仓2/反转试探} | 费用~$?
-5. 写日志: [PREMISE] {SYM}: {一句话入场理由}  ← 管理时 grep 这行
-6. POST /order （含 stop_loss 和 take_profit 字段）
-7. 验证: GET /positions 确认订单成交 + SL 已挂
-8. 写日志: [TRADE] {SYM} {SIDE} {QTY}@{PRICE} | SL={} TP1={} | 名义~$? 费用~$? | premise
-9. Discord 推送
-10. 更新缓存: status → "in_trade", tp1_price → {TP1价格}
-```
+1. 把 `candidate / executable` 变成 `planned_trade`
+2. 用执行安全层补齐仓位、TP/SL 和订单类型
+3. 调交易所执行桥
+4. 回写日志、状态和推送审计
 
-Discord:
-```bash
-# 获取最新生成的 5m 图表路径
-CHART_PATH=$(ls -t "AB Patrol-Agent/data/charts/$(date +%Y-%m-%d)/${SYMBOL}_5m_"*.png 2>/dev/null | head -1)
+`SKILL` 对执行阶段只要求：
 
-WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" -d '{"content":"**AL BROOKS L1** {操作}\n{SYM} {SIDE} {QTY}@{PRICE}\nSL={SL} TP={TP}\nP={X}% R={X}:1 [{Scalp/Swing}]\nPremise: {一句话}\n📊 图表: '"$CHART_PATH"'"}'
-```
+- 先声明风格与 premise
+- 再声明订单类型和升级条件
+- 下单后必须留下可复盘记录
+- 成交后立即把状态切到 `in_trade`
+- 平仓后立即把状态切回 `watching`
 
-平仓时：
-```
-写日志: [CLOSE] {SYM} {SIDE} 平仓 | 入场{PRICE}->平仓{PRICE} | 盈亏={$X}（含费用） | 原因
-Discord: 同上格式推送
-更新缓存: status → "watching", 清除 pre_signal
-```
+图表、消息模板、日志字段和接口顺序统一看运行说明。
 
 ---
 
@@ -489,33 +455,14 @@ Discord: 同上格式推送
 
 ### 4a. 状态输出
 
-```
-循环 #{N} | {HH:MM}
-Binance Testnet 余额 ${X} | 风险 1%=${X} | 杠杆 最大（账户默认）
-持仓 {n}个 | 日盈亏（含费用）${X}
-Cache: loops={N} signals={N} trades={N} passes={N} | S-reads本轮={列表}
+状态输出必须覆盖：
 
-=== 持仓管理 ===
-| 品种 | 时间周期 | 方向 | 浮盈% | AI方向 | Premise | 操作 |
+- 当前循环与账户/持仓状态
+- Quick Scan 与深分析结论
+- `pre_signal / candidate / executable` 的阶段归属
+- PASS 审计与下一轮扫描理由
 
-=== Quick Scan (3 品种 × 3 周期) ===
-| 品种 | 5m 事件 | 15m 事件 | 1h 事件 | 动作 |
-
-=== 深分析结果 ===
-| 品种 | 时间周期 | 场景A(概率) | 场景B(概率) | P*R | 决策 |
-
-=== Daily 偏置 ===
-| 品种 | AI方向 | 状态 | 来源(cache/fresh) |
-
-下轮: {N}分钟后 | 预计 S-reads: {0 或 "S5+S6-channel if signal triggers"}
-
-=== 执行审计 ===
-PASS 分类: RULE={N} WAIT={N}
-TR品种: {N}个 | 边缘触发: {N}次 | Scalp执行: {N}次 | 跳过: {N}次(原因)
-MTR评估: {N}个品种 | 3+/5: {N}个 | 试探: {N}次 | 跳过: {N}次(原因)
-SL打掉后重入: {N}次尝试 | 成功: {N}次
-路由表匹配: {N}次检查 | 偏离: {N}次(原因)
-```
+具体字段和渲染格式由 runtime / Web / TG 维护，不在 `SKILL` 固化。
 
 ### 4b. 写缓存
 
@@ -533,33 +480,16 @@ SL打掉后重入: {N}次尝试 | 成功: {N}次
 
 每轮写 `data/pa_trader/cycle_{timestamp}.json`，记录：loop_number, quick_scan_events, s_reads, deep_analysis 结果, trades, passes。
 
-### 4d. Discord 周期汇报（每 6 轮一次，无需分析）
+### 4d. 周期汇报（每 6 轮一次）
 
-`loop_count % 6 == 0` 时推送一条简短的状态卡：
+`loop_count % 6 == 0` 时允许发一条简短状态卡和周期图表快照。
 
-**4d-1. 生成全品种图表（定期快照）**
+什么时候跳过：
 
-```bash
-# 批量生成 3 品种 × 3 周期图表（6-9 秒）
-python AB\ Patrol-Agent/tools/chart_gen.py --patrol --port 8094
-```
+- 本轮已有开仓/平仓/关键警报推送
+- 当前处于高频 `pre_signal` 守候窗口
 
-**输出路径**：`AB Patrol-Agent/data/charts/YYYY-MM-DD/`
-
-**用途**：Discord 推送周期汇报附图 + 用户复盘快照。自动清理 3 天前的旧图片。
-
-**4d-2. Discord 推送（附带图表链接）**
-
-```bash
-# 获取今日图表目录
-CHART_DIR="AB Patrol-Agent/data/charts/$(date +%Y-%m-%d)"
-
-WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
-[ -n "$WEBHOOK" ] && curl -s -X POST "$WEBHOOK" -H "Content-Type: application/json" \
-  -d '{"content":"**L1 定期汇报** Loop#{N} | {HH:MM}\n余额 ${bal} | 日盈亏 ${pnl} | 持仓 {n}个\n信号酝酿: {sym1}({条件}) {sym2}...\n下轮: {X}分钟后\n📊 图表目录: '"$CHART_DIR"'"}'
-```
-
-**什么时候跳过**：当本轮有开仓/平仓/BC警报推送时，不额外发周期汇报（避免刷屏）。
+具体推送格式、图片路径和消息模板由 runtime 维护。
 
 ---
 
@@ -580,61 +510,21 @@ WEBHOOK=$(cat ~/.claude/.discord_webhook_l1 2>/dev/null)
 | P4 | **无持仓 + 无 pre_signal + 正常市场** | **8 分钟** | 节省资源 |
 | P5 | **全部品种 watching ≥ 3 轮** | **12 分钟** | 市场安静，放慢节奏 |
 
-**间隔计算逻辑**（Step 4 末尾执行）：
-```
-next_interval = 12  # 默认最长
-for sym in symbols:
-    d = abs(close[sym] - signal_price[sym]) / ATR5m[sym]
-    if pre_signal[sym] and d < 0.3:  next_interval = min(next_interval, 2)
-    if has_position[sym] and volatility_high[sym]:  next_interval = min(next_interval, 2)
-    if bc_sc_fresh[sym]:  next_interval = min(next_interval, 2)
-    if tr_edge[sym]:  next_interval = min(next_interval, 2)
-    if momentum[sym]:  next_interval = min(next_interval, 3)
-    if has_position[sym]:  next_interval = min(next_interval, 4)
-    if pre_signal[sym]:  next_interval = min(next_interval, 4)
-if stale_count > 3:  next_interval = min(next_interval, 5)
-```
+Step 4 末尾必须输出：
 
-```bash
-sleep {next_interval * 60} && echo "PATROL_L1_TIMER"
-```
-`run_in_background: true`。Step 4 末尾输出 `下轮: {N}分钟后 | 原因: {P0触发接近/P1 BC/...}`。收到 TIMER → 回 Step 0b。
+- 下轮间隔
+- 触发该间隔的最高优先级原因
+- 当前属于高频守候 / 常规巡逻 / 放慢节奏
 
-### 等待期间任务（V5.1 性能优化）
+### 等待期间任务
 
-**当等待时间 ≥ 5 分钟时，执行以下后台任务**（不阻塞主流程）：
+等待期间允许的后台任务只有三类：
 
-#### 1. 图表预生成（根据 pre_signal）
+1. 图表预生成
+2. 缓存/持仓一致性检查
+3. 统计预计算
 
-```bash
-# 为有 pre_signal 的品种预生成图表
-for sym in $(jq -r '.[] | select(.pre_signal != null) | .symbol' data/pa_trader/market_state_l1.json); do
-    python AB\ Patrol-Agent/tools/chart_gen.py -s $sym -i 5m,15m,1h --port 8094 &
-done
-wait
-```
-
-**用途**：Phase B 深分析时直接使用已生成的图表，节省 2-3 秒。
-
-#### 2. 数据完整性检查
-
-```bash
-# 验证缓存和持仓一致性
-curl -s http://localhost:8094/positions | jq -r '.[].symbol' > /tmp/positions.txt
-jq -r '.[] | select(.status == "in_trade") | .symbol' data/pa_trader/market_state_l1.json > /tmp/cache_positions.txt
-diff /tmp/positions.txt /tmp/cache_positions.txt || echo "[AUDIT] CACHE_POSITION_MISMATCH"
-```
-
-#### 3. 统计数据预计算（每 6 轮一次）
-
-```bash
-# 每 6 轮预计算统计数据
-if [ $((loop_count % 6)) -eq 0 ]; then
-    python AB\ Console-Backend/scripts/calc_daily_stats.py
-fi
-```
-
-**输出**：`data/pa_trader/stats/YYYY-MM-DD.json`（总交易/胜率/平均R/按品种/按setup）
+具体实现方式由 runtime 负责，不在 `SKILL` 固化命令。
 
 ---
 
@@ -643,7 +533,7 @@ fi
 以下任一条件 → **全部 3 品种走完整分析流程**（Read 全部 S 文件，等同 COLD_START）：
 1. `_meta.loop_count` % 6 == 0（每 6 轮强制一次，约 30-60 分钟）
 2. `_meta.last_full_refresh` 距今 > 1 小时
-3. 用户手动 `/patrol-l1 refresh`
+3. 手动刷新触发
 4. 交易执行后的下一轮（确保交易后环境重新评估）
 5. 连续 3 轮 Quick Scan 0 事件（异常——加密市场 30 分钟 3 品种完全无变化不正常）
 

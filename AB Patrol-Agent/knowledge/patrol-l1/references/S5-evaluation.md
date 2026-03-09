@@ -28,8 +28,6 @@ P(成功概率) × R(盈利) > (1-P)(失败概率) × Risk(亏损)
 - P=45% R=1.5 → 0.675 > 0.55 ✓ **这是正 TE，应该执行！**
 - 之前可能被错误拒绝，现已修正
 
-**实施细节**：见 `knowledge/patrol-l1/OPTIMIZATION_NOTES.md` 和 `runtime/pa_runtime_optimizations.py`
-
 ### Edge 的本质
 
 - **Edge 是短暂且微小的** — HFT 公司的算法仅维持几天到几周就更换
@@ -373,12 +371,10 @@ R = TP 距离 / SL 距离
 **⚠️ 步骤 1 决定了步骤 6 用什么标准。不允许中途换标准。**
 
 ### 仓位计算（禁止手算）
-```
-/trading/calculate-size/claude-pa-l1?entry_price={价}&stop_loss={SL}&risk_percent={0.3~1}
-```
 
 - 每笔最大风险 = **1% 余额**
 - 确信度一般 → 先小仓（0.3%），确认后可加仓到 1%
+- 仓位计算由执行层完成；这里定义的是风险原则，不是接口细节
 - **"Don't scalp when you should swing"**
 - **"If you are a trader, TRADE!"**
 

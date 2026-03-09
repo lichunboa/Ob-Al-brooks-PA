@@ -2622,7 +2622,7 @@ class PatrolRuntime:
                 "Step 0: 首轮初始化",
                 "Step 0b: 加载缓存",
                 "Step 1: 获取全局数据 + Daily 偏置",
-                "1a. API 数据（并行，每轮必做）",
+                "1a. 运行快照（每轮必做）",
                 "1b. Daily 偏置（条件化）",
                 "强制全刷新（Anti-Stale 机制）",
             )
@@ -2632,7 +2632,7 @@ class PatrolRuntime:
                 "Step 2: 持仓管理（有持仓时最优先）",
                 "2a. 获取持仓品种 K 线（多周期）",
                 "2a-1. 预计算持仓管理数据（ab_* 模块）",
-                "2a-2. 生成持仓品种图表（Discord 推送 + 人工复盘用）",
+                "2a-2. 图表与复盘快照",
                 "2b. 加载知识 + 执行管理",
                 "Step 5: 定时器（智能动态间隔）",
                 "pre_signal 超时（按周期区分）",
@@ -2648,7 +2648,7 @@ class PatrolRuntime:
         )
 
         if loop_seq % 6 == 0:
-            add("4d. Discord 周期汇报（每 6 轮一次，无需分析）")
+            add("4d. 周期汇报（每 6 轮一次）")
 
         if any(ref in refs for ref in {"S4-strategy-match.md", "S5-evaluation.md", "S6-common.md", "S6-bo.md", "S6-channel.md", "S6-tr.md", "S6-reversal.md"}):
             add(
@@ -2658,13 +2658,13 @@ class PatrolRuntime:
                 "3d-2. PASS 分类 + 反恐惧硬检查",
                 "3d-3. SL 打掉后重新入场",
                 "3e. 自我验证（下单前必做，10 项全过）",
-                "3f. 执行开仓（含加仓路由）",
+                "3f. 执行开仓与计划委托",
             )
 
         if any(ref in refs for ref in {"S0-daily-bias.md", "S1-reading.md", "S2-direction.md", "S3-market-state.md", "S3b-key-levels.md"}):
             add(
                 "Step 1: 获取全局数据 + Daily 偏置",
-                "1a. API 数据（并行，每轮必做）",
+                "1a. 运行快照（每轮必做）",
                 "1b. Daily 偏置（条件化）",
             )
 

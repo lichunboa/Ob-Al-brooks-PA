@@ -72,3 +72,17 @@ bash "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/📁 启动工具/🚀 一
 - 如果要调可执行规则，优先改 `S`
 - 如果要调纪律与纠偏，改 `Q`
 - 只有流程、阶段切换和路由变化，才改 `SKILL`
+
+## 从 SKILL 移出的运行内容
+
+以下内容不再属于 `SKILL` 主链，统一由 runtime / start.sh / Web / TG 维护：
+
+- 命令行启动与停止方式
+- 端口、API、执行桥细节
+- 图表生成命令与输出目录
+- TG / Web 推送格式与消息模板
+- 周期汇报、预信号消息和图片推送实现
+- 等待期间后台任务的具体命令
+- 刷新、看门狗与 sidecar 的实现细节
+
+如果这些内容需要调整，改这里或改 runtime，不要再塞回 `SKILL.md`。

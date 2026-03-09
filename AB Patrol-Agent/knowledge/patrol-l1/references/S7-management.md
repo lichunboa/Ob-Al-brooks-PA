@@ -184,17 +184,15 @@
 
 #### 风险指标检查详解（第 6 项）
 
-**数据来源**：`GET /balance` API（V6.0 扩展，支持币安和 OKX）
+这些指标由执行层提供账户风险快照；`S7` 只定义管理规则，不绑定具体接口。
 
-**关键字段**：
-```python
-margin_ratio: float           # 保证金率（健康度指标）
-maintenance_margin: float     # 维持保证金（强平线）
-total_position_margin: float  # 持仓占用保证金
-total_order_margin: float     # 挂单占用保证金
-leverage: float               # 当前杠杆倍数
-equity: float                 # 总权益
-```
+**关键指标**：
+- `margin_ratio`：保证金率（健康度指标）
+- `maintenance_margin`：维持保证金（强平线）
+- `total_position_margin`：持仓占用保证金
+- `total_order_margin`：挂单占用保证金
+- `leverage`：当前杠杆倍数
+- `equity`：总权益
 
 **检查规则**：
 
@@ -206,16 +204,9 @@ equity: float                 # 总权益
 | **持仓占用率** | < 30% | 30-50% | > 50% | > 50% → 不再加仓 |
 
 **计算公式**：
-```python
-# 保证金率 = 权益 / 持仓保证金 × 100%
-margin_ratio = (equity / total_position_margin) * 100
-
-# 维持保证金距离 = (权益 - 维持保证金) / 权益 × 100%
-mm_distance = ((equity - maintenance_margin) / equity) * 100
-
-# 持仓占用率 = 持仓保证金 / 可用余额 × 100%
-position_usage = (total_position_margin / available) * 100
-```
+- 保证金率 = 权益 / 持仓保证金 × 100%
+- 维持保证金距离 = (权益 - 维持保证金) / 权益 × 100%
+- 持仓占用率 = 持仓保证金 / 可用余额 × 100%
 
 **风险指标检查示例**：
 
@@ -300,7 +291,7 @@ position_usage = (total_position_margin / available) * 100
 
 | 保护类型 | 说明 | 执行方式 |
 |---------|------|---------|
-| **1. 保护性止损** | 始终在市场上挂止损单 | API 止损单，0 例外 |
+| **1. 保护性止损** | 始终在市场上挂止损单 | 执行层必须保证真实存在，0 例外 |
 | **2. 反方向信号** | 出现合理的反向信号 → 出局 | PA 分析 |
 | **3. 反方向突破** | 出现强烈反向 BO → 出局 | 连续 3+ 强反向K线 → 不等 SL |
 
