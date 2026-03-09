@@ -5332,8 +5332,18 @@ class PatrolRuntime:
         quick_scan_events: dict[str, Any],
         error: Exception,
     ) -> dict[str, Any]:
-        # 激进模式开关
-        aggressive_mode = bool(int(os.getenv("AB_PATROL_AGGRESSIVE_MODE", "0")))
+        # 激进模式开关（强制从 .env 重新读取）
+        env_file = Path(__file__).parent.parent / "config" / ".env"
+        aggressive_mode = False
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.strip().startswith("AB_PATROL_AGGRESSIVE_MODE="):
+                    aggressive_mode = bool(int(line.split("=", 1)[1].strip()))
+                    break
+
+        # 如果 .env 没有，再从环境变量读取
+        if not aggressive_mode:
+            aggressive_mode = bool(int(os.getenv("AB_PATROL_AGGRESSIVE_MODE", "0")))
 
         symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
         focus_symbols = [str(item).upper() for item in (phase_plan.get("focus_symbols") or [])]
@@ -5343,6 +5353,9 @@ class PatrolRuntime:
         next_scan_seconds = 240 if positions or cached_pre_signal else 480
         symbol_updates: dict[str, Any] = {}
         actions: list[dict[str, Any]] = []
+
+        if aggressive_mode:
+            LOG.info("[AGGRESSIVE] 激进模式已启用 | positions=%d", len(positions))
 
         def _trim_text(value: Any, limit: int = 180) -> str:
             text = str(value or "").strip()
