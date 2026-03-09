@@ -42,6 +42,7 @@ QUERY_HEALTH_URL = "http://127.0.0.1:8086/api/v1/runtime/card"
 CHECK_INTERVAL = int(os.getenv("AB_PATROL_WATCHDOG_CHECK_INTERVAL", "60"))
 STALE_SECONDS = int(os.getenv("AB_PATROL_WATCHDOG_STALE_SECONDS", "900"))
 RECOVERY_COOLDOWN = int(os.getenv("AB_PATROL_WATCHDOG_RECOVERY_COOLDOWN", "180"))
+AUTO_RESTART_HOURS = float(os.getenv("AB_PATROL_WATCHDOG_AUTO_RESTART_HOURS", "3.0"))
 TELEGRAM_FORWARD_URL = os.getenv("AB_PATROL_TELEGRAM_FORWARD_URL", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("AB_PATROL_TELEGRAM_CHAT_ID", "-1003512657369").strip() or "-1003512657369"
 TELEGRAM_THREAD_ID = int(os.getenv("AB_PATROL_TELEGRAM_THREAD_ID", "3"))
@@ -258,16 +259,19 @@ def run() -> int:
     signal.signal(signal.SIGINT, _cleanup)
     _write_pid()
     last_recovery_at = 0.0
+    loop_start_time = time.time()
     log.info(
-        "watchdog started | interval=%ss stale=%ss cooldown=%ss",
+        "watchdog started | interval=%ss stale=%ss cooldown=%ss auto_restart=%sh",
         CHECK_INTERVAL,
         STALE_SECONDS,
         RECOVERY_COOLDOWN,
+        AUTO_RESTART_HOURS,
     )
     while True:
         loop_alive = _pid_alive(SERVICE_PID)
         query_alive = _query_alive()
         age_seconds, age_label = _latest_activity_age()
+        uptime_hours = (time.time() - loop_start_time) / 3600.0
         reason = None
         if not loop_alive:
             reason = "loop_down"
@@ -277,6 +281,9 @@ def run() -> int:
             reason = "no_cycle_yet"
         elif age_seconds > STALE_SECONDS:
             reason = f"stale:{age_seconds}s:{age_label}"
+        elif uptime_hours >= AUTO_RESTART_HOURS:
+            reason = f"auto_restart:{uptime_hours:.1f}h"
+            log.info("watchdog auto-restart triggered | uptime=%sh", uptime_hours)
 
         state_payload = {
             "checked_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -302,6 +309,8 @@ def run() -> int:
             if remaining <= 0:
                 if _recover(reason, loop_alive, query_alive):
                     last_recovery_at = time.time()
+                    if reason.startswith("auto_restart:"):
+                        loop_start_time = time.time()
                     state_payload["health"] = "RECOVERING"
                     state_payload["last_recovery_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
                     state_payload["last_recovery_reason"] = reason
