@@ -1,6 +1,6 @@
 # S4 策略匹配 — 状态 × Playbook
 
-先确定状态，再决定允许哪些入场策略升级。
+先确定状态，再决定允许哪些策略、升级条件和禁止条件。
 
 ---
 
@@ -105,55 +105,11 @@
 
 ---
 
-## Daily 偏置 × 5m 方向叠加
-
-| | Daily AIL | Daily AIS | Daily TR |
-|--|----------|----------|---------|
-| **5m AIL** | ✅ 全力做多 (T1-T6) | ⚠️ 只 Scalp 多 | ✅ 正常做多 |
-| **5m AIS** | ⚠️ 只 Scalp 空 | ✅ 全力做空 (T1-T6) | ✅ 正常做空 |
-| **5m TR** | 偏多 fade (TR1-TR4) | 偏空 fade (TR1-TR4) | 纯 BLSHS |
-
-**冲突处理**: Daily 和 5m 方向冲突 → 只做 Scalp（1R 目标），不做 Swing。
-
----
-
-## Scalp vs Swing 最终确认
-
-| 条件 | → Swing | → Scalp |
-|------|---------|---------|
-| R ≥ 2× Risk | ✅ | |
-| P ≥ 40% + R ≥ 1.5 | ✅ | |
-| Daily 和 5m 同向 | ✅ | |
-| R < 2× Risk | | ✅ |
-| P ≥ 50% + R ≈ 1 | | ✅ |
-| Daily 和 5m 冲突 | | ✅ |
-| 市场状态 = TR | | ✅ |
-| 不确定但有道理 | | ✅ (试一试) |
-
-**致命错误**: Scalp 的 SL + Swing 的时间 / Swing 的 SL + Scalp 的退出。
-**规则**: 入场前确定风格，按该风格管理到底。
-
----
-
-## 不同状态的执行策略总表
-
-| 状态 | 入场方式 | 订单类型 | SL 位置 | TP 目标 | 仓位 | 持仓风格 |
-|------|---------|---------|---------|---------|------|----------|
-| **强 BO** | H1/BTC | Stop/Market | BO leg 底部 | MM 或 2R | 正常→加仓 | **Swing** |
-| **紧密通道** | H1/H2/BTC | Stop | 最近 Major HL 下 | 2R+ | 正常 | **Swing** |
-| **宽幅通道** | H2/Wedge PB | Stop/Limit | Leg 底部 | 通道对侧 | 正常 | Swing/Scalp |
-| **TR** | BLSHS/Fade BO | **Limit** | TR 对侧外 | TR 中间/对侧 | 小 | **Scalp** |
-| **BC 后** | 等待→MTR | 等确认 | 反转前极值外 | MM | 小 | 先 Scalp→确认后 Swing |
-
-**关键区别**：
-- BO/TC → **止损单入场** + Swing
-- TR → **限价单入场** + Scalp + **禁止追 BO**
-- BC 后 → **等待不追** + 60% 变 TR
-
----
-
 ## 不属于 S4 的内容
 
+- Daily 偏置 × 5m 方向叠加统一看 [S2-direction.md](S2-direction.md)
+- Scalp / Swing 最终确认统一看 [S5-evaluation.md](S5-evaluation.md)
+- 订单类型、风险和执行语义统一看 [S5-evaluation.md](S5-evaluation.md) + 对应 `S6-*`
 - 持仓管理 playbook 统一看 [S7-management.md](S7-management.md)
 - 运行态日志格式、Quick Scan 到 `S6` 的路由实现统一看运行说明与 runtime 映射
 

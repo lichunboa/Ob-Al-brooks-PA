@@ -28,7 +28,7 @@
 | `S2-direction` | AI 方向与多周期方向整合 | 纯理论性方向哲学 |
 | `S3-market-state` | 市场状态判定 | 课程背景、原话长摘录 |
 | `S3b-key-levels` | 关键位、磁体、S/R | 超出执行需要的理论说明 |
-| `S4-strategy-match` | 市场状态 × playbook × 升级条件 | 太长的理论解释、管理明细、运行日志与路由实现 |
+| `S4-strategy-match` | 市场状态 × playbook × 升级条件 | 太长的理论解释、Daily叠加、风格评估、管理明细、运行日志与路由实现 |
 | `S5-evaluation` | P/R、TE、风格、订单类型一致性 | 课程背景、实现细节 |
 | `S6-*` | playbook 触发、无效条件、执行语义 | 课程背景、非执行性理论 |
 | `S7-management` | premise、strength、保护、减仓、trail、退出 | API 说明、运行实现 |
@@ -42,7 +42,7 @@
 | `S2-direction` | 多周期方向整合、优先级、方向切换条件 | 方向理论、趋势与回调的课程背景 | 不要因单根 K 线乱切方向的提醒 | 无 |
 | `S3-market-state` | Trend / Channel / TR / BO / Climax / MTR 判定 | 市场周期理论、状态转换背景 | 反主观臆测、状态未明时保持观察 | 无 |
 | `S3b-key-levels` | 关键位、磁体、上下沿、EMA/SR 的执行用途 | 支撑阻力与磁体的长理论 | 关键位前不要冲动追单 | 无 |
-| `S4-strategy-match` | 状态到 playbook 的映射、升级条件、无效条件 | 各策略为何成立的理论背景 | 不要把观察级别误认成可执行级别 | Quick Scan 路由、日志格式、管理明细 |
+| `S4-strategy-match` | 状态到 playbook 的映射、升级条件、无效条件 | 各策略为何成立的理论背景 | 不要把观察级别误认成可执行级别 | Quick Scan 路由、日志格式、管理明细、Daily叠加与风格评估 |
 | `S5-evaluation` | P/R、Trader's Equation、风格与订单类型一致性 | 概率、风险、scalp/swing 的理论框架 | 接受不完美但要有 edge 的纪律提醒 | 仓位计算、执行桥实现细节 |
 | `S6-common` | 所有 playbook 共享的事件、无效条件、执行语义 | 通用形态理论 | 执行纪律与等确认提醒 | 无 |
 | `S6-bo` | BO/TC 顺势 playbook | 突破与接受的理论背景 | 不要在失败突破里当成真突破做 | 无 |
@@ -65,6 +65,15 @@
 8. 成交后进入 `S7-management`
 9. 写 cycle / journal / TG / Web
 10. 按 Step 5 决定下一次扫描
+
+### runtime 中仍影响交易判断的关键位置
+
+| 位置 | 当前职责 | 后续方向 |
+|---|---|---|
+| `classify_brooks_filter()` | 把 `pre_signal -> candidate -> executable` 和 Brooks 分类映射成执行语义 | 继续把升级条件回交给 `S4/S5/S6`，代码只保留安全分流 |
+| `derive_trade_execution_semantics()` | 生成 `candidate_stage / execution_mode / allow_executable` | 保持，但其依据要完全来自 `S4/S5/S6` |
+| `normalize_next_scan_seconds()` | Step 5 分桶 | 继续贴近 `SKILL Step 5`，减少代码自创规则 |
+| `route_s6_references()` | 按状态/事件决定读哪些 `S6-*` | 继续保持兼容，但让 `S4` 做主语义入口 |
 
 ---
 

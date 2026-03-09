@@ -14,6 +14,7 @@
   - `S4-S6` 是候选/入场层
   - `S7` 是持仓管理层
   - `S4` 不再承载日志格式、Quick Scan 路由实现、管理细则
+  - `S4` 也不再承载 Daily 叠加、Scalp/Swing 最终评估，这些统一回到 `S2/S5`
 
 - `canonical/C*.md`
   - 负责完整 Al Brooks 理论的规范层
