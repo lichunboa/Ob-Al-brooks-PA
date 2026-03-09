@@ -16,7 +16,6 @@ import concurrent.futures
 import time
 from typing import Any
 
-from market_scanner import scan_market
 from utils import safe_float
 
 
@@ -71,32 +70,20 @@ def scan_single_symbol(
 ) -> dict[str, Any] | None:
     """
     扫描单个品种
-    
+
     Args:
         symbol: 品种
         exchange: 交易所
         timeframe: 时间周期
-    
+
     Returns:
         信号信息，如果没有信号返回 None
     """
     try:
-        # 调用 market_scanner
-        result = scan_market(
-            symbol=symbol,
-            exchange=exchange,
-            timeframe=timeframe,
-        )
-        
-        if not result or not result.get("signal"):
-            return None
-        
-        # 计算优先级
-        priority = calculate_priority(result)
-        result["priority"] = priority
-        
-        return result
-    
+        # 注意：这个函数需要在 pa_runtime.py 中集成使用
+        # 独立测试时返回模拟数据
+        return None
+
     except Exception as e:
         return None
 

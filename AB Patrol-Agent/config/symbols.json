@@ -1,0 +1,53 @@
+{
+  "binance": {
+    "crypto": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "ADAUSDT",
+      "DOGEUSDT",
+      "AVAXUSDT",
+      "DOTUSDT",
+      "MATICUSDT"
+    ]
+  },
+  "okx": {
+    "crypto_swap": [
+      "BTC-USDT-SWAP",
+      "ETH-USDT-SWAP",
+      "BNB-USDT-SWAP",
+      "SOL-USDT-SWAP",
+      "XRP-USDT-SWAP",
+      "ADA-USDT-SWAP",
+      "DOGE-USDT-SWAP",
+      "AVAX-USDT-SWAP"
+    ]
+  },
+  "ctrader": {
+    "forex": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "AUDUSD",
+      "USDCAD",
+      "NZDUSD",
+      "USDCHF",
+      "EURGBP",
+      "EURJPY",
+      "GBPJPY"
+    ],
+    "metals": [
+      "XAUUSD",
+      "XAGUSD"
+    ],
+    "indices": [
+      "US30",
+      "US500",
+      "NAS100",
+      "GER40",
+      "UK100"
+    ]
+  }
+}

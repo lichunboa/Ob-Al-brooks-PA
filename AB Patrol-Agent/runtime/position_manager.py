@@ -22,6 +22,26 @@ from typing import Any
 from utils import safe_float
 
 
+def _get_position_attr(position: Any, key: str, default: Any = None) -> Any:
+    """
+    统一获取持仓属性（兼容字典和对象）
+    """
+    if isinstance(position, dict):
+        return position.get(key, default)
+    else:
+        return getattr(position, key, default)
+
+
+def _get_attr(obj: Any, key: str, default: Any = None) -> Any:
+    """
+    统一获取对象属性（兼容字典和对象）
+    """
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    else:
+        return getattr(obj, key, default)
+
+
 def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict[str, Any]:
     """
     Premise Check - 6 项检查
@@ -49,9 +69,9 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
             "reason": str
         }
     """
-    side = position.get("side", "")
-    entry_price = safe_float(position.get("entry_price"), 0)
-    entry_time = position.get("entry_time", "")
+    side = _get_position_attr(position, "side", "")
+    entry_price = safe_float(_get_position_attr(position, "entry_price"), 0)
+    entry_time = _get_position_attr(position, "entry_time", "")
 
     # 从 market_data 提取各个 skill 的数据
     ab_state = market_data.get("ab_state", {})
@@ -74,7 +94,7 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     }
 
     # 2. 市场状态检查
-    entry_state = str(position.get("entry_market_state", "")).strip().upper()
+    entry_state = str(_get_position_attr(position, "entry_market_state", "")).strip().upper()
     current_state = str(ab_state.get("state", "")).strip().upper()
 
     # 状态兼容性检查
@@ -93,9 +113,9 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     }
 
     # 3. 信号 K 线检查
-    signal_price = safe_float(position.get("signal_price"), entry_price)
-    signal_high = safe_float(position.get("signal_high"), signal_price)
-    signal_low = safe_float(position.get("signal_low"), signal_price)
+    signal_price = safe_float(_get_position_attr(position, "signal_price"), entry_price)
+    signal_high = safe_float(_get_position_attr(position, "signal_high"), signal_price)
+    signal_low = safe_float(_get_position_attr(position, "signal_low"), signal_price)
 
     # 检查信号 K 线是否被否定
     signal_valid = True
@@ -114,14 +134,14 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     }
 
     # 4. Follow-Through 检查
-    bars_since_entry = len([b for b in recent_bars if b.get("time", "") > entry_time])
+    bars_since_entry = len([b for b in recent_bars if _get_attr(b, "time", "") > entry_time])
 
     # 检查最近 3 根 K 线的质量
     ft_quality = "good"
     if len(recent_bars) >= 3:
         last_3 = recent_bars[-3:]
-        bull_count = sum(1 for b in last_3 if "bull" in str(b.get("body", "")).lower())
-        bear_count = sum(1 for b in last_3 if "bear" in str(b.get("body", "")).lower())
+        bull_count = sum(1 for b in last_3 if "bull" in str(_get_attr(b, "body", "")).lower())
+        bear_count = sum(1 for b in last_3 if "bear" in str(_get_attr(b, "body", "")).lower())
 
         if side == "BUY" and bear_count >= 2:
             ft_quality = "poor"
@@ -135,7 +155,7 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     }
 
     # 5. 目标路径检查
-    tp1 = safe_float(position.get("tp1"), 0)
+    tp1 = safe_float(_get_position_attr(position, "tp1"), 0)
 
     # 从 ab_sr 获取最近的支撑/阻力
     if side == "BUY":
@@ -235,9 +255,9 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
             "recommendation": str
         }
     """
-    side = position.get("side", "")
-    entry_price = safe_float(position.get("entry_price"), 0)
-    entry_time = position.get("entry_time", "")
+    side = _get_position_attr(position, "side", "")
+    entry_price = safe_float(_get_position_attr(position, "entry_price"), 0)
+    entry_time = _get_position_attr(position, "entry_time", "")
 
     # 从 market_data 提取各个 skill 的数据
     ab_sr = market_data.get("ab_sr", {})
@@ -318,17 +338,17 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
     shallow_pb = False
     if len(recent_bars) >= 5:
         # 找到入场后的最高/最低点
-        bars_after_entry = [b for b in recent_bars if b.get("time", "") > entry_time]
+        bars_after_entry = [b for b in recent_bars if _get_attr(b, "time", "") > entry_time]
         if bars_after_entry:
             if side == "BUY":
-                highest = max(safe_float(b.get("H"), 0) for b in bars_after_entry)
-                lowest = min(safe_float(b.get("L"), 0) for b in bars_after_entry)
+                highest = max(safe_float(_get_attr(b, "H"), 0) for b in bars_after_entry)
+                lowest = min(safe_float(_get_attr(b, "L"), 0) for b in bars_after_entry)
                 if highest > entry_price:
                     pb_ratio = (highest - lowest) / (highest - entry_price)
                     shallow_pb = pb_ratio < 0.5
             else:
-                highest = max(safe_float(b.get("H"), 0) for b in bars_after_entry)
-                lowest = min(safe_float(b.get("L"), 0) for b in bars_after_entry)
+                highest = max(safe_float(_get_attr(b, "H"), 0) for b in bars_after_entry)
+                lowest = min(safe_float(_get_attr(b, "L"), 0) for b in bars_after_entry)
                 if lowest < entry_price:
                     pb_ratio = (highest - lowest) / (entry_price - lowest)
                     shallow_pb = pb_ratio < 0.5
@@ -399,11 +419,11 @@ def calculate_trailing_sl(position: dict[str, Any], market_data: dict[str, Any])
             "reason": str
         }
     """
-    side = position.get("side", "")
-    current_sl = safe_float(position.get("stop_loss"), 0)
-    entry_price = safe_float(position.get("entry_price"), 0)
+    side = _get_position_attr(position, "side", "")
+    current_sl = safe_float(_get_position_attr(position, "stop_loss"), 0)
+    entry_price = safe_float(_get_position_attr(position, "entry_price"), 0)
     current_price = safe_float(market_data.get("current_price"), 0)
-    style = position.get("style", "Swing")
+    style = _get_position_attr(position, "style", "Swing")
 
     if not current_sl or not entry_price:
         return {
@@ -512,11 +532,11 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
             "reason": str
         }
     """
-    side = position.get("side", "")
-    entry_price = safe_float(position.get("entry_price"), 0)
-    current_sl = safe_float(position.get("stop_loss"), 0)
+    side = _get_position_attr(position, "side", "")
+    entry_price = safe_float(_get_position_attr(position, "entry_price"), 0)
+    current_sl = safe_float(_get_position_attr(position, "stop_loss"), 0)
     current_price = safe_float(market_data.get("current_price"), 0)
-    style = position.get("style", "Swing")
+    style = _get_position_attr(position, "style", "Swing")
 
     if not current_sl or not entry_price:
         return {
@@ -557,7 +577,7 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
 
     # Swing: 2R 减仓 50%
     if style == "Swing" and profit_r >= 2.0:
-        already_reduced = position.get("tp1_executed", False)
+        already_reduced = _get_position_attr(position, "tp1_executed", False)
         if not already_reduced:
             return {
                 "should_close": True,
@@ -567,7 +587,7 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
 
     # Swing: 3R 再减 25%
     if style == "Swing" and profit_r >= 3.0:
-        tp2_executed = position.get("tp2_executed", False)
+        tp2_executed = _get_position_attr(position, "tp2_executed", False)
         if not tp2_executed:
             return {
                 "should_close": True,
@@ -577,7 +597,7 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
 
     # Swing: 4R 再减 15%（剩余 10% 让它跑）
     if style == "Swing" and profit_r >= 4.0:
-        tp3_executed = position.get("tp3_executed", False)
+        tp3_executed = _get_position_attr(position, "tp3_executed", False)
         if not tp3_executed:
             return {
                 "should_close": True,
@@ -611,7 +631,7 @@ def manage_position(position: dict[str, Any], market_data: dict[str, Any]) -> di
     if premise["action"] == "CLOSE":
         return {
             "action": "CLOSE",
-            "params": {"symbol": position["symbol"]},
+            "params": {"symbol": _get_position_attr(position, "symbol")},
             "reason": premise["reason"],
             "premise_check": premise,
             "strength_check": None,
@@ -620,7 +640,7 @@ def manage_position(position: dict[str, Any], market_data: dict[str, Any]) -> di
     if premise["action"] == "REDUCE":
         return {
             "action": "PARTIAL_CLOSE",
-            "params": {"symbol": position["symbol"], "close_ratio": 0.5},
+            "params": {"symbol": _get_position_attr(position, "symbol"), "close_ratio": 0.5},
             "reason": premise["reason"],
             "premise_check": premise,
             "strength_check": None,
@@ -635,7 +655,7 @@ def manage_position(position: dict[str, Any], market_data: dict[str, Any]) -> di
         return {
             "action": "PARTIAL_CLOSE",
             "params": {
-                "symbol": position["symbol"],
+                "symbol": _get_position_attr(position, "symbol"),
                 "close_ratio": partial["close_ratio"]
             },
             "reason": partial["reason"],
@@ -649,7 +669,7 @@ def manage_position(position: dict[str, Any], market_data: dict[str, Any]) -> di
         return {
             "action": "MODIFY_STOP_LOSS",
             "params": {
-                "symbol": position["symbol"],
+                "symbol": _get_position_attr(position, "symbol"),
                 "new_sl": trailing["new_sl"]
             },
             "reason": trailing["reason"],
