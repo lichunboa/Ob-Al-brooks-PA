@@ -30,6 +30,7 @@ from typing import Any
 from env_loader import load_agent_env
 from providers import DecisionProviderConfig, build_decision_provider
 from aggressive_mode import should_execute_aggressive, identify_strategy, get_aggressive_mode_status
+from rule_engine import get_executable_trades, analyze_all_symbols
 
 # 2026-03-09: 导入优化模块（7 个核心优化）
 try:
@@ -3436,6 +3437,7 @@ class PatrolRuntime:
             if key not in merged_updates and isinstance(patch, dict):
                 merged_updates[key] = patch
         decision["symbol_updates"] = merged_updates
+        decision["symbols"] = merged_updates
 
         for action in decision.get("actions") or []:
             if not isinstance(action, dict):
@@ -3443,8 +3445,17 @@ class PatrolRuntime:
             raw_action = dict(action)
             symbol_key = str(action.get("symbol") or "").upper()
             patch = merged_updates.get(symbol_key) if isinstance(merged_updates.get(symbol_key), dict) else {}
-            action.clear()
-            action.update(self.apply_brooks_filter_to_action(raw_action, patch))
+
+            # 规则引擎优先模式：跳过 Brooks 过滤器，信任规则引擎的判断
+            reason = str(raw_action.get("reason") or "")
+            if "规则引擎" in reason:
+                action.clear()
+                action.update(raw_action)
+                LOG.info(f"[RULE_ENGINE_PRIORITY] {symbol_key} 跳过 Brooks 过滤器")
+            else:
+                action.clear()
+                action.update(self.apply_brooks_filter_to_action(raw_action, patch))
+
             action["type"] = canonical_action_type(action.get("type"))
             action["refs"] = [ref for ref in normalize_refs(action.get("refs")) if ref in ref_names]
             if not action["refs"] and ref_names:
@@ -3779,13 +3790,21 @@ class PatrolRuntime:
             return result
 
         if action_type == "OPEN_ORDER":
-            gate = self.validate_trade_gate(action)
-            result["trade_gate"] = gate
-            if not gate["ok"]:
-                result["success"] = False
-                result["status"] = "VALIDATION_REJECTED"
-                result["message"] = gate["stdout"] or gate["stderr"] or "trade gate rejected"
-                return result
+            # 规则引擎优先模式：信任规则引擎的判断，跳过 validate_trade_gate
+            reason = str(action.get("reason") or "")
+            skip_gate = "规则引擎" in reason
+
+            if not skip_gate:
+                gate = self.validate_trade_gate(action)
+                result["trade_gate"] = gate
+                if not gate["ok"]:
+                    result["success"] = False
+                    result["status"] = "VALIDATION_REJECTED"
+                    result["message"] = gate["stdout"] or gate["stderr"] or "trade gate rejected"
+                    return result
+            else:
+                LOG.info(f"[RULE_ENGINE_PRIORITY] {symbol} 跳过 validate_trade_gate 验证")
+                result["trade_gate"] = {"ok": True, "stdout": "规则引擎优先模式：跳过验证", "stderr": ""}
 
             can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
             if not can_trade.get("can_trade", False):
@@ -5322,6 +5341,129 @@ class PatrolRuntime:
                 return symbol, str(primary)
         return None, None
 
+    def rule_engine_decision(
+        self,
+        runtime: dict[str, Any],
+        market_cache: dict[str, Any],
+        execution: dict[str, Any],
+        phase_plan: dict[str, Any],
+        analysis_board: dict[str, Any],
+        quick_scan_events: dict[str, Any],
+    ) -> dict[str, Any]:
+        """规则引擎优先决策：不调用 LLM，直接使用规则引擎做开仓决策"""
+        from rule_engine import get_executable_trades
+        from position_manager import manage_positions
+
+        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+        # 优先从 runtime.symbols 读取（包含完整的 pre_signal 数据），fallback 到 market_cache
+        symbol_cache = runtime.get("symbols") if isinstance(runtime.get("symbols"), dict) else {}
+        if not symbol_cache:
+            symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
+        focus_symbols = phase_plan.get("focus_symbols") or []
+
+        # 1. 持仓管理（如果有持仓）
+        position_management = []
+        if positions:
+            try:
+                position_management = manage_positions(positions, market_cache, execution)
+                if position_management:
+                    LOG.info("[RULE_ENGINE_DECISION] 生成 %d 个持仓管理 actions", len(position_management))
+            except Exception as exc:
+                LOG.warning("[RULE_ENGINE_DECISION] 持仓管理失败: %s", exc)
+
+        # 2. 开仓决策（如果无持仓）
+        executable_trades = []
+        if not positions:
+            try:
+                LOG.info("[RULE_ENGINE_DECISION] symbol_cache keys: %s", list(symbol_cache.keys()))
+                for sym in focus_symbols:
+                    cached = symbol_cache.get(sym, {})
+                    LOG.info(f"[RULE_ENGINE_DECISION] {sym}: status={cached.get('status')}, pre_signal_active={cached.get('pre_signal',{}).get('active')}")
+
+                executable_trades = get_executable_trades(symbol_cache)
+                if executable_trades:
+                    LOG.info("[RULE_ENGINE_DECISION] 发现 %d 个可执行交易", len(executable_trades))
+                    for trade in executable_trades:
+                        LOG.info(f"[RULE_ENGINE_DECISION] {trade['symbol']}: {trade['strategy']} | confidence={trade['confidence']:.2f} | {trade['reason']}")
+                else:
+                    LOG.info("[RULE_ENGINE_DECISION] 未发现可执行交易")
+            except Exception as exc:
+                LOG.warning("[RULE_ENGINE_DECISION] 规则引擎失败: %s", exc, exc_info=True)
+
+        # 3. 构建 decision
+        actions = []
+        symbols_dict = {}
+
+        for symbol in focus_symbols:
+            cached = symbol_cache.get(symbol, {}) if isinstance(symbol_cache.get(symbol), dict) else {}
+
+            # 构建 symbols 字典
+            symbols_dict[symbol] = {
+                "status": cached.get("status", "watching"),
+                "stage": cached.get("stage", ""),
+                "market_state": cached.get("market_state", ""),
+                "thesis": cached.get("thesis", ""),
+                "pre_signal": cached.get("pre_signal"),
+                "planned_trade": cached.get("planned_trade"),
+            }
+
+            # 只在无持仓时生成开仓 actions
+            if not positions:
+                matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
+                if matching_trade:
+                    action_type = "OPEN_ORDER"
+                    action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
+                    LOG.info(f"[RULE_ENGINE_DECISION] {symbol} 生成 OPEN_ORDER")
+
+                    # 构建完整的 action（包含所有必要参数）
+                    actions.append({
+                        "type": action_type,
+                        "symbol": symbol,
+                        "side": matching_trade["side"],
+                        "entry": matching_trade["entry_price"],
+                        "sl": matching_trade["stop_loss"],
+                        "tp": matching_trade["take_profit"],
+                        "strategy": matching_trade["strategy"],
+                        "style": matching_trade["style"],
+                        "reason": action_reason,
+                        "refs": [],
+                        "market_state": cached.get("market_state", ""),
+                        "signal_bar": "",
+                        "equation": "",
+                        "bar_reading": "",
+                        "ai_direction": matching_trade["side"],
+                        "risk_usdt": 10,
+                    })
+                else:
+                    action_type = "LOG_ONLY"
+                    action_reason = f"规则引擎: 未识别到可执行交易"
+
+                    actions.append({
+                        "type": action_type,
+                        "symbol": symbol,
+                        "reason": action_reason,
+                        "refs": [],
+                    })
+
+        if positions:
+            market_summary = f"规则引擎优先模式：当前有 {len(positions)} 个持仓，生成 {len(position_management)} 个管理 actions。"
+        else:
+            market_summary = f"规则引擎优先模式：识别到 {len(executable_trades)} 个可执行交易。"
+
+        return {
+            "phase": phase_plan["phase"],
+            "market_summary": market_summary,
+            "focus_symbols": focus_symbols,
+            "symbols": symbols_dict,
+            "symbol_updates": {},
+            "actions": actions,
+            "position_management": position_management,
+            "next_scan_seconds": 120 if not positions else 60,
+            "next_scan_reason": "规则引擎优先模式：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+            "state_patch": {},
+            "explanation": "规则引擎优先模式：跳过 LLM，直接使用规则引擎识别交易机会，代码化持仓管理。",
+        }
+
     def timeout_fallback_decision(
         self,
         runtime: dict[str, Any],
@@ -5335,11 +5477,13 @@ class PatrolRuntime:
         # 激进模式开关（强制从 .env 重新读取）
         env_file = Path(__file__).parent.parent / "config" / ".env"
         aggressive_mode = False
+        rule_engine_enabled = True  # 默认启用
         if env_file.exists():
             for line in env_file.read_text().splitlines():
                 if line.strip().startswith("AB_PATROL_AGGRESSIVE_MODE="):
                     aggressive_mode = bool(int(line.split("=", 1)[1].strip()))
-                    break
+                elif line.strip().startswith("AB_PATROL_RULE_ENGINE="):
+                    rule_engine_enabled = bool(int(line.split("=", 1)[1].strip()))
 
         # 如果 .env 没有，再从环境变量读取
         if not aggressive_mode:
@@ -5356,6 +5500,23 @@ class PatrolRuntime:
 
         if aggressive_mode:
             LOG.info("[AGGRESSIVE] 激进模式已启用 | positions=%d", len(positions))
+
+        LOG.info("[TIMEOUT_FALLBACK] symbol_cache keys=%d, focus_symbols=%s", len(symbol_cache), focus_symbols)
+
+        # 使用规则引擎分析所有品种
+        if rule_engine_enabled and not positions:
+            try:
+                executable_trades = get_executable_trades(symbol_cache)
+                if executable_trades:
+                    LOG.info("[RULE_ENGINE] 发现 %d 个可执行交易", len(executable_trades))
+                    for trade in executable_trades:
+                        LOG.info("[RULE_ENGINE] %s: %s | confidence=%.2f | %s",
+                                trade["symbol"], trade["strategy"], trade["confidence"], trade["reason"])
+            except Exception as exc:
+                LOG.warning("[RULE_ENGINE] 规则引擎失败: %s", exc)
+                executable_trades = []
+        else:
+            executable_trades = []
 
         def _trim_text(value: Any, limit: int = 180) -> str:
             text = str(value or "").strip()
@@ -5389,15 +5550,23 @@ class PatrolRuntime:
                 "pre_signal": cached.get("pre_signal"),
             }
 
-            # 激进模式：即使超时也尝试执行
+            # 优先使用规则引擎
             action_type = "LOG_ONLY"
             action_reason = f"模型超时，保留上一轮判断；事件参考: {event_text}"
 
-            if aggressive_mode and not positions:
-                # 检查是否可以执行
+            # 1. 规则引擎优先
+            if rule_engine_enabled and executable_trades:
+                matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
+                if matching_trade:
+                    action_type = "OPEN_ORDER"
+                    action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
+                    LOG.info(f"[RULE_ENGINE] {symbol} 执行: {matching_trade['strategy']}")
+
+            # 2. 激进模式作为备选
+            elif aggressive_mode and not positions:
                 can_execute, exec_reason = should_execute_aggressive(cached)
                 if can_execute and cached.get("status") == "executable":
-                    action_type = "OPEN_POSITION"
+                    action_type = "OPEN_ORDER"
                     action_reason = f"激进模式执行: {exec_reason}"
                     strategy = identify_strategy(cached)
                     LOG.info(f"[AGGRESSIVE] {symbol} 激进模式触发: {strategy} | {exec_reason}")
@@ -5420,6 +5589,7 @@ class PatrolRuntime:
             "phase": phase_plan["phase"],
             "market_summary": market_summary,
             "focus_symbols": focus_symbols,
+            "symbols": symbol_updates,
             "symbol_updates": symbol_updates,
             "actions": actions,
             "position_management": [],
@@ -5525,38 +5695,95 @@ class PatrolRuntime:
                 LOG.warning("fast lane unavailable, falling back to full decision: %s", exc)
 
         if not decision:
-            system_text, user_text, ref_names, analysis_board, quick_scan_events, knowledge_meta = self.build_prompt_from_context(
-                runtime,
-                market_cache,
-                execution,
-                trigger,
-                phase_plan,
-                prepared,
-            )
-            try:
-                payload, response_text, provider_meta = self.invoke_decision_provider(
-                    system_text,
-                    user_text,
-                )
-                try:
-                    decision = self.extract_decision(response_text)
-                except json.JSONDecodeError as exc:
-                    LOG.warning("decision json malformed, attempting repair: %s", exc)
-                    decision = self.repair_decision_json(response_text, exc)
-            except RuntimeError as exc:
-                if "timeout" not in str(exc).lower():
-                    raise
-                LOG.warning("decision provider timed out, using fallback decision: %s", exc)
-                decision = self.timeout_fallback_decision(
+            # 规则引擎优先模式：先用规则引擎做开仓决策
+            env_file = Path(__file__).parent.parent / "config" / ".env"
+            rule_engine_enabled = True
+            rule_engine_priority = False  # 新增：规则引擎优先模式
+            if env_file.exists():
+                for line in env_file.read_text().splitlines():
+                    if line.strip().startswith("AB_PATROL_RULE_ENGINE="):
+                        rule_engine_enabled = bool(int(line.split("=", 1)[1].strip()))
+                    elif line.strip().startswith("AB_PATROL_RULE_ENGINE_PRIORITY="):
+                        rule_engine_priority = bool(int(line.split("=", 1)[1].strip()))
+
+            positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+
+            # 如果启用规则引擎优先模式且无持仓，先用规则引擎做决策
+            if rule_engine_priority and rule_engine_enabled and not positions:
+                LOG.info("[RULE_ENGINE_PRIORITY] 规则引擎优先模式：跳过 LLM，直接使用规则引擎")
+                decision = self.rule_engine_decision(
                     runtime,
                     market_cache,
                     execution,
                     phase_plan,
                     analysis_board,
                     quick_scan_events,
-                    exc,
                 )
+            else:
+                # 正常流程：调用 LLM
+                system_text, user_text, ref_names, analysis_board, quick_scan_events, knowledge_meta = self.build_prompt_from_context(
+                    runtime,
+                    market_cache,
+                    execution,
+                    trigger,
+                    phase_plan,
+                    prepared,
+                )
+                try:
+                    payload, response_text, provider_meta = self.invoke_decision_provider(
+                        system_text,
+                        user_text,
+                    )
+                    try:
+                        decision = self.extract_decision(response_text)
+                    except json.JSONDecodeError as exc:
+                        LOG.warning("decision json malformed, attempting repair: %s", exc)
+                        decision = self.repair_decision_json(response_text, exc)
+                except RuntimeError as exc:
+                    if "timeout" not in str(exc).lower():
+                        raise
+                    LOG.warning("decision provider timed out, using fallback decision: %s", exc)
+                    decision = self.timeout_fallback_decision(
+                        runtime,
+                        market_cache,
+                        execution,
+                        phase_plan,
+                        analysis_board,
+                        quick_scan_events,
+                        exc,
+                    )
         decision = self.validate_decision(decision, phase_plan, ref_names, market_cache, analysis_board, quick_scan_events)
+
+        # 规则引擎作为安全网：即使 LLM 输出 LOG_ONLY，规则引擎也能识别并执行交易
+        env_file = Path(__file__).parent.parent / "config" / ".env"
+        rule_engine_enabled = True
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.strip().startswith("AB_PATROL_RULE_ENGINE="):
+                    rule_engine_enabled = bool(int(line.split("=", 1)[1].strip()))
+                    break
+
+        positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+        if rule_engine_enabled and not positions:
+            from rule_engine import get_executable_trades
+            symbol_cache_for_rules = decision.get("symbols") or {}
+            try:
+                executable_trades = get_executable_trades(symbol_cache_for_rules)
+                if executable_trades:
+                    LOG.info("[RULE_ENGINE_SAFETY_NET] 发现 %d 个可执行交易", len(executable_trades))
+                    # 检查是否有 LOG_ONLY 的 actions 可以升级为 OPEN_ORDER
+                    for action in (decision.get("actions") or []):
+                        if not isinstance(action, dict):
+                            continue
+                        symbol = str(action.get("symbol") or "").upper()
+                        if action.get("type") == "LOG_ONLY":
+                            matching_trade = next((t for t in executable_trades if t["symbol"] == symbol), None)
+                            if matching_trade:
+                                action["type"] = "OPEN_ORDER"
+                                action["reason"] = f"规则引擎升级: {matching_trade['strategy']} | {matching_trade['reason']}"
+                                LOG.info(f"[RULE_ENGINE_SAFETY_NET] {symbol} 从 LOG_ONLY 升级为 OPEN_ORDER: {matching_trade['strategy']}")
+            except Exception as exc:
+                LOG.warning("[RULE_ENGINE_SAFETY_NET] 规则引擎失败: %s", exc)
 
         state_patch = decision.setdefault("state_patch", {})
         overall_eventful = False

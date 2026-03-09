@@ -1,7 +1,7 @@
 {
-  "last_update": "2026-03-09T13:36:55.770336+00:00",
-  "loop_count": 873,
-  "last_full_refresh": "2026-03-09T13:36:55.770336+00:00",
+  "last_update": "2026-03-09T17:27:53.578519+00:00",
+  "loop_count": 912,
+  "last_full_refresh": "2026-03-09T17:27:53.578519+00:00",
   "total_signals": 4,
   "total_trades": 8,
   "total_passes": 24,
@@ -9,83 +9,72 @@
     "BTCUSDT": {
       "daily_bias": {
         "bias": "中性偏空到中性",
-        "state": "日线TR内反弹测试",
+        "state": "日线 TR 内反弹测试",
         "source": "本轮重判",
         "note": "日线仍是 TR，所以当前只按 Scalp 处理；Swing 仍需更持久的上沿接受。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "executable",
       "consecutive_watching": 2,
-      "stage": "5M_H2_15M_H2_1H_H2_BREAKOUT_CONTINUATION_READY",
+      "stage": "5M_H1_15M_H2_1H_H2_BREAKOUT_CONTINUATION_READY",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "signal_trigger:H2@68731.6",
-        "state:TC",
-        "first_pb:bull_pb",
-        "tr_edge:top",
-        "hl_signal:H4",
-        "wedge_or_mtr",
-        "state_change:5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续->TC",
-        "cached_pre_signal",
-        "signal_trigger:H2@68731.6",
-        "state:BO",
-        "first_pb:bull_pb",
-        "tr_edge:top"
+        "state:TR"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
-        "candidate_stage": "CANDIDATE_MARKET",
-        "candidate_stage_cn": "候选单（市价）",
-        "execution_mode": "MARKET_IMMEDIATE",
-        "execution_mode_cn": "市价立即执行",
-        "allow_executable": true,
-        "needs_exact_trigger": false,
-        "brooks_label": "顺势候选",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "candidate_stage": "PRE_SIGNAL",
+        "candidate_stage_cn": "预信号",
+        "execution_mode": "LIMIT_PLAN",
+        "execution_mode_cn": "限价计划委托",
+        "allow_executable": false,
+        "needs_exact_trigger": true,
+        "brooks_label": "TR 边缘限价单环境",
+        "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ],
         "order_type_cn": "-",
         "execution_semantics": {
-          "candidate_stage": "CANDIDATE_MARKET",
-          "candidate_stage_cn": "候选单（市价）",
-          "execution_mode": "MARKET_IMMEDIATE",
-          "execution_mode_cn": "市价立即执行",
+          "candidate_stage": "PRE_SIGNAL",
+          "candidate_stage_cn": "预信号",
+          "execution_mode": "LIMIT_PLAN",
+          "execution_mode_cn": "限价计划委托",
           "order_type": null,
           "order_type_cn": "-",
           "style": null,
-          "allow_executable": true,
-          "needs_exact_trigger": false,
+          "allow_executable": false,
+          "needs_exact_trigger": true,
           "has_entry_price": false,
           "has_entry_zone": false,
-          "brooks_label": "顺势候选",
-          "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-          "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+          "brooks_label": "TR 边缘限价单环境",
+          "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+          "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
           "stage_rule_source_refs": [
             "S4-strategy-match.md",
-            "S6-common.md",
+            "S6-tr.md",
             "S5-evaluation.md"
           ],
-          "stage_rule_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+          "stage_rule_summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
         }
       },
       "brooks_filter": {
-        "category": "trend_continuation_candidate",
-        "label": "顺势候选",
-        "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "executable",
-        "allow_executable": true,
-        "stage_family": "normal_candidate",
+        "category": "tr_middle_no_edge",
+        "label": "交易区间中部无优势",
+        "summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "max_status": "watching",
+        "allow_executable": false,
+        "stage_family": "watch_only",
         "preferred_style": "WAIT",
-        "preferred_order_type": "MARKET",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "preferred_order_type": "LIMIT",
+        "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
@@ -94,100 +83,44 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
-      "market_state": "5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续",
-      "market_state_detail": "5 分钟从最外侧 BO 切到浅回踩 TC，但仍维持 AIL；15 分钟已给 H2，1 小时给 H2，30 分钟与 4 小时都在 68036.4 上方收盘，这说明旧上沿已经开始从阻力转成支撑。",
-      "structure_summary": "浏览 80 根后，大区间仍是主背景，但精读近 20 根可见高位回踩后连续多根 30 分钟 bull body 重新抬起。这里不再适合沿用旧的顶部失败突破叙事。按 S6-bo 与 S6-channel 的执行语义，顺势恢复 / first pullback 完成且接受清晰时允许 STOP_MARKET；当前正是这种情况。",
+      "ai_direction": "TR",
+      "market_state": "TR",
+      "structure_summary": "BTCUSDT 本轮模型超时，保持上一轮观察结论。",
       "key_levels": {
-        "current_zone": "68036.4 旧上沿上方的延续区",
         "support": [
-          "68036.4 旧上沿",
-          "68044.41 5m EMA",
-          "67861.67 15m EMA",
-          "67440.22 1h EMA"
+          68726.8,
+          68374.3,
+          68431.3
         ],
         "resistance": [
-          "68505.7",
-          "68850.0",
-          "69000.0"
-        ],
-        "magnets": [
-          "68036.4 旧上沿转支撑",
-          "68500/69000 整数位"
+          68939.25,
+          69000.0
         ]
       },
-      "thesis": "BTCUSDT 的主导 thesis 已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。5 分钟 H2@68505.7、15 分钟 H2@68505.7 与 1 小时 H2@68505.7 同步存在，30 分钟与 4 小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
-      "pre_signal": {
-        "active": true,
-        "side": "LONG",
-        "kind": "突破接受后的顺势延续",
-        "trigger": "重新站上 68505.7 并保留，继续守在 68036.4 上方",
-        "invalid_if": "30 分钟重新接受在 68036.4 下方",
-        "note": "这是一笔 TR 顶部之上的 Scalp 延续，不是直接升级成 Swing。"
-      },
+      "thesis": "BTCUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 3,
-      "signal": "H2@68731.6",
-      "timeframes": {
-        "5m": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H2@68731.6",
-          "summary": null
-        },
-        "15m": {
-          "ai": "AIL",
-          "state": "BO",
-          "signal": "H2@68731.6",
-          "summary": null
-        },
-        "1h": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H2@68731.6",
-          "summary": null
-        },
-        "1d": {
-          "ai": "TR",
-          "state": "TR",
-          "signal": "",
-          "summary": null
-        }
-      },
-      "running_narrative": "BTCUSDT 的主导 thesis 已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。5 分钟 H2@68505.7、15 分钟 H2@68505.7 与 1 小时 H2@68505.7 同步存在，30 分钟与 4 小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
+      "running_narrative": "BTCUSDT 本轮模型超时，保持上一轮观察结论。",
       "refs": [
         "S4-strategy-match.md",
-        "S3b-key-levels.md",
-        "S5-evaluation.md",
         "S6-common.md",
-        "S6-bo.md",
-        "S6-channel.md",
-        "S6-tr.md",
-        "S6-reversal.md"
+        "S6-tr.md"
       ],
       "entry_idea": {
         "side": "WAIT",
-        "entry_zone": {
-          "active": true,
-          "side": "LONG",
-          "kind": "突破接受后的顺势延续",
-          "trigger": "重新站上 68505.7 并保留，继续守在 68036.4 上方",
-          "invalid_if": "30 分钟重新接受在 68036.4 下方",
-          "note": "这是一笔 TR 顶部之上的 Scalp 延续，不是直接升级成 Swing。"
-        },
+        "entry_zone": "",
         "sl_reference": "",
         "tp_reference": "",
         "style": "WAIT",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "CANDIDATE_MARKET",
-        "candidate_stage_cn": "候选单（市价）",
-        "execution_mode": "MARKET_IMMEDIATE",
-        "execution_mode_cn": "市价立即执行",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "filter_summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "candidate_stage": "WATCH",
+        "candidate_stage_cn": "继续观察",
+        "execution_mode": "WATCH_ONLY",
+        "execution_mode_cn": "仅观察，不生成委托",
+        "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
@@ -198,110 +131,94 @@
         "threshold_rhs": null,
         "passes_price_action": false,
         "passes_execution_gate": null,
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "候选单（市价）",
-        "execution_mode": "市价立即执行",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "regime": "交易区间中部无优势",
+        "execution_decision": "继续观察/等待",
+        "risk": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "candidate_stage": "继续观察",
+        "execution_mode": "仅观察，不生成委托",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
       "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+        "交易区间中部没有边缘优势，只保留观察，不升级候选单。"
       ],
-      "pre_signal_meta": {
-        "timeframe": "5m",
-        "created_at": "2026-03-09T13:36:55.770494+00:00",
-        "expires_at": "2026-03-09T14:01:55.770494+00:00",
-        "extended_once": false
-      },
-      "updated_at": "2026-03-09T13:36:55.770680+00:00",
-      "source_cycle_id": "cycle_20260309_213655"
+      "updated_at": "2026-03-09T17:27:53.578610+00:00",
+      "source_cycle_id": "cycle_20260310_012753"
     },
     "ETHUSDT": {
       "daily_bias": {
         "bias": "中性偏多试探",
-        "state": "日线TR底部深回调反弹",
+        "state": "日线 TR 底部深回调反弹",
         "source": "本轮重判",
         "note": "日线仍是 TR，所以即便重新走强，也先按 Scalp 候选处理。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "candidate",
       "consecutive_watching": 6,
-      "stage": "5M_H2_15M_H1_1H_H1_RECLAIM_2011_WAIT_ACCEPTANCE",
+      "stage": "15M_H2_1H_H2_RECLAIM_2011_WAIT_ACCEPTANCE",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "signal_trigger:H1@2017.13",
-        "state:TC",
-        "first_pb:bull_pb",
-        "tr_edge:top",
-        "hl_signal:H3",
-        "wedge_or_mtr",
-        "state_change:5分钟 TR + 15分钟 TC + 30分钟 BO，旧上沿下方回收->TC",
-        "cached_pre_signal",
-        "stale:consecutive_watching",
-        "signal_trigger:H1@2017.13",
-        "state:TC",
-        "first_pb:bull_pb"
+        "state:TR",
+        "stale:consecutive_watching"
       ],
       "planned_trade": {
-        "candidate_stage": "CANDIDATE_MARKET",
-        "candidate_stage_cn": "候选单（市价）",
-        "execution_mode": "MARKET_IMMEDIATE",
-        "execution_mode_cn": "市价立即执行",
-        "allow_executable": true,
-        "needs_exact_trigger": false,
-        "brooks_label": "顺势候选",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "candidate_stage": "PRE_SIGNAL",
+        "candidate_stage_cn": "预信号",
+        "execution_mode": "LIMIT_PLAN",
+        "execution_mode_cn": "限价计划委托",
+        "allow_executable": false,
+        "needs_exact_trigger": true,
+        "brooks_label": "TR 边缘限价单环境",
+        "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ],
         "order_type_cn": "-",
         "execution_semantics": {
-          "candidate_stage": "CANDIDATE_MARKET",
-          "candidate_stage_cn": "候选单（市价）",
-          "execution_mode": "MARKET_IMMEDIATE",
-          "execution_mode_cn": "市价立即执行",
+          "candidate_stage": "PRE_SIGNAL",
+          "candidate_stage_cn": "预信号",
+          "execution_mode": "LIMIT_PLAN",
+          "execution_mode_cn": "限价计划委托",
           "order_type": null,
           "order_type_cn": "-",
           "style": null,
-          "allow_executable": true,
-          "needs_exact_trigger": false,
+          "allow_executable": false,
+          "needs_exact_trigger": true,
           "has_entry_price": false,
           "has_entry_zone": false,
-          "brooks_label": "顺势候选",
-          "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-          "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+          "brooks_label": "TR 边缘限价单环境",
+          "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
+          "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
           "stage_rule_source_refs": [
             "S4-strategy-match.md",
-            "S6-common.md",
+            "S6-tr.md",
             "S5-evaluation.md"
           ],
-          "stage_rule_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+          "stage_rule_summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
         }
       },
       "last_signal_reason": "5m L2、15m L2、1h L1 空头方向一致，当前可按 Scalp 执行。",
       "brooks_filter": {
-        "category": "trend_continuation_candidate",
-        "label": "顺势候选",
-        "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "candidate",
-        "allow_executable": true,
-        "stage_family": "normal_candidate",
+        "category": "tr_middle_no_edge",
+        "label": "交易区间中部无优势",
+        "summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "max_status": "watching",
+        "allow_executable": false,
+        "stage_family": "watch_only",
         "preferred_style": "WAIT",
-        "preferred_order_type": "MARKET",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "preferred_order_type": "LIMIT",
+        "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
@@ -310,103 +227,45 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
-      "market_state": "5分钟 TR + 15分钟 TC + 30分钟 BO，旧上沿下方回收",
-      "market_state_detail": "低周期已经从旧的 short probe 切回 AIL，但 5 分钟更接近整理、30 分钟与 4 小时都还没重新收回 2011.95，说明多头还差最后的接受。",
-      "structure_summary": "浏览 80 根后，日线仍属区间；精读近 20 根显示上破失败后的 bear body 已经被后续 bull bar 部分修复。旧的 L2 反转试探已经不再主导，因为当前低周期方向重新变成 Always In Long。按 canonical thesis 切换原则，当前必须改判为 long reaccept candidate，而不是继续坚持 short probe。5 分钟上的整理只代表回收过程中的拉锯，不是新的做空 setup。",
+      "ai_direction": "TR",
+      "market_state": "TR",
+      "structure_summary": "ETHUSDT 本轮模型超时，保持上一轮观察结论。",
       "key_levels": {
-        "current_zone": "2011.95 旧上沿下方的回收区",
         "support": [
-          "2000.99 当前 30m 收盘",
-          "2001.13 5m EMA",
-          "1997.09 15m EMA",
-          "1979.48 1h EMA",
-          "1997.11"
+          2020.7,
+          2019.55,
+          2021.335
         ],
         "resistance": [
-          "2008.85",
-          "2009.84",
-          "2011.95",
-          "2019.55",
-          "2025.0"
-        ],
-        "magnets": [
-          "2011.95 旧上沿",
-          "2025 整数位"
+          2025.83,
+          2040.5,
+          2077.47
         ]
       },
-      "thesis": "ETHUSDT 的主导 thesis 已经从旧的 TR 顶部 L2 反转试探切回多头延续。5 分钟 H2@2008.85、15 分钟 H1@2008.85、1 小时 H1@2009.84 已经出现，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
-      "pre_signal": {
-        "active": true,
-        "side": "LONG",
-        "kind": "旧上沿下方的顺势再接受候选",
-        "trigger": "先重新站稳 2011.95，其后再站上 2019.55",
-        "invalid_if": "30 分钟重新接受在 1997.11 下方",
-        "note": "当前仍少对 2011.95 的接受，所以不升级成可执行。"
-      },
+      "thesis": "ETHUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 3,
-      "signal": "H1@2017.13",
-      "timeframes": {
-        "5m": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H1@2017.13",
-          "summary": null
-        },
-        "15m": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H1@2017.13",
-          "summary": null
-        },
-        "1h": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H2@2017.13",
-          "summary": null
-        },
-        "1d": {
-          "ai": "TR",
-          "state": "TR",
-          "signal": "",
-          "summary": null
-        }
-      },
-      "running_narrative": "ETHUSDT 的主导 thesis 已经从旧的 TR 顶部 L2 反转试探切回多头延续。5 分钟 H2@2008.85、15 分钟 H1@2008.85、1 小时 H1@2009.84 已经出现，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
+      "running_narrative": "ETHUSDT 本轮模型超时，保持上一轮观察结论。",
       "refs": [
         "S4-strategy-match.md",
-        "S3b-key-levels.md",
-        "S5-evaluation.md",
         "S6-common.md",
-        "S6-bo.md",
-        "S6-channel.md",
-        "S6-tr.md",
-        "S6-reversal.md"
+        "S6-tr.md"
       ],
       "entry_idea": {
         "side": "WAIT",
-        "entry_zone": {
-          "active": true,
-          "side": "LONG",
-          "kind": "旧上沿下方的顺势再接受候选",
-          "trigger": "先重新站稳 2011.95，其后再站上 2019.55",
-          "invalid_if": "30 分钟重新接受在 1997.11 下方",
-          "note": "当前仍少对 2011.95 的接受，所以不升级成可执行。"
-        },
+        "entry_zone": "",
         "sl_reference": "",
         "tp_reference": "",
         "style": "WAIT",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "CANDIDATE_MARKET",
-        "candidate_stage_cn": "候选单（市价）",
-        "execution_mode": "MARKET_IMMEDIATE",
-        "execution_mode_cn": "市价立即执行",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "filter_summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "candidate_stage": "WATCH",
+        "candidate_stage_cn": "继续观察",
+        "execution_mode": "WATCH_ONLY",
+        "execution_mode_cn": "仅观察，不生成委托",
+        "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
@@ -417,55 +276,38 @@
         "threshold_rhs": null,
         "passes_price_action": false,
         "passes_execution_gate": null,
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "候选单（市价）",
-        "execution_mode": "市价立即执行",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "regime": "交易区间中部无优势",
+        "execution_decision": "继续观察/等待",
+        "risk": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
+        "candidate_stage": "继续观察",
+        "execution_mode": "仅观察，不生成委托",
+        "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
+          "S6-tr.md",
           "S5-evaluation.md"
         ]
       },
       "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+        "交易区间中部没有边缘优势，只保留观察，不升级候选单。"
       ],
-      "pre_signal_meta": {
-        "timeframe": "5m",
-        "created_at": "2026-03-09T13:36:55.770875+00:00",
-        "expires_at": "2026-03-09T14:01:55.770875+00:00",
-        "extended_once": false
-      },
-      "updated_at": "2026-03-09T13:36:55.770961+00:00",
-      "source_cycle_id": "cycle_20260309_213655"
+      "updated_at": "2026-03-09T17:27:53.578628+00:00",
+      "source_cycle_id": "cycle_20260310_012753"
     },
     "BNBUSDT": {
       "daily_bias": {
         "bias": "中性偏多试探",
-        "state": "日线TR底部反弹",
+        "state": "日线 TR 底部反弹",
         "source": "本轮重判",
         "note": "大级别仍是 TR 底部反弹背景，当前只按 Scalp 候选处理。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "candidate",
       "consecutive_watching": 4,
-      "stage": "5M_H1_15M_H1_1H_H2_BREAKOUT_CONTINUATION_NEAR_636",
+      "stage": "15M_H1_1H_H2_BREAKOUT_CONTINUATION_NEAR_639",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "signal_trigger:H2@635.09",
-        "state:BO",
-        "first_pb:bull_pb",
-        "tr_edge:top",
-        "hl_signal:H3",
-        "wedge_or_mtr",
-        "state_change:5分钟 BO + 15分钟 BO + 1小时 TC，旧上沿上方延续->BO",
-        "cached_pre_signal",
-        "signal_trigger:H2@635.09",
-        "state:BO",
-        "first_pb:bull_pb",
-        "tr_edge:top"
+        "state:TC"
       ],
       "last_signal_reason": "5m L2、15m L1、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -508,20 +350,19 @@
         }
       },
       "brooks_filter": {
-        "category": "trend_continuation_candidate",
-        "label": "顺势候选",
-        "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "max_status": "candidate",
-        "allow_executable": true,
-        "stage_family": "normal_candidate",
+        "category": "watch_only",
+        "label": "继续观察",
+        "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+        "max_status": "watching",
+        "allow_executable": false,
+        "stage_family": "watch_only",
         "preferred_style": "WAIT",
         "preferred_order_type": "MARKET",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+        "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
-          "S5-evaluation.md"
+          "S6-common.md"
         ]
       },
       "trade": {
@@ -529,103 +370,40 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
-      "market_state": "5分钟 BO + 15分钟 BO + 1小时 TC，旧上沿上方延续",
-      "market_state_detail": "低周期已经完成对 629.8/630.2 的突破并站上其上方，但当前紧贴 632.85/633.9 与 636 一带，新的首笔追多位置不如 BTC 干净。",
-      "structure_summary": "浏览 80 根后仍是区间背景；精读近 20 根显示先前的上沿再测试等待已经结束，当前已经是明确的多周期顺势延续。30 分钟与 4 小时上的 wedge_or_mtr 只代表晚期整理线索，按 Brooks 原话坏楔形不是反转 setup，因此这里只能把它当作延续中的位置警告，而不是直接翻空。",
+      "ai_direction": "AIL",
+      "market_state": "TC",
+      "structure_summary": "BNBUSDT 本轮模型超时，保持上一轮观察结论。",
       "key_levels": {
-        "current_zone": "629.8/630.2 旧上沿上方的延续区",
         "support": [
-          "630.2",
-          "629.8",
-          "630.74 5m EMA",
-          "628.49 15m EMA",
-          "623.87 1h EMA"
+          638.18,
+          633.75
         ],
         "resistance": [
-          "632.85",
-          "633.9",
-          "636.0",
-          "639.0"
-        ],
-        "magnets": [
-          "636 整数位",
-          "629.8/630.2 旧上沿转支撑"
+          640.0
         ]
       },
-      "thesis": "BNBUSDT 的主导 thesis 已经从旧的“等待新 H1/H2”切换成顺势突破延续。5 分钟 H1@632.85、15 分钟 H1@633.9、1 小时 H2@633.9 已经出现，30 分钟也收在 629.8/630.2 上方；但当前价格已经贴近 633.9 与 636 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
-      "pre_signal": {
-        "active": true,
-        "side": "LONG",
-        "kind": "突破接受后的顺势延续候选",
-        "trigger": "重新站上 633.9-636.0 并保留，或回踩 630.2 后给出新的 H1/H2",
-        "invalid_if": "30 分钟重新接受在 630.2 下方",
-        "note": "当前方向正确，但位置偏晚，先不直接追。"
-      },
+      "thesis": "BNBUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 3,
-      "signal": "H2@635.09",
-      "timeframes": {
-        "5m": {
-          "ai": "AIL",
-          "state": "BO",
-          "signal": "H2@635.09",
-          "summary": null
-        },
-        "15m": {
-          "ai": "AIL",
-          "state": "BO",
-          "signal": "H2@635.09",
-          "summary": null
-        },
-        "1h": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H2@635.09",
-          "summary": null
-        },
-        "1d": {
-          "ai": "TR",
-          "state": "TR",
-          "signal": "",
-          "summary": null
-        }
-      },
-      "running_narrative": "BNBUSDT 的主导 thesis 已经从旧的“等待新 H1/H2”切换成顺势突破延续。5 分钟 H1@632.85、15 分钟 H1@633.9、1 小时 H2@633.9 已经出现，30 分钟也收在 629.8/630.2 上方；但当前价格已经贴近 633.9 与 636 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
+      "running_narrative": "BNBUSDT 本轮模型超时，保持上一轮观察结论。",
       "refs": [
-        "S4-strategy-match.md",
-        "S3b-key-levels.md",
-        "S5-evaluation.md",
-        "S6-common.md",
-        "S6-bo.md",
-        "S6-channel.md",
-        "S6-tr.md",
-        "S6-reversal.md"
+        "S4-strategy-match.md"
       ],
       "entry_idea": {
         "side": "WAIT",
-        "entry_zone": {
-          "active": true,
-          "side": "LONG",
-          "kind": "突破接受后的顺势延续候选",
-          "trigger": "重新站上 633.9-636.0 并保留，或回踩 630.2 后给出新的 H1/H2",
-          "invalid_if": "30 分钟重新接受在 630.2 下方",
-          "note": "当前方向正确，但位置偏晚，先不直接追。"
-        },
+        "entry_zone": "",
         "sl_reference": "",
         "tp_reference": "",
         "style": "WAIT",
-        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "CANDIDATE_MARKET",
-        "candidate_stage_cn": "候选单（市价）",
-        "execution_mode": "MARKET_IMMEDIATE",
-        "execution_mode_cn": "市价立即执行",
-        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "filter_summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+        "candidate_stage": "WATCH",
+        "candidate_stage_cn": "继续观察",
+        "execution_mode": "WATCH_ONLY",
+        "execution_mode_cn": "仅观察，不生成委托",
+        "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
+        "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
-          "S5-evaluation.md"
+          "S6-common.md"
         ]
       },
       "evaluation": {
@@ -635,39 +413,32 @@
         "threshold_rhs": null,
         "passes_price_action": false,
         "passes_execution_gate": null,
-        "regime": "顺势候选",
-        "execution_decision": "可继续执行链",
-        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
-        "candidate_stage": "候选单（市价）",
-        "execution_mode": "市价立即执行",
-        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+        "regime": "继续观察",
+        "execution_decision": "继续观察/等待",
+        "risk": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
+        "candidate_stage": "继续观察",
+        "execution_mode": "仅观察，不生成委托",
+        "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-common.md",
-          "S5-evaluation.md"
+          "S6-common.md"
         ]
       },
       "scenarios": [
-        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
+        "当前结构还不足以升级为候选单，继续观察并等待新证据。"
       ],
-      "pre_signal_meta": {
-        "timeframe": "5m",
-        "created_at": "2026-03-09T13:36:55.770716+00:00",
-        "expires_at": "2026-03-09T14:01:55.770716+00:00",
-        "extended_once": false
-      },
-      "updated_at": "2026-03-09T13:36:55.770841+00:00",
-      "source_cycle_id": "cycle_20260309_213655"
+      "updated_at": "2026-03-09T17:27:53.578588+00:00",
+      "source_cycle_id": "cycle_20260310_012753"
     }
   },
   "_meta": {
-    "loop_count": 873,
-    "total_signals": 1690,
-    "total_trades": 77,
-    "total_passes": 640,
-    "last_full_refresh": "2026-03-09T13:36:55.770336+00:00",
-    "last_update": "2026-03-09T13:36:55.770336+00:00",
-    "pass_wait": 613,
+    "loop_count": 912,
+    "total_signals": 1756,
+    "total_trades": 88,
+    "total_passes": 657,
+    "last_full_refresh": "2026-03-09T17:27:53.578519+00:00",
+    "last_update": "2026-03-09T17:27:53.578519+00:00",
+    "pass_wait": 630,
     "pass_rule": 2
   }
 }
