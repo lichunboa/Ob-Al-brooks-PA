@@ -1,6 +1,6 @@
 # Patrol 交易漏斗报告
 
-更新日期: 2026-03-08
+更新日期: 2026-03-09
 
 ## 目的
 
@@ -79,6 +79,56 @@
   - 有没有 `pre_signal`
   - 有没有 `OPEN_ORDER` 候选
   - 候选单是因市场数学被拒, 还是因格式链路被拒
+
+## 2026-03-09 已确认并修复的执行阻塞
+
+昨天 `0` 成交里, 有两条已经确认属于系统问题, 而不是市场没有机会:
+
+### 1. Canonical refs 被 gate 误判为非法
+
+`runtime` 现在会合法输出 canonical 文件, 例如:
+
+- `C3-style-equation-and-order-planning.md`
+
+但旧版 `patrol_trade.py` 只允许旧的 `S*` 文件名, 会把这些 canonical refs 误判成非法并拒单。
+
+现已修复为:
+
+- 直接从 `knowledge/patrol-l1/references`
+- `knowledge/patrol-l1/references/quotes`
+- `knowledge/patrol-l1/canonical`
+
+动态发现合法 refs, 不再靠过时的硬编码白名单。
+
+### 2. Trader's Equation 在进 gate 前仍可能残留自然语言
+
+典型样本:
+
+- `cycle_20260308_183903`
+- `cycle_20260308_131235`
+- `cycle_20260308_193745`
+
+这些 cycle 里, `OPEN_ORDER.equation` 被写成中文解释句, 而不是:
+
+- `P=55% R=2.5 PxR=1.38`
+
+导致 gate 在 `Equation` 和 `SL/TP` 两步同时失败。
+
+现已修复为:
+
+- `runtime` 在 `validate_trade_gate()` 前再做一次 equation 规范化
+- 如果已有 `evaluation / entry_idea / thesis`, 会优先重建成 gate-ready 格式
+- 不再依赖“模型这次刚好输出得很规整”
+
+### 3. 修复后的直接验证
+
+已用带 canonical refs 的样本做过直接 gate 验证:
+
+- `Refs: ['S4-strategy-match.md', 'C3-style-equation-and-order-planning.md'] ✓`
+- `Equation: P=56% R=2.00 PxR=1.12 ✓`
+- Binance demo 下单成功
+
+这说明当前最明显的“低级阻塞”已经被打通。
 
 ## 当前建议的检查顺序
 

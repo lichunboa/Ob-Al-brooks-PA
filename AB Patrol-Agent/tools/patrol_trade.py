@@ -30,6 +30,7 @@ import sys
 import argparse
 import os
 import re
+from pathlib import Path
 from datetime import datetime
 from urllib.request import urlopen, Request
 
@@ -38,6 +39,7 @@ BOT_ID = "claude-pa"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 LOG_PATH = os.path.join(PROJECT_ROOT, "data", "pa_trader", "pa_trader.log")
+KNOWLEDGE_ROOT = Path(PROJECT_ROOT) / "knowledge" / "patrol-l1"
 
 # ─── 必填字段定义 ─────────────────────────────────────────────────────────
 
@@ -132,20 +134,32 @@ def validate_equation(eq_str: str) -> tuple:
     return True, detailed_msg
 
 
+def _discover_valid_ref_names() -> set[str]:
+    valid = {
+        # Legacy aliases kept for backward compatibility with older logs/cycles.
+        "0-reading.md", "1-direction.md", "2-market-state.md",
+        "3a-trend-entries.md", "3b-reversal-entries.md",
+        "4-evaluation.md", "5-execution.md", "6-management.md",
+    }
+    search_roots = [
+        KNOWLEDGE_ROOT / "references",
+        KNOWLEDGE_ROOT / "references" / "quotes",
+        KNOWLEDGE_ROOT / "canonical",
+    ]
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for path in root.glob("*.md"):
+            valid.add(path.name)
+    return valid
+
+
 def validate_refs(refs_str: str) -> tuple:
     """校验reference文件列表"""
     refs = [r.strip() for r in refs_str.split(",") if r.strip()]
     if len(refs) < 2:
         return False, f"至少需要2个reference文件，当前只有{len(refs)}个"
-    valid_refs = [
-        "0-reading.md", "1-direction.md", "2-market-state.md",
-        "3a-trend-entries.md", "3b-reversal-entries.md",
-        "4-evaluation.md", "5-execution.md", "6-management.md",
-        "S0-daily-bias.md", "S1-reading.md", "S2-direction.md", "S3-market-state.md",
-        "S3b-key-levels.md", "S4-strategy-match.md", "S5-evaluation.md",
-        "S6-bo.md", "S6-channel.md", "S6-common.md", "S6-reversal.md",
-        "S6-tr.md", "S7-management.md",
-    ]
+    valid_refs = _discover_valid_ref_names()
     invalid = [r for r in refs if r not in valid_refs]
     if invalid:
         return False, f"无效的reference文件: {invalid}"

@@ -3585,6 +3585,22 @@ class PatrolRuntime:
         pxr = p * r
         return f"P={int(round(p * 100))}% R={r:.2f} PxR={pxr:.2f}"
 
+    def ensure_gate_ready_equation(self, action: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(action)
+        existing = str(normalized.get("equation") or "").strip()
+        if self.equation_is_gate_ready(existing):
+            return normalized
+        patch: dict[str, Any] = {}
+        if isinstance(normalized.get("evaluation"), dict):
+            patch["evaluation"] = normalized.get("evaluation")
+        if normalized.get("thesis"):
+            patch["thesis"] = normalized.get("thesis")
+        if isinstance(normalized.get("entry_idea"), dict):
+            patch["entry_idea"] = normalized.get("entry_idea")
+        rebuilt = self.build_trade_equation(patch, normalized)
+        normalized["equation"] = rebuilt
+        return normalized
+
     def hydrate_open_order_action(self, action: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
         action_type = canonical_action_type(action.get("type"))
         if action_type not in {"OPEN_ORDER", "PARTIAL_CLOSE"}:
@@ -3652,6 +3668,10 @@ class PatrolRuntime:
         hydrated["ai_direction"] = self.build_action_ai_direction(patch, hydrated)
         hydrated["market_state"] = hydrated.get("market_state") or patch.get("market_state")
         hydrated["signal_bar"] = hydrated.get("signal_bar") or patch.get("signal") or patch.get("structure_summary") or patch.get("thesis")
+        if isinstance(patch.get("evaluation"), dict):
+            hydrated["evaluation"] = patch.get("evaluation")
+        if isinstance(patch.get("entry_idea"), dict):
+            hydrated["entry_idea"] = patch.get("entry_idea")
         hydrated["equation"] = self.build_trade_equation(patch, hydrated)
         hydrated["refs"] = normalize_refs(hydrated.get("refs")) or normalize_refs(patch.get("refs"))
         hydrated["bar_reading"] = self.build_action_bar_reading(patch, hydrated)
@@ -3693,6 +3713,7 @@ class PatrolRuntime:
         return hydrated
 
     def validate_trade_gate(self, action: dict[str, Any]) -> dict[str, Any]:
+        action = self.ensure_gate_ready_equation(action)
         refs = ",".join(normalize_refs(action.get("refs")))
         cmd = [
             "python3",
