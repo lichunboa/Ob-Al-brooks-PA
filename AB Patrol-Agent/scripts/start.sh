@@ -540,6 +540,49 @@ is_watchdog_running() {
   [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
 }
 
+execution_listener_pid() {
+  lsof -ti tcp:8092 -sTCP:LISTEN 2>/dev/null | head -1 || true
+}
+
+execution_health_json() {
+  curl -fsS --max-time 5 "http://127.0.0.1:8092/health" 2>/dev/null || true
+}
+
+execution_exchange_json() {
+  curl -fsS --max-time 5 "http://127.0.0.1:8092/config/exchange" 2>/dev/null || true
+}
+
+execution_reports_binance_demo() {
+  local config_json
+  config_json="$(execution_exchange_json)"
+  if [[ "$config_json" == *'"exchange":"binance"'* && "$config_json" == *'"mode":"demo"'* ]]; then
+    return 0
+  fi
+  local health_json
+  health_json="$(execution_health_json)"
+  [[ "$health_json" == *'"exchange":"binance"'* && "$health_json" == *'"mode":"demo"'* ]]
+}
+
+adopt_execution_listener() {
+  local pid="${1:-}"
+  [[ -n "$pid" ]] || return 1
+  if execution_reports_binance_demo; then
+    echo "$pid" > "$EXECUTION_PID_FILE"
+    return 0
+  fi
+  return 1
+}
+
+terminate_pid() {
+  local pid="${1:-}"
+  [[ -n "$pid" ]] || return 0
+  kill "$pid" 2>/dev/null || true
+  sleep 2
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+}
+
 is_execution_running() {
   if [[ -f "$EXECUTION_PID_FILE" ]]; then
     local pid
@@ -548,7 +591,12 @@ is_execution_running() {
       return 0
     fi
   fi
-  lsof -iTCP:8092 -sTCP:LISTEN >/dev/null 2>&1
+  local live_pid
+  live_pid="$(execution_listener_pid)"
+  if [[ -n "$live_pid" ]] && adopt_execution_listener "$live_pid"; then
+    return 0
+  fi
+  return 1
 }
 
 is_web_running() {
@@ -576,6 +624,12 @@ start_execution() {
   if [[ ! -x "$exec_python" ]]; then
     exec_python="$(command -v python3 || true)"
   fi
+  local live_pid
+  live_pid="$(execution_listener_pid)"
+  if [[ -n "$live_pid" ]]; then
+    echo "检测到 8092 已被未托管进程占用 (PID: $live_pid)，正在替换"
+    terminate_pid "$live_pid"
+  fi
   local exec_exchange="${AB_PATROL_EXECUTION_EXCHANGE:-binance}"
   local exec_mode="${AB_PATROL_EXECUTION_MODE:-demo}"
   local binance_mode="${AB_PATROL_BINANCE_MODE:-$exec_mode}"
@@ -591,21 +645,21 @@ start_execution() {
 }
 
 stop_execution() {
+  local pid=""
   if [[ -f "$EXECUTION_PID_FILE" ]]; then
-    local pid
     pid="$(cat "$EXECUTION_PID_FILE" 2>/dev/null || true)"
-    if [[ -n "$pid" ]]; then
-      kill "$pid" 2>/dev/null || true
-      sleep 2
-      if kill -0 "$pid" 2>/dev/null; then
-        kill -9 "$pid" 2>/dev/null || true
-      fi
-    fi
+  fi
+  if [[ -z "$pid" ]]; then
+    pid="$(execution_listener_pid)"
+  fi
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
     rm -f "$EXECUTION_PID_FILE"
     echo "execution-service 已停止"
     return 0
   fi
-  echo "execution-service 未由 AB Patrol-Agent 托管，未强制停止"
+  rm -f "$EXECUTION_PID_FILE"
+  echo "execution-service 未运行"
 }
 
 start_web() {
