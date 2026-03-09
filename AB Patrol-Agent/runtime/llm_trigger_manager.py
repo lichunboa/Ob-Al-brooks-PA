@@ -62,11 +62,13 @@ class LLMTriggerManager:
     ) -> tuple[bool, str]:
         """
         检查持仓管理是否需要 LLM
-        
+
         触发条件：
         1. 持仓状态变化（新开仓、部分平仓）
         2. 止损/止盈需要调整
         3. Premise 可能失效
+        4. 止损移动时（Trailing SL）
+        5. 分批止盈时（Partial Close）
         """
         current_state = {}
         for pos in positions:
@@ -76,55 +78,85 @@ class LLMTriggerManager:
                 "stop_loss": safe_float(pos.get("stop_loss"), 0),
                 "take_profit": safe_float(pos.get("take_profit"), 0),
                 "unrealized_pnl": safe_float(pos.get("unrealized_pnl"), 0),
+                "entry_price": safe_float(pos.get("entry_price"), 0),
+                "side": pos.get("side", ""),
             }
-        
+
         # 检查是否有新持仓
         new_positions = set(current_state.keys()) - set(self.last_position_state.keys())
         if new_positions:
             self.last_position_state = current_state
             return True, f"新开仓: {', '.join(new_positions)}"
-        
+
         # 检查是否有持仓关闭
         closed_positions = set(self.last_position_state.keys()) - set(current_state.keys())
         if closed_positions:
             self.last_position_state = current_state
             return True, f"持仓关闭: {', '.join(closed_positions)}"
-        
+
         # 检查止损/止盈是否变化
         for symbol, state in current_state.items():
             if symbol not in self.last_position_state:
                 continue
-            
+
             last_state = self.last_position_state[symbol]
-            
-            # 止损变化
+
+            # 止损变化（Trailing SL）
             if abs(state["stop_loss"] - last_state["stop_loss"]) > 0.01:
                 self.last_position_state = current_state
-                return True, f"{symbol} 止损调整"
-            
+                return True, f"{symbol} 止损移动（Trailing SL）"
+
             # 止盈变化
             if abs(state["take_profit"] - last_state["take_profit"]) > 0.01:
                 self.last_position_state = current_state
                 return True, f"{symbol} 止盈调整"
-            
-            # 数量变化（部分平仓）
+
+            # 数量变化（部分平仓 / Partial Close）
             if abs(state["quantity"] - last_state["quantity"]) > 0.001:
                 self.last_position_state = current_state
-                return True, f"{symbol} 部分平仓"
-        
+                return True, f"{symbol} 分批止盈（Partial Close）"
+
+        # 检查 Premise 是否可能失效
+        for symbol, state in current_state.items():
+            if symbol not in self.last_position_state:
+                continue
+
+            last_state = self.last_position_state[symbol]
+
+            # 检查浮盈是否变负（可能 Premise 失效）
+            if state["unrealized_pnl"] < 0 and last_state["unrealized_pnl"] >= 0:
+                self.last_position_state = current_state
+                return True, f"{symbol} 浮盈转负，检查 Premise"
+
+            # 检查是否回撤过大（可能 Premise 失效）
+            entry_price = state["entry_price"]
+            current_price = entry_price + state["unrealized_pnl"] / state["quantity"]
+
+            if entry_price > 0:
+                if state["side"] == "BUY":
+                    drawdown = (entry_price - current_price) / entry_price
+                    if drawdown > 0.02:  # 回撤超过 2%
+                        self.last_position_state = current_state
+                        return True, f"{symbol} 回撤 {drawdown*100:.1f}%，检查 Premise"
+                else:
+                    drawdown = (current_price - entry_price) / entry_price
+                    if drawdown > 0.02:
+                        self.last_position_state = current_state
+                        return True, f"{symbol} 回撤 {drawdown*100:.1f}%，检查 Premise"
+
         # 检查是否需要深度分析（每 10 分钟一次）
         if self.last_llm_call:
             try:
                 last_call_dt = datetime.fromisoformat(self.last_llm_call.replace("Z", "+00:00"))
                 now_dt = utc_now()
                 minutes_since = (now_dt - last_call_dt).total_seconds() / 60
-                
+
                 if minutes_since >= 10:
                     self.last_position_state = current_state
                     return True, "定期持仓分析（10分钟）"
             except:
                 pass
-        
+
         # 不需要 LLM
         self.last_position_state = current_state
         return False, "持仓稳定，使用规则引擎"

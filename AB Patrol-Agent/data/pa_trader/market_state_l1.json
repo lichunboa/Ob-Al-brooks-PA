@@ -1,6 +1,6 @@
 {
-  "last_update": "2026-03-09T21:20:25.685878+00:00",
-  "loop_count": 997,
+  "last_update": "2026-03-09T22:23:48.968724+00:00",
+  "loop_count": 1007,
   "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
   "total_signals": 4,
   "total_trades": 8,
@@ -21,16 +21,16 @@
       "event_tags": [
         "state:TC",
         "first_pb:bull_pb",
-        "pb_depth:normal",
+        "pb_depth:shallow",
         "hl_signal:H4",
         "wedge_or_mtr",
         "state_change:TR->TC",
-        "signal_trigger:H2@69045.2",
-        "state:TC",
+        "state:TR",
         "first_pb:bull_pb",
-        "tr_edge:top",
-        "pb_depth:deep",
-        "hl_signal:H4"
+        "pb_depth:shallow",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "signal_trigger:H1@69045.2"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -110,19 +110,19 @@
       },
       "thesis": "BTCUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 3,
-      "signal": "H2@69045.2",
+      "align_score": 1,
+      "signal": "1h:H1@69045.2",
       "timeframes": {
         "5m": {
-          "ai": "AIL",
+          "ai": "AIS",
           "state": "TC",
           "signal": "",
           "summary": null
         },
         "15m": {
-          "ai": "AIL",
-          "state": "TC",
-          "signal": "H2@69045.2",
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
           "summary": null
         },
         "1h": {
@@ -144,7 +144,6 @@
         "S3b-key-levels.md",
         "S5-evaluation.md",
         "S6-common.md",
-        "S6-bo.md",
         "S6-channel.md",
         "S6-tr.md",
         "S6-reversal.md"
@@ -190,8 +189,8 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T21:20:25.685956+00:00",
-      "source_cycle_id": "cycle_20260310_052025"
+      "updated_at": "2026-03-09T22:23:48.968946+00:00",
+      "source_cycle_id": "cycle_20260310_062348"
     },
     "ETHUSDT": {
       "daily_bias": {
@@ -206,18 +205,18 @@
       "stage": "15M_H2_1H_H2_RECLAIM_2011_WAIT_ACCEPTANCE",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
+        "signal_trigger:L2@2017.9",
         "state:TC",
-        "first_pb:bull_pb",
-        "pb_depth:normal",
+        "pb_depth:shallow",
         "hl_signal:H4",
         "wedge_or_mtr",
         "stale:consecutive_watching",
         "state:TR",
         "first_pb:bull_pb",
-        "pb_depth:normal",
+        "pb_depth:shallow",
         "hl_signal:H4",
         "wedge_or_mtr",
-        "state:BO"
+        "state:TR"
       ],
       "planned_trade": {
         "candidate_stage": "CANDIDATE_MARKET",
@@ -298,13 +297,13 @@
       },
       "thesis": "ETHUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 2,
-      "signal": "",
+      "align_score": 1,
+      "signal": "L2@2017.9",
       "timeframes": {
         "5m": {
-          "ai": "AIL",
+          "ai": "AIS",
           "state": "TC",
-          "signal": "",
+          "signal": "L2@2017.9",
           "summary": null
         },
         "15m": {
@@ -314,8 +313,8 @@
           "summary": null
         },
         "1h": {
-          "ai": "AIL",
-          "state": "BO",
+          "ai": "TR",
+          "state": "TR",
           "signal": "",
           "summary": null
         },
@@ -332,7 +331,6 @@
         "S3b-key-levels.md",
         "S5-evaluation.md",
         "S6-common.md",
-        "S6-bo.md",
         "S6-channel.md",
         "S6-tr.md",
         "S6-reversal.md"
@@ -378,8 +376,8 @@
       "scenarios": [
         "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
       ],
-      "updated_at": "2026-03-09T21:20:25.685976+00:00",
-      "source_cycle_id": "cycle_20260310_052025"
+      "updated_at": "2026-03-09T22:23:48.968858+00:00",
+      "source_cycle_id": "cycle_20260310_062348"
     },
     "BNBUSDT": {
       "daily_bias": {
@@ -394,18 +392,18 @@
       "stage": "15M_H1_1H_H2_BREAKOUT_CONTINUATION_NEAR_639",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "signal_trigger:H2@639.7",
-        "state:BO",
+        "state:TR",
         "first_pb:bull_pb",
-        "tr_edge:top",
-        "pb_depth:shallow",
+        "pb_depth:normal",
         "hl_signal:H4",
         "wedge_or_mtr",
-        "state_change:TR->BO",
-        "signal_trigger:H2@639.7",
         "state:TC",
         "first_pb:bull_pb",
-        "tr_edge:top"
+        "tr_edge:top",
+        "pb_depth:normal",
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "signal_trigger:H2@640.42"
       ],
       "last_signal_reason": "5m L2、15m L1、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -486,25 +484,25 @@
       },
       "thesis": "BNBUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
-      "align_score": 3,
-      "signal": "H2@639.7",
+      "align_score": 2,
+      "signal": "1h:H2@640.42",
       "timeframes": {
         "5m": {
-          "ai": "AIL",
-          "state": "BO",
-          "signal": "H2@639.7",
+          "ai": "TR",
+          "state": "TR",
+          "signal": "",
           "summary": null
         },
         "15m": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "H2@639.7",
+          "signal": "",
           "summary": null
         },
         "1h": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "H2@639.7",
+          "signal": "H2@640.42",
           "summary": null
         },
         "1d": {
@@ -520,7 +518,6 @@
         "S3b-key-levels.md",
         "S5-evaluation.md",
         "S6-common.md",
-        "S6-bo.md",
         "S6-channel.md",
         "S6-tr.md",
         "S6-reversal.md"
@@ -566,17 +563,17 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T21:20:25.685995+00:00",
-      "source_cycle_id": "cycle_20260310_052025"
+      "updated_at": "2026-03-09T22:23:48.968891+00:00",
+      "source_cycle_id": "cycle_20260310_062348"
     }
   },
   "_meta": {
-    "loop_count": 997,
+    "loop_count": 1007,
     "total_signals": 1777,
     "total_trades": 253,
     "total_passes": 664,
     "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
-    "last_update": "2026-03-09T21:20:25.685878+00:00",
+    "last_update": "2026-03-09T22:23:48.968724+00:00",
     "pass_wait": 637,
     "pass_rule": 2
   }
