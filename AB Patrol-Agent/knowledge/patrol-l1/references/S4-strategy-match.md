@@ -1,6 +1,6 @@
 # S4 策略匹配 — 状态 × Playbook
 
-> 市场状态确定后，匹配对应的入场策略。不是所有 Playbook 在所有状态都适用。
+先确定状态，再决定允许哪些入场策略升级。
 
 ---
 
@@ -135,18 +135,6 @@
 
 ---
 
-## 管理 Playbook（5 种）
-
-| ID | 名称 | 适用 | 核心规则 |
-|----|------|------|---------|
-| **M1** | Premise 检查 | 所有持仓 | 失效 → 立即平仓，不等确认 |
-| **M2** | 趋势 Trail | Swing in trend | 每次新 Major HL/LH → 移 SL |
-| **M3** | TR 固定 SL | TR 中 Scalp | SL 固定在 TR 对侧外 |
-| **M4** | 分批止盈 | Swing | 2R减50%→3R减25%→余trail到Major HL/LH |
-| **M5** | Scalp 快出 | Scalp | 1R 或第一个 S/R 处全平 |
-
----
-
 ## 不同状态的执行策略总表
 
 | 状态 | 入场方式 | 订单类型 | SL 位置 | TP 目标 | 仓位 | 持仓风格 |
@@ -164,38 +152,10 @@
 
 ---
 
-## 日志格式
+## 不属于 S4 的内容
 
-### 开仓日志
-```
-[SIGNAL] {SYM} | Daily:{AIL/AIS/TR} | 5m:{状态} | Playbook:{ID}
-关键位置: 前日H={X} L={Y} | 前高={X} | EMA20={X} | MM={X}
-P={X}% R={X}:1 P*R={X} | 风格={Scalp/Swing}
-S/R过滤: TP路径有/无阻挡 | SL在{位置}外侧
-Premise: {一句话}
-```
-
-### 管理日志
-```
-[MANAGE] {SYM} | Playbook:{M1-M5}
-Premise: {还成立吗？证据}
-关键位置: 最近磁体={X}({距离}) | Major HL/LH={X}
-操作: {持有/移SL/减仓/平仓}
-```
-
----
-
-## signal 类型映射（Quick Scan → Phase B 路由）
-
-缓存状态 + AI 方向决定 Phase B 加载哪个 S6 文件：
-
-| 缓存 state | AI 方向 vs 信号方向 | → signal 类型 | → S 文件 |
-|-----------|-------------------|-------------|---------|
-| **BO / Spike** | 同向 | signal(BO) | S5 + S6-bo + S6-common |
-| **TC / BC** | 同向 | signal(通道) | S5 + S6-channel + S6-common |
-| **TC / BC** | 反向 + BC/SC 条件 | signal(反转) | S5 + S6-reversal |
-| **TR** | — | signal(TR) | S5 + S6-tr + S6-common |
-| **BC 后** | 反向 | signal(反转) | S5 + S6-reversal |
+- 持仓管理 playbook 统一看 [S7-management.md](S7-management.md)
+- 运行态日志格式、Quick Scan 到 `S6` 的路由实现统一看运行说明与 runtime 映射
 
 ---
 
