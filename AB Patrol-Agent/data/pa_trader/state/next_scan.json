@@ -1,11 +1,11 @@
 {
-  "next_scan_at": "2026-03-09T17:53:40.925677+00:00",
+  "next_scan_at": "2026-03-09T18:22:16.686061+00:00",
   "in_seconds": 120,
-  "requested_seconds": 240,
-  "model_suggested_seconds": 240,
-  "model_suggested_reason": "MODEL_TIMEOUT_RETRY",
-  "reason_code": "MODEL_TIMEOUT_HIGH_EDGE_ACTIVE",
-  "reason_text": "模型建议未返回，但当前处于 fresh BC/SC、TR 边缘或已接近可执行条件，按 2 分钟继续守候。",
+  "requested_seconds": 120,
+  "model_suggested_seconds": 60,
+  "model_suggested_reason": "规则引擎优先模式：无持仓 2 分钟扫描，有持仓 1 分钟扫描",
+  "reason_code": "HIGH_EDGE_ACTIVE",
+  "reason_text": "当前处于 fresh BC/SC、TR 边缘、breakout follow-through 或已接近可执行条件，按 2 分钟继续守候。",
   "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
   "bucket_source_refs": [
     "SKILL.md#Step 5",
@@ -15,6 +15,6 @@
     "S6-channel.md",
     "S6-common.md"
   ],
-  "derived_from_cycle": "cycle_20260310_015139",
+  "derived_from_cycle": "cycle_20260310_022016",
   "interruptible": true
 }

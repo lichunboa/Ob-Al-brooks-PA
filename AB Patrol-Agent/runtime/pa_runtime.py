@@ -4066,7 +4066,7 @@ class PatrolRuntime:
         knowledge_loading = knowledge_loading if isinstance(knowledge_loading, dict) else {}
         session_state = load_json(self.state_dir / "decision_session.json", {})
         request_path = self.logs_dir / "last_request.md"
-        request_text = read_text(request_path)
+        request_text = request_path.read_text(encoding="utf-8") if request_path.exists() else ""
         session_bootstrapped_at = session_state.get("bootstrapped_at")
         session_age_seconds = None
         if session_bootstrapped_at:
