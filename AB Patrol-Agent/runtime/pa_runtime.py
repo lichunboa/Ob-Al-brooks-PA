@@ -4163,12 +4163,12 @@ class PatrolRuntime:
             ]
         )
 
-    def normalize_next_scan_seconds(
+    def normalize_next_scan_plan(
         self,
         decision: dict[str, Any],
         execution: dict[str, Any],
         analysis_board: dict[str, Any] | None = None,
-    ) -> int:
+    ) -> dict[str, Any]:
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         symbol_updates = decision.get("symbol_updates") if isinstance(decision.get("symbol_updates"), dict) else {}
         requested = max(120, int(safe_float(decision.get("next_scan_seconds"), 480)))
@@ -4232,6 +4232,23 @@ class PatrolRuntime:
 
         near_trigger = False
         position_volatility_high = False
+
+        def plan(
+            seconds: int,
+            reason_code: str,
+            reason_text: str,
+            bucket_rule: str,
+            source_refs: list[str],
+        ) -> dict[str, Any]:
+            return {
+                "requested_seconds": requested,
+                "in_seconds": seconds,
+                "reason_code": reason_code,
+                "reason_text": reason_text,
+                "bucket_rule": bucket_rule,
+                "bucket_source_refs": source_refs,
+            }
+
         for symbol, patch in symbol_updates.items():
             if not isinstance(patch, dict):
                 continue
@@ -4282,45 +4299,167 @@ class PatrolRuntime:
 
         if model_timeout:
             if near_trigger or position_volatility_high or fresh_bc_sc or tr_edge_active:
-                return 120
+                return plan(
+                    120,
+                    "MODEL_TIMEOUT_NEAR_TRIGGER",
+                    "模型建议未返回，但当前临近触发、TR边缘或持仓波动偏高，按 Step 5 压到 2 分钟快扫。",
+                    "有持仓管理 > 预信号接近 > fresh BC/SC > TR edge",
+                    ["SKILL.md#Step 5", "S6-tr.md", "S6-channel.md", "S7-management.md"],
+                )
             if any(category in brooks_categories for category in {"tr_edge_limit_only", "strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}):
-                return 180
+                return plan(
+                    180,
+                    "MODEL_TIMEOUT_SCALP_ENVIRONMENT",
+                    "模型建议未返回，但当前属于 TR 边缘 / 反转试探 / scalp 环境，按 3 分钟继续盯。",
+                    "TR 边缘 / 40%反转 / 强突破中的逆势试探 → 3 分钟",
+                    ["SKILL.md#Step 5", "S5-evaluation.md", "S6-tr.md", "S6-reversal.md"],
+                )
             if momentum_active:
-                return 180
+                return plan(
+                    180,
+                    "MODEL_TIMEOUT_MOMENTUM_ACTIVE",
+                    "模型建议未返回，但动量事件仍活跃，保留 3 分钟继续确认 follow-through。",
+                    "momentum 3+ bars 活跃 → 3 分钟",
+                    ["SKILL.md#Step 5", "S1-reading.md", "S6-common.md"],
+                )
             if positions or has_pre_signal:
-                return 240
+                return plan(
+                    240,
+                    "MODEL_TIMEOUT_ACTIVE_CONTEXT",
+                    "模型建议未返回，但仍有持仓或预信号，按 4 分钟保守复扫。",
+                    "有持仓管理 / 预信号接近 → 4 分钟",
+                    ["SKILL.md#Step 2", "SKILL.md#Step 5", "S4-strategy-match.md", "S7-management.md"],
+                )
             if stale_count > 3:
-                return 300
+                return plan(
+                    300,
+                    "MODEL_TIMEOUT_STALE_ROTATION",
+                    "模型建议未返回，且多个品种长期观察未升级，按 5 分钟做防懒惰轮换。",
+                    "stale symbols > 3 → 5 分钟",
+                    ["SKILL.md#Step 5", "防懒惰机制", "Q3-fear.md"],
+                )
             if all_watching_three:
-                return 720
-            return 480
+                return plan(
+                    720,
+                    "MODEL_TIMEOUT_ALL_WATCHING",
+                    "模型建议未返回，且所有品种已连续多轮仅观察，拉长到 12 分钟避免过扫。",
+                    "all watching >= 3 轮 → 12 分钟",
+                    ["SKILL.md#Step 5", "防懒惰机制"],
+                )
+            return plan(
+                480,
+                "MODEL_TIMEOUT_DEFAULT",
+                "模型建议未返回，也没有临近触发或持仓管理压力，回到 8 分钟默认巡逻。",
+                "默认无候选、无持仓、无边缘事件 → 8 分钟",
+                ["SKILL.md#Step 5"],
+            )
 
         if near_trigger or position_volatility_high or fresh_bc_sc or tr_edge_active:
-            return 120
+            return plan(
+                120,
+                "EDGE_OR_TRIGGER_ACTIVE",
+                "当前已有临近触发、TR 边缘、fresh BC/SC 或持仓高波动，按 Step 5 压到 2 分钟。",
+                "有持仓管理 > 预信号接近 > fresh BC/SC > TR edge",
+                ["SKILL.md#Step 5", "S4-strategy-match.md", "S6-tr.md", "S6-channel.md", "S7-management.md"],
+            )
         if any(category in brooks_categories for category in {"tr_edge_limit_only", "strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}):
-            return 180
+            return plan(
+                180,
+                "SCALP_OR_COUNTERTREND_ACTIVE",
+                "当前属于 TR 边缘候选、强突破中的逆势试探或 40% 反转 scalp 环境，保持 3 分钟。",
+                "TR 边缘候选 / countertrend probe / 40% reversal scalp → 3 分钟",
+                ["SKILL.md#Step 5", "S5-evaluation.md", "S6-tr.md", "S6-reversal.md"],
+            )
         if "tbtl_incomplete" in brooks_categories:
-            return 240
+            return plan(
+                240,
+                "TBTL_INCOMPLETE",
+                "TBTL 反转仍未完成，不急着追，按 4 分钟继续等第二次信号或接受。",
+                "TBTL / 反转试探未完成 → 4 分钟",
+                ["SKILL.md#Step 5", "S6-reversal.md"],
+            )
         if "tr_middle_no_edge" in brooks_categories:
-            return 480
+            return plan(
+                480,
+                "TR_MIDDLE_NO_EDGE",
+                "当前处于交易区间中部，没有明显边缘优势，回到 8 分钟默认巡逻。",
+                "TR 中部无优势 → 8 分钟",
+                ["SKILL.md#Step 5", "S6-tr.md"],
+            )
         if momentum_active:
-            return 180
+            return plan(
+                180,
+                "MOMENTUM_ACTIVE",
+                "当前仍有连续动量事件，按 3 分钟继续确认是否形成 follow-through。",
+                "momentum 3+ bars 活跃 → 3 分钟",
+                ["SKILL.md#Step 5", "S1-reading.md", "S6-common.md"],
+            )
         if positions:
-            return 240
+            return plan(
+                240,
+                "POSITION_MANAGEMENT_ACTIVE",
+                "当前有持仓，优先保证管理频率，按 4 分钟复扫。",
+                "有持仓管理 > 一般观察 → 4 分钟",
+                ["SKILL.md#Step 2", "SKILL.md#Step 5", "S7-management.md"],
+            )
         if has_pre_signal:
-            return 240
+            return plan(
+                240,
+                "PRE_SIGNAL_ACTIVE",
+                "当前有预信号或临近触发，但还没进入最终可执行单，按 4 分钟保持跟踪。",
+                "预信号接近 > 一般观察 → 4 分钟",
+                ["SKILL.md#Step 4", "SKILL.md#Step 5", "S4-strategy-match.md"],
+            )
         if stale_count > 3:
-            return 300
+            return plan(
+                300,
+                "STALE_ROTATION",
+                "多个品种长期观察未升级，进入防懒惰轮换，按 5 分钟刷新。",
+                "stale symbols > 3 → 5 分钟",
+                ["SKILL.md#Step 5", "防懒惰机制"],
+            )
         if all_watching_three:
-            return 720
+            return plan(
+                720,
+                "ALL_WATCHING_THREE",
+                "所有品种连续多轮只在观察，没有边缘优势，拉长到 12 分钟。",
+                "all watching >= 3 轮 → 12 分钟",
+                ["SKILL.md#Step 5", "防懒惰机制"],
+            )
         if not positions and not has_pre_signal:
-            return 480
+            return plan(
+                480,
+                "DEFAULT_SCAN",
+                "当前无持仓、无预信号、无明显边缘事件，维持 8 分钟默认巡逻。",
+                "默认无候选、无持仓、无边缘事件 → 8 分钟",
+                ["SKILL.md#Step 5"],
+            )
 
         buckets = [120, 180, 240, 300, 480, 720]
         for bucket in buckets:
             if requested <= bucket:
-                return bucket
-        return 720
+                return plan(
+                    bucket,
+                    "MODEL_REQUEST_BUCKET",
+                    f"模型建议 {requested} 秒，系统按 Step 5 收敛到 {bucket} 秒执行桶。",
+                    "模型建议时间收敛到 2/3/4/5/8/12 分钟执行桶",
+                    ["SKILL.md#Step 5"],
+                )
+        return plan(
+            720,
+            "MODEL_REQUEST_BUCKET_MAX",
+            f"模型建议 {requested} 秒，系统按最大执行桶收敛到 12 分钟。",
+            "模型建议时间收敛到最大执行桶 12 分钟",
+            ["SKILL.md#Step 5"],
+        )
+
+    def normalize_next_scan_seconds(
+        self,
+        decision: dict[str, Any],
+        execution: dict[str, Any],
+        analysis_board: dict[str, Any] | None = None,
+    ) -> int:
+        return int(self.normalize_next_scan_plan(decision, execution, analysis_board).get("in_seconds") or 480)
 
     def prefetch_pre_signal_charts(self, symbols: list[str]) -> None:
         for symbol in symbols:
@@ -4339,7 +4478,8 @@ class PatrolRuntime:
         session_id: str | None,
         cycle_id: str,
     ) -> dict[str, Any]:
-        next_scan_seconds = self.normalize_next_scan_seconds(decision, execution, analysis_board)
+        next_scan_plan = self.normalize_next_scan_plan(decision, execution, analysis_board)
+        next_scan_seconds = int(next_scan_plan.get("in_seconds") or 480)
         next_scan_at = utc_now() + timedelta(seconds=next_scan_seconds)
         can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
         symbol_updates = decision.get("symbol_updates") or {}
@@ -4371,8 +4511,13 @@ class PatrolRuntime:
                 "next_scan": {
                     "next_scan_at": next_scan_at.isoformat(),
                     "in_seconds": next_scan_seconds,
-                    "reason_code": decision.get("next_scan_reason") or "PRE_SIGNAL_NEAR",
-                    "reason_text": decision.get("next_scan_reason") or "follow decision",
+                    "requested_seconds": next_scan_plan.get("requested_seconds"),
+                    "model_suggested_seconds": decision.get("next_scan_seconds"),
+                    "model_suggested_reason": decision.get("next_scan_reason"),
+                    "reason_code": next_scan_plan.get("reason_code") or decision.get("next_scan_reason") or "PRE_SIGNAL_NEAR",
+                    "reason_text": next_scan_plan.get("reason_text") or decision.get("next_scan_reason") or "follow decision",
+                    "bucket_rule": next_scan_plan.get("bucket_rule"),
+                    "bucket_source_refs": next_scan_plan.get("bucket_source_refs") or [],
                     "derived_from_cycle": cycle_id,
                     "interruptible": True,
                 },
@@ -4413,6 +4558,9 @@ class PatrolRuntime:
             }
         )
         updated.update(decision.get("state_patch") or {})
+        updated["next_scan"].setdefault("bucket_source_refs", [])
+        updated["next_scan"].setdefault("bucket_rule", "-")
+        decision.setdefault("state_patch", {})["scan_bucket"] = next_scan_plan
         if session_id:
             updated["openclaw_runtime_session_id"] = session_id
             updated["decision_session_id"] = session_id
@@ -4431,11 +4579,13 @@ class PatrolRuntime:
         execution: dict[str, Any],
         execution_results: list[dict[str, Any]],
         next_scan_seconds: int,
+        next_scan_info: dict[str, Any] | None,
         trigger: dict[str, Any] | None,
         quick_scan_events: dict[str, Any],
         analysis_board: dict[str, Any] | None = None,
     ) -> str:
         runtime_state = runtime if isinstance(runtime, dict) else {}
+        next_scan_info = next_scan_info if isinstance(next_scan_info, dict) else {}
         can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
         positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
         orders = execution.get("orders") if isinstance(execution.get("orders"), list) else []
@@ -4820,7 +4970,10 @@ class PatrolRuntime:
                 "",
                 "━━ 下一次扫描 ━━",
                 f"• 时间: {next_scan_seconds} 秒后",
-                f"• 原因: {trim_text(decision.get('next_scan_reason'), 180) if decision.get('next_scan_reason') else scan_reason_cn()}",
+                f"• 模型建议: {next_scan_info.get('model_suggested_seconds') or decision.get('next_scan_seconds') or '-'} 秒 / {trim_text(next_scan_info.get('model_suggested_reason') or decision.get('next_scan_reason') or '-', 120)}",
+                f"• 系统分桶: {next_scan_info.get('in_seconds') or next_scan_seconds} 秒 / {trim_text(next_scan_info.get('reason_text') or next_scan_info.get('reason_code') or '-', 120)}",
+                f"• 分桶规则: {trim_text(next_scan_info.get('bucket_rule') or '-', 120)}",
+                f"• 规则来源: {', '.join(str(item) for item in (next_scan_info.get('bucket_source_refs') or [])[:4]) or '-'}",
                 f"• 巡逻说明: {scan_reason_cn()}",
                 f"• 推送时间: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}",
             ]
@@ -5255,6 +5408,7 @@ class PatrolRuntime:
                     execution,
                     execution_results,
                     int(next_scan.get("in_seconds") or 120),
+                    next_scan,
                     trigger,
                     quick_scan_events,
                     analysis_board,

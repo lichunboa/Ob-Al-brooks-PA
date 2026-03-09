@@ -5,6 +5,17 @@
 > 默认立场：**不做反转**，除非证据压倒性地支持。
 > "在你认为 90% 确定会反转的时候，实际概率只有 60%"
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - `wedge / MTR / DB / DT / Final Flag / Climax reversal` 的执行规则
+  - `反转试探 -> candidate -> executable` 的升级条件
+  - 反转类 setup 的订单类型与无效条件
+- 本文件不负责：
+  - Broad Channel / TR 的边缘限价单细节 → 分别看 `S6-channel.md` / `S6-tr.md`
+  - 最终 TE 与风格一致性 → 看 `S5-evaluation.md`
+  - 反转之后的持仓管理 → 看 `S7-management.md`
+
 ---
 
 ## 反转的本质

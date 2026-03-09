@@ -96,6 +96,25 @@
 - 继续把 `Step 5` 的优先级和 bucket 来源写回 `SKILL`
 - 代码只负责执行 bucket，不扩展新逻辑
 
+### 2.1 当前已经显式落盘的 Step 5 元数据
+
+运行时现在会把 Step 5 的结果写成结构化字段，而不是只留下一个秒数：
+
+- `requested_seconds`
+- `model_suggested_seconds`
+- `model_suggested_reason`
+- `in_seconds`
+- `reason_code`
+- `reason_text`
+- `bucket_rule`
+- `bucket_source_refs`
+
+这意味着后续复盘时可以直接回答：
+
+- 模型原本建议多久
+- 系统为什么压到这个 bucket
+- 这个 bucket 对应 `SKILL/S` 的哪条规则
+
 ### 3. `source_refs` 目前还是代码声明，不是自动从 prompt 路由反查
 
 现在 `classify_brooks_filter()` 返回的 `source_refs` 是人为绑定：

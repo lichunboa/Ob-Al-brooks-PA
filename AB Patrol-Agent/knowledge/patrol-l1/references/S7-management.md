@@ -3,6 +3,17 @@
 > 入场只是开始。管理决定最终盈亏。
 > Al Brooks: "Does not matter where you buy. Management is based on what market is doing NOW."
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - premise / strength / protection / profit-taking / trail / exit
+  - 已成交仓位与已存在计划委托的管理语义
+  - `PARTIAL_CLOSE / MODIFY_STOP_LOSS / MODIFY_TAKE_PROFIT / CANCEL_ALL_ORDERS` 的使用场景
+- 本文件不负责：
+  - 新开仓的策略匹配 → 看 `S4`
+  - 新开仓的 TE 与风格判断 → 看 `S5`
+  - 交易所 API、状态落盘、推送实现 → 看运行说明和执行层
+
 ---
 
 ## 管理目标

@@ -3,6 +3,17 @@
 > 状态: S3 判定 TR → 来这里。
 > TR 的执行核心：边缘优先、限价优先、刮头皮优先。
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - TR 边缘限价单环境
+  - `BLSHS / Failed BO Fade / 2nd Leg Trap / Daily TR Fade`
+  - `pre_signal -> candidate_limit -> executable_limit` 的升级条件
+- 本文件不负责：
+  - TR 之外的通用订单语义 → 看 `S6-common.md`
+  - 最终 TE 与是否值得做 → 看 `S5-evaluation.md`
+  - 持仓管理与撤挂单后的后续管理 → 看 `S7-management.md`
+
 ---
 
 ## TR 入场的本质

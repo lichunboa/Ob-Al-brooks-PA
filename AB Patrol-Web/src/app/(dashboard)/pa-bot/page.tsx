@@ -444,7 +444,10 @@ export default function PABotPage() {
             </div>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
               <p>倒计时: <code className="text-amber-300">{nextScan.in_seconds || "-"} 秒</code></p>
-              <p>原因: <code className="text-amber-300">{displayText(nextScan.reason_text || nextScan.reason_code) || "-"}</code></p>
+              <p>模型建议: <code className="text-amber-300">{nextScan.model_suggested_seconds || nextScan.requested_seconds || "-"} 秒</code></p>
+              <p>系统分桶: <code className="text-amber-300">{displayText(nextScan.reason_text || nextScan.reason_code) || "-"}</code></p>
+              <p>规则: <code className="text-amber-300">{displayText(nextScan.bucket_rule) || "-"}</code></p>
+              <p>来源: <code className="text-amber-300">{displayText(nextScan.bucket_source_refs) || "-"}</code></p>
               <p>失败摘要: <code className="text-amber-300">{trimText(snapshot.last_failure_reason, 120)}</code></p>
               <p>更新于: <code className="text-amber-300">{updatedAt || "-"}</code></p>
             </div>

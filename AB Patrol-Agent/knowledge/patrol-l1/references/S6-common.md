@@ -2,6 +2,19 @@
 
 > 信号K线评估、订单类型、关键概率 — 不论你在 BO、Channel 还是 TR 中
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - 所有 playbook 共享的通用入场语义
+  - `WATCH / PRE_SIGNAL / CANDIDATE / EXECUTABLE` 的通用阶段定义
+  - 订单类型的通用原则
+  - 通用 signal bar / quick scan 事件含义
+- 本文件不负责：
+  - 某个具体市场状态的入场规则 → 看 `S6-bo / S6-channel / S6-tr / S6-reversal`
+  - 最终风格与 TE 判断 → 看 `S5-evaluation.md`
+  - 长篇课程理论与概率哲学 → 归到 `C`
+  - 纪律提醒与原话 → 归到 `Q`
+
 ---
 
 ## 订单类型

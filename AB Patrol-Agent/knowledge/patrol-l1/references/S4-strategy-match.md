@@ -2,6 +2,19 @@
 
 先确定状态，再决定允许哪些策略、升级条件和禁止条件。
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - 市场状态 × playbook 的匹配
+  - `pre_signal -> candidate -> executable` 的升级条件
+  - 哪些环境允许、哪些环境禁止
+- 本文件不负责：
+  - Daily 偏置与多周期方向叠加 → 看 `S2-direction.md`
+  - Trader's Equation / Scalp vs Swing / 订单类型一致性 → 看 `S5-evaluation.md`
+  - 具体 playbook 的细部执行条件 → 看对应 `S6-*`
+  - 持仓管理 → 看 `S7-management.md`
+  - 命令、日志格式、Quick Scan 实现细节 → 看运行说明
+
 ---
 
 ## 入场 Playbook 一览（15 个）

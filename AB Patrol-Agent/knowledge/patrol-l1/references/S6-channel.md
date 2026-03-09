@@ -4,6 +4,17 @@
 > TC: "Only buy, especially PB. Take partial profits at new high."
 > BC: "Mostly buy, but can sell. Scalp more, swing less. Use limit orders."
 
+## 文件职责与边界
+
+- 本文件只负责：
+  - Tight / Normal / Broad Channel 的具体入场 playbook
+  - 通道中的 `H1/H2/L1/L2`、EMA PB、Broad Channel 顺势/逆势语义
+  - Broad Channel 下 `LIMIT` 与 `STOP_MARKET` 的切换条件
+- 本文件不负责：
+  - 通道之外的通用执行语义 → 看 `S6-common.md`
+  - 最终 TE 与风格一致性 → 看 `S5-evaluation.md`
+  - 管理阶段如何移 SL / 止盈 → 看 `S7-management.md`
+
 ---
 
 ## 多周期入场 — 不只看 5m
