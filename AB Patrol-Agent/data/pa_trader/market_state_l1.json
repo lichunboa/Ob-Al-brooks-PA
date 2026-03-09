@@ -1,6 +1,6 @@
 {
-  "last_update": "2026-03-09T18:30:03.538841+00:00",
-  "loop_count": 936,
+  "last_update": "2026-03-09T18:40:47.492493+00:00",
+  "loop_count": 941,
   "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
   "total_signals": 4,
   "total_trades": 8,
@@ -20,8 +20,9 @@
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
         "state:TR",
+        "ema_touch",
         "first_pb:bear_pb",
-        "pb_depth:normal",
+        "pb_depth:shallow",
         "hl_signal:H4",
         "wedge_or_mtr",
         "state:TR",
@@ -29,8 +30,7 @@
         "pb_depth:deep",
         "hl_signal:H4",
         "wedge_or_mtr",
-        "momentum_fading",
-        "state:TC"
+        "momentum_fading"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -132,7 +132,7 @@
           68431.3
         ],
         "resistance": [
-          68536.05,
+          68707.2,
           69000.0
         ]
       },
@@ -177,8 +177,8 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T18:30:03.538949+00:00",
-      "source_cycle_id": "cycle_20260310_023002"
+      "updated_at": "2026-03-09T18:40:47.492603+00:00",
+      "source_cycle_id": "cycle_20260310_024046"
     },
     "ETHUSDT": {
       "daily_bias": {
@@ -352,8 +352,8 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T18:30:03.538971+00:00",
-      "source_cycle_id": "cycle_20260310_023002"
+      "updated_at": "2026-03-09T18:40:47.492629+00:00",
+      "source_cycle_id": "cycle_20260310_024046"
     },
     "BNBUSDT": {
       "daily_bias": {
@@ -369,6 +369,7 @@
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
         "state:TR",
+        "ema_touch",
         "tr_edge:bottom",
         "pb_depth:shallow",
         "hl_signal:H4",
@@ -378,8 +379,7 @@
         "first_pb:bull_pb",
         "tr_edge:top",
         "pb_depth:shallow",
-        "hl_signal:H4",
-        "wedge_or_mtr"
+        "hl_signal:H4"
       ],
       "last_signal_reason": "5m L2、15m L1、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -481,7 +481,7 @@
           633.75
         ],
         "resistance": [
-          636.64,
+          638.02,
           638.18,
           636.89
         ]
@@ -527,17 +527,17 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T18:30:03.538991+00:00",
-      "source_cycle_id": "cycle_20260310_023002"
+      "updated_at": "2026-03-09T18:40:47.492651+00:00",
+      "source_cycle_id": "cycle_20260310_024046"
     }
   },
   "_meta": {
-    "loop_count": 936,
+    "loop_count": 941,
     "total_signals": 1777,
-    "total_trades": 91,
+    "total_trades": 106,
     "total_passes": 664,
     "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
-    "last_update": "2026-03-09T18:30:03.538841+00:00",
+    "last_update": "2026-03-09T18:40:47.492493+00:00",
     "pass_wait": 637,
     "pass_rule": 2
   }
