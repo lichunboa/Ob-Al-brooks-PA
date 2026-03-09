@@ -7,14 +7,32 @@ S7 持仓管理模块
 - Trailing SL
 - 分批止盈（TP1/TP2）
 - 加仓策略
+
+数据来源：
+- ab_sr: 支撑阻力、HL/LH
+- ab_ema: EMA 相关
+- ab_patterns: 形态识别
+- ab_state: 市场状态
 """
 
+from __future__ import annotations
+
 from typing import Any
+
+from utils import safe_float
 
 
 def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict[str, Any]:
     """
     Premise Check - 6 项检查
+
+    数据来源：
+    - ai_direction: 从 symbol_state 读取
+    - market_state: 从 ab_state 读取
+    - signal_validity: 从 ab_sr 读取
+    - follow_through: 从 recent_bars 计算
+    - target_path: 从 ab_sr 读取
+    - risk_metrics: 从 account_info 读取
 
     Returns:
         {
@@ -31,41 +49,85 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
             "reason": str
         }
     """
-    symbol = position.get("symbol", "")
     side = position.get("side", "")
-    entry_price = position.get("entry_price", 0)
+    entry_price = safe_float(position.get("entry_price"), 0)
+    entry_time = position.get("entry_time", "")
+
+    # 从 market_data 提取各个 skill 的数据
+    ab_state = market_data.get("ab_state", {})
+    ab_sr = market_data.get("ab_sr", {})
+    recent_bars = market_data.get("recent_bars", [])
+    current_price = safe_float(market_data.get("current_price"), 0)
+    account_info = market_data.get("account_info", {})
 
     checks = {}
 
     # 1. AI 方向检查
-    ai_direction = market_data.get("ai_direction", "")
-    direction_match = (side == "LONG" and "AIL" in ai_direction) or (side == "SHORT" and "AIS" in ai_direction)
+    ai_direction = str(market_data.get("ai_direction", "")).strip()
+    direction_match = (
+        (side == "BUY" and "long" in ai_direction.lower()) or
+        (side == "SELL" and "short" in ai_direction.lower())
+    )
     checks["ai_direction"] = {
         "pass": direction_match,
         "reason": f"AI={ai_direction}, Side={side}, {'一致' if direction_match else '矛盾'}"
     }
 
     # 2. 市场状态检查
-    entry_state = position.get("entry_market_state", "")
-    current_state = market_data.get("market_state", "")
-    state_valid = entry_state == current_state or (entry_state == "Channel" and current_state != "TR")
+    entry_state = str(position.get("entry_market_state", "")).strip().upper()
+    current_state = str(ab_state.get("state", "")).strip().upper()
+
+    # 状态兼容性检查
+    state_valid = True
+    if entry_state == "BO" and current_state == "TR":
+        state_valid = False  # BO 变 TR 是失败
+    elif entry_state == "TC" and current_state in {"TR", "BC"}:
+        state_valid = False  # TC 变 TR/BC 是失败
+    elif entry_state and current_state and entry_state != current_state:
+        # 其他状态变化需要谨慎
+        state_valid = True  # 暂时允许，但记录
+
     checks["market_state"] = {
         "pass": state_valid,
         "reason": f"入场={entry_state}, 当前={current_state}"
     }
 
     # 3. 信号 K 线检查
-    signal_price = position.get("signal_price", entry_price)
-    current_price = market_data.get("current_price", 0)
-    signal_valid = True  # 简化：需要检查价格是否在信号 K 线的正确侧
+    signal_price = safe_float(position.get("signal_price"), entry_price)
+    signal_high = safe_float(position.get("signal_high"), signal_price)
+    signal_low = safe_float(position.get("signal_low"), signal_price)
+
+    # 检查信号 K 线是否被否定
+    signal_valid = True
+    if side == "BUY":
+        # 做多：价格不应跌破信号 K 线低点
+        if current_price < signal_low * 0.998:  # 允许 0.2% 误差
+            signal_valid = False
+    else:
+        # 做空：价格不应突破信号 K 线高点
+        if current_price > signal_high * 1.002:
+            signal_valid = False
+
     checks["signal_validity"] = {
         "pass": signal_valid,
-        "reason": "信号 K 线未被否定"
+        "reason": f"信号价={signal_price:.2f}, 当前={current_price:.2f}, {'有效' if signal_valid else '已否定'}"
     }
 
     # 4. Follow-Through 检查
-    bars_since_entry = position.get("bars_since_entry", 0)
-    ft_quality = market_data.get("follow_through_quality", "good")
+    bars_since_entry = len([b for b in recent_bars if b.get("time", "") > entry_time])
+
+    # 检查最近 3 根 K 线的质量
+    ft_quality = "good"
+    if len(recent_bars) >= 3:
+        last_3 = recent_bars[-3:]
+        bull_count = sum(1 for b in last_3 if "bull" in str(b.get("body", "")).lower())
+        bear_count = sum(1 for b in last_3 if "bear" in str(b.get("body", "")).lower())
+
+        if side == "BUY" and bear_count >= 2:
+            ft_quality = "poor"
+        elif side == "SELL" and bull_count >= 2:
+            ft_quality = "poor"
+
     ft_valid = ft_quality != "poor" or bars_since_entry < 3
     checks["follow_through"] = {
         "pass": ft_valid,
@@ -73,25 +135,36 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
     }
 
     # 5. 目标路径检查
-    tp1 = position.get("tp1", 0)
-    nearest_resistance = market_data.get("nearest_resistance", 0)
-    path_clear = True  # 简化：需要检查 TP 路径上是否有新阻力
+    tp1 = safe_float(position.get("tp1"), 0)
+
+    # 从 ab_sr 获取最近的支撑/阻力
+    if side == "BUY":
+        nearest_resistance = safe_float(ab_sr.get("nearest_resistance"), 0)
+        path_clear = not nearest_resistance or nearest_resistance > tp1 or nearest_resistance > current_price * 1.01
+    else:
+        nearest_support = safe_float(ab_sr.get("nearest_support"), 0)
+        path_clear = not nearest_support or nearest_support < tp1 or nearest_support < current_price * 0.99
+
     checks["target_path"] = {
         "pass": path_clear,
-        "reason": "路径通畅"
+        "reason": "路径通畅" if path_clear else "路径受阻"
     }
 
     # 6. 风险指标检查
-    margin_ratio = market_data.get("margin_ratio", 1000)
-    risk_ok = margin_ratio > 120
+    margin_ratio = safe_float(account_info.get("margin_ratio"), 1000)
+    equity = safe_float(account_info.get("equity"), 0)
+    used_margin = safe_float(account_info.get("used_margin"), 0)
+
+    risk_ok = margin_ratio > 120 and (not equity or used_margin / equity < 0.8)
     checks["risk_metrics"] = {
         "pass": risk_ok,
-        "reason": f"保证金率={margin_ratio:.2f}%"
+        "reason": f"保证金率={margin_ratio:.1f}%"
     }
 
     # 综合判断
     all_pass = all(check["pass"] for check in checks.values())
 
+    # 优先级判断
     if not checks["ai_direction"]["pass"]:
         return {
             "valid": False,
@@ -106,6 +179,14 @@ def premise_check(position: dict[str, Any], market_data: dict[str, Any]) -> dict
             "checks": checks,
             "action": "REDUCE",
             "reason": "风险指标异常"
+        }
+
+    if not checks["signal_validity"]["pass"]:
+        return {
+            "valid": False,
+            "checks": checks,
+            "action": "CLOSE",
+            "reason": "信号 K 线被否定"
         }
 
     if not all_pass:
@@ -129,6 +210,15 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
     """
     Strength Check - 7 项增强信号
 
+    数据来源：
+    - gap_open: 从 ab_sr 读取
+    - new_hl_lh: 从 ab_sr 读取
+    - ema_bounce: 从 ab_ema 读取
+    - micro_gap: 从 recent_bars 计算
+    - shallow_pb: 从 recent_bars 计算
+    - wedge_exhaustion: 从 ab_patterns 读取
+    - multi_tf_align: 从多周期数据读取
+
     Returns:
         {
             "strength_score": int,  # 0-7
@@ -145,18 +235,136 @@ def strength_check(position: dict[str, Any], market_data: dict[str, Any]) -> dic
             "recommendation": str
         }
     """
-    signals = {
-        "gap_open": False,  # 需要从 ab_sr 获取
-        "new_hl_lh": False,  # 需要从 ab_sr 获取
-        "ema_bounce": False,  # 需要从 ab_ema 获取
-        "micro_gap": False,  # 需要从 ab_sr 获取
-        "shallow_pb": False,  # 需要从 ab_patterns 获取
-        "wedge_exhaustion": False,  # 需要从 ab_patterns 获取
-        "multi_tf_align": False,  # 需要从多周期数据获取
-    }
+    side = position.get("side", "")
+    entry_price = safe_float(position.get("entry_price"), 0)
+    entry_time = position.get("entry_time", "")
 
-    strength_score = sum(signals.values())
+    # 从 market_data 提取各个 skill 的数据
+    ab_sr = market_data.get("ab_sr", {})
+    ab_ema = market_data.get("ab_ema", {})
+    ab_patterns = market_data.get("ab_patterns", {})
+    recent_bars = market_data.get("recent_bars", [])
+    current_price = safe_float(market_data.get("current_price"), 0)
+    timeframes = market_data.get("timeframes", {})
 
+    signals = {}
+
+    # 1. Gap Open（缺口开盘）
+    # 从 ab_sr 检查是否有 gap
+    gaps = ab_sr.get("gaps", [])
+    gap_open = any(
+        safe_float(g.get("gap_size"), 0) > 0
+        for g in gaps
+        if isinstance(g, dict)
+    )
+    signals["gap_open"] = gap_open
+
+    # 2. New HL/LH（新高低点）
+    # 从 ab_sr 检查是否形成新的 Major HL/LH
+    major_hl = safe_float(ab_sr.get("major_hl"), 0)
+    major_lh = safe_float(ab_sr.get("major_lh"), 0)
+
+    new_hl_lh = False
+    if side == "BUY" and major_hl > entry_price:
+        new_hl_lh = True
+    elif side == "SELL" and major_lh < entry_price:
+        new_hl_lh = True
+    signals["new_hl_lh"] = new_hl_lh
+
+    # 3. EMA Bounce（EMA 反弹）
+    # 从 ab_ema 检查是否在 EMA 附近反弹
+    ema20 = safe_float(ab_ema.get("ema20"), 0)
+    ema_distance = abs(current_price - ema20) / ema20 if ema20 else 1.0
+
+    ema_bounce = False
+    if ema_distance < 0.005:  # 距离 EMA 小于 0.5%
+        # 检查最近是否有反弹
+        if len(recent_bars) >= 2:
+            last_bar = recent_bars[-1]
+            prev_bar = recent_bars[-2]
+            if side == "BUY":
+                ema_bounce = (
+                    safe_float(prev_bar.get("L"), 0) <= ema20 and
+                    safe_float(last_bar.get("C"), 0) > ema20
+                )
+            else:
+                ema_bounce = (
+                    safe_float(prev_bar.get("H"), 0) >= ema20 and
+                    safe_float(last_bar.get("C"), 0) < ema20
+                )
+    signals["ema_bounce"] = ema_bounce
+
+    # 4. Micro Gap（微缺口）
+    # 检查最近 3 根 K 线是否有微缺口
+    micro_gap = False
+    if len(recent_bars) >= 3:
+        for i in range(len(recent_bars) - 2):
+            bar1 = recent_bars[i]
+            bar2 = recent_bars[i + 1]
+            if side == "BUY":
+                gap_size = safe_float(bar2.get("L"), 0) - safe_float(bar1.get("H"), 0)
+                if gap_size > 0:
+                    micro_gap = True
+                    break
+            else:
+                gap_size = safe_float(bar1.get("L"), 0) - safe_float(bar2.get("H"), 0)
+                if gap_size > 0:
+                    micro_gap = True
+                    break
+    signals["micro_gap"] = micro_gap
+
+    # 5. Shallow Pullback（浅回调）
+    # 检查回调幅度是否小于 50%
+    shallow_pb = False
+    if len(recent_bars) >= 5:
+        # 找到入场后的最高/最低点
+        bars_after_entry = [b for b in recent_bars if b.get("time", "") > entry_time]
+        if bars_after_entry:
+            if side == "BUY":
+                highest = max(safe_float(b.get("H"), 0) for b in bars_after_entry)
+                lowest = min(safe_float(b.get("L"), 0) for b in bars_after_entry)
+                if highest > entry_price:
+                    pb_ratio = (highest - lowest) / (highest - entry_price)
+                    shallow_pb = pb_ratio < 0.5
+            else:
+                highest = max(safe_float(b.get("H"), 0) for b in bars_after_entry)
+                lowest = min(safe_float(b.get("L"), 0) for b in bars_after_entry)
+                if lowest < entry_price:
+                    pb_ratio = (highest - lowest) / (entry_price - lowest)
+                    shallow_pb = pb_ratio < 0.5
+    signals["shallow_pb"] = shallow_pb
+
+    # 6. Wedge Exhaustion（楔形衰竭）
+    # 从 ab_patterns 检查是否有楔形衰竭
+    patterns = ab_patterns.get("patterns", [])
+    wedge_exhaustion = any(
+        "wedge" in str(p.get("type", "")).lower() and
+        str(p.get("status", "")).lower() == "exhaustion"
+        for p in patterns
+        if isinstance(p, dict)
+    )
+    signals["wedge_exhaustion"] = wedge_exhaustion
+
+    # 7. Multi-TF Align（多周期对齐）
+    # 检查多个周期是否对齐
+    multi_tf_align = False
+    if timeframes:
+        tf_5m = timeframes.get("5m", {})
+        tf_15m = timeframes.get("15m", {})
+
+        trend_5m = str(tf_5m.get("trend", "")).lower()
+        trend_15m = str(tf_15m.get("trend", "")).lower()
+
+        if side == "BUY":
+            multi_tf_align = "bull" in trend_5m and "bull" in trend_15m
+        else:
+            multi_tf_align = "bear" in trend_5m and "bear" in trend_15m
+    signals["multi_tf_align"] = multi_tf_align
+
+    # 计算总分
+    strength_score = sum(1 for v in signals.values() if v)
+
+    # 判断信心等级
     if strength_score >= 4:
         confidence = "高"
         recommendation = "坚定持有，不因 1-2 根反向 K 线恐慌"
@@ -179,6 +387,11 @@ def calculate_trailing_sl(position: dict[str, Any], market_data: dict[str, Any])
     """
     计算 Trailing SL
 
+    规则：
+    1. 浮盈 >= 1.5R 时移到保本
+    2. 有新的 Major HL/LH 时移到该点
+    3. Scalp 风格：更激进的移动
+
     Returns:
         {
             "should_trail": bool,
@@ -187,53 +400,110 @@ def calculate_trailing_sl(position: dict[str, Any], market_data: dict[str, Any])
         }
     """
     side = position.get("side", "")
-    current_sl = position.get("stop_loss", 0)
-    entry_price = position.get("entry_price", 0)
-    current_price = market_data.get("current_price", 0)
+    current_sl = safe_float(position.get("stop_loss"), 0)
+    entry_price = safe_float(position.get("entry_price"), 0)
+    current_price = safe_float(market_data.get("current_price"), 0)
+    style = position.get("style", "Swing")
 
-    # 计算浮盈
-    if side == "LONG":
-        profit_r = (current_price - entry_price) / (entry_price - current_sl) if current_sl else 0
-    else:
-        profit_r = (entry_price - current_price) / (current_sl - entry_price) if current_sl else 0
-
-    # 浮盈 >= 1.5R 时移到保本
-    if profit_r >= 1.5:
-        new_sl = entry_price
+    if not current_sl or not entry_price:
         return {
-            "should_trail": True,
-            "new_sl": new_sl,
-            "reason": f"浮盈 {profit_r:.2f}R，移到保本"
+            "should_trail": False,
+            "new_sl": current_sl,
+            "reason": "缺少止损或入场价"
         }
 
-    # 检查是否有新的 Major HL/LH
-    major_hl = market_data.get("major_hl", 0)
-    major_lh = market_data.get("major_lh", 0)
+    # 计算浮盈（R 倍数）
+    initial_risk = abs(entry_price - current_sl)
+    if initial_risk <= 0:
+        return {
+            "should_trail": False,
+            "new_sl": current_sl,
+            "reason": "初始风险为 0"
+        }
 
-    if side == "LONG" and major_hl > current_sl:
+    if side == "BUY":
+        profit_r = (current_price - entry_price) / initial_risk
+    else:
+        profit_r = (entry_price - current_price) / initial_risk
+
+    # 规则 1: 浮盈 >= 1.5R 时移到保本
+    if profit_r >= 1.5:
+        # Scalp 风格：移到保本 + 0.5R
+        if style == "Scalp":
+            if side == "BUY":
+                new_sl = entry_price + initial_risk * 0.5
+            else:
+                new_sl = entry_price - initial_risk * 0.5
+
+            if (side == "BUY" and new_sl > current_sl) or (side == "SELL" and new_sl < current_sl):
+                return {
+                    "should_trail": True,
+                    "new_sl": new_sl,
+                    "reason": f"Scalp 浮盈 {profit_r:.2f}R，移到保本+0.5R"
+                }
+        else:
+            # Swing 风格：移到保本
+            if (side == "BUY" and entry_price > current_sl) or (side == "SELL" and entry_price < current_sl):
+                return {
+                    "should_trail": True,
+                    "new_sl": entry_price,
+                    "reason": f"浮盈 {profit_r:.2f}R，移到保本"
+                }
+
+    # 规则 2: 检查是否有新的 Major HL/LH
+    ab_sr = market_data.get("ab_sr", {})
+    major_hl = safe_float(ab_sr.get("major_hl"), 0)
+    major_lh = safe_float(ab_sr.get("major_lh"), 0)
+
+    if side == "BUY" and major_hl > current_sl and major_hl < current_price:
         return {
             "should_trail": True,
             "new_sl": major_hl,
-            "reason": f"新 Major HL 形成: {major_hl}"
+            "reason": f"新 Major HL 形成: {major_hl:.2f}"
         }
 
-    if side == "SHORT" and major_lh < current_sl:
+    if side == "SELL" and major_lh < current_sl and major_lh > current_price:
         return {
             "should_trail": True,
             "new_sl": major_lh,
-            "reason": f"新 Major LH 形成: {major_lh}"
+            "reason": f"新 Major LH 形成: {major_lh:.2f}"
         }
+
+    # 规则 3: Scalp 风格的激进移动
+    if style == "Scalp" and profit_r >= 1.0:
+        # 移到最近的 Minor HL/LH
+        minor_hl = safe_float(ab_sr.get("minor_hl"), 0)
+        minor_lh = safe_float(ab_sr.get("minor_lh"), 0)
+
+        if side == "BUY" and minor_hl > current_sl and minor_hl < current_price:
+            return {
+                "should_trail": True,
+                "new_sl": minor_hl,
+                "reason": f"Scalp 移到 Minor HL: {minor_hl:.2f}"
+            }
+
+        if side == "SELL" and minor_lh < current_sl and minor_lh > current_price:
+            return {
+                "should_trail": True,
+                "new_sl": minor_lh,
+                "reason": f"Scalp 移到 Minor LH: {minor_lh:.2f}"
+            }
 
     return {
         "should_trail": False,
         "new_sl": current_sl,
-        "reason": "无需移动止损"
+        "reason": f"无需移动止损（浮盈 {profit_r:.2f}R）"
     }
 
 
 def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any]) -> dict[str, Any]:
     """
     计算分批止盈
+
+    规则：
+    - Scalp: 1.5R 全平
+    - Swing: 2R 减仓 50%，3R 再减 25%
+    - 反转试探: 1R 全平
 
     Returns:
         {
@@ -243,16 +513,39 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
         }
     """
     side = position.get("side", "")
-    entry_price = position.get("entry_price", 0)
-    current_sl = position.get("stop_loss", 0)
-    current_price = market_data.get("current_price", 0)
+    entry_price = safe_float(position.get("entry_price"), 0)
+    current_sl = safe_float(position.get("stop_loss"), 0)
+    current_price = safe_float(market_data.get("current_price"), 0)
     style = position.get("style", "Swing")
 
-    # 计算浮盈
-    if side == "LONG":
-        profit_r = (current_price - entry_price) / (entry_price - current_sl) if current_sl else 0
+    if not current_sl or not entry_price:
+        return {
+            "should_close": False,
+            "close_ratio": 0.0,
+            "reason": "缺少止损或入场价"
+        }
+
+    # 计算浮盈（R 倍数）
+    initial_risk = abs(entry_price - current_sl)
+    if initial_risk <= 0:
+        return {
+            "should_close": False,
+            "close_ratio": 0.0,
+            "reason": "初始风险为 0"
+        }
+
+    if side == "BUY":
+        profit_r = (current_price - entry_price) / initial_risk
     else:
-        profit_r = (entry_price - current_price) / (current_sl - entry_price) if current_sl else 0
+        profit_r = (entry_price - current_price) / initial_risk
+
+    # 反转试探：1R 全平
+    if style == "反转试探" and profit_r >= 1.0:
+        return {
+            "should_close": True,
+            "close_ratio": 1.0,
+            "reason": f"反转试探到达 TP ({profit_r:.2f}R)"
+        }
 
     # Scalp: 1.5R 全平
     if style == "Scalp" and profit_r >= 1.5:
@@ -282,10 +575,20 @@ def calculate_partial_close(position: dict[str, Any], market_data: dict[str, Any
                 "reason": f"Swing 到达 TP2 ({profit_r:.2f}R)"
             }
 
+    # Swing: 4R 再减 15%（剩余 10% 让它跑）
+    if style == "Swing" and profit_r >= 4.0:
+        tp3_executed = position.get("tp3_executed", False)
+        if not tp3_executed:
+            return {
+                "should_close": True,
+                "close_ratio": 0.15,
+                "reason": f"Swing 到达 TP3 ({profit_r:.2f}R)"
+            }
+
     return {
         "should_close": False,
         "close_ratio": 0.0,
-        "reason": "未到止盈目标"
+        "reason": f"未到止盈目标（浮盈 {profit_r:.2f}R）"
     }
 
 
