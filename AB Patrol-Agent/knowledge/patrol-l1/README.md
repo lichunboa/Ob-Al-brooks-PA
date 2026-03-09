@@ -132,6 +132,24 @@
 - 最新模型响应: `AB Patrol-Agent/data/pa_trader/logs/decision/last_response.json`
 - 最新结构化决策: `AB Patrol-Agent/data/pa_trader/logs/decision/last_decision.json`
 
+## 如何核对 Step 5 为什么压到当前扫描间隔
+
+runtime 现在会同时写出两层 Step 5 信息：
+
+- `model_suggested_seconds / model_suggested_reason`
+- `scan_bucket.in_seconds / reason_code / bucket_rule / bucket_source_refs / matched_conditions`
+
+这意味着后续讨论“为什么模型说 45 秒，但系统最后用了 120 秒”时，可以直接回答：
+
+- 模型原本建议多久
+- runtime 最后用了哪个 bucket
+- 这个 bucket 对应 `SKILL Step 5 / C5 / S4-S7` 的哪几条规则
+
+更细的映射可以看：
+
+- `AB Patrol-Agent/docs/S0_S7_RUNTIME_MAP_20260309.md`
+- `AB Patrol-Agent/docs/RUNTIME_STRATEGY_AUDIT_20260309.md`
+
 ## 当前没有做的事
 
 - 没有把 canonical 知识简化成另一套经验阈值

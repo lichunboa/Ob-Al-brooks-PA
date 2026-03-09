@@ -116,6 +116,18 @@
 
 这样后续讨论“为什么是 120 秒 / 240 秒 / 480 秒”时，不需要再猜是模型拍脑袋还是代码偷偷保守。
 
+### 当前 Step 5 bucket 映射
+
+| 系统 bucket | 触发条件 | 主来源 |
+|---|---|---|
+| `120s` | `pre_signal` 已接近触发 / 有持仓且波动放大 | `SKILL Step 5` `P0`, `C5`, `S7` |
+| `120s` | `fresh BC/SC` / `TR edge` / breakout follow-through / 已接近 executable | `SKILL Step 5` `P1`, `C5`, `S4`, `S6-common`, `S6-tr`, `S6-channel` |
+| `180s` | `momentum` 持续中 | `SKILL Step 5` `P1`, `C5`, `S1`, `S6-common` |
+| `240s` | 有持仓 / 有 `pre_signal` / `candidate` / `countertrend probe` / `TBTL` 未完成 | `SKILL Step 5` `P2`, `C5`, `S4`, `S6-reversal`, `S7` |
+| `300s` | `stale` 品种 > 3 | `SKILL Step 5` `P3`, `C5`, 反懒惰机制 |
+| `480s` | `TR` 中部无优势 / 无持仓无预信号的普通市场 | `SKILL Step 5` `P4`, `C5`, `S6-tr` |
+| `720s` | 全部品种 `watching >= 3` 轮 | `SKILL Step 5` `P5`, `C5`, 反懒惰机制 |
+
 ---
 
 ## 五、维护原则

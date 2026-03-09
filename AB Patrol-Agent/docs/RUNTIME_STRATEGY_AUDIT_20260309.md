@@ -25,7 +25,7 @@
 | `classify_brooks_filter()` | `runtime/pa_runtime.py` | 把当前结构分成 Brooks 类别，并给出升级条件、风险和首选订单类型 | 仍是策略层逻辑，但已经明确绑定 `S4/S5/S6`，后续继续缩减启发式 |
 | `derive_trade_execution_semantics()` | `runtime/pa_runtime.py` | 把 Brooks 分类翻译成 `WATCH / PRE_SIGNAL / CANDIDATE / EXECUTABLE` 与执行模式 | 应保留，属于执行语义翻译层，不应再自己发明策略 |
 | `apply_brooks_filter_to_patch()` | `runtime/pa_runtime.py` | 把分类结果写回 `planned_trade / evaluation / entry_idea` | 应保留，属于结构化落盘层 |
-| `normalize_next_scan_seconds()` | `runtime/pa_runtime.py` | 把 Step 5 提议收敛成可执行扫描间隔 | 暂时保留，但仍是策略近似层，后续继续贴近 `SKILL Step 5` |
+| `normalize_next_scan_plan()` / `normalize_next_scan_seconds()` | `runtime/pa_runtime.py` | 把 Step 5 提议收敛成可执行扫描间隔，并落盘 bucket 解释 | 暂时保留，但仍是策略近似层，后续继续贴近 `SKILL Step 5` |
 | `select_prompt_references()` | `runtime/pa_runtime.py` | 选择本轮要读哪些 `S` 文件 | 应继续保留，但应只做路由，不做额外策略判断 |
 
 ---
@@ -102,7 +102,7 @@
 - 尽量用结构化信号代替自由文本关键词
 - 把 `planned_trade.source_refs / entry_idea.source_refs / evaluation.source_refs` 作为第一批可审计来源
 
-### 2. `normalize_next_scan_seconds()` 仍然是策略近似层
+### 2. `normalize_next_scan_plan()` 仍然是策略近似层
 
 当前已对齐的主要条件：
 
@@ -112,8 +112,21 @@
 - `momentum`
 - `all watching`
 - `positions`
+- `candidate_stage / execution_mode / stage_family`
 
 但它仍然是代码分桶，而不是完整原样复刻 `SKILL Step 5`。
+
+#### 当前 bucket 对照表
+
+| bucket | 条件 | 来源 |
+|---|---|---|
+| `120s` | `pre_signal` 接近触发 / 有持仓且波动放大 | `SKILL Step 5` `P0`, `C5`, `S7` |
+| `120s` | `fresh BC/SC` / `TR edge` / breakout follow-through / 已接近 executable | `SKILL Step 5` `P1`, `C5`, `S4`, `S6-common`, `S6-tr`, `S6-channel` |
+| `180s` | `momentum` 3+ 连续 bars 活跃 | `SKILL Step 5` `P1`, `C5`, `S1`, `S6-common` |
+| `240s` | 有持仓 / 有 pre_signal / 候选单 / 反转试探未完成 | `SKILL Step 5` `P2`, `C5`, `S4`, `S6-reversal`, `S7` |
+| `300s` | `stale` 品种超过 3 个 | `SKILL Step 5` `P3`, `C5`, 反懒惰机制 |
+| `480s` | `TR` 中部无优势或普通无仓观察环境 | `SKILL Step 5` `P4`, `C5`, `S6-tr` |
+| `720s` | 全部品种 `watching >= 3` 轮 | `SKILL Step 5` `P5`, `C5`, 反懒惰机制 |
 
 **后续方向**
 
