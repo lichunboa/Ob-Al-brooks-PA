@@ -75,6 +75,22 @@
 | `normalize_next_scan_seconds()` | Step 5 分桶 | 继续贴近 `SKILL Step 5`，减少代码自创规则 |
 | `route_s6_references()` | 按状态/事件决定读哪些 `S6-*` | 继续保持兼容，但让 `S4` 做主语义入口 |
 
+### 三点五、当前 runtime 已明确依赖 `S4` 做主语义入口
+
+本轮之后，以下场景都会优先把 `S4-strategy-match.md` 放进 prompt 路由：
+
+- `pre_signal / entry_ready / entry_ready_blocked / manage`
+- `signal_trigger / hl_signal`
+- `TR edge`
+- `first_pb / pb_depth / ema_touch / cached_pre_signal`
+
+这意味着 runtime 现在会先问：
+
+- 当前状态对应哪个 playbook
+- 当前只是观察、候选，还是已经可执行
+
+再去补 `S6-*` 的细节，而不是直接跳到 `S6` 做决策。
+
 更细的 runtime 审计见：
 
 - `AB Patrol-Agent/docs/RUNTIME_STRATEGY_AUDIT_20260309.md`

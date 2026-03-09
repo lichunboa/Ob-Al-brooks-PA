@@ -54,21 +54,44 @@
 
 > 结论：`derive_trade_execution_semantics()` 现在主要是语义翻译层，而不是第二套策略系统。
 
+### 2.1 现在优先使用的结构化线索
+
+本轮之后，`classify_brooks_filter()` 会先看这些结构化字段，再退回到自由文本兜底：
+
+- `market_state`
+- `event_tags`
+- `planned_trade.candidate_stage / execution_mode / order_type`
+- `entry_idea.style / candidate_stage / execution_mode`
+- `evaluation.regime / execution_decision`
+
+自由文本仍然保留，但定位已经降级为：
+
+- 兼容旧 cycle / 旧模型输出里的非结构化描述
+- 补充 `双底 / 双顶 / 楔形 / MTR / acceptance` 等叙事线索
+
+这意味着 runtime 当前更像：
+
+- 先解释 `S4/S5/S6` 已经写出的结构化语义
+- 再用少量文本做兜底
+
+而不是让代码重新发明一套新的 playbook。
+
 ---
 
 ## 三、当前仍在代码里的高风险判断
 
 这些逻辑虽然已对齐知识文件，但仍主要通过代码启发式产出，后续仍应继续向知识层收口。
 
-### 1. `classify_brooks_filter()` 的文本/事件推断
+### 1. `classify_brooks_filter()` 的剩余启发式判断
 
-当前依赖：
+当前主要依赖：
 
 - `market_state`
 - `event_tags`
-- `combined` 文本里对 `双底 / 楔形 / mtr / broad channel / 交易区间 / acceptance` 等词的匹配
+- `planned_trade / entry_idea / evaluation` 的结构化字段
+- `combined` 文本里对 `双底 / 楔形 / mtr / broad channel / 交易区间 / acceptance` 等词的匹配（兜底）
 
-这使它可以工作，但风险是：
+这使它比之前稳，但剩余风险是：
 
 - 某些 `symbol_update` 文本写法一变，分类可能偏移
 - 同一结构可能因表达差异得到不同分类
@@ -77,6 +100,7 @@
 
 - 继续让 `S4/S5/S6` 明确“哪些字段必须出现”
 - 尽量用结构化信号代替自由文本关键词
+- 把 `planned_trade.source_refs / entry_idea.source_refs / evaluation.source_refs` 作为第一批可审计来源
 
 ### 2. `normalize_next_scan_seconds()` 仍然是策略近似层
 
@@ -131,6 +155,20 @@
 - 区分：
   - `rule_source_refs`
   - `loaded_prompt_refs`
+
+### 3.1 当前已落盘的来源字段
+
+本轮之后，这些结构化块都会写出自己的规则来源：
+
+- `planned_trade.source_refs`
+- `entry_idea.source_refs`
+- `evaluation.source_refs`
+- `execution_semantics.stage_rule_source_refs`
+
+这让复盘时可以直接回答：
+
+- 这次升级/不升级主要引用了哪几个 `S4/S5/S6`
+- 是 `runtime` 自己在兜底，还是模型/知识层已经给了明确语义
 
 ---
 

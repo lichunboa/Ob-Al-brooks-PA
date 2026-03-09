@@ -16,6 +16,7 @@
   - `S4` 不再承载日志格式、Quick Scan 路由实现、管理细则
   - `S4` 也不再承载 Daily 叠加、Scalp/Swing 最终评估，这些统一回到 `S2/S5`
   - 每个关键 `S` 文件顶部都会显式标注“文件职责与边界”，用于后续维护时快速判断内容该放哪
+  - runtime 现在会优先把 `S4` 当作 playbook 入口，再补 `S5/S6` 细节；`planned_trade / entry_idea / evaluation` 也会显式落盘 `source_refs`
 
 - `canonical/C*.md`
   - 负责完整 Al Brooks 理论的规范层

@@ -591,6 +591,65 @@ def has_trade_plan(base: dict[str, Any]) -> bool:
     )
 
 
+def structured_trade_semantics(base: dict[str, Any]) -> dict[str, Any]:
+    planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
+    entry_idea = base.get("entry_idea") if isinstance(base.get("entry_idea"), dict) else {}
+    evaluation = base.get("evaluation") if isinstance(base.get("evaluation"), dict) else {}
+    trade = base.get("trade") if isinstance(base.get("trade"), dict) else {}
+    execution_semantics = (
+        planned_trade.get("execution_semantics") if isinstance(planned_trade.get("execution_semantics"), dict) else {}
+    )
+    regime = str(
+        evaluation.get("regime")
+        or planned_trade.get("brooks_label")
+        or entry_idea.get("filter_summary")
+        or ""
+    ).strip()
+    execution_decision = str(
+        evaluation.get("execution_decision")
+        or entry_idea.get("execution_mode_cn")
+        or execution_semantics.get("execution_mode_cn")
+        or ""
+    ).strip()
+    candidate_stage = str(
+        planned_trade.get("candidate_stage")
+        or entry_idea.get("candidate_stage")
+        or execution_semantics.get("candidate_stage")
+        or ""
+    ).strip().upper()
+    execution_mode = str(
+        planned_trade.get("execution_mode")
+        or entry_idea.get("execution_mode")
+        or execution_semantics.get("execution_mode")
+        or ""
+    ).strip().upper()
+    style = str(
+        planned_trade.get("style")
+        or entry_idea.get("style")
+        or trade.get("style")
+        or ""
+    ).strip()
+    upgrade_condition = str(
+        planned_trade.get("upgrade_condition")
+        or entry_idea.get("upgrade_condition")
+        or ""
+    ).strip()
+    order_type = str(
+        planned_trade.get("order_type")
+        or trade.get("order_type")
+        or ""
+    ).strip().upper()
+    return {
+        "regime": regime,
+        "execution_decision": execution_decision,
+        "candidate_stage": candidate_stage,
+        "execution_mode": execution_mode,
+        "style": style,
+        "upgrade_condition": upgrade_condition,
+        "order_type": order_type,
+    }
+
+
 def candidate_stage_cn(value: str) -> str:
     mapping = {
         "WATCH": "继续观察",
@@ -698,6 +757,8 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
         "needs_exact_trigger": order_type in {"LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"} and exact_entry is None,
         "has_entry_price": exact_entry is not None,
         "has_entry_zone": has_zone,
+        "stage_rule_source_refs": normalize_refs(filter_meta.get("source_refs")),
+        "stage_rule_summary": str(filter_meta.get("summary") or "").strip(),
     }
 
 
@@ -721,6 +782,8 @@ def build_execution_semantics(
         "brooks_label": filter_meta.get("label"),
         "upgrade_condition": filter_meta.get("upgrade_condition"),
         "brooks_rule": filter_meta.get("brooks_rule"),
+        "stage_rule_source_refs": semantics.get("stage_rule_source_refs"),
+        "stage_rule_summary": semantics.get("stage_rule_summary"),
     }
 
 
@@ -1253,6 +1316,7 @@ class PatrolRuntime:
     def classify_brooks_filter(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
         state_upper = str(base.get("market_state") or "").strip().upper()
         refs = normalize_refs(base.get("refs"))
+        structured = structured_trade_semantics(base)
         explicit_style = str(
             (base.get("entry_idea") or {}).get("style")
             or (base.get("planned_trade") or {}).get("style")
@@ -1262,9 +1326,15 @@ class PatrolRuntime:
         inferred_style = infer_trade_style_from_refs(
             market_state=state_upper,
             refs=refs,
-            explicit_style=explicit_style,
+            explicit_style=explicit_style or structured.get("style", ""),
+            intent=structured.get("execution_mode", ""),
         )
         combined = combine_brooks_text(
+            structured.get("regime"),
+            structured.get("execution_decision"),
+            structured.get("candidate_stage"),
+            structured.get("execution_mode"),
+            structured.get("upgrade_condition"),
             base.get("market_state_detail"),
             base.get("structure_summary"),
             base.get("thesis"),
@@ -1285,7 +1355,7 @@ class PatrolRuntime:
         reversal_clues = event_has_exact(events, {"wedge_or_mtr", "momentum_fading", "climax_suspected"}) or event_has_prefix(
             events,
             ("hl_signal:H",),
-        ) or any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge", "reversal", "反转"))
+        ) or any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge", "reversal", "反转", "试探"))
         broad_channel_like = state_upper == "BC" or any(
             token in combined for token in ("宽幅多头通道", "宽幅空头通道", "broad channel", "宽通道")
         )
@@ -1298,10 +1368,23 @@ class PatrolRuntime:
         failed_breakout_context = any(
             token in combined for token in ("失败突破", "failed breakout", "双底下方失败突破", "双顶上方失败突破")
         )
-        acceptance_clues = has_breakout or failed_breakout_context or any(
-            token in combined for token in ("接受", "站上", "站回", "跟进", "follow-through", "acceptance", "higher low", "lower high")
+        acceptance_clues = (
+            has_breakout
+            or failed_breakout_context
+            or structured.get("candidate_stage") in {"EXECUTABLE_LIMIT", "EXECUTABLE_STOP", "EXECUTABLE_MARKET"}
+            or structured.get("execution_mode") in {"STOP_TRIGGER", "MARKET_IMMEDIATE"}
+            or "可继续执行链" in structured.get("execution_decision", "")
+            or any(
+                token in combined
+                for token in ("接受", "站上", "站回", "跟进", "follow-through", "acceptance", "higher low", "lower high")
+            )
         )
-        continuation_clues = event_has_prefix(events, ("first_pb:",)) or event_has_exact(events, {"ema_touch", "cached_pre_signal"})
+        continuation_clues = (
+            event_has_prefix(events, ("first_pb:",))
+            or event_has_exact(events, {"ema_touch", "cached_pre_signal"})
+            or structured.get("execution_mode") == "STOP_TRIGGER"
+            or structured.get("candidate_stage") in {"CANDIDATE_STOP", "EXECUTABLE_STOP"}
+        )
         tbtl_incomplete = any(token in combined for token in ("tbtl", "two legs", "十条腿", "两波"))
         if not tbtl_incomplete and reversal_clues and not has_signal_trigger:
             tbtl_incomplete = any(token in combined for token in ("双底", "双顶", "楔形", "mtr", "wedge"))
@@ -1310,9 +1393,14 @@ class PatrolRuntime:
         preferred_order_type = infer_order_type_from_refs(
             market_state=state_upper,
             refs=refs,
-            explicit_order_type=str((base.get("planned_trade") or {}).get("order_type") or ""),
+            explicit_order_type=str((base.get("planned_trade") or {}).get("order_type") or structured.get("order_type") or ""),
+            intent=structured.get("execution_mode", ""),
             has_price=has_plan,
         )
+        if structured.get("candidate_stage") in {"CANDIDATE_LIMIT", "EXECUTABLE_LIMIT"} and preferred_order_type == "MARKET":
+            preferred_order_type = "LIMIT"
+        if structured.get("candidate_stage") in {"CANDIDATE_STOP", "EXECUTABLE_STOP"} and preferred_order_type == "MARKET":
+            preferred_order_type = "STOP_MARKET"
 
         if limit_order_environment and not has_tr_edge and not has_signal_trigger:
             return {
@@ -1500,6 +1588,7 @@ class PatrolRuntime:
             planned_trade["brooks_label"] = filter_meta.get("label")
             planned_trade["upgrade_condition"] = filter_meta.get("upgrade_condition")
             planned_trade["brooks_rule"] = filter_meta.get("brooks_rule")
+            planned_trade["source_refs"] = normalize_refs(filter_meta.get("source_refs"))
             planned_trade["order_type_cn"] = order_type_cn(str(planned_trade.get("order_type") or ""))
             planned_trade["execution_semantics"] = build_execution_semantics(planned_trade, filter_meta, semantics)
             base["planned_trade"] = planned_trade
@@ -1511,6 +1600,7 @@ class PatrolRuntime:
         evaluation["candidate_stage"] = semantics["candidate_stage_cn"]
         evaluation["execution_mode"] = semantics["execution_mode_cn"]
         evaluation["brooks_rule"] = filter_meta.get("brooks_rule")
+        evaluation["source_refs"] = normalize_refs(filter_meta.get("source_refs"))
         base["evaluation"] = evaluation
 
         entry_idea["candidate_stage"] = semantics["candidate_stage"]
@@ -1519,6 +1609,7 @@ class PatrolRuntime:
         entry_idea["execution_mode_cn"] = semantics["execution_mode_cn"]
         entry_idea["upgrade_condition"] = filter_meta.get("upgrade_condition")
         entry_idea["brooks_rule"] = filter_meta.get("brooks_rule")
+        entry_idea["source_refs"] = normalize_refs(filter_meta.get("source_refs"))
         base["entry_idea"] = entry_idea
 
         scenarios = base.get("scenarios") if isinstance(base.get("scenarios"), list) else []
@@ -1725,7 +1816,7 @@ class PatrolRuntime:
         routed_s6 = self.route_s6_references(state_upper, events)
 
         if status_lower in {"pre_signal", "entry_ready", "entry_ready_blocked", "in_trade", "manage"}:
-            add("S3b-key-levels.md", "S5-evaluation.md", "S6-common.md")
+            add("S4-strategy-match.md", "S3b-key-levels.md", "S5-evaluation.md", "S6-common.md")
             for ref_name in routed_s6:
                 if ref_name != "S6-common.md":
                     add(ref_name)
@@ -1734,7 +1825,7 @@ class PatrolRuntime:
             return selected
 
         if event_has_prefix(events, ("signal_trigger:", "hl_signal:")):
-            add("S3b-key-levels.md", "S5-evaluation.md", "S6-common.md")
+            add("S4-strategy-match.md", "S3b-key-levels.md", "S5-evaluation.md", "S6-common.md")
             for ref_name in routed_s6:
                 if ref_name != "S6-common.md":
                     add(ref_name)
@@ -1753,11 +1844,13 @@ class PatrolRuntime:
             return selected
 
         if event_has_prefix(events, ("tr_edge:",)) or state_upper == "TR":
+            add("S4-strategy-match.md")
             for ref_name in routed_s6:
                 add(ref_name)
             return selected
 
         if event_has_prefix(events, ("first_pb:", "pb_depth:")) or event_has_exact(events, {"ema_touch", "cached_pre_signal"}):
+            add("S4-strategy-match.md")
             for ref_name in routed_s6:
                 add(ref_name)
             return selected
