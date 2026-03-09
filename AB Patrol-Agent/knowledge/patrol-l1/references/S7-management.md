@@ -270,14 +270,13 @@
   → 理由: 保证金率 < 120%，接近强平线
 ```
 
-**Al Brooks 风险管理原则**：
-
-> "Risk management is not about avoiding losses. It's about surviving to trade another day."
+**风险管理原则**：
 
 - **保证金率 < 120%** = 接近强平 → 立即减仓，不等 Premise 检查
 - **维持保证金距离 < 2%** = 极度危险 → 立即平仓所有持仓
-- **杠杆异常** = 检查账户设置 → 应该始终使用最大杠杆（75-100x）
+- **杠杆异常** = 检查账户设置 → 应始终保持在计划范围内
 - **持仓占用率 > 50%** = 过度集中 → 不再加仓，等待减仓机会
+- 原话锚点统一看 `quotes/Q6-management.md`
 
 **风险检查优先级**：
 
@@ -295,7 +294,7 @@
 | **2. 反方向信号** | 出现合理的反向信号 → 出局 | PA 分析 |
 | **3. 反方向突破** | 出现强烈反向 BO → 出局 | 连续 3+ 强反向K线 → 不等 SL |
 
-**止损 = 绝对命令**："Stop means stop what you are doing. It is absolute."
+**止损 = 绝对命令**
 - 没有实际止损在市场上（只在脑中）→ 让损失不断扩大
 - **永远不用心理止损** — 每笔订单必须有实际止损单
 
@@ -560,6 +559,7 @@ Al Brooks: "Experts only — bad for beginners"
 
 > **🔴 BNB 教训 (2026-03-02)**: 2R 盈利时移 SL 到保本，被 PB 扫掉。如果保持原 SL，价格随后到达 TP1。
 > **正确做法**: 移 SL 到 1R 盈利位 或 最近的结构位（Major HL/LH），不是保本。
+> 纪律锚点统一看 `quotes/Q6-management.md`。
 
 ---
 
@@ -578,7 +578,7 @@ Al Brooks: "Experts only — bad for beginners"
 - 碰到 EMA（正常的支撑/阻力测试）
 - 浮盈回吐但还没到 SL
 
-> "避免过早出场。趋势中持仓，尽量增加收入。"
+→ 提前离场的纪律锚点统一看 `quotes/Q6-management.md`。
 
 ---
 
@@ -591,10 +591,8 @@ Al Brooks: "Experts only — bad for beginners"
 
 ---
 
-## 大亏损的正确态度
+## 大亏损后的纪律
 
-- 大亏损通常是 **outlier**（异常值）
-- **"Extreme winners and losers are rare and tend to cancel one another out"**
-- 大多数 setup 有更高概率和更小风险
-- 不要因一笔大亏就怀疑整个策略 — 看 100 笔交易的统计结果
-- **"If take 100 trades and go for 1x risk when high probability and 2x risk when low probability, odds of net profit are very high"**
+- 大亏损通常是异常值，不应直接推翻系统
+- 先区分：premise 失效 / 管理失误 / outlier
+- 统计与心理锚点统一看 `quotes/Q6-management.md` + `quotes/Q5-te.md`

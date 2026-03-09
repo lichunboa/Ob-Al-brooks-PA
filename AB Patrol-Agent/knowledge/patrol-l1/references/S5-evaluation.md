@@ -375,25 +375,9 @@ R = TP 距离 / SL 距离
 - 每笔最大风险 = **1% 余额**
 - 确信度一般 → 先小仓（0.3%），确认后可加仓到 1%
 - 仓位计算由执行层完成；这里定义的是风险原则，不是接口细节
-- **"Don't scalp when you should swing"**
-- **"If you are a trader, TRADE!"**
-
-### 恐惧 vs 谨慎 — 自检框架
-
-| | 谨慎（正确） | 恐惧（伪装成谨慎） |
-|--|------------|------------------|
-| **基于什么** | PA 证据 + P×R 计算 | "感觉不对" / 连续亏损后的心理 |
-| **表现** | 跳过不达标的交易 | **跳过达标的交易** |
-| **结果** | 保护资金 | **错过利润** |
-| **自问** | "P×R 不达标吗？" | "我是不是因为刚亏了所以不敢做？" |
-
-**反恐惧校准**：如果连续 3 次放弃达标交易 → 你在恐惧，不是谨慎。下一笔达标的交易 → **必须做**。
+- 风格与评估纪律统一看 [Q3-fear.md](quotes/Q3-fear.md) + [Q5-te.md](quotes/Q5-te.md)
 
 ### PASS 分类系统（只有两类，没有第三类）
-
-> Al Brooks: "No perfect trades. Everyone's edge is small."
-> Al Brooks: "Good math is good enough."
-> Al Brooks: "Beginners fear loss and miss great trades."
 
 | 分类 | 含义 | 示例 | 频率预期 |
 |------|------|------|---------|
@@ -403,7 +387,7 @@ R = TP 距离 / SL 距离
 **⚠️ 不存在 PASS-JUDGMENT。TE 达标 = 必须入场。**
 
 **反恐惧硬检查**（每次想 PASS 时）：
-> "P×R 达标了吗？如果达标，为什么不做？"
+> P×R 达标了吗？如果达标，为什么不做？
 > - "规则不满足" → `[PASS-RULE]`
 > - "条件未形成" → `[PASS-WAIT]`
 > - 说不出来 → **你在恐惧。立即执行。**
@@ -495,10 +479,7 @@ R = TP 距离 / SL 距离
 
 → 记录"该品种有潜在信号但 P×R 不达标"，等下次机会。
 → **不要降低标准去"凑"一笔交易**
-
-> Al Brooks: "所有的交易都很难。完美的万能钥匙是不存在的。"
-> Al Brooks: "交易中的边缘是薄而小的。"
-> Al Brooks: "Can never be more than 60% certain. 60% is as good as it gets."
+→ 理论背景与原话统一看 [Q5-te.md](quotes/Q5-te.md)。
 
 ---
 

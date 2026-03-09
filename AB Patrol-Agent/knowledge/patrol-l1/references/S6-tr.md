@@ -1,9 +1,7 @@
-# S6-tr TR 中怎么做 — 横盘市场的赚钱艺术
+# S6-tr TR 中怎么做
 
-> 状态: S3 判定 TR → 来这里。Al Brooks: "Buy low, sell high. Don't believe moves will go far, so scalp."
-
-> TR 是限价单市场。趋势中止损单赚钱，TR 中限价单赚钱。
-> Al Brooks: "When traders see evidence of a TR, they should do exactly what the institutions are doing: Buy Low, Sell High, Scalp (BLSHS)"
+> 状态: S3 判定 TR → 来这里。
+> TR 的执行核心：边缘优先、限价优先、刮头皮优先。
 
 ---
 
@@ -47,21 +45,13 @@
 - **TP**: TR 中间（保守）或 TR 对侧（如果 leg 强劲）
 - **风格**: 纯 Scalp（1-1.5R）
 
-### 机构在做什么
+### 执行纪律
 
-> Al Brooks 47B: "Bulls sell to take profits in the top half, where bears are shorting. Bears buy to take profits in the bottom half, where bulls are buying. With both bulls and bears buying low, selling high, and taking quick profits (scalping), the market continues sideways"
-
-- **多头和空头做同一件事**：低买高卖 + 快速止盈
-- 这个自我强化机制就是 TR 持续横盘的原因
-- 你要做的就是**跟机构做同样的事**
-
-### Scale In（限特定场景）
-
-> Al Brooks 47B: "They sell near top and scale in higher and buy near the bottom and scale in lower"
-
-- 在 TR 边缘入场后，如果被 surprise BO 打过 → 可以在更远处加仓（scale in）
-- 前提：**80% BO 会失败** → 加仓押注回归
-- **仅限经验丰富时使用** — 初学者不 scale in
+- TR 中做的是 **边缘回归**，不是中部猜方向
+- `LIMIT` 优先于 `STOP_MARKET`
+- 是否允许 scale in / 经验限制 / 心理纪律统一看：
+  - `canonical/C3-style-equation-and-order-planning.md`
+  - `quotes/Q3-fear.md`
 
 ## 从 pre_signal 到可执行限价单
 
@@ -184,8 +174,8 @@
 - **风格**: Scalp/小 Swing
 
 ### 时段敏感
-- **欧盘开盘 / 欧美交叉** 时段最佳（流动性高，反转力度大）
-- 亚盘 fade → 力度弱，只做 micro scalp
+- **欧盘开盘 / 欧美交叉** 时段更优
+- 亚盘 fade → 仅当结构非常清晰时做 micro scalp
 
 ---
 
@@ -257,16 +247,6 @@
 
 ---
 
-## TR 入场分阶段成长
-
-> 从 S3 移入，作为执行指南
-
-| 阶段 | 入场方式 | 适合 |
-|------|---------|------|
-| **基础** | Stop order 在 reversal bar 后 | 打好基础 |
-| **进阶** | 等 2nd entry → stop 入场 | 提高胜率 |
-| **高手** | Limit order + scale in | 灵活刮头皮 |
-
 ---
 
 ## 关键概率
@@ -299,6 +279,4 @@
 ## 没找到信号
 
 → 正常。TR 中等边缘，不追中间。
-→ "宁可错过也不强做"
-
-> 原话锚点 → 详见 [Q3-fear.md](quotes/Q3-fear.md)
+→ 纪律与原话锚点统一看 [Q3-fear.md](quotes/Q3-fear.md)

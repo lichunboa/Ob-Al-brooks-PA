@@ -232,42 +232,15 @@
 
 ---
 
-## 末端旗形 (Final Flags) — Al Brooks 10 大模式之一
+## 末端旗形 (Final Flags)
 
-> Final Flag = 趋势末期最后的休息站。大多数交易者认为趋势会继续，但这恰恰是趋势结束的地方。
-
-### 识别条件
-
-**FF 更可能出现的位置**：
-1. 趋势 **20+ 根** K 线后
-2. 即将到达 **MM 目标**（AB=CD）
-3. 出现 **TTR** / **ii** / **小三角形** / **H2-L2 flag**
-4. 趋势方 BO 尝试缺乏 FT（走不动了）
-5. 多周期看到 climax 或 channel 末期
-
-### 形态类型
-
-| FF 形态 | 描述 | 识别 |
-|---------|------|------|
-| **ii Final Flag** | 连续两个 inside bar | 最小三角形 = BO mode，最常见 |
-| **小三角形** | 3-5 根 K 线的 TTR | Late trend 三角形 → 通常是 FF |
-| **Final Bull/Bear Flag** | 最后的 H2/L2 setup | 看起来像好 flag，但 BO 没 FT |
-| **楔形顶 FF** | 三推 + 收缩 | Wedge 本身就是 FF 的一种 |
-
-### 交易规则
-
-**持仓中（最重要的用法）**：
-- 看到 FF 特征 → **准备止盈 / 移 SL 到保本**
-- 不等 BO 失败再跑 — FF 的 BO 往往很快
-
-**反转入场**：
-- FF + MM 完成 + 无 FT + 多周期确认 → 可以反转 Scalp
-- 注意：FF 反转 **60% 只是 TR leg**，不是新趋势 → 默认 Scalp
-- Swing 只在 MTR 三部曲完成后升级
-
-**Failed FF = 趋势继续**：
-- FF 的 BO 在趋势方向成功 + 有 FT → 趋势延续 → 顺势入场
-- 这种情况概率约 40%
+- FF 是趋势末期的执行语境，不是单独脱离 context 的入场理由
+- 用法只保留两条：
+  1. 持仓中看到 FF 特征 → 进入保护/止盈预案
+  2. FF + MM 完成 + 缺乏 FT → 允许反转 `Scalp`
+- 详细理论边界统一看：
+  - `canonical/C2-triggers-and-reversal-taxonomy.md`
+  - `canonical/C4-management-and-exit-operations.md`
 
 ---
 
@@ -328,14 +301,12 @@
 
 ---
 
-## Market Cycle 纪律 — 最重要的纪律
+## Market Cycle 纪律
 
-> "Trend → TR → Trend 是不变的规律"
-
-- 强 trend 的 climax → **不会直接变成反向 trend**
-- 第一次 PB → 更可能是：① minor PB ② TR 中的一个 leg ③ final flag
-- 只有经历 TR 阶段 → 双方力量充分交锋 → 才可能产生反向 trend
-- **尊重过程**：Climax 后 TTR → 50% MTR → 但也只有 50%
+- 强 trend 的 climax → 默认先看成 `TR / probe / final flag`
+- 第一次反转通常不直接升级成反向趋势
+- 只有经过 test、acceptance、follow-through 后，才允许从 `probe` 升级
+- 理论背景统一看 `canonical/C1-market-cycle-and-state.md`
 
 ---
 
@@ -375,19 +346,12 @@
 | Spike 后 TTR，多次下不去 | Premise 改变 | 小利离场 |
 | 对手方 H2 flag 出现 | 原军回来了 | 平仓 |
 
-### 40% 胜率的数学
+### 数学与入场方式
 
-- 60% 的强反转 = 小赢小亏相互抵消
-- 40% = 大赢家
-- 10 笔：4 赢×4pts = 16 | 6 亏×2pts = -12 | **净赚 4 pts**
-- 实际更好：大多数"亏损"其实是小亏或小赚
-
-### 没有最佳入场点
-
-- **"No best entry... Never worry about entering late"**
-- **"As long as hold for at least 2x Actual Risk, then profitable strategy"**
-- 早入场 → 低概率 + 好 R:R | 等 BO 后入场 → 高概率 + 差 R:R
-- **两种都 OK** — 选择适合的
+- 反转的数学与风格判断统一回看 `S5-evaluation.md`
+- “早入场 vs 等确认”的理论边界统一看：
+  - `canonical/C2-triggers-and-reversal-taxonomy.md`
+  - `quotes/Q5-te.md`
 
 ---
 
@@ -416,5 +380,4 @@
 4. 如果失败，损失多少？能接受吗？
 5. **不确定或条件不足 → 不做**
 
-> 反转机会错过了不亏钱，做错了才亏钱。
-> **"If you don't know who the mark is, you are the mark!"**
+→ 纪律与原话锚点统一看 `quotes/Q3-fear.md`。
