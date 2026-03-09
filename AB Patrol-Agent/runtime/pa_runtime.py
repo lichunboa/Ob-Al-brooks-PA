@@ -29,6 +29,7 @@ from typing import Any
 
 from env_loader import load_agent_env
 from providers import DecisionProviderConfig, build_decision_provider
+from aggressive_mode import should_execute_aggressive, identify_strategy, get_aggressive_mode_status
 
 # 2026-03-09: 导入优化模块（7 个核心优化）
 try:
@@ -5331,6 +5332,9 @@ class PatrolRuntime:
         quick_scan_events: dict[str, Any],
         error: Exception,
     ) -> dict[str, Any]:
+        # 激进模式开关
+        aggressive_mode = bool(int(os.getenv("AB_PATROL_AGGRESSIVE_MODE", "0")))
+
         symbol_cache = market_cache.get("symbols") if isinstance(market_cache.get("symbols"), dict) else {}
         focus_symbols = [str(item).upper() for item in (phase_plan.get("focus_symbols") or [])]
         refs = list(phase_plan.get("prompt_references") or [])[:4]
@@ -5371,11 +5375,25 @@ class PatrolRuntime:
                 "thesis": thesis,
                 "pre_signal": cached.get("pre_signal"),
             }
+
+            # 激进模式：即使超时也尝试执行
+            action_type = "LOG_ONLY"
+            action_reason = f"模型超时，保留上一轮判断；事件参考: {event_text}"
+
+            if aggressive_mode and not positions:
+                # 检查是否可以执行
+                can_execute, exec_reason = should_execute_aggressive(cached)
+                if can_execute and cached.get("status") == "executable":
+                    action_type = "OPEN_POSITION"
+                    action_reason = f"激进模式执行: {exec_reason}"
+                    strategy = identify_strategy(cached)
+                    LOG.info(f"[AGGRESSIVE] {symbol} 激进模式触发: {strategy} | {exec_reason}")
+
             actions.append(
                 {
-                    "type": "LOG_ONLY",
+                    "type": action_type,
                     "symbol": symbol,
-                    "reason": f"模型超时，保留上一轮判断；事件参考: {event_text}",
+                    "reason": action_reason,
                     "refs": refs,
                 }
             )

@@ -1,7 +1,7 @@
 {
-  "last_update": "2026-03-09T12:59:59.676457+00:00",
-  "loop_count": 867,
-  "last_full_refresh": "2026-03-09T12:59:59.676457+00:00",
+  "last_update": "2026-03-09T13:36:55.770336+00:00",
+  "loop_count": 873,
+  "last_full_refresh": "2026-03-09T13:36:55.770336+00:00",
   "total_signals": 4,
   "total_trades": 8,
   "total_passes": 24,
@@ -11,26 +11,26 @@
         "bias": "中性偏空到中性",
         "state": "日线TR内反弹测试",
         "source": "本轮重判",
-        "note": "日线仍是TR，所以当前只按 Scalp 处理；Swing 仍需更持久的上沿接受。"
+        "note": "日线仍是 TR，所以当前只按 Scalp 处理；Swing 仍需更持久的上沿接受。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "executable",
       "consecutive_watching": 2,
-      "stage": "15M_H2_1H_H1_BREAKOUT_CONTINUATION_READY",
+      "stage": "5M_H2_15M_H2_1H_H2_BREAKOUT_CONTINUATION_READY",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "state:BO",
-        "tr_edge:top",
-        "pb_depth:shallow",
-        "hl_signal:H3",
-        "wedge_or_mtr",
-        "state_change:5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续->BO",
-        "cached_pre_signal",
-        "signal_trigger:H2@68301.6",
-        "state:BO",
+        "signal_trigger:H2@68731.6",
+        "state:TC",
         "first_pb:bull_pb",
         "tr_edge:top",
-        "pb_depth:shallow"
+        "hl_signal:H4",
+        "wedge_or_mtr",
+        "state_change:5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续->TC",
+        "cached_pre_signal",
+        "signal_trigger:H2@68731.6",
+        "state:BO",
+        "first_pb:bull_pb",
+        "tr_edge:top"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
@@ -94,58 +94,57 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "5分钟/15分钟/1小时AIL，日线TR",
-      "market_state": "5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续",
-      "market_state_detail": "5分钟维持 BO，15分钟已给 H2，1小时给 H1，30分钟与4小时都在 68036.4 上方收盘；这说明旧上沿已经开始从阻力转成支撑。",
-      "structure_summary": "浏览80根后，大区间仍是主背景，但精读近20根可见高位回踩后连续三根30分钟bull body重新抬起。这里不再适合沿用旧的顶部失败突破叙事。按 S6-bo 与 S6-channel 的执行语义，顺势恢复 / first pullback 完成且接受清晰时允许 STOP_MARKET。当前正是这种情况。",
+      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
+      "market_state": "5分钟 TC + 15分钟 BO + 1小时 TC，旧上沿上方延续",
+      "market_state_detail": "5 分钟从最外侧 BO 切到浅回踩 TC，但仍维持 AIL；15 分钟已给 H2，1 小时给 H2，30 分钟与 4 小时都在 68036.4 上方收盘，这说明旧上沿已经开始从阻力转成支撑。",
+      "structure_summary": "浏览 80 根后，大区间仍是主背景，但精读近 20 根可见高位回踩后连续多根 30 分钟 bull body 重新抬起。这里不再适合沿用旧的顶部失败突破叙事。按 S6-bo 与 S6-channel 的执行语义，顺势恢复 / first pullback 完成且接受清晰时允许 STOP_MARKET；当前正是这种情况。",
       "key_levels": {
         "current_zone": "68036.4 旧上沿上方的延续区",
         "support": [
           "68036.4 旧上沿",
-          "67877.40 5m EMA",
-          "67758.44 15m EMA",
-          "67357.08 1h EMA"
+          "68044.41 5m EMA",
+          "67861.67 15m EMA",
+          "67440.22 1h EMA"
         ],
         "resistance": [
-          "68301.6",
-          "68374.3",
-          "68500.0",
-          "68850.0"
+          "68505.7",
+          "68850.0",
+          "69000.0"
         ],
         "magnets": [
           "68036.4 旧上沿转支撑",
-          "68500 整数位"
+          "68500/69000 整数位"
         ]
       },
-      "thesis": "BTCUSDT 的主导thesis已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。15分钟 H2@68301.6 与 1小时 H1@68301.6 同步存在，5分钟维持 BO，30分钟与4小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
+      "thesis": "BTCUSDT 的主导 thesis 已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。5 分钟 H2@68505.7、15 分钟 H2@68505.7 与 1 小时 H2@68505.7 同步存在，30 分钟与 4 小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
       "pre_signal": {
         "active": true,
         "side": "LONG",
         "kind": "突破接受后的顺势延续",
-        "trigger": "重新站上 68301.6 并保留，继续守在 68036.4 上方",
-        "invalid_if": "30分钟重新接受在 68036.4 下方",
+        "trigger": "重新站上 68505.7 并保留，继续守在 68036.4 上方",
+        "invalid_if": "30 分钟重新接受在 68036.4 下方",
         "note": "这是一笔 TR 顶部之上的 Scalp 延续，不是直接升级成 Swing。"
       },
       "priority": 9,
       "align_score": 3,
-      "signal": "H2@68301.6",
+      "signal": "H2@68731.6",
       "timeframes": {
         "5m": {
           "ai": "AIL",
-          "state": "BO",
-          "signal": "",
+          "state": "TC",
+          "signal": "H2@68731.6",
           "summary": null
         },
         "15m": {
           "ai": "AIL",
           "state": "BO",
-          "signal": "H2@68301.6",
+          "signal": "H2@68731.6",
           "summary": null
         },
         "1h": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "H1@68301.6",
+          "signal": "H2@68731.6",
           "summary": null
         },
         "1d": {
@@ -155,7 +154,7 @@
           "summary": null
         }
       },
-      "running_narrative": "BTCUSDT 的主导thesis已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。15分钟 H2@68301.6 与 1小时 H1@68301.6 同步存在，5分钟维持 BO，30分钟与4小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
+      "running_narrative": "BTCUSDT 的主导 thesis 已经从旧的 TR 顶部反转试探切换成突破后的顺势延续。5 分钟 H2@68505.7、15 分钟 H2@68505.7 与 1 小时 H2@68505.7 同步存在，30 分钟与 4 小时都重新收在 68036.4 旧上沿上方，因此当前是可执行的 Scalp 顺势单。",
       "refs": [
         "S4-strategy-match.md",
         "S3b-key-levels.md",
@@ -172,8 +171,8 @@
           "active": true,
           "side": "LONG",
           "kind": "突破接受后的顺势延续",
-          "trigger": "重新站上 68301.6 并保留，继续守在 68036.4 上方",
-          "invalid_if": "30分钟重新接受在 68036.4 下方",
+          "trigger": "重新站上 68505.7 并保留，继续守在 68036.4 上方",
+          "invalid_if": "30 分钟重新接受在 68036.4 下方",
           "note": "这是一笔 TR 顶部之上的 Scalp 延续，不是直接升级成 Swing。"
         },
         "sl_reference": "",
@@ -216,38 +215,38 @@
       ],
       "pre_signal_meta": {
         "timeframe": "5m",
-        "created_at": "2026-03-09T12:59:59.676577+00:00",
-        "expires_at": "2026-03-09T13:24:59.676577+00:00",
+        "created_at": "2026-03-09T13:36:55.770494+00:00",
+        "expires_at": "2026-03-09T14:01:55.770494+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-09T12:59:59.676694+00:00",
-      "source_cycle_id": "cycle_20260309_205959"
+      "updated_at": "2026-03-09T13:36:55.770680+00:00",
+      "source_cycle_id": "cycle_20260309_213655"
     },
     "ETHUSDT": {
       "daily_bias": {
         "bias": "中性偏多试探",
         "state": "日线TR底部深回调反弹",
         "source": "本轮重判",
-        "note": "日线仍是TR，所以即使重新走强，也先按 Scalp 候选处理。"
+        "note": "日线仍是 TR，所以即便重新走强，也先按 Scalp 候选处理。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "candidate",
       "consecutive_watching": 6,
-      "stage": "1H_H1_RECLAIM_2011_WAIT_ACCEPTANCE",
+      "stage": "5M_H2_15M_H1_1H_H1_RECLAIM_2011_WAIT_ACCEPTANCE",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "state:TC",
-        "pb_depth:shallow",
-        "hl_signal:H3",
-        "wedge_or_mtr",
-        "state_change:5分钟TC + 15分钟TC + 30分钟BO，旧上沿下方回收->TC",
-        "cached_pre_signal",
-        "stale:consecutive_watching",
+        "signal_trigger:H1@2017.13",
         "state:TC",
         "first_pb:bull_pb",
         "tr_edge:top",
-        "pb_depth:normal",
-        "hl_signal:H4"
+        "hl_signal:H3",
+        "wedge_or_mtr",
+        "state_change:5分钟 TR + 15分钟 TC + 30分钟 BO，旧上沿下方回收->TC",
+        "cached_pre_signal",
+        "stale:consecutive_watching",
+        "signal_trigger:H1@2017.13",
+        "state:TC",
+        "first_pb:bull_pb"
       ],
       "planned_trade": {
         "candidate_stage": "CANDIDATE_MARKET",
@@ -311,20 +310,21 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "15分钟/1小时AIL，5分钟TC，日线TR",
-      "market_state": "5分钟TC + 15分钟TC + 30分钟BO，旧上沿下方回收",
-      "market_state_detail": "低周期已经从旧的 short probe 切回 AIL，但 30分钟与4小时都还没重新收回 2011.95，说明多头还差最后的接受。",
-      "structure_summary": "浏览80根后，日线仍属区间；精读近20根显示上破失败后的bear body已经被后续bull bar部分修复。旧的L2反转试探已经不再主导，因为当前低周期方向重新变成 Always In Long。按 canonical thesis 切换原则，当前必须改判为 long reaccept candidate，而不是继续坚持 short probe。",
+      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
+      "market_state": "5分钟 TR + 15分钟 TC + 30分钟 BO，旧上沿下方回收",
+      "market_state_detail": "低周期已经从旧的 short probe 切回 AIL，但 5 分钟更接近整理、30 分钟与 4 小时都还没重新收回 2011.95，说明多头还差最后的接受。",
+      "structure_summary": "浏览 80 根后，日线仍属区间；精读近 20 根显示上破失败后的 bear body 已经被后续 bull bar 部分修复。旧的 L2 反转试探已经不再主导，因为当前低周期方向重新变成 Always In Long。按 canonical thesis 切换原则，当前必须改判为 long reaccept candidate，而不是继续坚持 short probe。5 分钟上的整理只代表回收过程中的拉锯，不是新的做空 setup。",
       "key_levels": {
         "current_zone": "2011.95 旧上沿下方的回收区",
         "support": [
-          "2001.39 当前30m收盘",
-          "1998.68 5m EMA",
-          "1995.37 15m EMA",
-          "1977.17 1h EMA",
+          "2000.99 当前 30m 收盘",
+          "2001.13 5m EMA",
+          "1997.09 15m EMA",
+          "1979.48 1h EMA",
           "1997.11"
         ],
         "resistance": [
+          "2008.85",
           "2009.84",
           "2011.95",
           "2019.55",
@@ -335,35 +335,35 @@
           "2025 整数位"
         ]
       },
-      "thesis": "ETHUSDT 的主导thesis也已经从旧的 TR 顶部 L2 反转试探切回多头延续。1小时 H1@2009.84 存在，15分钟与30分钟仍保持偏多结构，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
+      "thesis": "ETHUSDT 的主导 thesis 已经从旧的 TR 顶部 L2 反转试探切回多头延续。5 分钟 H2@2008.85、15 分钟 H1@2008.85、1 小时 H1@2009.84 已经出现，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
       "pre_signal": {
         "active": true,
         "side": "LONG",
         "kind": "旧上沿下方的顺势再接受候选",
         "trigger": "先重新站稳 2011.95，其后再站上 2019.55",
-        "invalid_if": "30分钟重新接受在 1997.11 下方",
+        "invalid_if": "30 分钟重新接受在 1997.11 下方",
         "note": "当前仍少对 2011.95 的接受，所以不升级成可执行。"
       },
       "priority": 9,
       "align_score": 3,
-      "signal": "1h:H1@2009.84",
+      "signal": "H1@2017.13",
       "timeframes": {
         "5m": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "",
+          "signal": "H1@2017.13",
           "summary": null
         },
         "15m": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "",
+          "signal": "H1@2017.13",
           "summary": null
         },
         "1h": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "H1@2009.84",
+          "signal": "H2@2017.13",
           "summary": null
         },
         "1d": {
@@ -373,7 +373,7 @@
           "summary": null
         }
       },
-      "running_narrative": "ETHUSDT 的主导thesis也已经从旧的 TR 顶部 L2 反转试探切回多头延续。1小时 H1@2009.84 存在，15分钟与30分钟仍保持偏多结构，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
+      "running_narrative": "ETHUSDT 的主导 thesis 已经从旧的 TR 顶部 L2 反转试探切回多头延续。5 分钟 H2@2008.85、15 分钟 H1@2008.85、1 小时 H1@2009.84 已经出现，但当前仍在 2011.95 旧上沿下方，因此只能保留为再接受候选，不能执行。",
       "refs": [
         "S4-strategy-match.md",
         "S3b-key-levels.md",
@@ -391,7 +391,7 @@
           "side": "LONG",
           "kind": "旧上沿下方的顺势再接受候选",
           "trigger": "先重新站稳 2011.95，其后再站上 2019.55",
-          "invalid_if": "30分钟重新接受在 1997.11 下方",
+          "invalid_if": "30 分钟重新接受在 1997.11 下方",
           "note": "当前仍少对 2011.95 的接受，所以不升级成可执行。"
         },
         "sl_reference": "",
@@ -433,36 +433,36 @@
         "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
       ],
       "pre_signal_meta": {
-        "timeframe": "1h",
-        "created_at": "2026-03-09T12:59:59.676713+00:00",
-        "expires_at": "2026-03-09T15:59:59.676713+00:00",
+        "timeframe": "5m",
+        "created_at": "2026-03-09T13:36:55.770875+00:00",
+        "expires_at": "2026-03-09T14:01:55.770875+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-09T12:59:59.676746+00:00",
-      "source_cycle_id": "cycle_20260309_205959"
+      "updated_at": "2026-03-09T13:36:55.770961+00:00",
+      "source_cycle_id": "cycle_20260309_213655"
     },
     "BNBUSDT": {
       "daily_bias": {
         "bias": "中性偏多试探",
         "state": "日线TR底部反弹",
         "source": "本轮重判",
-        "note": "大级别仍是TR底部反弹背景，当前只按 Scalp 候选处理。"
+        "note": "大级别仍是 TR 底部反弹背景，当前只按 Scalp 候选处理。"
       },
       "daily_bias_expires": "2026-03-08T00:00:00Z",
       "status": "candidate",
       "consecutive_watching": 4,
-      "stage": "15M_H2_1H_H1_BREAKOUT_CONTINUATION_NEAR_633",
+      "stage": "5M_H1_15M_H1_1H_H2_BREAKOUT_CONTINUATION_NEAR_636",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
+        "signal_trigger:H2@635.09",
         "state:BO",
         "first_pb:bull_pb",
         "tr_edge:top",
-        "pb_depth:shallow",
         "hl_signal:H3",
         "wedge_or_mtr",
-        "state_change:5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续->BO",
+        "state_change:5分钟 BO + 15分钟 BO + 1小时 TC，旧上沿上方延续->BO",
         "cached_pre_signal",
-        "signal_trigger:H2@632.54",
+        "signal_trigger:H2@635.09",
         "state:BO",
         "first_pb:bull_pb",
         "tr_edge:top"
@@ -529,59 +529,59 @@
         "style": "Scalp",
         "intent": "PLANNED_ENTRY_PENDING"
       },
-      "ai_direction": "5分钟/15分钟/1小时AIL，日线TR",
-      "market_state": "5分钟BO + 15分钟BO + 1小时TC，旧上沿上方延续",
-      "market_state_detail": "低周期已经完成对 629.8/630.2 的突破并站上其上方，但当前紧贴 632.54 与 633 一带，新的首笔追多位置不如 BTC 干净。",
-      "structure_summary": "浏览80根后仍是区间背景；精读近20根显示先前的上沿再测试等待已经结束，当前已经是明确的多周期顺势延续。30分钟与4小时上的 wedge_or_mtr 只代表晚期整理线索，按 Brooks 原话坏楔形不是反转 setup，因此这里只能把它当作延续中的位置警告，而不是直接翻空。",
+      "ai_direction": "5分钟/15分钟/1小时 AIL，日线 TR",
+      "market_state": "5分钟 BO + 15分钟 BO + 1小时 TC，旧上沿上方延续",
+      "market_state_detail": "低周期已经完成对 629.8/630.2 的突破并站上其上方，但当前紧贴 632.85/633.9 与 636 一带，新的首笔追多位置不如 BTC 干净。",
+      "structure_summary": "浏览 80 根后仍是区间背景；精读近 20 根显示先前的上沿再测试等待已经结束，当前已经是明确的多周期顺势延续。30 分钟与 4 小时上的 wedge_or_mtr 只代表晚期整理线索，按 Brooks 原话坏楔形不是反转 setup，因此这里只能把它当作延续中的位置警告，而不是直接翻空。",
       "key_levels": {
         "current_zone": "629.8/630.2 旧上沿上方的延续区",
         "support": [
           "630.2",
           "629.8",
-          "629.01 5m EMA",
-          "627.48 15m EMA",
-          "622.94 1h EMA"
+          "630.74 5m EMA",
+          "628.49 15m EMA",
+          "623.87 1h EMA"
         ],
         "resistance": [
-          "632.54",
-          "633.0",
+          "632.85",
+          "633.9",
           "636.0",
           "639.0"
         ],
         "magnets": [
-          "633 整数位",
+          "636 整数位",
           "629.8/630.2 旧上沿转支撑"
         ]
       },
-      "thesis": "BNBUSDT 的主导thesis已经从旧的“等待新H1/H2”切换成顺势突破延续。15分钟 H2@632.54 与 1小时 H1@632.54 已经出现，30分钟也收在 629.8/630.2 上方；但当前价格已经贴近 632.54 与 633 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
+      "thesis": "BNBUSDT 的主导 thesis 已经从旧的“等待新 H1/H2”切换成顺势突破延续。5 分钟 H1@632.85、15 分钟 H1@633.9、1 小时 H2@633.9 已经出现，30 分钟也收在 629.8/630.2 上方；但当前价格已经贴近 633.9 与 636 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
       "pre_signal": {
         "active": true,
         "side": "LONG",
         "kind": "突破接受后的顺势延续候选",
-        "trigger": "重新站上 632.54-633.0 并保留，或回踩 630.2 后给出新的 H1/H2",
-        "invalid_if": "30分钟重新接受在 630.2 下方",
+        "trigger": "重新站上 633.9-636.0 并保留，或回踩 630.2 后给出新的 H1/H2",
+        "invalid_if": "30 分钟重新接受在 630.2 下方",
         "note": "当前方向正确，但位置偏晚，先不直接追。"
       },
       "priority": 9,
       "align_score": 3,
-      "signal": "H2@632.54",
+      "signal": "H2@635.09",
       "timeframes": {
         "5m": {
           "ai": "AIL",
           "state": "BO",
-          "signal": "",
+          "signal": "H2@635.09",
           "summary": null
         },
         "15m": {
           "ai": "AIL",
           "state": "BO",
-          "signal": "H2@632.54",
+          "signal": "H2@635.09",
           "summary": null
         },
         "1h": {
           "ai": "AIL",
           "state": "TC",
-          "signal": "H1@632.54",
+          "signal": "H2@635.09",
           "summary": null
         },
         "1d": {
@@ -591,7 +591,7 @@
           "summary": null
         }
       },
-      "running_narrative": "BNBUSDT 的主导thesis已经从旧的“等待新H1/H2”切换成顺势突破延续。15分钟 H2@632.54 与 1小时 H1@632.54 已经出现，30分钟也收在 629.8/630.2 上方；但当前价格已经贴近 632.54 与 633 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
+      "running_narrative": "BNBUSDT 的主导 thesis 已经从旧的“等待新 H1/H2”切换成顺势突破延续。5 分钟 H1@632.85、15 分钟 H1@633.9、1 小时 H2@633.9 已经出现，30 分钟也收在 629.8/630.2 上方；但当前价格已经贴近 633.9 与 636 整数位，首笔追多位置偏晚，所以先保留为 candidate。",
       "refs": [
         "S4-strategy-match.md",
         "S3b-key-levels.md",
@@ -608,8 +608,8 @@
           "active": true,
           "side": "LONG",
           "kind": "突破接受后的顺势延续候选",
-          "trigger": "重新站上 632.54-633.0 并保留，或回踩 630.2 后给出新的 H1/H2",
-          "invalid_if": "30分钟重新接受在 630.2 下方",
+          "trigger": "重新站上 633.9-636.0 并保留，或回踩 630.2 后给出新的 H1/H2",
+          "invalid_if": "30 分钟重新接受在 630.2 下方",
           "note": "当前方向正确，但位置偏晚，先不直接追。"
         },
         "sl_reference": "",
@@ -652,21 +652,21 @@
       ],
       "pre_signal_meta": {
         "timeframe": "5m",
-        "created_at": "2026-03-09T12:59:59.676776+00:00",
-        "expires_at": "2026-03-09T13:24:59.676776+00:00",
+        "created_at": "2026-03-09T13:36:55.770716+00:00",
+        "expires_at": "2026-03-09T14:01:55.770716+00:00",
         "extended_once": false
       },
-      "updated_at": "2026-03-09T12:59:59.676841+00:00",
-      "source_cycle_id": "cycle_20260309_205959"
+      "updated_at": "2026-03-09T13:36:55.770841+00:00",
+      "source_cycle_id": "cycle_20260309_213655"
     }
   },
   "_meta": {
-    "loop_count": 867,
-    "total_signals": 1672,
-    "total_trades": 75,
+    "loop_count": 873,
+    "total_signals": 1690,
+    "total_trades": 77,
     "total_passes": 640,
-    "last_full_refresh": "2026-03-09T12:59:59.676457+00:00",
-    "last_update": "2026-03-09T12:59:59.676457+00:00",
+    "last_full_refresh": "2026-03-09T13:36:55.770336+00:00",
+    "last_update": "2026-03-09T13:36:55.770336+00:00",
     "pass_wait": 613,
     "pass_rule": 2
   }
