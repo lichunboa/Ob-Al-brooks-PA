@@ -5681,32 +5681,19 @@ class PatrolRuntime:
                 LOG.warning("fast lane unavailable, falling back to full decision: %s", exc)
 
         if not decision:
-            # 规则引擎优先模式：先用规则引擎做开仓决策
-            env_file = Path(__file__).parent.parent / "config" / ".env"
-            rule_engine_enabled = True
-            rule_engine_priority = False  # 新增：规则引擎优先模式
-            if env_file.exists():
-                for line in env_file.read_text().splitlines():
-                    if line.strip().startswith("AB_PATROL_RULE_ENGINE="):
-                        rule_engine_enabled = bool(int(line.split("=", 1)[1].strip()))
-                    elif line.strip().startswith("AB_PATROL_RULE_ENGINE_PRIORITY="):
-                        rule_engine_priority = bool(int(line.split("=", 1)[1].strip()))
+            # 智能 LLM 触发管理
+            from llm_trigger_integration import should_use_llm
 
-            positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
+            use_llm, trigger_reason = should_use_llm(
+                phase_plan=phase_plan,
+                execution=execution,
+                market_cache=market_cache,
+                runtime=runtime,
+            )
 
-            # 如果启用规则引擎优先模式，直接用规则引擎做决策（无论是否有持仓）
-            if rule_engine_priority and rule_engine_enabled:
-                LOG.info("[RULE_ENGINE_PRIORITY] 规则引擎优先模式：跳过 LLM，直接使用规则引擎")
-                decision = self.rule_engine_decision(
-                    runtime,
-                    market_cache,
-                    execution,
-                    phase_plan,
-                    analysis_board,
-                    quick_scan_events,
-                )
-            else:
-                # 正常流程：调用 LLM
+            if use_llm:
+                # 使用 LLM
+                LOG.info(f"[LLM_TRIGGER] {trigger_reason}")
                 system_text, user_text, ref_names, analysis_board, quick_scan_events, knowledge_meta = self.build_prompt_from_context(
                     runtime,
                     market_cache,
@@ -5738,6 +5725,17 @@ class PatrolRuntime:
                         quick_scan_events,
                         exc,
                     )
+            else:
+                # 使用规则引擎
+                LOG.info(f"[RULE_ENGINE] {trigger_reason}")
+                decision = self.rule_engine_decision(
+                    runtime,
+                    market_cache,
+                    execution,
+                    phase_plan,
+                    analysis_board,
+                    quick_scan_events,
+                )
         decision = self.validate_decision(decision, phase_plan, ref_names, market_cache, analysis_board, quick_scan_events)
 
         # 规则引擎作为安全网：即使 LLM 输出 LOG_ONLY，规则引擎也能识别并执行交易
