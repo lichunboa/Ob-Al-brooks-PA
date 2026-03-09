@@ -1,16 +1,20 @@
 {
-  "next_scan_at": "2026-03-09T17:35:53.580770+00:00",
-  "in_seconds": 480,
-  "requested_seconds": 480,
-  "model_suggested_seconds": 480,
+  "next_scan_at": "2026-03-09T17:53:40.925677+00:00",
+  "in_seconds": 120,
+  "requested_seconds": 240,
+  "model_suggested_seconds": 240,
   "model_suggested_reason": "MODEL_TIMEOUT_RETRY",
-  "reason_code": "MODEL_TIMEOUT_DEFAULT",
-  "reason_text": "模型建议未返回，也没有临近触发或持仓管理压力，回到 8 分钟默认巡逻。",
-  "bucket_rule": "P4：无持仓 + 无 pre_signal + 正常市场 → 8 分钟",
+  "reason_code": "MODEL_TIMEOUT_HIGH_EDGE_ACTIVE",
+  "reason_text": "模型建议未返回，但当前处于 fresh BC/SC、TR 边缘或已接近可执行条件，按 2 分钟继续守候。",
+  "bucket_rule": "P1：fresh BC/SC / TR edge / breakout follow-through / executable 候选 → 2 分钟",
   "bucket_source_refs": [
     "SKILL.md#Step 5",
-    "C5-step5-dynamic-timing.md"
+    "C5-step5-dynamic-timing.md",
+    "S4-strategy-match.md",
+    "S6-tr.md",
+    "S6-channel.md",
+    "S6-common.md"
   ],
-  "derived_from_cycle": "cycle_20260310_012753",
+  "derived_from_cycle": "cycle_20260310_015139",
   "interruptible": true
 }

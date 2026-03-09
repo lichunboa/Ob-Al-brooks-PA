@@ -3442,20 +3442,7 @@ class PatrolRuntime:
         for action in decision.get("actions") or []:
             if not isinstance(action, dict):
                 continue
-            raw_action = dict(action)
-            symbol_key = str(action.get("symbol") or "").upper()
-            patch = merged_updates.get(symbol_key) if isinstance(merged_updates.get(symbol_key), dict) else {}
-
-            # 规则引擎优先模式：跳过 Brooks 过滤器，信任规则引擎的判断
-            reason = str(raw_action.get("reason") or "")
-            if "规则引擎" in reason:
-                action.clear()
-                action.update(raw_action)
-                LOG.info(f"[RULE_ENGINE_PRIORITY] {symbol_key} 跳过 Brooks 过滤器")
-            else:
-                action.clear()
-                action.update(self.apply_brooks_filter_to_action(raw_action, patch))
-
+            # 规则引擎优先模式：不再使用 Brooks 过滤器，直接使用规则引擎的判断
             action["type"] = canonical_action_type(action.get("type"))
             action["refs"] = [ref for ref in normalize_refs(action.get("refs")) if ref in ref_names]
             if not action["refs"] and ref_names:
@@ -3790,21 +3777,8 @@ class PatrolRuntime:
             return result
 
         if action_type == "OPEN_ORDER":
-            # 规则引擎优先模式：信任规则引擎的判断，跳过 validate_trade_gate
-            reason = str(action.get("reason") or "")
-            skip_gate = "规则引擎" in reason
-
-            if not skip_gate:
-                gate = self.validate_trade_gate(action)
-                result["trade_gate"] = gate
-                if not gate["ok"]:
-                    result["success"] = False
-                    result["status"] = "VALIDATION_REJECTED"
-                    result["message"] = gate["stdout"] or gate["stderr"] or "trade gate rejected"
-                    return result
-            else:
-                LOG.info(f"[RULE_ENGINE_PRIORITY] {symbol} 跳过 validate_trade_gate 验证")
-                result["trade_gate"] = {"ok": True, "stdout": "规则引擎优先模式：跳过验证", "stderr": ""}
+            # 规则引擎优先模式：不再使用 validate_trade_gate，直接信任规则引擎
+            result["trade_gate"] = {"ok": True, "stdout": "规则引擎优先模式：跳过验证", "stderr": ""}
 
             can_trade = execution.get("can_trade") if isinstance(execution.get("can_trade"), dict) else {}
             if not can_trade.get("can_trade", False):
@@ -5373,22 +5347,22 @@ class PatrolRuntime:
 
         # 2. 开仓决策（如果无持仓）
         executable_trades = []
-        if not positions:
-            try:
-                LOG.info("[RULE_ENGINE_DECISION] symbol_cache keys: %s", list(symbol_cache.keys()))
-                for sym in focus_symbols:
-                    cached = symbol_cache.get(sym, {})
-                    LOG.info(f"[RULE_ENGINE_DECISION] {sym}: status={cached.get('status')}, pre_signal_active={cached.get('pre_signal',{}).get('active')}")
+        # 规则引擎优先模式：无论是否有持仓，都运行规则引擎
+        try:
+            LOG.info("[RULE_ENGINE_DECISION] symbol_cache keys: %s", list(symbol_cache.keys()))
+            for sym in focus_symbols:
+                cached = symbol_cache.get(sym, {})
+                LOG.info(f"[RULE_ENGINE_DECISION] {sym}: status={cached.get('status')}, pre_signal_active={cached.get('pre_signal',{}).get('active')}")
 
-                executable_trades = get_executable_trades(symbol_cache)
-                if executable_trades:
-                    LOG.info("[RULE_ENGINE_DECISION] 发现 %d 个可执行交易", len(executable_trades))
-                    for trade in executable_trades:
-                        LOG.info(f"[RULE_ENGINE_DECISION] {trade['symbol']}: {trade['strategy']} | confidence={trade['confidence']:.2f} | {trade['reason']}")
-                else:
-                    LOG.info("[RULE_ENGINE_DECISION] 未发现可执行交易")
-            except Exception as exc:
-                LOG.warning("[RULE_ENGINE_DECISION] 规则引擎失败: %s", exc, exc_info=True)
+            executable_trades = get_executable_trades(symbol_cache)
+            if executable_trades:
+                LOG.info("[RULE_ENGINE_DECISION] 发现 %d 个可执行交易", len(executable_trades))
+                for trade in executable_trades:
+                    LOG.info(f"[RULE_ENGINE_DECISION] {trade['symbol']}: {trade['strategy']} | confidence={trade['confidence']:.2f} | {trade['reason']}")
+            else:
+                LOG.info("[RULE_ENGINE_DECISION] 未发现可执行交易")
+        except Exception as exc:
+            LOG.warning("[RULE_ENGINE_DECISION] 规则引擎失败: %s", exc, exc_info=True)
 
         # 3. 构建 decision
         actions = []
@@ -5503,8 +5477,8 @@ class PatrolRuntime:
 
         LOG.info("[TIMEOUT_FALLBACK] symbol_cache keys=%d, focus_symbols=%s", len(symbol_cache), focus_symbols)
 
-        # 使用规则引擎分析所有品种
-        if rule_engine_enabled and not positions:
+        # 使用规则引擎分析所有品种（无论是否有持仓）
+        if rule_engine_enabled:
             try:
                 executable_trades = get_executable_trades(symbol_cache)
                 if executable_trades:
@@ -5553,6 +5527,7 @@ class PatrolRuntime:
             # 优先使用规则引擎
             action_type = "LOG_ONLY"
             action_reason = f"模型超时，保留上一轮判断；事件参考: {event_text}"
+            action_params = {}  # 存储额外的交易参数
 
             # 1. 规则引擎优先
             if rule_engine_enabled and executable_trades:
@@ -5560,6 +5535,16 @@ class PatrolRuntime:
                 if matching_trade:
                     action_type = "OPEN_ORDER"
                     action_reason = f"规则引擎: {matching_trade['strategy']} | {matching_trade['reason']}"
+                    # 添加完整的交易参数
+                    action_params = {
+                        "entry": matching_trade["entry_price"],
+                        "sl": matching_trade["stop_loss"],
+                        "tp": matching_trade["take_profit"],
+                        "side": matching_trade["side"],
+                        "strategy": matching_trade["strategy"],
+                        "style": matching_trade["style"],
+                        "confidence": matching_trade["confidence"],
+                    }
                     LOG.info(f"[RULE_ENGINE] {symbol} 执行: {matching_trade['strategy']}")
 
             # 2. 激进模式作为备选
@@ -5571,14 +5556,15 @@ class PatrolRuntime:
                     strategy = identify_strategy(cached)
                     LOG.info(f"[AGGRESSIVE] {symbol} 激进模式触发: {strategy} | {exec_reason}")
 
-            actions.append(
-                {
-                    "type": action_type,
-                    "symbol": symbol,
-                    "reason": action_reason,
-                    "refs": refs,
-                }
-            )
+            action = {
+                "type": action_type,
+                "symbol": symbol,
+                "reason": action_reason,
+                "refs": refs,
+            }
+            # 合并交易参数
+            action.update(action_params)
+            actions.append(action)
 
         if positions:
             market_summary = "本轮决策模型超时。为避免持仓无人看管，系统保留上一轮管理结论，不做新开仓，缩短到 60 秒后重试。"
@@ -5708,8 +5694,8 @@ class PatrolRuntime:
 
             positions = execution.get("positions") if isinstance(execution.get("positions"), list) else []
 
-            # 如果启用规则引擎优先模式且无持仓，先用规则引擎做决策
-            if rule_engine_priority and rule_engine_enabled and not positions:
+            # 如果启用规则引擎优先模式，直接用规则引擎做决策（无论是否有持仓）
+            if rule_engine_priority and rule_engine_enabled:
                 LOG.info("[RULE_ENGINE_PRIORITY] 规则引擎优先模式：跳过 LLM，直接使用规则引擎")
                 decision = self.rule_engine_decision(
                     runtime,
