@@ -2,13 +2,13 @@
   "version": "2.0",
   "bot_id": "claude-pa",
   "market_profile": "crypto",
-  "loop_seq": 1019,
+  "loop_seq": 1020,
   "status": "RUNNING",
   "current_phase": "MANAGE",
-  "last_run_at": "2026-03-09T22:23:48.972715+00:00",
-  "last_success_at": "2026-03-09T22:23:48.972742+00:00",
+  "last_run_at": "2026-03-09T22:30:09.168817+00:00",
+  "last_success_at": "2026-03-09T22:30:09.168833+00:00",
   "next_scan": {
-    "next_scan_at": "2026-03-09T22:25:48.972463+00:00",
+    "next_scan_at": "2026-03-09T22:32:09.168690+00:00",
     "in_seconds": 120,
     "requested_seconds": 240,
     "model_suggested_seconds": 240,
@@ -24,18 +24,18 @@
       "S6-channel.md",
       "S6-common.md"
     ],
-    "derived_from_cycle": "cycle_20260310_062348",
+    "derived_from_cycle": "cycle_20260310_063009",
     "interruptible": true
   },
   "active_symbols": [
-    "ETHUSDT",
     "BNBUSDT",
-    "BTCUSDT"
+    "BTCUSDT",
+    "ETHUSDT"
   ],
   "focus_symbols": [
-    "ETHUSDT",
     "BNBUSDT",
-    "BTCUSDT"
+    "BTCUSDT",
+    "ETHUSDT"
   ],
   "open_positions": [
     {
@@ -43,11 +43,11 @@
       "side": "LONG",
       "quantity": 14.43,
       "entry_price": 2026.189135135,
-      "mark_price": 2019.9,
-      "unrealized_pnl": -90.75221992,
+      "mark_price": 2019.47,
+      "unrealized_pnl": -96.95711992,
       "leverage": 100,
       "margin_type": "cross",
-      "liquidation_price": 1699.01914265,
+      "liquidation_price": 1696.74975337,
       "bot_ids": [
         "claude-pa"
       ],
@@ -58,11 +58,11 @@
       "side": "LONG",
       "quantity": 7.62,
       "entry_price": 635.0748818898,
-      "mark_price": 639.26385341,
-      "unrealized_pnl": 31.91996305,
+      "mark_price": 639.44680725,
+      "unrealized_pnl": 33.31407131,
       "leverage": 75,
       "margin_type": "cross",
-      "liquidation_price": 31.61152118,
+      "liquidation_price": 28.31122209,
       "bot_ids": [
         "claude-pa"
       ],
@@ -73,11 +73,11 @@
       "side": "LONG",
       "quantity": 0.293,
       "entry_price": 68781.03208189,
-      "mark_price": 68693.1,
-      "unrealized_pnl": -25.76409999,
+      "mark_price": 68800.0,
+      "unrealized_pnl": 5.5576,
       "leverage": 100,
       "margin_type": "cross",
-      "liquidation_price": 52905.8581394,
+      "liquidation_price": 52922.2607388,
       "bot_ids": [
         "claude-pa"
       ],
@@ -88,14 +88,14 @@
   "risk_mode": "NORMAL",
   "host_mode": "CLI_SESSION",
   "last_trigger": null,
-  "last_cycle_id": "cycle_20260310_062348",
+  "last_cycle_id": "cycle_20260310_063009",
   "quiet_loops": 0,
   "full_refresh": true,
   "needs_post_trade_refresh": false,
-  "last_full_refresh_at": "2026-03-09T22:23:48.972775+00:00",
+  "last_full_refresh_at": "2026-03-09T22:30:09.168868+00:00",
   "last_scan_decision": "本轮决策模型超时。为避免持仓无人看管，系统保留上一轮管理结论，不做新开仓，缩短到 60 秒后重试。",
   "trade_readiness": "can_trade_true",
-  "best_candidate": "ETHUSDT",
+  "best_candidate": "BNBUSDT",
   "best_candidate_status": "candidate",
   "openclaw_session_id": "619f7c27-693d-4e28-97fa-b4030e333108",
   "llm_provider": "codex_cli",
@@ -196,7 +196,7 @@
   "phase": "SCAN",
   "daily_bias_expires": "2026-03-08T00:00:00Z",
   "model_timeout": true,
-  "last_model_timeout_at": "2026-03-09T22:23:48.962208+00:00",
+  "last_model_timeout_at": "2026-03-09T22:30:09.159327+00:00",
   "decision_model": "gpt-5.4",
   "runtime_health": {
     "execution_snapshot_confirmed": true,
@@ -243,8 +243,8 @@
       "S3b-key-levels.md": "full",
       "S6-common.md": "full",
       "S6-channel.md": "full",
-      "S6-tr.md": "full",
       "S6-reversal.md": "full",
+      "S6-tr.md": "full",
       "quotes/Q1-context.md": "full",
       "quotes/Q2-direction.md": "full",
       "quotes/Q3-fear.md": "full",
@@ -269,8 +269,8 @@
     "S3b-key-levels.md",
     "S6-common.md",
     "S6-channel.md",
-    "S6-tr.md",
     "S6-reversal.md",
+    "S6-tr.md",
     "quotes/Q1-context.md",
     "quotes/Q2-direction.md",
     "quotes/Q3-fear.md",

@@ -1,6 +1,6 @@
 {
-  "last_update": "2026-03-09T22:23:48.968724+00:00",
-  "loop_count": 1007,
+  "last_update": "2026-03-09T22:30:09.165577+00:00",
+  "loop_count": 1008,
   "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
   "total_signals": 4,
   "total_trades": 8,
@@ -19,6 +19,7 @@
       "stage": "5M_H1_15M_H2_1H_H2_BREAKOUT_CONTINUATION_READY",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
+        "signal_trigger:L1@68687.8",
         "state:TC",
         "first_pb:bull_pb",
         "pb_depth:shallow",
@@ -29,63 +30,62 @@
         "first_pb:bull_pb",
         "pb_depth:shallow",
         "hl_signal:H4",
-        "wedge_or_mtr",
-        "signal_trigger:H1@69045.2"
+        "wedge_or_mtr"
       ],
       "last_signal_reason": "5m L2、15m L2、1h 空头方向一致，当前可按 Scalp 执行。",
       "planned_trade": {
-        "candidate_stage": "PRE_SIGNAL",
-        "candidate_stage_cn": "预信号",
-        "execution_mode": "LIMIT_PLAN",
-        "execution_mode_cn": "限价计划委托",
-        "allow_executable": false,
-        "needs_exact_trigger": true,
-        "brooks_label": "TR 边缘限价单环境",
-        "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
-        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+        "candidate_stage": "CANDIDATE_MARKET",
+        "candidate_stage_cn": "候选单（市价）",
+        "execution_mode": "MARKET_IMMEDIATE",
+        "execution_mode_cn": "市价立即执行",
+        "allow_executable": true,
+        "needs_exact_trigger": false,
+        "brooks_label": "顺势候选",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-tr.md",
+          "S6-common.md",
           "S5-evaluation.md"
         ],
         "order_type_cn": "-",
         "execution_semantics": {
-          "candidate_stage": "PRE_SIGNAL",
-          "candidate_stage_cn": "预信号",
-          "execution_mode": "LIMIT_PLAN",
-          "execution_mode_cn": "限价计划委托",
+          "candidate_stage": "CANDIDATE_MARKET",
+          "candidate_stage_cn": "候选单（市价）",
+          "execution_mode": "MARKET_IMMEDIATE",
+          "execution_mode_cn": "市价立即执行",
           "order_type": null,
           "order_type_cn": "-",
           "style": null,
-          "allow_executable": false,
-          "needs_exact_trigger": true,
+          "allow_executable": true,
+          "needs_exact_trigger": false,
           "has_entry_price": false,
           "has_entry_zone": false,
-          "brooks_label": "TR 边缘限价单环境",
-          "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
-          "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+          "brooks_label": "顺势候选",
+          "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+          "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
           "stage_rule_source_refs": [
             "S4-strategy-match.md",
-            "S6-tr.md",
+            "S6-common.md",
             "S5-evaluation.md"
           ],
-          "stage_rule_summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
+          "stage_rule_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
         }
       },
       "brooks_filter": {
-        "category": "tr_edge_limit_only",
-        "label": "TR 边缘限价单环境",
-        "summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
-        "max_status": "pre_signal",
-        "allow_executable": false,
-        "stage_family": "limit_edge",
+        "category": "trend_continuation_candidate",
+        "label": "顺势候选",
+        "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "max_status": "executable",
+        "allow_executable": true,
+        "stage_family": "normal_candidate",
         "preferred_style": "WAIT",
-        "preferred_order_type": "LIMIT",
-        "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
-        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+        "preferred_order_type": "MARKET",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-tr.md",
+          "S6-common.md",
           "S5-evaluation.md"
         ]
       },
@@ -111,12 +111,12 @@
       "thesis": "BTCUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
       "align_score": 1,
-      "signal": "1h:H1@69045.2",
+      "signal": "L1@68687.8",
       "timeframes": {
         "5m": {
           "ai": "AIS",
           "state": "TC",
-          "signal": "",
+          "signal": "L1@68687.8",
           "summary": null
         },
         "15m": {
@@ -154,16 +154,16 @@
         "sl_reference": "",
         "tp_reference": "",
         "style": "WAIT",
-        "filter_summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
-        "candidate_stage": "PRE_SIGNAL",
-        "candidate_stage_cn": "预信号",
-        "execution_mode": "LIMIT_PLAN",
-        "execution_mode_cn": "限价计划委托",
-        "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
-        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+        "filter_summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "CANDIDATE_MARKET",
+        "candidate_stage_cn": "候选单（市价）",
+        "execution_mode": "MARKET_IMMEDIATE",
+        "execution_mode_cn": "市价立即执行",
+        "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-tr.md",
+          "S6-common.md",
           "S5-evaluation.md"
         ]
       },
@@ -174,23 +174,23 @@
         "threshold_rhs": null,
         "passes_price_action": false,
         "passes_execution_gate": null,
-        "regime": "TR 边缘限价单环境",
-        "execution_decision": "继续观察/等待",
-        "risk": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
-        "candidate_stage": "预信号",
-        "execution_mode": "限价计划委托",
-        "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+        "regime": "顺势候选",
+        "execution_decision": "可继续执行链",
+        "risk": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
+        "candidate_stage": "候选单（市价）",
+        "execution_mode": "市价立即执行",
+        "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
         "source_refs": [
           "S4-strategy-match.md",
-          "S6-tr.md",
+          "S6-common.md",
           "S5-evaluation.md"
         ]
       },
       "scenarios": [
-        "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
+        "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
       ],
-      "updated_at": "2026-03-09T22:23:48.968946+00:00",
-      "source_cycle_id": "cycle_20260310_062348"
+      "updated_at": "2026-03-09T22:30:09.165772+00:00",
+      "source_cycle_id": "cycle_20260310_063009"
     },
     "ETHUSDT": {
       "daily_bias": {
@@ -205,18 +205,18 @@
       "stage": "15M_H2_1H_H2_RECLAIM_2011_WAIT_ACCEPTANCE",
       "last_pass_reason": "PRE_SIGNAL_EXPIRED",
       "event_tags": [
-        "signal_trigger:L2@2017.9",
         "state:TC",
+        "tr_edge:bottom",
         "pb_depth:shallow",
         "hl_signal:H4",
         "wedge_or_mtr",
+        "momentum_fading",
         "stale:consecutive_watching",
         "state:TR",
         "first_pb:bull_pb",
         "pb_depth:shallow",
         "hl_signal:H4",
-        "wedge_or_mtr",
-        "state:TR"
+        "wedge_or_mtr"
       ],
       "planned_trade": {
         "candidate_stage": "CANDIDATE_MARKET",
@@ -298,12 +298,12 @@
       "thesis": "ETHUSDT 本轮模型超时，保持上一轮观察结论。",
       "priority": 9,
       "align_score": 1,
-      "signal": "L2@2017.9",
+      "signal": "",
       "timeframes": {
         "5m": {
           "ai": "AIS",
           "state": "TC",
-          "signal": "L2@2017.9",
+          "signal": "",
           "summary": null
         },
         "15m": {
@@ -376,8 +376,8 @@
       "scenarios": [
         "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。"
       ],
-      "updated_at": "2026-03-09T22:23:48.968858+00:00",
-      "source_cycle_id": "cycle_20260310_062348"
+      "updated_at": "2026-03-09T22:30:09.165813+00:00",
+      "source_cycle_id": "cycle_20260310_063009"
     },
     "BNBUSDT": {
       "daily_bias": {
@@ -563,17 +563,17 @@
       "scenarios": [
         "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。"
       ],
-      "updated_at": "2026-03-09T22:23:48.968891+00:00",
-      "source_cycle_id": "cycle_20260310_062348"
+      "updated_at": "2026-03-09T22:30:09.165700+00:00",
+      "source_cycle_id": "cycle_20260310_063009"
     }
   },
   "_meta": {
-    "loop_count": 1007,
+    "loop_count": 1008,
     "total_signals": 1777,
     "total_trades": 253,
     "total_passes": 664,
     "last_full_refresh": "2026-03-09T18:19:29.530703+00:00",
-    "last_update": "2026-03-09T22:23:48.968724+00:00",
+    "last_update": "2026-03-09T22:30:09.165577+00:00",
     "pass_wait": 637,
     "pass_rule": 2
   }
