@@ -75,6 +75,10 @@
 | `normalize_next_scan_seconds()` | Step 5 分桶 | 继续贴近 `SKILL Step 5`，减少代码自创规则 |
 | `route_s6_references()` | 按状态/事件决定读哪些 `S6-*` | 继续保持兼容，但让 `S4` 做主语义入口 |
 
+更细的 runtime 审计见：
+
+- `AB Patrol-Agent/docs/RUNTIME_STRATEGY_AUDIT_20260309.md`
+
 ---
 
 ## 四、当前仍不通顺的地方

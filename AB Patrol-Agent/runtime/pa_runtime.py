@@ -631,23 +631,23 @@ def order_type_cn(value: str) -> str:
 def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str, Any]) -> dict[str, Any]:
     planned_trade = base.get("planned_trade") if isinstance(base.get("planned_trade"), dict) else {}
     status = str(base.get("status") or "watching").strip().lower()
-    category = str(filter_meta.get("category") or "").strip()
+    stage_family = str(filter_meta.get("stage_family") or "").strip().lower()
     order_type = str(planned_trade.get("order_type") or filter_meta.get("preferred_order_type") or "").strip().upper()
     exact_entry = first_float(planned_trade.get("entry_price"))
     has_zone = planned_trade.get("entry_zone") not in (None, "", [], {})
     has_plan = has_trade_plan(base)
     allow_executable = bool(filter_meta.get("allow_executable"))
 
-    if category in {"tr_middle_no_edge", "watch_only"} or status in {"watching", "cooldown"}:
+    if stage_family == "watch_only" or status in {"watching", "cooldown"}:
         stage = "WATCH"
         mode = "WATCH_ONLY"
-    elif category in {"tbtl_incomplete", "tr_edge_limit_wait_second_signal"}:
+    elif stage_family == "wait_acceptance":
         stage = "PRE_SIGNAL"
         mode = "WAIT_ACCEPTANCE"
-    elif category in {"strong_breakout_countertrend", "forty_percent_reversal_scalp_only"}:
+    elif stage_family == "countertrend_probe":
         stage = "COUNTERTREND_PROBE"
         mode = "COUNTERTREND_PROBE"
-    elif category in {"tr_edge_limit_only", "broad_channel_countertrend_limit"}:
+    elif stage_family == "limit_edge":
         if allow_executable and exact_entry is not None:
             stage = "EXECUTABLE_LIMIT"
         elif allow_executable and has_zone:
@@ -657,7 +657,7 @@ def derive_trade_execution_semantics(base: dict[str, Any], filter_meta: dict[str
         else:
             stage = "PRE_SIGNAL"
         mode = "LIMIT_PLAN"
-    elif category == "broad_channel_trend_stop":
+    elif stage_family == "stop_continuation":
         if allow_executable and exact_entry is not None:
             stage = "EXECUTABLE_STOP"
         elif has_plan or has_zone or status in {"entry_ready", "entry_ready_blocked"}:
@@ -1321,10 +1321,12 @@ class PatrolRuntime:
                 "summary": "交易区间中部没有边缘优势，只保留观察，不升级候选单。",
                 "max_status": "watching",
                 "allow_executable": False,
+                "stage_family": "watch_only",
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
                 "upgrade_condition": "先回到交易区间上/下三分之一边缘，再等信号。",
                 "brooks_rule": "TR 以低买高卖 BLSHS 为主，中部位置通常没有优势。",
+                "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
             }
 
         if strong_breakout and reversal_clues and not has_second_signal:
@@ -1334,10 +1336,12 @@ class PatrolRuntime:
                 "summary": "强突破背景里的第一次反转通常先按反转试探处理，不直接当 swing 可执行单。",
                 "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
                 "allow_executable": False,
+                "stage_family": "countertrend_probe",
                 "preferred_style": "反转试探",
                 "preferred_order_type": "STOP_MARKET" if has_breakout else preferred_order_type,
                 "upgrade_condition": "至少等 H2/L2 或 HL/LH MTR，再看到明确接受，才考虑升级。",
                 "brooks_rule": "强突破里多数反转先失败；第一次反转常只是小反转或 scalp。",
+                "source_refs": ["S4-strategy-match.md", "S6-reversal.md", "S5-evaluation.md"],
             }
 
         if tbtl_incomplete:
@@ -1347,10 +1351,12 @@ class PatrolRuntime:
                 "summary": "两波/TBTL 反转还没完成，先留在预信号观察，不直接升级执行。",
                 "max_status": "pre_signal",
                 "allow_executable": False,
+                "stage_family": "wait_acceptance",
                 "preferred_style": "反转试探",
                 "preferred_order_type": preferred_order_type,
                 "upgrade_condition": "等第二腿或二次入场信号完成后，再看是否升级。",
                 "brooks_rule": "TBTL / two legs 未完成前，反转通常还不成熟。",
+                "source_refs": ["S4-strategy-match.md", "S6-reversal.md"],
             }
 
         if reversal_clues and not has_second_signal:
@@ -1360,10 +1366,12 @@ class PatrolRuntime:
                 "summary": "当前反转更像 40% 级别的第一次反转，只适合试探或 scalp 观察，暂不作为 swing 可执行单。",
                 "max_status": "pre_signal" if not has_plan else "entry_ready_blocked",
                 "allow_executable": False,
+                "stage_family": "countertrend_probe",
                 "preferred_style": inferred_style if scalp_style else "反转试探",
                 "preferred_order_type": "LIMIT" if limit_order_environment else "STOP_MARKET",
                 "upgrade_condition": "等 H2/L2、HL/LH MTR 或失败突破后的接受，再升级。",
                 "brooks_rule": "大多数 MTR 只有约 40% 概率走出 2R 以上波段；第一次反转通常先小。",
+                "source_refs": ["S4-strategy-match.md", "S5-evaluation.md", "S6-reversal.md"],
             }
 
         if broad_channel_like and reversal_clues:
@@ -1373,10 +1381,12 @@ class PatrolRuntime:
                 "summary": "宽通道更接近交易区间，逆势反转优先在边缘做 limit scalp，不直接追价做 swing。",
                 "max_status": "entry_ready" if (has_plan and has_tr_edge and has_second_signal) else "pre_signal",
                 "allow_executable": bool(has_plan and has_tr_edge and has_second_signal),
+                "stage_family": "limit_edge",
                 "preferred_style": "反转试探" if not has_second_signal else inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
                 "upgrade_condition": "先等到边缘，再等二次信号；没有二次信号就只保留试探/观察。",
                 "brooks_rule": "Broad Channel 本质更像 TR：scalp more、swing less、use limit orders。",
+                "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
             }
 
         if broad_channel_like and continuation_clues:
@@ -1390,10 +1400,12 @@ class PatrolRuntime:
                 "allow_executable": bool(
                     has_plan and continuation_clues and acceptance_clues and (has_signal_trigger or has_first_signal or has_second_signal)
                 ),
+                "stage_family": "stop_continuation",
                 "preferred_style": inferred_style or "Swing",
                 "preferred_order_type": "STOP_MARKET",
                 "upgrade_condition": "先有顺势恢复/first pullback 完成，再看到接受或触发信号；没有恢复信号时不追 stop。",
                 "brooks_rule": "Broad Channel 更像 TR：逆势多用 limit，顺势只有在恢复信号和接受都清晰时才用 stop。",
+                "source_refs": ["S4-strategy-match.md", "S6-channel.md", "S5-evaluation.md"],
             }
 
         if limit_order_environment and has_tr_edge:
@@ -1404,10 +1416,12 @@ class PatrolRuntime:
                     "summary": "交易区间边缘虽然有位置优势，但只有第一次信号或背景不够清晰时，应先等二次信号，再把限价单升级为可执行单。",
                     "max_status": "pre_signal",
                     "allow_executable": False,
+                    "stage_family": "wait_acceptance",
                     "preferred_style": inferred_style or "Scalp",
                     "preferred_order_type": "LIMIT",
                     "upgrade_condition": "等 H2/L2、二次失败或明确 signal bar，再从预信号升级成候选单。" if has_first_signal else "先等边缘出现明确 signal bar，再看是否形成二次入场。",
                     "brooks_rule": "TR 低买高卖主要靠边缘和二次入场；背景不清晰时要等第二次信号。",
+                    "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
                 }
             return {
                 "category": "tr_edge_limit_only",
@@ -1415,10 +1429,12 @@ class PatrolRuntime:
                 "summary": "当前属于 TR 上/下三分之一边缘，候选单可以存在，但应优先按计划委托/限价处理。",
                 "max_status": "entry_ready" if ((has_second_signal or has_signal_trigger) and has_plan) else "pre_signal",
                 "allow_executable": bool((has_second_signal or has_signal_trigger) and has_plan),
+                "stage_family": "limit_edge",
                 "preferred_style": inferred_style or "Scalp",
                 "preferred_order_type": "LIMIT",
                 "upgrade_condition": "边缘 + 二次信号/清晰 signal bar 同时出现时，才升级成可执行限价单。",
                 "brooks_rule": "TR 做法是 Buy Low Sell High，优先在上/下三分之一边缘用限价单处理。",
+                "source_refs": ["S4-strategy-match.md", "S6-tr.md", "S5-evaluation.md"],
             }
 
         if has_signal_trigger or event_has_prefix(events, ("first_pb:", "pb_depth:")):
@@ -1428,10 +1444,12 @@ class PatrolRuntime:
                 "summary": "当前属于顺势候选，允许继续走 candidate -> executable 的标准链路。",
                 "max_status": "entry_ready" if has_plan else str(base.get("status") or "pre_signal"),
                 "allow_executable": True,
+                "stage_family": "normal_candidate",
                 "preferred_style": inferred_style,
                 "preferred_order_type": preferred_order_type,
                 "upgrade_condition": "保持继续接受、触发价有效、结构未失效时，继续向可执行单推进。",
                 "brooks_rule": "趋势恢复/first pullback 更适合 stop 触发，而不是在中间乱猜反转。",
+                "source_refs": ["S4-strategy-match.md", "S6-common.md", "S5-evaluation.md"],
             }
 
         return {
@@ -1440,10 +1458,12 @@ class PatrolRuntime:
             "summary": "当前结构还不足以升级为候选单，继续观察并等待新证据。",
             "max_status": "watching" if not has_plan else str(base.get("status") or "watching"),
             "allow_executable": False,
+            "stage_family": "watch_only",
             "preferred_style": inferred_style or "Scalp",
             "preferred_order_type": preferred_order_type,
             "upgrade_condition": "等待新的边缘、二次信号或接受证据出现。",
             "brooks_rule": "没有位置优势或没有信号完成时，最好的交易通常是等待。",
+            "source_refs": ["S4-strategy-match.md", "S6-common.md"],
         }
 
     def apply_brooks_filter_to_patch(self, base: dict[str, Any], events: list[str]) -> dict[str, Any]:
