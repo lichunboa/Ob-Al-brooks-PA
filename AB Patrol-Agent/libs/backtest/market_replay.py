@@ -8,27 +8,12 @@ MarketReplay — 历史数据回放器
   engine._fetch_candles(symbol, timeframe="5m", limit=50) -> list[Candle]
 """
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator
 
 import pandas as pd
 
-# 使用 PA 引擎自身的 Candle 类型（运行时由 runner 注入）
-# 这里定义一个轻量版本作为 fallback
-from dataclasses import dataclass, field
-
-
-@dataclass
-class Candle:
-    """K 线数据（与 pa_engine.Candle 兼容）"""
-    symbol: str
-    timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float = 0.0
-    timeframe: str = "5m"
+from .models import Candle
 
 
 class MarketReplay:

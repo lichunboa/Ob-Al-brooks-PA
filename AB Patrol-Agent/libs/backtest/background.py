@@ -5,17 +5,7 @@
   🟢 多头背景 / 🔴 空头背景 / ⚡ 震荡背景 / ⚪ 中性
 """
 
-from dataclasses import dataclass
-
-
-@dataclass
-class BackgroundContext:
-    """大周期背景"""
-    daily_trend: str      # "多头" / "空头" / "震荡" / "中性"
-    h4_trend: str         # "多头" / "空头" / "震荡" / "中性"
-    background: str       # "🟢 多头背景" / "🔴 空头背景" / "⚡ 震荡背景" / "⚪ 中性"
-    daily_slope: float
-    h4_slope: float
+from .models import BackgroundContext
 
 
 def _calculate_ema(prices: list[float], period: int = 20) -> list[float]:

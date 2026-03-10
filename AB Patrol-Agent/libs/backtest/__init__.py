@@ -16,21 +16,56 @@
     result.print_report()
 """
 
-from .data_loader import DataLoader
-from .market_replay import MarketReplay
-from .sim_exchange import SimExchange
-from .scoring import ScoringEngine
 from .background import BackgroundAnalyzer, BackgroundContext
-from .runner import BacktestRunner, BacktestConfig
-from .report import BacktestResult
+from .cycle_identifier import BACKTEST_STRATEGY_MATRIX, CycleIdentifier, classify_backtest_market_state
+from .indicators import CandlePatterns, calculate_atr, calculate_ema, ema_slope
+from .models import Candle, MarketState, PASignal, Trade
+from .sim_exchange import SimExchange
+
+try:
+    from .data_loader import DataLoader
+except ModuleNotFoundError:
+    DataLoader = None
+
+try:
+    from .market_replay import MarketReplay
+except ModuleNotFoundError:
+    MarketReplay = None
+
+try:
+    from .scoring import ScoringEngine
+except ModuleNotFoundError:
+    ScoringEngine = None
+
+try:
+    from .runner import BacktestRunner, BacktestConfig
+except ModuleNotFoundError:
+    BacktestRunner = None
+    BacktestConfig = None
+
+try:
+    from .report import BacktestResult
+except ModuleNotFoundError:
+    BacktestResult = None
 
 __all__ = [
+    "Candle",
     "DataLoader",
     "MarketReplay",
+    "PASignal",
+    "MarketState",
+    "Trade",
     "SimExchange",
     "ScoringEngine",
     "BackgroundAnalyzer",
     "BackgroundContext",
+    "CandlePatterns",
+    "calculate_ema",
+    "ema_slope",
+    "calculate_atr",
+    "CycleIdentifier",
+    "classify_backtest_market_state",
+    "BACKTEST_STRATEGY_MATRIX",
     "BacktestRunner",
     "BacktestConfig",
     "BacktestResult",

@@ -9,34 +9,11 @@ SimExchange — 模拟交易所
 """
 
 import math
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional
+
+from .models import Trade
 
 # 周期缩放因子（基于 5m = 1）
 TF_SCALE = {"1m": 0.2, "5m": 1, "15m": 3, "30m": 6, "1h": 12}
-
-
-@dataclass
-class Trade:
-    """模拟交易"""
-    symbol: str
-    direction: str
-    strategy: str
-    entry_price: float
-    stop_loss: float
-    take_profit: float
-    entry_time: datetime
-    exit_time: Optional[datetime] = None
-    exit_price: float = 0.0
-    pnl_pct: float = 0.0
-    result: str = ""          # WIN / LOSS / SCRATCH
-    score: int = 0
-    background: str = ""
-    cycle: str = ""
-    exit_reason: str = ""     # TP / SL / TIMEOUT / END
-    timeframe: str = "5m"
-    bars_held: int = 0
 
 
 class SimExchange:
