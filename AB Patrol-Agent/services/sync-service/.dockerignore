@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# 日志和临时文件
+logs/
+*.log
+pids/
+run/
+data/
+
+# 测试
+tests/
+.pytest_cache/
+.coverage
+
+# 开发配置
+.gitignore
+.python-version
+Makefile
+README.md
+pyproject.toml
+requirements-dev.txt
+requirements.lock.txt
+
+# Docker
+Dockerfile
+.dockerignore
+
+# 其他
+.DS_Store
+*.md

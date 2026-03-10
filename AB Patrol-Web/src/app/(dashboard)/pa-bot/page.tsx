@@ -1,497 +1,799 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
   Bot,
-  Clock3,
-  FileJson2,
-  Radar,
+  CheckCircle2,
+  CircleDot,
+  Clock,
+  Database,
+  FileJson,
   RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+  Shield,
+  XCircle,
+} from 'lucide-react';
 
-type RuntimeFull = {
-  snapshot?: Record<string, any>;
-  recent?: { items?: Array<Record<string, any>> };
-  decision?: { decision?: Record<string, any> };
-};
-
-function trimText(value: unknown, limit = 180) {
-  const text = displayText(value).replace(/\s+/g, " ").trim();
-  if (!text) return "-";
-  return text.length <= limit ? text : `${text.slice(0, limit - 1).trimEnd()}…`;
+interface MetricCardProps {
+  label: string;
+  value: string;
+  sub?: string;
 }
 
-function displayText(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return value.map((item) => displayText(item)).filter(Boolean).join(" / ");
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const orderedKeys = ["regime", "daily_bias", "execution_decision", "risk"];
-    const ordered = orderedKeys
-      .map((key) => {
-        const current = displayText(record[key]);
-        return current ? `${key}: ${current}` : "";
-      })
-      .filter(Boolean);
-    if (ordered.length > 0) return ordered.join(" ｜ ");
-    return JSON.stringify(record, null, 2);
-  }
-  return String(value);
+interface SymbolCardData {
+  symbol: string;
+  status: string;
+  stage: string;
+  ai_direction: string;
+  market_state: string;
+  thesis: string;
+  structure_summary: string;
+  pre_signal: string;
+  execution_summary: string;
+  brooks_label: string;
+  upgrade_condition: string;
+  planned_action: string;
+  refs: string[];
+  risk: string;
+  order_type: string;
+  entry_price: number | null;
+  execution_mode: string;
 }
 
-function phaseCn(value: unknown) {
-  const mapping: Record<string, string> = {
-    BOOTSTRAP: "初始化扫描",
-    SCAN: "全市场扫描",
-    WATCH: "观察阶段",
-    PRE_SIGNAL: "预信号",
-    ENTRY_READY: "临近触发",
-    IN_TRADE: "持仓中",
-    MANAGE: "管理持仓",
-    EXIT: "退出阶段",
-    COOLDOWN: "冷却期",
+interface RecentCycle {
+  cycleId: string;
+  phase: string;
+  nextScanSeconds: number | null;
+  focusSymbols: string[];
+  summary: string;
+}
+
+interface RecentDecision {
+  loggedAt: string;
+  cycleId: string;
+  summary: string;
+  actionsCount: number;
+  focusSymbols: string[];
+}
+
+interface RecentExecution {
+  loggedAt: string;
+  cycleId: string;
+  symbol: string;
+  status: string;
+  message: string;
+  success: boolean | null;
+}
+
+interface ThemeItem {
+  label: string;
+  count: number;
+}
+
+interface RuntimeData {
+  source: 'query-service' | 'fallback';
+  queryUrl: string | null;
+  health: {
+    overall: string;
+    cycleFresh: boolean | null;
+    freshnessLabel: string;
+    cycleAgeSeconds: number | null;
+    patrolLive: boolean;
+    queryLive: boolean;
+    executionPortOpen: boolean;
   };
-  return mapping[String(value || "")] || String(value || "-");
-}
-
-function orderTypeCn(value: unknown) {
-  const mapping: Record<string, string> = {
-    LIMIT: "限价委托",
-    STOP_MARKET: "止损触发委托",
-    TAKE_PROFIT_MARKET: "止盈触发委托",
-    MARKET: "市价执行",
+  runtime: {
+    botId: string;
+    marketProfile: string;
+    phase: string;
+    focusSymbols: string[];
+    activeSymbols: string[];
+    dryRun: boolean;
+    bestCandidate: string;
+    bestCandidateStatus: string;
+    tradeReadiness: string;
+    lastScanDecision: string;
+    llmProvider: string;
+    decisionModel: string;
+    decisionSessionId: string;
+    riskMode: string;
   };
-  return mapping[String(value || "").toUpperCase()] || String(value || "-");
-}
-
-function statusCn(value: unknown) {
-  const mapping: Record<string, string> = {
-    watching: "继续观察",
-    pre_signal: "预信号观察",
-    entry_ready: "满足入场",
-    entry_ready_blocked: "临近可做但仍被规则拦住",
-    in_trade: "持仓中",
-    manage: "正在管理",
-    cooldown: "冷却中",
+  summary: {
+    cycleId: string | null;
+    marketSummary: string;
+    explanation: string;
+    actionsCount: number;
+    positionManagementCount: number;
+    readingTargets: {
+      barCountTotal: number | null;
+      browseTargetBars: number | null;
+      closeReadTargetBars: number | null;
+    };
+    promptReferences: string[];
   };
-  return mapping[String(value || "")] || String(value || "-");
-}
-
-function marketStateCn(value: unknown) {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return displayText(value);
-  }
-  const mapping: Record<string, string> = {
-    TR: "区间",
-    BO: "突破",
-    TC: "紧通道",
-    BC: "宽通道",
-    SC: "高潮反转",
+  execution: {
+    canTrade: boolean | null;
+    canTradeReason: string;
+    positionsCount: number;
+    ordersCount: number;
+    healthStatus: string;
   };
-  return mapping[String(value || "").toUpperCase()] || String(value || "-");
+  timestamps: {
+    latestCycleAt: string | null;
+    lastSuccessAt: string | null;
+    lastFailureAt: string | null;
+    lastFailureReason: string | null;
+  };
+  monitoring: {
+    knowledgeChars: number | null;
+    refsCount: number;
+    fullRefsCount: number;
+    briefRefsCount: number;
+    requestChars: number | null;
+    requestSizeBytes: number | null;
+    sessionAgeSeconds: number | null;
+    sessionTurnCount: number | null;
+    sessionModel: string | null;
+  };
+  nextScan: {
+    inSeconds: number | null;
+    requestedSeconds: number | null;
+    modelSuggestedSeconds: number | null;
+    modelSuggestedReason: string;
+    reasonCode: string;
+    reasonText: string;
+    bucketRule: string;
+    bucketSourceRefs: string[];
+  };
+  symbols: SymbolCardData[];
+  recentCycles: RecentCycle[];
+  recentDecisions: RecentDecision[];
+  recentExecutions: RecentExecution[];
+  funnel: {
+    counts: {
+      filled: number;
+      candidateExecutionFailed: number;
+      candidateGateRejected: number;
+      preSignalOnly: number;
+    };
+    topThemes: ThemeItem[];
+  };
 }
 
-function cycleFreshness(snapshot: Record<string, any>) {
-  if (snapshot?.cycle_fresh === true) return "新鲜";
-  if (snapshot?.cycle_fresh === false) return "陈旧";
-  return "待确认";
+function cn(...values: Array<string | false | null | undefined>): string {
+  return values.filter(Boolean).join(' ');
 }
 
-function directionText(value: unknown) {
-  if (typeof value === "string") return value || "-";
-  return displayText(value) || "-";
-}
-
-function symbolEntries(decision: Record<string, any>) {
-  return Object.entries((decision?.symbol_updates || {}) as Record<string, any>).slice(0, 3);
-}
-
-function plannedTradeBadge(patch: Record<string, any>) {
-  const planned = patch?.planned_trade || {};
-  const stage = displayText(planned?.candidate_stage_cn || patch?.entry_idea?.candidate_stage_cn);
-  const mode = displayText(planned?.execution_mode_cn || patch?.entry_idea?.execution_mode_cn);
-  const orderType = orderTypeCn(planned?.order_type);
-  return [stage, mode, orderType].filter((item) => item && item !== "-").join(" ｜ ") || "-";
-}
-
-function latestAnalysisBoard(snapshot: Record<string, any>) {
-  const latestCycle = snapshot?.latest_cycle || {};
-  return (latestCycle?.analysis_board || {}) as Record<string, any>;
-}
-
-function actionForSymbol(decision: Record<string, any>, symbol: string) {
-  const actions = Array.isArray(decision?.actions) ? decision.actions : [];
-  return actions.find((item) => String(item?.symbol || "").toUpperCase() === symbol) || {};
-}
-
-function refsText(decision: Record<string, any>) {
-  const promptRefs = decision?.state_patch?.prompt_references;
-  if (Array.isArray(promptRefs) && promptRefs.length) return promptRefs.join(", ");
-  const refs = new Set<string>();
-  const actions = Array.isArray(decision?.actions) ? decision.actions : [];
-  actions.forEach((item) => {
-    const current = item?.refs;
-    if (Array.isArray(current)) current.forEach((ref) => refs.add(String(ref)));
+function formatDateTime(value: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
-  return Array.from(refs).join(", ") || "-";
 }
 
-function knowledgeText(decision: Record<string, any>) {
-  const meta = decision?.state_patch?.knowledge_loading || {};
-  return `skill=${meta.skill_mode || "-"} | refs完整=${meta.full_reference_count || 0}`;
+function timeAgo(value: string | null): string {
+  if (!value) return '-';
+  const diffMs = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(diffMs)) return '-';
+  const seconds = Math.max(0, Math.floor(diffMs / 1000));
+  if (seconds < 60) return `${seconds} 秒`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时`;
+  return `${Math.floor(hours / 24)} 天`;
 }
 
-function skillSectionsText(decision: Record<string, any>) {
-  const sections = decision?.state_patch?.knowledge_loading?.skill_sections;
-  if (!Array.isArray(sections) || sections.length === 0) return "-";
-  return sections.join(" / ");
+function formatNumber(value: number | null, suffix = ''): string {
+  if (value === null || Number.isNaN(value)) return '-';
+  return `${value}${suffix}`;
 }
 
-function summaryText(decision: Record<string, any>, runtime: Record<string, any>) {
-  const summary = decision?.market_summary ?? runtime?.last_scan_decision;
-  return trimText(summary, 260);
+function statusLabel(value: string): string {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('executable')) return 'executable';
+  if (normalized.includes('candidate')) return 'candidate';
+  if (normalized.includes('pre')) return 'pre-signal';
+  if (normalized.includes('watch')) return 'watch';
+  if (normalized.includes('trade')) return 'in-trade';
+  return value || 'unknown';
+}
+
+function statusTone(value: string): string {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('executable')) return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200';
+  if (normalized.includes('candidate')) return 'border-slate-500/40 bg-slate-500/10 text-slate-200';
+  if (normalized.includes('pre')) return 'border-amber-500/40 bg-amber-500/10 text-amber-200';
+  if (normalized.includes('trade')) return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200';
+  return 'border-slate-600/40 bg-slate-700/20 text-slate-300';
+}
+
+function healthTone(value: string): string {
+  const normalized = value.toUpperCase();
+  if (normalized === 'HEALTHY') return 'text-emerald-300';
+  if (normalized === 'DEGRADED') return 'text-amber-300';
+  return 'text-rose-300';
+}
+
+function MetricCard({ label, value, sub }: MetricCardProps) {
+  return (
+    <div className="rounded-2xl border border-white/12 bg-black/20 px-4 py-4 backdrop-blur">
+      <div className="text-xs uppercase tracking-[0.22em] text-slate-400">{label}</div>
+      <div className="mt-3 text-4xl font-semibold text-white">{value}</div>
+      {sub ? <div className="mt-2 text-sm text-slate-400">{sub}</div> : null}
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[26px] border border-white/10 bg-slate-950/70 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
+      <div className="mb-4 flex items-center gap-2 text-slate-400">
+        <Icon className="h-4 w-4" />
+        <h2 className="text-sm tracking-[0.18em]">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
 }
 
 export default function PABotPage() {
-  const [data, setData] = useState<RuntimeFull>({});
+  const [data, setData] = useState<RuntimeData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [updatedAt, setUpdatedAt] = useState("");
-
-  async function load() {
-    try {
-      const res = await fetch("/api/runtime/full", { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setData(json);
-      setUpdatedAt(new Date().toLocaleString("zh-CN"));
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "加载失败");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const response = await fetch('/api/pa-bot/runtime', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = (await response.json()) as RuntimeData;
+        if (!cancelled) {
+          setData(payload);
+          setError('');
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : '加载失败');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
     load();
-    const timer = setInterval(load, 15000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
-  const snapshot = data.snapshot || {};
-  const runtime = snapshot.runtime || {};
-  const execution = snapshot.execution || {};
-  const monitoring = snapshot.monitoring || {};
-  const nextScan = snapshot.next_scan || {};
-  const latestDecision = data.decision?.decision || {};
-  const recentItems = data.recent?.items || [];
-  const symbols = useMemo(() => symbolEntries(latestDecision), [latestDecision]);
-  const analysisBoard = useMemo(() => latestAnalysisBoard(snapshot), [snapshot]);
-  const chartSymbols = useMemo(() => {
-    const focus = Array.isArray(runtime.focus_symbols) ? runtime.focus_symbols : [];
-    const keys = Object.keys(analysisBoard || {});
-    const ordered = [...focus, ...keys].filter((value, index, arr) => value && arr.indexOf(value) === index);
-    return ordered.slice(0, 3);
-  }, [analysisBoard, runtime.focus_symbols]);
+  if (loading) {
+    return (
+      <div className="flex h-72 items-center justify-center">
+        <RefreshCw className="h-7 w-7 animate-spin text-slate-500" />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="rounded-[26px] border border-rose-500/20 bg-rose-950/10 p-8 text-center">
+        <Bot className="mx-auto h-12 w-12 text-rose-300/70" />
+        <p className="mt-4 text-lg text-white">PA 运行态不可用</p>
+        <p className="mt-2 text-sm text-slate-400">{error || '没有拿到巡逻数据'}</p>
+      </div>
+    );
+  }
+
+  const summaryText = data.summary.marketSummary || data.runtime.lastScanDecision || '暂无本轮结论';
+  const canTradeText =
+    data.execution.canTrade === null ? '待确认' : data.execution.canTrade ? '可以' : '等待';
+  const healthText = `${data.health.overall}`;
+  const healthSub = `${data.health.freshnessLabel} / ${data.execution.healthStatus || '执行状态未知'}`;
+  const queryConnectedText = data.health.queryLive ? '已连接' : '未连接';
+  const recentDecision = data.recentDecisions[0];
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.94))] p-6 shadow-[0_30px_80px_rgba(2,6,23,0.45)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-amber-300">
-                <Bot className="h-6 w-6" />
+      <section className="overflow-hidden rounded-[30px] border border-blue-900/45 bg-[radial-gradient(circle_at_top_left,rgba(27,74,188,0.28),rgba(8,15,35,0.96)_48%,rgba(2,6,18,0.98)_100%)] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)] md:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-5xl">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/35 bg-amber-400/10">
+                <Bot className="h-7 w-7 text-amber-300" />
               </div>
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-amber-300/80">AB Patrol-Agent</div>
-                <h1 className="mt-1 text-3xl font-semibold text-white">PA交易 Crypto</h1>
+                <div className="text-xs uppercase tracking-[0.34em] text-amber-300/90">AB PATROL-AGENT</div>
+                <h1 className="mt-2 text-4xl font-semibold text-white">PA交易 Crypto</h1>
               </div>
             </div>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400">
-              统一交易员视图：TG 卡片和 Web 看板使用同一套字段、顺序和术语，直接查看当前阶段、
-              重点品种、巡逻结论、下一次扫描和知识加载方式。
+
+            <p className="mt-5 max-w-4xl text-sm leading-8 text-slate-300">
+              {summaryText}
             </p>
+
+            {data.summary.explanation ? (
+              <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-400">
+                {data.summary.explanation}
+              </p>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-amber-400 hover:text-amber-200"
-              onClick={load}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm',
+                data.health.queryLive
+                  ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'
+                  : 'border-rose-500/25 bg-rose-500/10 text-rose-200',
+              )}
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <CircleDot className="h-4 w-4" />
+              {queryConnectedText}
+            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+            >
+              <RefreshCw className="h-4 w-4" />
               刷新数据
             </button>
-            <Link
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-sky-400 hover:text-sky-200"
-              href="http://127.0.0.1:8086/api/v1/runtime/full"
-              target="_blank"
-            >
-              打开 Query JSON
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+
+            {data.queryUrl ? (
+              <a
+                href={data.queryUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-transparent px-4 py-2 text-sm text-white transition hover:bg-white/10"
+              >
+                <FileJson className="h-4 w-4" />
+                打开 Query JSON
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">当前阶段</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{phaseCn(runtime.current_phase || latestDecision.phase)}</div>
-            <div className="mt-2 text-sm text-slate-400">{(runtime.focus_symbols || []).join(" / ") || "-"}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">当前可交易</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{execution?.can_trade?.can_trade ? "可以" : "不可以"}</div>
-            <div className="mt-2 text-sm text-slate-400">{displayText(execution?.can_trade?.reason) || "OK"}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">持仓 / 挂单</div>
-            <div className="mt-2 text-2xl font-semibold text-white">
-              {(execution.positions || []).length} / {(execution.orders || []).length}
-            </div>
-            <div className="mt-2 text-sm text-slate-400">dry-run: {String(runtime.dry_run ?? true)}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">总体健康 / 新鲜度</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{snapshot.overall_health || "-"}</div>
-            <div className="mt-2 text-sm text-slate-400">
-              {cycleFreshness(snapshot)} / {snapshot.stale_but_running ? "stale-but-running" : "正常"}
-            </div>
-          </div>
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="当前阶段"
+            value={data.runtime.phase || '-'}
+            sub={data.runtime.focusSymbols.join(' / ') || '暂无关注品种'}
+          />
+          <MetricCard
+            label="当前可交易"
+            value={canTradeText}
+            sub={data.execution.canTradeReason || data.runtime.tradeReadiness || 'OK'}
+          />
+          <MetricCard
+            label="持仓 / 挂单"
+            value={`${data.execution.positionsCount} / ${data.execution.ordersCount}`}
+            sub={`dry-run: ${data.runtime.dryRun ? 'true' : 'false'}`}
+          />
+          <MetricCard label="总体健康 / 新鲜度" value={healthText} sub={healthSub} />
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.28fr_0.72fr]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.65fr)_360px]">
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Radar className="h-4 w-4" />
-              巡逻结论
+          <Panel title="巡逻结论" icon={Activity}>
+            <div className="rounded-[22px] border border-white/8 bg-black/20 p-5">
+              <p className="whitespace-pre-wrap text-sm leading-8 text-slate-200">{summaryText}</p>
+              {recentDecision?.summary ? (
+                <p className="mt-4 border-t border-white/8 pt-4 text-sm leading-7 text-slate-400">
+                  最新决策摘要：{recentDecision.summary}
+                </p>
+              ) : null}
             </div>
-            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-5 text-sm leading-8 text-slate-300">
-              {summaryText(latestDecision, runtime) || "暂无摘要"}
-            </div>
+          </Panel>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+            {data.symbols.map((symbol) => (
+              <section
+                key={symbol.symbol}
+                className="rounded-[24px] border border-white/10 bg-slate-950/75 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.32)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-3xl font-semibold text-white">{symbol.symbol}</h3>
+                    <p className="mt-3 text-sm text-slate-400">
+                      {symbol.ai_direction || 'AI -'} / {symbol.market_state || '市场状态 -'}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em]',
+                      statusTone(symbol.status),
+                    )}
+                  >
+                    {statusLabel(symbol.status)}
+                  </span>
+                </div>
+
+                <div className="mt-6 space-y-4 text-sm leading-7 text-slate-300">
+                  <div>
+                    <div className="text-slate-500">结构</div>
+                    <div>{symbol.thesis || symbol.structure_summary || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">预信号</div>
+                    <div>{symbol.pre_signal || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">执行语义</div>
+                    <div>{symbol.execution_summary || symbol.execution_mode || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Trader&apos;s Equation</div>
+                    <div>{symbol.risk || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Brooks分类</div>
+                    <div>{symbol.brooks_label || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">升级条件</div>
+                    <div>{symbol.upgrade_condition || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">候选动作</div>
+                    <div>{symbol.planned_action || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">阶段</div>
+                    <div>{symbol.stage || '-'}</div>
+                  </div>
+                </div>
+
+                {symbol.refs.length > 0 ? (
+                  <div className="mt-5 border-t border-white/8 pt-4 text-xs leading-6 text-amber-300/90">
+                    来源：{symbol.refs.slice(0, 5).join(' / ')}
+                  </div>
+                ) : null}
+              </section>
+            ))}
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-3">
-            {symbols.length === 0 ? (
-              <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 text-sm text-slate-400">
-                暂无重点品种数据
-              </div>
-            ) : (
-              symbols.map(([symbol, patch]) => {
-                const action = actionForSymbol(latestDecision, symbol);
-                const equation =
-                  action?.equation ||
-                  patch?.evaluation?.equation ||
-                  patch?.trade?.equation ||
-                  "-";
-                const entryIdea =
-                  patch?.entry_idea?.summary ||
-                  patch?.entry_idea?.setup ||
-                  patch?.brooks_filter?.summary ||
-                  action?.reason ||
-                  "-";
-                const filterLabel =
-                  patch?.brooks_filter?.label ||
-                  patch?.evaluation?.regime ||
-                  "-";
-                const upgradeCondition = patch?.brooks_filter?.upgrade_condition || "-";
-                const executionBadge = plannedTradeBadge(patch);
-                return (
-                  <article key={symbol} className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold text-white">{symbol}</div>
-                      <div className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">
-                        {statusCn(patch?.status)}
-                      </div>
-                    </div>
-                      <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-                        {directionText(patch?.ai_direction)} / {marketStateCn(patch?.market_state)}
-                    </div>
-                    <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-                      <div><span className="text-slate-500">结构:</span> {trimText(patch?.structure_summary || patch?.thesis, 160)}</div>
-                      <div><span className="text-slate-500">预信号:</span> {trimText(patch?.pre_signal || patch?.signal, 120)}</div>
-                      <div><span className="text-slate-500">执行语义:</span> {trimText(executionBadge, 120)}</div>
-                      <div><span className="text-slate-500">Trader&apos;s Equation:</span> {trimText(equation, 120)}</div>
-                      <div><span className="text-slate-500">Brooks分类:</span> {trimText(filterLabel, 120)}</div>
-                      <div><span className="text-slate-500">升级条件:</span> {trimText(upgradeCondition, 140)}</div>
-                      <div><span className="text-slate-500">候选动作:</span> {trimText(entryIdea, 140)}</div>
-                    </div>
-                  </article>
-                );
-              })
-            )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Activity className="h-4 w-4" />
-              最近巡逻
-            </div>
-            <div className="mt-4 grid gap-3">
-              {recentItems.length === 0 ? (
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400">
-                  暂无 recent cycles
+          <Panel title="最近巡逻" icon={Clock}>
+            <div className="space-y-4">
+              {data.recentCycles.length === 0 ? (
+                <div className="rounded-[22px] border border-white/8 bg-black/20 p-5 text-sm text-slate-400">
+                  暂无最近轮次。
                 </div>
               ) : (
-                recentItems.slice(0, 5).map((item) => (
-                  <div key={item.cycle_id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-white">{item.cycle_id}</div>
-                      <div className="text-xs text-slate-500">{phaseCn(item.phase)} / {item.next_scan_seconds || "-"}s</div>
+                data.recentCycles.map((cycle) => (
+                  <article
+                    key={cycle.cycleId}
+                    className="rounded-[22px] border border-white/8 bg-black/20 p-5"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="text-xl font-semibold text-white">{cycle.cycleId}</div>
+                        <div className="mt-2 text-sm text-slate-500">
+                          {cycle.focusSymbols.join(' / ') || '无 focus symbols'}
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-400">
+                        {cycle.phase || '-'} / {formatNumber(cycle.nextScanSeconds, 's')}
+                      </div>
                     </div>
-                    <div className="mt-2 text-xs text-slate-500">{(item.focus_symbols || []).join(" / ") || "-"}</div>
-                    <div className="mt-3 text-sm leading-6 text-slate-300">{trimText(item.market_summary, 180)}</div>
-                  </div>
+                    <p className="mt-4 text-sm leading-7 text-slate-300">{cycle.summary || '暂无摘要'}</p>
+                  </article>
                 ))
               )}
             </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Radar className="h-4 w-4" />
-              图表绑定
-            </div>
-            <div className="mt-4 grid gap-4">
-              {chartSymbols.length === 0 ? (
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400">
-                  当前 cycle 没有可展示的图表上下文
+          <Panel title="交易漏斗" icon={Shield}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[22px] border border-white/8 bg-black/20 p-5">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-slate-500">已成交</div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{data.funnel.counts.filled}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">执行失败</div>
+                    <div className="mt-2 text-2xl font-semibold text-rose-300">
+                      {data.funnel.counts.candidateExecutionFailed}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Gate 拒绝</div>
+                    <div className="mt-2 text-2xl font-semibold text-amber-300">
+                      {data.funnel.counts.candidateGateRejected}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">仅预信号</div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-200">
+                      {data.funnel.counts.preSignalOnly}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                chartSymbols.map((symbol) => {
-                  const board = analysisBoard?.[symbol] || {};
-                  const chartContext = board?.chart_context || {};
-                  const apiPaths = Array.isArray(chartContext?.chart_api_paths) ? chartContext.chart_api_paths : [];
-                  const chartFiles = Array.isArray(chartContext?.chart_files) ? chartContext.chart_files : [];
-                  return (
-                    <article key={symbol} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-base font-semibold text-white">{symbol}</div>
-                        <div className="text-xs text-slate-500">{chartContext?.latest_generated_at || "图表时间未知"}</div>
-                      </div>
-                      <div className="mt-2 text-sm leading-6 text-slate-400">
-                        {trimText(chartContext?.chart_note, 120)}
-                      </div>
-                      <div className="mt-2 text-xs text-amber-300">
-                        {(chartFiles || []).join(" / ") || "当前没有图表文件"}
-                      </div>
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        {apiPaths.length === 0 ? (
-                          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/70 p-4 text-sm text-slate-500">
-                            图表尚未生成
-                          </div>
-                        ) : (
-                          apiPaths.slice(0, 4).map((path: string, index: number) => (
-                            <div key={`${symbol}-${path}-${index}`} className="overflow-hidden rounded-2xl border border-slate-800 bg-[#030712]">
-                              <img
-                                src={path}
-                                alt={`${symbol} 图表 ${index + 1}`}
-                                className="h-auto w-full object-cover"
-                              />
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </article>
-                  );
-                })
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <FileJson2 className="h-4 w-4" />
-              原始决策 JSON
+              <div className="rounded-[22px] border border-white/8 bg-black/20 p-5">
+                <div className="space-y-3">
+                  {data.funnel.topThemes.length === 0 ? (
+                    <div className="text-sm text-slate-400">暂无漏斗主题统计。</div>
+                  ) : (
+                    data.funnel.topThemes.map((theme) => (
+                      <div key={theme.label} className="flex items-center justify-between gap-4 text-sm">
+                        <span className="text-slate-300">{theme.label}</span>
+                        <span className="font-mono text-amber-300">{theme.count}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-            <details className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-              <summary className="cursor-pointer text-sm font-medium text-slate-200">展开原始结构化输出</summary>
-              <pre className="mt-4 max-h-[640px] overflow-auto rounded-2xl bg-[#040b14] p-4 text-xs leading-6 text-slate-200">
-                {JSON.stringify(latestDecision, null, 2)}
-              </pre>
-            </details>
-          </div>
+          </Panel>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <ShieldCheck className="h-4 w-4" />
-              当前状态
+          <Panel title="当前状态" icon={Shield}>
+            <div className="space-y-4 text-sm leading-7">
+              <div>
+                <div className="text-slate-500">轮次</div>
+                <div className="text-lg font-semibold text-amber-300">{data.summary.cycleId || '-'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">阶段</div>
+                <div className="text-white">{data.runtime.phase || '-'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">关注品种</div>
+                <div className="text-amber-300">{data.runtime.focusSymbols.join(', ') || '-'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">读盘窗口</div>
+                <div className="text-white">
+                  {formatNumber(data.summary.readingTargets.barCountTotal, ' 根')} / 浏览{' '}
+                  {formatNumber(data.summary.readingTargets.browseTargetBars, ' 根')} / 精读{' '}
+                  {formatNumber(data.summary.readingTargets.closeReadTargetBars, ' 根')}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-500">Cycle 年龄</div>
+                <div className="text-amber-300">{formatNumber(data.health.cycleAgeSeconds, ' 秒')}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">最近成功</div>
+                <div className="text-white">{formatDateTime(data.timestamps.lastSuccessAt)}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">最近失败</div>
+                <div className="text-white">{formatDateTime(data.timestamps.lastFailureAt)}</div>
+              </div>
+              {data.timestamps.lastFailureReason ? (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 p-4 text-sm text-amber-200">
+                  {data.timestamps.lastFailureReason}
+                </div>
+              ) : null}
             </div>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>轮次: <code className="text-amber-300">{runtime.last_cycle_id || "-"}</code></p>
-              <p>阶段: <code className="text-amber-300">{phaseCn(runtime.current_phase || latestDecision.phase)}</code></p>
-              <p>关注品种: <code className="text-amber-300">{(runtime.focus_symbols || []).join(", ") || "-"}</code></p>
-              <p>读盘窗口: <code className="text-amber-300">150 根 / 浏览 80 根 / 精读 20 根</code></p>
-              <p>Cycle 年龄: <code className="text-amber-300">{snapshot.latest_cycle_age_seconds ?? "-"} 秒</code></p>
-              <p>最近成功: <code className="text-amber-300">{snapshot.last_success_at || "-"}</code></p>
-              <p>最近失败: <code className="text-amber-300">{snapshot.last_failure_at || "-"}</code></p>
-            </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Activity className="h-4 w-4" />
-              上下文监控
+          <Panel title="上下文监控" icon={Database}>
+            <div className="space-y-4 text-sm leading-7">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">knowledge_chars</span>
+                <span className="font-mono text-amber-300">{formatNumber(data.monitoring.knowledgeChars)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">refs_count</span>
+                <span className="font-mono text-amber-300">{data.monitoring.refsCount}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">refs 拆分</span>
+                <span className="font-mono text-amber-300">
+                  完整 {data.monitoring.fullRefsCount} / 摘要 {data.monitoring.briefRefsCount}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">request_size</span>
+                <span className="font-mono text-amber-300">
+                  {formatNumber(data.monitoring.requestChars, ' chars')} / {formatNumber(data.monitoring.requestSizeBytes, ' bytes')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">session_age</span>
+                <span className="font-mono text-amber-300">{formatNumber(data.monitoring.sessionAgeSeconds, ' 秒')}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">session_turns</span>
+                <span className="font-mono text-amber-300">{formatNumber(data.monitoring.sessionTurnCount)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-500">session_model</span>
+                <span className="font-mono text-amber-300">{data.monitoring.sessionModel || data.runtime.decisionModel || '-'}</span>
+              </div>
             </div>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>knowledge_chars: <code className="text-amber-300">{monitoring.knowledge_chars ?? "-"}</code></p>
-              <p>refs_count: <code className="text-amber-300">{monitoring.refs_count ?? 0}</code></p>
-              <p>refs 拆分: <code className="text-amber-300">完整 {monitoring.full_refs_count ?? 0} / 摘要 {monitoring.brief_refs_count ?? 0}</code></p>
-              <p>request_size: <code className="text-amber-300">{monitoring.request_chars ?? "-"} chars / {monitoring.request_size_bytes ?? "-"} bytes</code></p>
-              <p>session_age: <code className="text-amber-300">{monitoring.session_age_seconds ?? "-"} 秒</code></p>
-              <p>session_turns: <code className="text-amber-300">{monitoring.session_turn_count ?? "-"}</code></p>
-              <p>session_model: <code className="text-amber-300">{displayText(monitoring.session_model) || "-"}</code></p>
-            </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Clock3 className="h-4 w-4" />
-              下一次扫描
+          <Panel title="下一次扫描" icon={Clock}>
+            <div className="space-y-4 text-sm leading-7">
+              <div>
+                <div className="text-slate-500">倒计时</div>
+                <div className="text-2xl font-semibold text-amber-300">
+                  {formatNumber(data.nextScan.inSeconds, ' 秒')}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-500">模型建议</div>
+                <div className="text-white">{formatNumber(data.nextScan.modelSuggestedSeconds, ' 秒')}</div>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-slate-200">
+                {data.nextScan.reasonText || data.nextScan.modelSuggestedReason || '暂无下一次扫描说明'}
+              </div>
+              <div className="rounded-2xl border border-amber-500/18 bg-amber-500/8 p-4 text-amber-200">
+                规则: {data.nextScan.bucketRule || '-'}
+              </div>
+              {data.nextScan.bucketSourceRefs.length > 0 ? (
+                <div className="text-xs leading-6 text-amber-300/90">
+                  来源: {data.nextScan.bucketSourceRefs.slice(0, 6).join(' / ')}
+                </div>
+              ) : null}
             </div>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>倒计时: <code className="text-amber-300">{nextScan.in_seconds || "-"} 秒</code></p>
-              <p>模型建议: <code className="text-amber-300">{nextScan.model_suggested_seconds || nextScan.requested_seconds || "-"} 秒</code></p>
-              <p>系统分桶: <code className="text-amber-300">{displayText(nextScan.reason_text || nextScan.reason_code) || "-"}</code></p>
-              <p>规则: <code className="text-amber-300">{displayText(nextScan.bucket_rule) || "-"}</code></p>
-              <p>来源: <code className="text-amber-300">{displayText(nextScan.bucket_source_refs) || "-"}</code></p>
-              <p>失败摘要: <code className="text-amber-300">{trimText(snapshot.last_failure_reason, 120)}</code></p>
-              <p>更新于: <code className="text-amber-300">{updatedAt || "-"}</code></p>
-            </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
-              <Bot className="h-4 w-4" />
-              调试信息
+          <Panel title="最近执行" icon={Activity}>
+            <div className="space-y-4">
+              {data.recentExecutions.length === 0 ? (
+                <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-slate-400">
+                  暂无执行记录。
+                </div>
+              ) : (
+                data.recentExecutions.map((item) => (
+                  <article
+                    key={`${item.loggedAt}-${item.symbol}-${item.status}`}
+                    className="rounded-2xl border border-white/8 bg-black/20 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-white">{item.symbol || item.cycleId || '-'}</div>
+                        <div className="mt-1 text-xs text-slate-500">{formatDateTime(item.loggedAt)}</div>
+                      </div>
+                      <div
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs',
+                          item.success === true
+                            ? 'bg-emerald-500/10 text-emerald-200'
+                            : item.success === false
+                              ? 'bg-rose-500/10 text-rose-200'
+                              : 'bg-slate-600/20 text-slate-300',
+                        )}
+                      >
+                        {item.success === true ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+                        {item.success === false ? <XCircle className="h-3.5 w-3.5" /> : null}
+                        {item.status || 'UNKNOWN'}
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-300">{item.message || '无执行说明'}</p>
+                  </article>
+                ))
+              )}
             </div>
-            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>参考文件: <code className="text-amber-300">{refsText(latestDecision)}</code></p>
-              <p>知识加载: <code className="text-amber-300">{knowledgeText(latestDecision)}</code></p>
-              <p>Skill章节: <code className="text-amber-300">{skillSectionsText(latestDecision)}</code></p>
-              <p>skill 原文: <code className="text-amber-300">AB Patrol-Agent/knowledge/patrol-l1/SKILL.md</code></p>
-              <p>S 文件目录: <code className="text-amber-300">AB Patrol-Agent/knowledge/patrol-l1/references</code></p>
-              <p>最新 prompt: <code className="text-amber-300">AB Patrol-Agent/data/pa_trader/logs/decision/last_request.md</code></p>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-5 text-sm text-rose-200">
-              {error}
-            </div>
-          ) : null}
+          </Panel>
         </div>
-      </section>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-200">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            接口最近一次刷新失败：{error}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-white/8 bg-slate-950/70 p-4 text-sm text-slate-300">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <Shield className="h-4 w-4" />
+            运行链路
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span>Patrol</span>
+              <span className={data.health.patrolLive ? 'text-emerald-300' : 'text-rose-300'}>
+                {data.health.patrolLive ? 'UP' : 'DOWN'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Query Service</span>
+              <span className={data.health.queryLive ? 'text-emerald-300' : 'text-rose-300'}>
+                {data.health.queryLive ? 'UP' : 'DOWN'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Execution API</span>
+              <span className={data.health.executionPortOpen ? 'text-emerald-300' : 'text-rose-300'}>
+                {data.health.executionPortOpen ? 'UP' : 'DOWN'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/8 bg-slate-950/70 p-4 text-sm text-slate-300">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <CircleDot className="h-4 w-4" />
+            运行模式
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span>Provider</span>
+              <span className="font-mono text-amber-300">{data.runtime.llmProvider || '-'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Model</span>
+              <span className="font-mono text-amber-300">{data.runtime.decisionModel || '-'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Risk Mode</span>
+              <span className="text-white">{data.runtime.riskMode || '-'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Best Candidate</span>
+              <span className="text-white">
+                {data.runtime.bestCandidate || '-'} {data.runtime.bestCandidateStatus ? `/${data.runtime.bestCandidateStatus}` : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/8 bg-slate-950/70 p-4 text-sm text-slate-300">
+          <div className="mb-2 flex items-center gap-2 text-slate-500">
+            <Clock className="h-4 w-4" />
+            时间状态
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span>最新轮次</span>
+              <span className="text-white">{timeAgo(data.timestamps.latestCycleAt)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>最后成功</span>
+              <span className="text-white">{timeAgo(data.timestamps.lastSuccessAt)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>来源</span>
+              <span className={healthTone(data.health.overall)}>
+                {data.source === 'query-service' ? 'query-service' : 'fallback'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>新鲜度</span>
+              <span className={healthTone(data.health.overall)}>{data.health.freshnessLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

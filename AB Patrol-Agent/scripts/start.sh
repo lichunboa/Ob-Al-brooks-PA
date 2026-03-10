@@ -10,6 +10,10 @@ BACKTEST="$ROOT/tools/backtest_v4.py"
 REPLAY="$ROOT/tools/sim_server.py"
 WATCHDOG="$ROOT/scripts/watchdog.py"
 EXECUTION_ROOT="$ROOT/services/execution-service"
+API_ROOT="$ROOT/services/api-service"
+SYNC_ROOT="$ROOT/services/sync-service"
+SIGNAL_ROOT="$ROOT/services/signal-service"
+VIS_ROOT="$ROOT/services/vis-service"
 WEB_ROOT="$ROOT/../AB Patrol-Web"
 RUN_DIR="$ROOT/run"
 CYCLES_DIR="$ROOT/data/pa_trader/cycles"
@@ -25,6 +29,14 @@ WATCHDOG_STOP_FILE="$RUN_DIR/watchdog.stop"
 LOOP_MODE_FILE="$RUN_DIR/loop-mode.env"
 EXECUTION_LOG_FILE="$RUN_DIR/execution-service.log"
 EXECUTION_PID_FILE="$RUN_DIR/execution-service.pid"
+API_LOG_FILE="$RUN_DIR/api-service.log"
+API_PID_FILE="$RUN_DIR/api-service.pid"
+SYNC_LOG_FILE="$RUN_DIR/sync-service.log"
+SYNC_PID_FILE="$RUN_DIR/sync-service.pid"
+SIGNAL_LOG_FILE="$RUN_DIR/signal-service.log"
+SIGNAL_PID_FILE="$RUN_DIR/signal-service.pid"
+VIS_LOG_FILE="$RUN_DIR/vis-service.log"
+VIS_PID_FILE="$RUN_DIR/vis-service.pid"
 WEB_LOG_FILE="$RUN_DIR/web.log"
 WEB_PID_FILE="$RUN_DIR/web.pid"
 ENV_FILE="$ROOT/config/.env"
@@ -160,6 +172,23 @@ tool_python() {
 
 export_tool_python() {
   export AB_PATROL_TOOL_PYTHON="${AB_PATROL_TOOL_PYTHON:-$(tool_python)}"
+}
+
+service_python() {
+  local service_root="$1"
+  local candidates=(
+    "$service_root/.venv/bin/python"
+    "$ROOT/.venv/bin/python"
+    "$(command -v python3 || true)"
+  )
+  local py
+  for py in "${candidates[@]}"; do
+    if [[ -n "$py" && -x "$py" ]]; then
+      printf '%s\n' "$py"
+      return 0
+    fi
+  done
+  return 1
 }
 
 build_launchd_path() {
@@ -431,6 +460,26 @@ wait_for_ready() {
           return 0
         fi
         ;;
+      api)
+        if is_api_running; then
+          return 0
+        fi
+        ;;
+      sync)
+        if is_sync_running; then
+          return 0
+        fi
+        ;;
+      signal)
+        if is_signal_running; then
+          return 0
+        fi
+        ;;
+      vis)
+        if is_vis_running; then
+          return 0
+        fi
+        ;;
       execution)
         if is_execution_running; then
           return 0
@@ -600,14 +649,81 @@ is_execution_running() {
 }
 
 is_web_running() {
-  if [[ -f "$WEB_PID_FILE" ]]; then
+  local live_pid
+  live_pid="$(lsof -ti tcp:3001 2>/dev/null | head -1 || true)"
+  if [[ -n "$live_pid" ]]; then
+    echo "$live_pid" > "$WEB_PID_FILE"
+    return 0
+  fi
+  return 1
+}
+
+is_api_running() {
+  if [[ -f "$API_PID_FILE" ]]; then
     local pid
-    pid="$(cat "$WEB_PID_FILE" 2>/dev/null || true)"
+    pid="$(cat "$API_PID_FILE" 2>/dev/null || true)"
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
       return 0
     fi
   fi
-  lsof -iTCP:3001 -sTCP:LISTEN >/dev/null 2>&1
+  if curl -fsS --max-time 2 "http://127.0.0.1:8088/health" >/dev/null 2>&1; then
+    local live_pid
+    live_pid="$(lsof -ti tcp:8088 2>/dev/null | head -1 || true)"
+    [[ -n "$live_pid" ]] && echo "$live_pid" > "$API_PID_FILE"
+    return 0
+  fi
+  return 1
+}
+
+is_sync_running() {
+  if [[ -f "$SYNC_PID_FILE" ]]; then
+    local pid
+    pid="$(cat "$SYNC_PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  if curl -fsS --max-time 2 "http://127.0.0.1:8089/api/v1/health" >/dev/null 2>&1; then
+    local live_pid
+    live_pid="$(lsof -ti tcp:8089 2>/dev/null | head -1 || true)"
+    [[ -n "$live_pid" ]] && echo "$live_pid" > "$SYNC_PID_FILE"
+    return 0
+  fi
+  return 1
+}
+
+is_signal_running() {
+  if [[ -f "$SIGNAL_PID_FILE" ]]; then
+    local pid
+    pid="$(cat "$SIGNAL_PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  local live_pid
+  live_pid="$(pgrep -f "$SIGNAL_ROOT" 2>/dev/null | head -1 || true)"
+  if [[ -n "$live_pid" ]]; then
+    echo "$live_pid" > "$SIGNAL_PID_FILE"
+    return 0
+  fi
+  return 1
+}
+
+is_vis_running() {
+  if [[ -f "$VIS_PID_FILE" ]]; then
+    local pid
+    pid="$(cat "$VIS_PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  if curl -fsS --max-time 2 "http://127.0.0.1:8087/health" >/dev/null 2>&1; then
+    local live_pid
+    live_pid="$(lsof -ti tcp:8087 2>/dev/null | head -1 || true)"
+    [[ -n "$live_pid" ]] && echo "$live_pid" > "$VIS_PID_FILE"
+    return 0
+  fi
+  return 1
 }
 
 start_execution() {
@@ -662,6 +778,152 @@ stop_execution() {
   echo "execution-service 未运行"
 }
 
+start_api() {
+  if is_api_running; then
+    echo "api-service 已运行"
+    return 0
+  fi
+  local py
+  py="$(service_python "$API_ROOT")"
+  nohup bash -lc "cd '$API_ROOT' && export PYTHONPATH='$ROOT${PYTHONPATH:+:$PYTHONPATH}' && exec '$py' -m src" </dev/null >>"$API_LOG_FILE" 2>&1 &
+  echo $! > "$API_PID_FILE"
+  if wait_for_ready api 15; then
+    echo "api-service 已启动 (8088)"
+  else
+    echo "api-service 启动失败，查看日志: $API_LOG_FILE"
+    return 1
+  fi
+}
+
+stop_api() {
+  local pid=""
+  if [[ -f "$API_PID_FILE" ]]; then
+    pid="$(cat "$API_PID_FILE" 2>/dev/null || true)"
+  fi
+  [[ -z "$pid" ]] && pid="$(lsof -ti tcp:8088 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
+    rm -f "$API_PID_FILE"
+    echo "api-service 已停止"
+    return 0
+  fi
+  rm -f "$API_PID_FILE"
+  echo "api-service 未运行"
+}
+
+start_sync() {
+  if is_sync_running; then
+    echo "sync-service 已运行"
+    return 0
+  fi
+  local py
+  py="$(service_python "$SYNC_ROOT")"
+  nohup bash -lc "cd '$SYNC_ROOT' && export PYTHONPATH='$ROOT:$SYNC_ROOT${PYTHONPATH:+:$PYTHONPATH}' && exec '$py' -m src" </dev/null >>"$SYNC_LOG_FILE" 2>&1 &
+  echo $! > "$SYNC_PID_FILE"
+  if wait_for_ready sync 15; then
+    echo "sync-service 已启动 (8089)"
+  else
+    echo "sync-service 启动失败，查看日志: $SYNC_LOG_FILE"
+    return 1
+  fi
+}
+
+stop_sync() {
+  local pid=""
+  if [[ -f "$SYNC_PID_FILE" ]]; then
+    pid="$(cat "$SYNC_PID_FILE" 2>/dev/null || true)"
+  fi
+  [[ -z "$pid" ]] && pid="$(lsof -ti tcp:8089 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
+    rm -f "$SYNC_PID_FILE"
+    echo "sync-service 已停止"
+    return 0
+  fi
+  rm -f "$SYNC_PID_FILE"
+  echo "sync-service 未运行"
+}
+
+start_signal() {
+  if is_signal_running; then
+    echo "signal-service 已运行"
+    return 0
+  fi
+  local py
+  py="$(service_python "$SIGNAL_ROOT")"
+  nohup bash -lc "cd '$SIGNAL_ROOT' && export PYTHONPATH='$ROOT:$SIGNAL_ROOT${PYTHONPATH:+:$PYTHONPATH}' && exec '$py' -m src --pg" </dev/null >>"$SIGNAL_LOG_FILE" 2>&1 &
+  echo $! > "$SIGNAL_PID_FILE"
+  if wait_for_ready signal 15; then
+    echo "signal-service 已启动"
+  else
+    echo "signal-service 启动失败，查看日志: $SIGNAL_LOG_FILE"
+    return 1
+  fi
+}
+
+stop_signal() {
+  local pid=""
+  if [[ -f "$SIGNAL_PID_FILE" ]]; then
+    pid="$(cat "$SIGNAL_PID_FILE" 2>/dev/null || true)"
+  fi
+  [[ -z "$pid" ]] && pid="$(pgrep -f "$SIGNAL_ROOT" 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
+    rm -f "$SIGNAL_PID_FILE"
+    echo "signal-service 已停止"
+    return 0
+  fi
+  rm -f "$SIGNAL_PID_FILE"
+  echo "signal-service 未运行"
+}
+
+start_vis() {
+  if is_vis_running; then
+    echo "vis-service 已运行"
+    return 0
+  fi
+  local py
+  py="$(service_python "$VIS_ROOT")"
+  nohup bash -lc "cd '$VIS_ROOT' && export PYTHONPATH='$ROOT${PYTHONPATH:+:$PYTHONPATH}' && exec '$py' -m src --port 8087" </dev/null >>"$VIS_LOG_FILE" 2>&1 &
+  echo $! > "$VIS_PID_FILE"
+  if wait_for_ready vis 15; then
+    echo "vis-service 已启动 (8087)"
+  else
+    echo "vis-service 启动失败，查看日志: $VIS_LOG_FILE"
+    return 1
+  fi
+}
+
+stop_vis() {
+  local pid=""
+  if [[ -f "$VIS_PID_FILE" ]]; then
+    pid="$(cat "$VIS_PID_FILE" 2>/dev/null || true)"
+  fi
+  [[ -z "$pid" ]] && pid="$(lsof -ti tcp:8087 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
+    rm -f "$VIS_PID_FILE"
+    echo "vis-service 已停止"
+    return 0
+  fi
+  rm -f "$VIS_PID_FILE"
+  echo "vis-service 未运行"
+}
+
+start_sidecars() {
+  start_api
+  start_sync
+  start_signal
+  start_vis
+}
+
+stop_sidecars() {
+  stop_vis
+  stop_signal
+  stop_sync
+  stop_api
+}
+
 start_web() {
   if is_web_running; then
     echo "AB Patrol-Web 已运行"
@@ -671,10 +933,9 @@ start_web() {
     echo "AB Patrol-Web 目录不存在: $WEB_ROOT"
     return 1
   fi
-  nohup bash -lc "cd '$WEB_ROOT' && exec '$WEB_ROOT/scripts/start.sh'" </dev/null >>"$WEB_LOG_FILE" 2>&1 &
+  nohup bash -lc "cd '$WEB_ROOT' && exec '$WEB_ROOT/scripts/start.sh' dev" </dev/null >>"$WEB_LOG_FILE" 2>&1 &
   echo $! > "$WEB_PID_FILE"
-  sleep 5
-  if is_web_running; then
+  if wait_for_ready web 30; then
     echo "AB Patrol-Web 已启动 (3001)"
   else
     echo "AB Patrol-Web 启动失败，查看日志: $WEB_LOG_FILE"
@@ -683,8 +944,8 @@ start_web() {
 }
 
 stop_web() {
+  local pid=""
   if [[ -f "$WEB_PID_FILE" ]]; then
-    local pid
     pid="$(cat "$WEB_PID_FILE" 2>/dev/null || true)"
     if [[ -n "$pid" ]]; then
       kill "$pid" 2>/dev/null || true
@@ -693,11 +954,13 @@ stop_web() {
         kill -9 "$pid" 2>/dev/null || true
       fi
     fi
-    rm -f "$WEB_PID_FILE"
-    echo "AB Patrol-Web 已停止"
-    return 0
   fi
-  echo "AB Patrol-Web 未由 AB Patrol-Agent 托管，未强制停止"
+  pid="$(lsof -ti tcp:3001 2>/dev/null | head -1 || true)"
+  if [[ -n "$pid" ]]; then
+    terminate_pid "$pid"
+  fi
+  rm -f "$WEB_PID_FILE"
+  echo "AB Patrol-Web 已停止"
 }
 
 start_query() {
@@ -950,6 +1213,7 @@ case "${1:-status}" in
   start)
     shift
     baseline_cycle="$(latest_cycle_marker)"
+    start_sidecars
     start_execution
     start_query
     start_loop "$@"
@@ -966,6 +1230,7 @@ case "${1:-status}" in
     stop_watchdog
     stop_query
     stop_execution
+    stop_sidecars
     ;;
   restart)
     shift
@@ -974,6 +1239,8 @@ case "${1:-status}" in
     stop_watchdog
     stop_query
     stop_execution
+    stop_sidecars
+    start_sidecars
     start_execution
     start_query
     start_loop "$@"
@@ -990,6 +1257,7 @@ case "${1:-status}" in
     baseline_cycle="$(latest_cycle_marker)"
     stop_loop
     stop_query
+    start_sidecars
     start_execution
     start_query
     start_loop "$@"
@@ -1003,6 +1271,7 @@ case "${1:-status}" in
   stack-start)
     shift
     baseline_cycle="$(latest_cycle_marker)"
+    start_sidecars
     start_execution
     start_query
     start_loop "$@"
@@ -1019,9 +1288,11 @@ case "${1:-status}" in
     stop_watchdog
     stop_query
     stop_execution
+    stop_sidecars
     stop_web
     ;;
   web-start)
+    start_sidecars
     start_web
     ;;
   web-stop)
@@ -1104,7 +1375,7 @@ case "${1:-status}" in
     exec "$(tool_python)" "$REPLAY" "$@"
     ;;
   logs)
-    exec tail -f "$LOG_FILE" "$QUERY_LOG_FILE" "$WATCHDOG_LOG_FILE" "$EXECUTION_LOG_FILE" "$WEB_LOG_FILE"
+    exec tail -f "$LOG_FILE" "$QUERY_LOG_FILE" "$WATCHDOG_LOG_FILE" "$EXECUTION_LOG_FILE" "$API_LOG_FILE" "$SYNC_LOG_FILE" "$SIGNAL_LOG_FILE" "$VIS_LOG_FILE" "$WEB_LOG_FILE"
     ;;
   *)
     echo "用法: $0 {start|stop|restart|recover|stack-start|stack-stop|once|loop|loop-start|loop-stop|loop-restart|status|recent|decision|query-start|query-stop|query-restart|watchdog-start|watchdog-stop|watchdog-restart|web-start|web-stop|charts|backtest|replay|logs} [--execute] [--no-telegram]"

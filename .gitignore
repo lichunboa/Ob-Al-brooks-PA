@@ -67,6 +67,8 @@ venv/
 # Node
 # ====================
 node_modules/
+AB Patrol-Web/.next/
+AB Patrol-Web/.next.bak.*/
 
 # ====================
 # 运行时与日志

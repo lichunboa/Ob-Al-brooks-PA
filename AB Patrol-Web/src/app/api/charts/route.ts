@@ -4,8 +4,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 const CHART_ROOTS = [
   "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/data/charts",
-  "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Console-Backend/data/charts",
 ];
+
+function normalizeChartPath(value: string): string {
+  const normalized = path.normalize(value);
+  const marker = `${path.sep}data${path.sep}charts${path.sep}`;
+  if (path.isAbsolute(normalized) && normalized.includes(marker)) {
+    return normalized.split(marker).slice(1).join(marker);
+  }
+  return normalized;
+}
 
 export async function GET(request: NextRequest) {
   const rel = request.nextUrl.searchParams.get("path") || "";
@@ -13,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "missing path" }, { status: 400 });
   }
 
-  const normalized = path.normalize(rel).replace(/^(\.\.(\/|\\|$))+/, "");
+  const normalized = normalizeChartPath(rel).replace(/^(\.\.(\/|\\|$))+/, "");
   const resolvedCandidates = CHART_ROOTS.map((root) => ({
     rootResolved: path.resolve(root),
     resolved: path.resolve(root, normalized),
