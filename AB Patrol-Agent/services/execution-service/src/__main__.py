@@ -36,6 +36,15 @@ from .note_sync import NoteSync
 from .evolution_manager import get_evolution_manager, EvolutionManager
 from .position_patrol import PositionPatrol
 from .query_cache import get_query_cache, cached, invalidate_cache
+from .service_bootstrap import (
+    periodic_sync,
+    sync_startup_balance,
+    run_startup_reconciliation,
+    recover_startup_bot_map,
+    sync_startup_fees,
+    sync_startup_leverage,
+)
+from .thresholds import ThresholdUpdate, load_thresholds, save_thresholds
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,47 +62,6 @@ note_sync: Optional[NoteSync] = None
 evolution_mgr: Optional[EvolutionManager] = None
 position_patrol: Optional[PositionPatrol] = None
 _periodic_task: Optional[asyncio.Task] = None
-
-# 定时任务间隔（秒）
-BALANCE_SYNC_INTERVAL = 60  # 1 分钟同步余额
-NOTE_SYNC_INTERVAL = 300  # 5 分钟同步笔记+订单
-
-
-async def _periodic_sync():
-    """定时任务：余额同步(1分钟) + 持仓巡检(1分钟) + 笔记同步+订单追踪(5分钟)"""
-    await asyncio.sleep(30)  # 启动后 30 秒再开始
-    tick = 0
-    while True:
-        try:
-            # 每次循环都同步余额（60 秒）
-            if executor and trading_state:
-                balances = await executor.get_balance()
-                usdt = next((b for b in balances if b.asset == "USDT"), None)
-                if usdt:
-                    trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
-
-            # 每次循环都做持仓巡检（60 秒）
-            if position_patrol:
-                await position_patrol.patrol()
-
-            # 每 5 次循环（5 分钟）做笔记同步 + 订单追踪
-            if tick % 5 == 0:
-                if note_sync:
-                    result = await note_sync.sync_all()
-                    synced = result.get("synced", 0)
-                    if synced > 0:
-                        logger.info(f"[定时] 笔记同步: {synced} 笔更新")
-
-                if order_tracker:
-                    changes = await order_tracker.check_all_orders()
-                    if changes:
-                        logger.info(f"[定时] 订单追踪: {len(changes)} 笔状态变更")
-
-        except Exception as e:
-            logger.error(f"[定时] 同步任务异常: {e}")
-
-        tick += 1
-        await asyncio.sleep(BALANCE_SYNC_INTERVAL)
 
 
 @asynccontextmanager
@@ -113,72 +81,31 @@ async def lifespan(app: FastAPI):
     position_patrol = PositionPatrol(executor, trading_state)
 
     # 启动时同步币安数据
-    try:
-        balances = await executor.get_balance()
-        usdt = next((b for b in balances if b.asset == "USDT"), None)
-        if usdt:
-            trading_state.sync_balance(usdt.balance, usdt.available, usdt.unrealized_pnl)
-            logger.info(f"启动同步完成: 余额 ${usdt.balance:.2f}")
-    except Exception as e:
-        logger.warning(f"启动同步失败: {e}")
+    await sync_startup_balance(executor=executor, trading_state=trading_state)
 
     # 启动时自动对账
-    try:
-        report = await reconciliation.get_reconciliation_report()
-        issues = report["summary"]["issues_found"]
-        fixed = report["summary"]["auto_fixed"]
-        if issues > 0:
-            logger.warning(f"启动对账: 发现 {issues} 处不一致，自动修复 {fixed} 笔")
-        else:
-            logger.info("启动对账: 数据一致")
-    except Exception as e:
-        logger.warning(f"启动对账失败: {e}")
+    await run_startup_reconciliation(reconciliation=reconciliation)
 
     # 启动时从币安 open orders + trades history 恢复 bot 映射
-    try:
-        result = await executor.recover_bot_map_from_binance()
-        ro = result.get("recovered_orders", 0)
-        rp = result.get("recovered_positions", 0)
-        if ro > 0 or rp > 0:
-            logger.info(f"启动恢复: 订单映射 +{ro}, 持仓映射 +{rp}")
-        else:
-            logger.info(f"启动恢复: bot 映射已完整 ({result.get('total_open', 0)} 个挂单)")
-    except Exception as e:
-        logger.warning(f"启动恢复 bot 映射失败: {e}")
+    await recover_startup_bot_map(executor=executor)
 
     # 启动时自动获取币安手续费率并更新到 bot allocation
-    try:
-        fees = executor.fetch_trading_fees()
-        if fees and trading_state:
-            allocs = trading_state.state.allocations
-            btc_fees = fees.get("BTCUSDT", {})
-            if btc_fees and allocs:
-                for bot_id in allocs:
-                    allocs[bot_id]["fee_rate_maker"] = btc_fees["maker"]
-                    allocs[bot_id]["fee_rate_taker"] = btc_fees["taker"]
-                trading_state._save_state()
-                logger.info(f"启动同步: 币安费率已更新 (maker={btc_fees['maker']}, taker={btc_fees['taker']})")
-    except Exception as e:
-        logger.warning(f"启动同步币安费率失败: {e}")
+    sync_startup_fees(executor=executor, trading_state=trading_state)
 
     # 启动时自动为所有品种设置杠杆（V3.0, V3.6 修复: 取各品种最大杠杆）
     # 币安合约每品种只有一个全局杠杆，多 bot 共享时必须取最大值
-    try:
-        allocs = trading_state.state.allocations
-        symbol_max_lev: dict[str, int] = {}
-        for bot_id, alloc in allocs.items():
-            lev = alloc.get("max_leverage", 5)
-            for sym in alloc.get("allowed_symbols", []):
-                ccxt_sym = f"{sym}:USDT" if ':' not in sym else sym
-                symbol_max_lev[ccxt_sym] = max(symbol_max_lev.get(ccxt_sym, 0), lev)
-        for ccxt_sym, lev in symbol_max_lev.items():
-            await executor.set_leverage(ccxt_sym, lev)
-        logger.info(f"启动杠杆: {', '.join(f'{s}={l}x' for s,l in symbol_max_lev.items())}")
-    except Exception as e:
-        logger.warning(f"启动设置杠杆失败: {e}")
+    await sync_startup_leverage(executor=executor, trading_state=trading_state)
 
     # 启动定时任务（笔记同步 + 订单追踪，每 5 分钟）
-    _periodic_task = asyncio.create_task(_periodic_sync())
+    _periodic_task = asyncio.create_task(
+        periodic_sync(
+            executor=executor,
+            trading_state=trading_state,
+            position_patrol=position_patrol,
+            note_sync=note_sync,
+            order_tracker=order_tracker,
+        )
+    )
     logger.info("定时任务已启动: 余额同步(60s) + 持仓巡检(60s) + 笔记同步+订单追踪(5分钟)")
 
     logger.info(f"Execution Service 已启动 (mode={BINANCE_MODE}, trading={'ON' if trading_state.is_trading_enabled() else 'OFF'})")
@@ -753,54 +680,6 @@ async def calculate_position_size(
 
 
 # ========== 阈值管理 (V2.6.1 新增) ==========
-
-import json
-import os
-from pathlib import Path
-
-from .config import WORKSPACE
-THRESHOLDS_FILE = WORKSPACE / "stats" / "thresholds.json"
-
-DEFAULT_THRESHOLDS = {
-    "min_strength": 60,
-    "bot_thresholds": {
-        "al-brooks": {"min_score": 70, "trade_score": 70},
-        "trader": {"min_score": 70, "trade_score": 70},
-        "wyckoff": {"min_score": 50, "trade_score": 50}
-    }
-}
-
-
-def load_thresholds() -> dict:
-    """加载阈值配置"""
-    try:
-        if THRESHOLDS_FILE.exists():
-            with open(THRESHOLDS_FILE, 'r') as f:
-                return {**DEFAULT_THRESHOLDS, **json.load(f)}
-    except Exception as e:
-        logger.error(f"加载阈值配置失败: {e}")
-    return DEFAULT_THRESHOLDS
-
-
-def save_thresholds(thresholds: dict) -> bool:
-    """保存阈值配置"""
-    try:
-        THRESHOLDS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        thresholds["updated_at"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
-        with open(THRESHOLDS_FILE, 'w') as f:
-            json.dump(thresholds, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"保存阈值配置失败: {e}")
-        return False
-
-
-class ThresholdUpdate(BaseModel):
-    """阈值更新请求"""
-    min_strength: Optional[int] = None
-    bot_id: Optional[str] = None
-    min_score: Optional[int] = None
-    trade_score: Optional[int] = None
 
 
 @app.get("/thresholds")

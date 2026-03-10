@@ -33,6 +33,12 @@ from notification_renderer import NotificationRendererMixin
 from prompt_builder import PromptBuilderMixin
 from state_manager import StateManagerMixin
 from reference_selector import ReferenceSelectorMixin
+from signal_analyzer import (
+    frame_summary_text,
+    infer_signal_timeframe,
+    prompt_cached_state,
+    validation_seed_state,
+)
 from env_loader import load_agent_env
 from providers import DecisionProviderConfig, build_decision_provider
 from aggressive_mode import should_execute_aggressive, identify_strategy, get_aggressive_mode_status
@@ -78,6 +84,8 @@ from utils import (
     shrink_prompt_value,
     structured_trade_semantics,
     truncate_text,
+    utc_iso,
+    utc_now,
     write_json,
     write_text,
 )
@@ -105,15 +113,6 @@ except ImportError as e:
 
 
 LOG = logging.getLogger("ab_patrol_runtime")
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def utc_iso() -> str:
-    return utc_now().isoformat()
-TIMEFRAME_PATTERN = re.compile(r"\b(5m|15m|30m|1h)\b", re.IGNORECASE)
 PRE_SIGNAL_DEFAULT_TTL_SECONDS = {
     "5m": 25 * 60,
     "15m": 45 * 60,
@@ -126,32 +125,6 @@ PRE_SIGNAL_EXTENSION_SECONDS = {
     "30m": 60 * 60,
     "1h": 60 * 60,
 }
-PROMPT_CACHED_FIELDS = (
-    "status",
-    "stage",
-    "consecutive_watching",
-    "daily_bias",
-    "daily_bias_expires",
-    "market_state",
-    "market_state_detail",
-    "structure_summary",
-    "running_narrative",
-    "pre_signal",
-    "pre_signal_meta",
-    "key_levels",
-    "thesis",
-    "trade",
-    "last_pass_reason",
-)
-VALIDATION_CACHE_FIELDS = (
-    "status",
-    "stage",
-    "consecutive_watching",
-    "daily_bias",
-    "daily_bias_expires",
-    "trade",
-    "last_pass_reason",
-)
 MODEL_TRANSIENT_FIELDS = (
     "priority",
     "priority_score",
@@ -191,41 +164,6 @@ MODEL_TRANSIENT_FIELDS = (
     "updated_at",
     "updated_by",
 )
-
-
-def infer_signal_timeframe(*values: Any) -> str:
-    for value in values:
-        if isinstance(value, dict):
-            for nested in value.values():
-                match = TIMEFRAME_PATTERN.search(str(nested))
-                if match:
-                    return match.group(1).lower()
-            continue
-        match = TIMEFRAME_PATTERN.search(str(value or ""))
-        if match:
-            return match.group(1).lower()
-    return "5m"
-
-
-def prompt_cached_state(cached: dict[str, Any]) -> dict[str, Any]:
-    payload = {field: cached.get(field) for field in PROMPT_CACHED_FIELDS if cached.get(field) not in (None, "", [], {})}
-    return shrink_prompt_value(payload)
-
-
-def validation_seed_state(cached: dict[str, Any]) -> dict[str, Any]:
-    return {field: cached.get(field) for field in VALIDATION_CACHE_FIELDS if cached.get(field) not in (None, "", [], {})}
-
-
-def frame_summary_text(frame: dict[str, Any]) -> str:
-    summary = frame.get("summary")
-    if isinstance(summary, dict):
-        ordered = []
-        for key in ("trend", "last_pullback", "range", "day_type"):
-            value = summary.get(key)
-            if value:
-                ordered.append(f"{key}={value}")
-        return " | ".join(ordered)
-    return str(summary or "").strip()
 
 class PatrolRuntime(
     NotificationRendererMixin,
