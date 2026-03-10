@@ -52,9 +52,17 @@
 | 文档 | 说明 |
 | --- | --- |
 | [AGENTS.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AGENTS.md) | 当前仓库真实结构、开发约束与运行入口 |
+| [ROOT_LAYOUT.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/ROOT_LAYOUT.md) | 顶层目录边界，区分主目录、运行产物、历史资料与个人工作区 |
 | [backend/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/backend/README.md) | 当前后端与 sidecar 服务入口 |
 | [web/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/web/README.md) | 当前独立 Web 入口 |
 | [AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md) | Patrol 主脑专属文档索引 |
+
+## 顶层目录边界
+
+- 当前真实主目录只有三套：`AB Patrol-Agent/`、`AB Patrol-Web/`、`AB Console-Obsidian/`
+- `docs/` 是项目级说明入口，不承载运行时代码
+- `📁 开发文档/`、`春波的笔记/`、`🦁 交易员控制台 (Trader Command)/` 当前视为历史/个人工作区，不作为默认运行路径
+- 详细边界说明见 [ROOT_LAYOUT.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/ROOT_LAYOUT.md)
 
 ## 分系统入口
 

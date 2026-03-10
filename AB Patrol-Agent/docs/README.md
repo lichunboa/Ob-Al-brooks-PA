@@ -29,6 +29,14 @@
 - `AB Patrol-Web` = 独立 Web 展示层
 - `AB Console-Obsidian` = 知识库、课程笔记、旧交易样本
 
+## 近期代码结构调整
+
+- `runtime/pa_runtime.py` 已持续拆分为多 mixin 与工具模块
+- `services/signal-service/src/engines/pa_engine.py` 的共享层已抽到 `services/signal-service/src/engines/pa/`
+- `engines/pa/models.py` 负责 PA 数据模型
+- `engines/pa/analysis.py` 负责 K 线/周期/时段分析工具
+- `engines/pa/risk.py` 负责 PA 信号风控
+
 ## 历史文档说明
 
 - 2026-03-10 之前的迁移、隔离、审计文档里，可能仍会提到 `AB Console-Backend`。
