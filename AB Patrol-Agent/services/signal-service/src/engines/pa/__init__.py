@@ -16,6 +16,7 @@ from .analysis import (
 )
 from .models import Candle, MarketState, PASignal
 from .risk import RiskManager
+from .strategy_advanced import AdvancedStrategyDetectorMixin
 
 __all__ = [
     "Candle",
@@ -27,6 +28,7 @@ __all__ = [
     "CandlePatterns",
     "CycleIdentifier",
     "RiskManager",
+    "AdvancedStrategyDetectorMixin",
     "calculate_ema",
     "ema_slope",
     "calculate_atr",
