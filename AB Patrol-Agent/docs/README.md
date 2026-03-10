@@ -21,14 +21,20 @@
 
 - 承载主 Web 站点
 - 承载 Telegram operator 壳
-- 替代 `AB Console-Backend` 的基础设施能力
+- Patrol 体系自身的基础设施能力
 
 ## 当前真实架构
 
-- `AB Patrol-Agent` = Al Brooks 决策主脑
+- `AB Patrol-Agent` = Al Brooks 决策主脑与当前后端主目录
 - `AB Patrol-Web` = 独立 Web 展示层
-- `AB Console-Backend` = 执行、数据、参考后端
 - `AB Console-Obsidian` = 知识库、课程笔记、旧交易样本
+
+## 历史文档说明
+
+- 2026-03-10 之前的迁移、隔离、审计文档里，可能仍会提到 `AB Console-Backend`。
+- 这些文档保留是为了追踪迁移决策，不代表当前运行目录仍然存在。
+- 顶层项目里带旧路径的快照文档，已经统一移动到 `docs/archive/`。
+- 当前所有实际代码、命令、脚本路径，以 `AB Patrol-Agent` 和 `AB Patrol-Web` 为准。
 
 当前决策路径是：
 
@@ -75,14 +81,14 @@
 ## 优先阅读
 
 - 总览：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_SYSTEM_OVERVIEW_20260308.md)
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md)
 - Canonical 升级说明：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/AL_BROOKS_CANONICAL_UPGRADE_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/AL_BROOKS_CANONICAL_UPGRADE_20260308.md)
+  - `AL_BROOKS_CANONICAL_UPGRADE_20260308.md`
 - 规则偏差审计：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/PARITY_RULE_AUDIT_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/PARITY_RULE_AUDIT_20260308.md)
+  - `PARITY_RULE_AUDIT_20260308.md`
 - 硬编码规则矩阵：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/HARDCODED_RULE_MATRIX_20260308.md)
+  - `HARDCODED_RULE_MATRIX_20260308.md`
 - 目标状态：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/GOAL_STATUS_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/GOAL_STATUS_20260308.md)
+  - `GOAL_STATUS_20260308.md`
 - 运行流程：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/RUNTIME_FLOW.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/RUNTIME_FLOW.md)
+  - `RUNTIME_FLOW.md`

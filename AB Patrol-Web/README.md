@@ -1,8 +1,8 @@
 # AB Patrol-Web
 
-`AB Patrol-Web` 是独立于 `AB Console-Backend/web` 的 Patrol 展示层。
+`AB Patrol-Web` 是 Patrol 体系的独立展示层。
 
-当前 Patrol 主 Web 入口已经迁到这里，不再以 `AB Console-Backend/web` 作为主看板。
+当前 Patrol 主 Web 入口已经迁到这里，这里是唯一 Web 看板目录。
 
 当前展示语义也已经和 Patrol 升级期保持一致：
 
@@ -32,7 +32,7 @@
 - Query Service:
   - `http://127.0.0.1:8086/api/v1/runtime/full`
 - Patrol Web API:
-  - `http://127.0.0.1:3001/api/runtime/full`
+  - `http://127.0.0.1:3001/api/pa-bot/runtime`
 
 ## 当前入口
 
@@ -64,6 +64,6 @@ bash scripts/start.sh
 ## 相关文档
 
 - 总览：
-  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/CURRENT_SYSTEM_OVERVIEW_20260308.md)
+  - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/docs/archive/CURRENT_SYSTEM_OVERVIEW_20260308.md)
 - Patrol 文档入口：
   - [/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent/docs/README.md](/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB%20Patrol-Agent/docs/README.md)

@@ -1,783 +1,241 @@
-# AB Console - AI Agent 操作手册
+# AB Patrol 项目操作手册
 
-> 本文档面向 AI 编码 Agent，以可执行指令的视角编写，约束与指导 Agent 行为。
-> 更新于 2026-03-07 (V2.3)。
+> 本文档面向 AI 编码 Agent，以当前仓库真实结构为准。
+> 更新于 2026-03-10。
 
 ---
 
-## 0. 项目结构（重要）
+## 0. 项目结构
 
-```
+```text
 Al-brooks-PA/                          项目根目录
-├── AB Console-Obsidian/               Obsidian 知识库 (独立运行)
-├── AB Console-Backend/                后端服务 + Web Dashboard
-│   ├── services/                      核心服务 (data/trading/signal/ai/telegram/sync)
-│   ├── services-preview/              预览服务 (api-service 等)
-│   ├── web/                           Web Dashboard (Next.js, 端口 3000)
-│   ├── libs/                          共享库 + SQLite 数据库
-│   ├── scripts/                       管理脚本
-│   ├── config/                        配置文件 (.env)
-│   ├── Makefile, pyproject.toml       构建工具
-│   └── docs/                          后端文档
-├── AB Patrol-Agent/                   持久化巡逻 Agent（独立 host / state / knowledge）
-├── 📁 启动工具/                       一键启动/停止脚本
+├── AB Patrol-Agent/                   当前后端与巡逻主脑
+│   ├── config/                        配置文件（`.env`、`.env.example`）
+│   ├── data/                          运行态、图表、回测缓存
+│   ├── libs/                          共享库与 SQLite 数据
+│   ├── runtime/                       巡逻运行时
+│   ├── scripts/                       启停脚本
+│   ├── services/                      当前启用服务
+│   │   ├── consumption/query-service/
+│   │   ├── execution-service/
+│   │   ├── api-service/
+│   │   ├── sync-service/
+│   │   ├── signal-service/
+│   │   └── vis-service/
+│   ├── tools/                         控制脚本与工具
+│   ├── docs/                          Patrol 专属文档
+│   └── tests/                         测试
+├── AB Patrol-Web/                     当前独立 Web（Next.js，端口 3001）
+├── AB Console-Obsidian/               Al Brooks 知识库与 Obsidian 插件
 ├── docs/                              项目级文档
+├── 📁 启动工具/                       Finder 启动脚本
 └── AGENTS.md                          本文件
 ```
 
-> **注意**: 所有后端路径都在 `AB Console-Backend/` 下。例如 `services/data-service/` 的完整路径是 `AB Console-Backend/services/data-service/`。
+### 当前目录归属
+
+- `AB Patrol-Agent`：当前唯一后端主目录。
+- `AB Patrol-Web`：当前唯一 Web 目录。
+- `AB Console-Obsidian`：知识库、课程、复盘与 Obsidian 插件。
+- `AB Console-Backend`：已删除，不再作为运行目录。
+- `AB%20Patrol-Agent`：已删除，视为历史污染目录。
+
+### 历史文档说明
+
+- `docs/archive/` 与 `AB Patrol-Agent/docs/` 下部分带日期的历史文档，可能保留迁移前路径，仅用于回溯背景。
+- 任何当前操作、命令、路径判断，都以本文件和代码现状为准，不以历史快照为准。
 
 ---
 
-## 1. Mission & Scope（目标与边界）
+## 1. 允许与禁止
 
 ### 1.1 允许的操作
 
-- 修改 `AB Console-Backend/services/*/src/` 下的业务代码
-- 修改 `AB Console-Backend/services-preview/*/src/` 下的业务代码
-- 修改 `AB Console-Backend/config/.env.example` 全局配置模板
-- 添加/修改技术指标 (`AB Console-Backend/services/trading-service/src/indicators/`)
-- 修改启动脚本 (`AB Console-Backend/scripts/`, `📁 启动工具/`)
-- 修改 Obsidian 插件 (`AB Console-Obsidian/.obsidian/plugins/al-brooks-console/src/`)
-- 更新文档 (`README.md`, `AGENTS.md`, `docs/`)
-- 修改 `AB Console-Backend/Makefile`、`AB Console-Backend/pyproject.toml`
+- 修改 `AB Patrol-Agent/runtime/`、`AB Patrol-Agent/tools/`、`AB Patrol-Agent/scripts/`
+- 修改 `AB Patrol-Agent/services/*/src/`
+- 修改 `AB Patrol-Agent/libs/` 下共享代码
+- 修改 `AB Patrol-Agent/config/.env.example`
+- 修改 `AB Patrol-Web/src/`、`AB Patrol-Web/scripts/`
+- 修改 `AB Console-Obsidian/.obsidian/plugins/al-brooks-console/src/`
+- 更新 `README.md`、`AGENTS.md`、`docs/`、`AB Patrol-Agent/docs/`
 
 ### 1.2 禁止的操作
 
-- **禁止修改** `AB Console-Backend/config/.env` 生产配置文件
-- **禁止修改** 数据库 schema（除非明确要求）
-- **禁止删除** `AB Console-Backend/libs/database/` 下的数据文件
-- **禁止修改** `.gitignore` 中已忽略的敏感文件
-- **禁止** 大范围重构，除非任务明确要求
-- **禁止** 添加未经验证的第三方依赖
+- **禁止修改** `AB Patrol-Agent/config/.env`
+- **禁止删除** `AB Patrol-Agent/libs/database/` 下真实数据文件，除非用户明确要求
+- **禁止修改** 数据库 schema，除非用户明确要求
+- **禁止** 无确认地引入未验证第三方依赖
+- **禁止** 为了“整理”而回退用户已有改动
+- **禁止** 再创建新的“参考后端”平行目录
 
 ### 1.3 敏感区域
 
 | 路径 | 说明 | 操作限制 |
 |:---|:---|:---|
-| `AB Console-Backend/config/.env` | 生产配置（含密钥） | 只读 |
-| `AB Console-Backend/libs/database/services/telegram-service/market_data.db` | SQLite 指标数据 | 只读 |
-| `AB Console-Backend/libs/database/services/signal-service/cooldown.db` | 信号冷却持久化 | 只读 |
-
-> 提醒：服务启动脚本会检查 `config/.env` 权限（需 600/400），不符合直接退出。
+| `AB Patrol-Agent/config/.env` | 当前生产配置 | 只读 |
+| `AB Patrol-Agent/libs/database/services/telegram-service/market_data.db` | 指标展示库 | 只读 |
+| `AB Patrol-Agent/libs/database/services/signal-service/cooldown.db` | 信号冷却持久化 | 只读 |
+| `AB Patrol-Agent/data/pa_trader/` | 巡逻运行态与历史 cycle | 非必要不批量清理 |
 
 ---
 
-## 2. Golden Path（推荐执行路径）
+## 2. 推荐执行路径
 
-### 2.1 最短可复现场景
+### 2.1 AB Patrol-Agent
 
 ```bash
-# 方式一：Docker Compose（推荐，V2.3+）
-cd "AB Console-Backend"
-docker compose up -d                  # 启动所有服务
-docker compose ps                     # 查看状态
-docker compose logs -f                # 查看日志
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
 
-# 方式二：一键启动脚本
-bash "📁 启动工具/🚀 一键启动.command"
+# 初始化单服务依赖（Python 项目统一使用 uv）
+cd services/api-service
+uv venv .venv
+uv pip install --python .venv/bin/python -r requirements.txt
 
-# 方式三：手动启动（开发调试）
-cd "AB Console-Backend"
-./scripts/init.sh                     # 初始化 .venv
-./scripts/start.sh start             # 启动核心服务
-./scripts/start.sh status            # 查看状态
+# 返回主目录启动
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
+./scripts/start.sh start
+./scripts/start.sh status
 
-# 方式四：AB Patrol-Agent（独立巡逻 host）
-cd "AB Patrol-Agent"
-cp .env.example .env                # 填入 GPT / provider 配置
-PYTHONPATH=src python3 -m ab_patrol_agent.runner.patrol_runner --profile crypto --full-refresh
-PYTHONPATH=src python3 -m ab_patrol_agent.host.service_loop --profile crypto --max-cycles 1
-./scripts/start.sh loop             # 常驻巡逻
-./scripts/start.sh status           # 查看状态
+# 仅拉起 Web 依赖的 sidecar
+./scripts/start.sh web-start
+./scripts/start.sh web-stop
+
+# 巡逻常驻
+./scripts/start.sh loop
+./scripts/start.sh loop-stop
 ```
 
-> 顶层 `./scripts/start.sh` 管理 ai-service / data-service / signal-service / telegram-service / trading-service（ai-service 仅做就绪检查，无独立进程）。
-
-### 2.2 预览版服务启动
+### 2.2 AB Patrol-Web
 
 ```bash
-# signal-service（信号检测）
-cd services/signal-service && ./scripts/start.sh start
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web"
+npm install
+npm run dev
 
-# markets-service（多市场采集）
-cd services-preview/markets-service && ./scripts/start.sh start
-
-# vis-service（可视化，端口 8087）
-cd services-preview/vis-service && ./scripts/start.sh start
-
-# order-service（做市，需 API Key）
-cd services-preview/order-service && python -m src
-
-# fate-service（命理服务）
-cd services-preview/fate-service && make run
-
-# predict-service（预测市场，Node.js）
-cd services-preview/predict-service/services/polymarket && npm start
+# 或使用仓库内脚本
+bash scripts/start.sh
 ```
 
-### 2.3 开发/修改流程
+### 2.3 常用验证
 
 ```bash
-# 1. 进入对应服务并激活虚拟环境
-cd services/trading-service && source .venv/bin/activate
+# 后端脚本语法
+bash -n "AB Patrol-Agent/scripts/start.sh"
 
-# 2. 修改代码...
+# Python 语法
+python3 -m py_compile "AB Patrol-Agent/runtime/pa_runtime.py"
 
-# 3. 使用服务级 Makefile
-make lint      # 代码检查
-make format    # 代码格式化
-make test      # 运行测试
+# Web 编译
+cd "AB Patrol-Web"
+npm run build
 
-# 4. 验证
-cd /path/to/tradecat
-./scripts/verify.sh
-
-# 5. 若涉及命令/配置/目录变更，同步更新 README.md / README_EN.md / AGENTS.md
+# 运行态接口
+curl "http://127.0.0.1:3001/api/pa-bot/runtime"
+curl "http://127.0.0.1:8088/health"
+curl "http://127.0.0.1:8089/api/v1/health"
+curl "http://127.0.0.1:8087/health"
 ```
 
 ---
 
-## 3. Must-Run Commands（必须执行的命令清单）
+## 3. 当前核心模块
 
-### 3.1 全局脚本
+### 3.1 后端主线
 
-| 命令 | 说明 |
-|:---|:---|
-| `./scripts/init.sh` | 初始化所有核心服务虚拟环境 |
-| `./scripts/init.sh <service>` | 初始化单个服务 |
-| `./scripts/init.sh --all` | 初始化全部服务（含 preview） |
-| `./scripts/start.sh start\|stop\|status\|restart` | 核心服务管理 |
-| `./scripts/start.sh daemon\|daemon-stop` | 守护进程模式（自动重启崩溃服务） |
-| `./scripts/check_env.sh` | 环境检查（Python/依赖/配置/网络/数据库） |
-| `./scripts/verify.sh` | 代码验证（ruff + py_compile + i18n） |
-| `python scripts/download_hf_data.py` | 从 HuggingFace 下载历史数据并导入 |
-| `python scripts/check_i18n_keys.py` | 检查 i18n 翻译键对齐 |
-| `python scripts/sync_market_data_to_rds.py` | 增量同步 SQLite `market_data.db` 到 PostgreSQL（RDS/Aurora） |
-| `./scripts/export_timescaledb.sh` | 导出 TimescaleDB 数据（默认端口 5433） |
-| `./scripts/export_timescaledb_main4.sh` | 导出 Main4 精简数据集（默认端口 5433） |
-| `./scripts/timescaledb_compression.sh` | 压缩管理（默认端口 5433） |
-
-### 3.2 Make 快捷命令
-
-| 命令 | 说明 |
-|:---|:---|
-| `make init` | 初始化所有服务 |
-| `make install` | 一键安装（等价 `./scripts/install.sh`） |
-| `make start` | 启动所有服务 |
-| `make stop` | 停止所有服务 |
-| `make status` | 查看服务状态 |
-| `make daemon` | 启动守护进程（自动重启） |
-| `make daemon-stop` | 停止守护进程 |
-| `make verify` | 代码验证 |
-| `make clean` | 清理缓存 |
-| `make export-db` | 导出 TimescaleDB 数据 |
-
-### 3.3 Docker 命令（V2.3+）
-
-| 命令 | 说明 |
-|:---|:---|
-| `docker compose up -d` | 启动所有容器化服务 |
-| `docker compose down` | 停止并移除容器 |
-| `docker compose ps` | 查看容器状态 |
-| `docker compose logs -f [service]` | 查看服务日志 |
-| `docker compose restart [service]` | 重启指定服务 |
-| `docker compose build [service]` | 重新构建镜像 |
-
-### 3.4 服务级 Makefile（统一接口）
-
-每个服务都有标准化的 Makefile，支持以下 targets：
-
-```bash
-cd services/<service-name>  # 或 services-preview/<service-name>
-
-make help        # 显示帮助
-make venv        # 创建虚拟环境
-make install     # 安装依赖
-make install-dev # 安装开发依赖
-make clean       # 清理缓存
-make reset       # 重建虚拟环境（依赖坏了用这个）
-make lock        # 导出当前依赖到 requirements.lock.txt
-
-make lint        # 代码检查 (ruff)
-make format      # 代码格式化 (ruff)
-make test        # 运行测试 (pytest)
-make test-cov    # 运行测试 + 覆盖率
-make typecheck   # 类型检查 (mypy)
-make check       # 完整检查 (lint + test)
-make syntax      # 语法验证（快速）
-
-make run         # 前台运行（调试用）
-make start       # 后台启动
-make stop        # 停止服务
-make status      # 查看状态
-```
-
-### 3.4 数据库操作
-
-> **端口说明**：`config/.env.example` 默认端口为 **5434**（新库），但导出/压缩脚本默认 **5433**（旧库）。请根据实际部署选择统一端口。
-
-```bash
-# 连接 TimescaleDB（根据 config/.env 中 DATABASE_URL 端口）
-# 新库（5434）
-PGPASSWORD=postgres psql -h localhost -p 5434 -U postgres -d market_data
-
-# 旧库（5433，脚本默认）
-PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d market_data
-
-# 查看 K线数据量
-SELECT COUNT(*) FROM market_data.candles_1m;
-
-# 连接 SQLite
-sqlite3 libs/database/services/telegram-service/market_data.db
-```
-
----
-
-## 4. Code Change Rules（修改约束）
-
-### 4.1 架构原则
-
-- **微服务独立**：每个服务有独立的 `.venv`、`requirements.txt`、`pyproject.toml`、`Makefile`
-- **配置统一**：所有配置集中在 `config/.env`，各服务共用
-- **数据流向**：`data-service → TimescaleDB → trading-service → SQLite → telegram/ai/signal/vis`
-
-### 4.2 服务清单（13 个）
-
-| 服务 | 位置 | 职责 | 入口 |
-|:---|:---|:---|:---|
-| aws-service | services/ | 本地 -> 远端 SQLite 同步 | `src/db_sync_service.py` |
-| data-service | services/ | 加密货币数据采集 | `src/__main__.py` |
-| trading-service | services/ | 指标计算 | `src/__main__.py` |
-| telegram-service | services/ | Bot 交互 | `src/main.py` |
-| ai-service | services/ | AI 分析（telegram 子模块） | `src/__main__.py` |
-| signal-service | services/ | 信号检测（129条规则） | `src/__main__.py` |
-| api-service | services-preview/ | REST API 服务（端口 8000） | `src/__main__.py` |
-| markets-service | services-preview/ | 全市场采集 | `src/__main__.py` |
-| vis-service | services-preview/ | 可视化渲染（端口 8087） | `src/__main__.py` |
-| order-service | services-preview/ | 交易执行 | `src/__main__.py` |
-| predict-service | services-preview/ | 预测市场（Node.js） | `services/*/` |
-| fate-service | services-preview/ | 命理服务（端口 8001） | `services/telegram-service/` |
-| nofx-dev | services-preview/ | NOFX AI 交易系统（预览） | `main.go` |
-
-### 4.3 模块边界
-
-| 服务 | 职责 | 禁止 |
+| 模块 | 路径 | 职责 |
 |:---|:---|:---|
-| aws-service | 本地 -> 远端 SQLite 同步 | 禁止参与指标计算与推送 |
-| data-service | 加密货币数据采集、存储到 TimescaleDB | 禁止计算指标 |
-| markets-service | 全市场数据采集（美股/A股/宏观） | 禁止计算指标 |
-| trading-service | 指标计算、写入 SQLite | 禁止直接推送消息 |
-| telegram-service | Bot 交互、信号推送 UI | 禁止包含信号检测逻辑 |
-| ai-service | AI 分析、Wyckoff 方法论 | 作为 telegram-service 子模块 |
-| signal-service | 信号检测、规则引擎（独立服务） | 只读数据库，禁止 Telegram 依赖 |
-| api-service | REST API 数据查询 | 只读数据库，禁止写入 |
-| vis-service | 可视化渲染 | 禁止写入数据库 |
-| order-service | 交易执行、做市 | 禁止修改数据采集逻辑 |
-| nofx-dev | NOFX AI 交易系统（预览） | 暂未定义 |
+| runtime | `AB Patrol-Agent/runtime/` | 巡逻运行时、知识装配、状态读写 |
+| query-service | `AB Patrol-Agent/services/consumption/query-service/` | Web / TG 查询接口 |
+| execution-service | `AB Patrol-Agent/services/execution-service/` | 持仓、下单、改单、执行桥 |
+| api-service | `AB Patrol-Agent/services/api-service/` | Web API 网关 |
+| sync-service | `AB Patrol-Agent/services/sync-service/` | Obsidian / 业务数据同步 |
+| signal-service | `AB Patrol-Agent/services/signal-service/` | 信号检测与历史 |
+| vis-service | `AB Patrol-Agent/services/vis-service/` | 图表与可视化渲染 |
 
-> **注意**：telegram-service/signals 模块已解耦，仅保留适配层 (`adapter.py`) 和 UI (`ui.py`)，信号检测逻辑全部在 signal-service 中。
-> 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。
-> 冷却持久化：`signal-service/src/storage/cooldown.py` 负责将冷却键写入 `libs/database/services/signal-service/cooldown.db`，SQLite 引擎启动时加载，`_set_cooldown()` 同步落盘；公共接口 `get_cooldown_storage()` 供其他模块复用。
+### 3.2 Web 主线
 
-### 4.4 依赖添加规则
-
-1. 添加依赖前检查是否已存在
-2. 添加到对应服务的 `requirements.txt`
-3. 运行 `make lock` 更新 `requirements.lock.txt`
-4. 如需系统库（如 TA-Lib），在 README 中说明安装方法
-5. 禁止添加未经验证的依赖
-
-### 4.5 兼容性要求
-
-- Python >= 3.10（CI 使用 3.12，pyproject.toml 声明 >=3.9）
-- 保持与现有数据库 schema 兼容
-- 新增指标需注册到 `indicators/__init__.py`
-- 新增卡片需注册到 `cards/registry.py`
-
----
-
-## 5. Style & Quality（风格与质量标准）
-
-### 5.1 代码风格
-
-- **格式化**：遵循 PEP 8，使用 ruff
-- **行长**：120 字符
-- **类型注解**：关键函数添加类型注解
-- **文档字符串**：公开函数需有 docstring
-
-### 5.2 项目配置（pyproject.toml 统一标准）
-
-所有服务的 `pyproject.toml` 使用统一配置：
-
-```toml
-[project]
-requires-python = ">=3.12"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.ruff]
-target-version = "py312"
-line-length = 120
-
-[tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "C4", "UP"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
-[tool.mypy]
-python_version = "3.12"
-ignore_missing_imports = true
-```
-
-### 5.3 命名约定
-
-| 类型 | 约定 | 示例 |
+| 模块 | 路径 | 职责 |
 |:---|:---|:---|
-| 文件名 | 小写下划线或中文 | `k_pattern.py`, `资金费率卡片.py` |
-| 类名 | PascalCase | `KPattern`, `DataProvider` |
-| 函数名 | snake_case | `compute_indicators()` |
-| 常量 | UPPER_SNAKE | `MAX_WORKERS` |
+| Dashboard | `AB Patrol-Web/src/app/` | 页面与 API Route |
+| `pa-bot` | `AB Patrol-Web/src/app/(dashboard)/pa-bot/` | Patrol 运行态面板 |
+| Charts API | `AB Patrol-Web/src/app/api/charts/` | 图表文件读取与路径映射 |
+| Runtime API | `AB Patrol-Web/src/app/api/pa-bot/runtime/` | Patrol 运行态聚合接口 |
 
-### 5.4 错误处理
+### 3.3 知识库
 
-- 使用 `except Exception as e:` 捕获异常并记录日志
-- 禁止裸 `except:`
-- 关键操作添加超时处理
-
-### 5.5 日志规范
-
-```python
-import logging
-logger = logging.getLogger(__name__)
-
-logger.info("操作成功: %s", detail)
-logger.warning("警告: %s", message)
-logger.error("错误: %s", error, exc_info=True)
-```
-
----
-
-## 6. Project Map（项目结构速览）
-
-```
-tradecat/
-├── config/                         # 统一配置（所有服务共用）
-│   ├── .env                        # 生产配置（含密钥，不提交）
-│   ├── .env.example                # 配置模板（默认端口 5434）
-│   └── logrotate.conf              # 日志轮转
-│
-├── scripts/                        # 全局脚本
-│   ├── init.sh                     # 初始化脚本
-│   ├── install.sh                  # 一键安装
-│   ├── start.sh                    # 统一启动脚本
-│   ├── verify.sh                   # 验证脚本（ruff + py_compile + i18n）
-│   ├── check_env.sh                # 环境检查
-│   ├── check_i18n_keys.py          # i18n 翻译键对齐检查
-│   ├── download_hf_data.py         # HuggingFace 数据下载
-│   ├── sync_market_data_to_rds.py  # SQLite -> PostgreSQL 增量同步
-│   ├── export_timescaledb.sh       # 数据导出（默认端口 5433）
-│   ├── export_timescaledb_main4.sh # 导出 Main4 精简数据集（默认端口 5433）
-│   └── timescaledb_compression.sh  # 压缩管理（默认端口 5433）
-│
-├── services/                       # 稳定版微服务 (6个)
-│   ├── aws-service/                # 本地 -> 远端 SQLite 同步
-│   ├── data-service/               # 加密货币数据采集
-│   ├── trading-service/            # 指标计算（34个指标模块）
-│   ├── telegram-service/           # Telegram Bot（39张卡片）
-│   ├── ai-service/                 # AI 分析
-│   └── signal-service/             # 信号检测（129条规则）
-│
-├── services-preview/               # 预览版微服务 (6个)
-│   ├── api-service/                # REST API 服务（端口 8000）
-│   ├── markets-service/            # 全市场数据采集
-│   ├── vis-service/                # 可视化渲染（端口 8087）
-│   ├── order-service/              # 交易执行
-│   ├── predict-service/            # 预测市场（Node.js）
-│   └── fate-service/               # 命理服务（端口 8001）
-│
-├── libs/
-│   ├── database/                   # 数据库文件
-│   │   ├── db/                     # DDL schema 定义
-│   │   ├── csv/                    # CSV 数据
-│   │   └── services/
-│   │       ├── telegram-service/
-│   │       │   └── market_data.db      # 指标数据（Telegram 展示使用）
-│   │       └── signal-service/
-│   │           └── cooldown.db         # 冷却状态持久化（防重复推送）
-│   ├── common/                     # 共享工具库
-│   │   ├── i18n.py                 # 国际化模块
-│   │   ├── symbols.py              # 币种管理模块
-│   │   ├── proxy_manager.py        # 代理管理器
-│   │   └── utils/                  # 工具函数
-│   └── external/                   # 外部依赖/数据
-│
-├── AB Patrol-Agent/                 # 独立 Patrol Agent 根目录
-│   ├── knowledge/                   # 迁移后的 patrol skill / references
-│   ├── schemas/                     # runtime / decision schema
-│   ├── src/ab_patrol_agent/         # runner / host / state / scheduler
-│   ├── tests/                       # 单测
-│   └── README.md                    # 架构与迁移说明
-│
-├── .github/                        # 社区规范与 CI
-│   ├── workflows/                  # CI 配置
-│   │   ├── ci.yml                  # ruff + py_compile 抽样检查
-│   │   ├── pypi-ci.yml             # PyPI CI
-│   │   └── pypi-publish.yml        # PyPI 发布
-│   ├── CONTRIBUTING.md             # 贡献指南
-│   ├── CODE_OF_CONDUCT.md          # 行为准则
-│   └── SECURITY.md                 # 安全政策
-│
-├── artifacts/                      # 构建/测试产物
-│   ├── coverage/                   # 覆盖率数据
-│   ├── dist/                       # 构建输出
-│   └── i18n/                       # i18n 编译产物
-│
-├── cache/                          # 工具缓存
-│   ├── pytest/
-│   └── ruff/
-│
-├── docs/                           # 项目文档
-│   ├── CHANGELOG.md                # 变更日志
-│   └── TODO.md                     # 待办清单
-│
-├── logs/                           # 顶层日志
-│   └── daemon.log
-│
-├── run/                            # 顶层进程状态
-│   └── daemon.pid
-│
-├── Makefile                        # 常用命令快捷方式
-├── pyproject.toml                  # 根级项目配置
-├── README.md                       # 项目文档（中文）
-├── README_EN.md                    # 项目文档（英文）
-├── PERFORMANCE_AUDIT_TRADING_SERVICE.md # trading-service Python 性能优化审计报告（静态审计版）
-├── TODO.md                         # trading-service 性能优化执行清单
-├── AGENTS.md                       # 本文档
-└── .python-version                 # Python 版本锁定
-```
-
-### 6.1 服务标准化结构
-
-每个服务遵循统一结构：
-
-```
-<service>/
-├── .python-version         # Python 版本 (3.12)
-├── .gitignore              # Git 忽略规则
-├── .venv/                  # 虚拟环境（不提交）
-├── Makefile                # 服务级 Make 命令
-├── pyproject.toml          # 项目配置（含 ruff/pytest/mypy）
-├── requirements.txt        # 运行依赖
-├── requirements-dev.txt    # 开发依赖
-├── requirements.lock.txt   # 锁定依赖
-├── src/                    # 源代码
-│   ├── __init__.py
-│   └── __main__.py         # 入口
-├── tests/                  # 测试
-│   ├── __init__.py
-│   └── conftest.py
-├── scripts/
-│   └── start.sh            # 启动脚本
-└── logs/                   # 日志目录
-```
-
-### 6.2 trading-service core 分层（IO/Compute/Storage）
-
-```
-services/trading-service/src/core/
-├── engine.py               # 流程编排：只管调度与观测
-├── io.py                   # 数据读取与缓存装配（只读）
-├── compute.py              # 指标计算与并行调度（纯计算）
-└── storage.py              # 结果落盘与后处理（只写）
-```
-
-边界约束：
-- IO 只负责读取与缓存装配，不写库、不计算指标
-- Compute 只计算，不做任何数据库读写
-- Storage 只负责落盘与后处理，不参与指标计算
-
----
-
-## 7. Common Pitfalls（常见坑与修复）
-
-### 7.1 TA-Lib 安装失败
-
-```bash
-# 先安装系统库
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-tar -xzf ta-lib-0.4.0-src.tar.gz
-cd ta-lib && ./configure --prefix=/usr && make && sudo make install
-cd .. && rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
-
-# 再安装 Python 包
-pip install TA-Lib
-```
-
-### 7.2 数据库连接失败
-
-```bash
-# 检查端口（根据 config/.env 配置选择 5433 或 5434）
-ss -tlnp | grep 5434
-
-# 测试连接
-PGPASSWORD=postgres psql -h localhost -p 5434 -U postgres -c "\l"
-```
-
-### 7.3 虚拟环境问题
-
-```bash
-# 重建虚拟环境（依赖坏了用这个）
-cd services/<service>
-make reset
-```
-
-### 7.4 .env 权限问题
-
-```bash
-# 服务启动脚本要求 600 权限
-chmod 600 config/.env
-```
-
-### 7.5 环境检查
-
-```bash
-# 部署前运行环境检查，确保所有依赖就绪
-./scripts/check_env.sh
-
-# 检查内容：
-# - Python 版本 (3.10+)
-# - pip/venv 可用性
-# - 虚拟环境完整性
-# - config/.env 配置
-# - 数据库连接 (pg_isready)
-# - 网络连接 (Telegram/Binance API)
-# - 磁盘空间
-```
-
-### 7.6 日志轮转配置
-
-```bash
-# 1. 生成配置文件（替换路径占位符）
-cd /path/to/tradecat
-sed -e "s|{{PROJECT_ROOT}}|$(pwd)|g" \
-    -e "s|{{USER}}|$(whoami)|g" \
-    config/logrotate.conf > /tmp/tradecat-logrotate.conf
-
-# 2. 手动执行轮转
-sudo logrotate -f /tmp/tradecat-logrotate.conf
-
-# 3. 安装到系统（可选，自动每日执行）
-sudo cp /tmp/tradecat-logrotate.conf /etc/logrotate.d/tradecat
-
-# 轮转策略：
-# - 核心服务日志：每天或 50MB，保留 14 天
-# - 预览服务日志：每天或 50MB，保留 7 天
-# - 顶层 logs 目录日志：每天或 20MB，保留 7 天
-```
-
-### 7.7 守护进程模式
-
-```bash
-# 启动守护进程（自动重启崩溃的服务）
-./scripts/start.sh daemon
-
-# 停止守护进程和所有服务
-./scripts/start.sh daemon-stop
-
-# 守护策略：
-# - 检查间隔：30 秒
-# - 最大重试：5 次/5分钟窗口
-# - 指数退避：10s → 20s → 40s → ... → 300s (最大)
-# - 超过上限后暂停重启，告警写入 alerts.log
-```
-
-### 7.8 端口冲突（双库架构）
-
-```bash
-# 旧库（5433）：与早期数据采集链兼容，export/compression 脚本默认使用
-# 新库（5434）：多 schema 架构（raw/agg/quality），.env.example 默认
-
-# 确认当前使用端口
-grep "DATABASE_URL" config/.env | grep -oP ':\K\d+(?=/)'
-
-# 若需切换端口，需同步修改：
-# - config/.env 中 DATABASE_URL
-# - scripts/export_timescaledb.sh
-# - scripts/timescaledb_compression.sh
-# - README.md 中所有示例命令
-```
-
-### 7.8 端口冲突（双库架构）
-
-```bash
-# 旧库（5433）：与早期数据采集链兼容，export/compression 脚本默认使用
-# 新库（5434）：多 schema 架构（raw/agg/quality），.env.example 默认
-
-# 确认当前使用端口
-grep "DATABASE_URL" config/.env | grep -oP ':\K\d+(?=/)'
-
-# 若需切换端口，需同步修改：
-# - config/.env 中 DATABASE_URL
-# - scripts/export_timescaledb.sh
-# - scripts/timescaledb_compression.sh
-```
-
----
-
-## 8. PR / Commit Rules（提交规则）
-
-### 8.1 Commit Message 规范
-
-```
-<type>(<scope>): <subject>
-
-<body>
-```
-
-**Type**：
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `docs`: 文档更新
-- `refactor`: 重构
-- `chore`: 杂项
-- `style`: 代码格式
-
-**示例**：
-```
-feat(trading): 添加 K线形态检测指标
-fix(telegram): 修复排行榜数据加载错误
-docs: 更新 README 快速开始指南
-chore: standardize project structure for all services
-```
-
-### 8.2 提交前检查清单
-
-- [ ] 代码通过 `make lint`
-- [ ] 测试通过 `make test`（如有）
-- [ ] 相关文档已更新
-- [ ] 配置变更已同步到 `config/.env.example`
-- [ ] 新依赖已添加到 `requirements.txt` 并 `make lock`
-
-### 8.3 CI 说明
-
-CI（`.github/workflows/ci.yml`）仅执行：
-- ruff 静态检查（忽略 E501, E402）
-- py_compile 语法检查（前 50 个 .py 文件抽样）
-
-完整测试需本地运行 `./scripts/verify.sh`。
-
----
-
-## 9. Documentation Sync Rule（文档同步规则）
-
-### 9.1 强制同步
-
-以下变更**必须**同步更新文档：
-
-| 变更类型 | 需更新的文档 |
-|:---|:---|
-| 新增/修改命令 | README.md, README_EN.md, AGENTS.md |
-| 新增/修改配置项 | README.md, README_EN.md, `config/.env.example` |
-| 新增/修改指标 | README.md (指标列表) |
-| 目录结构变更 | README.md, README_EN.md, AGENTS.md |
-| 新增/修改服务 | README.md, README_EN.md, AGENTS.md |
-
-### 9.2 文档更新原则
-
-- 以实时代码为唯一源头
-- 不确定的端口、路径、命令**必须**验证后再写入
-- 三份文档（README.md、README_EN.md、AGENTS.md）保持同步
-
----
-
-## 10. 环境变量参考
-
-所有配置集中在 `config/.env`，详细说明见 `config/.env.example`。
-
-### 10.1 核心配置
-
-| 变量 | 说明 | 示例 |
+| 模块 | 路径 | 职责 |
 |:---|:---|:---|
-| `DATABASE_URL` | TimescaleDB 连接串 | `postgresql://postgres:postgres@localhost:5434/market_data` |
-| `BOT_TOKEN` | Telegram Bot Token | `123456:ABC...` |
-| `HTTP_PROXY` | HTTP 代理 | `http://127.0.0.1:9910` |
-| `DEFAULT_LOCALE` | 默认语言 | `en` |
-| `SIGNAL_DATA_MAX_AGE` | 信号数据最大允许时长（秒，超限不触发） | `600` |
-| `COOLDOWN_SECONDS` | signal-service PG 全局冷却时间（秒，持久化） | `300` |
-| `SIGNAL_DATA_MAX_AGE` | 信号数据最大允许时长（秒，超限不触发） | `600` |
-| `COOLDOWN_SECONDS` | signal-service PG 全局冷却时间（秒，持久化） | `300` |
-
-### 10.2 币种管理
-
-| 变量 | 说明 |
-|:---|:---|
-| `SYMBOLS_GROUPS` | 使用的分组（main4/main6/main20/auto/all） |
-| `SYMBOLS_GROUP_<name>` | 自定义分组定义（如 `SYMBOLS_GROUP_defi`） |
-| `SYMBOLS_EXTRA` | 额外添加的币种 |
-| `SYMBOLS_EXCLUDE` | 强制排除的币种 |
-
-### 10.3 数据采集配置
-
-| 变量 | 服务 | 说明 |
-|:---|:---|:---|
-| `BACKFILL_MODE` | data-service | 回填模式（all/days/none） |
-| `BACKFILL_DAYS` | data-service | 回填天数（BACKFILL_MODE=days 时生效） |
-| `BACKFILL_START_DATE` | data-service | 回填起始日期（可选） |
-| `MAX_CONCURRENT` | data-service | 最大并发请求数（默认 5） |
-| `RATE_LIMIT_PER_MINUTE` | data-service | 每分钟最大请求数（默认 1800） |
-| `INTERVALS` | data-service | K线周期（逗号分隔） |
-| `KLINE_INTERVALS` | data-service | WebSocket 订阅周期 |
-| `FUTURES_INTERVALS` | data-service | 期货指标周期（最小 5m） |
-
-### 10.4 服务配置
-
-| 变量 | 服务 | 说明 |
-|:---|:---|:---|
-| `MAX_WORKERS` | trading-service | 计算线程数 |
-| `COMPUTE_BACKEND` | trading-service | 计算后端（thread/process/hybrid） |
-| `HIGH_PRIORITY_TOP_N` | trading-service | auto 模式高优先级币种数量 |
-| `VIS_SERVICE_PORT` | vis-service | 监听端口（默认 8087） |
-| `FATE_BOT_TOKEN` | fate-service | 命理 Bot Token |
-| `FATE_SERVICE_PORT` | fate-service | API 端口（默认 8001） |
-| `MARKETS_SERVICE_DATABASE_URL` | markets-service | 独立数据库连接 |
-| `CRYPTO_WRITE_MODE` | markets-service | 写入模式（raw/legacy） |
-| `ORDER_BOOK_TICK_INTERVAL` | markets-service | L1 tick 采样间隔（秒，默认 1） |
-| `ORDER_BOOK_FULL_INTERVAL` | markets-service | L2 full 采样间隔（秒，默认 5） |
-| `ORDER_BOOK_DEPTH` | markets-service | 每侧档位数（默认 1000） |
-| `ORDER_BOOK_RETENTION_DAYS` | markets-service | 数据保留天数（默认 30） |
+| Canonical / S 文件 | `AB Console-Obsidian/` | Al Brooks 规则权威来源 |
+| Obsidian 插件 | `AB Console-Obsidian/.obsidian/plugins/al-brooks-console/src/` | 知识与控制台插件 |
 
 ---
 
-## 11. 快速参考卡片
+## 4. 修改约束
+
+### 4.1 架构边界
+
+- `AB Patrol-Agent` 负责巡逻、执行前校验、执行链、运行态、后端接口。
+- `AB Patrol-Web` 只负责展示与 Web API 适配，不承载巡逻决策。
+- `AB Console-Obsidian` 只负责知识库、插件、课程、复盘，不承载后端服务。
+
+### 4.2 路径原则
+
+- 不再把任何运行时数据写回已经删除的目录。
+- 图表统一写到 `AB Patrol-Agent/data/charts/`。
+- 巡逻状态统一写到 `AB Patrol-Agent/data/pa_trader/`。
+- SQLite 统一位于 `AB Patrol-Agent/libs/database/services/`。
+
+### 4.3 Python 规则
+
+- Python 项目统一使用 `uv` 管理依赖与虚拟环境。
+- 优先使用服务自己的 `.venv`，不要混用全局 Python。
+- 修改服务依赖后，优先更新该服务的 `requirements.txt` 或对应锁文件。
+
+### 4.4 文档规则
+
+- 目录结构、启动命令、服务位置变更后，必须同步更新 `AGENTS.md` 与相关 README。
+- 新增的计划文档、实现文档优先使用中文。
+- 代码注释必须使用中文。
+
+---
+
+## 5. 常见命令
 
 ```bash
-# 初始化
-./scripts/init.sh
+# 查看 Patrol 服务状态
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Agent"
+./scripts/start.sh status
 
-# 启动/停止
-./scripts/start.sh start|stop|status
+# 查看最近日志
+./scripts/start.sh logs
 
-# OpenClaw 控制台（带鉴权）
-openclaw dashboard
-# 不要直接打开 http://127.0.0.1:18789/overview ，否则会因缺少 gateway token 被拒绝
+# 只启动 Web 依赖服务
+./scripts/start.sh web-start
 
-# 单服务管理
-cd services/<name> && make start|stop|status
+# 停止 Web 依赖服务
+./scripts/start.sh web-stop
 
-# 代码检查
-cd services/<name> && make lint format test
+# 启动 Web
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA/AB Patrol-Web"
+npm run dev
 
-# 验证
-./scripts/verify.sh
-
-# 数据库（根据实际端口选择 5433 或 5434）
-PGPASSWORD=postgres psql -h localhost -p 5434 -U postgres -d market_data
-sqlite3 libs/database/services/telegram-service/market_data.db
-
-# 备份
-./scripts/export_timescaledb.sh
+# 检查旧路径残留
+cd "/Users/mitchellcb/Desktop/Obsidian/Al-brooks-PA"
+rg -n "AB Console-Backend|AB%20Patrol-Agent" "AB Patrol-Agent" "AB Patrol-Web" "docs"
 ```
+
+---
+
+## 6. 提交前检查
+
+- 代码是否仍符合当前目录边界
+- 是否误引用已删除目录
+- 是否跑过必要的语法检查、构建或冒烟测试
+- 是否同步更新了相关文档
+- 是否避免清理用户生成但仍在使用的数据文件
+
+---
+
+## 7. 一句话原则
+
+当前工程只有三块真实主目录：`AB Patrol-Agent`、`AB Patrol-Web`、`AB Console-Obsidian`。任何实现、文档、脚本如果还把 `AB Console-Backend` 当成当前运行目录，默认视为需要修正。
