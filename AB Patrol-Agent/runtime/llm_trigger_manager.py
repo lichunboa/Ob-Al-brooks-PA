@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
-from utils import safe_float, utc_now
+from utils import parse_structured_value, safe_float, utc_now
 
 
 class LLMTriggerManager:
@@ -27,6 +27,28 @@ class LLMTriggerManager:
         self.last_signal_state = {}
         self.llm_call_count = 0
         self.rule_engine_count = 0
+
+    def _normalize_positions(self, raw_positions: Any) -> list[dict[str, Any]]:
+        """把 execution 返回的持仓结构规整成字典列表。"""
+        if isinstance(raw_positions, dict):
+            nested = raw_positions.get("positions")
+            if isinstance(nested, list):
+                raw_positions = nested
+            else:
+                raw_positions = list(raw_positions.values())
+
+        if not isinstance(raw_positions, list):
+            return []
+
+        normalized: list[dict[str, Any]] = []
+        for item in raw_positions:
+            if isinstance(item, dict):
+                normalized.append(item)
+                continue
+            parsed = parse_structured_value(item)
+            if isinstance(parsed, dict):
+                normalized.append(parsed)
+        return normalized
     
     def should_trigger_llm(
         self,
@@ -41,7 +63,7 @@ class LLMTriggerManager:
         Returns:
             (should_trigger, reason)
         """
-        positions = execution.get("positions", [])
+        positions = self._normalize_positions(execution.get("positions", []))
         has_position = len(positions) > 0
         
         # 1. 有持仓时，检查是否需要管理

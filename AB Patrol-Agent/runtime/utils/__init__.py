@@ -1,7 +1,10 @@
 """工具函数模块
 
-提供文件操作、解析、格式化、Brooks 分析、K线分析、事件分析等通用工具函数
+提供文件操作、解析、格式化、Brooks 分析、K线分析、事件分析等通用工具函数。
+同时保留旧版 ``from utils import ...`` 的兼容导出，避免拆分后导入路径失效。
 """
+
+from datetime import datetime, timezone
 
 from .file_ops import (
     ensure_dir,
@@ -65,7 +68,20 @@ from .event_analysis import (
     has_first_entry_signal,
 )
 
+
+def utc_now() -> datetime:
+    """返回当前 UTC 时间，兼容旧版 utils 导入方式。"""
+    return datetime.now(timezone.utc)
+
+
+def utc_iso() -> str:
+    """返回当前 UTC 时间的 ISO 字符串。"""
+    return utc_now().isoformat()
+
 __all__ = [
+    # time
+    "utc_now",
+    "utc_iso",
     # file_ops
     "ensure_dir",
     "load_json",
