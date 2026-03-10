@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 
 from .config import WORKSPACE
 
@@ -21,7 +20,7 @@ class BotRegistryMixin:
         """加载 order_id -> {bot_id, symbol} 映射，兼容旧格式。"""
         try:
             if ORDER_BOT_MAP_FILE.exists():
-                with open(ORDER_BOT_MAP_FILE, "r", encoding="utf-8") as handle:
+                with open(ORDER_BOT_MAP_FILE, encoding="utf-8") as handle:
                     data = json.load(handle)
 
                 migrated = False
@@ -53,7 +52,7 @@ class BotRegistryMixin:
         """加载 symbol -> bot_id 持仓映射。"""
         try:
             if POSITION_BOT_MAP_FILE.exists():
-                with open(POSITION_BOT_MAP_FILE, "r", encoding="utf-8") as handle:
+                with open(POSITION_BOT_MAP_FILE, encoding="utf-8") as handle:
                     return json.load(handle)
         except Exception as exc:
             logger.warning(f"加载 position_bot_map 失败: {exc}")
@@ -135,7 +134,7 @@ class BotRegistryMixin:
 
         self._save_position_bot_map()
 
-    def get_position_bot_id(self, symbol: str) -> Optional[str]:
+    def get_position_bot_id(self, symbol: str) -> str | None:
         """查找持仓归属的主 bot_id。"""
         key = self._norm_position_key(symbol)
         value = self._position_bot_map.get(key)
@@ -206,7 +205,7 @@ class BotRegistryMixin:
         }
         self._save_order_bot_map()
 
-    def _lookup_bot_id(self, order_id: str) -> Optional[str]:
+    def _lookup_bot_id(self, order_id: str) -> str | None:
         """通过 order_id 查找 bot_id。"""
         value = self._order_bot_map.get(str(order_id))
         if isinstance(value, dict):
@@ -228,7 +227,7 @@ class BotRegistryMixin:
                     symbols.add(self._norm_symbol_base(value["symbol"]))
         return symbols
 
-    def _parse_bot_id_from_client_order_id(self, client_order_id: str) -> Optional[str]:
+    def _parse_bot_id_from_client_order_id(self, client_order_id: str) -> str | None:
         """从 `AB_{bot_id}_{timestamp}` 解析 bot_id。"""
         if not client_order_id or not client_order_id.startswith("AB_"):
             return None
@@ -285,7 +284,10 @@ class BotRegistryMixin:
                     }
                     recovered_positions += 1
                     logger.info(
-                        f"从 order_bot_map 恢复持仓归属: {normalized_symbol} -> {best_value['bot_id']} (order={best_order_id})"
+                        "从 order_bot_map 恢复持仓归属: %s -> %s (order=%s)",
+                        normalized_symbol,
+                        best_value["bot_id"],
+                        best_order_id,
                     )
 
                 if normalized_symbol in self._position_bot_map:
@@ -295,7 +297,9 @@ class BotRegistryMixin:
                     ccxt_symbol = self._normalize_symbol_for_ccxt(normalized_symbol)
                     orders = self.exchange.fetch_orders(ccxt_symbol, limit=10)
                     for order in reversed(orders):
-                        client_order_id = order.get("clientOrderId", "") or order.get("info", {}).get("clientOrderId", "")
+                        client_order_id = order.get("clientOrderId", "") or order.get("info", {}).get(
+                            "clientOrderId", ""
+                        )
                         bot_id = self._parse_bot_id_from_client_order_id(client_order_id)
                         if bot_id:
                             self._position_bot_map[normalized_symbol] = {"bot_id": bot_id, "strategy": "auto"}

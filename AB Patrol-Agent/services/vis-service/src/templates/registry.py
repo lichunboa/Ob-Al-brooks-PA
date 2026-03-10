@@ -13,7 +13,6 @@ from __future__ import annotations
 import io
 import json
 import logging
-import math
 import os
 import re
 from datetime import datetime, timezone
@@ -549,7 +548,6 @@ def _replace_embedded_payload(html: str, payload: Dict, title: str | None = None
 def _fetch_multi_interval_klines(params: Dict) -> Dict:
     """按时间窗口逐周期查询 TimescaleDB，构造包络可视化数据。"""
     from core.settings import get_pg_pool, get_settings
-    import psycopg
 
     symbol = params.get("symbol")
     if not symbol:
@@ -1134,15 +1132,15 @@ def register_defaults() -> TemplateRegistry:
             description="带入场/出场/信号/形态标注的 K 线图，用于可视化交易复盘",
             outputs=["png"],
             params=[
-                "symbol(str)", "interval(str)", 
-                "entry_time(timestamp)", "entry_price(float)", 
+                "symbol(str)", "interval(str)",
+                "entry_time(timestamp)", "entry_price(float)",
                 "exit_time(timestamp)", "exit_price(float)",
-                "direction?(BUY|SELL)", "signal_type?(str)", 
+                "direction?(BUY|SELL)", "signal_type?(str)",
                 "signal_strength?(int)", "patterns?(list[str])",
-                "lookback?(int, default 50)", "title?(str)"
+                "lookback?(int, default 50)", "title?(str)",
             ],
             sample={
-                "template_id": "kline-trade", 
+                "template_id": "kline-trade",
                 "output": "png",
                 "params": {
                     "symbol": "BTCUSDT",

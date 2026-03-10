@@ -6,7 +6,6 @@ import io
 import logging
 import os
 import sys
-from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +27,7 @@ def _fig_to_png(fig) -> bytes:
     return buffer.read()
 
 
-def _build_bin_edges(prices: List[float], bins: int, mode: str) -> np.ndarray:
+def _build_bin_edges(prices: list[float], bins: int, mode: str) -> np.ndarray:
     """根据模式构建统一的 bin 边界。"""
 
     arr = np.asarray(prices, dtype=float)
@@ -50,7 +49,7 @@ def _build_bin_edges(prices: List[float], bins: int, mode: str) -> np.ndarray:
     return edges
 
 
-def render_market_vpvr_heat(params: Dict, output: str) -> Tuple[object, str]:
+def render_market_vpvr_heat(params: dict, output: str) -> tuple[object, str]:
     """全市场 VPVR 热力图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -61,8 +60,8 @@ def render_market_vpvr_heat(params: Dict, output: str) -> Tuple[object, str]:
     scale = params.get("scale", "linear")
     top_n = params.get("top_n")
 
-    all_prices: List[float] = []
-    prepared: List[Tuple[str, np.ndarray, np.ndarray]] = []
+    all_prices: list[float] = []
+    prepared: list[tuple[str, np.ndarray, np.ndarray]] = []
     for item in data:
         symbol = item.get("symbol")
         prices = item.get("price") or item.get("close") or []
@@ -121,7 +120,7 @@ def render_market_vpvr_heat(params: Dict, output: str) -> Tuple[object, str]:
                 x=col_labels,
                 y=symbols,
                 colorscale="Viridis",
-                colorbar=dict(title="vol% (log)" if scale == "log" else "vol%"),
+                colorbar={"title": "vol% (log)" if scale == "log" else "vol%"},
             )
         )
         fig.update_layout(
@@ -149,7 +148,7 @@ def render_market_vpvr_heat(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
+def render_vpvr_zone_strip(params: dict, output: str) -> tuple[object, str]:
     """VPVR 价值区分布图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -259,13 +258,13 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
                 color="#1a1a1a",
                 fontweight="bold",
                 zorder=4,
-                bbox=dict(
-                    boxstyle="circle,pad=0.4",
-                    facecolor=point_color,
-                    edgecolor=edge_color,
-                    linewidth=edge_width,
-                    alpha=0.92,
-                ),
+                bbox={
+                    "boxstyle": "circle,pad=0.4",
+                    "facecolor": point_color,
+                    "edgecolor": edge_color,
+                    "linewidth": edge_width,
+                    "alpha": 0.92,
+                },
             )
         )
 
@@ -279,7 +278,7 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
             force_text=(0.2, 0.3),
             force_static=(0.05, 0.08),
             force_pull=(0.02, 0.02),
-            arrowprops=dict(arrowstyle="-", color="#666666", lw=0.3, alpha=0.4),
+            arrowprops={"arrowstyle": "-", "color": "#666666", "lw": 0.3, "alpha": 0.4},
             time_lim=1.5,
             only_move={"text": "xy"},
         )
@@ -364,7 +363,7 @@ def render_vpvr_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
 
 def _fetch_ridge_data_from_db(
     symbol: str, interval: str, periods: int = 10, lookback: int = 200, bins: int = 48
-) -> Tuple[List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict]]:
     """从 trading-service 的 VPVR 计算方法获取山脊图数据。"""
 
     trading_service_path = os.path.join(os.path.dirname(__file__), "../../../../services/trading-service/src")
@@ -387,7 +386,10 @@ def _fetch_ridge_data_from_db(
         ridge_data.append(
             {
                 "period": period["label"],
-                "distribution": [{"price": center, "volume": volume} for center, volume in zip(period["bin_centers"], period["volumes"])],
+                "distribution": [
+                    {"price": center, "volume": volume}
+                    for center, volume in zip(period["bin_centers"], period["volumes"], strict=True)
+                ],
             }
         )
         ohlc_data.append(
@@ -403,7 +405,7 @@ def _fetch_ridge_data_from_db(
     return ridge_data, ohlc_data
 
 
-def render_vpvr_ridge(params: Dict, output: str) -> Tuple[object, str]:
+def render_vpvr_ridge(params: dict, output: str) -> tuple[object, str]:
     """VPVR 山脊图。"""
     data = params.get("data")
     ohlc_data = params.get("ohlc_data", [])
@@ -483,8 +485,8 @@ def render_vpvr_ridge(params: Dict, output: str) -> Tuple[object, str]:
     from matplotlib import cm
 
     df_rows = []
-    for period, hist in zip(periods, histograms):
-        for price, volume in zip(bin_centers, hist):
+    for period, hist in zip(periods, histograms, strict=True):
+        for price, volume in zip(bin_centers, hist, strict=True):
             count = int(volume * 100) + 1
             for _ in range(count):
                 df_rows.append({"period": period, "price": price})
@@ -552,7 +554,7 @@ def render_vpvr_ridge(params: Dict, output: str) -> Tuple[object, str]:
                     zorder=10,
                 )
             )
-            for x_coord, y_coord in zip(x_coords, y_positions):
+            for x_coord, y_coord in zip(x_coords, y_positions, strict=True):
                 fig.add_artist(plt.Circle((x_coord, y_coord), 0.006, color=color, transform=fig.transFigure, zorder=11))
 
         from matplotlib.patches import Patch
@@ -578,7 +580,7 @@ def render_vpvr_ridge(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_bb_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
+def render_bb_zone_strip(params: dict, output: str) -> tuple[object, str]:
     """全市场布林带分布图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -758,13 +760,13 @@ def render_bb_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
                 color="#1a1a1a",
                 fontweight="bold",
                 zorder=4,
-                bbox=dict(
-                    boxstyle="circle,pad=0.25",
-                    facecolor=point_color,
-                    edgecolor=edge_color,
-                    linewidth=edge_width,
-                    alpha=0.92,
-                ),
+                bbox={
+                    "boxstyle": "circle,pad=0.25",
+                    "facecolor": point_color,
+                    "edgecolor": edge_color,
+                    "linewidth": edge_width,
+                    "alpha": 0.92,
+                },
             )
         )
 
@@ -780,7 +782,7 @@ def render_bb_zone_strip(params: Dict, output: str) -> Tuple[object, str]:
             force_pull=(0.01, 0.01),
             time_lim=1.2,
             only_move={"text": "xy"},
-            arrowprops=dict(arrowstyle="-", color="#666666", lw=0.3, alpha=0.3),
+            arrowprops={"arrowstyle": "-", "color": "#666666", "lw": 0.3, "alpha": 0.3},
         )
     except Exception as exc:
         logger.warning("adjustText failed: %s", exc)

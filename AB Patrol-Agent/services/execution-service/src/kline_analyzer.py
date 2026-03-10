@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,6 @@ class KlineAnalyzerMixin:
         true_ranges = []
         for index in range(count):
             high, low = ohlcv[index][2], ohlcv[index][3]
-            close = ohlcv[index][4]
             if index == 0:
                 true_ranges.append(high - low)
             else:
@@ -194,7 +193,7 @@ class KlineAnalyzerMixin:
             lower_wick = min(open_price, close_price) - low_price
             bar_range = high_price - low_price
 
-            time_str = datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M")
+            time_str = datetime.fromtimestamp(timestamp / 1000, tz=UTC).strftime("%Y-%m-%dT%H:%M")
             entry = {
                 "time": time_str,
                 "O": round(open_price, 2),

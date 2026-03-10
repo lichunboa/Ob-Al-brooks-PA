@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-from typing import Dict, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,7 +19,7 @@ def _fig_to_png(fig) -> bytes:
     return buffer.read()
 
 
-def render_intraday_volume_heatmap(params: Dict, output: str) -> Tuple[object, str]:
+def render_intraday_volume_heatmap(params: dict, output: str) -> tuple[object, str]:
     """日内成交量热力图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -76,7 +75,7 @@ def render_intraday_volume_heatmap(params: Dict, output: str) -> Tuple[object, s
     return _fig_to_png(fig), "image/png"
 
 
-def render_intraday_volatility(params: Dict, output: str) -> Tuple[object, str]:
+def render_intraday_volatility(params: dict, output: str) -> tuple[object, str]:
     """日内波动率曲线。"""
     data = params.get("data")
     if not data:
@@ -132,7 +131,7 @@ def render_intraday_volatility(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_taker_ratio_heatmap(params: Dict, output: str) -> Tuple[object, str]:
+def render_taker_ratio_heatmap(params: dict, output: str) -> tuple[object, str]:
     """主动买卖比热力图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -183,7 +182,7 @@ def render_taker_ratio_heatmap(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_long_short_ratio(params: Dict, output: str) -> Tuple[object, str]:
+def render_long_short_ratio(params: dict, output: str) -> tuple[object, str]:
     """多空比时序图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
@@ -224,7 +223,7 @@ def render_long_short_ratio(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_cvd_cumulative(params: Dict, output: str) -> Tuple[object, str]:
+def render_cvd_cumulative(params: dict, output: str) -> tuple[object, str]:
     """CVD 累计图。"""
     data = params.get("data")
     if not data:
@@ -282,7 +281,7 @@ def render_cvd_cumulative(params: Dict, output: str) -> Tuple[object, str]:
     return _fig_to_png(fig), "image/png"
 
 
-def render_oi_change(params: Dict, output: str) -> Tuple[object, str]:
+def render_oi_change(params: dict, output: str) -> tuple[object, str]:
     """持仓量变化图。"""
     data = params.get("data")
     if not data or not isinstance(data, list):
