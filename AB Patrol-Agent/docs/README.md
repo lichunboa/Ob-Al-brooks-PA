@@ -36,6 +36,10 @@
 - `engines/pa/models.py` 负责 PA 数据模型
 - `engines/pa/analysis.py` 负责 K 线/周期/时段分析工具
 - `engines/pa/risk.py` 负责 PA 信号风控
+- `services/execution-service/src/executor.py` 已拆出 `bot_registry.py` 与 `kline_analyzer.py`
+- `services/vis-service/src/templates/registry.py` 现在只保留注册入口与核心模板
+- `services/vis-service/src/templates/vpvr.py` 负责 VPVR / BB Zone 相关图表
+- `services/vis-service/src/templates/intraday.py` 负责日内热力与微结构图表
 
 ## 历史文档说明
 
