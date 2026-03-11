@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from .indicators import CandlePatterns, ema_slope
 from .models import Candle, MarketState
 
@@ -31,20 +29,76 @@ class CycleIdentifier:
         range_high = max(candle.high for candle in recent_twenty)
         range_low = min(candle.low for candle in recent_twenty)
         is_ttr = CycleIdentifier._detect_ttr(recent_twenty) if len(candles) >= 20 else False
+        swings = CycleIdentifier._find_swings(candles[-30:] if len(candles) >= 30 else candles)
+        pullback_ratio = CycleIdentifier._measure_pullback_ratio(candles, swings)
+        overlap_ratio = CycleIdentifier._overlap_ratio(recent_twenty)
+        follow_through = CycleIdentifier._check_follow_through(candles[-5:])
+        gaps_open = CycleIdentifier._check_gaps_open(recent_twenty, ema20[-1])
+        structure = CycleIdentifier._classify_structure(swings) if swings else "mixed"
+
+        channel_type = "broad"
+        if overlap_ratio < 0.28 and pullback_ratio < 0.33 and (follow_through or gaps_open):
+            channel_type = "tight"
+        elif overlap_ratio > 0.48 or pullback_ratio > 0.66:
+            channel_type = "none"
 
         if strong_bulls >= 3:
-            return MarketState("long", "急速多", 0.9, range_high, range_low, slope, channel_type="none", is_ttr=False)
+            return MarketState(
+                "long",
+                "急速多",
+                0.9,
+                range_high,
+                range_low,
+                slope,
+                channel_type="tight" if channel_type == "tight" else "broad",
+                is_ttr=False,
+                follow_through=follow_through,
+                pullback_ratio=pullback_ratio,
+            )
         if strong_bears >= 3:
-            return MarketState("short", "急速空", 0.9, range_high, range_low, slope, channel_type="none", is_ttr=False)
+            return MarketState(
+                "short",
+                "急速空",
+                0.9,
+                range_high,
+                range_low,
+                slope,
+                channel_type="tight" if channel_type == "tight" else "broad",
+                is_ttr=False,
+                follow_through=follow_through,
+                pullback_ratio=pullback_ratio,
+            )
 
         if abs(slope) > 0.1:
             price_vs_ema = candles[-1].close - ema20[-1]
             if slope > 0 and price_vs_ema > 0:
-                return MarketState("long", "趋势多", 0.7, range_high, range_low, slope, channel_type="broad", is_ttr=False)
+                return MarketState(
+                    "long",
+                    "趋势多",
+                    0.7,
+                    range_high,
+                    range_low,
+                    slope,
+                    channel_type=channel_type,
+                    is_ttr=False,
+                    follow_through=follow_through,
+                    pullback_ratio=pullback_ratio,
+                )
             if slope < 0 and price_vs_ema < 0:
-                return MarketState("short", "趋势空", 0.7, range_high, range_low, slope, channel_type="broad", is_ttr=False)
+                return MarketState(
+                    "short",
+                    "趋势空",
+                    0.7,
+                    range_high,
+                    range_low,
+                    slope,
+                    channel_type=channel_type,
+                    is_ttr=False,
+                    follow_through=follow_through,
+                    pullback_ratio=pullback_ratio,
+                )
 
-        if abs(slope) < 0.05:
+        if abs(slope) < 0.05 or is_ttr or overlap_ratio > 0.52 or pullback_ratio > 0.72:
             deviations = []
             for i, candle in enumerate(candles[-10:]):
                 ema_index = len(ema20) - 10 + i
@@ -60,20 +114,67 @@ class CycleIdentifier:
                     slope,
                     channel_type="none",
                     is_ttr=is_ttr,
+                    follow_through=follow_through,
+                    pullback_ratio=pullback_ratio,
                 )
 
         if len(candles) >= 2:
             reversal = CandlePatterns.is_reversal_bar(candles[-1], candles[-2])
-            if reversal == "多头反转" and slope < -0.05:
-                return MarketState("neutral", "反转多", 0.4, range_high, range_low, slope, channel_type="none", is_ttr=False)
-            if reversal == "空头反转" and slope > 0.05:
-                return MarketState("neutral", "反转空", 0.4, range_high, range_low, slope, channel_type="none", is_ttr=False)
+            reversal_ready = pullback_ratio >= 0.45 or is_ttr or structure != "mixed"
+            if reversal == "多头反转" and slope < -0.05 and reversal_ready:
+                return MarketState(
+                    "neutral",
+                    "反转多",
+                    0.4,
+                    range_high,
+                    range_low,
+                    slope,
+                    channel_type="broad",
+                    is_ttr=is_ttr,
+                    follow_through=follow_through,
+                    pullback_ratio=pullback_ratio,
+                )
+            if reversal == "空头反转" and slope > 0.05 and reversal_ready:
+                return MarketState(
+                    "neutral",
+                    "反转空",
+                    0.4,
+                    range_high,
+                    range_low,
+                    slope,
+                    channel_type="broad",
+                    is_ttr=is_ttr,
+                    follow_through=follow_through,
+                    pullback_ratio=pullback_ratio,
+                )
 
         price_vs_ema = candles[-1].close - ema20[-1]
         if slope > 0.05 and price_vs_ema > 0:
-            return MarketState("long", "趋势多", 0.3, range_high, range_low, slope, channel_type="broad", is_ttr=False)
+            return MarketState(
+                "long",
+                "趋势多",
+                0.3,
+                range_high,
+                range_low,
+                slope,
+                channel_type=channel_type,
+                is_ttr=False,
+                follow_through=follow_through,
+                pullback_ratio=pullback_ratio,
+            )
         if slope < -0.05 and price_vs_ema < 0:
-            return MarketState("short", "趋势空", 0.3, range_high, range_low, slope, channel_type="broad", is_ttr=False)
+            return MarketState(
+                "short",
+                "趋势空",
+                0.3,
+                range_high,
+                range_low,
+                slope,
+                channel_type=channel_type,
+                is_ttr=False,
+                follow_through=follow_through,
+                pullback_ratio=pullback_ratio,
+            )
 
         return default
 
@@ -140,9 +241,13 @@ class CycleIdentifier:
         recent_highs = highs[-3:] if len(highs) >= 3 else highs[-2:]
         recent_lows = lows[-3:] if len(lows) >= 3 else lows[-2:]
 
-        hh_count = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i]["price"] > recent_highs[i - 1]["price"])
+        hh_count = sum(
+            1 for i in range(1, len(recent_highs)) if recent_highs[i]["price"] > recent_highs[i - 1]["price"]
+        )
         hl_count = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i]["price"] > recent_lows[i - 1]["price"])
-        lh_count = sum(1 for i in range(1, len(recent_highs)) if recent_highs[i]["price"] < recent_highs[i - 1]["price"])
+        lh_count = sum(
+            1 for i in range(1, len(recent_highs)) if recent_highs[i]["price"] < recent_highs[i - 1]["price"]
+        )
         ll_count = sum(1 for i in range(1, len(recent_lows)) if recent_lows[i]["price"] < recent_lows[i - 1]["price"])
 
         bull_score = hh_count + hl_count
@@ -281,7 +386,7 @@ class CycleIdentifier:
         return max_bull >= 2 or max_bear >= 2
 
 
-def classify_backtest_market_state(market_state: MarketState) -> Optional[str]:
+def classify_backtest_market_state(market_state: MarketState) -> str | None:
     """将 MarketState 映射到回测使用的八状态。"""
     cycle = market_state.cycle
     channel_type = market_state.channel_type
@@ -307,32 +412,32 @@ def classify_backtest_market_state(market_state: MarketState) -> Optional[str]:
 
 BACKTEST_STRATEGY_MATRIX = {
     "strong_trend_bull": {
-        "recommended": ["高1", "突破回调", "20均线缺口"],
-        "prohibited": ["双重顶", "楔形顶"],
+        "recommended": ["高1", "高2", "突破回调", "20均线缺口", "第一均线缺口"],
+        "prohibited": ["双重顶", "楔形顶", "头肩顶MTR", "看衰突破"],
         "score_modifier": 10,
     },
     "strong_trend_bear": {
-        "recommended": ["低1", "突破回调", "20均线缺口"],
-        "prohibited": ["双重底", "楔形底"],
+        "recommended": ["低1", "低2", "突破回调", "20均线缺口", "第一均线缺口"],
+        "prohibited": ["双重底", "楔形底", "头肩底MTR"],
         "score_modifier": 10,
     },
     "weak_trend_bull": {
-        "recommended": ["楔形底", "突破回调", "20均线缺口"],
-        "prohibited": [],
+        "recommended": ["高2", "突破回调", "双重底", "头肩底MTR", "20均线缺口"],
+        "prohibited": ["收线追进"],
         "score_modifier": 0,
     },
     "weak_trend_bear": {
-        "recommended": ["楔形顶", "突破回调", "20均线缺口"],
-        "prohibited": [],
+        "recommended": ["低2", "突破回调", "双重顶", "头肩顶MTR", "20均线缺口"],
+        "prohibited": ["收线追进"],
         "score_modifier": 0,
     },
     "tight_range": {
-        "recommended": ["看衰突破"],
-        "prohibited": ["高1", "低1", "20均线缺口"],
+        "recommended": ["双重顶", "双重底", "头肩顶MTR", "头肩底MTR", "看衰突破"],
+        "prohibited": ["高1", "低1", "高2", "低2", "20均线缺口", "第一均线缺口", "收线追进", "突破回调"],
         "score_modifier": -5,
     },
     "broad_range": {
-        "recommended": ["双重顶", "双重底", "楔形顶", "楔形底", "看衰突破", "末端旗形"],
+        "recommended": ["双重顶", "双重底", "楔形顶", "楔形底", "头肩顶MTR", "头肩底MTR", "看衰突破", "末端旗形"],
         "prohibited": [],
         "score_modifier": 0,
     },

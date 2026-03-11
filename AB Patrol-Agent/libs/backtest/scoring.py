@@ -50,6 +50,8 @@ class ScoringEngine:
             (总分, 扣分原因列表)
         """
         reasons = []
+        extra = getattr(signal, "extra", {}) or {}
+        reentry_candidate = bool(extra.get("reentry_candidate"))
 
         # === 五维打分 ===
         trend_score = self._score_trend(signal)
@@ -80,6 +82,7 @@ class ScoringEngine:
         _REVERSAL_STRATS = {
             "双重顶", "双重底", "楔形顶", "楔形底",
             "看衰突破", "末端旗形", "急速通道",
+            "头肩顶MTR", "头肩底MTR",
         }
         is_reversal = signal.signal_type in _REVERSAL_STRATS
 
@@ -121,11 +124,16 @@ class ScoringEngine:
         evo_deduction = 0
         symbol_losses = daily_losses.get(signal.symbol, 0)
         if symbol_losses >= 2:
-            evo_deduction += 15
-            reasons.append(f"{signal.symbol}今日已止损{symbol_losses}次 -15")
+            penalty = 10 if reentry_candidate else 15
+            evo_deduction += penalty
+            reasons.append(f"{signal.symbol}今日已止损{symbol_losses}次 -{penalty}")
         elif symbol_losses == 1:
-            evo_deduction += 5
-            reasons.append(f"{signal.symbol}今日已止损1次 -5")
+            penalty = 0 if reentry_candidate else 5
+            evo_deduction += penalty
+            if penalty:
+                reasons.append(f"{signal.symbol}今日已止损1次 -5")
+            else:
+                reasons.append(f"{signal.symbol}止损后同向重入，放宽一次惩罚")
 
         strat_key = signal.signal_type
         strat_stats = strategy_history.get(strat_key, {})

@@ -11,6 +11,7 @@
 """
 
 import os
+import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -49,6 +50,20 @@ class DataLoader:
                     df = df.rename(columns={"open_time": "timestamp"})
                 if df["timestamp"].dt.tz is not None:
                     df["timestamp"] = df["timestamp"].dt.tz_localize(None)
+                print(f"  {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
+                return df
+            fallback_cache = DataLoader._find_covering_parquet(Path(cache_dir), symbol, start_date, end_date)
+            if fallback_cache:
+                print(f"  从覆盖缓存加载: {fallback_cache}")
+                df = pd.read_parquet(fallback_cache)
+                if "open_time" in df.columns and "timestamp" not in df.columns:
+                    df = df.rename(columns={"open_time": "timestamp"})
+                df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_localize(None)
+                if start_date:
+                    df = df[df["timestamp"] >= pd.Timestamp(start_date)]
+                if end_date:
+                    df = df[df["timestamp"] <= pd.Timestamp(end_date)]
+                df = df.sort_values("timestamp").reset_index(drop=True)
                 print(f"  {len(df):,} 根 1m K线 ({df['timestamp'].min()} ~ {df['timestamp'].max()})")
                 return df
 
@@ -97,6 +112,36 @@ class DataLoader:
 
         # 方式5: datasets 库 streaming（最慢）
         return DataLoader._load_streaming(symbol, start_date, end_date, cache_path)
+
+    @staticmethod
+    def _find_covering_parquet(
+        cache_dir: Path,
+        symbol: str,
+        start_date: str | None,
+        end_date: str | None,
+    ) -> Optional[Path]:
+        """查找覆盖当前时间窗的已有 Parquet 缓存。"""
+        if not cache_dir.exists():
+            return None
+        pattern = re.compile(rf"^{re.escape(symbol)}_(\d{{4}}-\d{{2}}-\d{{2}})_(\d{{4}}-\d{{2}}-\d{{2}})\.parquet$")
+        start_ts = pd.Timestamp(start_date) if start_date else None
+        end_ts = pd.Timestamp(end_date) if end_date else None
+        candidates: list[tuple[pd.Timestamp, pd.Timestamp, Path]] = []
+        for path in cache_dir.glob(f"{symbol}_*.parquet"):
+            match = pattern.match(path.name)
+            if not match:
+                continue
+            file_start = pd.Timestamp(match.group(1))
+            file_end = pd.Timestamp(match.group(2))
+            if start_ts is not None and file_start > start_ts:
+                continue
+            if end_ts is not None and file_end < end_ts:
+                continue
+            candidates.append((file_start, file_end, path))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (item[1] - item[0], item[0]))
+        return candidates[0][2]
 
     @staticmethod
     def _find_csv_gz(cache_dir: str = None) -> Optional[Path]:

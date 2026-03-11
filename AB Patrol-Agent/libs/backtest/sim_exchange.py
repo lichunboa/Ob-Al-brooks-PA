@@ -9,11 +9,15 @@ SimExchange — 模拟交易所
 """
 
 import math
+import sys
+from importlib import import_module
+from pathlib import Path
 
-from .models import Trade
+from .models import PendingOrder, Trade
 
 # 周期缩放因子（基于 5m = 1）
 TF_SCALE = {"1m": 0.2, "5m": 1, "15m": 3, "30m": 6, "1h": 12}
+_RUNTIME_POSITION_MANAGER = None
 
 
 class SimExchange:
@@ -28,9 +32,11 @@ class SimExchange:
         self.fee_rate = fee_rate
         self.max_holding_bars = max_holding_bars
         self.open_trades: list[Trade] = []
+        self.pending_orders: list[PendingOrder] = []
         self.closed_trades: list[Trade] = []
         self.daily_losses: dict[str, int] = {}  # {symbol: 今日止损次数}
         self.strategy_history: dict[str, dict] = {}  # {strategy: {trades, wins, losses, pnl}}
+        self.reentry_watch: dict[str, dict] = {}  # {symbol: 被止损后的重入观察窗口}
         self._current_date: str = ""
 
     def place_order(self, signal, score: int, background: str):
@@ -50,69 +56,106 @@ class SimExchange:
             self._current_date = date_str
             self.daily_losses = {}
 
-        # 同品种不重复开仓
-        if any(t.symbol == signal.symbol for t in self.open_trades):
+        intent = self._signal_intent(signal)
+        existing_trade = self._find_open_trade(signal.symbol)
+        if intent in {"ADD_ON", "SCALE_IN", "PYRAMID_ADD"} and existing_trade is not None:
+            if self._can_scale_winner(existing_trade, signal):
+                self._apply_scale_in(existing_trade, signal)
             return
 
-        trade = Trade(
-            symbol=signal.symbol,
-            direction=signal.direction,
-            strategy=getattr(signal, "signal_type", "unknown"),
-            entry_price=signal.price,
-            stop_loss=signal.stop_loss,
-            take_profit=signal.take_profit,
-            entry_time=ts,
-            score=score,
-            background=background,
-            cycle=getattr(signal, "cycle", ""),
-            timeframe=getattr(signal, "timeframe", "5m"),
-        )
-        self.open_trades.append(trade)
+        # 同品种不重复暴露（已持仓或已有挂单）
+        if self._has_symbol_exposure(signal.symbol):
+            return
 
-    def on_candle(self, candle):
+        if self._should_queue_order(signal):
+            self.pending_orders.append(self._build_pending_order(signal, score, background))
+            return
+
+        self.open_trades.append(self._build_trade(signal, score, background))
+        self.reentry_watch.pop(signal.symbol, None)
+
+    def on_candle(self, candle, market_data: dict | None = None):
         """
         每根 K 线检查所有持仓的 SL/TP
 
         Args:
             candle: K 线对象（需要 .high, .low, .close, .timestamp）
         """
+        self._process_pending_orders(candle)
         still_open = []
+        self._decay_reentry_watch(candle.symbol)
         for trade in self.open_trades:
+            if trade.symbol != candle.symbol:
+                still_open.append(trade)
+                continue
+            if trade.entry_time == candle.timestamp:
+                still_open.append(trade)
+                continue
             trade.bars_held += 1
+            self._update_extremes(trade, candle)
             closed = False
 
-            # 保本止损: 浮盈达 0.7R 时移到保本位
-            # Al Brooks: 尽早保护本金，减少被完整止损扫出的概率
-            if trade.direction == "BUY":
-                unrealized = candle.high - trade.entry_price
-                sl_dist = trade.entry_price - trade.stop_loss
-                if sl_dist > 0 and unrealized >= sl_dist * 0.7:
-                    new_sl = trade.entry_price * 1.0001
-                    trade.stop_loss = max(trade.stop_loss, new_sl)
-            elif trade.direction == "SELL":
-                unrealized = trade.entry_price - candle.low
-                sl_dist = trade.stop_loss - trade.entry_price
-                if sl_dist > 0 and unrealized >= sl_dist * 0.7:
-                    new_sl = trade.entry_price * 0.9999
-                    trade.stop_loss = min(trade.stop_loss, new_sl)
+            # 默认模板保留老逻辑；Brooks swing / reversal 交给 2R/3R 分批和结构保护。
+            if trade.management_style not in {
+                "brooks_swing",
+                "brooks_breakout",
+                "brooks_hs_reversal",
+                "brooks_dt_db_reversal",
+                "brooks_wedge_reversal",
+            }:
+                be_trigger = self._breakeven_trigger(trade.management_style)
+                if trade.direction == "BUY":
+                    unrealized = candle.high - trade.entry_price
+                    sl_dist = trade.entry_price - trade.stop_loss
+                    if sl_dist > 0 and unrealized >= sl_dist * be_trigger:
+                        new_sl = trade.entry_price * 1.0001
+                        trade.stop_loss = max(trade.stop_loss, new_sl)
+                elif trade.direction == "SELL":
+                    unrealized = trade.entry_price - candle.low
+                    sl_dist = trade.stop_loss - trade.entry_price
+                    if sl_dist > 0 and unrealized >= sl_dist * be_trigger:
+                        new_sl = trade.entry_price * 0.9999
+                        trade.stop_loss = min(trade.stop_loss, new_sl)
 
             # 周期缩放因子（15m信号需要3x时间，1h需要12x）
             scale = TF_SCALE.get(trade.timeframe, 1)
             sqrt_s = math.sqrt(scale)
 
             # 计算此交易的风险百分比（SL 距离）— ZOMBIE 和 SCALP 都需要
-            if trade.direction == "BUY":
-                risk_pct = (trade.entry_price - trade.stop_loss) / trade.entry_price * 100
-            else:
-                risk_pct = (trade.stop_loss - trade.entry_price) / trade.entry_price * 100
+            initial_risk = max(trade.initial_risk, 0.0)
+            risk_pct = initial_risk / trade.entry_price * 100 if trade.entry_price else 0.0
             risk_pct = max(risk_pct, 0.05)  # 防止除零
+
+            exit_price, exit_reason = self._check_stop_target_hits(trade, candle)
+            if exit_reason:
+                self._close_trade(trade, exit_price, exit_reason, candle.timestamp)
+                closed = True
+
+            if not closed:
+                self._apply_brooks_management(trade, candle)
+
+            if not closed and market_data:
+                closed = self._apply_runtime_management(trade, candle, market_data)
 
             # 僵尸止损: 只抓真正"死钱"交易
             # Al Brooks: 如果交易 premise 已经不成立（长时间无动能），就退出
             # 两阶段:
             #   1. 早期 ZOMBIE (20 bars): 只抓接近平本的 (-0.3R ~ +0.2R)
             #   2. 晚期 ZOMBIE (35 bars): 抓所有未盈利的 (< +0.1R)
-            base_zbar = 20 if trade.strategy == "突破回调" else 16
+            if trade.management_style == "brooks_swing":
+                base_zbar = 28
+            elif trade.management_style == "brooks_hs_reversal":
+                base_zbar = 24
+            elif trade.management_style == "brooks_dt_db_reversal":
+                base_zbar = 18
+            elif trade.management_style == "brooks_wedge_reversal":
+                base_zbar = 16
+            elif trade.management_style == "brooks_breakout":
+                base_zbar = 18
+            elif trade.management_style == "brooks_tr_blshs":
+                base_zbar = 10
+            else:
+                base_zbar = 20 if trade.strategy == "突破回调" else 16
             zombie_bar = int(base_zbar * scale)
             late_zombie = int(zombie_bar * 2)  # 晚期阈值
 
@@ -135,19 +178,13 @@ class SimExchange:
                 )
 
                 if early_exit or late_exit:
-                    trade.exit_price = candle.close
-                    trade.pnl_pct = self._calc_pnl(
-                        trade.entry_price, trade.exit_price, trade.direction)
-                    if trade.pnl_pct > -0.05:
-                        trade.result = "SCRATCH"
-                    else:
-                        trade.result = "LOSS"
-                    trade.exit_reason = "ZOMBIE"
+                    self._close_trade(trade, candle.close, "ZOMBIE", candle.timestamp)
                     closed = True
 
             # Al Brooks 风格 Scalp: 最低 1:1 R:R，然后时间衰减
             scalp_start = max(3, int(3 * scale))
-            if not closed and trade.bars_held >= scalp_start:
+            scalp_enabled = self._scalp_exit_enabled(trade.management_style)
+            if scalp_enabled and not closed and trade.bars_held >= scalp_start:
                 if trade.direction == "BUY":
                     scalp_pnl = (candle.close - trade.entry_price) / trade.entry_price * 100
                 else:
@@ -166,85 +203,16 @@ class SimExchange:
                 else:
                     threshold = max(risk_pct * 0.25, 0.08 * sqrt_s)
                 if scalp_pnl >= threshold:
-                    trade.exit_price = candle.close
-                    trade.pnl_pct = self._calc_pnl(
-                        trade.entry_price, trade.exit_price, trade.direction)
-                    trade.result = "WIN"
-                    trade.exit_reason = "SCALP"
-                    closed = True
-
-            if trade.direction == "BUY":
-                sl_hit = candle.low <= trade.stop_loss
-                tp_hit = candle.high >= trade.take_profit
-                if sl_hit and tp_hit:
-                    # 距离优先判定：哪个离 entry 更近就先触发
-                    sl_dist = abs(trade.entry_price - trade.stop_loss)
-                    tp_dist = abs(trade.take_profit - trade.entry_price)
-                    if sl_dist <= tp_dist:
-                        trade.exit_price = trade.stop_loss
-                        trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "BUY")
-                        trade.result = "LOSS"
-                        trade.exit_reason = "SL"
-                    else:
-                        trade.exit_price = trade.take_profit
-                        trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "BUY")
-                        trade.result = "WIN"
-                        trade.exit_reason = "TP"
-                    closed = True
-                elif sl_hit:
-                    trade.exit_price = trade.stop_loss
-                    trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "BUY")
-                    trade.result = "LOSS"
-                    trade.exit_reason = "SL"
-                    closed = True
-                elif tp_hit:
-                    trade.exit_price = trade.take_profit
-                    trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "BUY")
-                    trade.result = "WIN"
-                    trade.exit_reason = "TP"
-                    closed = True
-
-            elif trade.direction == "SELL":
-                sl_hit = candle.high >= trade.stop_loss
-                tp_hit = candle.low <= trade.take_profit
-                if sl_hit and tp_hit:
-                    sl_dist = abs(trade.stop_loss - trade.entry_price)
-                    tp_dist = abs(trade.entry_price - trade.take_profit)
-                    if sl_dist <= tp_dist:
-                        trade.exit_price = trade.stop_loss
-                        trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "SELL")
-                        trade.result = "LOSS"
-                        trade.exit_reason = "SL"
-                    else:
-                        trade.exit_price = trade.take_profit
-                        trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "SELL")
-                        trade.result = "WIN"
-                        trade.exit_reason = "TP"
-                    closed = True
-                elif sl_hit:
-                    trade.exit_price = trade.stop_loss
-                    trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "SELL")
-                    trade.result = "LOSS"
-                    trade.exit_reason = "SL"
-                    closed = True
-                elif tp_hit:
-                    trade.exit_price = trade.take_profit
-                    trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, "SELL")
-                    trade.result = "WIN"
-                    trade.exit_reason = "TP"
+                    self._close_trade(trade, candle.close, "SCALP", candle.timestamp)
                     closed = True
 
             # 超时平仓（周期感知动态持仓时间）
-            max_bars = int(self._get_max_bars(trade.strategy) * scale)
+            max_bars = int(self._get_max_bars(trade) * scale)
             if not closed and trade.bars_held >= max_bars:
-                trade.exit_price = candle.close
-                trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, trade.direction)
-                trade.result = "WIN" if trade.pnl_pct > 0 else "LOSS" if trade.pnl_pct < -0.1 else "SCRATCH"
-                trade.exit_reason = "TIMEOUT"
+                self._close_trade(trade, candle.close, "TIMEOUT", candle.timestamp)
                 closed = True
 
             if closed:
-                trade.exit_time = candle.timestamp
                 self._record_close(trade)
                 self.closed_trades.append(trade)
             else:
@@ -255,14 +223,476 @@ class SimExchange:
     def force_close_all(self, candle):
         """强制平仓所有持仓（回测结束时调用）"""
         for trade in self.open_trades:
-            trade.exit_price = candle.close
-            trade.pnl_pct = self._calc_pnl(trade.entry_price, trade.exit_price, trade.direction)
-            trade.result = "WIN" if trade.pnl_pct > 0 else "LOSS" if trade.pnl_pct < -0.1 else "SCRATCH"
-            trade.exit_time = candle.timestamp
-            trade.exit_reason = "END"
+            self._close_trade(trade, candle.close, "END", candle.timestamp)
             self._record_close(trade)
             self.closed_trades.append(trade)
         self.open_trades = []
+        self.pending_orders = []
+
+    def _has_symbol_exposure(self, symbol: str) -> bool:
+        """同一品种只允许一笔持仓或一张挂单。"""
+        return any(trade.symbol == symbol for trade in self.open_trades) or any(
+            order.symbol == symbol for order in self.pending_orders
+        )
+
+    def _find_open_trade(self, symbol: str) -> Trade | None:
+        """查找当前品种的活跃持仓。"""
+        return next((trade for trade in self.open_trades if trade.symbol == symbol), None)
+
+    @staticmethod
+    def _signal_intent(signal) -> str:
+        """统一提取信号意图。"""
+        extra = getattr(signal, "extra", {}) or {}
+        return str(getattr(signal, "intent", "") or extra.get("intent") or "").upper()
+
+    def _signal_risk_percent(self, signal) -> float:
+        """按 S7 梯度提取回测侧的单笔风险。"""
+        extra = getattr(signal, "extra", {}) or {}
+        explicit = float(extra.get("risk_percent", 0.0) or getattr(signal, "risk_percent", 0.0) or 0.0)
+        if explicit > 0:
+            return explicit
+        intent = self._signal_intent(signal)
+        if intent == "PYRAMID_ADD":
+            return 0.4
+        if intent in {"ADD_ON", "SCALE_IN"}:
+            return 0.3
+        return 0.3
+
+    def _trade_open_r(self, trade: Trade, mark_price: float) -> float:
+        """按初始风险计算当前持仓已走出的有利 R。"""
+        risk = max(float(trade.initial_risk or 0.0), 1e-9)
+        if trade.direction == "BUY":
+            return (float(mark_price or 0.0) - float(trade.entry_price or 0.0)) / risk
+        return (float(trade.entry_price or 0.0) - float(mark_price or 0.0)) / risk
+
+    def _can_scale_winner(self, trade: Trade, signal) -> bool:
+        """只允许向盈利仓位加仓，对齐 Brooks 的 winner scaling。"""
+        if trade.direction != getattr(signal, "direction", ""):
+            return False
+        intent = self._signal_intent(signal)
+        signal_price = float(getattr(signal, "price", trade.best_price or trade.entry_price) or trade.entry_price)
+        open_r = self._trade_open_r(trade, signal_price)
+        if intent == "PYRAMID_ADD":
+            if open_r < 0.9:
+                return False
+            if trade.direction == "BUY" and trade.stop_loss + 1e-9 < trade.entry_price:
+                return False
+            if trade.direction == "SELL" and trade.stop_loss - 1e-9 > trade.entry_price:
+                return False
+            return True
+        return open_r >= 0.25
+
+    def _apply_scale_in(self, trade: Trade, signal) -> None:
+        """把同方向加仓并入现有持仓，并限制总风险不超过 1%。"""
+        if trade.direction != getattr(signal, "direction", ""):
+            return
+        requested_risk = self._signal_risk_percent(signal)
+        remaining = max(0.0, 1.0 - float(trade.risk_percent or 0.0))
+        add_risk = min(requested_risk, remaining)
+        if add_risk <= 0:
+            return
+
+        total_risk = max(float(trade.risk_percent or 0.0), 0.0) + add_risk
+        leg_entry = float(getattr(signal, "price", trade.entry_price) or trade.entry_price)
+        if total_risk > 0:
+            current_weight = max(float(trade.risk_percent or 0.0), 0.0)
+            trade.entry_price = (
+                trade.entry_price * current_weight + leg_entry * add_risk
+            ) / total_risk
+        leg_stop = float(getattr(signal, "stop_loss", trade.stop_loss) or trade.stop_loss)
+        leg_tp = float(getattr(signal, "take_profit", trade.take_profit) or trade.take_profit)
+        if trade.direction == "BUY":
+            trade.stop_loss = min(trade.stop_loss, leg_stop)
+            trade.take_profit = max(trade.take_profit, leg_tp)
+        else:
+            trade.stop_loss = max(trade.stop_loss, leg_stop)
+            trade.take_profit = min(trade.take_profit, leg_tp)
+        trade.risk_percent = total_risk
+        trade.scale_legs += 1
+        trade.initial_risk = abs(trade.entry_price - trade.stop_loss)
+        trade.intent = self._signal_intent(signal) or trade.intent
+
+    @staticmethod
+    def _should_queue_order(signal) -> bool:
+        """Brooks 回测默认按真实执行语义处理挂单确认。"""
+        entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        return bool(getattr(signal, "confirmation_needed", False)) or entry_type in {"STOP", "LIMIT"}
+
+    def _build_trade(self, signal, score: int, background: str, fill_price: float | None = None) -> Trade:
+        """从信号或挂单构建实际成交记录。"""
+        extra = getattr(signal, "extra", {}) or {}
+        entry_price = float(fill_price if fill_price is not None else (getattr(signal, "price", 0.0) or 0.0))
+        stop_loss = float(getattr(signal, "stop_loss", 0.0) or 0.0)
+        take_profit = float(getattr(signal, "take_profit", 0.0) or 0.0)
+        original_entry = float(extra.get("original_entry_price", getattr(signal, "price", entry_price)) or entry_price)
+        original_risk = abs(original_entry - stop_loss)
+        reward_multiple = 0.0
+        if original_risk > 0:
+            reward_multiple = abs(take_profit - original_entry) / original_risk
+        if fill_price is not None and reward_multiple > 0 and abs(entry_price - stop_loss) > 0:
+            if getattr(signal, "direction", "") == "BUY":
+                take_profit = entry_price + abs(entry_price - stop_loss) * reward_multiple
+            else:
+                take_profit = entry_price - abs(entry_price - stop_loss) * reward_multiple
+
+        trade = Trade(
+            symbol=signal.symbol,
+            direction=signal.direction,
+            strategy=getattr(signal, "signal_type", "unknown"),
+            entry_price=entry_price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+            entry_time=signal.timestamp,
+            score=score,
+            background=background,
+            cycle=getattr(signal, "cycle", ""),
+            timeframe=getattr(signal, "timeframe", "5m"),
+            entry_type=str(getattr(signal, "entry_type", "STOP") or "STOP").upper(),
+            entry_trigger=float(getattr(signal, "entry_trigger", entry_price) or entry_price),
+            signal_bar_high=float(getattr(signal, "signal_bar_high", 0.0) or 0.0),
+            signal_bar_low=float(getattr(signal, "signal_bar_low", 0.0) or 0.0),
+            market_state=str(extra.get("market_state", "") or ""),
+            higher_timeframe=str(extra.get("higher_timeframe", "") or ""),
+            higher_market_state=str(extra.get("higher_market_state", "") or ""),
+            follow_through=bool(extra.get("follow_through", False)),
+            higher_follow_through=bool(extra.get("higher_follow_through", False)),
+            trendline_break_confirmed=bool(extra.get("trendline_break_confirmed", False)),
+            failed_breakout_evidence=bool(extra.get("failed_breakout_evidence", False)),
+            requires_second_entry=bool(extra.get("requires_second_entry", False)),
+            acceptance_ready=bool(extra.get("acceptance_ready", False)),
+            executable_signal_ready=bool(extra.get("executable_signal_ready", False)),
+            candidate_stage=str(extra.get("candidate_stage", "") or ""),
+            nearest_support=float(extra.get("nearest_support", 0.0) or 0.0),
+            nearest_resistance=float(extra.get("nearest_resistance", 0.0) or 0.0),
+            target_path_clear=bool(extra.get("target_path_clear", True)),
+            stop_structure_ok=bool(extra.get("stop_structure_ok", True)),
+            actual_to_perfect_risk_ratio=float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0),
+            first_target_distance_r=float(extra.get("first_target_distance_r", 0.0) or 0.0),
+            blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
+            trapped_side=str(extra.get("trapped_side", "") or ""),
+            prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
+            prior_leg_bars=int(extra.get("prior_leg_bars", 0) or 0),
+            prior_leg_overlap_ratio=float(extra.get("prior_leg_overlap_ratio", 0.0) or 0.0),
+            route_style=str(extra.get("route_style", "") or ""),
+            management_style=extra.get("management_style", "default"),
+            recommended_target=float(extra.get("recommended_target", 0.0) or 0.0),
+            primary_magnet_kind=str(extra.get("primary_magnet_kind", "") or ""),
+            blocking_magnet_kind=str(extra.get("blocking_magnet_kind", "") or ""),
+            magnet_cluster_count=int(extra.get("magnet_cluster_count", 0) or 0),
+            magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
+            signal_stage=str(extra.get("signal_stage", "") or ""),
+            intent=self._signal_intent(signal),
+            risk_percent=self._signal_risk_percent(signal),
+            original_entry_price=original_entry,
+            reentry_attempt=int(extra.get("reentry_attempt", 0) or 0),
+        )
+        trade.initial_stop_loss = stop_loss
+        trade.initial_risk = abs(entry_price - stop_loss)
+        trade.best_price = entry_price
+        trade.worst_price = entry_price
+        return trade
+
+    def _build_pending_order(self, signal, score: int, background: str) -> PendingOrder:
+        """把信号转成等待成交的挂单。"""
+        extra = getattr(signal, "extra", {}) or {}
+        entry_price = float(getattr(signal, "price", 0.0) or 0.0)
+        trigger_price = float(getattr(signal, "entry_trigger", entry_price) or entry_price)
+        entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        return PendingOrder(
+            symbol=signal.symbol,
+            direction=signal.direction,
+            strategy=getattr(signal, "signal_type", "unknown"),
+            order_price=entry_price,
+            trigger_price=trigger_price,
+            stop_loss=float(getattr(signal, "stop_loss", 0.0) or 0.0),
+            take_profit=float(getattr(signal, "take_profit", 0.0) or 0.0),
+            submitted_time=signal.timestamp,
+            timeframe=getattr(signal, "timeframe", "5m"),
+            entry_type=entry_type,
+            score=score,
+            background=background,
+            cycle=getattr(signal, "cycle", ""),
+            expires_after=self._pending_window_bars(signal),
+            market_state=str(extra.get("market_state", "") or ""),
+            higher_timeframe=str(extra.get("higher_timeframe", "") or ""),
+            higher_market_state=str(extra.get("higher_market_state", "") or ""),
+            follow_through=bool(extra.get("follow_through", False)),
+            higher_follow_through=bool(extra.get("higher_follow_through", False)),
+            trendline_break_confirmed=bool(extra.get("trendline_break_confirmed", False)),
+            failed_breakout_evidence=bool(extra.get("failed_breakout_evidence", False)),
+            requires_second_entry=bool(extra.get("requires_second_entry", False)),
+            acceptance_ready=bool(extra.get("acceptance_ready", False)),
+            executable_signal_ready=bool(extra.get("executable_signal_ready", False)),
+            candidate_stage=str(extra.get("candidate_stage", "") or ""),
+            nearest_support=float(extra.get("nearest_support", 0.0) or 0.0),
+            nearest_resistance=float(extra.get("nearest_resistance", 0.0) or 0.0),
+            target_path_clear=bool(extra.get("target_path_clear", True)),
+            stop_structure_ok=bool(extra.get("stop_structure_ok", True)),
+            actual_to_perfect_risk_ratio=float(extra.get("actual_to_perfect_risk_ratio", 1.0) or 1.0),
+            first_target_distance_r=float(extra.get("first_target_distance_r", 0.0) or 0.0),
+            blocking_magnet_distance_r=float(extra.get("blocking_magnet_distance_r", 0.0) or 0.0),
+            trapped_side=str(extra.get("trapped_side", "") or ""),
+            prior_leg_context=str(extra.get("prior_leg_context", "") or ""),
+            prior_leg_bars=int(extra.get("prior_leg_bars", 0) or 0),
+            prior_leg_overlap_ratio=float(extra.get("prior_leg_overlap_ratio", 0.0) or 0.0),
+            route_style=str(extra.get("route_style", "") or ""),
+            management_style=extra.get("management_style", "default"),
+            recommended_target=float(extra.get("recommended_target", 0.0) or 0.0),
+            primary_magnet_kind=str(extra.get("primary_magnet_kind", "") or ""),
+            blocking_magnet_kind=str(extra.get("blocking_magnet_kind", "") or ""),
+            magnet_cluster_count=int(extra.get("magnet_cluster_count", 0) or 0),
+            magnet_cluster_strength=float(extra.get("magnet_cluster_strength", 0.0) or 0.0),
+            signal_stage=str(extra.get("signal_stage", "") or ""),
+            intent=self._signal_intent(signal),
+            risk_percent=self._signal_risk_percent(signal),
+            original_entry_price=float(extra.get("original_entry_price", entry_price) or entry_price),
+            reentry_attempt=int(extra.get("reentry_attempt", 0) or 0),
+            signal_bar_high=float(getattr(signal, "signal_bar_high", 0.0) or 0.0),
+            signal_bar_low=float(getattr(signal, "signal_bar_low", 0.0) or 0.0),
+            confirmation_needed=bool(getattr(signal, "confirmation_needed", False)),
+        )
+
+    @staticmethod
+    def _load_runtime_position_manager():
+        """懒加载运行时持仓管理模块，复用真实链的 premise/strength 规则。"""
+        global _RUNTIME_POSITION_MANAGER
+        if _RUNTIME_POSITION_MANAGER is not None:
+            return _RUNTIME_POSITION_MANAGER
+
+        runtime_root = Path(__file__).resolve().parents[2] / "runtime"
+        if str(runtime_root) not in sys.path:
+            sys.path.insert(0, str(runtime_root))
+        _RUNTIME_POSITION_MANAGER = import_module("position_manager")
+        return _RUNTIME_POSITION_MANAGER
+
+    @staticmethod
+    def _market_state_to_trend_label(market_state: str) -> str:
+        """把回测市场状态映射成 runtime 侧可读的趋势标签。"""
+        key = str(market_state or "")
+        if "bull" in key:
+            return "bull"
+        if "bear" in key:
+            return "bear"
+        return "neutral"
+
+    @staticmethod
+    def _market_state_to_ai_direction(current_state: str, higher_state: str, side: str) -> str:
+        """把当前/更高周期状态映射成 premise_check 可消费的方向。"""
+        for key in (higher_state, current_state):
+            if "bull" in str(key or ""):
+                return "long"
+            if "bear" in str(key or ""):
+                return "short"
+        return "long" if side == "BUY" else "short"
+
+    def _build_runtime_market_data(self, trade: Trade, market_data: dict, candle) -> tuple[dict, dict]:
+        """构造运行时持仓管理需要的 position / market_data。"""
+        timeframe_states = dict(market_data.get("timeframe_states", {}) or {})
+        timeframe_trends = dict(market_data.get("timeframes", {}) or {})
+        timeframe_recent_bars = dict(market_data.get("timeframe_recent_bars", {}) or {})
+        timeframe_sr = dict(market_data.get("timeframe_sr", {}) or {})
+        timeframe_ema = dict(market_data.get("timeframe_ema", {}) or {})
+        recent_bars = list(timeframe_recent_bars.get(trade.timeframe, market_data.get("recent_bars", [])) or [])
+        ab_sr = dict(timeframe_sr.get(trade.timeframe, market_data.get("ab_sr", {})) or {})
+        ab_ema_value = timeframe_ema.get(trade.timeframe, market_data.get("ab_ema", {}).get("ema20", 0.0))
+        ab_ema = {"ema20": float(ab_ema_value or 0.0)}
+        ab_patterns = dict(market_data.get("ab_patterns", {}) or {})
+
+        current_state = str(timeframe_states.get(trade.timeframe, trade.market_state) or trade.market_state or "")
+        higher_tf = str(trade.higher_timeframe or "")
+        higher_state = str(
+            timeframe_states.get(higher_tf, trade.higher_market_state)
+            or trade.higher_market_state
+            or ""
+        )
+        ai_direction = self._market_state_to_ai_direction(current_state, higher_state, trade.direction)
+
+        position = {
+            "symbol": trade.symbol,
+            "side": trade.direction,
+            "entry_price": trade.entry_price,
+            "entry_time": trade.entry_time,
+            "entry_market_state": trade.market_state,
+            "signal_price": trade.entry_trigger or trade.entry_price,
+            "signal_high": trade.signal_bar_high or max(trade.entry_price, trade.entry_trigger or trade.entry_price),
+            "signal_low": trade.signal_bar_low or min(trade.entry_price, trade.entry_trigger or trade.entry_price),
+            "tp1": trade.take_profit,
+        }
+        runtime_market = {
+            "current_price": float(getattr(candle, "close", 0.0) or 0.0),
+            "ai_direction": ai_direction,
+            "recent_bars": recent_bars,
+            "ab_state": {"state": current_state},
+            "ab_sr": ab_sr,
+            "ab_ema": ab_ema,
+            "ab_patterns": ab_patterns,
+            "timeframes": timeframe_trends,
+            "account_info": {"margin_ratio": 999.0, "equity": 1.0, "used_margin": 0.0},
+        }
+        return position, runtime_market
+
+    def _apply_runtime_management(self, trade: Trade, candle, market_data: dict) -> bool:
+        """复用真实链 premise/strength 规则处理持仓中的失效与弱跟进。"""
+        if trade.timeframe not in {"1m", "5m"}:
+            return False
+
+        module = self._load_runtime_position_manager()
+        position, runtime_market = self._build_runtime_market_data(trade, market_data, candle)
+        premise = module.premise_check(position, runtime_market)
+
+        if premise.get("action") == "CLOSE":
+            self._close_trade(trade, candle.close, "PREMISE", candle.timestamp)
+            return True
+
+        if premise.get("action") == "REDUCE" and trade.remaining_size > 0.5:
+            self._realize_partial(trade, candle.close, 0.5)
+
+        strength = module.strength_check(position, runtime_market)
+        strength_score = int(strength.get("strength_score", 0) or 0)
+        profit_r = self._profit_in_r(trade, candle.close)
+        scale = TF_SCALE.get(trade.timeframe, 1)
+
+        if (
+            trade.management_style == "brooks_breakout"
+            and trade.bars_held >= max(3, int(3 * scale))
+            and strength_score <= 1
+            and profit_r < 0.35
+        ):
+            self._close_trade(trade, candle.close, "FAILED_FT", candle.timestamp)
+            return True
+
+        if (
+            trade.management_style == "brooks_tr_blshs"
+            and trade.bars_held >= max(3, int(3 * scale))
+            and strength_score <= 1
+            and profit_r < 0.20
+        ):
+            self._close_trade(trade, candle.close, "WEAK_SCALP", candle.timestamp)
+            return True
+
+        return False
+
+    def _process_pending_orders(self, candle) -> None:
+        """处理当前 K 线上的挂单成交、失效与超时。"""
+        remaining_orders: list[PendingOrder] = []
+        for order in self.pending_orders:
+            if order.symbol != candle.symbol:
+                remaining_orders.append(order)
+                continue
+            order.bars_waited += 1
+            if self._pending_invalidated(order, candle):
+                continue
+            fill_price = 0.0
+            if order.entry_type == "LIMIT":
+                fill_price = self._fill_limit_order(order, candle)
+            else:
+                fill_price = self._fill_stop_order(order, candle)
+            if fill_price > 0:
+                signal_stub = type("PendingSignal", (), {})()
+                signal_stub.symbol = order.symbol
+                signal_stub.direction = order.direction
+                signal_stub.signal_type = order.strategy
+                signal_stub.price = order.order_price
+                signal_stub.stop_loss = order.stop_loss
+                signal_stub.take_profit = order.take_profit
+                signal_stub.timestamp = candle.timestamp
+                signal_stub.cycle = order.cycle
+                signal_stub.timeframe = order.timeframe
+                signal_stub.entry_type = order.entry_type
+                signal_stub.entry_trigger = order.trigger_price
+                signal_stub.signal_bar_high = order.signal_bar_high
+                signal_stub.signal_bar_low = order.signal_bar_low
+                signal_stub.intent = order.intent
+                signal_stub.risk_percent = order.risk_percent
+                signal_stub.extra = {
+                    "market_state": order.market_state,
+                    "higher_timeframe": order.higher_timeframe,
+                    "higher_market_state": order.higher_market_state,
+                    "follow_through": order.follow_through,
+                    "higher_follow_through": order.higher_follow_through,
+                    "trendline_break_confirmed": order.trendline_break_confirmed,
+                    "failed_breakout_evidence": order.failed_breakout_evidence,
+                    "requires_second_entry": order.requires_second_entry,
+                    "acceptance_ready": order.acceptance_ready,
+                    "executable_signal_ready": order.executable_signal_ready,
+                    "candidate_stage": order.candidate_stage,
+                    "nearest_support": order.nearest_support,
+                    "nearest_resistance": order.nearest_resistance,
+                    "target_path_clear": order.target_path_clear,
+                    "stop_structure_ok": order.stop_structure_ok,
+                    "actual_to_perfect_risk_ratio": order.actual_to_perfect_risk_ratio,
+                    "first_target_distance_r": order.first_target_distance_r,
+                    "blocking_magnet_distance_r": order.blocking_magnet_distance_r,
+                    "trapped_side": order.trapped_side,
+                    "prior_leg_context": order.prior_leg_context,
+                    "prior_leg_bars": order.prior_leg_bars,
+                    "prior_leg_overlap_ratio": order.prior_leg_overlap_ratio,
+                    "route_style": order.route_style,
+                    "management_style": order.management_style,
+                    "recommended_target": order.recommended_target,
+                    "primary_magnet_kind": order.primary_magnet_kind,
+                    "blocking_magnet_kind": order.blocking_magnet_kind,
+                    "magnet_cluster_count": order.magnet_cluster_count,
+                    "magnet_cluster_strength": order.magnet_cluster_strength,
+                    "original_entry_price": order.original_entry_price,
+                    "reentry_attempt": order.reentry_attempt,
+                    "risk_percent": order.risk_percent,
+                    "intent": order.intent,
+                }
+                self.open_trades.append(self._build_trade(signal_stub, order.score, order.background, fill_price))
+                self.reentry_watch.pop(order.symbol, None)
+                continue
+            if order.bars_waited >= order.expires_after:
+                continue
+            remaining_orders.append(order)
+        self.pending_orders = remaining_orders
+
+    @staticmethod
+    def _fill_stop_order(order: PendingOrder, candle) -> float:
+        """按 stop 语义检查挂单是否被触发。"""
+        if order.direction == "BUY" and candle.high >= order.trigger_price:
+            return max(order.trigger_price, float(candle.open))
+        if order.direction == "SELL" and candle.low <= order.trigger_price:
+            return min(order.trigger_price, float(candle.open))
+        return 0.0
+
+    @staticmethod
+    def _fill_limit_order(order: PendingOrder, candle) -> float:
+        """按 limit 语义检查挂单是否成交。"""
+        if order.direction == "BUY" and candle.low <= order.order_price:
+            return min(order.order_price, float(candle.open))
+        if order.direction == "SELL" and candle.high >= order.order_price:
+            return max(order.order_price, float(candle.open))
+        return 0.0
+
+    @staticmethod
+    def _pending_invalidated(order: PendingOrder, candle) -> bool:
+        """信号棒被否定后，挂单直接失效。"""
+        if order.direction == "BUY" and order.signal_bar_low > 0:
+            return float(candle.close) < order.signal_bar_low * 0.998
+        if order.direction == "SELL" and order.signal_bar_high > 0:
+            return float(candle.close) > order.signal_bar_high * 1.002
+        return False
+
+    @staticmethod
+    def _pending_window_bars(signal) -> int:
+        """不同订单类型的挂单有效期。"""
+        timeframe = str(getattr(signal, "timeframe", "5m") or "5m")
+        entry_type = str(getattr(signal, "entry_type", "STOP") or "STOP").upper()
+        management_style = str((getattr(signal, "extra", {}) or {}).get("management_style", "default") or "default")
+        if timeframe == "15m":
+            base = 2
+        elif timeframe == "1h":
+            base = 1
+        else:
+            base = 3
+        if entry_type == "LIMIT":
+            base += 2
+        if management_style == "brooks_tr_blshs":
+            base += 2
+        if bool(getattr(signal, "confirmation_needed", False)):
+            base = max(base, 2)
+        return max(1, base)
 
     def _calc_pnl(self, entry: float, exit_price: float, direction: str) -> float:
         """计算 PnL%（含双边手续费）"""
@@ -277,6 +707,8 @@ class SimExchange:
 
     def _record_close(self, trade: Trade):
         """记录平仓统计"""
+        if trade.exit_reason == "SL":
+            self._register_reentry_watch(trade)
         if trade.result == "LOSS":
             self.daily_losses[trade.symbol] = self.daily_losses.get(trade.symbol, 0) + 1
 
@@ -290,8 +722,175 @@ class SimExchange:
             self.strategy_history[strat]["losses"] += 1
         self.strategy_history[strat]["pnl"] += trade.pnl_pct
 
-    def _get_max_bars(self, strategy: str) -> int:
+    @staticmethod
+    def _update_extremes(trade: Trade, candle) -> None:
+        """更新交易期间的有利/不利极值。"""
+        if trade.direction == "BUY":
+            trade.best_price = max(trade.best_price or trade.entry_price, candle.high)
+            trade.worst_price = min(trade.worst_price or trade.entry_price, candle.low)
+        else:
+            trade.best_price = min(trade.best_price or trade.entry_price, candle.low)
+            trade.worst_price = max(trade.worst_price or trade.entry_price, candle.high)
+
+    def _check_stop_target_hits(self, trade: Trade, candle) -> tuple[float, str]:
+        """检测当前 K 线是否先触发止损或最终止盈。"""
+        allow_fixed_tp = not (
+            trade.management_style in {
+                "brooks_swing",
+                "brooks_breakout",
+                "brooks_hs_reversal",
+                "brooks_dt_db_reversal",
+                "brooks_wedge_reversal",
+            }
+            and not trade.tp2_done
+        )
+
+        if trade.direction == "BUY":
+            sl_hit = candle.low <= trade.stop_loss
+            tp_hit = allow_fixed_tp and candle.high >= trade.take_profit
+            sl_dist = abs(trade.entry_price - trade.stop_loss)
+            tp_dist = abs(trade.take_profit - trade.entry_price)
+        else:
+            sl_hit = candle.high >= trade.stop_loss
+            tp_hit = allow_fixed_tp and candle.low <= trade.take_profit
+            sl_dist = abs(trade.stop_loss - trade.entry_price)
+            tp_dist = abs(trade.entry_price - trade.take_profit)
+
+        if sl_hit and tp_hit:
+            if sl_dist <= tp_dist:
+                return trade.stop_loss, "SL"
+            return trade.take_profit, "TP"
+        if sl_hit:
+            return trade.stop_loss, "SL"
+        if tp_hit:
+            return trade.take_profit, "TP"
+        return 0.0, ""
+
+    def _apply_brooks_management(self, trade: Trade, candle) -> None:
+        """Brooks 风格持仓管理：2R/3R 分批、保护性移损与余仓 trailing。"""
+        plan = self._management_plan(trade.management_style)
+        if not plan or trade.initial_risk <= 0 or trade.remaining_size <= 0:
+            return
+
+        tp1_r = plan["tp1_r"]
+        tp2_r = plan["tp2_r"]
+        magnet_take_r = self._magnet_take_r(trade)
+        if magnet_take_r > 0 and trade.magnet_cluster_count >= 2:
+            if magnet_take_r < tp1_r:
+                tp1_r = max(0.8, magnet_take_r)
+            elif magnet_take_r < tp2_r:
+                tp2_r = max(tp1_r + 0.15, magnet_take_r)
+
+        profit_r = self._profit_in_r(trade, candle.close)
+        if not trade.tp1_done and profit_r >= tp1_r:
+            self._realize_partial(trade, self._price_at_r(trade, tp1_r), 0.50)
+            trade.tp1_done = True
+            trade.stop_loss = self._protective_stop(trade, plan["protect1_r"])
+
+        if not trade.tp2_done and profit_r >= tp2_r:
+            self._realize_partial(trade, self._price_at_r(trade, tp2_r), 0.25)
+            trade.tp2_done = True
+            trade.stop_loss = self._protective_stop(trade, plan["protect2_r"])
+
+        if trade.tp2_done and trade.remaining_size > 0:
+            trade.stop_loss = self._trail_stop(trade, plan["trail_r"], plan["protect2_r"])
+
+    @staticmethod
+    def _management_plan(management_style: str) -> dict[str, float] | None:
+        """不同 Brooks 管理模板的分批参数。"""
+        if management_style == "brooks_hs_reversal":
+            return {"tp1_r": 2.0, "tp2_r": 3.2, "protect1_r": 0.75, "protect2_r": 1.75, "trail_r": 1.1}
+        if management_style == "brooks_dt_db_reversal":
+            return {"tp1_r": 1.25, "tp2_r": 2.0, "protect1_r": 0.25, "protect2_r": 1.0, "trail_r": 0.85}
+        if management_style == "brooks_wedge_reversal":
+            return {"tp1_r": 1.0, "tp2_r": 1.8, "protect1_r": 0.2, "protect2_r": 0.9, "trail_r": 0.75}
+        if management_style == "brooks_swing":
+            return {"tp1_r": 2.0, "tp2_r": 3.0, "protect1_r": 1.0, "protect2_r": 2.0, "trail_r": 1.25}
+        if management_style == "brooks_breakout":
+            return {"tp1_r": 2.0, "tp2_r": 3.5, "protect1_r": 0.8, "protect2_r": 2.0, "trail_r": 1.4}
+        return None
+
+    def _magnet_take_r(self, trade: Trade) -> float:
+        """把最近推荐磁体换算成 R，用于多磁体簇提前部分止盈。"""
+        target = float(trade.recommended_target or 0.0)
+        if target <= 0 or trade.initial_risk <= 0:
+            return 0.0
+        distance = abs(target - trade.entry_price)
+        if distance <= 0:
+            return 0.0
+        return distance / max(trade.initial_risk, 1e-9)
+
+    def _profit_in_r(self, trade: Trade, price: float) -> float:
+        """按初始风险计算当前浮盈的 R 倍数。"""
+        risk = max(trade.initial_risk, 1e-9)
+        if trade.direction == "BUY":
+            return (price - trade.entry_price) / risk
+        return (trade.entry_price - price) / risk
+
+    def _price_at_r(self, trade: Trade, multiple: float) -> float:
+        """把 R 倍数转成具体价格。"""
+        risk = max(trade.initial_risk, 1e-9)
+        if trade.direction == "BUY":
+            return trade.entry_price + risk * multiple
+        return trade.entry_price - risk * multiple
+
+    def _protective_stop(self, trade: Trade, multiple: float) -> float:
+        """生成保护性止损位，不再过早移到保本。"""
+        target = self._price_at_r(trade, multiple)
+        if trade.direction == "BUY":
+            return max(trade.stop_loss, target)
+        return min(trade.stop_loss, target)
+
+    def _trail_stop(self, trade: Trade, trail_multiple: float, floor_multiple: float) -> float:
+        """余仓使用有利方向极值做 trailing。"""
+        risk = max(trade.initial_risk, 1e-9)
+        floor_price = self._price_at_r(trade, floor_multiple)
+        if trade.direction == "BUY":
+            candidate = max(floor_price, trade.best_price - risk * trail_multiple)
+            return max(trade.stop_loss, candidate)
+        candidate = min(floor_price, trade.best_price + risk * trail_multiple)
+        return min(trade.stop_loss, candidate)
+
+    def _realize_partial(self, trade: Trade, exit_price: float, size_fraction: float) -> None:
+        """按固定比例做部分止盈。"""
+        size = min(max(size_fraction, 0.0), trade.remaining_size)
+        if size <= 0:
+            return
+        trade.realized_pnl_pct += self._calc_pnl(trade.entry_price, exit_price, trade.direction) * size
+        trade.remaining_size = max(0.0, trade.remaining_size - size)
+
+    def _close_trade(self, trade: Trade, exit_price: float, reason: str, exit_time) -> None:
+        """把剩余仓位全部平掉并结算净收益。"""
+        if trade.remaining_size > 0:
+            remaining_pnl = self._calc_pnl(trade.entry_price, exit_price, trade.direction)
+            trade.realized_pnl_pct += remaining_pnl * trade.remaining_size
+            trade.remaining_size = 0.0
+        trade.exit_price = exit_price
+        trade.pnl_pct = trade.realized_pnl_pct
+        trade.exit_time = exit_time
+        trade.exit_reason = reason
+        if trade.pnl_pct > 0.05:
+            trade.result = "WIN"
+        elif trade.pnl_pct < -0.05:
+            trade.result = "LOSS"
+        else:
+            trade.result = "SCRATCH"
+
+    def _get_max_bars(self, trade: Trade) -> int:
         """根据策略类型返回最大持仓K线数"""
+        strategy = trade.strategy
+        if trade.management_style == "brooks_swing":
+            return max(self.max_holding_bars, 96)
+        if trade.management_style == "brooks_hs_reversal":
+            return max(self.max_holding_bars, 84)
+        if trade.management_style == "brooks_dt_db_reversal":
+            return max(self.max_holding_bars, 56)
+        if trade.management_style == "brooks_wedge_reversal":
+            return max(self.max_holding_bars, 48)
+        if trade.management_style == "brooks_breakout":
+            return max(self.max_holding_bars, 60)
+        if trade.management_style == "brooks_tr_blshs":
+            return 24
         rush_strats = {"收线追进"}
         reversal_strats = {"双重顶", "双重底", "楔形顶", "楔形底",
                            "急速通道", "末端旗形"}
@@ -300,6 +899,96 @@ class SimExchange:
         elif strategy in reversal_strats:
             return 72  # 6h（反转需更多时间）
         return self.max_holding_bars  # 默认 48（4h）
+
+    @staticmethod
+    def _breakeven_trigger(management_style: str) -> float:
+        """不同管理模板的保本触发倍数。"""
+        if management_style == "brooks_hs_reversal":
+            return 0.8
+        if management_style in {"brooks_dt_db_reversal", "brooks_wedge_reversal", "brooks_tr_blshs"}:
+            return 0.6
+        if management_style in {"brooks_swing", "brooks_breakout"}:
+            return 1.0
+        return 0.7
+
+    @staticmethod
+    def _scalp_exit_enabled(management_style: str) -> bool:
+        """Brooks swing / reversal / breakout 默认让利润跑，不做过早 scalp。"""
+        return management_style not in {
+            "brooks_swing",
+            "brooks_breakout",
+            "brooks_hs_reversal",
+            "brooks_dt_db_reversal",
+            "brooks_wedge_reversal",
+        }
+
+    def match_reentry(self, signal) -> dict | None:
+        """检查当前信号是否满足同方向重入条件。"""
+        watch = self.reentry_watch.get(signal.symbol)
+        if not watch:
+            return None
+        if str(getattr(signal, "direction", "") or "") != str(watch.get("direction", "") or ""):
+            return None
+        if str(getattr(signal, "timeframe", "") or "") != str(watch.get("timeframe", "") or ""):
+            return None
+        extra = dict(getattr(signal, "extra", {}) or {})
+        market_state = str(extra.get("market_state", "") or "")
+        if not self._same_market_state_family(market_state, str(watch.get("market_state", "") or "")):
+            return None
+        return watch
+
+    @staticmethod
+    def _same_market_state_family(current: str, previous: str) -> bool:
+        """强/弱同向趋势和宽/紧区间允许视作同一前提族。"""
+        if not current or not previous or current == previous:
+            return True
+        bull_family = {"strong_trend_bull", "weak_trend_bull"}
+        bear_family = {"strong_trend_bear", "weak_trend_bear"}
+        range_family = {"tight_range", "broad_range"}
+        return (
+            (current in bull_family and previous in bull_family)
+            or (current in bear_family and previous in bear_family)
+            or (current in range_family and previous in range_family)
+        )
+
+    def _register_reentry_watch(self, trade: Trade) -> None:
+        """止损后保留一次有限时间的同方向重入观察窗口。"""
+        if trade.reentry_attempt >= 1:
+            self.reentry_watch.pop(trade.symbol, None)
+            return
+        if trade.management_style not in {
+            "brooks_swing",
+            "brooks_hs_reversal",
+            "brooks_dt_db_reversal",
+            "brooks_wedge_reversal",
+            "brooks_tr_blshs",
+        }:
+            return
+        self.reentry_watch[trade.symbol] = {
+            "direction": trade.direction,
+            "timeframe": trade.timeframe,
+            "market_state": trade.market_state,
+            "bars_remaining": self._reentry_window_bars(trade.timeframe),
+            "next_attempt": trade.reentry_attempt + 1,
+        }
+
+    def _decay_reentry_watch(self, symbol: str) -> None:
+        """每根 K 线推进一次重入窗口。"""
+        watch = self.reentry_watch.get(symbol)
+        if not watch:
+            return
+        watch["bars_remaining"] = int(watch.get("bars_remaining", 0) or 0) - 1
+        if watch["bars_remaining"] <= 0:
+            self.reentry_watch.pop(symbol, None)
+
+    @staticmethod
+    def _reentry_window_bars(timeframe: str) -> int:
+        """对齐 patrol-l1 的重入观察窗口。"""
+        if timeframe == "15m":
+            return 3
+        if timeframe == "1h":
+            return 2
+        return 5
 
     def has_position(self, symbol: str) -> bool:
         """检查是否有持仓"""

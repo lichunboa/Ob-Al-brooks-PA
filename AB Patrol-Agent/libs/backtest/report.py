@@ -4,7 +4,46 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any
+
+
+def build_group_stats(trades: list[Any], key_getter) -> dict:
+    """按指定维度构造分组统计。"""
+    grouped: dict[str, dict[str, float | int]] = {}
+    for trade in trades:
+        key = str(key_getter(trade) or "UNKNOWN")
+        bucket = grouped.setdefault(
+            key,
+            {
+                "trades": 0,
+                "wins": 0,
+                "losses": 0,
+                "scratches": 0,
+                "pnl": 0.0,
+                "gross_profit": 0.0,
+                "gross_loss": 0.0,
+            },
+        )
+        bucket["trades"] += 1
+        bucket["pnl"] += trade.pnl_pct
+        if trade.result == "WIN":
+            bucket["wins"] += 1
+            bucket["gross_profit"] += max(0.0, float(trade.pnl_pct))
+        elif trade.result == "LOSS":
+            bucket["losses"] += 1
+            bucket["gross_loss"] += abs(min(0.0, float(trade.pnl_pct)))
+        else:
+            bucket["scratches"] += 1
+
+    for bucket in grouped.values():
+        trades_count = int(bucket["trades"])
+        wins = int(bucket["wins"])
+        gross_profit = float(bucket["gross_profit"])
+        gross_loss = float(bucket["gross_loss"])
+        bucket["win_rate"] = wins / trades_count * 100 if trades_count else 0.0
+        bucket["profit_factor"] = gross_profit / gross_loss if gross_loss > 0 else (999.0 if gross_profit > 0 else 0.0)
+
+    return grouped
 
 
 @dataclass
@@ -23,6 +62,11 @@ class BacktestResult:
     worst_trade: float = 0.0
     max_drawdown: float = 0.0
     profit_factor: float = 0.0
+    initial_capital: float = 10000.0
+    ending_equity: float = 10000.0
+    account_return_pct: float = 0.0
+    account_max_drawdown: float = 0.0
+    account_total_pnl_amount: float = 0.0
 
     # 信号统计
     signals_generated: int = 0
@@ -30,6 +74,8 @@ class BacktestResult:
     signals_blocked_bg: int = 0
     signals_blocked_score: int = 0
     signals_blocked_rr: int = 0
+    signals_blocked_strategy: int = 0
+    signals_blocked_route: int = 0
 
     # 配置
     threshold: int = 80
@@ -48,12 +94,24 @@ class BacktestResult:
     def from_exchange(cls, exchange, symbol: str, threshold: int = 80,
                       signals_generated: int = 0, signals_passed: int = 0,
                       signals_blocked_bg: int = 0, signals_blocked_score: int = 0,
-                      signals_blocked_rr: int = 0, days: int = 0) -> "BacktestResult":
+                      signals_blocked_rr: int = 0, signals_blocked_strategy: int = 0,
+                      signals_blocked_route: int = 0,
+                      days: int = 0,
+                      initial_capital: float = 10000.0) -> "BacktestResult":
         """从 SimExchange 生成结果"""
-        trades = exchange.closed_trades
+        trades = sorted(
+            exchange.closed_trades,
+            key=lambda trade: (str(trade.exit_time or ""), str(trade.entry_time or "")),
+        )
         if not trades:
-            return cls(symbol=symbol, threshold=threshold, days=days,
-                       signals_generated=signals_generated)
+            return cls(
+                symbol=symbol,
+                threshold=threshold,
+                days=days,
+                signals_generated=signals_generated,
+                initial_capital=initial_capital,
+                ending_equity=initial_capital,
+            )
 
         wins = [t for t in trades if t.result == "WIN"]
         losses = [t for t in trades if t.result == "LOSS"]
@@ -62,7 +120,7 @@ class BacktestResult:
         total_pnl = sum(t.pnl_pct for t in trades)
         win_rate = len(wins) / len(trades) * 100 if trades else 0
 
-        # 最大回撤
+        # 价格口径最大回撤
         equity_curve = []
         running = 0.0
         peak = 0.0
@@ -81,21 +139,44 @@ class BacktestResult:
         gross_loss = abs(sum(t.pnl_pct for t in losses)) if losses else 0
         profit_factor = gross_profit / gross_loss if gross_loss > 0 else float("inf") if gross_profit > 0 else 0
 
-        # 按维度分组
-        by_strategy = {}
-        by_background = {}
-        by_direction = {}
-        by_exit_reason = {}
+        # 账户口径权益曲线
+        equity = float(initial_capital or 0.0)
+        peak_equity = equity
+        account_max_dd = 0.0
+        for trade in trades:
+            price_risk_pct = (
+                abs(float(trade.initial_risk or 0.0)) / float(trade.entry_price or 1.0) * 100
+                if float(trade.entry_price or 0.0) > 0
+                else 0.0
+            )
+            risk_percent = max(float(trade.risk_percent or 0.0), 0.0)
+            trade.equity_before = equity
+            trade.risk_amount = equity * risk_percent / 100
+            trade.position_size_estimate = (
+                trade.risk_amount / abs(float(trade.initial_risk or 0.0))
+                if abs(float(trade.initial_risk or 0.0)) > 0
+                else 0.0
+            )
+            trade.position_notional_estimate = trade.position_size_estimate * float(trade.entry_price or 0.0)
+            trade.r_multiple = float(trade.pnl_pct or 0.0) / price_risk_pct if price_risk_pct > 0 else 0.0
+            trade.account_pnl_pct = trade.r_multiple * risk_percent
+            trade.account_pnl_amount = equity * trade.account_pnl_pct / 100
+            equity += trade.account_pnl_amount
+            trade.equity_after = equity
+            if equity > peak_equity:
+                peak_equity = equity
+            drawdown_pct = (peak_equity - equity) / peak_equity * 100 if peak_equity > 0 else 0.0
+            if drawdown_pct > account_max_dd:
+                account_max_dd = drawdown_pct
 
-        for t in trades:
-            for group, key in [(by_strategy, t.strategy), (by_background, t.background),
-                               (by_direction, t.direction), (by_exit_reason, t.exit_reason)]:
-                if key not in group:
-                    group[key] = {"trades": 0, "wins": 0, "pnl": 0.0}
-                group[key]["trades"] += 1
-                if t.result == "WIN":
-                    group[key]["wins"] += 1
-                group[key]["pnl"] += t.pnl_pct
+        account_total_pnl_amount = equity - initial_capital
+        account_return_pct = account_total_pnl_amount / initial_capital * 100 if initial_capital > 0 else 0.0
+
+        # 按维度分组
+        by_strategy = build_group_stats(trades, lambda trade: trade.strategy)
+        by_background = build_group_stats(trades, lambda trade: trade.background)
+        by_direction = build_group_stats(trades, lambda trade: trade.direction)
+        by_exit_reason = build_group_stats(trades, lambda trade: trade.exit_reason)
 
         return cls(
             symbol=symbol,
@@ -111,11 +192,18 @@ class BacktestResult:
             worst_trade=min(t.pnl_pct for t in trades),
             max_drawdown=max_dd,
             profit_factor=profit_factor,
+            initial_capital=initial_capital,
+            ending_equity=equity,
+            account_return_pct=account_return_pct,
+            account_max_drawdown=account_max_dd,
+            account_total_pnl_amount=account_total_pnl_amount,
             signals_generated=signals_generated,
             signals_passed=signals_passed,
             signals_blocked_bg=signals_blocked_bg,
             signals_blocked_score=signals_blocked_score,
             signals_blocked_rr=signals_blocked_rr,
+            signals_blocked_strategy=signals_blocked_strategy,
+            signals_blocked_route=signals_blocked_route,
             threshold=threshold,
             days=days,
             by_strategy=by_strategy,
@@ -128,6 +216,44 @@ class BacktestResult:
                 "pnl_pct": round(t.pnl_pct, 4), "result": t.result,
                 "score": t.score, "background": t.background,
                 "exit_reason": t.exit_reason, "bars_held": t.bars_held,
+                "entry_type": t.entry_type,
+                "entry_trigger": t.entry_trigger,
+                "signal_bar_high": t.signal_bar_high,
+                "signal_bar_low": t.signal_bar_low,
+                "market_state": t.market_state,
+                "higher_timeframe": t.higher_timeframe,
+                "higher_market_state": t.higher_market_state,
+                "follow_through": t.follow_through,
+                "higher_follow_through": t.higher_follow_through,
+                "trendline_break_confirmed": t.trendline_break_confirmed,
+                "failed_breakout_evidence": t.failed_breakout_evidence,
+                "requires_second_entry": t.requires_second_entry,
+                "acceptance_ready": t.acceptance_ready,
+                "executable_signal_ready": t.executable_signal_ready,
+                "candidate_stage": t.candidate_stage,
+                "nearest_support": t.nearest_support,
+                "nearest_resistance": t.nearest_resistance,
+                "target_path_clear": t.target_path_clear,
+                "stop_structure_ok": t.stop_structure_ok,
+                "actual_to_perfect_risk_ratio": round(t.actual_to_perfect_risk_ratio, 4),
+                "first_target_distance_r": round(t.first_target_distance_r, 4),
+                "blocking_magnet_distance_r": round(t.blocking_magnet_distance_r, 4),
+                "trapped_side": t.trapped_side,
+                "prior_leg_context": t.prior_leg_context,
+                "prior_leg_bars": t.prior_leg_bars,
+                "prior_leg_overlap_ratio": round(t.prior_leg_overlap_ratio, 4),
+                "management_style": t.management_style, "route_style": t.route_style,
+                "reentry_attempt": t.reentry_attempt,
+                "risk_percent": round(t.risk_percent, 4),
+                "initial_risk": round(t.initial_risk, 6),
+                "r_multiple": round(t.r_multiple, 4),
+                "account_pnl_pct": round(t.account_pnl_pct, 4),
+                "account_pnl_amount": round(t.account_pnl_amount, 4),
+                "equity_before": round(t.equity_before, 4),
+                "equity_after": round(t.equity_after, 4),
+                "risk_amount": round(t.risk_amount, 4),
+                "position_size_estimate": round(t.position_size_estimate, 8),
+                "position_notional_estimate": round(t.position_notional_estimate, 4),
                 "entry_time": str(t.entry_time), "exit_time": str(t.exit_time),
             } for t in trades],
         )
@@ -143,15 +269,17 @@ class BacktestResult:
             print(f"  信号生成: {self.signals_generated}")
             return
 
-        print(f"\n  === 信号统计 ===")
+        print("\n  === 信号统计 ===")
         print(f"  信号生成: {self.signals_generated}")
         print(f"  信号通过: {self.signals_passed}")
         print(f"  背景拦截: {self.signals_blocked_bg}")
         print(f"  评分拦截: {self.signals_blocked_score}")
         print(f"  盈亏比拦截: {self.signals_blocked_rr}")
+        print(f"  策略过滤拦截: {self.signals_blocked_strategy}")
+        print(f"  路由拦截: {self.signals_blocked_route}")
         print(f"  评分阈值: {self.threshold}")
 
-        print(f"\n  === 交易统计 ===")
+        print("\n  === 交易统计 ===")
         print(f"  总交易: {self.total_trades}")
         print(f"  胜: {self.wins} | 负: {self.losses} | 平: {self.scratches}")
         print(f"  胜率: {self.win_rate:.1f}%")
@@ -161,30 +289,40 @@ class BacktestResult:
         print(f"  最佳: +{self.best_trade:.2f}% | 最差: {self.worst_trade:.2f}%")
         print(f"  最大回撤: {self.max_drawdown:.2f}%")
         print(f"  盈亏因子: {self.profit_factor:.2f}")
+        print(f"  初始资金: ${self.initial_capital:,.2f} | 期末权益: ${self.ending_equity:,.2f}")
+        print(f"  账户收益: {self.account_return_pct:+.2f}% | 账户最大回撤: {self.account_max_drawdown:.2f}%")
 
         if self.by_direction:
-            print(f"\n  === 按方向 ===")
+            print("\n  === 按方向 ===")
             for d, s in self.by_direction.items():
-                wr = s["wins"] / s["trades"] * 100 if s["trades"] > 0 else 0
-                print(f"  {d}: {s['trades']}笔 | 胜率{wr:.0f}% | PnL {s['pnl']:+.2f}%")
+                print(
+                    f"  {d}: {s['trades']}笔 | 胜率{s['win_rate']:.0f}% | "
+                    f"PF {s['profit_factor']:.2f} | PnL {s['pnl']:+.2f}%"
+                )
 
         if self.by_background:
-            print(f"\n  === 按背景 ===")
+            print("\n  === 按背景 ===")
             for bg, s in sorted(self.by_background.items()):
-                wr = s["wins"] / s["trades"] * 100 if s["trades"] > 0 else 0
-                print(f"  {bg}: {s['trades']}笔 | 胜率{wr:.0f}% | PnL {s['pnl']:+.2f}%")
+                print(
+                    f"  {bg}: {s['trades']}笔 | 胜率{s['win_rate']:.0f}% | "
+                    f"PF {s['profit_factor']:.2f} | PnL {s['pnl']:+.2f}%"
+                )
 
         if self.by_strategy:
-            print(f"\n  === 按策略 ===")
+            print("\n  === 按策略 ===")
             for strat, s in sorted(self.by_strategy.items(), key=lambda x: x[1]["pnl"], reverse=True):
-                wr = s["wins"] / s["trades"] * 100 if s["trades"] > 0 else 0
-                print(f"  {strat}: {s['trades']}笔 | 胜率{wr:.0f}% | PnL {s['pnl']:+.2f}%")
+                print(
+                    f"  {strat}: {s['trades']}笔 | 胜率{s['win_rate']:.0f}% | "
+                    f"PF {s['profit_factor']:.2f} | PnL {s['pnl']:+.2f}%"
+                )
 
         if self.by_exit_reason:
-            print(f"\n  === 按平仓原因 ===")
+            print("\n  === 按平仓原因 ===")
             for reason, s in self.by_exit_reason.items():
-                wr = s["wins"] / s["trades"] * 100 if s["trades"] > 0 else 0
-                print(f"  {reason}: {s['trades']}笔 | 胜率{wr:.0f}% | PnL {s['pnl']:+.2f}%")
+                print(
+                    f"  {reason}: {s['trades']}笔 | 胜率{s['win_rate']:.0f}% | "
+                    f"PF {s['profit_factor']:.2f} | PnL {s['pnl']:+.2f}%"
+                )
 
         print(f"\n{'='*60}")
 
@@ -206,6 +344,11 @@ class BacktestResult:
                 "worst_trade": round(self.worst_trade, 4),
                 "max_drawdown": round(self.max_drawdown, 4),
                 "profit_factor": round(self.profit_factor, 2),
+                "initial_capital": round(self.initial_capital, 4),
+                "ending_equity": round(self.ending_equity, 4),
+                "account_return_pct": round(self.account_return_pct, 4),
+                "account_max_drawdown": round(self.account_max_drawdown, 4),
+                "account_total_pnl_amount": round(self.account_total_pnl_amount, 4),
             },
             "signals": {
                 "generated": self.signals_generated,
@@ -213,6 +356,8 @@ class BacktestResult:
                 "blocked_bg": self.signals_blocked_bg,
                 "blocked_score": self.signals_blocked_score,
                 "blocked_rr": self.signals_blocked_rr,
+                "blocked_strategy": self.signals_blocked_strategy,
+                "blocked_route": self.signals_blocked_route,
             },
             "by_strategy": self.by_strategy,
             "by_background": self.by_background,

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -83,7 +82,7 @@ class Trade:
     stop_loss: float
     take_profit: float
     entry_time: datetime
-    exit_time: Optional[datetime] = None
+    exit_time: datetime | None = None
     exit_price: float = 0.0
     pnl_pct: float = 0.0
     result: str = ""
@@ -93,3 +92,116 @@ class Trade:
     exit_reason: str = ""
     timeframe: str = "5m"
     bars_held: int = 0
+    entry_type: str = "STOP"
+    entry_trigger: float = 0.0
+    signal_bar_high: float = 0.0
+    signal_bar_low: float = 0.0
+    market_state: str = ""
+    higher_timeframe: str = ""
+    higher_market_state: str = ""
+    follow_through: bool = False
+    higher_follow_through: bool = False
+    trendline_break_confirmed: bool = False
+    failed_breakout_evidence: bool = False
+    requires_second_entry: bool = False
+    acceptance_ready: bool = False
+    executable_signal_ready: bool = False
+    candidate_stage: str = ""
+    nearest_support: float = 0.0
+    nearest_resistance: float = 0.0
+    target_path_clear: bool = True
+    stop_structure_ok: bool = True
+    actual_to_perfect_risk_ratio: float = 1.0
+    first_target_distance_r: float = 0.0
+    blocking_magnet_distance_r: float = 0.0
+    trapped_side: str = ""
+    prior_leg_context: str = ""
+    prior_leg_bars: int = 0
+    prior_leg_overlap_ratio: float = 0.0
+    route_style: str = ""
+    management_style: str = "default"
+    recommended_target: float = 0.0
+    primary_magnet_kind: str = ""
+    blocking_magnet_kind: str = ""
+    magnet_cluster_count: int = 0
+    magnet_cluster_strength: float = 0.0
+    signal_stage: str = ""
+    intent: str = ""
+    risk_percent: float = 0.0
+    scale_legs: int = 1
+    initial_stop_loss: float = 0.0
+    initial_risk: float = 0.0
+    original_entry_price: float = 0.0
+    reentry_attempt: int = 0
+    remaining_size: float = 1.0
+    realized_pnl_pct: float = 0.0
+    r_multiple: float = 0.0
+    account_pnl_pct: float = 0.0
+    account_pnl_amount: float = 0.0
+    equity_before: float = 0.0
+    equity_after: float = 0.0
+    risk_amount: float = 0.0
+    position_size_estimate: float = 0.0
+    position_notional_estimate: float = 0.0
+    tp1_done: bool = False
+    tp2_done: bool = False
+    best_price: float = 0.0
+    worst_price: float = 0.0
+
+
+@dataclass
+class PendingOrder:
+    """回测挂单。"""
+
+    symbol: str
+    direction: str
+    strategy: str
+    order_price: float
+    trigger_price: float
+    stop_loss: float
+    take_profit: float
+    submitted_time: datetime
+    timeframe: str = "5m"
+    entry_type: str = "STOP"
+    score: int = 0
+    background: str = ""
+    cycle: str = ""
+    bars_waited: int = 0
+    expires_after: int = 0
+    market_state: str = ""
+    higher_timeframe: str = ""
+    higher_market_state: str = ""
+    follow_through: bool = False
+    higher_follow_through: bool = False
+    trendline_break_confirmed: bool = False
+    failed_breakout_evidence: bool = False
+    requires_second_entry: bool = False
+    acceptance_ready: bool = False
+    executable_signal_ready: bool = False
+    candidate_stage: str = ""
+    nearest_support: float = 0.0
+    nearest_resistance: float = 0.0
+    target_path_clear: bool = True
+    stop_structure_ok: bool = True
+    actual_to_perfect_risk_ratio: float = 1.0
+    first_target_distance_r: float = 0.0
+    blocking_magnet_distance_r: float = 0.0
+    trapped_side: str = ""
+    prior_leg_context: str = ""
+    prior_leg_bars: int = 0
+    prior_leg_overlap_ratio: float = 0.0
+    route_style: str = ""
+    management_style: str = "default"
+    recommended_target: float = 0.0
+    primary_magnet_kind: str = ""
+    blocking_magnet_kind: str = ""
+    magnet_cluster_count: int = 0
+    magnet_cluster_strength: float = 0.0
+    signal_stage: str = ""
+    intent: str = ""
+    risk_percent: float = 0.0
+    original_entry_price: float = 0.0
+    reentry_attempt: int = 0
+    signal_bar_high: float = 0.0
+    signal_bar_low: float = 0.0
+    confirmation_needed: bool = False
