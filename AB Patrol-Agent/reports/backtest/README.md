@@ -17,6 +17,37 @@
   - `低2 + STOP + prior_leg_context=tr_second_leg + blocking_magnet_distance_r<0.35 + target_path_clear=false`
   - 在 `all4_5m_low2_v15_account.json` 的样本里是 `4 笔全亏，0 笔盈利`
   - 这对应 Brooks 在 `47B / 47C / 18E` 里的组合问题：`TR 里的 second-leg trap + 近端磁体 + 缺少 failed breakout`
+- `v17` 的新结论同样重要：不能把“signal bar 看起来不错”直接当成放宽 first reversal 的理由。
+  - 这轮把 `failed breakout + signal bar` 证据接进了结构上下文，但一旦用它去**放宽** `楔形底 / 头肩底MTR / H2-L2`，整体结果反而变差。
+  - 这更符合 Brooks 原课的重点：`context first, signal second`。强 signal 只能在好 context 里加分，不能单独替代上下文。
+- `v18` 的新结论是：当前交易频率低，首先不是“策略没开全”，而是 `TR mid-range` 路由本来就在主动挡单。
+  - 四币 `5m` 的主阻塞项高度一致：
+    - `交易区间里必须在边缘反做`
+    - `交易区间中部不做单`
+    - `15m 为 TR，5m 只做边缘 BLSHS 或明确反转`
+  - 这说明当前低频主要来自 Brooks 的上下文过滤，不是简单漏掉了某个 setup。
+  - 真正像工程实现偏差的拦截，主要在入场层：
+    - `止损没有放到结构位外`
+    - `5m 高2 止损过紧`
+    - `5m 底部反转前方阻力过近`
+- `v23/v24` 的新结论是：`TR2 Failed BO Fade` 不能退化成 `TR1 BLSHS`。
+  - `v23` 把 `看衰突破` 扩成 Brooks `1-3 根失败突破` 后，`BTC 5m` 显著变好，但 `BNB/ETH` 被坏样本拖累。
+  - 交易级审计显示，坏样本普遍缺少：
+    - `failed_breakout_evidence`
+    - `trapped_side`
+    - 足够的 rejection tail
+  - 更严重的是，部分 `看衰突破` 被错误走成 `LIMIT + tr_blshs_limit`，这已经不是 `47C / 15F / S6-tr` 的 `TR2`。
+  - `v24` 把这层偏离收回来后，`BTC` 改进被保住，`SOL` 部分恢复，`BNB` 也比 `v23` 好一些，但相对 `v18` 仍不是全局净提升，所以暂不升级基线。
+- `v25` 的新结论是：统一的 `structure stop` 后处理只能小幅纠偏，不能代替 playbook 专属止损模板。
+  - 这轮把结构止损对齐直接接进真实 PA 引擎，回测链自动复用。
+  - 结果是：`BTC/BNB` 的 `止损没有放到结构位外` 拦截略有下降，但总交易数几乎不变。
+  - 说明 `S5` 的核心问题不是“再加一层统一 stop”，而是：
+    - `H2/L2`
+    - `TR2/TR3`
+    - `R1/R2/R3`
+    - `T6`
+    的止损模板仍未真正分开。
+  - 因此这轮只保留代码作为安全纠偏，不把 `v25` 升级为新基线。
 
 ## 回测注意事项
 
@@ -210,6 +241,91 @@
     - `ETHUSDT 5m`: `PF 1.34 -> 1.77`，账户亏损 `-0.18% -> -0.15%`
     - `BNBUSDT 5m`: 基本持平
   - 结论：这条规则对 `BTC / SOL` 有显著正效应，对 `ETH` 有轻微改善，对 `BNB` 影响不大，属于可保留的结构约束
+- `all4_5m_global_brooks_v17_signalbar.json`
+  - 新增 `signal_bar_quality / signal_bar_tail_ratio / signal_bar_close_position / reclaimed_prior_close / broke_micro_extreme`
+  - 目的：把 Brooks 的 `signal bar` 质量和 `tails are failed breakouts` 真正写进交易级审计
+  - 这轮实验尝试把这些字段直接用于放宽 `楔形底 / 头肩底MTR / H2-L2` 的 first reversal 入场
+  - 对比 `v16`：
+    - `BTCUSDT 5m`: 交易 `10 -> 11`，`PF 4.84 -> 3.56`，账户收益 `+0.71% -> +0.60%`
+    - `SOLUSDT 5m`: 交易 `17 -> 18`，`PF 2.89 -> 2.49`
+    - `ETHUSDT 5m`: `PF 1.77 -> 1.01`，账户收益 `-0.15% -> -0.26%`
+    - `BNBUSDT 5m`: `PF 1.27 -> 1.15`
+  - 结论：**这是失败实验，只保留审计字段，不保留放宽逻辑**。Brooks 的 signal bar 只能辅助确认，不能脱离 context 单独放宽底部反转。
+- `all4_5m_global_brooks_v18_reason_audit.json`
+  - 新增 `route_block_reasons / entry_block_reasons`
+  - 目的：确认当前低频到底来自“缺策略”还是“Brooks 路由本来就在挡”
+  - 结论：
+    - 低频的主因确实是 `TR` 路由，而不是策略白名单
+    - 四币都没有启用策略过滤，`strategy_whitelist/blacklist` 为空
+    - 但回测里真正大量放行的 setup 仍集中在 `高2 / 低2 / MTR / DT/DB` 这些更常见结构上
+- `all4_5m_global_brooks_v19_limit_stopfix.json`
+  - 失败实验：尝试把 `tr_blshs_limit` 的止损自动外扩到结构位外
+  - 结果：
+    - `BTCUSDT 5m`: 交易 `10 -> 13`，PF 维持 `4.84`
+    - `ETHUSDT 5m`: 交易 `8 -> 9`，PF `1.77 -> 1.49`
+    - `BNBUSDT 5m`: 交易 `14 -> 16`，PF `1.27 -> 0.49`
+    - `SOLUSDT 5m`: 交易 `17 -> 15`，PF 维持 `2.89`
+  - 结论：单纯把 stop 放宽虽然能提升机会，但会明显打坏 `ETH/BNB`，所以**不保留这条逻辑**。
+- `all4_5m_global_brooks_v21_playbook_route.json`
+  - 新增 `playbook_id / playbook_family / order_bias` 审计字段，把候选单显式映射到 `TR / Channel / Trend / Reversal` 的 Brooks playbook
+  - 同时把 `15m=TR` 时原来那条过于绝对的“只做边缘 BLSHS”改写成更细的：
+    - `15m 为 TR，中部腿不做顺势追单`
+    - `15m 为 TR，5m 顺势恢复已离开有利半区`
+    - `15m 为 TR，5m H1/L1 只在边缘第一腿做`
+  - 结果：
+    - `BTCUSDT 5m`: 交易 `10`，胜率 `60.0%`，日均 `0.24`，`PF 4.84`，账户收益 `+0.71%`
+    - `SOLUSDT 5m`: 交易 `17`，胜率 `29.4%`，日均 `0.40`，`PF 2.89`，账户收益 `+0.56%`
+    - `ETHUSDT 5m`: 交易 `8`，胜率 `12.5%`，日均 `0.19`，`PF 1.77`，账户收益 `-0.15%`
+    - `BNBUSDT 5m`: 交易 `15`，胜率 `26.7%`，日均 `0.36`，`PF 1.14`，账户收益 `-0.24%`
+  - 结论：这轮最大的价值是**把 Brooks 路由逻辑理顺并可审计**，但净收益上没有超越 `v18`，所以它是“框架修正”，不是“性能提升版”。
+- `all4_5m_global_brooks_v22_structural_stop.json`
+  - 在 `v21` 基础上，把真实引擎里的 `H2/L2 / 20均线缺口 / 第一均线缺口` 止损改成更接近 Brooks 的结构止损
+  - 目标：减少 `止损没有放到结构位外 / 高2止损过紧` 这类假性流失
+  - 结果：
+    - `BTCUSDT 5m`: 交易 `9`，胜率 `66.7%`，日均 `0.21`，`PF 7.70`，账户收益 `+0.72%`
+    - `SOLUSDT 5m`: 交易 `17`，胜率 `29.4%`，日均 `0.40`，`PF 2.64`，账户收益 `+0.52%`
+    - `BNBUSDT 5m`: 交易 `18`，胜率 `22.2%`，日均 `0.43`，`PF 0.86`，账户收益 `-0.44%`
+    - `ETHUSDT 5m`: 交易 `7`，胜率 `0.0%`，日均 `0.17`，`PF 0.00`，账户收益 `-0.27%`
+  - 结论：**结构止损不能一刀切外扩**。它明显改善了 `BTC`，但会伤害 `ETH/BNB`，所以当前不作为新的全局基线。
+- `all4_5m_global_brooks_v23_failedbo.json`
+  - 把 `看衰突破` 扩成 Brooks `1-3 根失败突破`
+  - 结果：
+    - `BTCUSDT 5m`: 胜率 `70.0%`，日均 `0.24`，`PF 10.03`，账户收益 `+0.93%`
+    - `SOLUSDT 5m`: 胜率 `31.2%`，日均 `0.38`，`PF 2.52`，账户收益 `+0.50%`
+    - `BNBUSDT 5m`: 胜率 `20.0%`，日均 `0.48`，`PF 0.86`，账户收益 `-0.48%`
+    - `ETHUSDT 5m`: 胜率 `12.5%`，日均 `0.19`，`PF 0.27`，账户收益 `-0.15%`
+  - 结论：`BTC` 明显改善，但 `BNB/ETH` 被错误放宽的失败突破样本打坏，不能升级为新基线。
+- `failed_bo_context_v23.json`
+  - `看衰突破` 的交易级审计
+  - 结论：
+    - 唯一明确盈利样本同时具备 `failed_breakout_evidence=true`、`trapped_side!=空`、`signal_bar_tail_ratio>=0.25`
+    - `BNB` 的坏样本被错误走成 `LIMIT + tr_blshs_limit`
+    - `SOL` 的坏样本没有真正 `failed breakout` 证据，而且 `target_path_clear=false`
+- `all4_5m_global_brooks_v24_failedbo_strict.json`
+  - 在 `v23` 基础上把 `看衰突破` 从 `TR1 BLSHS` 路由剥离，并要求：
+    - 真实 `failed_breakout_evidence`
+    - `trapped_side`
+    - 足够 rejection tail
+    - 合法目标空间
+  - 结果：
+    - `BTCUSDT 5m`: 胜率 `70.0%`，日均 `0.24`，`PF 10.03`，账户收益 `+0.93%`
+    - `SOLUSDT 5m`: 胜率 `33.3%`，日均 `0.36`，`PF 2.72`，账户收益 `+0.53%`
+    - `BNBUSDT 5m`: 胜率 `22.2%`，日均 `0.43`，`PF 0.86`，账户收益 `-0.44%`
+    - `ETHUSDT 5m`: 胜率 `12.5%`，日均 `0.19`，`PF 0.27`，账户收益 `-0.15%`
+  - 结论：`v24` 比 `v23` 更贴近 Brooks 原课，但相对 `v18` 仍不是全局净提升，因此继续作为分析参考，不升级稳定基线。
+- `all4_5m_global_brooks_v25_structure_stop_realigned.json`
+  - 把结构止损对齐直接接进真实 PA 引擎，新增模块：
+    - `services/signal-service/src/engines/pa/structure_stops.py`
+  - 回测链自动复用这层逻辑，不再只在 backtest 端修 stop
+  - 结果：
+    - `BTCUSDT 5m`: 胜率 `70.0%`，日均 `0.24`，`PF 10.06`，账户收益 `+0.94%`
+    - `SOLUSDT 5m`: 胜率 `33.3%`，日均 `0.36`，`PF 2.72`，账户收益 `+0.53%`
+    - `BNBUSDT 5m`: 胜率 `22.2%`，日均 `0.43`，`PF 0.86`，账户收益 `-0.42%`
+    - `ETHUSDT 5m`: 胜率 `12.5%`，日均 `0.19`，`PF 0.27`，账户收益 `-0.15%`
+  - 结论：
+    - 这层修正没有打坏现有结果
+    - `止损没有放到结构位外` 的阻塞略有下降，但总交易数几乎不变
+    - 说明下一步必须把 stop 模板下沉到 `H2/L2 / TR2/TR3 / R1-R3 / T6`，不能继续靠统一 stop 后处理
 - `btc_sol_15m_brooks_mtr_focus_v2.json`
   - `BTCUSDT / SOLUSDT`
   - 周期：`15m`
@@ -968,3 +1084,155 @@ V4 汇总结果：
    - `双重顶`
    - `楔形顶`
 5. 增加“按策略类型聚合”的自动报告，而不是只看总收益
+
+## V27-V29：playbook stop / limit 路由 / 管理模板联调
+
+这一轮不是继续调统一阈值，而是把 Brooks 的三层逻辑补齐：
+
+1. `H1/H2/L1/L2 / TR2 / TR3 / reversal / T6` 的 stop 模板继续按 playbook 下沉
+2. `Broad Channel / higher TF = TR` 的合法 setup 从 `STOP` 错链路里拉回 `LIMIT`
+3. `higher TF = TR` 的 `5m limit fade` 改成 `TR scalp` 管理，而不是继续按 reversal swing 管
+
+理论支撑主要来自：
+
+- `S4-strategy-match.md`
+- `S6-tr.md`
+- `S6-reversal.md`
+- `47C 2nd Leg Trap`
+- `47D Entering with limit orders`
+- `14D Trend from the Open; Trending Trading Range`
+
+### V27：playbook stop + 中间值限流
+
+- 报告：`all4_5m_global_brooks_v27_playbook_stops_midcap.json`
+- 结论：
+  - `signals_generated` 从早先的硬封顶 `210` 抬到 `378`
+  - 但仍能看出明显的统一日限流痕迹
+  - `BTC`、`SOL` 可用，`ETH`、`BNB` 仍明显偏差
+
+结果：
+
+- `BTCUSDT`
+  - 胜率 `47.4%`
+  - 日均 `0.50`
+  - `PF 2.82`
+  - 账户收益 `+1.39%`
+  - 账户回撤 `0.59%`
+- `SOLUSDT`
+  - 胜率 `19.0%`
+  - 日均 `0.60`
+  - `PF 1.22`
+  - 账户收益 `+0.00%`
+  - 账户回撤 `0.52%`
+- `ETHUSDT`
+  - 胜率 `10.0%`
+  - 日均 `0.62`
+  - `PF 0.48`
+  - 账户收益 `-1.96%`
+  - 账户回撤 `1.24%`
+- `BNBUSDT`
+  - 胜率 `11.1%`
+  - 日均 `0.48`
+  - `PF 0.15`
+  - 账户收益 `-1.63%`
+  - 账户回撤 `1.33%`
+
+### V28：limit 路由修正 + 动态限流
+
+- 报告：`all4_5m_global_brooks_v28_limit_route.json`
+- 主要改动：
+  - `TR / Broad Channel / higher TF TR` 里本该 `LIMIT` 的单，不再全都走 `STOP`
+  - 日限流改成按 `cycle / signal_type / entry_type` 动态调整
+
+结果：
+
+- `BTCUSDT`
+  - 胜率 `40.9%`
+  - 日均 `0.52`
+  - `PF 2.39`
+- `SOLUSDT`
+  - 胜率 `21.9%`
+  - 日均 `0.76`
+  - `PF 1.23`
+- `ETHUSDT`
+  - 胜率 `16.7%`
+  - 日均 `0.57`
+  - `PF 0.74`
+- `BNBUSDT`
+  - 胜率 `11.1%`
+  - 日均 `0.64`
+  - `PF 0.31`
+
+结论：
+
+- 机会数量确实被放出来了，`signals_generated` 普遍从 `378` 提到 `518~537`
+- 但 `LIMIT` 路由修正后，管理模板仍然没完全跟上 Brooks
+
+### V29：higher TF = TR 的 5m limit fade 改成 TR scalp 管理
+
+- 报告：`all4_5m_global_brooks_v29_limit_management.json`
+- 主要改动：
+  - `higher TF = TR` 的 `5m limit fade / leg scalp`
+  - 不再用 `reversal swing` 模板
+  - 统一按 `brooks_tr_blshs` 管理
+
+结果：
+
+- `BTCUSDT`
+  - 胜率 `34.8%`
+  - 日均 `0.55`
+  - `PF 2.59`
+  - 账户收益 `+0.37%`
+  - 账户回撤 `0.86%`
+- `SOLUSDT`
+  - 胜率 `24.2%`
+  - 日均 `0.79`
+  - `PF 1.40`
+  - 账户收益 `+0.28%`
+  - 账户回撤 `0.54%`
+- `ETHUSDT`
+  - 胜率 `16.7%`
+  - 日均 `0.57`
+  - `PF 0.78`
+  - 账户收益 `-0.55%`
+  - 账户回撤 `0.89%`
+- `BNBUSDT`
+  - 胜率 `22.2%`
+  - 日均 `0.43`
+  - `PF 0.63`
+  - 账户收益 `-0.51%`
+  - 账户回撤 `0.83%`
+
+相对 `v27` 的结论：
+
+- `BTC`
+  - 频率略增，`PF` 仍然高于 `2`
+- `SOL`
+  - 频率明显提高，`PF` 从 `1.22 -> 1.40`
+- `ETH`
+  - `PF` 从 `0.48 -> 0.78`
+  - 回撤从 `1.24% -> 0.89%`
+- `BNB`
+  - `PF` 从 `0.15 -> 0.63`
+  - 回撤从 `1.33% -> 0.83%`
+
+当前判断：
+
+- `v29` 是比 `v27` 更接近 Brooks 的工作候选版本
+- 但还不是稳定终版，因为：
+  - `ETH / BNB` 仍未转正
+  - 单品种日均仍明显偏低
+  - 最大阻塞项仍是：
+    - `交易区间里必须在边缘反做`
+    - `交易区间中部不做单`
+    - `止损没有放到结构位外`
+    - `5m 高2 止损过紧`
+    - `前方磁体簇过密，第一次信号先不追`
+
+### 下一步最值得继续打的不是统一阈值
+
+下一轮应继续按 Brooks 主线往下拆：
+
+1. `TR edge / origin half / advantage zone` 的更细划分
+2. `H2/L2` 的专属 stop 模板，而不是继续用统一 stop 逻辑
+3. `磁体路径 / first target / trapped trader` 的更细 playbook 识别

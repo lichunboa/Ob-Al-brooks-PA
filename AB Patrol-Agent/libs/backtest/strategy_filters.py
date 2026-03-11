@@ -19,6 +19,7 @@ ALL_KNOWN_STRATEGIES = {
     "高2",
     "低2",
     "看衰突破",
+    "第二腿陷阱",
     "双重顶",
     "双重底",
     "楔形顶",
@@ -42,6 +43,7 @@ STRATEGY_ALIASES: dict[str, set[str]] = {
     "楔形顶底": {"楔形顶", "楔形底"},
     "头肩mtr": {"头肩顶MTR", "头肩底MTR"},
     "头肩MTR": {"头肩顶MTR", "头肩底MTR"},
+    "第二腿陷阱": {"第二腿陷阱", "2nd Leg Trap"},
     "高低1": {"高1", "低1"},
     "高低2": {"高2", "低2"},
     "高低12": {"高1", "低1", "高2", "低2"},
@@ -166,8 +168,10 @@ def classify_management_style(
     management_profile: str = "default",
     *,
     market_state: str = "",
+    higher_market_state: str = "",
     timeframe: str = "",
     entry_type: str = "STOP",
+    route_style: str = "",
 ) -> str:
     """把策略映射到回测专用管理模板。"""
     label = normalize_strategy_label(signal_type)
@@ -175,16 +179,28 @@ def classify_management_style(
         return "default"
 
     market_key = normalize_strategy_label(market_state)
+    higher_key = normalize_strategy_label(higher_market_state)
     tf = normalize_strategy_label(timeframe)
     order_type = normalize_strategy_label(entry_type).upper()
+    route_key = normalize_strategy_label(route_style)
 
     # Brooks 原课里 5m 交易区间优先 BLSHS: limit + scalp。
-    if tf == "5m" and market_key in {"tight_range", "broad_range"}:
+    if tf == "5m" and (
+        market_key in {"tight_range", "broad_range"}
+        or higher_key in {"tight_range", "broad_range"}
+        or route_key in {
+            "tr_blshs_limit",
+            "higher_tr_limit_reversal",
+            "tr_leg_limit_pullback",
+            "broad_channel_limit_reversal",
+        }
+    ):
         if order_type == "LIMIT" or label in {
             "高1",
             "高2",
             "低1",
             "低2",
+            "第二腿陷阱",
             "双重顶",
             "双重底",
             "楔形顶",
@@ -200,7 +216,7 @@ def classify_management_style(
         return "brooks_hs_reversal"
     if label in {"双重顶", "双重底"}:
         return "brooks_dt_db_reversal"
-    if label in {"楔形顶", "楔形底", "末端旗形", "急速通道", "看衰突破"}:
+    if label in {"楔形顶", "楔形底", "末端旗形", "急速通道", "看衰突破", "第二腿陷阱"}:
         return "brooks_wedge_reversal"
     if label in {"高1", "低1", "高2", "低2", "突破回调", "ioi突破", "HOY突破"}:
         return "brooks_swing"
@@ -214,16 +230,20 @@ def management_score_floor(
     management_profile: str = "default",
     *,
     market_state: str = "",
+    higher_market_state: str = "",
     timeframe: str = "",
     entry_type: str = "STOP",
+    route_style: str = "",
 ) -> int:
     """不同管理模板下的最低分要求。"""
     style = classify_management_style(
         signal_type,
         management_profile,
         market_state=market_state,
+        higher_market_state=higher_market_state,
         timeframe=timeframe,
         entry_type=entry_type,
+        route_style=route_style,
     )
     if management_profile != "brooks_pdf":
         return 0
